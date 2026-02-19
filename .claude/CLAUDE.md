@@ -254,3 +254,9 @@ reflow/
 4. If still uncertain, make the safest choice (reject with an error) and leave a `# TODO: confirm with spec` comment.
 
 Do not guess at semantics. Do not implement what seems obvious when the spec defines something specific.
+
+---
+
+## Ticket Completion
+
+Always commit after ticket completion.

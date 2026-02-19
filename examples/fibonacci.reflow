@@ -1,0 +1,14 @@
+; fibonacci.reflow — Recursive Fibonacci
+module examples.fibonacci
+
+fn fib(n: int): int {
+    if n <= 1 {
+        return n
+    }
+    return fib(n - 1) + fib(n - 2)
+}
+
+fn main() {
+    let result: int = fib(10)
+    println(f"fib(10) = {result}")
+}

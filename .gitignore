@@ -1,2 +1,19 @@
 .env
 .envrc
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+
+# Build artifacts
+*.o
+*.out
+*.exe
+/build/
+
+# Generated C files (keep only golden files in tests/expected/)
+*.generated.c

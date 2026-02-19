@@ -1,0 +1,8 @@
+; hello.reflow — Hello World example
+module examples.hello
+
+import io (println)
+
+fn main() {
+    println("Hello, World!")
+}

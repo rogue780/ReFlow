@@ -1,4 +1,17 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(python3 -m pytest:*)",
+      "Bash(python3 -m unittest:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  },
   "mcpServers": {
     "github": {
       "command": "npx",
