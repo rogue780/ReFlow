@@ -17,3 +17,4 @@ __pycache__/
 
 # Generated C files (keep only golden files in tests/expected/)
 *.generated.c
+.venv
