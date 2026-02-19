@@ -260,3 +260,40 @@ Do not guess at semantics. Do not implement what seems obvious when the spec def
 ## Ticket Completion
 
 Always commit after ticket completion.
+
+---
+
+## Environment
+
+This project uses a Python virtual environment and nvm for Node. The `.envrc`
+file handles both automatically when you enter the project directory, but all
+shell commands must respect these:
+
+**Python:** Always use `python` or `pytest` directly — the venv is activated
+by direnv, so the correct Python is already on PATH. Never use `python3` or
+`/usr/bin/python3` explicitly, as these bypass the venv.
+
+**Node/npx:** nvm is loaded by `.envrc`. If a shell command fails to find
+`node` or `npx`, run `source ~/.nvm/nvm.sh` first. Never install global npm
+packages with sudo.
+
+**Running tests:** Always run tests via:
+```bash
+make test
+```
+or for a specific test:
+```bash
+pytest tests/unit/test_.py -v
+```
+
+Never run `python -m pytest` with an explicit python path. The venv Python
+handles this.
+
+**Verifying the environment is correct before any shell command:**
+```bash
+which python   # should point to .venv/bin/python
+which node     # should point to ~/.nvm/versions/node/v22.x.x/bin/node
+```
+
+If either points somewhere unexpected, do not proceed — the environment
+is not set up correctly and commands will fail or use wrong versions.

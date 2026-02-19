@@ -9,7 +9,13 @@
       "Bash(python3 -m pytest:*)",
       "Bash(python3 -m unittest:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(python3:*)",
+      "Bash(git log:*)",
+      "Bash(clang:*)",
+      "Bash(python -c:*)",
+      "Bash(source:*)",
+      "Bash(python -m pytest:*)"
     ]
   },
   "mcpServers": {
