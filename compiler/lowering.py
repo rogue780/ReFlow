@@ -440,6 +440,9 @@ class Lowerer:
         # Pending statements generated during expression lowering
         self._pending_stmts: list[LStmt] = []
 
+        # Current function's return type — used by ok/err/none to pick correct struct
+        self._current_fn_return_type: Type | None = None
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
@@ -605,6 +608,9 @@ class Lowerer:
             self._lower_stream_fn(fn)
             return
 
+        saved_return_type = self._current_fn_return_type
+        self._current_fn_return_type = ret_type
+
         c_name = mangle(self._module_path, None, fn.name,
                         file=self._file, line=fn.line, col=fn.col)
 
@@ -633,6 +639,7 @@ class Lowerer:
             is_pure=fn.is_pure,
             source_name=f"{self._module_path}.{fn.name}",
         ))
+        self._current_fn_return_type = saved_return_type
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
         """Lower a type declaration. RT-7-2-2."""
@@ -666,6 +673,9 @@ class Lowerer:
             ret_type = self._type_of_return_method(method)
             ret_lt = self._lower_type(ret_type)
 
+            saved_return_type = self._current_fn_return_type
+            self._current_fn_return_type = ret_type
+
             body: list[LStmt] = []
             match method.body:
                 case Block():
@@ -684,6 +694,7 @@ class Lowerer:
                 is_pure=method.is_pure,
                 source_name=f"{self._module_path}.{td.name}.{method.name}",
             ))
+            self._current_fn_return_type = saved_return_type
 
         # Lower constructors
         for ctor in td.constructors:
@@ -1644,9 +1655,7 @@ class Lowerer:
 
         # Extract ok value
         ok_tmp = self._fresh_temp()
-        ok_value = LFieldAccess(
-            LFieldAccess(tmp_var, "payload", result_lt),
-            "ok_val", ok_lt)
+        ok_value = LFieldAccess(tmp_var, "ok_val", ok_lt)
         self._pending_stmts.append(
             LVarDecl(c_name=ok_tmp, c_type=ok_lt, init=ok_value))
 
@@ -1723,7 +1732,9 @@ class Lowerer:
     def _lower_ok(self, expr: OkExpr) -> LExpr:
         """Lower ok(value)."""
         inner = self._lower_expr(expr.inner)
-        t = self._type_of(expr)
+        # Use function return type to get concrete result struct
+        t = self._current_fn_return_type if isinstance(
+            self._current_fn_return_type, TResult) else self._type_of(expr)
         lt = self._lower_type(t)
         return LCompound(
             fields=[("tag", LLit("0", LByte())),
@@ -1734,7 +1745,9 @@ class Lowerer:
     def _lower_err(self, expr: ErrExpr) -> LExpr:
         """Lower err(value)."""
         inner = self._lower_expr(expr.inner)
-        t = self._type_of(expr)
+        # Use function return type to get concrete result struct
+        t = self._current_fn_return_type if isinstance(
+            self._current_fn_return_type, TResult) else self._type_of(expr)
         lt = self._lower_type(t)
         return LCompound(
             fields=[("tag", LLit("1", LByte())),
@@ -1974,9 +1987,7 @@ class Lowerer:
                     ok_lt = self._lower_type(res_t.ok_type)
                     ok_body.append(LVarDecl(
                         c_name=var, c_type=ok_lt,
-                        init=LFieldAccess(
-                            LFieldAccess(subj, "payload", subj.c_type),
-                            "ok_val", ok_lt)))
+                        init=LFieldAccess(subj, "ok_val", ok_lt)))
                     match arm.body:
                         case Block():
                             ok_body.extend(self._lower_block(arm.body))
@@ -1992,9 +2003,7 @@ class Lowerer:
                     err_lt = self._lower_type(res_t.err_type)
                     err_body.append(LVarDecl(
                         c_name=var, c_type=err_lt,
-                        init=LFieldAccess(
-                            LFieldAccess(subj, "payload", subj.c_type),
-                            "err_val", err_lt)))
+                        init=LFieldAccess(subj, "err_val", err_lt)))
                     match arm.body:
                         case Block():
                             err_body.extend(self._lower_block(arm.body))
@@ -2185,9 +2194,7 @@ class Lowerer:
                     ok_lt = self._lower_type(res_t.ok_type)
                     ok_body.append(LVarDecl(
                         c_name=var, c_type=ok_lt,
-                        init=LFieldAccess(
-                            LFieldAccess(subj, "payload", subj.c_type),
-                            "ok_val", ok_lt)))
+                        init=LFieldAccess(subj, "ok_val", ok_lt)))
                     val = self._lower_arm_body(arm)
                     ok_body.extend(self._pending_stmts)
                     self._pending_stmts = []
@@ -2197,9 +2204,7 @@ class Lowerer:
                     err_lt = self._lower_type(res_t.err_type)
                     err_body.append(LVarDecl(
                         c_name=var, c_type=err_lt,
-                        init=LFieldAccess(
-                            LFieldAccess(subj, "payload", subj.c_type),
-                            "err_val", err_lt)))
+                        init=LFieldAccess(subj, "err_val", err_lt)))
                     val = self._lower_arm_body(arm)
                     err_body.extend(self._pending_stmts)
                     self._pending_stmts = []
