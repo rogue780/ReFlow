@@ -1111,11 +1111,14 @@ class Lowerer:
                 recv = self._lower_expr(receiver)
                 t = self._type_of(expr)
                 lt = self._lower_type(t)
+                # Tuple field names: .0, .1 → ._0, ._1 (numeric names are
+                # invalid C identifiers, prefix with underscore)
+                c_field = f"_{field_name}" if field_name.isdigit() else field_name
                 # Use arrow for pointer-typed receivers (heap types, self param)
                 recv_c_type = getattr(recv, 'c_type', None)
                 if isinstance(recv_c_type, LPtr):
-                    return LArrow(ptr=recv, field=field_name, c_type=lt)
-                return LFieldAccess(obj=recv, field=field_name, c_type=lt)
+                    return LArrow(ptr=recv, field=c_field, c_type=lt)
+                return LFieldAccess(obj=recv, field=c_field, c_type=lt)
 
             case IndexAccess(receiver=receiver, index=index):
                 recv = self._lower_expr(receiver)
