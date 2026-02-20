@@ -741,13 +741,8 @@ class ForStmt(Stmt):
     body: 'Block'
     finally_block: 'Block | None'
 
-@dataclass
-class CStyleForStmt(Stmt):
-    init: 'LetStmt'
-    condition: Expr
-    update: 'UpdateStmt'
-    body: 'Block'
-    finally_block: 'Block | None'
+; C-style for loops removed: ';' is the comment character, creating
+; an irreconcilable syntax conflict. Use while loops or for(x in range(...)) instead.
 
 @dataclass
 class MatchStmt(Stmt):
@@ -1012,7 +1007,7 @@ Implement `parse_if_stmt() -> IfStmt`. Parses `if expr { block } else if ... els
 Implement `parse_while_stmt() -> WhileStmt`. Parses `while expr { block }` with optional trailing `finally { block }`.
 
 **RT-4-3-6**
-Implement `parse_for_stmt() -> ForStmt | CStyleForStmt`. Parses both iteration form `for(item: T in expr) { block }` and C-style form `for(let i: int:mut = 0; i < n; i++) { block }`.
+Implement `parse_for_stmt() -> ForStmt`. Parses iteration form `for(item: T in expr) { block }` with optional `finally`. C-style for loops were removed due to `;` comment syntax conflict.
 
 **RT-4-3-7**
 Implement `parse_match_stmt() -> MatchStmt` and `parse_match_expr() -> MatchExpr`. Parses `match expr { pattern : expr_or_block, ... }`.

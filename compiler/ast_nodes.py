@@ -373,15 +373,6 @@ class ForStmt(Stmt):
 
 
 @dataclass
-class CStyleForStmt(Stmt):
-    init: LetStmt
-    condition: Expr
-    update: UpdateStmt
-    body: Block
-    finally_block: Block | None
-
-
-@dataclass
 class MatchStmt(Stmt):
     subject: Expr
     arms: list[MatchArm]

@@ -1490,14 +1490,6 @@ for(item: int in collection) {
 }
 ```
 
-C-style form:
-
-```
-for(let i: int:mut = 0; i < n; i++) {
-    do_something(i)
-}
-```
-
 `for` supports `finally`:
 
 ```
