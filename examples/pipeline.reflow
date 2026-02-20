@@ -1,6 +1,8 @@
 ; pipeline.reflow — Composition chain example
 module examples.pipeline
 
+import io (println)
+
 pure fn double(x: int): int = x * 2
 pure fn square(x: int): int = x * x
 pure fn add(x: int, y: int): int = x + y

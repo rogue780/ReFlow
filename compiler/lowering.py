@@ -1303,6 +1303,11 @@ class Lowerer:
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, lowered_args, lt)
+            # Named import of a native function: import io (println)
+            if sym is not None and sym.kind == SymbolKind.IMPORT:
+                fn_decl = sym.decl
+                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
+                    return LCall(fn_decl.native_name, lowered_args, lt)
             # Builtin or unresolved — use name directly
             return LCall(name, lowered_args, lt)
 

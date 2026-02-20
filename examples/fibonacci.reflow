@@ -1,6 +1,8 @@
 ; fibonacci.reflow — Recursive Fibonacci
 module examples.fibonacci
 
+import io (println)
+
 fn fib(n: int): int {
     if n <= 1 {
         return n
