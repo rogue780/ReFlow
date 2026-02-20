@@ -1,0 +1,7 @@
+module tests.errors.non_exhaustive_option
+
+fn unwrap(x: int?): int {
+    match x {
+        some(v): { return v }
+    }
+}

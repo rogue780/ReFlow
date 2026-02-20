@@ -1,0 +1,2 @@
+TypeError
+pure function 'compute' cannot call non-pure function

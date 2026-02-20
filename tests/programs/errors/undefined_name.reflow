@@ -1,0 +1,5 @@
+module tests.errors.undefined_name
+
+fn main() {
+    let x = unknown_function(42)
+}

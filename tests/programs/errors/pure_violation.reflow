@@ -1,0 +1,9 @@
+module tests.errors.pure_violation
+
+fn impure_fn(): int {
+    return 42
+}
+
+pure fn compute(x: int): int {
+    return impure_fn() + x
+}

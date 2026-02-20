@@ -1,0 +1,7 @@
+module tests.errors.type_mismatch
+
+fn add(x: int, y: int): int = x + y
+
+fn main() {
+    let result: string = add(1, 2)
+}

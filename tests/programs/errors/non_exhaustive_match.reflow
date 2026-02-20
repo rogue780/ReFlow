@@ -1,0 +1,13 @@
+module tests.errors.non_exhaustive_match
+
+type Shape =
+    | Circle(radius: float)
+    | Rectangle(width: float, height: float)
+    | Square(side: float)
+
+fn area(s: Shape): float {
+    match s {
+        Circle(r): { return 3.14 * r * r }
+        Rectangle(w, h): { return w * h }
+    }
+}
