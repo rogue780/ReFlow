@@ -1795,18 +1795,20 @@ class Lowerer:
                         continue
                     body: list[LStmt] = []
                     variant = sum_t.variants[tag]
-                    # Bind variant fields
+                    # Bind variant fields using actual field names from TypeDecl
                     if variant.fields is not None:
+                        field_names = self._get_variant_field_names(
+                            sum_t.name, vname)
                         for i, binding in enumerate(bindings):
                             if i < len(variant.fields):
                                 field_lt = self._lower_type(variant.fields[i])
+                                fname = field_names[i] if i < len(field_names) else f"_{i}"
                                 body.append(LVarDecl(
                                     c_name=binding,
                                     c_type=field_lt,
                                     init=LFieldAccess(
                                         LFieldAccess(subj, vname, subj.c_type),
-                                        f"_{i}" if len(variant.fields) > 1 else list(self._get_variant_field_names(vname, variant))[i],
-                                        field_lt),
+                                        fname, field_lt),
                                 ))
                     match arm.body:
                         case Block():
@@ -1836,12 +1838,14 @@ class Lowerer:
         tag_access = LFieldAccess(subj, "tag", LByte())
         return [LSwitch(value=tag_access, cases=cases, default=default)]
 
-    def _get_variant_field_names(self, vname: str, variant: TVariant) -> list[str]:
-        """Get field names for a variant. Since TVariant only has types, use indices."""
-        if variant.fields is None:
-            return []
-        # Sum type variant fields are accessed by index in the generated struct
-        return [f"_{i}" for i in range(len(variant.fields))]
+    def _get_variant_field_names(self, sum_name: str, vname: str) -> list[str]:
+        """Get field names for a variant by looking up the SumVariantDecl in the AST."""
+        for decl in self._module.decls:
+            if isinstance(decl, TypeDecl) and decl.name == sum_name and decl.is_sum_type:
+                for variant in decl.variants:
+                    if variant.name == vname and variant.fields is not None:
+                        return [fname for fname, _ in variant.fields]
+        return []
 
     def _lower_match_option(self, subj: LVar, opt_t: TOption,
                             arms: list[MatchArm]) -> list[LStmt]:
@@ -2042,14 +2046,17 @@ class Lowerer:
                     body: list[LStmt] = []
                     variant = sum_t.variants[tag]
                     if variant.fields is not None:
+                        field_names = self._get_variant_field_names(
+                            sum_t.name, vname)
                         for i, binding in enumerate(bindings):
                             if i < len(variant.fields):
                                 field_lt = self._lower_type(variant.fields[i])
+                                fname = field_names[i] if i < len(field_names) else f"_{i}"
                                 body.append(LVarDecl(
                                     c_name=binding, c_type=field_lt,
                                     init=LFieldAccess(
                                         LFieldAccess(subj, vname, subj.c_type),
-                                        f"_{i}", field_lt)))
+                                        fname, field_lt)))
                     val = self._lower_arm_body(arm)
                     body.extend(self._pending_stmts)
                     self._pending_stmts = []
