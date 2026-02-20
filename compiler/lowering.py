@@ -1084,6 +1084,9 @@ class Lowerer:
                     fn_c_name = mangle(self._module_path, None, name,
                                        file=self._file, line=expr.line, col=expr.col)
                     return LVar(fn_c_name, lt)
+                # self is always a pointer in methods
+                if name == "self" and isinstance(lt, LStruct):
+                    return LVar(name, LPtr(lt))
                 return LVar(name, lt)
 
             # Binary operators (RT-7-3-2)
@@ -1108,9 +1111,9 @@ class Lowerer:
                 recv = self._lower_expr(receiver)
                 t = self._type_of(expr)
                 lt = self._lower_type(t)
-                recv_type = self._type_of(receiver)
-                if isinstance(recv_type, (TString, TArray, TStream, TBuffer, TMap, TSet)):
-                    # Heap types — use arrow
+                # Use arrow for pointer-typed receivers (heap types, self param)
+                recv_c_type = getattr(recv, 'c_type', None)
+                if isinstance(recv_c_type, LPtr):
                     return LArrow(ptr=recv, field=field_name, c_type=lt)
                 return LFieldAccess(obj=recv, field=field_name, c_type=lt)
 
