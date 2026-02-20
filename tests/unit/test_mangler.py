@@ -84,28 +84,25 @@ class TestMangleMultiplePathComponents(unittest.TestCase):
 
 
 class TestMangleReservedCIdentifiers(unittest.TestCase):
-    """C reserved words must raise EmitError."""
+    """C reserved words are safe after rf_ prefix mangling."""
 
     def test_return_as_function_name(self) -> None:
-        with self.assertRaises(EmitError) as ctx:
-            mangle("test", fn_name="return", file="t.reflow", line=1, col=1)
-        self.assertIn("return", ctx.exception.message)
-        self.assertIn("C reserved word", ctx.exception.message)
+        result = mangle("test", fn_name="return", file="t.reflow", line=1, col=1)
+        self.assertEqual(result, "rf_test_return")
 
     def test_int_as_function_name(self) -> None:
-        with self.assertRaises(EmitError):
-            mangle("test", fn_name="int", file="t.reflow", line=1, col=1)
+        result = mangle("test", fn_name="int", file="t.reflow", line=1, col=1)
+        self.assertEqual(result, "rf_test_int")
 
     def test_static_as_type_name(self) -> None:
-        with self.assertRaises(EmitError):
-            mangle("test", "static", file="t.reflow", line=1, col=1)
+        result = mangle("test", "static", file="t.reflow", line=1, col=1)
+        self.assertEqual(result, "rf_test_static")
 
     def test_while_as_function_name(self) -> None:
-        with self.assertRaises(EmitError):
-            mangle("test", fn_name="while", file="t.reflow", line=1, col=1)
+        result = mangle("test", fn_name="while", file="t.reflow", line=1, col=1)
+        self.assertEqual(result, "rf_test_while")
 
     def test_non_reserved_passes(self) -> None:
-        # These should not raise
         result = mangle("test", fn_name="process")
         self.assertEqual(result, "rf_test_process")
 

@@ -1228,6 +1228,38 @@ class TypeChecker:
 
         stack: list[Type] = []
         for elem in elements:
+            # Fan-out: distribute stack input to each branch function
+            if isinstance(elem.expr, FanOut):
+                fan_results: list[Type] = []
+                consumed_input = False
+                for branch in elem.expr.branches:
+                    bt = self._infer_expr(branch.expr, scope)
+                    if isinstance(bt, TFn) and len(bt.params) > 0 and stack:
+                        # Shorthand fan-out: branch fn consumes stack top
+                        input_t = stack[-1]
+                        for param_t in bt.params:
+                            if not self._is_assignable(input_t, param_t):
+                                raise self._error(
+                                    f"fan-out branch type mismatch: "
+                                    f"expected "
+                                    f"{self._type_name(param_t)}, got "
+                                    f"{self._type_name(input_t)}", node)
+                        fan_results.append(bt.ret)
+                        consumed_input = True
+                    else:
+                        # Long form: branch is a sub-chain producing a value
+                        fan_results.append(bt)
+                if consumed_input:
+                    stack.pop()
+                for r in fan_results:
+                    stack.append(r)
+                # Record fan-out type
+                if len(fan_results) == 1:
+                    self._types[elem.expr] = fan_results[0]
+                else:
+                    self._types[elem.expr] = TTuple(tuple(fan_results))
+                continue
+
             et = self._infer_expr(elem.expr, scope)
 
             if isinstance(et, TFn):

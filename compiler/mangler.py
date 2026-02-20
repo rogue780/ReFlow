@@ -82,7 +82,8 @@ def mangle(module: str, type_name: str | None = None,
     if fn_name is not None:
         result += "_" + fn_name
 
-    _check_reserved(fn_name or type_name or module, file, line, col)
+    # No reserved-word check needed: the rf_ prefix guarantees no
+    # collision with C keywords.
 
     return result
 

@@ -1352,39 +1352,90 @@ class Lowerer:
         return LCall(method_c_name, [recv] + lowered_args, lt)
 
     def _lower_chain(self, chain: CompositionChain) -> LExpr:
-        """Lower composition chain to sequential temp vars. RT-7-3-3."""
+        """Lower composition chain using a value stack. RT-7-3-3."""
         if not chain.elements:
             return LLit("0", LVoid())
 
-        # Lower the first element
-        current = self._lower_expr(chain.elements[0].expr)
+        stack: list[LExpr] = []
 
-        for elem in chain.elements[1:]:
+        for elem in chain.elements:
             elem_expr = elem.expr
+
+            # Fan-out: apply each branch function to the stack top
+            if isinstance(elem_expr, FanOut):
+                if stack:
+                    # Shorthand fan-out: distribute input to each branch
+                    input_val = stack.pop()
+                    input_type = getattr(input_val, 'c_type', LVoid())
+                    tmp = self._fresh_temp()
+                    self._pending_stmts.append(
+                        LVarDecl(c_name=tmp, c_type=input_type,
+                                 init=input_val))
+
+                    for branch in elem_expr.branches:
+                        bt = self._type_of(branch.expr)
+                        if isinstance(bt, TFn) and len(bt.params) > 0:
+                            fn_expr = self._lower_expr(branch.expr)
+                            result_type = self._lower_type(bt.ret)
+                            if isinstance(fn_expr, LVar):
+                                call = LCall(
+                                    fn_expr.c_name,
+                                    [LVar(tmp, input_type)], result_type)
+                            else:
+                                call = LIndirectCall(
+                                    fn_expr,
+                                    [LVar(tmp, input_type)], result_type)
+                            stack.append(call)
+                        else:
+                            stack.append(self._lower_expr(branch.expr))
+                else:
+                    # Long form: each branch produces its own value
+                    for branch in elem_expr.branches:
+                        stack.append(self._lower_expr(branch.expr))
+                continue
+
             elem_type = self._type_of(elem_expr)
 
             if isinstance(elem_type, TFn):
-                # Function application — pass current as argument
-                # Store current in a temp
-                tmp = self._fresh_temp()
-                current_type = current.c_type if hasattr(current, 'c_type') else LVoid()
-                self._pending_stmts.append(
-                    LVarDecl(c_name=tmp, c_type=current_type, init=current))
+                arity = len(elem_type.params)
+                if arity > 0 and len(stack) >= arity:
+                    # Store each arg in a temp, pop from stack
+                    args: list[LExpr] = []
+                    arg_vals = stack[-arity:]
+                    stack = stack[:-arity]
+                    for arg_val in arg_vals:
+                        arg_type = getattr(arg_val, 'c_type', LVoid())
+                        tmp = self._fresh_temp()
+                        self._pending_stmts.append(
+                            LVarDecl(c_name=tmp, c_type=arg_type,
+                                     init=arg_val))
+                        args.append(LVar(tmp, arg_type))
 
-                fn_expr = self._lower_expr(elem_expr)
-                result_type = self._lower_type(elem_type.ret)
+                    fn_expr = self._lower_expr(elem_expr)
+                    result_type = self._lower_type(elem_type.ret)
 
-                if isinstance(fn_expr, LVar):
-                    current = LCall(fn_expr.c_name,
-                                    [LVar(tmp, current_type)], result_type)
+                    if isinstance(fn_expr, LVar):
+                        stack.append(LCall(fn_expr.c_name, args,
+                                           result_type))
+                    else:
+                        stack.append(LIndirectCall(fn_expr, args,
+                                                   result_type))
+                elif arity == 0:
+                    fn_expr = self._lower_expr(elem_expr)
+                    result_type = self._lower_type(elem_type.ret)
+                    if isinstance(fn_expr, LVar):
+                        stack.append(LCall(fn_expr.c_name, [],
+                                           result_type))
+                    else:
+                        stack.append(LIndirectCall(fn_expr, [],
+                                                   result_type))
                 else:
-                    current = LIndirectCall(fn_expr,
-                                            [LVar(tmp, current_type)], result_type)
+                    # Not enough values on stack — push as value
+                    stack.append(self._lower_expr(elem_expr))
             else:
-                # Non-function element — just use it directly
-                current = self._lower_expr(elem_expr)
+                stack.append(self._lower_expr(elem_expr))
 
-        return current
+        return stack[-1] if stack else LLit("0", LVoid())
 
     def _lower_fstring(self, expr: FStringExpr) -> LExpr:
         """Lower f-string to chain of rf_string_concat calls. RT-7-3-4."""
