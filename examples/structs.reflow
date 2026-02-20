@@ -1,0 +1,78 @@
+; structs.reflow — Named types, fields, methods, constructors, statics, spread
+; STATUS: does not compile yet — blocked by emitter bugs:
+;   - self.field emits dot instead of arrow (self->field)
+;   - static string field init not compile-time constant
+module examples.structs
+
+import io (println)
+
+; Basic struct with fields
+type Point {
+    x: float
+    y: float
+}
+
+; Type with mutable field and methods
+type Counter {
+    value: int:mut
+
+    fn current(self): int = self.value
+
+    fn display(self): none {
+        println(f"Counter: {self.value}")
+    }
+}
+
+; Type with constructor
+type Color {
+    r: int
+    g: int
+    b: int
+
+    constructor from_hex(hex: int): Color {
+        return Color {
+            r: hex / 65536 % 256,
+            g: hex / 256 % 256,
+            b: hex % 256
+        }
+    }
+
+    fn to_string(self): string {
+        return f"rgb({self.r}, {self.g}, {self.b})"
+    }
+}
+
+; Type with static member
+type Config {
+    static default_name: string = "ReFlow"
+
+    name: string
+    version: int
+}
+
+fn main() {
+    ; Struct literal construction
+    let p = Point { x: 3.0, y: 4.0 }
+    println(f"point: ({p.x}, {p.y})")
+
+    ; Struct spread
+    let p2 = Point { x: 10.0, ..p }
+    println(f"spread: ({p2.x}, {p2.y})")
+
+    ; Mutable field
+    let c: Counter:mut = Counter { value: 0 }
+    c.display()
+    c.value = 42
+    c.display()
+    println(f"current = {c.current()}")
+
+    ; Constructor
+    let red = Color.from_hex(16711680)
+    println(f"red = {red.to_string()}")
+
+    ; Static member access
+    println(f"default name: {Config.default_name}")
+
+    let cfg = Config { name: "MyApp", version: 1 }
+    println(f"config: {cfg.name} v{cfg.version}")
+}

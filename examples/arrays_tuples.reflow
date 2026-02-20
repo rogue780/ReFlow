@@ -1,0 +1,37 @@
+; arrays_tuples.reflow — Array literals, iteration, tuple literals, indexing
+; STATUS: does not compile yet — blocked by emitter bugs:
+;   - array literal data passed as NULL to rf_array_new
+;   - tuple field access emits .0 instead of ._0
+;   - for-over-array lowering incomplete
+module examples.arrays_tuples
+
+import io (println)
+
+fn sum_array(arr: array<int>): int {
+    let total: int:mut = 0
+    for (x: int in arr) {
+        total += x
+    }
+    return total
+}
+
+fn main() {
+    ; Array literal
+    let numbers = [10, 20, 30, 40, 50]
+    println(f"sum = {sum_array(numbers)}")
+
+    ; For loop over array
+    for (n: int in numbers) {
+        println(f"  item: {n}")
+    }
+
+    ; Tuple literal and field access
+    let pair = (42, "answer")
+    println(f"pair.0 = {pair.0}")
+    println(f"pair.1 = {pair.1}")
+
+    ; Tuple with more elements
+    let triple = (1, 2, 3)
+    let tsum = triple.0 + triple.1 + triple.2
+    println(f"triple sum = {tsum}")
+}

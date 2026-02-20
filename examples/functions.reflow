@@ -1,0 +1,47 @@
+; functions.reflow — Named functions, expression form, pure functions
+module examples.functions
+
+import io (println)
+
+; Expression-form function
+pure fn add(x: int, y: int): int = x + y
+
+; Expression-form with single expression
+pure fn square(n: int): int = n * n
+
+; Block-form function
+fn factorial(n: int): int {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+; Pure function calling other pure functions
+pure fn sum_of_squares(a: int, b: int): int = add(square(a), square(b))
+
+; Function with multiple return paths
+fn classify(n: int): string {
+    if n < 0 {
+        return "negative"
+    } else if n == 0 {
+        return "zero"
+    }
+    return "positive"
+}
+
+; Function returning none (side effects only)
+fn greet(name: string): none {
+    println(f"Hello, {name}!")
+}
+
+fn main() {
+    println(f"add(3, 4) = {add(3, 4)}")
+    println(f"square(5) = {square(5)}")
+    println(f"factorial(10) = {factorial(10)}")
+    println(f"sum_of_squares(3, 4) = {sum_of_squares(3, 4)}")
+    println(f"classify(-1) = {classify(-1)}")
+    println(f"classify(0) = {classify(0)}")
+    println(f"classify(1) = {classify(1)}")
+    greet("ReFlow")
+}
