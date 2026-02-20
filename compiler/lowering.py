@@ -1,2 +1,2573 @@
 # compiler/lowering.py — Typed AST → LModule.
 # No C syntax. No formatting.
+#
+# Implements RT-7-1-1 through RT-7-5-3.
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from compiler.errors import EmitError
+from compiler.mangler import mangle, mangle_stream_frame, mangle_stream_next, mangle_stream_free
+from compiler.ast_nodes import (
+    # Base
+    ASTNode, TypeExpr, Expr, Stmt, Decl, Block, Pattern,
+    # Type expressions
+    NamedType, GenericType, OptionType, FnType, TupleType, MutType, ImutType,
+    # Expressions
+    IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
+    Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
+    Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
+    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr,
+    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
+    PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
+    # Statements
+    LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
+    BreakStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
+    MatchStmt, TryStmt, MatchArm,
+    # Patterns
+    WildcardPattern, LiteralPattern, BindPattern, SomePattern, NonePattern,
+    OkPattern, ErrPattern, VariantPattern, TuplePattern,
+    # Declarations
+    FnDecl, TypeDecl, Param, StaticMemberDecl,
+    # Top-level
+    Module,
+)
+from compiler.typechecker import (
+    TypedModule, Type,
+    TInt, TFloat, TBool, TChar, TByte, TString, TNone,
+    TOption, TResult, TTuple, TArray, TStream, TBuffer, TMap, TSet,
+    TFn, TRecord, TNamed, TAlias, TSum, TVariant, TTypeVar, TAny,
+)
+from compiler.resolver import ResolvedModule, Symbol, SymbolKind
+
+
+# ---------------------------------------------------------------------------
+# LType hierarchy (RT-7-1-1)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LType:
+    """Base class for lowered types."""
+    pass
+
+
+@dataclass
+class LInt(LType):
+    width: int
+    signed: bool
+
+
+@dataclass
+class LFloat(LType):
+    width: int
+
+
+@dataclass
+class LBool(LType):
+    pass
+
+
+@dataclass
+class LChar(LType):
+    pass
+
+
+@dataclass
+class LByte(LType):
+    pass
+
+
+@dataclass
+class LPtr(LType):
+    inner: LType
+
+
+@dataclass
+class LStruct(LType):
+    c_name: str
+
+
+@dataclass
+class LVoid(LType):
+    pass
+
+
+@dataclass
+class LFnPtr(LType):
+    params: list[LType]
+    ret: LType
+
+
+# ---------------------------------------------------------------------------
+# LExpr hierarchy (RT-7-1-1)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LExpr:
+    """Base class for lowered expressions."""
+    pass
+
+
+@dataclass
+class LLit(LExpr):
+    value: str
+    c_type: LType
+
+
+@dataclass
+class LVar(LExpr):
+    c_name: str
+    c_type: LType
+
+
+@dataclass
+class LCall(LExpr):
+    fn_name: str
+    args: list[LExpr]
+    c_type: LType
+
+
+@dataclass
+class LIndirectCall(LExpr):
+    fn_ptr: LExpr
+    args: list[LExpr]
+    c_type: LType
+
+
+@dataclass
+class LBinOp(LExpr):
+    op: str
+    left: LExpr
+    right: LExpr
+    c_type: LType
+
+
+@dataclass
+class LUnary(LExpr):
+    op: str
+    operand: LExpr
+    c_type: LType
+
+
+@dataclass
+class LFieldAccess(LExpr):
+    obj: LExpr
+    field: str
+    c_type: LType
+
+
+@dataclass
+class LArrow(LExpr):
+    ptr: LExpr
+    field: str
+    c_type: LType
+
+
+@dataclass
+class LIndex(LExpr):
+    arr: LExpr
+    idx: LExpr
+    c_type: LType
+
+
+@dataclass
+class LCast(LExpr):
+    inner: LExpr
+    c_type: LType
+
+
+@dataclass
+class LAddrOf(LExpr):
+    inner: LExpr
+    c_type: LType
+
+
+@dataclass
+class LDeref(LExpr):
+    inner: LExpr
+    c_type: LType
+
+
+@dataclass
+class LCompound(LExpr):
+    fields: list[tuple[str, LExpr]]
+    c_type: LType
+
+
+@dataclass
+class LCheckedArith(LExpr):
+    op: str
+    left: LExpr
+    right: LExpr
+    c_type: LType
+
+
+@dataclass
+class LSizeOf(LExpr):
+    c_type: LType
+
+
+@dataclass
+class LTernary(LExpr):
+    cond: LExpr
+    then_expr: LExpr
+    else_expr: LExpr
+    c_type: LType
+
+
+# ---------------------------------------------------------------------------
+# LStmt hierarchy (RT-7-1-1)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LStmt:
+    """Base class for lowered statements."""
+    pass
+
+
+@dataclass
+class LVarDecl(LStmt):
+    c_name: str
+    c_type: LType
+    init: LExpr | None
+
+
+@dataclass
+class LAssign(LStmt):
+    target: LExpr
+    value: LExpr
+
+
+@dataclass
+class LReturn(LStmt):
+    value: LExpr | None
+
+
+@dataclass
+class LIf(LStmt):
+    cond: LExpr
+    then: list[LStmt]
+    else_: list[LStmt]
+
+
+@dataclass
+class LWhile(LStmt):
+    cond: LExpr
+    body: list[LStmt]
+
+
+@dataclass
+class LBlock(LStmt):
+    stmts: list[LStmt]
+
+
+@dataclass
+class LExprStmt(LStmt):
+    expr: LExpr
+
+
+@dataclass
+class LGoto(LStmt):
+    label: str
+
+
+@dataclass
+class LLabel(LStmt):
+    name: str
+
+
+@dataclass
+class LSwitch(LStmt):
+    value: LExpr
+    cases: list[tuple[int, list[LStmt]]]
+    default: list[LStmt]
+
+
+@dataclass
+class LBreak(LStmt):
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Top-level LIR nodes (RT-7-1-1)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LTypeDef:
+    c_name: str
+    fields: list[tuple[str, LType]]
+
+
+@dataclass
+class LFnDef:
+    c_name: str
+    params: list[tuple[str, LType]]
+    ret: LType
+    body: list[LStmt]
+    is_pure: bool
+
+
+@dataclass
+class LStaticDef:
+    c_name: str
+    c_type: LType
+    init: LExpr | None
+    is_mut: bool
+
+
+@dataclass
+class LModule:
+    type_defs: list[LTypeDef]
+    fn_defs: list[LFnDef]
+    static_defs: list[LStaticDef]
+
+
+# ---------------------------------------------------------------------------
+# C type name helpers for option/result/tuple registries
+# ---------------------------------------------------------------------------
+
+def _ltype_c_name(lt: LType) -> str:
+    """Return a short C-friendly name fragment for an LType, used in registry keys."""
+    match lt:
+        case LInt(width=w, signed=s):
+            prefix = "rf_int" if s else "rf_uint"
+            return prefix if w == 32 else f"{prefix}{w}"
+        case LFloat(width=w):
+            return "rf_float" if w == 64 else f"rf_float{w}"
+        case LBool():
+            return "rf_bool"
+        case LChar():
+            return "rf_char"
+        case LByte():
+            return "rf_byte"
+        case LVoid():
+            return "void"
+        case LPtr(inner=LStruct(c_name=name)):
+            return f"{name}_ptr"
+        case LPtr():
+            return "ptr"
+        case LStruct(c_name=name):
+            return name
+        case _:
+            return "unknown"
+
+
+# ---------------------------------------------------------------------------
+# Option type name mapping — uses pre-defined runtime types where possible
+# ---------------------------------------------------------------------------
+
+_BUILTIN_OPTION_MAP: dict[str, str] = {
+    "rf_int": "RF_Option_int",
+    "rf_int16": "RF_Option_int16",
+    "rf_int32": "RF_Option_int32",
+    "rf_int64": "RF_Option_int64",
+    "rf_uint": "RF_Option_uint",
+    "rf_uint16": "RF_Option_uint16",
+    "rf_uint32": "RF_Option_uint32",
+    "rf_uint64": "RF_Option_uint64",
+    "rf_float": "RF_Option_float",
+    "rf_float32": "RF_Option_float32",
+    "rf_float64": "RF_Option_float64",
+    "rf_bool": "RF_Option_bool",
+    "rf_byte": "RF_Option_byte",
+    "rf_char": "RF_Option_char",
+}
+
+
+# ---------------------------------------------------------------------------
+# Builtin type annotation resolution
+# ---------------------------------------------------------------------------
+
+_BUILTIN_TYPE_ANNS: dict[str, Type] = {
+    "int": TInt(32, True),
+    "int16": TInt(16, True),
+    "int32": TInt(32, True),
+    "int64": TInt(64, True),
+    "uint": TInt(32, False),
+    "uint16": TInt(16, False),
+    "uint32": TInt(32, False),
+    "uint64": TInt(64, False),
+    "float": TFloat(64),
+    "float32": TFloat(32),
+    "float64": TFloat(64),
+    "bool": TBool(),
+    "char": TChar(),
+    "byte": TByte(),
+    "string": TString(),
+    "none": TNone(),
+}
+
+
+# ---------------------------------------------------------------------------
+# Lowerer (RT-7-2-1 through RT-7-5-3)
+# ---------------------------------------------------------------------------
+
+class Lowerer:
+    """Transform a TypedModule into an LModule."""
+
+    def __init__(self, typed: TypedModule) -> None:
+        self._typed = typed
+        self._module: Module = typed.module
+        self._resolved: ResolvedModule = typed.resolved
+        self._types: dict[ASTNode, Type] = typed.types
+        self._file = typed.module.filename
+        self._module_path = ".".join(typed.module.path) if typed.module.path else "main"
+
+        # LIR output accumulators
+        self._type_defs: list[LTypeDef] = []
+        self._fn_defs: list[LFnDef] = []
+        self._static_defs: list[LStaticDef] = []
+
+        # Type registries — avoid duplicate LTypeDefs
+        self._option_registry: dict[str, str] = {}   # key → c_name
+        self._result_registry: dict[str, str] = {}
+        self._tuple_registry: dict[str, str] = {}
+        self._sum_registry: dict[str, str] = {}
+
+        # Temp variable counter
+        self._tmp_counter: int = 0
+
+        # Pending statements generated during expression lowering
+        self._pending_stmts: list[LStmt] = []
+
+    # ------------------------------------------------------------------
+    # Public entry point
+    # ------------------------------------------------------------------
+
+    def lower(self) -> LModule:
+        """Run the lowering pass."""
+        for decl in self._module.decls:
+            match decl:
+                case FnDecl():
+                    self._lower_fn_decl(decl)
+                case TypeDecl():
+                    self._lower_type_decl(decl)
+
+        return LModule(
+            type_defs=self._type_defs,
+            fn_defs=self._fn_defs,
+            static_defs=self._static_defs,
+        )
+
+    # ------------------------------------------------------------------
+    # Type lowering (RT-7-2-1)
+    # ------------------------------------------------------------------
+
+    def _lower_type(self, t: Type) -> LType:
+        match t:
+            case TInt(width=w, signed=s):
+                return LInt(w, s)
+            case TFloat(width=w):
+                return LFloat(w)
+            case TBool():
+                return LBool()
+            case TChar():
+                return LChar()
+            case TByte():
+                return LByte()
+            case TString():
+                return LPtr(LStruct("RF_String"))
+            case TNone():
+                return LVoid()
+            case TArray():
+                return LPtr(LStruct("RF_Array"))
+            case TStream():
+                return LPtr(LStruct("RF_Stream"))
+            case TBuffer():
+                return LPtr(LStruct("RF_Buffer"))
+            case TMap():
+                return LPtr(LStruct("RF_Map"))
+            case TSet():
+                return LPtr(LStruct("RF_Set"))
+            case TOption(inner=inner):
+                return self._lower_option_type(inner)
+            case TResult(ok_type=ok_t, err_type=err_t):
+                return self._lower_result_type(ok_t, err_t)
+            case TTuple(elements=elems):
+                return self._lower_tuple_type(elems)
+            case TNamed(module=mod, name=name):
+                c_name = mangle(mod if mod else self._module_path, name,
+                                file=self._file, line=0, col=0)
+                return LStruct(c_name)
+            case TFn():
+                # Function types lower to closure struct pointers
+                return LPtr(LStruct("RF_Closure"))
+            case TSum(name=name):
+                c_name = mangle(self._module_path, name,
+                                file=self._file, line=0, col=0)
+                return LStruct(c_name)
+            case TRecord(fields=fields):
+                # Anonymous records — generate a struct
+                return LStruct("rf_record")
+            case TAlias(underlying=underlying):
+                return self._lower_type(underlying)
+            case TTypeVar():
+                # Generic type variable — lower to void* for bootstrap
+                return LPtr(LVoid())
+            case TAny():
+                # Unresolved — lower to void* for bootstrap
+                return LPtr(LVoid())
+            case _:
+                return LVoid()
+
+    def _lower_option_type(self, inner: Type) -> LType:
+        """Lower option<T> to the appropriate option struct type."""
+        inner_lt = self._lower_type(inner)
+        inner_key = _ltype_c_name(inner_lt)
+
+        # Check for pre-defined runtime option types
+        if inner_key in _BUILTIN_OPTION_MAP:
+            return LStruct(_BUILTIN_OPTION_MAP[inner_key])
+
+        # Heap types use RF_Option_ptr
+        if isinstance(inner_lt, LPtr):
+            return LStruct("RF_Option_ptr")
+
+        # Check registry for already-emitted option types
+        if inner_key in self._option_registry:
+            return LStruct(self._option_registry[inner_key])
+
+        # Generate a new option typedef
+        c_name = f"RF_Option_{inner_key}"
+        self._option_registry[inner_key] = c_name
+        self._type_defs.append(LTypeDef(
+            c_name=c_name,
+            fields=[("tag", LByte()), ("value", inner_lt)],
+        ))
+        return LStruct(c_name)
+
+    def _lower_result_type(self, ok_t: Type, err_t: Type) -> LType:
+        """Lower result<T, E> to a result struct type. RT-7-2-3."""
+        ok_lt = self._lower_type(ok_t)
+        err_lt = self._lower_type(err_t)
+        key = f"{_ltype_c_name(ok_lt)}_{_ltype_c_name(err_lt)}"
+
+        if key in self._result_registry:
+            return LStruct(self._result_registry[key])
+
+        c_name = f"RF_Result_{key}"
+        self._result_registry[key] = c_name
+        self._type_defs.append(LTypeDef(
+            c_name=c_name,
+            fields=[("tag", LByte()), ("ok_val", ok_lt), ("err_val", err_lt)],
+        ))
+        return LStruct(c_name)
+
+    def _lower_tuple_type(self, elems: tuple[Type, ...]) -> LType:
+        """Lower tuple types to generated structs. RT-7-2-4."""
+        lowered = [self._lower_type(e) for e in elems]
+        key = "_".join(_ltype_c_name(lt) for lt in lowered)
+
+        if key in self._tuple_registry:
+            return LStruct(self._tuple_registry[key])
+
+        c_name = f"RF_Tuple_{key}"
+        self._tuple_registry[key] = c_name
+        fields: list[tuple[str, LType]] = []
+        for i, lt in enumerate(lowered):
+            fields.append((f"_{i}", lt))
+        self._type_defs.append(LTypeDef(c_name=c_name, fields=fields))
+        return LStruct(c_name)
+
+    # ------------------------------------------------------------------
+    # Declaration lowering
+    # ------------------------------------------------------------------
+
+    def _lower_fn_decl(self, fn: FnDecl) -> None:
+        """Lower a function declaration. RT-7-3-1, RT-7-4-1."""
+        if fn.body is None:
+            return
+
+        # Check if this is a stream function
+        ret_type = self._type_of_return(fn)
+        if isinstance(ret_type, TStream):
+            self._lower_stream_fn(fn)
+            return
+
+        c_name = mangle(self._module_path, None, fn.name,
+                        file=self._file, line=fn.line, col=fn.col)
+
+        params: list[tuple[str, LType]] = []
+        for p in fn.params:
+            p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
+            params.append((p.name, self._lower_type(p_type)))
+
+        ret_lt = self._lower_type(ret_type)
+
+        body: list[LStmt] = []
+        match fn.body:
+            case Block():
+                body = self._lower_block(fn.body)
+            case Expr():
+                expr_result = self._lower_expr(fn.body)
+                body = list(self._pending_stmts)
+                self._pending_stmts = []
+                body.append(LReturn(expr_result))
+
+        self._fn_defs.append(LFnDef(
+            c_name=c_name,
+            params=params,
+            ret=ret_lt,
+            body=body,
+            is_pure=fn.is_pure,
+        ))
+
+    def _lower_type_decl(self, td: TypeDecl) -> None:
+        """Lower a type declaration. RT-7-2-2."""
+        c_name = mangle(self._module_path, td.name,
+                        file=self._file, line=td.line, col=td.col)
+
+        if td.is_sum_type:
+            self._lower_sum_type_decl(td, c_name)
+        else:
+            # Regular struct
+            fields: list[tuple[str, LType]] = []
+            for f in td.fields:
+                f_type = self._type_of(f.type_ann) if f.type_ann else TNone()
+                fields.append((f.name, self._lower_type(f_type)))
+            self._type_defs.append(LTypeDef(c_name=c_name, fields=fields))
+
+        # Lower methods
+        for method in td.methods:
+            if method.body is None:
+                continue
+            m_c_name = mangle(self._module_path, td.name, method.name,
+                              file=self._file, line=method.line, col=method.col)
+            params: list[tuple[str, LType]] = []
+            for p in method.params:
+                if p.name == "self":
+                    params.append(("self", LPtr(LStruct(c_name))))
+                else:
+                    p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
+                    params.append((p.name, self._lower_type(p_type)))
+
+            ret_type = self._type_of_return_method(method)
+            ret_lt = self._lower_type(ret_type)
+
+            body: list[LStmt] = []
+            match method.body:
+                case Block():
+                    body = self._lower_block(method.body)
+                case Expr():
+                    expr_result = self._lower_expr(method.body)
+                    body = list(self._pending_stmts)
+                    self._pending_stmts = []
+                    body.append(LReturn(expr_result))
+
+            self._fn_defs.append(LFnDef(
+                c_name=m_c_name,
+                params=params,
+                ret=ret_lt,
+                body=body,
+                is_pure=method.is_pure,
+            ))
+
+        # Lower constructors
+        for ctor in td.constructors:
+            ctor_c_name = mangle(self._module_path, td.name, ctor.name,
+                                 file=self._file, line=ctor.line, col=ctor.col)
+            params = []
+            for p in ctor.params:
+                if p.name == "self":
+                    params.append(("self", LPtr(LStruct(c_name))))
+                else:
+                    p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
+                    params.append((p.name, self._lower_type(p_type)))
+            body = self._lower_block(ctor.body)
+            self._fn_defs.append(LFnDef(
+                c_name=ctor_c_name,
+                params=params,
+                ret=LStruct(c_name),
+                body=body,
+                is_pure=False,
+            ))
+
+        # Lower static members
+        for s in td.static_members:
+            self._lower_static_member(s, td.name)
+
+    def _lower_sum_type_decl(self, td: TypeDecl, c_name: str) -> None:
+        """Lower a sum type to a tagged union struct. RT-7-2-2."""
+        # Fields: tag (uint8_t) + union payload
+        fields: list[tuple[str, LType]] = [("tag", LByte())]
+
+        # Each variant gets a field in the union
+        for i, variant in enumerate(td.variants):
+            if variant.fields is not None:
+                # Variant with payload — create a nested struct for the payload
+                variant_fields: list[tuple[str, LType]] = []
+                for fname, ftype_expr in variant.fields:
+                    f_type = self._type_of(ftype_expr) if ftype_expr else TNone()
+                    variant_fields.append((fname, self._lower_type(f_type)))
+                # Add as a sub-struct named after the variant
+                variant_c_name = f"{c_name}_{variant.name}"
+                self._type_defs.append(LTypeDef(
+                    c_name=variant_c_name,
+                    fields=variant_fields,
+                ))
+                fields.append((variant.name, LStruct(variant_c_name)))
+            # Variants without payload have no extra fields
+
+        self._type_defs.append(LTypeDef(c_name=c_name, fields=fields))
+
+    def _lower_static_member(self, sm: StaticMemberDecl, type_name: str) -> None:
+        """Lower a static member declaration."""
+        c_name = mangle(self._module_path, type_name, sm.name,
+                        file=self._file, line=sm.line, col=sm.col)
+        s_type = self._type_of(sm.type_ann) if sm.type_ann else TNone()
+        init_expr: LExpr | None = None
+        if sm.value is not None:
+            init_expr = self._lower_expr(sm.value)
+            # Flush any pending stmts (shouldn't happen for static inits, but be safe)
+            self._pending_stmts = []
+        self._static_defs.append(LStaticDef(
+            c_name=c_name,
+            c_type=self._lower_type(s_type),
+            init=init_expr,
+            is_mut=sm.is_mut,
+        ))
+
+    # ------------------------------------------------------------------
+    # Block / statement lowering (RT-7-4-1 through RT-7-4-5)
+    # ------------------------------------------------------------------
+
+    def _lower_block(self, block: Block) -> list[LStmt]:
+        """Lower a block of statements."""
+        result: list[LStmt] = []
+        for stmt in block.stmts:
+            saved = self._pending_stmts
+            self._pending_stmts = []
+            lowered = self._lower_stmt(stmt)
+            result.extend(self._pending_stmts)
+            result.extend(lowered)
+            self._pending_stmts = saved
+        return result
+
+    def _lower_stmt(self, stmt: Stmt) -> list[LStmt]:
+        match stmt:
+            case LetStmt():
+                return self._lower_let(stmt)
+            case AssignStmt():
+                return self._lower_assign(stmt)
+            case UpdateStmt():
+                return self._lower_update(stmt)
+            case ReturnStmt():
+                return self._lower_return(stmt)
+            case IfStmt():
+                return self._lower_if_stmt(stmt)
+            case WhileStmt():
+                return self._lower_while(stmt)
+            case ForStmt():
+                return self._lower_for(stmt)
+            case MatchStmt():
+                return self._lower_match_stmt(stmt)
+            case ExprStmt():
+                return self._lower_expr_stmt(stmt)
+            case BreakStmt():
+                return [LBreak()]
+            case YieldStmt():
+                # Yield outside stream fn — should not happen after type check,
+                # but handle gracefully
+                return self._lower_yield(stmt)
+            case TryStmt():
+                return self._lower_try(stmt)
+            case ThrowStmt():
+                return self._lower_throw(stmt)
+            case _:
+                raise EmitError(
+                    message=f"unsupported statement type: {type(stmt).__name__}",
+                    file=self._file, line=stmt.line, col=stmt.col,
+                )
+
+    def _lower_let(self, stmt: LetStmt) -> list[LStmt]:
+        val_type = self._type_of(stmt.value)
+        c_type = self._lower_type(val_type)
+        # If there's a type annotation, prefer it for the declared type
+        if stmt.type_ann is not None:
+            ann_type = self._type_of(stmt.type_ann)
+            c_type = self._lower_type(ann_type)
+        init = self._lower_expr(stmt.value)
+        return [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
+
+    def _lower_assign(self, stmt: AssignStmt) -> list[LStmt]:
+        target = self._lower_expr(stmt.target)
+        value = self._lower_expr(stmt.value)
+        return [LAssign(target=target, value=value)]
+
+    def _lower_update(self, stmt: UpdateStmt) -> list[LStmt]:
+        target = self._lower_expr(stmt.target)
+        target_type = self._type_of(stmt.target)
+        c_type = self._lower_type(target_type)
+
+        if stmt.op in ("++", "--"):
+            # Increment/decrement
+            one = LLit("1", c_type)
+            if isinstance(target_type, (TInt,)):
+                # Checked arithmetic for integers
+                arith_op = "+" if stmt.op == "++" else "-"
+                arith = LCheckedArith(op=arith_op, left=target, right=one, c_type=c_type)
+                return [LAssign(target=target, value=arith)]
+            else:
+                # Float — plain binop
+                op = "+" if stmt.op == "++" else "-"
+                binop = LBinOp(op=op, left=target, right=one, c_type=c_type)
+                return [LAssign(target=target, value=binop)]
+
+        # Compound assignment: +=, -=, *=, /=, %=
+        op = stmt.op.rstrip("=")
+        if stmt.value is None:
+            raise EmitError(
+                message=f"compound assignment '{stmt.op}' requires a value",
+                file=self._file, line=stmt.line, col=stmt.col,
+            )
+        value = self._lower_expr(stmt.value)
+
+        if isinstance(target_type, (TInt,)) and op in ("+", "-", "*"):
+            expr = LCheckedArith(op=op, left=target, right=value, c_type=c_type)
+        elif isinstance(target_type, (TInt,)) and op in ("/", "%"):
+            expr = LCheckedArith(op=op, left=target, right=value, c_type=c_type)
+        else:
+            expr = LBinOp(op=op, left=target, right=value, c_type=c_type)
+
+        return [LAssign(target=target, value=expr)]
+
+    def _lower_return(self, stmt: ReturnStmt) -> list[LStmt]:
+        if stmt.value is None:
+            return [LReturn(None)]
+        value = self._lower_expr(stmt.value)
+        return [LReturn(value)]
+
+    def _lower_if_stmt(self, stmt: IfStmt) -> list[LStmt]:
+        cond = self._lower_expr(stmt.condition)
+        then_body = self._lower_block(stmt.then_branch)
+        else_body: list[LStmt] = []
+        if stmt.else_branch is not None:
+            if isinstance(stmt.else_branch, Block):
+                else_body = self._lower_block(stmt.else_branch)
+            elif isinstance(stmt.else_branch, IfStmt):
+                else_body = self._lower_if_stmt(stmt.else_branch)
+        return [LIf(cond=cond, then=then_body, else_=else_body)]
+
+    def _lower_while(self, stmt: WhileStmt) -> list[LStmt]:
+        cond = self._lower_expr(stmt.condition)
+        body = self._lower_block(stmt.body)
+        result: list[LStmt] = [LWhile(cond=cond, body=body)]
+        if stmt.finally_block is not None:
+            result.extend(self._lower_block(stmt.finally_block))
+        return result
+
+    def _lower_for(self, stmt: ForStmt) -> list[LStmt]:
+        """Lower for-loop to LWhile. RT-7-4-3, RT-7-4-4."""
+        iter_type = self._type_of(stmt.iterable)
+
+        match iter_type:
+            case TArray(element=elem_t):
+                return self._lower_for_array(stmt, elem_t)
+            case TStream(element=elem_t):
+                return self._lower_for_stream(stmt, elem_t)
+            case _:
+                # Fallback — treat as array
+                return self._lower_for_array(stmt, TAny())
+
+    def _lower_for_array(self, stmt: ForStmt, elem_t: Type) -> list[LStmt]:
+        """Lower for-over-array to index-based while loop. RT-7-4-4."""
+        arr_expr = self._lower_expr(stmt.iterable)
+        idx_name = self._fresh_temp()
+        elem_lt = self._lower_type(elem_t)
+
+        # int64_t _rf_idx = 0;
+        idx_decl = LVarDecl(
+            c_name=idx_name,
+            c_type=LInt(64, True),
+            init=LLit("0", LInt(64, True)),
+        )
+
+        # _rf_idx < rf_array_len(arr)
+        cond = LBinOp(
+            op="<",
+            left=LVar(idx_name, LInt(64, True)),
+            right=LCall("rf_array_len", [arr_expr], LInt(64, True)),
+            c_type=LBool(),
+        )
+
+        # ElementType item = *(ElementType*)rf_array_get_ptr(arr, _rf_idx);
+        get_ptr = LCall("rf_array_get_ptr",
+                         [arr_expr, LVar(idx_name, LInt(64, True))],
+                         LPtr(LVoid()))
+        cast_ptr = LCast(get_ptr, LPtr(elem_lt))
+        deref = LDeref(cast_ptr, elem_lt)
+        item_decl = LVarDecl(c_name=stmt.var, c_type=elem_lt, init=deref)
+
+        # _rf_idx = _rf_idx + 1;
+        increment = LAssign(
+            target=LVar(idx_name, LInt(64, True)),
+            value=LBinOp(
+                op="+",
+                left=LVar(idx_name, LInt(64, True)),
+                right=LLit("1", LInt(64, True)),
+                c_type=LInt(64, True),
+            ),
+        )
+
+        body_stmts = [item_decl] + self._lower_block(stmt.body) + [increment]
+        result: list[LStmt] = [idx_decl, LWhile(cond=cond, body=body_stmts)]
+
+        if stmt.finally_block is not None:
+            result.extend(self._lower_block(stmt.finally_block))
+
+        return result
+
+    def _lower_for_stream(self, stmt: ForStmt, elem_t: Type) -> list[LStmt]:
+        """Lower for-over-stream to while loop with rf_stream_next. RT-7-4-3."""
+        stream_expr = self._lower_expr(stmt.iterable)
+        elem_lt = self._lower_type(elem_t)
+        next_name = self._fresh_temp()
+
+        # while (1) { ... }
+        cond = LLit("1", LBool())
+
+        # RF_Option_ptr _rf_next = rf_stream_next(stream);
+        next_decl = LVarDecl(
+            c_name=next_name,
+            c_type=LStruct("RF_Option_ptr"),
+            init=LCall("rf_stream_next", [stream_expr], LStruct("RF_Option_ptr")),
+        )
+
+        # if (_rf_next.tag == 0) break;
+        tag_check = LIf(
+            cond=LBinOp(
+                op="==",
+                left=LFieldAccess(
+                    LVar(next_name, LStruct("RF_Option_ptr")),
+                    "tag", LByte()),
+                right=LLit("0", LByte()),
+                c_type=LBool(),
+            ),
+            then=[LBreak()],
+            else_=[],
+        )
+
+        # T item = (T)_rf_next.value;
+        value_access = LFieldAccess(
+            LVar(next_name, LStruct("RF_Option_ptr")),
+            "value", LPtr(LVoid()))
+        item_init: LExpr
+        if isinstance(elem_lt, LPtr):
+            item_init = LCast(value_access, elem_lt)
+        else:
+            item_init = LCast(value_access, elem_lt)
+        item_decl = LVarDecl(c_name=stmt.var, c_type=elem_lt, init=item_init)
+
+        body_stmts = [next_decl, tag_check, item_decl] + self._lower_block(stmt.body)
+        result: list[LStmt] = [LWhile(cond=cond, body=body_stmts)]
+
+        if stmt.finally_block is not None:
+            result.extend(self._lower_block(stmt.finally_block))
+
+        return result
+
+    def _lower_match_stmt(self, stmt: MatchStmt) -> list[LStmt]:
+        """Lower match statement. RT-7-3-5, RT-7-3-6."""
+        subj_type = self._type_of(stmt.subject)
+        subj_expr = self._lower_expr(stmt.subject)
+
+        # Store subject in a temp to avoid re-evaluation
+        subj_tmp = self._fresh_temp()
+        subj_lt = self._lower_type(subj_type)
+        subj_decl = LVarDecl(c_name=subj_tmp, c_type=subj_lt, init=subj_expr)
+
+        subj_var = LVar(subj_tmp, subj_lt)
+
+        match subj_type:
+            case TSum():
+                stmts = self._lower_match_sum(subj_var, subj_type, stmt.arms)
+                return [subj_decl] + stmts
+            case TOption():
+                stmts = self._lower_match_option(subj_var, subj_type, stmt.arms)
+                return [subj_decl] + stmts
+            case TResult():
+                stmts = self._lower_match_result(subj_var, subj_type, stmt.arms)
+                return [subj_decl] + stmts
+            case _:
+                # For primitives and other types, use if-else chains
+                stmts = self._lower_match_generic(subj_var, subj_type, stmt.arms)
+                return [subj_decl] + stmts
+
+    def _lower_expr_stmt(self, stmt: ExprStmt) -> list[LStmt]:
+        expr = self._lower_expr(stmt.expr)
+        return [LExprStmt(expr)]
+
+    def _lower_yield(self, stmt: YieldStmt) -> list[LStmt]:
+        # Outside stream context — this is an error but we handle it for robustness
+        value = self._lower_expr(stmt.value)
+        return [LExprStmt(value)]
+
+    def _lower_try(self, stmt: TryStmt) -> list[LStmt]:
+        """Lower try/catch/retry/finally. RT-7-4-2.
+        For bootstrap: simplified approach using comments as placeholders."""
+        result: list[LStmt] = []
+        # Lower the try body directly
+        result.extend(self._lower_block(stmt.body))
+        # SPEC GAP: full try/catch lowering deferred to emitter integration
+        return result
+
+    def _lower_throw(self, stmt: ThrowStmt) -> list[LStmt]:
+        """Lower throw statement."""
+        exc_expr = self._lower_expr(stmt.exception)
+        # For bootstrap: call rf_panic with exception
+        return [LExprStmt(LCall("rf_panic", [exc_expr], LVoid()))]
+
+    # ------------------------------------------------------------------
+    # Expression lowering (RT-7-3-1 through RT-7-3-8)
+    # ------------------------------------------------------------------
+
+    def _lower_expr(self, expr: Expr) -> LExpr:
+        match expr:
+            # Literals
+            case IntLit(value=v, suffix=suffix):
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                return LLit(str(v), lt)
+
+            case FloatLit(value=v):
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                return LLit(repr(v), lt)
+
+            case BoolLit(value=v):
+                return LLit("rf_true" if v else "rf_false", LBool())
+
+            case StringLit(value=v):
+                escaped = v.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+                return LCall(
+                    "rf_string_from_cstr",
+                    [LLit(f'"{escaped}"', LPtr(LVoid()))],
+                    LPtr(LStruct("RF_String")),
+                )
+
+            case CharLit(value=v):
+                return LLit(str(v), LChar())
+
+            case NoneLit():
+                # Lower to RF_NONE compound literal
+                return LCompound(
+                    fields=[(".tag", LLit("0", LByte()))],
+                    c_type=LStruct("RF_Option_ptr"),
+                )
+
+            case FStringExpr():
+                return self._lower_fstring(expr)
+
+            # Identifiers
+            case Ident(name=name, module_path=mp):
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                sym = self._resolved.symbols.get(expr)
+                if sym is not None and sym.kind == SymbolKind.FN:
+                    # Function reference — use mangled name
+                    fn_c_name = mangle(self._module_path, None, name,
+                                       file=self._file, line=expr.line, col=expr.col)
+                    return LVar(fn_c_name, lt)
+                return LVar(name, lt)
+
+            # Binary operators (RT-7-3-2)
+            case BinOp(op=op, left=left, right=right):
+                return self._lower_binop(expr, op, left, right)
+
+            case UnaryOp(op=op, operand=operand):
+                inner = self._lower_expr(operand)
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                return LUnary(op=op, operand=inner, c_type=lt)
+
+            # Function calls
+            case Call(callee=callee, args=args):
+                return self._lower_call(expr)
+
+            case MethodCall(receiver=receiver, method=method_name, args=args):
+                return self._lower_method_call(expr)
+
+            # Field/index access
+            case FieldAccess(receiver=receiver, field=field_name):
+                recv = self._lower_expr(receiver)
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                recv_type = self._type_of(receiver)
+                if isinstance(recv_type, (TString, TArray, TStream, TBuffer, TMap, TSet)):
+                    # Heap types — use arrow
+                    return LArrow(ptr=recv, field=field_name, c_type=lt)
+                return LFieldAccess(obj=recv, field=field_name, c_type=lt)
+
+            case IndexAccess(receiver=receiver, index=index):
+                recv = self._lower_expr(receiver)
+                idx = self._lower_expr(index)
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                recv_type = self._type_of(receiver)
+                if isinstance(recv_type, TArray):
+                    # Array index returns option — use rf_array_get_safe
+                    return LCall("rf_array_get_safe",
+                                 [recv, idx], lt)
+                if isinstance(recv_type, TMap):
+                    return LCall("rf_map_get", [recv, idx], lt)
+                return LIndex(arr=recv, idx=idx, c_type=lt)
+
+            # Lambda
+            case Lambda():
+                # SPEC GAP: lambda lowering deferred to closure implementation
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                return LLit("NULL", lt)
+
+            # Tuple
+            case TupleExpr(elements=elements):
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                fields: list[tuple[str, LExpr]] = []
+                for i, elem in enumerate(elements):
+                    fields.append((f"_{i}", self._lower_expr(elem)))
+                return LCompound(fields=fields, c_type=lt)
+
+            # Array literal
+            case ArrayLit(elements=elements):
+                return self._lower_array_lit(expr)
+
+            # Record literal
+            case RecordLit(fields=rfields):
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                lfields: list[tuple[str, LExpr]] = []
+                for name, val in rfields:
+                    lfields.append((name, self._lower_expr(val)))
+                return LCompound(fields=lfields, c_type=lt)
+
+            # Type literal (struct construction)
+            case TypeLit(type_name=type_name, fields=tfields, spread=spread):
+                return self._lower_type_lit(expr)
+
+            # If expression
+            case IfExpr(condition=cond, then_branch=then_b, else_branch=else_b):
+                return self._lower_if_expr(expr)
+
+            # Match expression
+            case MatchExpr():
+                return self._lower_match_expr(expr)
+
+            # Composition chain (RT-7-3-3)
+            case CompositionChain():
+                return self._lower_chain(expr)
+
+            # Fan-out
+            case FanOut(branches=branches):
+                # Lower each branch, collect into tuple
+                results: list[LExpr] = []
+                for branch in branches:
+                    results.append(self._lower_expr(branch.expr))
+                if len(results) == 1:
+                    return results[0]
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                fields = [(f"_{i}", r) for i, r in enumerate(results)]
+                return LCompound(fields=fields, c_type=lt)
+
+            # Ternary
+            case TernaryExpr(condition=cond, then_expr=then_e, else_expr=else_e):
+                c = self._lower_expr(cond)
+                th = self._lower_expr(then_e)
+                el = self._lower_expr(else_e)
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                return LTernary(cond=c, then_expr=th, else_expr=el, c_type=lt)
+
+            # Copy (RT-7-3-8)
+            case CopyExpr(inner=inner):
+                return self._lower_copy(expr)
+
+            # Some/Ok/Err wrappers
+            case SomeExpr(inner=inner):
+                return self._lower_some(expr)
+
+            case OkExpr(inner=inner):
+                return self._lower_ok(expr)
+
+            case ErrExpr(inner=inner):
+                return self._lower_err(expr)
+
+            # Coerce
+            case CoerceExpr(inner=inner):
+                return self._lower_expr(inner)
+
+            # Cast
+            case CastExpr(inner=inner, target_type=target):
+                inner_expr = self._lower_expr(inner)
+                t = self._type_of(expr)
+                lt = self._lower_type(t)
+                return LCast(inner=inner_expr, c_type=lt)
+
+            # Snapshot
+            case SnapshotExpr(inner=inner):
+                return self._lower_expr(inner)
+
+            # Propagate (RT-7-3-7)
+            case PropagateExpr(inner=inner):
+                return self._lower_propagate(expr)
+
+            # Null coalesce
+            case NullCoalesce(left=left, right=right):
+                return self._lower_null_coalesce(expr)
+
+            # Typeof
+            case TypeofExpr(inner=inner):
+                # Lower to string representation of type
+                t = self._type_of(inner)
+                type_name = self._type_name_str(t)
+                return LCall(
+                    "rf_string_from_cstr",
+                    [LLit(f'"{type_name}"', LPtr(LVoid()))],
+                    LPtr(LStruct("RF_String")),
+                )
+
+            # Coroutine start
+            case CoroutineStart(call=call):
+                return self._lower_expr(call)
+
+            case _:
+                raise EmitError(
+                    message=f"unsupported expression type: {type(expr).__name__}",
+                    file=self._file, line=expr.line, col=expr.col,
+                )
+
+    # ------------------------------------------------------------------
+    # Expression lowering — specific cases
+    # ------------------------------------------------------------------
+
+    def _lower_binop(self, expr: BinOp, op: str, left: Expr, right: Expr) -> LExpr:
+        """Lower binary operator. RT-7-3-2."""
+        left_expr = self._lower_expr(left)
+        right_expr = self._lower_expr(right)
+        t = self._type_of(expr)
+        lt = self._lower_type(t)
+        left_type = self._type_of(left)
+
+        # String concatenation
+        if op == "+" and isinstance(left_type, TString):
+            return LCall("rf_string_concat", [left_expr, right_expr],
+                         LPtr(LStruct("RF_String")))
+
+        # String equality
+        if op == "==" and isinstance(left_type, TString):
+            return LCall("rf_string_eq", [left_expr, right_expr], LBool())
+        if op == "!=" and isinstance(left_type, TString):
+            return LUnary("!", LCall("rf_string_eq", [left_expr, right_expr], LBool()),
+                          LBool())
+
+        # Integer checked arithmetic (RT-7-3-2)
+        if isinstance(left_type, TInt) and op in ("+", "-", "*", "/", "%"):
+            return LCheckedArith(op=op, left=left_expr, right=right_expr, c_type=lt)
+
+        # Logical operators
+        if op == "&&":
+            return LBinOp(op="&&", left=left_expr, right=right_expr, c_type=LBool())
+        if op == "||":
+            return LBinOp(op="||", left=left_expr, right=right_expr, c_type=LBool())
+
+        return LBinOp(op=op, left=left_expr, right=right_expr, c_type=lt)
+
+    def _lower_call(self, expr: Call) -> LExpr:
+        """Lower function call."""
+        t = self._type_of(expr)
+        lt = self._lower_type(t)
+        lowered_args = [self._lower_expr(a) for a in expr.args]
+
+        if isinstance(expr.callee, Ident):
+            # Direct function call
+            name = expr.callee.name
+            sym = self._resolved.symbols.get(expr.callee)
+            if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
+                c_name = mangle(self._module_path, None, name,
+                                file=self._file, line=expr.line, col=expr.col)
+                return LCall(c_name, lowered_args, lt)
+            # Builtin or unresolved — use name directly
+            return LCall(name, lowered_args, lt)
+
+        # Indirect call through expression
+        callee_expr = self._lower_expr(expr.callee)
+        return LIndirectCall(callee_expr, lowered_args, lt)
+
+    def _lower_method_call(self, expr: MethodCall) -> LExpr:
+        """Lower method call."""
+        t = self._type_of(expr)
+        lt = self._lower_type(t)
+        recv = self._lower_expr(expr.receiver)
+        lowered_args = [self._lower_expr(a) for a in expr.args]
+        recv_type = self._type_of(expr.receiver)
+
+        if isinstance(recv_type, TNamed):
+            # User-defined type method
+            c_name = mangle(self._module_path, recv_type.name, expr.method,
+                            file=self._file, line=expr.line, col=expr.col)
+            return LCall(c_name, [LAddrOf(recv, LPtr(self._lower_type(recv_type)))] + lowered_args, lt)
+
+        # Built-in type methods
+        method_c_name = f"rf_{self._type_name_str(recv_type)}_{expr.method}"
+        return LCall(method_c_name, [recv] + lowered_args, lt)
+
+    def _lower_chain(self, chain: CompositionChain) -> LExpr:
+        """Lower composition chain to sequential temp vars. RT-7-3-3."""
+        if not chain.elements:
+            return LLit("0", LVoid())
+
+        # Lower the first element
+        current = self._lower_expr(chain.elements[0].expr)
+
+        for elem in chain.elements[1:]:
+            elem_expr = elem.expr
+            elem_type = self._type_of(elem_expr)
+
+            if isinstance(elem_type, TFn):
+                # Function application — pass current as argument
+                # Store current in a temp
+                tmp = self._fresh_temp()
+                current_type = current.c_type if hasattr(current, 'c_type') else LVoid()
+                self._pending_stmts.append(
+                    LVarDecl(c_name=tmp, c_type=current_type, init=current))
+
+                fn_expr = self._lower_expr(elem_expr)
+                result_type = self._lower_type(elem_type.ret)
+
+                if isinstance(fn_expr, LVar):
+                    current = LCall(fn_expr.c_name,
+                                    [LVar(tmp, current_type)], result_type)
+                else:
+                    current = LIndirectCall(fn_expr,
+                                            [LVar(tmp, current_type)], result_type)
+            else:
+                # Non-function element — just use it directly
+                current = self._lower_expr(elem_expr)
+
+        return current
+
+    def _lower_fstring(self, expr: FStringExpr) -> LExpr:
+        """Lower f-string to chain of rf_string_concat calls. RT-7-3-4."""
+        string_type = LPtr(LStruct("RF_String"))
+
+        parts: list[LExpr] = []
+        for part in expr.parts:
+            if isinstance(part, str):
+                if part:
+                    escaped = part.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+                    parts.append(LCall(
+                        "rf_string_from_cstr",
+                        [LLit(f'"{escaped}"', LPtr(LVoid()))],
+                        string_type,
+                    ))
+            else:
+                # Expression part — convert to string
+                inner = self._lower_expr(part)
+                inner_type = self._type_of(part)
+                parts.append(self._to_string_expr(inner, inner_type))
+
+        if not parts:
+            return LCall("rf_string_from_cstr",
+                         [LLit('""', LPtr(LVoid()))], string_type)
+
+        # Chain concat calls
+        result = parts[0]
+        for p in parts[1:]:
+            tmp = self._fresh_temp()
+            self._pending_stmts.append(
+                LVarDecl(c_name=tmp, c_type=string_type, init=result))
+            result = LCall("rf_string_concat",
+                           [LVar(tmp, string_type), p], string_type)
+
+        return result
+
+    def _to_string_expr(self, expr: LExpr, t: Type) -> LExpr:
+        """Convert an expression to a string expression for f-string interpolation."""
+        string_type = LPtr(LStruct("RF_String"))
+        match t:
+            case TString():
+                return expr
+            case TInt(width=32, signed=True):
+                return LCall("rf_int_to_string", [expr], string_type)
+            case TInt(width=64, signed=True):
+                return LCall("rf_int64_to_string", [expr], string_type)
+            case TFloat():
+                return LCall("rf_float_to_string", [expr], string_type)
+            case TBool():
+                return LCall("rf_bool_to_string", [expr], string_type)
+            case TInt():
+                # Other int widths — cast to int32 first
+                return LCall("rf_int_to_string",
+                             [LCast(expr, LInt(32, True))], string_type)
+            case _:
+                # Fallback — cast to int and convert
+                return LCall("rf_int_to_string",
+                             [LCast(expr, LInt(32, True))], string_type)
+
+    def _lower_match_expr(self, expr: MatchExpr) -> LExpr:
+        """Lower match expression to temp var + match statement. RT-7-3-5, RT-7-3-6."""
+        result_type = self._type_of(expr)
+        result_lt = self._lower_type(result_type)
+        result_tmp = self._fresh_temp()
+
+        # Declare result var
+        self._pending_stmts.append(
+            LVarDecl(c_name=result_tmp, c_type=result_lt, init=None))
+
+        subj_type = self._type_of(expr.subject)
+        subj_expr = self._lower_expr(expr.subject)
+        subj_tmp = self._fresh_temp()
+        subj_lt = self._lower_type(subj_type)
+        self._pending_stmts.append(
+            LVarDecl(c_name=subj_tmp, c_type=subj_lt, init=subj_expr))
+        subj_var = LVar(subj_tmp, subj_lt)
+
+        result_var = LVar(result_tmp, result_lt)
+
+        # Generate match body that assigns to result var
+        match subj_type:
+            case TSum():
+                match_stmts = self._lower_match_sum_expr(
+                    subj_var, subj_type, expr.arms, result_var)
+            case TOption():
+                match_stmts = self._lower_match_option_expr(
+                    subj_var, subj_type, expr.arms, result_var)
+            case TResult():
+                match_stmts = self._lower_match_result_expr(
+                    subj_var, subj_type, expr.arms, result_var)
+            case _:
+                match_stmts = self._lower_match_generic_expr(
+                    subj_var, subj_type, expr.arms, result_var)
+
+        self._pending_stmts.extend(match_stmts)
+        return result_var
+
+    def _lower_propagate(self, expr: PropagateExpr) -> LExpr:
+        """Lower propagate (?) operator. RT-7-3-7."""
+        inner = self._lower_expr(expr.inner)
+        inner_type = self._type_of(expr.inner)
+
+        if not isinstance(inner_type, TResult):
+            raise EmitError(
+                message="propagate (?) requires a result type",
+                file=self._file, line=expr.line, col=expr.col,
+            )
+
+        result_lt = self._lower_type(inner_type)
+        ok_lt = self._lower_type(inner_type.ok_type)
+
+        # Store result in temp
+        tmp = self._fresh_temp()
+        self._pending_stmts.append(
+            LVarDecl(c_name=tmp, c_type=result_lt, init=inner))
+
+        # if (rf_result_is_err(tmp)) { return tmp; }
+        tmp_var = LVar(tmp, result_lt)
+        err_check = LIf(
+            cond=LBinOp(
+                op="==",
+                left=LFieldAccess(tmp_var, "tag", LByte()),
+                right=LLit("1", LByte()),
+                c_type=LBool(),
+            ),
+            then=[LReturn(tmp_var)],
+            else_=[],
+        )
+        self._pending_stmts.append(err_check)
+
+        # Extract ok value
+        ok_tmp = self._fresh_temp()
+        ok_value = LFieldAccess(
+            LFieldAccess(tmp_var, "payload", result_lt),
+            "ok_val", ok_lt)
+        self._pending_stmts.append(
+            LVarDecl(c_name=ok_tmp, c_type=ok_lt, init=ok_value))
+
+        return LVar(ok_tmp, ok_lt)
+
+    def _lower_copy(self, expr: CopyExpr) -> LExpr:
+        """Lower copy expression. RT-7-3-8."""
+        inner = self._lower_expr(expr.inner)
+        inner_type = self._type_of(expr.inner)
+
+        # Value types — copy is no-op
+        if isinstance(inner_type, (TInt, TFloat, TBool, TChar, TByte)):
+            return inner
+
+        # Heap types — retain for immutable, deep copy for mutable
+        match inner_type:
+            case TString():
+                self._pending_stmts.append(
+                    LExprStmt(LCall("rf_string_retain", [inner], LVoid())))
+                return inner
+            case TArray():
+                self._pending_stmts.append(
+                    LExprStmt(LCall("rf_array_retain", [inner], LVoid())))
+                return inner
+            case TStream():
+                self._pending_stmts.append(
+                    LExprStmt(LCall("rf_stream_retain", [inner], LVoid())))
+                return inner
+            case _:
+                return inner
+
+    def _lower_null_coalesce(self, expr: NullCoalesce) -> LExpr:
+        """Lower ?? operator."""
+        left = self._lower_expr(expr.left)
+        right = self._lower_expr(expr.right)
+        left_type = self._type_of(expr.left)
+
+        if isinstance(left_type, TOption):
+            # opt.tag == 1 ? opt.value : default
+            inner_lt = self._lower_type(left_type.inner)
+
+            # Store left in temp
+            tmp = self._fresh_temp()
+            left_lt = self._lower_type(left_type)
+            self._pending_stmts.append(
+                LVarDecl(c_name=tmp, c_type=left_lt, init=left))
+            tmp_var = LVar(tmp, left_lt)
+
+            return LTernary(
+                cond=LBinOp(
+                    op="==",
+                    left=LFieldAccess(tmp_var, "tag", LByte()),
+                    right=LLit("1", LByte()),
+                    c_type=LBool(),
+                ),
+                then_expr=LFieldAccess(tmp_var, "value", inner_lt),
+                else_expr=right,
+                c_type=inner_lt,
+            )
+
+        # Non-option — just return left
+        return left
+
+    def _lower_some(self, expr: SomeExpr) -> LExpr:
+        """Lower some(value)."""
+        inner = self._lower_expr(expr.inner)
+        t = self._type_of(expr)
+        lt = self._lower_type(t)
+        return LCompound(
+            fields=[(".tag", LLit("1", LByte())), (".value", inner)],
+            c_type=lt,
+        )
+
+    def _lower_ok(self, expr: OkExpr) -> LExpr:
+        """Lower ok(value)."""
+        inner = self._lower_expr(expr.inner)
+        t = self._type_of(expr)
+        lt = self._lower_type(t)
+        return LCompound(
+            fields=[(".tag", LLit("0", LByte())),
+                    (".payload.ok_val", inner)],
+            c_type=lt,
+        )
+
+    def _lower_err(self, expr: ErrExpr) -> LExpr:
+        """Lower err(value)."""
+        inner = self._lower_expr(expr.inner)
+        t = self._type_of(expr)
+        lt = self._lower_type(t)
+        return LCompound(
+            fields=[(".tag", LLit("1", LByte())),
+                    (".payload.err_val", inner)],
+            c_type=lt,
+        )
+
+    def _lower_if_expr(self, expr: IfExpr) -> LExpr:
+        """Lower if expression to temp var + if statement."""
+        result_type = self._type_of(expr)
+        result_lt = self._lower_type(result_type)
+        result_tmp = self._fresh_temp()
+
+        self._pending_stmts.append(
+            LVarDecl(c_name=result_tmp, c_type=result_lt, init=None))
+
+        result_var = LVar(result_tmp, result_lt)
+        cond = self._lower_expr(expr.condition)
+
+        # Then branch
+        then_stmts = self._lower_block(expr.then_branch)
+        # The last expression in the block is the value
+        then_assign = self._extract_block_result(then_stmts, result_var)
+
+        # Else branch
+        else_stmts: list[LStmt] = []
+        if expr.else_branch is not None:
+            if isinstance(expr.else_branch, Block):
+                else_stmts = self._lower_block(expr.else_branch)
+                else_assign = self._extract_block_result(else_stmts, result_var)
+            else:
+                # Else is another IfExpr
+                else_result = self._lower_expr(expr.else_branch)
+                else_stmts = list(self._pending_stmts)
+                self._pending_stmts = []
+                else_stmts.append(LAssign(result_var, else_result))
+
+        self._pending_stmts.append(
+            LIf(cond=cond, then=then_assign, else_=else_stmts))
+
+        return result_var
+
+    def _extract_block_result(self, stmts: list[LStmt],
+                               result_var: LVar) -> list[LStmt]:
+        """Replace the last expression statement with an assignment to result_var."""
+        if not stmts:
+            return stmts
+        last = stmts[-1]
+        if isinstance(last, LExprStmt):
+            return stmts[:-1] + [LAssign(result_var, last.expr)]
+        if isinstance(last, LReturn) and last.value is not None:
+            return stmts[:-1] + [LAssign(result_var, last.value)]
+        return stmts
+
+    def _lower_array_lit(self, expr: ArrayLit) -> LExpr:
+        """Lower array literal."""
+        t = self._type_of(expr)
+        lt = self._lower_type(t)
+        if not expr.elements:
+            return LCall("rf_array_new",
+                         [LLit("0", LInt(64, True)),
+                          LLit("0", LInt(64, True)),
+                          LLit("NULL", LPtr(LVoid()))],
+                         lt)
+
+        elem_type = TAny()
+        if isinstance(t, TArray):
+            elem_type = t.element
+        elem_lt = self._lower_type(elem_type)
+
+        lowered_elems = [self._lower_expr(e) for e in expr.elements]
+        count = len(lowered_elems)
+
+        # Create a temp array with the data, then call rf_array_new
+        data_tmp = self._fresh_temp()
+        # We can't directly create a C array init in LIR, so we use a compound literal
+        # approach via the emitter. For now, lower to rf_array_new with inline data.
+        return LCall("rf_array_new",
+                     [LLit(str(count), LInt(64, True)),
+                      LSizeOf(elem_lt),
+                      LLit("NULL", LPtr(LVoid()))],
+                     lt)
+
+    def _lower_type_lit(self, expr: TypeLit) -> LExpr:
+        """Lower type literal (struct construction)."""
+        t = self._type_of(expr)
+        lt = self._lower_type(t)
+        lfields: list[tuple[str, LExpr]] = []
+        for name, val in expr.fields:
+            lfields.append((f".{name}", self._lower_expr(val)))
+        return LCompound(fields=lfields, c_type=lt)
+
+    # ------------------------------------------------------------------
+    # Match lowering helpers
+    # ------------------------------------------------------------------
+
+    def _lower_match_sum(self, subj: LVar, sum_t: TSum,
+                         arms: list[MatchArm]) -> list[LStmt]:
+        """Lower match on sum type to LSwitch. RT-7-3-5."""
+        cases: list[tuple[int, list[LStmt]]] = []
+        default: list[LStmt] = []
+
+        variant_map = {v.name: i for i, v in enumerate(sum_t.variants)}
+
+        for arm in arms:
+            match arm.pattern:
+                case VariantPattern(variant_name=vname, bindings=bindings):
+                    tag = variant_map.get(vname, -1)
+                    if tag < 0:
+                        continue
+                    body: list[LStmt] = []
+                    variant = sum_t.variants[tag]
+                    # Bind variant fields
+                    if variant.fields is not None:
+                        for i, binding in enumerate(bindings):
+                            if i < len(variant.fields):
+                                field_lt = self._lower_type(variant.fields[i])
+                                body.append(LVarDecl(
+                                    c_name=binding,
+                                    c_type=field_lt,
+                                    init=LFieldAccess(
+                                        LFieldAccess(subj, vname, subj.c_type),
+                                        f"_{i}" if len(variant.fields) > 1 else list(self._get_variant_field_names(vname, variant))[i],
+                                        field_lt),
+                                ))
+                    match arm.body:
+                        case Block():
+                            body.extend(self._lower_block(arm.body))
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            val = self._lower_expr(arm.body)
+                            body.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            body.append(LExprStmt(val))
+                    body.append(LBreak())
+                    cases.append((tag, body))
+
+                case WildcardPattern() | BindPattern():
+                    match arm.body:
+                        case Block():
+                            default = self._lower_block(arm.body)
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            val = self._lower_expr(arm.body)
+                            default.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            default.append(LExprStmt(val))
+
+        tag_access = LFieldAccess(subj, "tag", LByte())
+        return [LSwitch(value=tag_access, cases=cases, default=default)]
+
+    def _get_variant_field_names(self, vname: str, variant: TVariant) -> list[str]:
+        """Get field names for a variant. Since TVariant only has types, use indices."""
+        if variant.fields is None:
+            return []
+        # Sum type variant fields are accessed by index in the generated struct
+        return [f"_{i}" for i in range(len(variant.fields))]
+
+    def _lower_match_option(self, subj: LVar, opt_t: TOption,
+                            arms: list[MatchArm]) -> list[LStmt]:
+        """Lower match on option to LIf. RT-7-3-6."""
+        some_body: list[LStmt] = []
+        none_body: list[LStmt] = []
+        some_var: str | None = None
+
+        for arm in arms:
+            match arm.pattern:
+                case SomePattern(inner_var=var):
+                    some_var = var
+                    inner_lt = self._lower_type(opt_t.inner)
+                    some_body.append(LVarDecl(
+                        c_name=var, c_type=inner_lt,
+                        init=LFieldAccess(subj, "value", inner_lt)))
+                    match arm.body:
+                        case Block():
+                            some_body.extend(self._lower_block(arm.body))
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            val = self._lower_expr(arm.body)
+                            some_body.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            some_body.append(LExprStmt(val))
+
+                case NonePattern():
+                    match arm.body:
+                        case Block():
+                            none_body = self._lower_block(arm.body)
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            val = self._lower_expr(arm.body)
+                            none_body.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            none_body.append(LExprStmt(val))
+
+                case WildcardPattern() | BindPattern():
+                    match arm.body:
+                        case Block():
+                            none_body = self._lower_block(arm.body)
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            val = self._lower_expr(arm.body)
+                            none_body.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            none_body.append(LExprStmt(val))
+
+        # if (subj.tag == 1) { some_body } else { none_body }
+        tag_check = LBinOp(
+            op="==",
+            left=LFieldAccess(subj, "tag", LByte()),
+            right=LLit("1", LByte()),
+            c_type=LBool(),
+        )
+        return [LIf(cond=tag_check, then=some_body, else_=none_body)]
+
+    def _lower_match_result(self, subj: LVar, res_t: TResult,
+                            arms: list[MatchArm]) -> list[LStmt]:
+        """Lower match on result to LIf."""
+        ok_body: list[LStmt] = []
+        err_body: list[LStmt] = []
+
+        for arm in arms:
+            match arm.pattern:
+                case OkPattern(inner_var=var):
+                    ok_lt = self._lower_type(res_t.ok_type)
+                    ok_body.append(LVarDecl(
+                        c_name=var, c_type=ok_lt,
+                        init=LFieldAccess(
+                            LFieldAccess(subj, "payload", subj.c_type),
+                            "ok_val", ok_lt)))
+                    match arm.body:
+                        case Block():
+                            ok_body.extend(self._lower_block(arm.body))
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            val = self._lower_expr(arm.body)
+                            ok_body.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            ok_body.append(LExprStmt(val))
+
+                case ErrPattern(inner_var=var):
+                    err_lt = self._lower_type(res_t.err_type)
+                    err_body.append(LVarDecl(
+                        c_name=var, c_type=err_lt,
+                        init=LFieldAccess(
+                            LFieldAccess(subj, "payload", subj.c_type),
+                            "err_val", err_lt)))
+                    match arm.body:
+                        case Block():
+                            err_body.extend(self._lower_block(arm.body))
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            val = self._lower_expr(arm.body)
+                            err_body.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            err_body.append(LExprStmt(val))
+
+                case WildcardPattern() | BindPattern():
+                    match arm.body:
+                        case Block():
+                            err_body = self._lower_block(arm.body)
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            val = self._lower_expr(arm.body)
+                            err_body.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            err_body.append(LExprStmt(val))
+
+        # if (subj.tag == 0) { ok_body } else { err_body }
+        tag_check = LBinOp(
+            op="==",
+            left=LFieldAccess(subj, "tag", LByte()),
+            right=LLit("0", LByte()),
+            c_type=LBool(),
+        )
+        return [LIf(cond=tag_check, then=ok_body, else_=err_body)]
+
+    def _lower_match_generic(self, subj: LVar, subj_type: Type,
+                             arms: list[MatchArm]) -> list[LStmt]:
+        """Lower match on primitive/other types to if-else chain."""
+        if not arms:
+            return []
+
+        # Build if-else chain from arms
+        stmts: list[LStmt] = []
+        remaining = list(arms)
+
+        while remaining:
+            arm = remaining.pop(0)
+            match arm.pattern:
+                case LiteralPattern(value=val):
+                    cond = self._make_equality_check(subj, val, subj_type)
+                    match arm.body:
+                        case Block():
+                            body = self._lower_block(arm.body)
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            expr = self._lower_expr(arm.body)
+                            body = list(self._pending_stmts)
+                            self._pending_stmts = saved
+                            body.append(LExprStmt(expr))
+
+                    if remaining:
+                        else_stmts = self._lower_match_generic(subj, subj_type, remaining)
+                        stmts.append(LIf(cond=cond, then=body, else_=else_stmts))
+                    else:
+                        stmts.append(LIf(cond=cond, then=body, else_=[]))
+                    return stmts
+
+                case WildcardPattern() | BindPattern():
+                    if isinstance(arm.pattern, BindPattern):
+                        body_stmts: list[LStmt] = [
+                            LVarDecl(c_name=arm.pattern.name,
+                                     c_type=subj.c_type, init=subj)]
+                    else:
+                        body_stmts = []
+                    match arm.body:
+                        case Block():
+                            body_stmts.extend(self._lower_block(arm.body))
+                        case Expr():
+                            saved = self._pending_stmts
+                            self._pending_stmts = []
+                            expr = self._lower_expr(arm.body)
+                            body_stmts.extend(self._pending_stmts)
+                            self._pending_stmts = saved
+                            body_stmts.append(LExprStmt(expr))
+                    stmts.extend(body_stmts)
+                    return stmts
+
+                case _:
+                    # Unsupported pattern — skip
+                    continue
+
+        return stmts
+
+    # Match expression variants (assign to result_var)
+    def _lower_match_sum_expr(self, subj: LVar, sum_t: TSum,
+                               arms: list[MatchArm], result: LVar) -> list[LStmt]:
+        cases: list[tuple[int, list[LStmt]]] = []
+        default: list[LStmt] = []
+        variant_map = {v.name: i for i, v in enumerate(sum_t.variants)}
+
+        for arm in arms:
+            match arm.pattern:
+                case VariantPattern(variant_name=vname, bindings=bindings):
+                    tag = variant_map.get(vname, -1)
+                    if tag < 0:
+                        continue
+                    body: list[LStmt] = []
+                    variant = sum_t.variants[tag]
+                    if variant.fields is not None:
+                        for i, binding in enumerate(bindings):
+                            if i < len(variant.fields):
+                                field_lt = self._lower_type(variant.fields[i])
+                                body.append(LVarDecl(
+                                    c_name=binding, c_type=field_lt,
+                                    init=LFieldAccess(
+                                        LFieldAccess(subj, vname, subj.c_type),
+                                        f"_{i}", field_lt)))
+                    val = self._lower_arm_body(arm)
+                    body.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    body.append(LAssign(result, val))
+                    body.append(LBreak())
+                    cases.append((tag, body))
+
+                case WildcardPattern() | BindPattern():
+                    val = self._lower_arm_body(arm)
+                    default.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    default.append(LAssign(result, val))
+
+        tag_access = LFieldAccess(subj, "tag", LByte())
+        return [LSwitch(value=tag_access, cases=cases, default=default)]
+
+    def _lower_match_option_expr(self, subj: LVar, opt_t: TOption,
+                                  arms: list[MatchArm], result: LVar) -> list[LStmt]:
+        some_body: list[LStmt] = []
+        none_body: list[LStmt] = []
+
+        for arm in arms:
+            match arm.pattern:
+                case SomePattern(inner_var=var):
+                    inner_lt = self._lower_type(opt_t.inner)
+                    some_body.append(LVarDecl(
+                        c_name=var, c_type=inner_lt,
+                        init=LFieldAccess(subj, "value", inner_lt)))
+                    val = self._lower_arm_body(arm)
+                    some_body.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    some_body.append(LAssign(result, val))
+
+                case NonePattern():
+                    val = self._lower_arm_body(arm)
+                    none_body.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    none_body.append(LAssign(result, val))
+
+                case WildcardPattern() | BindPattern():
+                    val = self._lower_arm_body(arm)
+                    none_body.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    none_body.append(LAssign(result, val))
+
+        tag_check = LBinOp(
+            op="==",
+            left=LFieldAccess(subj, "tag", LByte()),
+            right=LLit("1", LByte()),
+            c_type=LBool(),
+        )
+        return [LIf(cond=tag_check, then=some_body, else_=none_body)]
+
+    def _lower_match_result_expr(self, subj: LVar, res_t: TResult,
+                                  arms: list[MatchArm], result: LVar) -> list[LStmt]:
+        ok_body: list[LStmt] = []
+        err_body: list[LStmt] = []
+
+        for arm in arms:
+            match arm.pattern:
+                case OkPattern(inner_var=var):
+                    ok_lt = self._lower_type(res_t.ok_type)
+                    ok_body.append(LVarDecl(
+                        c_name=var, c_type=ok_lt,
+                        init=LFieldAccess(
+                            LFieldAccess(subj, "payload", subj.c_type),
+                            "ok_val", ok_lt)))
+                    val = self._lower_arm_body(arm)
+                    ok_body.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    ok_body.append(LAssign(result, val))
+
+                case ErrPattern(inner_var=var):
+                    err_lt = self._lower_type(res_t.err_type)
+                    err_body.append(LVarDecl(
+                        c_name=var, c_type=err_lt,
+                        init=LFieldAccess(
+                            LFieldAccess(subj, "payload", subj.c_type),
+                            "err_val", err_lt)))
+                    val = self._lower_arm_body(arm)
+                    err_body.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    err_body.append(LAssign(result, val))
+
+                case WildcardPattern() | BindPattern():
+                    val = self._lower_arm_body(arm)
+                    err_body.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    err_body.append(LAssign(result, val))
+
+        tag_check = LBinOp(
+            op="==",
+            left=LFieldAccess(subj, "tag", LByte()),
+            right=LLit("0", LByte()),
+            c_type=LBool(),
+        )
+        return [LIf(cond=tag_check, then=ok_body, else_=err_body)]
+
+    def _lower_match_generic_expr(self, subj: LVar, subj_type: Type,
+                                   arms: list[MatchArm], result: LVar) -> list[LStmt]:
+        if not arms:
+            return []
+
+        remaining = list(arms)
+        stmts: list[LStmt] = []
+
+        while remaining:
+            arm = remaining.pop(0)
+            match arm.pattern:
+                case LiteralPattern(value=val):
+                    cond = self._make_equality_check(subj, val, subj_type)
+                    body: list[LStmt] = []
+                    arm_val = self._lower_arm_body(arm)
+                    body.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    body.append(LAssign(result, arm_val))
+
+                    if remaining:
+                        else_stmts = self._lower_match_generic_expr(
+                            subj, subj_type, remaining, result)
+                        stmts.append(LIf(cond=cond, then=body, else_=else_stmts))
+                    else:
+                        stmts.append(LIf(cond=cond, then=body, else_=[]))
+                    return stmts
+
+                case WildcardPattern() | BindPattern():
+                    if isinstance(arm.pattern, BindPattern):
+                        stmts.append(LVarDecl(
+                            c_name=arm.pattern.name, c_type=subj.c_type, init=subj))
+                    arm_val = self._lower_arm_body(arm)
+                    stmts.extend(self._pending_stmts)
+                    self._pending_stmts = []
+                    stmts.append(LAssign(result, arm_val))
+                    return stmts
+
+                case _:
+                    continue
+
+        return stmts
+
+    def _lower_arm_body(self, arm: MatchArm) -> LExpr:
+        """Lower match arm body and return the result expression."""
+        match arm.body:
+            case Block():
+                block_stmts = self._lower_block(arm.body)
+                # Find the last expression
+                if block_stmts and isinstance(block_stmts[-1], LExprStmt):
+                    self._pending_stmts.extend(block_stmts[:-1])
+                    return block_stmts[-1].expr
+                if block_stmts and isinstance(block_stmts[-1], LReturn) and block_stmts[-1].value is not None:
+                    self._pending_stmts.extend(block_stmts[:-1])
+                    return block_stmts[-1].value
+                self._pending_stmts.extend(block_stmts)
+                return LLit("0", LVoid())
+            case Expr():
+                return self._lower_expr(arm.body)
+
+    def _make_equality_check(self, subj: LVar, val: Expr, subj_type: Type) -> LExpr:
+        """Create an equality comparison for pattern matching."""
+        val_expr = self._lower_expr(val)
+        if isinstance(subj_type, TString):
+            return LCall("rf_string_eq", [subj, val_expr], LBool())
+        return LBinOp(op="==", left=subj, right=val_expr, c_type=LBool())
+
+    # ------------------------------------------------------------------
+    # Stream function lowering (RT-7-5-1 through RT-7-5-3)
+    # ------------------------------------------------------------------
+
+    def _lower_stream_fn(self, fn: FnDecl) -> None:
+        """Lower a stream function to frame struct + next + free + factory.
+        RT-7-5-1."""
+        if fn.body is None:
+            return
+
+        module = self._module_path
+        fn_name = fn.name
+
+        frame_c_name = mangle_stream_frame(module, fn_name)
+        next_c_name = mangle_stream_next(module, fn_name)
+        free_c_name = mangle_stream_free(module, fn_name)
+        factory_c_name = mangle(module, None, fn_name,
+                                 file=self._file, line=fn.line, col=fn.col)
+
+        # Determine element type from stream<T> return type
+        ret_type = self._type_of_return(fn)
+        elem_type = TAny()
+        if isinstance(ret_type, TStream):
+            elem_type = ret_type.element
+
+        # 1. Collect yield points and locals
+        yield_stmts = self._collect_yields(fn.body)
+        num_states = len(yield_stmts) + 1  # +1 for initial state
+
+        # 2. Build frame struct with all params and locals
+        frame_fields: list[tuple[str, LType]] = [
+            ("_state", LInt(32, True)),
+        ]
+        # Add parameters to frame
+        for p in fn.params:
+            p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
+            frame_fields.append((p.name, self._lower_type(p_type)))
+        # Add locals from body
+        local_names = self._collect_locals(fn.body)
+        for name, local_type in local_names:
+            frame_fields.append((name, self._lower_type(local_type)))
+
+        self._type_defs.append(LTypeDef(c_name=frame_c_name, fields=frame_fields))
+
+        # 3. Build next function
+        frame_ptr_type = LPtr(LStruct(frame_c_name))
+        option_ptr_type = LStruct("RF_Option_ptr")
+
+        # next function body: cast self->state to frame, switch on _state
+        next_body: list[LStmt] = []
+
+        # frame_type* frame = (frame_type*)self->state;
+        frame_var_name = "frame"
+        next_body.append(LVarDecl(
+            c_name=frame_var_name,
+            c_type=frame_ptr_type,
+            init=LCast(
+                LArrow(LVar("self", LPtr(LStruct("RF_Stream"))),
+                       "state", LPtr(LVoid())),
+                frame_ptr_type),
+        ))
+
+        # Build state machine body
+        state_cases = self._build_stream_states(fn.body, frame_var_name,
+                                                 elem_type, yield_stmts)
+
+        # switch (frame->_state)
+        state_access = LArrow(
+            LVar(frame_var_name, frame_ptr_type),
+            "_state", LInt(32, True))
+
+        # Terminal state returns RF_NONE
+        terminal_body: list[LStmt] = [
+            LReturn(LCompound(
+                fields=[(".tag", LLit("0", LByte())),
+                        (".value", LLit("NULL", LPtr(LVoid())))],
+                c_type=option_ptr_type)),
+        ]
+
+        next_body.append(LSwitch(
+            value=state_access,
+            cases=state_cases,
+            default=terminal_body,
+        ))
+
+        self._fn_defs.append(LFnDef(
+            c_name=next_c_name,
+            params=[("self", LPtr(LStruct("RF_Stream")))],
+            ret=option_ptr_type,
+            body=next_body,
+            is_pure=False,
+        ))
+
+        # 4. Build free function
+        free_body: list[LStmt] = []
+        free_body.append(LVarDecl(
+            c_name=frame_var_name,
+            c_type=frame_ptr_type,
+            init=LCast(
+                LArrow(LVar("self", LPtr(LStruct("RF_Stream"))),
+                       "state", LPtr(LVoid())),
+                frame_ptr_type),
+        ))
+        # free(frame)
+        free_body.append(LExprStmt(LCall("free",
+                                          [LVar(frame_var_name, frame_ptr_type)],
+                                          LVoid())))
+
+        self._fn_defs.append(LFnDef(
+            c_name=free_c_name,
+            params=[("self", LPtr(LStruct("RF_Stream")))],
+            ret=LVoid(),
+            body=free_body,
+            is_pure=False,
+        ))
+
+        # 5. Build factory function
+        factory_body: list[LStmt] = []
+
+        # frame_type* frame = malloc(sizeof(frame_type))
+        factory_body.append(LVarDecl(
+            c_name=frame_var_name,
+            c_type=frame_ptr_type,
+            init=LCast(
+                LCall("malloc", [LSizeOf(LStruct(frame_c_name))],
+                      LPtr(LVoid())),
+                frame_ptr_type),
+        ))
+
+        # frame->_state = 0
+        factory_body.append(LAssign(
+            target=LArrow(LVar(frame_var_name, frame_ptr_type),
+                          "_state", LInt(32, True)),
+            value=LLit("0", LInt(32, True)),
+        ))
+
+        # Copy params to frame
+        for p in fn.params:
+            p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
+            factory_body.append(LAssign(
+                target=LArrow(LVar(frame_var_name, frame_ptr_type),
+                              p.name, self._lower_type(p_type)),
+                value=LVar(p.name, self._lower_type(p_type)),
+            ))
+
+        # return rf_stream_new(next, free, frame)
+        factory_body.append(LReturn(
+            LCall("rf_stream_new",
+                  [LVar(next_c_name, LPtr(LVoid())),
+                   LVar(free_c_name, LPtr(LVoid())),
+                   LCast(LVar(frame_var_name, frame_ptr_type), LPtr(LVoid()))],
+                  LPtr(LStruct("RF_Stream"))),
+        ))
+
+        factory_params: list[tuple[str, LType]] = []
+        for p in fn.params:
+            p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
+            factory_params.append((p.name, self._lower_type(p_type)))
+
+        self._fn_defs.append(LFnDef(
+            c_name=factory_c_name,
+            params=factory_params,
+            ret=LPtr(LStruct("RF_Stream")),
+            body=factory_body,
+            is_pure=False,
+        ))
+
+    def _collect_yields(self, body: Block | Expr | None) -> list[YieldStmt]:
+        """Collect all yield statements in a function body."""
+        yields: list[YieldStmt] = []
+        if body is None:
+            return yields
+        if isinstance(body, Block):
+            for stmt in body.stmts:
+                yields.extend(self._collect_yields_stmt(stmt))
+        return yields
+
+    def _collect_yields_stmt(self, stmt: Stmt) -> list[YieldStmt]:
+        yields: list[YieldStmt] = []
+        match stmt:
+            case YieldStmt():
+                yields.append(stmt)
+            case IfStmt(then_branch=tb, else_branch=eb):
+                for s in tb.stmts:
+                    yields.extend(self._collect_yields_stmt(s))
+                if eb is not None:
+                    if isinstance(eb, Block):
+                        for s in eb.stmts:
+                            yields.extend(self._collect_yields_stmt(s))
+                    elif isinstance(eb, IfStmt):
+                        yields.extend(self._collect_yields_stmt(eb))
+            case WhileStmt(body=b):
+                for s in b.stmts:
+                    yields.extend(self._collect_yields_stmt(s))
+            case ForStmt(body=b):
+                for s in b.stmts:
+                    yields.extend(self._collect_yields_stmt(s))
+            case _:
+                pass
+        return yields
+
+    def _collect_locals(self, body: Block | Expr | None) -> list[tuple[str, Type]]:
+        """Collect all let-bound locals in a function body (conservative)."""
+        locals_: list[tuple[str, Type]] = []
+        if body is None:
+            return locals_
+        if isinstance(body, Block):
+            for stmt in body.stmts:
+                self._collect_locals_stmt(stmt, locals_)
+        return locals_
+
+    def _collect_locals_stmt(self, stmt: Stmt,
+                             locals_: list[tuple[str, Type]]) -> None:
+        existing_names = {n for n, _ in locals_}
+        match stmt:
+            case LetStmt(name=name, value=value):
+                if name not in existing_names:
+                    t = self._type_of(value)
+                    locals_.append((name, t))
+            case IfStmt(then_branch=tb, else_branch=eb):
+                for s in tb.stmts:
+                    self._collect_locals_stmt(s, locals_)
+                if eb is not None:
+                    if isinstance(eb, Block):
+                        for s in eb.stmts:
+                            self._collect_locals_stmt(s, locals_)
+                    elif isinstance(eb, IfStmt):
+                        self._collect_locals_stmt(eb, locals_)
+            case WhileStmt(body=b):
+                for s in b.stmts:
+                    self._collect_locals_stmt(s, locals_)
+            case ForStmt(var=var, body=b):
+                if var not in existing_names:
+                    iter_type = self._type_of(stmt.iterable)
+                    elem_type = TAny()
+                    if isinstance(iter_type, TArray):
+                        elem_type = iter_type.element
+                    elif isinstance(iter_type, TStream):
+                        elem_type = iter_type.element
+                    locals_.append((var, elem_type))
+                for s in b.stmts:
+                    self._collect_locals_stmt(s, locals_)
+            case _:
+                pass
+
+    def _build_stream_states(self, body: Block | Expr | None,
+                              frame_var: str,
+                              elem_type: Type,
+                              yield_stmts: list[YieldStmt]) -> list[tuple[int, list[LStmt]]]:
+        """Build switch cases for the stream state machine."""
+        if body is None or not isinstance(body, Block):
+            return []
+
+        frame_ptr_type = LPtr(LStruct("_frame"))  # placeholder
+        option_ptr_type = LStruct("RF_Option_ptr")
+        elem_lt = self._lower_type(elem_type)
+
+        # Simple state machine: state 0 runs until first yield, etc.
+        # For bootstrap, use a simplified approach:
+        # State 0: run body up to first yield, return yielded value, set state to 1
+        # State 1: run body after first yield up to second yield, etc.
+        # Terminal: return RF_NONE
+
+        cases: list[tuple[int, list[LStmt]]] = []
+
+        # For the bootstrap, lower the entire body with yield points
+        # replaced by returns and state transitions
+        state_body = self._lower_stream_body(
+            body, frame_var, elem_type, yield_stmts)
+
+        # State 0: initial entry point
+        if state_body:
+            cases.append((0, state_body))
+        else:
+            # Empty body — terminal immediately
+            cases.append((0, [
+                LReturn(LCompound(
+                    fields=[(".tag", LLit("0", LByte())),
+                            (".value", LLit("NULL", LPtr(LVoid())))],
+                    c_type=option_ptr_type)),
+            ]))
+
+        return cases
+
+    def _lower_stream_body(self, body: Block, frame_var: str,
+                            elem_type: Type,
+                            yield_stmts: list[YieldStmt]) -> list[LStmt]:
+        """Lower stream function body, converting yields to state transitions."""
+        result: list[LStmt] = []
+        option_ptr_type = LStruct("RF_Option_ptr")
+        elem_lt = self._lower_type(elem_type)
+        yield_index = [0]  # mutable counter
+
+        for stmt in body.stmts:
+            if isinstance(stmt, YieldStmt):
+                # Lower the yield value
+                saved = self._pending_stmts
+                self._pending_stmts = []
+                value = self._lower_expr(stmt.value)
+                result.extend(self._pending_stmts)
+                self._pending_stmts = saved
+
+                state_num = yield_index[0] + 1
+                yield_index[0] = state_num
+
+                # Set next state
+                frame_ptr_type = LPtr(LStruct(frame_var))
+                result.append(LAssign(
+                    target=LArrow(LVar(frame_var, frame_ptr_type),
+                                  "_state", LInt(32, True)),
+                    value=LLit(str(state_num), LInt(32, True)),
+                ))
+
+                # Return RF_SOME(value)
+                result.append(LReturn(LCompound(
+                    fields=[(".tag", LLit("1", LByte())),
+                            (".value", LCast(value, LPtr(LVoid())))],
+                    c_type=option_ptr_type)))
+            elif isinstance(stmt, ReturnStmt):
+                # RT-7-5-2: return in stream sets terminal state and returns RF_NONE
+                frame_ptr_type = LPtr(LStruct(frame_var))
+                result.append(LAssign(
+                    target=LArrow(LVar(frame_var, frame_ptr_type),
+                                  "_state", LInt(32, True)),
+                    value=LLit("-1", LInt(32, True)),
+                ))
+                result.append(LReturn(LCompound(
+                    fields=[(".tag", LLit("0", LByte())),
+                            (".value", LLit("NULL", LPtr(LVoid())))],
+                    c_type=option_ptr_type)))
+            else:
+                saved = self._pending_stmts
+                self._pending_stmts = []
+                lowered = self._lower_stmt(stmt)
+                result.extend(self._pending_stmts)
+                result.extend(lowered)
+                self._pending_stmts = saved
+
+        return result
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _fresh_temp(self) -> str:
+        """Generate a fresh temporary variable name."""
+        name = f"_rf_tmp_{self._tmp_counter}"
+        self._tmp_counter += 1
+        return name
+
+    def _type_of(self, node: ASTNode) -> Type:
+        """Look up the type of an AST node in the TypedModule."""
+        t = self._types.get(node)
+        if t is not None:
+            return t
+        # If it's a TypeExpr, resolve it via _resolve_type_ann
+        if isinstance(node, TypeExpr):
+            return self._resolve_type_ann(node)
+        return TAny()
+
+    def _type_of_return(self, fn: FnDecl) -> Type:
+        """Get the return type of a function declaration."""
+        if fn.return_type is not None:
+            t = self._types.get(fn.return_type)
+            if t is not None:
+                return t
+            return self._resolve_type_ann(fn.return_type)
+        return TNone()
+
+    def _type_of_return_method(self, method: FnDecl) -> Type:
+        """Get the return type of a method."""
+        return self._type_of_return(method)
+
+    def _resolve_type_ann(self, te: TypeExpr) -> Type:
+        """Resolve a TypeExpr AST node to a Type.
+
+        TypeExpr nodes are not stored in the typechecker's types dict.
+        This method mirrors the typechecker's _resolve_type_expr logic.
+        """
+        match te:
+            case NamedType(name=name, module_path=mp):
+                if mp:
+                    return TNamed(".".join(mp), name, ())
+                builtin = _BUILTIN_TYPE_ANNS.get(name)
+                if builtin is not None:
+                    return builtin
+                return TNamed("", name, ())
+
+            case GenericType(base=base, args=args):
+                resolved_args = tuple(self._resolve_type_ann(a) for a in args)
+                match base:
+                    case NamedType(name="option"):
+                        return TOption(resolved_args[0]) if resolved_args else TOption(TAny())
+                    case NamedType(name="result"):
+                        ok = resolved_args[0] if len(resolved_args) > 0 else TAny()
+                        err = resolved_args[1] if len(resolved_args) > 1 else TAny()
+                        return TResult(ok, err)
+                    case NamedType(name="array"):
+                        return TArray(resolved_args[0]) if resolved_args else TArray(TAny())
+                    case NamedType(name="stream"):
+                        return TStream(resolved_args[0]) if resolved_args else TStream(TAny())
+                    case NamedType(name="buffer"):
+                        return TBuffer(resolved_args[0]) if resolved_args else TBuffer(TAny())
+                    case NamedType(name="map"):
+                        k = resolved_args[0] if len(resolved_args) > 0 else TAny()
+                        v = resolved_args[1] if len(resolved_args) > 1 else TAny()
+                        return TMap(k, v)
+                    case NamedType(name="set"):
+                        return TSet(resolved_args[0]) if resolved_args else TSet(TAny())
+                    case NamedType(name=name):
+                        return TNamed("", name, resolved_args)
+                    case _:
+                        return TAny()
+
+            case OptionType(inner=inner):
+                return TOption(self._resolve_type_ann(inner))
+
+            case FnType(params=params, ret=ret):
+                return TFn(
+                    tuple(self._resolve_type_ann(p) for p in params),
+                    self._resolve_type_ann(ret), False)
+
+            case TupleType(elements=elems):
+                return TTuple(tuple(self._resolve_type_ann(e) for e in elems))
+
+            case MutType(inner=inner):
+                return self._resolve_type_ann(inner)
+
+            case ImutType(inner=inner):
+                return self._resolve_type_ann(inner)
+
+            case _:
+                return TAny()
+
+    def _type_name_str(self, t: Type) -> str:
+        """Return a human-readable name for a type."""
+        match t:
+            case TInt(width=32, signed=True):
+                return "int"
+            case TInt(width=w, signed=s):
+                return f"{'int' if s else 'uint'}{w}"
+            case TFloat(width=64):
+                return "float"
+            case TFloat(width=w):
+                return f"float{w}"
+            case TBool():
+                return "bool"
+            case TChar():
+                return "char"
+            case TByte():
+                return "byte"
+            case TString():
+                return "string"
+            case TNone():
+                return "none"
+            case TOption(inner=inner):
+                return f"option_{self._type_name_str(inner)}"
+            case TResult(ok_type=ok_t, err_type=err_t):
+                return f"result_{self._type_name_str(ok_t)}_{self._type_name_str(err_t)}"
+            case TTuple(elements=elems):
+                return "_".join(self._type_name_str(e) for e in elems)
+            case TArray(element=elem):
+                return f"array_{self._type_name_str(elem)}"
+            case TStream(element=elem):
+                return f"stream_{self._type_name_str(elem)}"
+            case TNamed(name=name):
+                return name
+            case TSum(name=name):
+                return name
+            case _:
+                return "unknown"
