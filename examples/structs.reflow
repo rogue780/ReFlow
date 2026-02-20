@@ -1,7 +1,7 @@
 ; structs.reflow — Named types, fields, methods, constructors, statics, spread
-; STATUS: does not compile yet — blocked by emitter bugs:
-;   - self.field emits dot instead of arrow (self->field)
-;   - static string field init not compile-time constant
+; STATUS: does not compile yet — blocked by remaining bugs:
+;   - static string field init not compile-time constant (SPEC GAP)
+;   - static member access emits bare type name instead of mangled static var
 module examples.structs
 
 import io (println)

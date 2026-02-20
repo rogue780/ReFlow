@@ -1,7 +1,4 @@
 ; sum_types.reflow — Sum types, pattern matching, exhaustiveness
-; STATUS: does not compile yet — blocked by emitter bugs:
-;   - sum type pattern matching uses positional _0 instead of named fields
-;   - variant constructor emission incomplete
 module examples.sum_types
 
 import io (println)

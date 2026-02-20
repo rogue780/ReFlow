@@ -1,8 +1,4 @@
 ; arrays_tuples.reflow — Array literals, iteration, tuple literals, indexing
-; STATUS: does not compile yet — blocked by emitter bugs:
-;   - array literal data passed as NULL to rf_array_new
-;   - tuple field access emits .0 instead of ._0
-;   - for-over-array lowering incomplete
 module examples.arrays_tuples
 
 import io (println)

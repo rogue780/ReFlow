@@ -1,8 +1,8 @@
 ; option_result.reflow — Option, Result, pattern matching, ??, ? propagation
-; STATUS: does not compile yet — blocked by emitter bugs:
-;   - option struct initializer emits ..tag instead of .tag
-;   - for-over-array lowering incomplete
-;   - sum type pattern matching uses wrong field names
+; STATUS: does not compile yet — blocked by remaining bugs:
+;   - result type lowering uses wrong struct layout (payload union vs flat fields)
+;   - option auto-lifting not emitting RF_SOME compound literal
+;   - none literal uses RF_Option_ptr instead of concrete option type
 module examples.option_result
 
 import io (println)

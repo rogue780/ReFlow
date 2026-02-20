@@ -28,7 +28,7 @@ from compiler.ast_nodes import (
     WildcardPattern, LiteralPattern, BindPattern, SomePattern, NonePattern,
     OkPattern, ErrPattern, VariantPattern, TuplePattern,
     # Declarations
-    FnDecl, TypeDecl, Param, StaticMemberDecl,
+    FnDecl, TypeDecl, Param, StaticMemberDecl, SumVariantDecl,
     # Top-level
     Module,
 )
@@ -1100,6 +1100,17 @@ class Lowerer:
                     fn_c_name = mangle(self._module_path, None, name,
                                        file=self._file, line=expr.line, col=expr.col)
                     return LVar(fn_c_name, lt)
+                # Unit variant constructor — compound literal with just tag
+                if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
+                        and isinstance(sym.decl, SumVariantDecl)
+                        and sym.decl.fields is None
+                        and isinstance(t, TSum)):
+                    tag = next((i for i, v in enumerate(t.variants)
+                                if v.name == name), 0)
+                    return LCompound(
+                        fields=[("tag", LLit(str(tag), LByte()))],
+                        c_type=lt,
+                    )
                 # self is always a pointer in methods
                 if name == "self" and isinstance(lt, LStruct):
                     return LVar(name, LPtr(lt))
@@ -1321,6 +1332,10 @@ class Lowerer:
             # Direct function call
             name = expr.callee.name
             sym = self._resolved.symbols.get(expr.callee)
+            # Sum type variant constructor — inline as compound literal
+            if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
+                    and isinstance(sym.decl, SumVariantDecl)):
+                return self._lower_variant_ctor(name, sym.decl, t, lt, lowered_args)
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
@@ -1336,6 +1351,35 @@ class Lowerer:
         # Indirect call through expression
         callee_expr = self._lower_expr(expr.callee)
         return LIndirectCall(callee_expr, lowered_args, lt)
+
+    def _lower_variant_ctor(self, name: str, decl: SumVariantDecl,
+                            t: Type, lt: LType,
+                            lowered_args: list[LExpr]) -> LExpr:
+        """Lower a sum type variant constructor to a compound literal.
+
+        Circle(5.0) → (Shape){.tag = 0, .Circle = {.radius = 5.0}}
+        """
+        if not isinstance(t, TSum):
+            return LCall(name, lowered_args, lt)
+
+        # Find the tag for this variant
+        tag = next((i for i, v in enumerate(t.variants) if v.name == name), 0)
+
+        # Build the inner struct for the variant payload
+        field_names = [fname for fname, _ in decl.fields] if decl.fields else []
+        variant_c_name = f"{lt.c_name}_{name}" if isinstance(lt, LStruct) else name
+        inner_fields: list[tuple[str, LExpr]] = []
+        for i, arg in enumerate(lowered_args):
+            fname = field_names[i] if i < len(field_names) else f"_{i}"
+            inner_fields.append((fname, arg))
+
+        fields: list[tuple[str, LExpr]] = [("tag", LLit(str(tag), LByte()))]
+        if inner_fields:
+            fields.append((name, LCompound(
+                fields=inner_fields,
+                c_type=LStruct(variant_c_name),
+            )))
+        return LCompound(fields=fields, c_type=lt)
 
     def _lower_method_call(self, expr: MethodCall) -> LExpr:
         """Lower method call."""
@@ -1810,33 +1854,35 @@ class Lowerer:
                                         LFieldAccess(subj, vname, subj.c_type),
                                         fname, field_lt),
                                 ))
-                    match arm.body:
-                        case Block():
-                            body.extend(self._lower_block(arm.body))
-                        case Expr():
-                            saved = self._pending_stmts
-                            self._pending_stmts = []
-                            val = self._lower_expr(arm.body)
-                            body.extend(self._pending_stmts)
-                            self._pending_stmts = saved
-                            body.append(LExprStmt(val))
-                    body.append(LBreak())
+                    body.extend(self._lower_arm_body_stmts(arm))
+                    cases.append((tag, body))
+
+                case BindPattern(name=bname) if bname in variant_map:
+                    # Unit variant pattern: bare name matches a variant
+                    tag = variant_map[bname]
+                    body = self._lower_arm_body_stmts(arm)
                     cases.append((tag, body))
 
                 case WildcardPattern() | BindPattern():
-                    match arm.body:
-                        case Block():
-                            default = self._lower_block(arm.body)
-                        case Expr():
-                            saved = self._pending_stmts
-                            self._pending_stmts = []
-                            val = self._lower_expr(arm.body)
-                            default.extend(self._pending_stmts)
-                            self._pending_stmts = saved
-                            default.append(LExprStmt(val))
+                    default = self._lower_arm_body_stmts(arm)
 
         tag_access = LFieldAccess(subj, "tag", LByte())
         return [LSwitch(value=tag_access, cases=cases, default=default)]
+
+    def _lower_arm_body_stmts(self, arm: MatchArm) -> list[LStmt]:
+        """Lower a match arm's body to a list of statements."""
+        match arm.body:
+            case Block():
+                return self._lower_block(arm.body)
+            case Expr():
+                saved = self._pending_stmts
+                self._pending_stmts = []
+                val = self._lower_expr(arm.body)
+                stmts = list(self._pending_stmts)
+                self._pending_stmts = saved
+                stmts.append(LExprStmt(val))
+                return stmts
+        return []
 
     def _get_variant_field_names(self, sum_name: str, vname: str) -> list[str]:
         """Get field names for a variant by looking up the SumVariantDecl in the AST."""
@@ -2061,7 +2107,15 @@ class Lowerer:
                     body.extend(self._pending_stmts)
                     self._pending_stmts = []
                     body.append(LAssign(result, val))
-                    body.append(LBreak())
+                    cases.append((tag, body))
+
+                case BindPattern(name=bname) if bname in variant_map:
+                    # Unit variant pattern in expression context
+                    tag = variant_map[bname]
+                    val = self._lower_arm_body(arm)
+                    body = list(self._pending_stmts)
+                    self._pending_stmts = []
+                    body.append(LAssign(result, val))
                     cases.append((tag, body))
 
                 case WildcardPattern() | BindPattern():

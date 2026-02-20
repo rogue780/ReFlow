@@ -1,7 +1,4 @@
 ; streams.reflow — Stream functions, yield, for-over-stream
-; STATUS: does not compile yet — blocked by emitter bugs:
-;   - stream function params not captured in state machine frame
-;   - for-over-stream lowering incomplete
 module examples.streams
 
 import io (println)
