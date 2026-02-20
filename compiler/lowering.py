@@ -305,6 +305,7 @@ class LFnDef:
     ret: LType
     body: list[LStmt]
     is_pure: bool
+    source_name: str = ""
 
 
 @dataclass
@@ -610,6 +611,7 @@ class Lowerer:
             ret=ret_lt,
             body=body,
             is_pure=fn.is_pure,
+            source_name=f"{self._module_path}.{fn.name}",
         ))
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
@@ -660,6 +662,7 @@ class Lowerer:
                 ret=ret_lt,
                 body=body,
                 is_pure=method.is_pure,
+                source_name=f"{self._module_path}.{td.name}.{method.name}",
             ))
 
         # Lower constructors
@@ -680,6 +683,7 @@ class Lowerer:
                 ret=LStruct(c_name),
                 body=body,
                 is_pure=False,
+                source_name=f"{self._module_path}.{td.name}.{ctor.name}",
             ))
 
         # Lower static members
@@ -2191,6 +2195,7 @@ class Lowerer:
             ret=option_ptr_type,
             body=next_body,
             is_pure=False,
+            source_name=f"{module}.{fn_name}::next",
         ))
 
         # 4. Build free function
@@ -2214,6 +2219,7 @@ class Lowerer:
             ret=LVoid(),
             body=free_body,
             is_pure=False,
+            source_name=f"{module}.{fn_name}::free",
         ))
 
         # 5. Build factory function
@@ -2265,6 +2271,7 @@ class Lowerer:
             ret=LPtr(LStruct("RF_Stream")),
             body=factory_body,
             is_pure=False,
+            source_name=f"{module}.{fn_name}",
         ))
 
     def _collect_yields(self, body: Block | Expr | None) -> list[YieldStmt]:
