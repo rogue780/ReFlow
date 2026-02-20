@@ -817,11 +817,18 @@ class Lowerer:
     def _lower_let(self, stmt: LetStmt) -> list[LStmt]:
         val_type = self._type_of(stmt.value)
         c_type = self._lower_type(val_type)
+        init = self._lower_expr(stmt.value)
         # If there's a type annotation, prefer it for the declared type
         if stmt.type_ann is not None:
             ann_type = self._type_of(stmt.type_ann)
             c_type = self._lower_type(ann_type)
-        init = self._lower_expr(stmt.value)
+            # Auto-lift T → option<T>
+            if isinstance(ann_type, TOption) and not isinstance(val_type, TOption):
+                init = LCompound(
+                    fields=[("tag", LLit("1", LByte())),
+                            ("value", init)],
+                    c_type=c_type,
+                )
         return [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
 
     def _lower_assign(self, stmt: AssignStmt) -> list[LStmt]:
