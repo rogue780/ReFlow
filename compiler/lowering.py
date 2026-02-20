@@ -944,8 +944,14 @@ class Lowerer:
     def _lower_for_stream(self, stmt: ForStmt, elem_t: Type) -> list[LStmt]:
         """Lower for-over-stream to while loop with rf_stream_next. RT-7-4-3."""
         stream_expr = self._lower_expr(stmt.iterable)
+        stream_lt = LPtr(LStruct("RF_Stream"))
         elem_lt = self._lower_type(elem_t)
         next_name = self._fresh_temp()
+
+        # Store stream in a temp to avoid re-evaluating the iterable each iteration
+        stream_tmp = self._fresh_temp()
+        stream_decl = LVarDecl(c_name=stream_tmp, c_type=stream_lt, init=stream_expr)
+        stream_var = LVar(stream_tmp, stream_lt)
 
         # while (1) { ... }
         cond = LLit("1", LBool())
@@ -954,7 +960,7 @@ class Lowerer:
         next_decl = LVarDecl(
             c_name=next_name,
             c_type=LStruct("RF_Option_ptr"),
-            init=LCall("rf_stream_next", [stream_expr], LStruct("RF_Option_ptr")),
+            init=LCall("rf_stream_next", [stream_var], LStruct("RF_Option_ptr")),
         )
 
         # if (_rf_next.tag == 0) break;
@@ -971,7 +977,8 @@ class Lowerer:
             else_=[],
         )
 
-        # T item = (T)_rf_next.value;
+        # T item = (T)(uintptr_t)_rf_next.value;  (for value types)
+        # T item = (T)_rf_next.value;              (for pointer types)
         value_access = LFieldAccess(
             LVar(next_name, LStruct("RF_Option_ptr")),
             "value", LPtr(LVoid()))
@@ -979,11 +986,12 @@ class Lowerer:
         if isinstance(elem_lt, LPtr):
             item_init = LCast(value_access, elem_lt)
         else:
-            item_init = LCast(value_access, elem_lt)
+            # Value types need intermediate cast through uintptr_t (uint64)
+            item_init = LCast(LCast(value_access, LInt(64, False)), elem_lt)
         item_decl = LVarDecl(c_name=stmt.var, c_type=elem_lt, init=item_init)
 
         body_stmts = [next_decl, tag_check, item_decl] + self._lower_block(stmt.body)
-        result: list[LStmt] = [LWhile(cond=cond, body=body_stmts)]
+        result: list[LStmt] = [stream_decl, LWhile(cond=cond, body=body_stmts)]
 
         if stmt.finally_block is not None:
             result.extend(self._lower_block(stmt.finally_block))
