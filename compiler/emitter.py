@@ -54,6 +54,7 @@ class Emitter:
         self._emit_type_defs()
         self._emit_static_defs()
         self._emit_fn_defs()
+        self._emit_entry_point()
         return self._get_output()
 
     # ------------------------------------------------------------------
@@ -174,6 +175,20 @@ class Emitter:
         for fn in self._module.fn_defs:
             self._blank()
             self._emit_fn_def(fn)
+
+    def _emit_entry_point(self) -> None:
+        """Emit a C main() wrapper if the module has an entry point."""
+        ep = self._module.entry_point
+        if ep is None:
+            return
+        self._blank()
+        self._emitln("/* Entry point */")
+        self._emitln("int main(void) {")
+        self._indent_level += 1
+        self._emitln(f"{ep}();")
+        self._emitln("return 0;")
+        self._indent_level -= 1
+        self._emitln("}")
 
     def _emit_fn_def(self, fn: LFnDef) -> None:
         """Emit a single function definition."""

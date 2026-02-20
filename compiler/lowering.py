@@ -321,6 +321,7 @@ class LModule:
     type_defs: list[LTypeDef]
     fn_defs: list[LFnDef]
     static_defs: list[LStaticDef]
+    entry_point: str | None = None  # mangled C name of the entry function
 
 
 # ---------------------------------------------------------------------------
@@ -444,10 +445,18 @@ class Lowerer:
                 case TypeDecl():
                     self._lower_type_decl(decl)
 
+        # Detect entry point: a top-level function named "main".
+        entry_point: str | None = None
+        for fn_def in self._fn_defs:
+            if fn_def.source_name.endswith(".main"):
+                entry_point = fn_def.c_name
+                break
+
         return LModule(
             type_defs=self._type_defs,
             fn_defs=self._fn_defs,
             static_defs=self._static_defs,
+            entry_point=entry_point,
         )
 
     # ------------------------------------------------------------------

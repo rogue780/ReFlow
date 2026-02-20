@@ -2,9 +2,24 @@
 /* Source: tests/programs/hello.reflow */
 #include "reflow_runtime.h"
 
+rf_int rf_tests_hello_add(rf_int x, rf_int y);
+
+void rf_tests_hello_main(void);
+
 /* ReFlow: tests.hello.add */
 rf_int rf_tests_hello_add(rf_int x, rf_int y) {
     rf_int _rf_tmp_1;
     RF_CHECKED_ADD(x, y, &_rf_tmp_1);
     return _rf_tmp_1;
+}
+
+/* ReFlow: tests.hello.main */
+void rf_tests_hello_main(void) {
+    rf_tests_hello_add(1, 2);
+}
+
+/* Entry point */
+int main(void) {
+    rf_tests_hello_main();
+    return 0;
 }

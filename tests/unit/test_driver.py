@@ -7,6 +7,7 @@ from __future__ import annotations
 import io
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import unittest
@@ -68,6 +69,36 @@ class TestEmitOnly(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("#include", captured.getvalue())
 
+    def test_emit_only_includes_entry_point(self):
+        """emit_only on a module with main includes the C entry point."""
+        captured = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
+        try:
+            emit_only(HELLO_REFLOW)
+        finally:
+            sys.stdout = old_stdout
+        c_source = captured.getvalue()
+        self.assertIn("int main(void)", c_source)
+        self.assertIn("rf_tests_hello_main();", c_source)
+
+    def test_emit_only_no_entry_point_without_main(self):
+        """emit_only on a module without main omits the C entry point."""
+        source = 'module test.lib\n\npure fn add(x: int, y: int): int = x + y\n'
+        path = _write_temp_reflow(source)
+        try:
+            captured = io.StringIO()
+            old_stdout = sys.stdout
+            sys.stdout = captured
+            try:
+                emit_only(path)
+            finally:
+                sys.stdout = old_stdout
+            c_source = captured.getvalue()
+            self.assertNotIn("int main(void)", c_source)
+        finally:
+            os.unlink(path)
+
 
 # ---------------------------------------------------------------------------
 # RT-9-1-3: check_only
@@ -111,18 +142,23 @@ class TestCheckOnly(unittest.TestCase):
 class TestCompileSource(unittest.TestCase):
     """Tests for compile_source(). Requires clang."""
 
-    def test_compile_source_invokes_clang(self):
-        """compile_source runs the full pipeline and invokes clang.
-
-        hello.reflow has no main function, so linking fails (returns 1).
-        This still validates that the pipeline produces valid C and clang
-        is correctly invoked.
-        """
+    def test_compile_source_produces_binary(self):
+        """compile_source on hello.reflow returns 0 and creates an executable."""
         with tempfile.TemporaryDirectory() as tmpdir:
             out_path = os.path.join(tmpdir, "hello_test")
             rc = compile_source(HELLO_REFLOW, output=out_path)
-            # Linking fails because hello.reflow has no main function.
-            self.assertEqual(rc, 1)
+            self.assertEqual(rc, 0)
+            self.assertTrue(os.path.isfile(out_path))
+            mode = os.stat(out_path).st_mode
+            self.assertTrue(mode & stat.S_IXUSR)
+
+    def test_compile_source_custom_output(self):
+        """compile_source respects --output path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            custom = os.path.join(tmpdir, "my_binary")
+            rc = compile_source(HELLO_REFLOW, output=custom)
+            self.assertEqual(rc, 0)
+            self.assertTrue(os.path.isfile(custom))
 
     def test_compile_source_verbose(self):
         """compile_source with verbose=True writes C source to stderr."""
@@ -132,11 +168,11 @@ class TestCompileSource(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
                 out_path = os.path.join(tmpdir, "hello_verbose")
-                compile_source(HELLO_REFLOW, output=out_path, verbose=True)
+                rc = compile_source(HELLO_REFLOW, output=out_path,
+                                    verbose=True)
         finally:
             sys.stderr = old_stderr
-        # Verbose output should contain the generated C, regardless of
-        # whether linking succeeds.
+        self.assertEqual(rc, 0)
         output = captured.getvalue()
         self.assertIn("#include", output)
         self.assertIn("rf_tests_hello_add", output)
@@ -149,15 +185,11 @@ class TestCompileSource(unittest.TestCase):
                 content = f.read()
             with open(src, "w") as f:
                 f.write(content)
-            # Even though linking fails, verify the driver chose the right
-            # output path by checking the clang invocation doesn't crash.
             rc = compile_source(src)
-            # Link fails (no main), but the pipeline ran.
-            self.assertEqual(rc, 1)
-            # Clean up any partial output.
             expected_bin = os.path.join(tmpdir, "mytest")
-            if os.path.exists(expected_bin):
-                os.unlink(expected_bin)
+            self.assertEqual(rc, 0)
+            self.assertTrue(os.path.isfile(expected_bin))
+            os.unlink(expected_bin)
 
     def test_compile_source_type_error(self):
         """compile_source raises TypeError before clang is ever invoked."""
@@ -169,16 +201,17 @@ class TestCompileSource(unittest.TestCase):
         finally:
             os.unlink(path)
 
-    def test_compile_source_temp_file_cleaned_up(self):
-        """compile_source removes the temp .c file after clang runs."""
-        import glob
-        with tempfile.TemporaryDirectory() as tmpdir:
-            out_path = os.path.join(tmpdir, "hello_test")
-            compile_source(HELLO_REFLOW, output=out_path)
-            # The temp dir used by tempfile.mkstemp is system temp, not tmpdir.
-            # We verify indirectly: no .c files left in the system temp dir
-            # with our specific suffix pattern would be hard to check, so
-            # instead we just confirm the function completed without error.
+    def test_compile_source_link_failure_no_main(self):
+        """compile_source returns 1 when the module has no main function."""
+        source = 'module test.lib\n\npure fn add(x: int, y: int): int = x + y\n'
+        path = _write_temp_reflow(source)
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                out_path = os.path.join(tmpdir, "lib_test")
+                rc = compile_source(path, output=out_path)
+                self.assertEqual(rc, 1)
+        finally:
+            os.unlink(path)
 
 
 if __name__ == "__main__":
