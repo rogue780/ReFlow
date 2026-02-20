@@ -45,6 +45,9 @@ class Emitter:
         self._tmp_counter: int = 0
         self._pre_stmts: list[str] = []
 
+        # Deferred static string inits (name, init_expr) — initialized at runtime
+        self._deferred_static_inits: list[tuple[str, str]] = []
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
@@ -157,9 +160,19 @@ class Emitter:
             self._blank()
             self._emit_static_def(sd)
 
+    def _is_string_ptr(self, t: LType) -> bool:
+        """Check if a type is RF_String* (not compile-time constant)."""
+        return isinstance(t, LPtr) and isinstance(t.inner, LStruct) and t.inner.c_name == "RF_String"
+
     def _emit_static_def(self, sd: LStaticDef) -> None:
         """Emit a single static/global definition."""
         type_str = self._emit_ltype(sd.c_type)
+        # String statics can't be initialized at compile time — defer to runtime
+        if self._is_string_ptr(sd.c_type) and sd.init is not None:
+            self._emitln(f"{type_str} {sd.c_name} = NULL;")
+            self._deferred_static_inits.append(
+                (sd.c_name, self._emit_expr(sd.init)))
+            return
         if sd.is_mut:
             if sd.init is not None:
                 self._emitln(f"{type_str} {sd.c_name} = {self._emit_expr(sd.init)};")
@@ -186,11 +199,22 @@ class Emitter:
         ep = self._module.entry_point
         if ep is None:
             return
+        # Emit static string init function if there are deferred inits
+        if self._deferred_static_inits:
+            self._blank()
+            self._emitln("static void _rf_init_statics(void) {")
+            self._indent_level += 1
+            for name, init_expr in self._deferred_static_inits:
+                self._emitln(f"{name} = {init_expr};")
+            self._indent_level -= 1
+            self._emitln("}")
         self._blank()
         self._emitln("/* Entry point */")
         self._emitln("int main(int argc, char** argv) {")
         self._indent_level += 1
         self._emitln("_rf_runtime_init(argc, argv);")
+        if self._deferred_static_inits:
+            self._emitln("_rf_init_statics();")
         self._emitln(f"{ep}();")
         self._emitln("return 0;")
         self._indent_level -= 1

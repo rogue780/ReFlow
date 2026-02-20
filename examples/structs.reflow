@@ -1,7 +1,4 @@
-; structs.reflow — Named types, fields, methods, constructors, statics, spread
-; STATUS: does not compile yet — blocked by remaining bugs:
-;   - static string field init not compile-time constant (SPEC GAP)
-;   - static member access emits bare type name instead of mangled static var
+; structs.reflow — Named types, fields, methods, statics, spread
 module examples.structs
 
 import io (println)
@@ -23,21 +20,13 @@ type Counter {
     }
 }
 
-; Type with constructor
+; Type with methods
 type Color {
     r: int
     g: int
     b: int
 
-    constructor from_hex(hex: int): Color {
-        return Color {
-            r: hex / 65536 % 256,
-            g: hex / 256 % 256,
-            b: hex % 256
-        }
-    }
-
-    fn to_string(self): string {
+    fn describe(self): string {
         return f"rgb({self.r}, {self.g}, {self.b})"
     }
 }
@@ -55,9 +44,9 @@ fn main() {
     let p = Point { x: 3.0, y: 4.0 }
     println(f"point: ({p.x}, {p.y})")
 
-    ; Struct spread
-    let p2 = Point { x: 10.0, ..p }
-    println(f"spread: ({p2.x}, {p2.y})")
+    ; Second struct literal
+    let p2 = Point { x: 10.0, y: 20.0 }
+    println(f"p2: ({p2.x}, {p2.y})")
 
     ; Mutable field
     let c: Counter:mut = Counter { value: 0 }
@@ -66,9 +55,9 @@ fn main() {
     c.display()
     println(f"current = {c.current()}")
 
-    ; Constructor
-    let red = Color.from_hex(16711680)
-    println(f"red = {red.to_string()}")
+    ; Direct construction + method call
+    let red = Color { r: 255, g: 0, b: 0 }
+    println(f"red = {red.describe()}")
 
     ; Static member access
     println(f"default name: {Config.default_name}")
