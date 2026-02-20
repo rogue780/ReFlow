@@ -25,6 +25,8 @@ _CHECKED_OP_MAP: dict[str, str] = {
     "+": "RF_CHECKED_ADD",
     "-": "RF_CHECKED_SUB",
     "*": "RF_CHECKED_MUL",
+    "/": "RF_CHECKED_DIV",
+    "%": "RF_CHECKED_MOD",
 }
 
 
@@ -87,9 +89,12 @@ class Emitter:
         return "".join(self._out)
 
     def _fresh_temp(self) -> str:
-        """Generate a fresh temp variable name, scoped to the current function."""
+        """Generate a fresh temp variable name, scoped to the current function.
+
+        Uses _rf_e_ prefix to avoid collision with lowering's _rf_tmp_ temps.
+        """
         self._tmp_counter += 1
-        return f"_rf_tmp_{self._tmp_counter}"
+        return f"_rf_e_{self._tmp_counter}"
 
     # ------------------------------------------------------------------
     # Header emission (RT-8-1-2)

@@ -232,11 +232,11 @@ class TestEmitExpr(unittest.TestCase):
             LVar("b", LInt(32, True)),
             LInt(32, True)))
         # The expression value is the temp name
-        self.assertEqual(result, "_rf_tmp_1")
+        self.assertEqual(result, "_rf_e_1")
         # pre_stmts should contain declaration and macro call
         self.assertEqual(len(e._pre_stmts), 2)
-        self.assertEqual(e._pre_stmts[0], "rf_int _rf_tmp_1;")
-        self.assertEqual(e._pre_stmts[1], "RF_CHECKED_ADD(a, b, &_rf_tmp_1);")
+        self.assertEqual(e._pre_stmts[0], "rf_int _rf_e_1;")
+        self.assertEqual(e._pre_stmts[1], "RF_CHECKED_ADD(a, b, &_rf_e_1);")
 
     def test_checked_arith_sub(self) -> None:
         e = make_emitter()
@@ -245,7 +245,7 @@ class TestEmitExpr(unittest.TestCase):
             LVar("x", LInt(64, True)),
             LVar("y", LInt(64, True)),
             LInt(64, True)))
-        self.assertEqual(result, "_rf_tmp_1")
+        self.assertEqual(result, "_rf_e_1")
         self.assertIn("RF_CHECKED_SUB", e._pre_stmts[1])
         self.assertIn("rf_int64", e._pre_stmts[0])
 
@@ -256,14 +256,14 @@ class TestEmitExpr(unittest.TestCase):
             LVar("a", LInt(32, True)),
             LLit("2", LInt(32, True)),
             LInt(32, True)))
-        self.assertEqual(result, "_rf_tmp_1")
+        self.assertEqual(result, "_rf_e_1")
         self.assertIn("RF_CHECKED_MUL", e._pre_stmts[1])
 
     def test_checked_arith_invalid_op(self) -> None:
         e = make_emitter()
         with self.assertRaises(EmitError):
             e._emit_expr(LCheckedArith(
-                "/",
+                "^",
                 LVar("a", LInt(32, True)),
                 LVar("b", LInt(32, True)),
                 LInt(32, True)))
@@ -279,8 +279,8 @@ class TestEmitExpr(unittest.TestCase):
                                          LVar("c", LInt(32, True)),
                                          LVar("d", LInt(32, True)),
                                          LInt(32, True)))
-        self.assertEqual(r1, "_rf_tmp_1")
-        self.assertEqual(r2, "_rf_tmp_2")
+        self.assertEqual(r1, "_rf_e_1")
+        self.assertEqual(r2, "_rf_e_2")
 
 
 # ---------------------------------------------------------------------------
@@ -397,9 +397,9 @@ class TestEmitStmt(unittest.TestCase):
                           LVar("b", LInt(32, True)),
                           LInt(32, True))))
         # Should contain the hoisted temp declaration, macro call, then assignment
-        self.assertIn("rf_int _rf_tmp_1;", result)
-        self.assertIn("RF_CHECKED_ADD(a, b, &_rf_tmp_1);", result)
-        self.assertIn("rf_int sum = _rf_tmp_1;", result)
+        self.assertIn("rf_int _rf_e_1;", result)
+        self.assertIn("RF_CHECKED_ADD(a, b, &_rf_e_1);", result)
+        self.assertIn("rf_int sum = _rf_e_1;", result)
 
     def test_return_with_checked_arith(self) -> None:
         """Return with LCheckedArith flushes pre_stmts before the return."""
@@ -408,9 +408,9 @@ class TestEmitStmt(unittest.TestCase):
                           LVar("x", LInt(32, True)),
                           LVar("y", LInt(32, True)),
                           LInt(32, True))))
-        self.assertIn("rf_int _rf_tmp_1;", result)
-        self.assertIn("RF_CHECKED_ADD(x, y, &_rf_tmp_1);", result)
-        self.assertIn("return _rf_tmp_1;", result)
+        self.assertIn("rf_int _rf_e_1;", result)
+        self.assertIn("RF_CHECKED_ADD(x, y, &_rf_e_1);", result)
+        self.assertIn("return _rf_e_1;", result)
 
 
 # ---------------------------------------------------------------------------
@@ -539,8 +539,8 @@ class TestEmitFnDef(unittest.TestCase):
         mod = LModule(type_defs=[], fn_defs=[fn1, fn2], static_defs=[])
         e = Emitter(mod, "test.reflow")
         result = e.emit()
-        # Both functions should use _rf_tmp_1 (counter resets)
-        self.assertEqual(result.count("_rf_tmp_1"), 6)  # 3 per function (decl, macro, return)
+        # Both functions should use _rf_e_1 (counter resets)
+        self.assertEqual(result.count("_rf_e_1"), 6)  # 3 per function (decl, macro, return)
 
 
 # ---------------------------------------------------------------------------
@@ -619,9 +619,9 @@ class TestEmitFull(unittest.TestCase):
             "\n"
             "/* ReFlow: tests.hello.add */\n"
             "rf_int rf_tests_hello_add(rf_int x, rf_int y) {\n"
-            "    rf_int _rf_tmp_1;\n"
-            "    RF_CHECKED_ADD(x, y, &_rf_tmp_1);\n"
-            "    return _rf_tmp_1;\n"
+            "    rf_int _rf_e_1;\n"
+            "    RF_CHECKED_ADD(x, y, &_rf_e_1);\n"
+            "    return _rf_e_1;\n"
             "}\n"
         )
         self.assertEqual(result, expected)

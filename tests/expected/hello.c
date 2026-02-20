@@ -8,9 +8,9 @@ void rf_tests_hello_main(void);
 
 /* ReFlow: tests.hello.add */
 rf_int rf_tests_hello_add(rf_int x, rf_int y) {
-    rf_int _rf_tmp_1;
-    RF_CHECKED_ADD(x, y, &_rf_tmp_1);
-    return _rf_tmp_1;
+    rf_int _rf_e_1;
+    RF_CHECKED_ADD(x, y, &_rf_e_1);
+    return _rf_e_1;
 }
 
 /* ReFlow: tests.hello.main */
