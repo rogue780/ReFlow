@@ -576,3 +576,22 @@ class Module(ASTNode):
     imports: list[ImportDecl]
     decls: list[Decl]
     filename: str
+
+
+# ---------------------------------------------------------------------------
+# Identity-based hashing for all AST nodes
+# ---------------------------------------------------------------------------
+# @dataclass sets __hash__ = None when eq=True and frozen=False.
+# The resolver's symbols side map (dict[ASTNode, Symbol]) requires AST nodes
+# as dict keys. Restore identity-based hashing on all ASTNode subclasses.
+
+def _restore_ast_hashing() -> None:
+    import sys
+    mod = sys.modules[__name__]
+    for name in dir(mod):
+        obj = getattr(mod, name)
+        if isinstance(obj, type) and issubclass(obj, ASTNode):
+            obj.__hash__ = object.__hash__  # type: ignore[assignment]
+
+_restore_ast_hashing()
+del _restore_ast_hashing
