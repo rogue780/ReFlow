@@ -10,10 +10,40 @@ from pathlib import Path
 
 from compiler.lexer import Lexer
 from compiler.parser import Parser
-from compiler.resolver import Resolver
+from compiler.resolver import Resolver, ModuleScope
 from compiler.typechecker import TypeChecker
 from compiler.lowering import Lowerer
 from compiler.emitter import Emitter
+
+# Stdlib module names that live in the stdlib/ directory.
+_STDLIB_MODULES = frozenset({"io", "sys", "conv"})
+
+
+def _stdlib_dir() -> Path:
+    """Return the path to the stdlib/ directory."""
+    return Path(__file__).resolve().parent.parent / "stdlib"
+
+
+def _load_stdlib_module(module_name: str) -> ModuleScope:
+    """Parse and resolve a stdlib module, returning its ModuleScope."""
+    stdlib_path = _stdlib_dir() / f"{module_name}.reflow"
+    source = stdlib_path.read_text()
+    display = f"stdlib/{module_name}.reflow"
+    tokens = Lexer(source, display).tokenize()
+    module = Parser(tokens, display).parse()
+    resolved = Resolver(module).resolve()
+    return resolved.module_scope
+
+
+def _discover_imports(module) -> dict[str, ModuleScope]:
+    """Discover and load stdlib modules needed by the given parsed Module."""
+    imported: dict[str, ModuleScope] = {}
+    for imp in module.imports:
+        module_key = ".".join(imp.path)
+        if module_key in _STDLIB_MODULES:
+            if module_key not in imported:
+                imported[module_key] = _load_stdlib_module(module_key)
+    return imported
 
 
 def _run_pipeline(source_path: str) -> tuple[str, object]:
@@ -33,7 +63,11 @@ def _run_pipeline(source_path: str) -> tuple[str, object]:
 
     tokens = Lexer(source, display_path).tokenize()
     module = Parser(tokens, display_path).parse()
-    resolved = Resolver(module).resolve()
+
+    # Load stdlib modules referenced by imports.
+    imported_modules = _discover_imports(module)
+
+    resolved = Resolver(module, imported_modules).resolve()
     typed = TypeChecker(resolved).check()
     return display_path, typed
 

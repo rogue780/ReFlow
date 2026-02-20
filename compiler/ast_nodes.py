@@ -498,6 +498,7 @@ class FnDecl(Decl):
     is_export: bool
     is_static: bool
     finally_block: Block | None
+    native_name: str | None = None  # set if "= native ..." form, else None
 
 
 @dataclass

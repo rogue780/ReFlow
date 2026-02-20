@@ -19,7 +19,8 @@ void rf_tests_hello_main(void) {
 }
 
 /* Entry point */
-int main(void) {
+int main(int argc, char** argv) {
+    _rf_runtime_init(argc, argv);
     rf_tests_hello_main();
     return 0;
 }

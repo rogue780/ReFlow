@@ -1,0 +1,4 @@
+module sys
+
+export fn exit(code: int): none = native "rf_sys_exit"
+export fn args(): array<string> = native "rf_sys_args"

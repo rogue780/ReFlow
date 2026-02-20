@@ -1,0 +1,8 @@
+module io
+
+export fn print(s: string): none = native "rf_print"
+export fn println(s: string): none = native "rf_println"
+export fn eprint(s: string): none = native "rf_eprint"
+export fn eprintln(s: string): none = native "rf_eprintln"
+export fn read_line(): string? = native "rf_read_line"
+export fn read_byte(): byte? = native "rf_read_byte"

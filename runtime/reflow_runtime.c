@@ -659,3 +659,68 @@ RF_Option_ptr rf_read_line(void) {
     free(buf);
     return RF_SOME_PTR(s);
 }
+
+RF_Option_ptr rf_read_byte(void) {
+    int c = fgetc(stdin);
+    if (c == EOF) return RF_NONE_PTR;
+    return (RF_Option_ptr){.tag = 1, .value = (void*)(uintptr_t)(rf_byte)c};
+}
+
+/* ========================================================================
+ * Runtime Initialization
+ * ======================================================================== */
+
+static int    _rf_argc = 0;
+static char** _rf_argv = NULL;
+
+void _rf_runtime_init(int argc, char** argv) {
+    _rf_argc = argc;
+    _rf_argv = argv;
+}
+
+/* ========================================================================
+ * System Functions (stdlib/sys)
+ * ======================================================================== */
+
+void rf_sys_exit(rf_int code) {
+    exit((int)code);
+}
+
+RF_Array* rf_sys_args(void) {
+    RF_Array* arr = rf_array_new(_rf_argc, sizeof(RF_String*), NULL);
+    for (int i = 0; i < _rf_argc; i++) {
+        RF_String* s = rf_string_from_cstr(_rf_argv[i]);
+        memcpy((char*)arr->data + (size_t)i * sizeof(RF_String*), &s, sizeof(RF_String*));
+    }
+    return arr;
+}
+
+/* ========================================================================
+ * Conversion Wrappers (stdlib/conv)
+ * ======================================================================== */
+
+RF_Option_ptr rf_string_to_int_opt(RF_String* s) {
+    rf_int val;
+    if (rf_string_to_int(s, &val)) {
+        return (RF_Option_ptr){.tag = 1, .value = (void*)(uintptr_t)val};
+    }
+    return RF_NONE_PTR;
+}
+
+RF_Option_ptr rf_string_to_int64_opt(RF_String* s) {
+    rf_int64 val;
+    if (rf_string_to_int64(s, &val)) {
+        return (RF_Option_ptr){.tag = 1, .value = (void*)(uintptr_t)val};
+    }
+    return RF_NONE_PTR;
+}
+
+RF_Option_ptr rf_string_to_float_opt(RF_String* s) {
+    rf_float val;
+    if (rf_string_to_float(s, &val)) {
+        void* p;
+        memcpy(&p, &val, sizeof(val));
+        return (RF_Option_ptr){.tag = 1, .value = p};
+    }
+    return RF_NONE_PTR;
+}

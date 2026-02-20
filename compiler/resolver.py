@@ -491,9 +491,22 @@ class Resolver:
                 for arg in args:
                     self._resolve_expr(arg, scope)
 
-            case MethodCall(receiver=receiver, args=args):
+            case MethodCall(receiver=receiver, method=method_name, args=args):
                 self._resolve_expr(receiver, scope)
-                # Method name resolved by type checker
+                # Check if receiver is a namespace import (RT-9 stdlib)
+                if isinstance(receiver, Ident) and not receiver.module_path:
+                    recv_sym = self._symbols.get(receiver)
+                    if recv_sym is not None and recv_sym.kind == SymbolKind.IMPORT:
+                        ns_scope = self._type_member_scopes.get(recv_sym.name)
+                        if ns_scope is not None:
+                            member_sym = ns_scope.lookup_local(method_name)
+                            if member_sym is not None:
+                                self._symbols[expr] = member_sym
+                            else:
+                                raise self._error(
+                                    f"name '{method_name}' not found in "
+                                    f"namespace '{recv_sym.name}'", expr)
+                # Other method names resolved by type checker
                 for arg in args:
                     self._resolve_expr(arg, scope)
 

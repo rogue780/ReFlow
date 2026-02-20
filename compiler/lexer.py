@@ -51,6 +51,7 @@ class TokenType(Enum):
     CAST = auto()
     SNAPSHOT = auto()
     THROW = auto()
+    NATIVE = auto()
 
     # --- Operators ---
     ARROW = auto()           # ->
@@ -169,6 +170,7 @@ _KEYWORDS: dict[str, TokenType] = {
     "cast": TokenType.CAST,
     "snapshot": TokenType.SNAPSHOT,
     "throw": TokenType.THROW,
+    "native": TokenType.NATIVE,
     "true": TokenType.BOOL_LIT,
     "false": TokenType.BOOL_LIT,
 }

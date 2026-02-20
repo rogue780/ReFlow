@@ -780,6 +780,20 @@ class TypeChecker:
 
             case MethodCall(receiver=receiver, method=method_name,
                             args=args):
+                # Check if the resolver bound this to a namespace symbol
+                resolved_sym = self._resolved.symbols.get(expr)
+                if resolved_sym is not None and resolved_sym.kind in (
+                        SymbolKind.FN, SymbolKind.IMPORT):
+                    # Namespace function call (e.g. io.println)
+                    self._infer_expr(receiver, scope)
+                    arg_types = [self._infer_expr(a, scope) for a in args]
+                    fn_decl = resolved_sym.decl
+                    if isinstance(fn_decl, FnDecl):
+                        fn_type = self._fn_decl_type(fn_decl)
+                        self._check_call_args(fn_type, arg_types, args, expr)
+                        return fn_type.ret
+                    return TAny()
+
                 recv_t = self._infer_expr(receiver, scope)
                 arg_types = [self._infer_expr(a, scope) for a in args]
 

@@ -1,0 +1,10 @@
+module conv
+
+export pure fn int_to_string(n: int): string = native "rf_int_to_string"
+export pure fn int64_to_string(n: int64): string = native "rf_int64_to_string"
+export pure fn float_to_string(f: float): string = native "rf_float_to_string"
+export pure fn bool_to_string(b: bool): string = native "rf_bool_to_string"
+
+export pure fn string_to_int(s: string): int? = native "rf_string_to_int_opt"
+export pure fn string_to_int64(s: string): int64? = native "rf_string_to_int64_opt"
+export pure fn string_to_float(s: string): float? = native "rf_string_to_float_opt"

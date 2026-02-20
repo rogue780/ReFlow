@@ -183,8 +183,9 @@ class Emitter:
             return
         self._blank()
         self._emitln("/* Entry point */")
-        self._emitln("int main(void) {")
+        self._emitln("int main(int argc, char** argv) {")
         self._indent_level += 1
+        self._emitln("_rf_runtime_init(argc, argv);")
         self._emitln(f"{ep}();")
         self._emitln("return 0;")
         self._indent_level -= 1

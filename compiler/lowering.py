@@ -585,6 +585,9 @@ class Lowerer:
 
     def _lower_fn_decl(self, fn: FnDecl) -> None:
         """Lower a function declaration. RT-7-3-1, RT-7-4-1."""
+        if fn.native_name is not None:
+            # Native functions are implemented in C — no LIR generated.
+            return
         if fn.body is None:
             return
 
@@ -1311,6 +1314,24 @@ class Lowerer:
         """Lower method call."""
         t = self._type_of(expr)
         lt = self._lower_type(t)
+
+        # Check if resolver bound this to a namespace function symbol
+        resolved_sym = self._resolved.symbols.get(expr)
+        if resolved_sym is not None and resolved_sym.kind in (
+                SymbolKind.FN, SymbolKind.IMPORT):
+            fn_decl = resolved_sym.decl
+            lowered_args = [self._lower_expr(a) for a in expr.args]
+            if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
+                # Native function — call the C name directly
+                return LCall(fn_decl.native_name, lowered_args, lt)
+            # Non-native imported function — use mangled name from source module
+            if isinstance(fn_decl, FnDecl):
+                # Determine module path from the import's module scope
+                src_module = self._resolve_import_module_path(expr.receiver)
+                c_name = mangle(src_module, None, fn_decl.name,
+                                file=self._file, line=expr.line, col=expr.col)
+                return LCall(c_name, lowered_args, lt)
+
         recv = self._lower_expr(expr.receiver)
         lowered_args = [self._lower_expr(a) for a in expr.args]
         recv_type = self._type_of(expr.receiver)
@@ -2282,6 +2303,16 @@ class Lowerer:
             is_pure=False,
             source_name=f"{module}.{fn_name}",
         ))
+
+    def _resolve_import_module_path(self, receiver: Expr) -> str:
+        """Get the module path for a namespace import receiver."""
+        if isinstance(receiver, Ident):
+            # Look up the import to find the original module path
+            for imp in self._module.imports:
+                ns_name = imp.alias if imp.alias else imp.path[-1]
+                if ns_name == receiver.name:
+                    return ".".join(imp.path)
+        return self._module_path
 
     def _collect_yields(self, body: Block | Expr | None) -> list[YieldStmt]:
         """Collect all yield statements in a function body."""

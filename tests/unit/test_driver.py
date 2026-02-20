@@ -8,6 +8,7 @@ import io
 import os
 import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -79,7 +80,8 @@ class TestEmitOnly(unittest.TestCase):
         finally:
             sys.stdout = old_stdout
         c_source = captured.getvalue()
-        self.assertIn("int main(void)", c_source)
+        self.assertIn("int main(int argc, char** argv)", c_source)
+        self.assertIn("_rf_runtime_init(argc, argv);", c_source)
         self.assertIn("rf_tests_hello_main();", c_source)
 
     def test_emit_only_no_entry_point_without_main(self):
@@ -95,7 +97,7 @@ class TestEmitOnly(unittest.TestCase):
             finally:
                 sys.stdout = old_stdout
             c_source = captured.getvalue()
-            self.assertNotIn("int main(void)", c_source)
+            self.assertNotIn("int main(", c_source)
         finally:
             os.unlink(path)
 
@@ -210,6 +212,74 @@ class TestCompileSource(unittest.TestCase):
                 out_path = os.path.join(tmpdir, "lib_test")
                 rc = compile_source(path, output=out_path)
                 self.assertEqual(rc, 1)
+        finally:
+            os.unlink(path)
+
+
+HELLO_WORLD_REFLOW = os.path.join(
+    os.path.dirname(__file__), os.pardir, "programs", "hello_world.reflow"
+)
+
+
+# ---------------------------------------------------------------------------
+# Stdlib integration tests
+# ---------------------------------------------------------------------------
+
+class TestStdlibIntegration(unittest.TestCase):
+    """Tests for stdlib module discovery and native function support."""
+
+    def test_check_only_with_io_import(self):
+        """check_only succeeds on a program that imports io."""
+        rc = check_only(HELLO_WORLD_REFLOW)
+        self.assertEqual(rc, 0)
+
+    def test_emit_hello_world_calls_rf_println(self):
+        """emit_only on hello_world.reflow emits a direct call to rf_println."""
+        captured = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
+        try:
+            rc = emit_only(HELLO_WORLD_REFLOW)
+        finally:
+            sys.stdout = old_stdout
+        self.assertEqual(rc, 0)
+        c_source = captured.getvalue()
+        self.assertIn("rf_println(", c_source)
+        # Should NOT contain a mangled io.println wrapper
+        self.assertNotIn("rf_io_println", c_source)
+
+    @unittest.skipUnless(shutil.which("clang"), "clang not available")
+    def test_compile_and_run_hello_world(self):
+        """hello_world.reflow compiles, runs, and produces correct output."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_path = os.path.join(tmpdir, "hello_world")
+            rc = compile_source(HELLO_WORLD_REFLOW, output=out_path)
+            self.assertEqual(rc, 0)
+            result = subprocess.run(
+                [out_path], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, "Hello, World!\n")
+
+    def test_native_fn_parsing(self):
+        """Parser correctly handles the native keyword."""
+        from compiler.lexer import Lexer
+        from compiler.parser import Parser
+        source = 'module test.lib\n\nexport fn foo(s: string): none = native "rf_foo"\n'
+        tokens = Lexer(source, "test.reflow").tokenize()
+        mod = Parser(tokens, "test.reflow").parse()
+        fn = mod.decls[0]
+        self.assertEqual(fn.name, "foo")
+        self.assertEqual(fn.native_name, "rf_foo")
+        self.assertIsNone(fn.body)
+
+    def test_unknown_import_raises_error(self):
+        """Importing an unknown module raises ResolveError."""
+        from compiler.errors import ResolveError as RE
+        source = 'module test.bad\n\nimport nonexistent\n\nfn main(): none { }\n'
+        path = _write_temp_reflow(source)
+        try:
+            with self.assertRaises(RE):
+                check_only(path)
         finally:
             os.unlink(path)
 

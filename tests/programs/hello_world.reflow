@@ -1,0 +1,7 @@
+module tests.hello_world
+
+import io
+
+fn main(): none {
+    io.println("Hello, World!")
+}

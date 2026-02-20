@@ -256,5 +256,27 @@ void          rf_eprint(RF_String* s);
 void          rf_eprintln(RF_String* s);
 RF_Stream*    rf_stdin_stream(void);
 RF_Option_ptr rf_read_line(void);
+RF_Option_ptr rf_read_byte(void);
+
+/* ========================================================================
+ * System Functions (stdlib/sys)
+ * ======================================================================== */
+
+void          rf_sys_exit(rf_int code);
+RF_Array*     rf_sys_args(void);
+
+/* ========================================================================
+ * Conversion Wrappers (stdlib/conv) — option-returning variants
+ * ======================================================================== */
+
+RF_Option_ptr rf_string_to_int_opt(RF_String* s);
+RF_Option_ptr rf_string_to_int64_opt(RF_String* s);
+RF_Option_ptr rf_string_to_float_opt(RF_String* s);
+
+/* ========================================================================
+ * Runtime Initialization
+ * ======================================================================== */
+
+void _rf_runtime_init(int argc, char** argv);
 
 #endif /* REFLOW_RUNTIME_H */
