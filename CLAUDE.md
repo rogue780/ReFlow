@@ -157,9 +157,47 @@ The Python compiler will eventually compile itself. This means:
 
 ---
 
+## Known Implementation Decisions
+
+These decisions were made during Epics 7–9 and are non-obvious. The self-hosted
+compiler (Epic 11) must replicate them exactly.
+
+1. **Static member access** — `Type.static_field` lowers to the mangled global
+   variable name (`rf_module_Type_field`), not a field access on the type name.
+   The resolver binds the `FieldAccess` node with `SymbolKind.STATIC`; the
+   lowering checks this and emits `LVar(mangled_name)`.
+
+2. **Static string fields** — `RF_String*` globals cannot be initialized at
+   compile time (because `rf_string_from_cstr` is a function call). They are
+   declared as `NULL` and initialized in a generated `_rf_init_statics()`
+   function called from `main()` before the ReFlow entry point.
+
+3. **Result struct layout** — Result types use flat fields (`tag`, `ok_val`,
+   `err_val`) at the top level of the struct. There is no `.payload` union
+   wrapper. The runtime's `RF_RESULT_TYPE` macro uses a union, but the compiler
+   generates its own struct definitions with flat fields instead.
+
+4. **Option auto-lifting** — When a `let` binding has an `option<T>` type
+   annotation but the value expression is a plain `T`, the lowering wraps the
+   value in an `RF_SOME` compound literal (`{.tag = 1, .value = expr}`) at the
+   let-binding site. The type checker detects the lift but does not insert AST
+   nodes (AST is immutable); the lowering performs the actual wrapping.
+
+5. **`none` literal type** — `NoneLit` uses the enclosing function's return
+   type (via `_current_fn_return_type`) to determine the concrete option struct
+   (e.g., `RF_Option_int`). Without this, it defaults to `RF_Option_ptr` which
+   causes type mismatches for value-type options.
+
+6. **`ok()`/`err()` result type** — The type checker assigns `TResult(T, TAny)`
+   to `ok(value)` and `TResult(TAny, E)` to `err(value)`. The lowering uses
+   `_current_fn_return_type` (the fully-resolved return type) instead, so the
+   compound literal uses the correct concrete struct name.
+
+---
+
 ## Skills to Read
 
-These skills live in `.claude/skills/`.Read the appropriate skill before doing the work described, regardless of 
+These skills live in `.claude/skills/`.Read the appropriate skill before doing the work described, regardless of
 whether you are working from a formal ticket or not.
 
 | Skill | Read when you are about to... |
