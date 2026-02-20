@@ -2276,28 +2276,18 @@ class Lowerer:
                 frame_ptr_type),
         ))
 
-        # Build state machine body
-        state_cases = self._build_stream_states(fn.body, frame_var_name,
-                                                 elem_type, yield_stmts)
+        # Collect frame variable names for rewriting
+        frame_var_names: set[str] = set()
+        for p in fn.params:
+            frame_var_names.add(p.name)
+        for name, _ in local_names:
+            frame_var_names.add(name)
 
-        # switch (frame->_state)
-        state_access = LArrow(
-            LVar(frame_var_name, frame_ptr_type),
-            "_state", LInt(32, True))
-
-        # Terminal state returns RF_NONE
-        terminal_body: list[LStmt] = [
-            LReturn(LCompound(
-                fields=[("tag", LLit("0", LByte())),
-                        ("value", LLit("NULL", LPtr(LVoid())))],
-                c_type=option_ptr_type)),
-        ]
-
-        next_body.append(LSwitch(
-            value=state_access,
-            cases=state_cases,
-            default=terminal_body,
-        ))
+        # Build state machine body (goto-based dispatch)
+        state_machine_stmts = self._build_stream_states(
+            fn.body, frame_var_name, frame_c_name,
+            elem_type, yield_stmts, frame_var_names)
+        next_body.extend(state_machine_stmts)
 
         self._fn_defs.append(LFnDef(
             c_name=next_c_name,
@@ -2474,53 +2464,72 @@ class Lowerer:
 
     def _build_stream_states(self, body: Block | Expr | None,
                               frame_var: str,
+                              frame_c_name: str,
                               elem_type: Type,
-                              yield_stmts: list[YieldStmt]) -> list[tuple[int, list[LStmt]]]:
-        """Build switch cases for the stream state machine."""
+                              yield_stmts: list[YieldStmt],
+                              frame_names: set[str]) -> list[LStmt]:
+        """Build goto-based state machine for stream function.
+
+        Returns a flat list of statements (not switch cases) that form the
+        state machine: a switch dispatch at the top, then the lowered body
+        with yields replaced by state transitions and goto labels.
+        """
         if body is None or not isinstance(body, Block):
             return []
 
-        frame_ptr_type = LPtr(LStruct("_frame"))  # placeholder
         option_ptr_type = LStruct("RF_Option_ptr")
-        elem_lt = self._lower_type(elem_type)
+        num_yields = len(yield_stmts)
 
-        # Simple state machine: state 0 runs until first yield, etc.
-        # For bootstrap, use a simplified approach:
-        # State 0: run body up to first yield, return yielded value, set state to 1
-        # State 1: run body after first yield up to second yield, etc.
+        # Lower body with yields converted to state transitions + gotos
+        yield_counter = [0]  # mutable counter shared across recursion
+        body_stmts = self._lower_stream_stmts(
+            body.stmts, frame_var, elem_type, yield_counter)
+
+        # Rewrite all frame variable references to use frame-> access
+        body_stmts = self._rewrite_frame_access(
+            body_stmts, frame_var, frame_c_name, frame_names)
+
         # Terminal: return RF_NONE
+        done_label = "_rf_stream_done"
+        body_stmts.append(LLabel(done_label))
+        frame_ptr_type = LPtr(LStruct(frame_c_name))
+        body_stmts.append(LAssign(
+            target=LArrow(LVar(frame_var, frame_ptr_type),
+                          "_state", LInt(32, True)),
+            value=LLit("-1", LInt(32, True))))
+        body_stmts.append(LReturn(LCompound(
+            fields=[("tag", LLit("0", LByte())),
+                    ("value", LLit("NULL", LPtr(LVoid())))],
+            c_type=option_ptr_type)))
 
-        cases: list[tuple[int, list[LStmt]]] = []
+        # Build switch dispatch: case 0 → _state_0, case 1 → _state_1, ...
+        switch_cases: list[tuple[int, list[LStmt]]] = []
+        for i in range(num_yields + 1):
+            switch_cases.append((i, [LGoto(f"_rf_state_{i}")]))
+        switch_default = [LGoto(done_label)]
 
-        # For the bootstrap, lower the entire body with yield points
-        # replaced by returns and state transitions
-        state_body = self._lower_stream_body(
-            body, frame_var, elem_type, yield_stmts)
+        frame_state = LArrow(
+            LVar(frame_var, LPtr(LStruct(frame_c_name))),
+            "_state", LInt(32, True))
 
-        # State 0: initial entry point
-        if state_body:
-            cases.append((0, state_body))
-        else:
-            # Empty body — terminal immediately
-            cases.append((0, [
-                LReturn(LCompound(
-                    fields=[("tag", LLit("0", LByte())),
-                            ("value", LLit("NULL", LPtr(LVoid())))],
-                    c_type=option_ptr_type)),
-            ]))
+        result: list[LStmt] = []
+        result.append(LSwitch(value=frame_state, cases=switch_cases,
+                               default=switch_default))
+        # State 0 label — initial entry
+        result.append(LLabel("_rf_state_0"))
+        result.extend(body_stmts)
 
-        return cases
+        return result
 
-    def _lower_stream_body(self, body: Block, frame_var: str,
-                            elem_type: Type,
-                            yield_stmts: list[YieldStmt]) -> list[LStmt]:
-        """Lower stream function body, converting yields to state transitions."""
+    def _lower_stream_stmts(self, stmts: list[Stmt], frame_var: str,
+                              elem_type: Type,
+                              yield_counter: list[int]) -> list[LStmt]:
+        """Lower a list of statements for stream body, handling yields
+        at any nesting level."""
         result: list[LStmt] = []
         option_ptr_type = LStruct("RF_Option_ptr")
-        elem_lt = self._lower_type(elem_type)
-        yield_index = [0]  # mutable counter
 
-        for stmt in body.stmts:
+        for stmt in stmts:
             if isinstance(stmt, YieldStmt):
                 # Lower the yield value
                 saved = self._pending_stmts
@@ -2529,8 +2538,8 @@ class Lowerer:
                 result.extend(self._pending_stmts)
                 self._pending_stmts = saved
 
-                state_num = yield_index[0] + 1
-                yield_index[0] = state_num
+                yield_counter[0] += 1
+                state_num = yield_counter[0]
 
                 # Set next state
                 frame_ptr_type = LPtr(LStruct(frame_var))
@@ -2540,23 +2549,49 @@ class Lowerer:
                     value=LLit(str(state_num), LInt(32, True)),
                 ))
 
-                # Return RF_SOME(value)
+                # Return RF_SOME(value) — cast through uintptr_t for value types
+                void_value = LCast(LCast(value, LInt(64, False)), LPtr(LVoid()))
                 result.append(LReturn(LCompound(
                     fields=[("tag", LLit("1", LByte())),
-                            ("value", LCast(value, LPtr(LVoid())))],
+                            ("value", void_value)],
                     c_type=option_ptr_type)))
+
+                # Resume label for this yield point
+                result.append(LLabel(f"_rf_state_{state_num}"))
+
             elif isinstance(stmt, ReturnStmt):
-                # RT-7-5-2: return in stream sets terminal state and returns RF_NONE
-                frame_ptr_type = LPtr(LStruct(frame_var))
-                result.append(LAssign(
-                    target=LArrow(LVar(frame_var, frame_ptr_type),
-                                  "_state", LInt(32, True)),
-                    value=LLit("-1", LInt(32, True)),
-                ))
-                result.append(LReturn(LCompound(
-                    fields=[("tag", LLit("0", LByte())),
-                            ("value", LLit("NULL", LPtr(LVoid())))],
-                    c_type=option_ptr_type)))
+                result.append(LGoto("_rf_stream_done"))
+
+            elif isinstance(stmt, WhileStmt):
+                # Lower while loop, recursing into body for yields
+                cond = self._lower_expr(stmt.condition)
+                loop_body = self._lower_stream_stmts(
+                    stmt.body.stmts, frame_var, elem_type, yield_counter)
+                result.append(LWhile(cond=cond, body=loop_body))
+
+            elif isinstance(stmt, IfStmt):
+                cond = self._lower_expr(stmt.condition)
+                then_body = self._lower_stream_stmts(
+                    stmt.then_branch.stmts, frame_var, elem_type, yield_counter)
+                else_body: list[LStmt] = []
+                if stmt.else_branch is not None:
+                    if isinstance(stmt.else_branch, Block):
+                        else_body = self._lower_stream_stmts(
+                            stmt.else_branch.stmts, frame_var,
+                            elem_type, yield_counter)
+                    elif isinstance(stmt.else_branch, IfStmt):
+                        else_body = self._lower_stream_stmts(
+                            [stmt.else_branch], frame_var,
+                            elem_type, yield_counter)
+                result.append(LIf(cond=cond, then=then_body, else_=else_body))
+
+            elif isinstance(stmt, ForStmt):
+                # Lower for loop normally, recurse into body
+                for_stmts = self._lower_for(stmt)
+                # The for lowering returns a list with LWhile; we need to
+                # handle yields inside. For simplicity, just include as-is.
+                result.extend(for_stmts)
+
             else:
                 saved = self._pending_stmts
                 self._pending_stmts = []
@@ -2566,6 +2601,107 @@ class Lowerer:
                 self._pending_stmts = saved
 
         return result
+
+    # ------------------------------------------------------------------
+    # Stream frame variable rewriting
+    # ------------------------------------------------------------------
+
+    def _rewrite_frame_access(self, stmts: list[LStmt],
+                                frame_var: str,
+                                frame_c_name: str,
+                                frame_names: set[str]) -> list[LStmt]:
+        """Rewrite variable references in stream body to use frame-> access."""
+        return [self._rewrite_stmt(s, frame_var, frame_c_name, frame_names)
+                for s in stmts]
+
+    def _rewrite_stmt(self, stmt: LStmt, fv: str, fc: str,
+                       names: set[str]) -> LStmt:
+        fpt = LPtr(LStruct(fc))
+        match stmt:
+            case LVarDecl(c_name=name, c_type=ct, init=init):
+                if name in names:
+                    # Convert to frame->name = init
+                    if init is not None:
+                        return LAssign(
+                            target=LArrow(LVar(fv, fpt), name, ct),
+                            value=self._rewrite_expr(init, fv, fc, names))
+                    # No init — skip (frame field is already allocated)
+                    return LBlock(stmts=[])
+                new_init = self._rewrite_expr(init, fv, fc, names) if init else None
+                return LVarDecl(c_name=name, c_type=ct, init=new_init)
+            case LAssign(target=target, value=value):
+                return LAssign(
+                    target=self._rewrite_expr(target, fv, fc, names),
+                    value=self._rewrite_expr(value, fv, fc, names))
+            case LReturn(value=value):
+                new_val = self._rewrite_expr(value, fv, fc, names) if value else None
+                return LReturn(new_val)
+            case LExprStmt(expr=expr):
+                return LExprStmt(self._rewrite_expr(expr, fv, fc, names))
+            case LIf(cond=cond, then=then, else_=else_):
+                return LIf(
+                    cond=self._rewrite_expr(cond, fv, fc, names),
+                    then=self._rewrite_frame_access(then, fv, fc, names),
+                    else_=self._rewrite_frame_access(else_, fv, fc, names))
+            case LWhile(cond=cond, body=body):
+                return LWhile(
+                    cond=self._rewrite_expr(cond, fv, fc, names),
+                    body=self._rewrite_frame_access(body, fv, fc, names))
+            case LBlock(stmts=stmts):
+                return LBlock(self._rewrite_frame_access(stmts, fv, fc, names))
+            case LSwitch(value=value, cases=cases, default=default):
+                new_cases = [(tag, self._rewrite_frame_access(body, fv, fc, names))
+                             for tag, body in cases]
+                new_default = self._rewrite_frame_access(default, fv, fc, names)
+                return LSwitch(
+                    value=self._rewrite_expr(value, fv, fc, names),
+                    cases=new_cases, default=new_default)
+            case _:
+                return stmt
+
+    def _rewrite_expr(self, expr: LExpr, fv: str, fc: str,
+                       names: set[str]) -> LExpr:
+        fpt = LPtr(LStruct(fc))
+        match expr:
+            case LVar(c_name=name, c_type=ct):
+                if name in names:
+                    return LArrow(LVar(fv, fpt), name, ct)
+                return expr
+            case LCall(fn_name=fn, args=args, c_type=ct):
+                return LCall(fn, [self._rewrite_expr(a, fv, fc, names) for a in args], ct)
+            case LIndirectCall(fn_ptr=fp, args=args, c_type=ct):
+                return LIndirectCall(
+                    self._rewrite_expr(fp, fv, fc, names),
+                    [self._rewrite_expr(a, fv, fc, names) for a in args], ct)
+            case LBinOp(op=op, left=left, right=right, c_type=ct):
+                return LBinOp(op, self._rewrite_expr(left, fv, fc, names),
+                              self._rewrite_expr(right, fv, fc, names), ct)
+            case LUnary(op=op, operand=operand, c_type=ct):
+                return LUnary(op, self._rewrite_expr(operand, fv, fc, names), ct)
+            case LFieldAccess(obj=obj, field=field, c_type=ct):
+                return LFieldAccess(self._rewrite_expr(obj, fv, fc, names), field, ct)
+            case LArrow(ptr=ptr, field=field, c_type=ct):
+                return LArrow(self._rewrite_expr(ptr, fv, fc, names), field, ct)
+            case LCast(inner=inner, c_type=ct):
+                return LCast(self._rewrite_expr(inner, fv, fc, names), ct)
+            case LAddrOf(inner=inner, c_type=ct):
+                return LAddrOf(self._rewrite_expr(inner, fv, fc, names), ct)
+            case LDeref(inner=inner, c_type=ct):
+                return LDeref(self._rewrite_expr(inner, fv, fc, names), ct)
+            case LTernary(cond=c, then_expr=t, else_expr=e, c_type=ct):
+                return LTernary(
+                    self._rewrite_expr(c, fv, fc, names),
+                    self._rewrite_expr(t, fv, fc, names),
+                    self._rewrite_expr(e, fv, fc, names), ct)
+            case LCompound(fields=fields, c_type=ct):
+                return LCompound(
+                    [(n, self._rewrite_expr(v, fv, fc, names)) for n, v in fields], ct)
+            case LCheckedArith(op=op, left=left, right=right, c_type=ct):
+                return LCheckedArith(
+                    op, self._rewrite_expr(left, fv, fc, names),
+                    self._rewrite_expr(right, fv, fc, names), ct)
+            case _:
+                return expr
 
     # ------------------------------------------------------------------
     # Helpers
