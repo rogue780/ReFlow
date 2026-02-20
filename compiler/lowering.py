@@ -1099,10 +1099,16 @@ class Lowerer:
                 return LLit(str(v), LChar())
 
             case NoneLit():
-                # Lower to RF_NONE compound literal
+                # Lower to RF_NONE compound literal with concrete option type
+                t = self._type_of(expr)
+                # Prefer function return type for concrete option type
+                if isinstance(t, TOption) and isinstance(t.inner, TAny):
+                    if isinstance(self._current_fn_return_type, TOption):
+                        t = self._current_fn_return_type
+                lt = self._lower_type(t) if isinstance(t, TOption) else LStruct("RF_Option_ptr")
                 return LCompound(
                     fields=[("tag", LLit("0", LByte()))],
-                    c_type=LStruct("RF_Option_ptr"),
+                    c_type=lt,
                 )
 
             case FStringExpr():
