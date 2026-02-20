@@ -1067,7 +1067,7 @@ class Lowerer:
             case NoneLit():
                 # Lower to RF_NONE compound literal
                 return LCompound(
-                    fields=[(".tag", LLit("0", LByte()))],
+                    fields=[("tag", LLit("0", LByte()))],
                     c_type=LStruct("RF_Option_ptr"),
                 )
 
@@ -1646,7 +1646,7 @@ class Lowerer:
         t = self._type_of(expr)
         lt = self._lower_type(t)
         return LCompound(
-            fields=[(".tag", LLit("1", LByte())), (".value", inner)],
+            fields=[("tag", LLit("1", LByte())), ("value", inner)],
             c_type=lt,
         )
 
@@ -1656,8 +1656,8 @@ class Lowerer:
         t = self._type_of(expr)
         lt = self._lower_type(t)
         return LCompound(
-            fields=[(".tag", LLit("0", LByte())),
-                    (".payload.ok_val", inner)],
+            fields=[("tag", LLit("0", LByte())),
+                    ("ok_val", inner)],
             c_type=lt,
         )
 
@@ -1667,8 +1667,8 @@ class Lowerer:
         t = self._type_of(expr)
         lt = self._lower_type(t)
         return LCompound(
-            fields=[(".tag", LLit("1", LByte())),
-                    (".payload.err_val", inner)],
+            fields=[("tag", LLit("1", LByte())),
+                    ("err_val", inner)],
             c_type=lt,
         )
 
@@ -1754,7 +1754,7 @@ class Lowerer:
         lt = self._lower_type(t)
         lfields: list[tuple[str, LExpr]] = []
         for name, val in expr.fields:
-            lfields.append((f".{name}", self._lower_expr(val)))
+            lfields.append((name, self._lower_expr(val)))
         return LCompound(fields=lfields, c_type=lt)
 
     # ------------------------------------------------------------------
@@ -2270,8 +2270,8 @@ class Lowerer:
         # Terminal state returns RF_NONE
         terminal_body: list[LStmt] = [
             LReturn(LCompound(
-                fields=[(".tag", LLit("0", LByte())),
-                        (".value", LLit("NULL", LPtr(LVoid())))],
+                fields=[("tag", LLit("0", LByte())),
+                        ("value", LLit("NULL", LPtr(LVoid())))],
                 c_type=option_ptr_type)),
         ]
 
@@ -2486,8 +2486,8 @@ class Lowerer:
             # Empty body — terminal immediately
             cases.append((0, [
                 LReturn(LCompound(
-                    fields=[(".tag", LLit("0", LByte())),
-                            (".value", LLit("NULL", LPtr(LVoid())))],
+                    fields=[("tag", LLit("0", LByte())),
+                            ("value", LLit("NULL", LPtr(LVoid())))],
                     c_type=option_ptr_type)),
             ]))
 
@@ -2524,8 +2524,8 @@ class Lowerer:
 
                 # Return RF_SOME(value)
                 result.append(LReturn(LCompound(
-                    fields=[(".tag", LLit("1", LByte())),
-                            (".value", LCast(value, LPtr(LVoid())))],
+                    fields=[("tag", LLit("1", LByte())),
+                            ("value", LCast(value, LPtr(LVoid())))],
                     c_type=option_ptr_type)))
             elif isinstance(stmt, ReturnStmt):
                 # RT-7-5-2: return in stream sets terminal state and returns RF_NONE
@@ -2536,8 +2536,8 @@ class Lowerer:
                     value=LLit("-1", LInt(32, True)),
                 ))
                 result.append(LReturn(LCompound(
-                    fields=[(".tag", LLit("0", LByte())),
-                            (".value", LLit("NULL", LPtr(LVoid())))],
+                    fields=[("tag", LLit("0", LByte())),
+                            ("value", LLit("NULL", LPtr(LVoid())))],
                     c_type=option_ptr_type)))
             else:
                 saved = self._pending_stmts
