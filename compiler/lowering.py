@@ -1135,9 +1135,19 @@ class Lowerer:
 
             # Field/index access
             case FieldAccess(receiver=receiver, field=field_name):
-                recv = self._lower_expr(receiver)
                 t = self._type_of(expr)
                 lt = self._lower_type(t)
+                # Static member access: Type.member → mangled global var
+                sym = self._resolved.symbols.get(expr)
+                if sym is not None and sym.kind == SymbolKind.STATIC:
+                    recv_type = self._type_of(receiver)
+                    type_name = recv_type.name if isinstance(recv_type, TNamed) else None
+                    if type_name is None and isinstance(receiver, Ident):
+                        type_name = receiver.name
+                    c_name = mangle(self._module_path, type_name, field_name,
+                                    file=self._file, line=expr.line, col=expr.col)
+                    return LVar(c_name, lt)
+                recv = self._lower_expr(receiver)
                 # Tuple field names: .0, .1 → ._0, ._1 (numeric names are
                 # invalid C identifiers, prefix with underscore)
                 c_field = f"_{field_name}" if field_name.isdigit() else field_name
