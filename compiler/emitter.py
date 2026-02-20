@@ -13,7 +13,7 @@ from compiler.lowering import (
     # Expressions
     LExpr, LLit, LVar, LCall, LIndirectCall, LBinOp, LUnary,
     LFieldAccess, LArrow, LIndex, LCast, LAddrOf, LDeref,
-    LCompound, LCheckedArith, LSizeOf, LTernary,
+    LCompound, LCheckedArith, LSizeOf, LTernary, LArrayData,
     # Statements
     LStmt, LVarDecl, LAssign, LReturn, LIf, LWhile, LBlock,
     LExprStmt, LGoto, LLabel, LSwitch, LBreak,
@@ -497,6 +497,9 @@ class Emitter:
                     for name, val in fields
                 )
                 return f"({self._emit_ltype(ctype)}){{{fields_str}}}"
+            case LArrayData(elements=elements, elem_type=etype):
+                elems_str = ", ".join(self._emit_expr(e) for e in elements)
+                return f"({self._emit_ltype(etype)}[]){{{elems_str}}}"
             case LCheckedArith(op=op, left=left, right=right, c_type=ctype):
                 tmp = self._fresh_temp()
                 type_str = self._emit_ltype(ctype)

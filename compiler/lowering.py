@@ -208,6 +208,14 @@ class LSizeOf(LExpr):
 
 
 @dataclass
+class LArrayData(LExpr):
+    """A C compound literal array: (type[]){e1, e2, ...}."""
+    elements: list[LExpr]
+    elem_type: LType
+    c_type: LType
+
+
+@dataclass
 class LTernary(LExpr):
     cond: LExpr
     then_expr: LExpr
@@ -1738,14 +1746,16 @@ class Lowerer:
         lowered_elems = [self._lower_expr(e) for e in expr.elements]
         count = len(lowered_elems)
 
-        # Create a temp array with the data, then call rf_array_new
-        data_tmp = self._fresh_temp()
-        # We can't directly create a C array init in LIR, so we use a compound literal
-        # approach via the emitter. For now, lower to rf_array_new with inline data.
+        # Create a compound literal array and pass its address to rf_array_new
+        data_expr = LArrayData(
+            elements=lowered_elems,
+            elem_type=elem_lt,
+            c_type=LPtr(elem_lt),
+        )
         return LCall("rf_array_new",
                      [LLit(str(count), LInt(64, True)),
                       LSizeOf(elem_lt),
-                      LLit("NULL", LPtr(LVoid()))],
+                      data_expr],
                      lt)
 
     def _lower_type_lit(self, expr: TypeLit) -> LExpr:
