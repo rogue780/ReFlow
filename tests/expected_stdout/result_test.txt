@@ -1,0 +1,4 @@
+10 / 3 = 3
+error: division by zero
+compute(20, 4) = 6
+compute error: division by zero

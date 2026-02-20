@@ -1,0 +1,5 @@
+found: 42
+not found
+coalesced: 0
+coalesced: 99
+auto-lifted: 42

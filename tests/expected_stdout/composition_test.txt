@@ -1,0 +1,2 @@
+5 -> double -> square = 100
+3 -> add_one -> double = 8

@@ -1,0 +1,4 @@
+point: (3, 4)
+counter = 0
+counter = 10
+current = 10

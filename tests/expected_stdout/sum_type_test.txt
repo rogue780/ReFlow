@@ -1,0 +1,4 @@
+circle area = 78.539749999999998
+rect area = 12
+square area = 49
+opposite of North is South

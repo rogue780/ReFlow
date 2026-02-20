@@ -1,0 +1,17 @@
+module tests.composition_test
+
+import io (println)
+
+pure fn double(x: int): int = x * 2
+pure fn square(x: int): int = x * x
+pure fn add_one(x: int): int = x + 1
+
+fn main() {
+    ; Simple chain
+    let r1 = 5 -> double -> square
+    println(f"5 -> double -> square = {r1}")
+
+    ; Another chain
+    let r2 = 3 -> add_one -> double
+    println(f"3 -> add_one -> double = {r2}")
+}

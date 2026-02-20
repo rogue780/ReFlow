@@ -1,0 +1,25 @@
+module tests.stream_test
+
+import io (println)
+
+fn range(n: int): stream<int> {
+    let i: int:mut = 0
+    while i < n {
+        yield i
+        i++
+    }
+}
+
+fn main() {
+    ; Basic stream consumption
+    for (x: int in range(5)) {
+        println(f"  {x}")
+    }
+
+    ; Stream sum
+    let total: int:mut = 0
+    for (x: int in range(10)) {
+        total += x
+    }
+    println(f"sum 0..9 = {total}")
+}

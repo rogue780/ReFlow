@@ -1,0 +1,35 @@
+module tests.option_test
+
+import io (println)
+
+fn find_positive(x: int): int? {
+    if x > 0 {
+        return some(x)
+    }
+    return none
+}
+
+fn main() {
+    ; Option matching
+    match find_positive(42) {
+        some(v): { println(f"found: {v}") }
+        none: { println("not found") }
+    }
+
+    match find_positive(-5) {
+        some(v): { println(f"found: {v}") }
+        none: { println("not found") }
+    }
+
+    ; Null coalesce
+    let val = find_positive(-1) ?? 0
+    println(f"coalesced: {val}")
+
+    let val2 = find_positive(99) ?? 0
+    println(f"coalesced: {val2}")
+
+    ; Auto-lifting
+    let maybe: int? = 42
+    let x = maybe ?? 0
+    println(f"auto-lifted: {x}")
+}

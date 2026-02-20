@@ -1,0 +1,15 @@
+module tests.tuple_test
+
+import io (println)
+
+fn swap(a: int, b: int): (int, int) {
+    return (b, a)
+}
+
+fn main() {
+    let pair = (42, 99)
+    println(f"pair = ({pair.0}, {pair.1})")
+
+    let result = swap(10, 20)
+    println(f"swap(10, 20) = ({result.0}, {result.1})")
+}

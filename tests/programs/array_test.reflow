@@ -1,0 +1,19 @@
+module tests.array_test
+
+import io (println)
+
+fn main() {
+    let nums = [10, 20, 30, 40, 50]
+
+    ; For-over-array
+    let total: int:mut = 0
+    for (n: int in nums) {
+        total += n
+    }
+    println(f"sum = {total}")
+
+    ; Array iteration with println
+    for (n: int in [1, 2, 3]) {
+        println(f"  {n}")
+    }
+}

@@ -1,0 +1,54 @@
+module tests.sum_type_test
+
+import io (println)
+
+type Shape =
+    | Circle(radius: float)
+    | Rectangle(width: float, height: float)
+    | Square(side: float)
+
+fn area(s: Shape): float {
+    match s {
+        Circle(r): { return 3.14159 * r * r }
+        Rectangle(w, h): { return w * h }
+        Square(sd): { return sd * sd }
+    }
+}
+
+type Direction =
+    | North
+    | South
+    | East
+    | West
+
+fn opposite(d: Direction): Direction {
+    match d {
+        North: { return South }
+        South: { return North }
+        East: { return West }
+        West: { return East }
+    }
+}
+
+fn dir_name(d: Direction): string {
+    match d {
+        North: { return "North" }
+        South: { return "South" }
+        East: { return "East" }
+        West: { return "West" }
+    }
+}
+
+fn main() {
+    let c = Circle(5.0)
+    let r = Rectangle(3.0, 4.0)
+    let sq = Square(7.0)
+
+    println(f"circle area = {area(c)}")
+    println(f"rect area = {area(r)}")
+    println(f"square area = {area(sq)}")
+
+    let d = North
+    let o = opposite(d)
+    println(f"opposite of {dir_name(d)} is {dir_name(o)}")
+}

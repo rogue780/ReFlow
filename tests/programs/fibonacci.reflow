@@ -1,0 +1,17 @@
+module tests.fibonacci
+
+import io (println)
+
+fn fib(n: int): int {
+    if n <= 1 {
+        return n
+    }
+    return fib(n - 1) + fib(n - 2)
+}
+
+fn main() {
+    println(f"fib(0) = {fib(0)}")
+    println(f"fib(1) = {fib(1)}")
+    println(f"fib(5) = {fib(5)}")
+    println(f"fib(10) = {fib(10)}")
+}

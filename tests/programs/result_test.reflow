@@ -1,0 +1,39 @@
+module tests.result_test
+
+import io (println)
+
+fn safe_divide(a: int, b: int): result<int, string> {
+    if b == 0 {
+        return err("division by zero")
+    }
+    return ok(a / b)
+}
+
+fn compute(x: int, y: int): result<int, string> {
+    let q = safe_divide(x, y)?
+    return ok(q + 1)
+}
+
+fn main() {
+    ; Direct result matching
+    match safe_divide(10, 3) {
+        ok(v): { println(f"10 / 3 = {v}") }
+        err(msg): { println(f"error: {msg}") }
+    }
+
+    match safe_divide(10, 0) {
+        ok(v): { println(f"10 / 0 = {v}") }
+        err(msg): { println(f"error: {msg}") }
+    }
+
+    ; Propagation
+    match compute(20, 4) {
+        ok(v): { println(f"compute(20, 4) = {v}") }
+        err(msg): { println(f"compute error: {msg}") }
+    }
+
+    match compute(20, 0) {
+        ok(v): { println(f"compute(20, 0) = {v}") }
+        err(msg): { println(f"compute error: {msg}") }
+    }
+}

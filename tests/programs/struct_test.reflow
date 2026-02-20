@@ -1,0 +1,29 @@
+module tests.struct_test
+
+import io (println)
+
+type Point {
+    x: float
+    y: float
+}
+
+type Counter {
+    value: int:mut
+
+    fn current(self): int = self.value
+
+    fn display(self): none {
+        println(f"counter = {self.value}")
+    }
+}
+
+fn main() {
+    let p = Point { x: 3.0, y: 4.0 }
+    println(f"point: ({p.x}, {p.y})")
+
+    let c: Counter:mut = Counter { value: 0 }
+    c.display()
+    c.value = 10
+    c.display()
+    println(f"current = {c.current()}")
+}
