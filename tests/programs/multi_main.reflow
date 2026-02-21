@@ -1,0 +1,10 @@
+module tests.programs.multi_main
+
+import io
+import conv
+import tests.programs.multi_helper
+
+fn main(): none {
+    let result = multi_helper.double(21)
+    io.println(conv.int_to_string(result))
+}

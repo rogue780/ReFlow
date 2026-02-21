@@ -284,5 +284,134 @@ class TestStdlibIntegration(unittest.TestCase):
             os.unlink(path)
 
 
+# ---------------------------------------------------------------------------
+# Multi-module compilation tests (RB-0-0-1)
+# ---------------------------------------------------------------------------
+
+MULTI_MAIN_REFLOW = os.path.join(
+    os.path.dirname(__file__), os.pardir, "programs", "multi_main.reflow"
+)
+MULTI_HELPER_REFLOW = os.path.join(
+    os.path.dirname(__file__), os.pardir, "programs", "multi_helper.reflow"
+)
+
+
+class TestMultiModuleCompilation(unittest.TestCase):
+    """Tests for multi-file compilation."""
+
+    def test_check_only_multi_module(self):
+        """check_only succeeds on a program that imports a user module."""
+        rc = check_only(MULTI_MAIN_REFLOW)
+        self.assertEqual(rc, 0)
+
+    def test_emit_multi_module_includes_dependency(self):
+        """emit_only on multi_main includes the helper module's functions."""
+        captured = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
+        try:
+            rc = emit_only(MULTI_MAIN_REFLOW)
+        finally:
+            sys.stdout = old_stdout
+        self.assertEqual(rc, 0)
+        c_source = captured.getvalue()
+        # Root module header is present.
+        self.assertIn('#include "reflow_runtime.h"', c_source)
+        # Helper module's function is included.
+        self.assertIn("rf_tests_programs_multi_helper_double", c_source)
+        # Root module's function is included.
+        self.assertIn("rf_tests_programs_multi_main_main", c_source)
+        # Only one #include (from root).
+        self.assertEqual(c_source.count('#include "reflow_runtime.h"'), 1)
+        # Only one main() entry point.
+        self.assertEqual(c_source.count("int main("), 1)
+        # Helper is emitted before the root module code.
+        helper_pos = c_source.index("rf_tests_programs_multi_helper_double")
+        main_pos = c_source.index("rf_tests_programs_multi_main_main")
+        self.assertLess(helper_pos, main_pos)
+
+    def test_emit_multi_module_has_from_comment(self):
+        """emit_only on multi_main includes a '/* From: ...' comment."""
+        captured = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
+        try:
+            emit_only(MULTI_MAIN_REFLOW)
+        finally:
+            sys.stdout = old_stdout
+        c_source = captured.getvalue()
+        self.assertIn("/* From: tests/programs/multi_helper.reflow */", c_source)
+
+    @unittest.skipUnless(shutil.which("clang"), "clang not available")
+    def test_compile_and_run_multi_module(self):
+        """multi_main.reflow compiles, runs, and produces correct output."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_path = os.path.join(tmpdir, "multi_main")
+            rc = compile_source(MULTI_MAIN_REFLOW, output=out_path)
+            self.assertEqual(rc, 0)
+            result = subprocess.run(
+                [out_path], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, "42\n")
+
+
+class TestMultiModuleErrors(unittest.TestCase):
+    """Tests for multi-module error detection."""
+
+    def test_circular_import_detected(self):
+        """Circular imports raise ResolveError."""
+        circ_a = os.path.join(
+            os.path.dirname(__file__), os.pardir, "programs", "errors",
+            "circular_import_a.reflow"
+        )
+        with self.assertRaises(ResolveError) as cm:
+            check_only(circ_a)
+        self.assertIn("circular import detected", cm.exception.message)
+
+    def test_missing_import_file_error(self):
+        """Importing a nonexistent user module raises ResolveError."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            main_path = os.path.join(tmpdir, "main.reflow")
+            with open(main_path, "w") as f:
+                f.write(
+                    'module main\n\n'
+                    'import helpers.missing\n\n'
+                    'fn main(): none { }\n'
+                )
+            with self.assertRaises(ResolveError) as cm:
+                check_only(main_path)
+            self.assertIn("cannot find module", cm.exception.message)
+            self.assertIn("helpers.missing", cm.exception.message)
+
+
+class TestProjectRootInference(unittest.TestCase):
+    """Tests for _infer_project_root."""
+
+    def test_infer_root_no_module_path(self):
+        """Empty module path returns file's parent directory."""
+        from compiler.driver import _infer_project_root
+        from pathlib import Path
+        p = Path("/a/b/c/test.reflow")
+        self.assertEqual(_infer_project_root(p, []), Path("/a/b/c"))
+
+    def test_infer_root_with_module_path(self):
+        """Module path strips nesting from parent directory."""
+        from compiler.driver import _infer_project_root
+        from pathlib import Path
+        # File at /proj/src/math/vector.reflow with module math.vector
+        p = Path("/proj/src/math/vector.reflow")
+        root = _infer_project_root(p, ["math", "vector"])
+        self.assertEqual(root, Path("/proj/src/math").resolve().parent)
+
+    def test_infer_root_deep_path(self):
+        """Deep module path correctly strips multiple segments."""
+        from compiler.driver import _infer_project_root
+        from pathlib import Path
+        # File at /proj/a/b/c.reflow with module a.b.c
+        p = Path("/proj/a/b/c.reflow")
+        root = _infer_project_root(p, ["a", "b", "c"])
+        self.assertEqual(root, Path("/proj").resolve())
+
+
 if __name__ == "__main__":
     unittest.main()

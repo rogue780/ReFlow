@@ -33,9 +33,13 @@ _CHECKED_OP_MAP: dict[str, str] = {
 class Emitter:
     """Formats an LModule as a C source string."""
 
-    def __init__(self, module: LModule, source_file: str) -> None:
+    def __init__(self, module: LModule, source_file: str, *,
+                 is_root: bool = True,
+                 extra_static_inits: list[tuple[str, str]] | None = None) -> None:
         self._module = module
         self._source_file = source_file
+        self._is_root = is_root
+        self._extra_static_inits = extra_static_inits or []
 
         # Output buffer
         self._out: list[str] = []
@@ -52,14 +56,24 @@ class Emitter:
     # Public entry point
     # ------------------------------------------------------------------
 
+    @property
+    def deferred_static_inits(self) -> list[tuple[str, str]]:
+        """Return deferred static inits collected during emit (for multi-module)."""
+        return self._deferred_static_inits
+
     def emit(self) -> str:
         """Emit the full C source string."""
-        self._emit_header()
+        if self._is_root:
+            self._emit_header()
+        else:
+            self._blank()
+            self._emitln(f"/* From: {self._source_file} */")
         self._emit_forward_decls()
         self._emit_type_defs()
         self._emit_static_defs()
         self._emit_fn_defs()
-        self._emit_entry_point()
+        if self._is_root:
+            self._emit_entry_point()
         return self._get_output()
 
     # ------------------------------------------------------------------
@@ -199,12 +213,14 @@ class Emitter:
         ep = self._module.entry_point
         if ep is None:
             return
+        # Merge extra static inits from dependency modules.
+        all_static_inits = self._extra_static_inits + self._deferred_static_inits
         # Emit static string init function if there are deferred inits
-        if self._deferred_static_inits:
+        if all_static_inits:
             self._blank()
             self._emitln("static void _rf_init_statics(void) {")
             self._indent_level += 1
-            for name, init_expr in self._deferred_static_inits:
+            for name, init_expr in all_static_inits:
                 self._emitln(f"{name} = {init_expr};")
             self._indent_level -= 1
             self._emitln("}")
@@ -213,7 +229,7 @@ class Emitter:
         self._emitln("int main(int argc, char** argv) {")
         self._indent_level += 1
         self._emitln("_rf_runtime_init(argc, argv);")
-        if self._deferred_static_inits:
+        if all_static_inits:
             self._emitln("_rf_init_statics();")
         self._emitln(f"{ep}();")
         self._emitln("return 0;")

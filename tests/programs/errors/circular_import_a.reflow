@@ -1,0 +1,5 @@
+module tests.programs.errors.circular_import_a
+
+import tests.programs.errors.circular_import_b
+
+fn foo(): int = circular_import_b.bar()

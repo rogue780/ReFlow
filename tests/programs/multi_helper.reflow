@@ -1,0 +1,3 @@
+module tests.programs.multi_helper
+
+export pure fn double(x: int): int = x * 2
