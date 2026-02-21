@@ -139,6 +139,24 @@ def mangle_closure_frame(module: str, fn_name: str, lambda_id: int) -> str:
     return f"_rf_closure_{parts}_{fn_name}_{lambda_id}"
 
 
+def mangle_closure_fn(module: str, fn_name: str, lambda_id: int) -> str:
+    """Mangle a closure's implementation function name.
+
+    Example: pipeline.orders.run, lambda 0 → _rf_clfn_pipeline_orders_run_0
+    """
+    parts = module.replace(".", "_")
+    return f"_rf_clfn_{parts}_{fn_name}_{lambda_id}"
+
+
+def mangle_fn_wrapper(module: str, fn_name: str) -> str:
+    """Mangle a named function's closure wrapper name.
+
+    Example: pipeline.orders.run → _rf_wrap_pipeline_orders_run
+    """
+    parts = module.replace(".", "_")
+    return f"_rf_wrap_{parts}_{fn_name}"
+
+
 def _check_reserved(name: str | None, file: str, line: int, col: int) -> None:
     """Raise EmitError if a bare name is a C reserved word."""
     if name is not None and name in C_RESERVED:

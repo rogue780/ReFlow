@@ -194,6 +194,14 @@ void          rf_stream_release(RF_Stream* s);
 RF_Option_ptr rf_stream_next(RF_Stream* s);
 
 /* ========================================================================
+ * Closures
+ * ======================================================================== */
+typedef struct RF_Closure {
+    void* fn;
+    void* env;
+} RF_Closure;
+
+/* ========================================================================
  * Map — open-addressing hash table (RT-1-6-1)
  * BOOTSTRAP: replace with production hash map
  * ======================================================================== */

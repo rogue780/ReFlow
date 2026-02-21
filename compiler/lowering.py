@@ -7,7 +7,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from compiler.errors import EmitError
-from compiler.mangler import mangle, mangle_stream_frame, mangle_stream_next, mangle_stream_free
+from compiler.mangler import (
+    mangle, mangle_stream_frame, mangle_stream_next, mangle_stream_free,
+    mangle_closure_frame, mangle_closure_fn, mangle_fn_wrapper,
+)
 from compiler.ast_nodes import (
     # Base
     ASTNode, TypeExpr, Expr, Stmt, Decl, Block, Pattern,
@@ -443,6 +446,12 @@ class Lowerer:
         # Current function's return type — used by ok/err/none to pick correct struct
         self._current_fn_return_type: Type | None = None
 
+        # Closure support
+        self._lambda_counter: int = 0
+        self._current_fn_name: str = ""
+        self._fn_wrapper_registry: dict[str, str] = {}
+        self._capture_remap: dict[str, tuple[str, LType]] = {}
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
@@ -610,6 +619,8 @@ class Lowerer:
 
         saved_return_type = self._current_fn_return_type
         self._current_fn_return_type = ret_type
+        saved_fn_name = self._current_fn_name
+        self._current_fn_name = fn.name
 
         c_name = mangle(self._module_path, None, fn.name,
                         file=self._file, line=fn.line, col=fn.col)
@@ -640,6 +651,7 @@ class Lowerer:
             source_name=f"{self._module_path}.{fn.name}",
         ))
         self._current_fn_return_type = saved_return_type
+        self._current_fn_name = saved_fn_name
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
         """Lower a type declaration. RT-7-2-2."""
@@ -1120,14 +1132,17 @@ class Lowerer:
 
             # Identifiers
             case Ident(name=name, module_path=mp):
+                # Capture remap — inside lambda body, captured vars
+                # become frame field accesses
+                if name in self._capture_remap:
+                    remap_expr, remap_lt = self._capture_remap[name]
+                    return LVar(remap_expr, remap_lt)
                 t = self._type_of(expr)
                 lt = self._lower_type(t)
                 sym = self._resolved.symbols.get(expr)
                 if sym is not None and sym.kind == SymbolKind.FN:
-                    # Function reference — use mangled name
-                    fn_c_name = mangle(self._module_path, None, name,
-                                       file=self._file, line=expr.line, col=expr.col)
-                    return LVar(fn_c_name, lt)
+                    # Function reference used as value — wrap in closure
+                    return self._wrap_fn_as_closure(name, t, lt, expr)
                 # Unit variant constructor — compound literal with just tag
                 if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                         and isinstance(sym.decl, SumVariantDecl)
@@ -1201,10 +1216,7 @@ class Lowerer:
 
             # Lambda
             case Lambda():
-                # SPEC GAP: lambda lowering deferred to closure implementation
-                t = self._type_of(expr)
-                lt = self._lower_type(t)
-                return LLit("NULL", lt)
+                return self._lower_lambda(expr)
 
             # Tuple
             case TupleExpr(elements=elements):
@@ -1383,11 +1395,19 @@ class Lowerer:
                 fn_decl = sym.decl
                 if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
                     return LCall(fn_decl.native_name, lowered_args, lt)
+            # Check if callee is a closure-typed variable (local var, param)
+            callee_type = self._type_of(expr.callee)
+            if isinstance(callee_type, TFn):
+                callee_expr = self._lower_expr(expr.callee)
+                return self._make_closure_call(callee_expr, callee_type, lowered_args, lt)
             # Builtin or unresolved — use name directly
             return LCall(name, lowered_args, lt)
 
-        # Indirect call through expression
+        # Indirect call through expression — closure call
         callee_expr = self._lower_expr(expr.callee)
+        callee_type = self._type_of(expr.callee)
+        if isinstance(callee_type, TFn):
+            return self._make_closure_call(callee_expr, callee_type, lowered_args, lt)
         return LIndirectCall(callee_expr, lowered_args, lt)
 
     def _lower_variant_ctor(self, name: str, decl: SumVariantDecl,
@@ -1477,6 +1497,29 @@ class Lowerer:
         method_c_name = f"rf_{self._type_name_str(recv_type)}_{expr.method}"
         return LCall(method_c_name, [recv] + lowered_args, lt)
 
+    def _get_direct_fn_c_name(self, expr: Expr) -> str | None:
+        """If expr is an Ident bound to SymbolKind.FN, return its mangled C name."""
+        if isinstance(expr, Ident):
+            sym = self._resolved.symbols.get(expr)
+            if sym is not None and sym.kind == SymbolKind.FN:
+                return mangle(self._module_path, None, expr.name,
+                              file=self._file, line=expr.line, col=expr.col)
+            if sym is not None and sym.kind == SymbolKind.IMPORT:
+                fn_decl = sym.decl
+                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
+                    return fn_decl.native_name
+        return None
+
+    def _chain_call(self, elem_expr: Expr, elem_type: TFn,
+                    args: list[LExpr], result_type: LType) -> LExpr:
+        """Emit a call in a chain context — direct LCall for known functions,
+        closure call otherwise."""
+        direct_name = self._get_direct_fn_c_name(elem_expr)
+        if direct_name is not None:
+            return LCall(direct_name, args, result_type)
+        fn_expr = self._lower_expr(elem_expr)
+        return self._make_closure_call(fn_expr, elem_type, args, result_type)
+
     def _lower_chain(self, chain: CompositionChain) -> LExpr:
         """Lower composition chain using a value stack. RT-7-3-3."""
         if not chain.elements:
@@ -1501,16 +1544,10 @@ class Lowerer:
                     for branch in elem_expr.branches:
                         bt = self._type_of(branch.expr)
                         if isinstance(bt, TFn) and len(bt.params) > 0:
-                            fn_expr = self._lower_expr(branch.expr)
                             result_type = self._lower_type(bt.ret)
-                            if isinstance(fn_expr, LVar):
-                                call = LCall(
-                                    fn_expr.c_name,
-                                    [LVar(tmp, input_type)], result_type)
-                            else:
-                                call = LIndirectCall(
-                                    fn_expr,
-                                    [LVar(tmp, input_type)], result_type)
+                            call = self._chain_call(
+                                branch.expr, bt,
+                                [LVar(tmp, input_type)], result_type)
                             stack.append(call)
                         else:
                             stack.append(self._lower_expr(branch.expr))
@@ -1537,24 +1574,13 @@ class Lowerer:
                                      init=arg_val))
                         args.append(LVar(tmp, arg_type))
 
-                    fn_expr = self._lower_expr(elem_expr)
                     result_type = self._lower_type(elem_type.ret)
-
-                    if isinstance(fn_expr, LVar):
-                        stack.append(LCall(fn_expr.c_name, args,
-                                           result_type))
-                    else:
-                        stack.append(LIndirectCall(fn_expr, args,
-                                                   result_type))
+                    stack.append(self._chain_call(
+                        elem_expr, elem_type, args, result_type))
                 elif arity == 0:
-                    fn_expr = self._lower_expr(elem_expr)
                     result_type = self._lower_type(elem_type.ret)
-                    if isinstance(fn_expr, LVar):
-                        stack.append(LCall(fn_expr.c_name, [],
-                                           result_type))
-                    else:
-                        stack.append(LIndirectCall(fn_expr, [],
-                                                   result_type))
+                    stack.append(self._chain_call(
+                        elem_expr, elem_type, [], result_type))
                 else:
                     # Not enough values on stack — push as value
                     stack.append(self._lower_expr(elem_expr))
@@ -1562,6 +1588,251 @@ class Lowerer:
                 stack.append(self._lower_expr(elem_expr))
 
         return stack[-1] if stack else LLit("0", LVoid())
+
+    # ------------------------------------------------------------------
+    # Lambda / closure lowering
+    # ------------------------------------------------------------------
+
+    def _lower_lambda(self, expr: Lambda) -> LExpr:
+        """Lower a lambda expression to a closure allocation.
+
+        Generates:
+        1. Frame struct typedef (if captures exist)
+        2. Implementation function with void* _env first param
+        3. At expression site: allocate frame, populate captures, create closure
+        """
+        t = self._type_of(expr)
+        if not isinstance(t, TFn):
+            return LLit("NULL", LPtr(LStruct("RF_Closure")))
+
+        closure_lt = LPtr(LStruct("RF_Closure"))
+        module = self._module_path
+        fn_name = self._current_fn_name or "anon"
+        lambda_id = self._lambda_counter
+        self._lambda_counter += 1
+
+        # Get captures from resolver
+        captures = self._resolved.captures.get(expr, [])
+
+        frame_c_name = mangle_closure_frame(module, fn_name, lambda_id)
+        impl_c_name = mangle_closure_fn(module, fn_name, lambda_id)
+
+        # 1. Generate frame struct if captures exist
+        frame_fields: list[tuple[str, LType]] = []
+        if captures:
+            for sym in captures:
+                cap_type = self._type_of_capture(sym)
+                cap_lt = self._lower_type(cap_type)
+                frame_fields.append((sym.name, cap_lt))
+            self._type_defs.append(LTypeDef(
+                c_name=frame_c_name, fields=frame_fields))
+
+        # 2. Generate implementation function
+        impl_params: list[tuple[str, LType]] = [("_env", LPtr(LVoid()))]
+        for p in expr.params:
+            p_type = self._type_of(p.type_ann) if p.type_ann else TAny()
+            impl_params.append((p.name, self._lower_type(p_type)))
+
+        ret_lt = self._lower_type(t.ret)
+
+        # Save and set up capture remap for lambda body lowering
+        saved_remap = self._capture_remap
+        self._capture_remap = dict(saved_remap)  # copy parent remap
+        saved_fn_name = self._current_fn_name
+        self._current_fn_name = f"{fn_name}_lambda{lambda_id}"
+        saved_return_type = self._current_fn_return_type
+        self._current_fn_return_type = t.ret
+
+        if captures:
+            frame_ptr_type = LPtr(LStruct(frame_c_name))
+            for sym in captures:
+                cap_type = self._type_of_capture(sym)
+                cap_lt = self._lower_type(cap_type)
+                self._capture_remap[sym.name] = (
+                    f"_frame->{sym.name}", cap_lt)
+
+        # Lower body
+        impl_body: list[LStmt] = []
+
+        # Cast _env to frame pointer
+        if captures:
+            frame_ptr_type = LPtr(LStruct(frame_c_name))
+            impl_body.append(LVarDecl(
+                c_name="_frame",
+                c_type=frame_ptr_type,
+                init=LCast(LVar("_env", LPtr(LVoid())), frame_ptr_type),
+            ))
+
+        # Lower the lambda body expression
+        saved_pending = self._pending_stmts
+        self._pending_stmts = []
+        body_result = self._lower_expr(expr.body)
+        impl_body.extend(self._pending_stmts)
+        self._pending_stmts = saved_pending
+        impl_body.append(LReturn(body_result))
+
+        self._capture_remap = saved_remap
+        self._current_fn_name = saved_fn_name
+        self._current_fn_return_type = saved_return_type
+
+        self._fn_defs.append(LFnDef(
+            c_name=impl_c_name,
+            params=impl_params,
+            ret=ret_lt,
+            body=impl_body,
+            is_pure=False,
+            source_name=f"{module}.{fn_name}::lambda{lambda_id}",
+        ))
+
+        # 3. At expression site: allocate frame and closure
+        if captures:
+            # Allocate frame
+            frame_ptr_type = LPtr(LStruct(frame_c_name))
+            frame_tmp = self._fresh_temp()
+            self._pending_stmts.append(LVarDecl(
+                c_name=frame_tmp,
+                c_type=frame_ptr_type,
+                init=LCast(
+                    LCall("malloc", [LSizeOf(LStruct(frame_c_name))],
+                          LPtr(LVoid())),
+                    frame_ptr_type),
+            ))
+            # Populate captures
+            for sym in captures:
+                cap_type = self._type_of_capture(sym)
+                cap_lt = self._lower_type(cap_type)
+                # Use the original variable name — may be remapped if nested
+                if sym.name in saved_remap:
+                    src_expr_str, src_lt = saved_remap[sym.name]
+                    src_expr = LVar(src_expr_str, src_lt)
+                else:
+                    src_expr = LVar(sym.name, cap_lt)
+                self._pending_stmts.append(LAssign(
+                    target=LArrow(LVar(frame_tmp, frame_ptr_type),
+                                  sym.name, cap_lt),
+                    value=src_expr,
+                ))
+            env_expr: LExpr = LCast(
+                LVar(frame_tmp, frame_ptr_type), LPtr(LVoid()))
+        else:
+            env_expr = LLit("NULL", LPtr(LVoid()))
+
+        # Allocate closure
+        closure_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=closure_tmp,
+            c_type=closure_lt,
+            init=LCast(
+                LCall("malloc", [LSizeOf(LStruct("RF_Closure"))],
+                      LPtr(LVoid())),
+                closure_lt),
+        ))
+        # Set fn pointer
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(closure_tmp, closure_lt),
+                          "fn", LPtr(LVoid())),
+            value=LCast(LVar(impl_c_name, LPtr(LVoid())), LPtr(LVoid())),
+        ))
+        # Set env pointer
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(closure_tmp, closure_lt),
+                          "env", LPtr(LVoid())),
+            value=env_expr,
+        ))
+
+        return LVar(closure_tmp, closure_lt)
+
+    def _make_closure_call(self, callee_expr: LExpr, callee_type: TFn,
+                           args: list[LExpr], result_lt: LType) -> LExpr:
+        """Generate a closure call: extract fn/env from closure, cast fn,
+        call with env as first arg."""
+        # Store callee in temp to avoid multiple evaluation
+        cl_tmp = self._fresh_temp()
+        closure_lt = LPtr(LStruct("RF_Closure"))
+        self._pending_stmts.append(LVarDecl(
+            c_name=cl_tmp, c_type=closure_lt, init=callee_expr))
+        cl_var = LVar(cl_tmp, closure_lt)
+
+        # Extract fn and env
+        fn_void = LArrow(cl_var, "fn", LPtr(LVoid()))
+        env_void = LArrow(cl_var, "env", LPtr(LVoid()))
+
+        # Build function pointer type: ret (*)(void*, param_types...)
+        param_ltypes = [self._lower_type(p) for p in callee_type.params]
+        fn_ptr_type = LFnPtr([LPtr(LVoid())] + param_ltypes, result_lt)
+
+        # Cast void* fn to correct function pointer type
+        casted_fn = LCast(fn_void, fn_ptr_type)
+
+        # Call: fn(env, args...)
+        return LIndirectCall(casted_fn, [env_void] + args, result_lt)
+
+    def _wrap_fn_as_closure(self, fn_name: str, fn_type: Type,
+                            lt: LType, expr: Ident) -> LExpr:
+        """Wrap a named function reference as a closure.
+
+        Generates a thin wrapper function with void* _env (ignored) that
+        forwards to the real function, then creates a closure struct.
+        """
+        if not isinstance(fn_type, TFn):
+            fn_c_name = mangle(self._module_path, None, fn_name,
+                               file=self._file, line=expr.line, col=expr.col)
+            return LVar(fn_c_name, lt)
+
+        fn_c_name = mangle(self._module_path, None, fn_name,
+                           file=self._file, line=expr.line, col=expr.col)
+
+        # Check if wrapper already exists
+        wrapper_c_name = self._fn_wrapper_registry.get(fn_c_name)
+        if wrapper_c_name is None:
+            wrapper_c_name = mangle_fn_wrapper(self._module_path, fn_name)
+            self._fn_wrapper_registry[fn_c_name] = wrapper_c_name
+
+            # Generate wrapper function: ret wrapper(void* _env, params...) { return real(params...); }
+            wrapper_params: list[tuple[str, LType]] = [("_env", LPtr(LVoid()))]
+            forward_args: list[LExpr] = []
+            for i, pt in enumerate(fn_type.params):
+                p_lt = self._lower_type(pt)
+                p_name = f"_p{i}"
+                wrapper_params.append((p_name, p_lt))
+                forward_args.append(LVar(p_name, p_lt))
+
+            ret_lt = self._lower_type(fn_type.ret)
+            wrapper_body: list[LStmt] = [
+                LReturn(LCall(fn_c_name, forward_args, ret_lt))
+            ]
+
+            self._fn_defs.append(LFnDef(
+                c_name=wrapper_c_name,
+                params=wrapper_params,
+                ret=ret_lt,
+                body=wrapper_body,
+                is_pure=False,
+                source_name=f"{self._module_path}.{fn_name}::wrapper",
+            ))
+
+        # Create closure with wrapper fn and NULL env
+        closure_lt = LPtr(LStruct("RF_Closure"))
+        closure_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=closure_tmp,
+            c_type=closure_lt,
+            init=LCast(
+                LCall("malloc", [LSizeOf(LStruct("RF_Closure"))],
+                      LPtr(LVoid())),
+                closure_lt),
+        ))
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(closure_tmp, closure_lt),
+                          "fn", LPtr(LVoid())),
+            value=LCast(LVar(wrapper_c_name, LPtr(LVoid())), LPtr(LVoid())),
+        ))
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(closure_tmp, closure_lt),
+                          "env", LPtr(LVoid())),
+            value=LLit("NULL", LPtr(LVoid())),
+        ))
+        return LVar(closure_tmp, closure_lt)
 
     def _lower_fstring(self, expr: FStringExpr) -> LExpr:
         """Lower f-string to chain of rf_string_concat calls. RT-7-3-4."""
@@ -2863,6 +3134,27 @@ class Lowerer:
         # If it's a TypeExpr, resolve it via _resolve_type_ann
         if isinstance(node, TypeExpr):
             return self._resolve_type_ann(node)
+        return TAny()
+
+    def _type_of_capture(self, sym: Symbol) -> Type:
+        """Get the inferred type of a captured symbol."""
+        # Try the type annotation first
+        if sym.type_ann is not None:
+            t = self._types.get(sym.type_ann)
+            if t is not None:
+                return t
+            return self._resolve_type_ann(sym.type_ann)
+        # For let bindings without type annotation, look up the value's type
+        if isinstance(sym.decl, LetStmt) and sym.decl.value is not None:
+            t = self._types.get(sym.decl.value)
+            if t is not None:
+                return t
+        # For param decls, check the Param node's type_ann
+        if isinstance(sym.decl, Param) and sym.decl.type_ann is not None:
+            t = self._types.get(sym.decl.type_ann)
+            if t is not None:
+                return t
+            return self._resolve_type_ann(sym.decl.type_ann)
         return TAny()
 
     def _type_of_return(self, fn: FnDecl) -> Type:

@@ -1,0 +1,4 @@
+apply(inc, 5) = 6
+apply(add100, 5) = 105
+apply(triple, 4) = 12
+5 -> double = 10

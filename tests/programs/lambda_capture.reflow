@@ -1,0 +1,18 @@
+module tests.lambda_capture
+
+import io (println)
+
+fn main() {
+    ; Lambda capturing a local variable
+    let y = 10
+    let add_y = \(x: int => x + y)
+    let r1 = add_y(5)
+    println(f"5 + 10 = {r1}")
+
+    ; Lambda capturing multiple variables
+    let a = 3
+    let b = 4
+    let compute = \(x: int => x * a + b)
+    let r2 = compute(2)
+    println(f"2 * 3 + 4 = {r2}")
+}

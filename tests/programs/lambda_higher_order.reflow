@@ -1,0 +1,28 @@
+module tests.lambda_higher_order
+
+import io (println)
+
+fn apply(f: fn(int): int, x: int): int {
+    return f(x)
+}
+
+fn triple(x: int): int = x * 3
+
+fn main() {
+    ; Pass lambda as argument
+    let r1 = apply(\(x: int => x + 1), 5)
+    println(f"apply(inc, 5) = {r1}")
+
+    ; Pass lambda with capture as argument
+    let offset = 100
+    let r2 = apply(\(x: int => x + offset), 5)
+    println(f"apply(add100, 5) = {r2}")
+
+    ; Pass named function as argument
+    let r3 = apply(triple, 4)
+    println(f"apply(triple, 4) = {r3}")
+
+    ; Lambda in chain
+    let r4 = 5 -> \(x: int => x * 2)
+    println(f"5 -> double = {r4}")
+}
