@@ -1612,6 +1612,8 @@ class Lowerer:
                 return LCall("rf_float_to_string", [expr], string_type)
             case TBool():
                 return LCall("rf_bool_to_string", [expr], string_type)
+            case TChar():
+                return LCall("rf_char_to_string", [expr], string_type)
             case TInt():
                 # Other int widths — cast to int32 first
                 return LCall("rf_int_to_string",

@@ -732,6 +732,12 @@ class TypeChecker:
                     if isinstance(t, TStream):
                         self._check_stream_consumption(name, expr)
                     return t
+                # Check resolver symbols for destructured imports
+                resolved_sym = self._resolved.symbols.get(expr)
+                if resolved_sym is not None and resolved_sym.kind == SymbolKind.IMPORT:
+                    fn_decl = resolved_sym.decl
+                    if isinstance(fn_decl, FnDecl):
+                        return self._fn_decl_type(fn_decl)
                 return TAny()
 
             # RT-6-2-4: Binary operators
