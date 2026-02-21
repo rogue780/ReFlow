@@ -1,0 +1,21 @@
+module tests.recursive_expr
+
+import io (println)
+
+type Expr =
+    | Lit(value: int)
+    | Add(left: Expr, right: Expr)
+    | Neg(inner: Expr)
+
+fn eval(e: Expr): int {
+    match e {
+        Lit(v): { return v }
+        Add(l, r): { return eval(l) + eval(r) }
+        Neg(x): { return 0 - eval(x) }
+    }
+}
+
+fn main() {
+    let e = Add(Lit(10), Neg(Add(Lit(3), Lit(4))))
+    println(f"Result: {eval(e)}")
+}
