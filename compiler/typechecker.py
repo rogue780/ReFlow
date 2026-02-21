@@ -415,6 +415,22 @@ class TypeChecker:
 
             sum_type: TSum | None = None
             if decl.is_sum_type:
+                # Pre-register a preliminary TSum so self-referential
+                # variant fields resolve to TSum instead of TTypeVar.
+                preliminary_sum = TSum(decl.name, ())
+                self._type_registry[decl.name] = TypeInfo(
+                    name=decl.name,
+                    type_params=decl.type_params,
+                    fields={},
+                    field_mutability={},
+                    methods={},
+                    statics={},
+                    static_mutability={},
+                    constructors={},
+                    is_sum_type=True,
+                    sum_type=preliminary_sum,
+                    interfaces=decl.interfaces,
+                )
                 variants = []
                 for v in decl.variants:
                     if v.fields is not None:
@@ -1643,6 +1659,11 @@ class TypeChecker:
 
         # TTypeVar matches if names match
         if (isinstance(source, TTypeVar) and isinstance(target, TTypeVar)
+                and source.name == target.name):
+            return True
+
+        # Nominal TSum equality: same name means same type
+        if (isinstance(source, TSum) and isinstance(target, TSum)
                 and source.name == target.name):
             return True
 

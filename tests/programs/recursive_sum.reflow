@@ -1,0 +1,19 @@
+module tests.recursive_sum
+
+import io (println)
+
+type Tree =
+    | Leaf(value: int)
+    | Node(left: Tree, right: Tree)
+
+fn sum_tree(t: Tree): int {
+    match t {
+        Leaf(v): { return v }
+        Node(l, r): { return sum_tree(l) + sum_tree(r) }
+    }
+}
+
+fn main() {
+    let tree = Node(Node(Leaf(1), Leaf(2)), Leaf(3))
+    println(f"Sum: {sum_tree(tree)}")
+}

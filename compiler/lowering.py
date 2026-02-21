@@ -733,7 +733,11 @@ class Lowerer:
                 variant_fields: list[tuple[str, LType]] = []
                 for fname, ftype_expr in variant.fields:
                     f_type = self._type_of(ftype_expr) if ftype_expr else TNone()
-                    variant_fields.append((fname, self._lower_type(f_type)))
+                    field_lt = self._lower_type(f_type)
+                    # Recursive sum field: use pointer to avoid incomplete type
+                    if self._is_recursive_sum_field(f_type, td.name):
+                        field_lt = LPtr(field_lt)
+                    variant_fields.append((fname, field_lt))
                 # Add as a sub-struct named after the variant
                 variant_c_name = f"{c_name}_{variant.name}"
                 self._type_defs.append(LTypeDef(
@@ -1398,6 +1402,7 @@ class Lowerer:
 
         # Find the tag for this variant
         tag = next((i for i, v in enumerate(t.variants) if v.name == name), 0)
+        variant = t.variants[tag]
 
         # Build the inner struct for the variant payload
         field_names = [fname for fname, _ in decl.fields] if decl.fields else []
@@ -1405,7 +1410,28 @@ class Lowerer:
         inner_fields: list[tuple[str, LExpr]] = []
         for i, arg in enumerate(lowered_args):
             fname = field_names[i] if i < len(field_names) else f"_{i}"
-            inner_fields.append((fname, arg))
+            # Recursive sum field: heap-allocate and store pointer
+            if (variant.fields is not None
+                    and i < len(variant.fields)
+                    and self._is_recursive_sum_field(variant.fields[i], t.name)):
+                tmp = self._fresh_temp()
+                ptr_type = LPtr(lt)
+                # Type* tmp = (Type*)malloc(sizeof(Type));
+                self._pending_stmts.append(LVarDecl(
+                    c_name=tmp,
+                    c_type=ptr_type,
+                    init=LCast(
+                        LCall("malloc", [LSizeOf(lt)], LPtr(LVoid())),
+                        ptr_type),
+                ))
+                # *tmp = arg;
+                self._pending_stmts.append(LAssign(
+                    LDeref(LVar(tmp, ptr_type), lt),
+                    arg,
+                ))
+                inner_fields.append((fname, LVar(tmp, ptr_type)))
+            else:
+                inner_fields.append((fname, arg))
 
         fields: list[tuple[str, LExpr]] = [("tag", LLit(str(tag), LByte()))]
         if inner_fields:
@@ -1883,13 +1909,27 @@ class Lowerer:
                             if i < len(variant.fields):
                                 field_lt = self._lower_type(variant.fields[i])
                                 fname = field_names[i] if i < len(field_names) else f"_{i}"
-                                body.append(LVarDecl(
-                                    c_name=binding,
-                                    c_type=field_lt,
-                                    init=LFieldAccess(
+                                is_recursive = self._is_recursive_sum_field(
+                                    variant.fields[i], sum_t.name)
+                                if is_recursive:
+                                    # Field is a pointer — dereference to get value
+                                    ptr_lt = LPtr(field_lt)
+                                    field_access = LFieldAccess(
                                         LFieldAccess(subj, vname, subj.c_type),
-                                        fname, field_lt),
-                                ))
+                                        fname, ptr_lt)
+                                    body.append(LVarDecl(
+                                        c_name=binding,
+                                        c_type=field_lt,
+                                        init=LDeref(field_access, field_lt),
+                                    ))
+                                else:
+                                    body.append(LVarDecl(
+                                        c_name=binding,
+                                        c_type=field_lt,
+                                        init=LFieldAccess(
+                                            LFieldAccess(subj, vname, subj.c_type),
+                                            fname, field_lt),
+                                    ))
                     body.extend(self._lower_arm_body_stmts(arm))
                     cases.append((tag, body))
 
@@ -2130,11 +2170,22 @@ class Lowerer:
                             if i < len(variant.fields):
                                 field_lt = self._lower_type(variant.fields[i])
                                 fname = field_names[i] if i < len(field_names) else f"_{i}"
-                                body.append(LVarDecl(
-                                    c_name=binding, c_type=field_lt,
-                                    init=LFieldAccess(
+                                is_recursive = self._is_recursive_sum_field(
+                                    variant.fields[i], sum_t.name)
+                                if is_recursive:
+                                    ptr_lt = LPtr(field_lt)
+                                    field_access = LFieldAccess(
                                         LFieldAccess(subj, vname, subj.c_type),
-                                        fname, field_lt)))
+                                        fname, ptr_lt)
+                                    body.append(LVarDecl(
+                                        c_name=binding, c_type=field_lt,
+                                        init=LDeref(field_access, field_lt)))
+                                else:
+                                    body.append(LVarDecl(
+                                        c_name=binding, c_type=field_lt,
+                                        init=LFieldAccess(
+                                            LFieldAccess(subj, vname, subj.c_type),
+                                            fname, field_lt)))
                     val = self._lower_arm_body(arm)
                     body.extend(self._pending_stmts)
                     self._pending_stmts = []
@@ -2923,3 +2974,14 @@ class Lowerer:
                 return name
             case _:
                 return "unknown"
+
+    def _is_recursive_sum_field(self, field_type: Type,
+                                enclosing_name: str) -> bool:
+        """Check if a variant field type refers to its enclosing sum type."""
+        match field_type:
+            case TSum(name=name) if name == enclosing_name:
+                return True
+            case TNamed(name=name) if name == enclosing_name:
+                return True
+            case _:
+                return False
