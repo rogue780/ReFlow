@@ -1,0 +1,6 @@
+a=10, b=20
+first=42
+classify(3,4) = 3,4
+swap(1,2) = (2,1)
+first(99,world) = 99
+sum(5,10) = 15

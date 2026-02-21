@@ -1054,6 +1054,9 @@ class Lowerer:
             case TResult():
                 stmts = self._lower_match_result(subj_var, subj_type, stmt.arms)
                 return [subj_decl] + stmts
+            case TTuple():
+                stmts = self._lower_match_tuple(subj_var, subj_type, stmt.arms)
+                return [subj_decl] + stmts
             case _:
                 # For primitives and other types, use if-else chains
                 stmts = self._lower_match_generic(subj_var, subj_type, stmt.arms)
@@ -1925,6 +1928,9 @@ class Lowerer:
             case TResult():
                 match_stmts = self._lower_match_result_expr(
                     subj_var, subj_type, expr.arms, result_var)
+            case TTuple():
+                match_stmts = self._lower_match_tuple_expr(
+                    subj_var, subj_type, expr.arms, result_var)
             case _:
                 match_stmts = self._lower_match_generic_expr(
                     subj_var, subj_type, expr.arms, result_var)
@@ -2362,6 +2368,38 @@ class Lowerer:
         )
         return [LIf(cond=tag_check, then=ok_body, else_=err_body)]
 
+    def _lower_match_tuple(self, subj: LVar, tup_t: TTuple,
+                           arms: list[MatchArm]) -> list[LStmt]:
+        """Lower match on tuple type to pattern bindings."""
+        for arm in arms:
+            match arm.pattern:
+                case TuplePattern(elements=elements):
+                    body: list[LStmt] = []
+                    for i, elem_pat in enumerate(elements):
+                        if i < len(tup_t.elements):
+                            elem_lt = self._lower_type(tup_t.elements[i])
+                            field_access = LFieldAccess(subj, f"_{i}", elem_lt)
+                            match elem_pat:
+                                case BindPattern(name=bname):
+                                    body.append(LVarDecl(
+                                        c_name=bname, c_type=elem_lt,
+                                        init=field_access))
+                                case WildcardPattern():
+                                    pass  # No binding needed
+                    body.extend(self._lower_arm_body_stmts(arm))
+                    return body
+
+                case WildcardPattern() | BindPattern():
+                    body = []
+                    if isinstance(arm.pattern, BindPattern):
+                        body.append(LVarDecl(
+                            c_name=arm.pattern.name,
+                            c_type=subj.c_type, init=subj))
+                    body.extend(self._lower_arm_body_stmts(arm))
+                    return body
+
+        return []
+
     def _lower_match_generic(self, subj: LVar, subj_type: Type,
                              arms: list[MatchArm]) -> list[LStmt]:
         """Lower match on primitive/other types to if-else chain."""
@@ -2560,6 +2598,48 @@ class Lowerer:
             c_type=LBool(),
         )
         return [LIf(cond=tag_check, then=ok_body, else_=err_body)]
+
+    def _lower_match_tuple_expr(self, subj: LVar, tup_t: TTuple,
+                                arms: list[MatchArm], result: LVar) -> list[LStmt]:
+        """Lower match expression on tuple type to pattern bindings."""
+        for arm in arms:
+            match arm.pattern:
+                case TuplePattern(elements=elements):
+                    body: list[LStmt] = []
+                    for i, elem_pat in enumerate(elements):
+                        if i < len(tup_t.elements):
+                            elem_lt = self._lower_type(tup_t.elements[i])
+                            field_access = LFieldAccess(subj, f"_{i}", elem_lt)
+                            match elem_pat:
+                                case BindPattern(name=bname):
+                                    body.append(LVarDecl(
+                                        c_name=bname, c_type=elem_lt,
+                                        init=field_access))
+                                case WildcardPattern():
+                                    pass
+                    saved = self._pending_stmts
+                    self._pending_stmts = []
+                    val = self._lower_arm_body(arm)
+                    body.extend(self._pending_stmts)
+                    self._pending_stmts = saved
+                    body.append(LAssign(result, val))
+                    return body
+
+                case WildcardPattern() | BindPattern():
+                    body: list[LStmt] = []
+                    if isinstance(arm.pattern, BindPattern):
+                        body.append(LVarDecl(
+                            c_name=arm.pattern.name,
+                            c_type=subj.c_type, init=subj))
+                    saved = self._pending_stmts
+                    self._pending_stmts = []
+                    val = self._lower_arm_body(arm)
+                    body.extend(self._pending_stmts)
+                    self._pending_stmts = saved
+                    body.append(LAssign(result, val))
+                    return body
+
+        return []
 
     def _lower_match_generic_expr(self, subj: LVar, subj_type: Type,
                                    arms: list[MatchArm], result: LVar) -> list[LStmt]:
