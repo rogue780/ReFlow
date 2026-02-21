@@ -2,7 +2,12 @@
  * ReFlow Runtime Library
  * runtime/reflow_runtime.c — Runtime implementations.
  */
+#define _POSIX_C_SOURCE 200809L
+#define _DEFAULT_SOURCE
 #include "reflow_runtime.h"
+#include <limits.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 /* ========================================================================
  * Panic Functions (RT-1-1-3)
@@ -664,6 +669,505 @@ RF_Option_ptr rf_read_byte(void) {
     int c = fgetc(stdin);
     if (c == EOF) return RF_NONE_PTR;
     return (RF_Option_ptr){.tag = 1, .value = (void*)(uintptr_t)(rf_byte)c};
+}
+
+/* ========================================================================
+ * String Operations (stdlib/string — RB-1-1)
+ * ======================================================================== */
+
+RF_Option_char rf_string_char_at(RF_String* s, rf_int64 idx) {
+    /* BOOTSTRAP SIMPLIFICATION: byte indexing, not codepoint indexing.
+     * All bootstrap compiler source files are ASCII. */
+    if (!s || idx < 0 || idx >= s->len) return (RF_Option_char){.tag = 0};
+    rf_char c = (rf_char)(unsigned char)s->data[idx];
+    return (RF_Option_char){.tag = 1, .value = c};
+}
+
+RF_String* rf_string_substring(RF_String* s, rf_int64 start, rf_int64 end) {
+    if (!s) rf_panic("rf_string_substring: NULL pointer");
+    if (start < 0) start = 0;
+    if (end > s->len) end = s->len;
+    if (start > end) rf_panic("rf_string_substring: start > end");
+    return rf_string_new(s->data + start, end - start);
+}
+
+RF_Option_int rf_string_index_of(RF_String* haystack, RF_String* needle) {
+    if (!haystack || !needle) return (RF_Option_int){.tag = 0};
+    if (needle->len == 0) {
+        return (RF_Option_int){.tag = 1, .value = 0};
+    }
+    if (needle->len > haystack->len) return (RF_Option_int){.tag = 0};
+    for (rf_int64 i = 0; i <= haystack->len - needle->len; i++) {
+        if (memcmp(haystack->data + i, needle->data, (size_t)needle->len) == 0) {
+            return (RF_Option_int){.tag = 1, .value = (rf_int)i};
+        }
+    }
+    return (RF_Option_int){.tag = 0};
+}
+
+rf_bool rf_string_contains(RF_String* s, RF_String* needle) {
+    RF_Option_int result = rf_string_index_of(s, needle);
+    return result.tag == 1;
+}
+
+rf_bool rf_string_starts_with(RF_String* s, RF_String* prefix) {
+    if (!s || !prefix) return rf_false;
+    if (prefix->len > s->len) return rf_false;
+    return memcmp(s->data, prefix->data, (size_t)prefix->len) == 0;
+}
+
+rf_bool rf_string_ends_with(RF_String* s, RF_String* suffix) {
+    if (!s || !suffix) return rf_false;
+    if (suffix->len > s->len) return rf_false;
+    return memcmp(s->data + s->len - suffix->len, suffix->data,
+                  (size_t)suffix->len) == 0;
+}
+
+RF_Array* rf_string_split(RF_String* s, RF_String* sep) {
+    if (!s || !sep) rf_panic("rf_string_split: NULL argument");
+
+    /* Collect parts into a buffer, then convert to array. */
+    RF_Buffer* buf = rf_buffer_new(sizeof(RF_String*));
+
+    if (sep->len == 0) {
+        /* Split into individual characters (bytes for bootstrap). */
+        for (rf_int64 i = 0; i < s->len; i++) {
+            RF_String* ch = rf_string_new(s->data + i, 1);
+            rf_buffer_push(buf, &ch);
+        }
+    } else {
+        rf_int64 start = 0;
+        for (rf_int64 i = 0; i <= s->len - sep->len; i++) {
+            if (memcmp(s->data + i, sep->data, (size_t)sep->len) == 0) {
+                RF_String* part = rf_string_new(s->data + start, i - start);
+                rf_buffer_push(buf, &part);
+                i += sep->len - 1;
+                start = i + 1;
+            }
+        }
+        /* Last segment */
+        RF_String* last = rf_string_new(s->data + start, s->len - start);
+        rf_buffer_push(buf, &last);
+    }
+
+    /* Convert buffer to array. */
+    RF_Array* arr = rf_array_new(buf->len, sizeof(RF_String*), buf->data);
+    rf_buffer_release(buf);
+    return arr;
+}
+
+static rf_bool rf__is_ascii_ws(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+RF_String* rf_string_trim(RF_String* s) {
+    if (!s) rf_panic("rf_string_trim: NULL pointer");
+    rf_int64 start = 0;
+    rf_int64 end = s->len;
+    while (start < end && rf__is_ascii_ws(s->data[start])) start++;
+    while (end > start && rf__is_ascii_ws(s->data[end - 1])) end--;
+    return rf_string_new(s->data + start, end - start);
+}
+
+RF_String* rf_string_trim_left(RF_String* s) {
+    if (!s) rf_panic("rf_string_trim_left: NULL pointer");
+    rf_int64 start = 0;
+    while (start < s->len && rf__is_ascii_ws(s->data[start])) start++;
+    return rf_string_new(s->data + start, s->len - start);
+}
+
+RF_String* rf_string_trim_right(RF_String* s) {
+    if (!s) rf_panic("rf_string_trim_right: NULL pointer");
+    rf_int64 end = s->len;
+    while (end > 0 && rf__is_ascii_ws(s->data[end - 1])) end--;
+    return rf_string_new(s->data, end);
+}
+
+RF_String* rf_string_replace(RF_String* s, RF_String* old_s, RF_String* new_s) {
+    if (!s || !old_s || !new_s) rf_panic("rf_string_replace: NULL argument");
+    if (old_s->len == 0) return rf_string_new(s->data, s->len);
+
+    /* Count occurrences to pre-calculate size. */
+    rf_int64 count = 0;
+    for (rf_int64 i = 0; i <= s->len - old_s->len; i++) {
+        if (memcmp(s->data + i, old_s->data, (size_t)old_s->len) == 0) {
+            count++;
+            i += old_s->len - 1;
+        }
+    }
+    if (count == 0) return rf_string_new(s->data, s->len);
+
+    rf_int64 new_len = s->len + count * (new_s->len - old_s->len);
+    RF_String* result = (RF_String*)malloc(sizeof(RF_String) + (size_t)new_len + 1);
+    if (!result) rf_panic("rf_string_replace: out of memory");
+    result->refcount = 1;
+    result->len = new_len;
+
+    rf_int64 src = 0, dst = 0;
+    while (src <= s->len - old_s->len) {
+        if (memcmp(s->data + src, old_s->data, (size_t)old_s->len) == 0) {
+            memcpy(result->data + dst, new_s->data, (size_t)new_s->len);
+            dst += new_s->len;
+            src += old_s->len;
+        } else {
+            result->data[dst++] = s->data[src++];
+        }
+    }
+    /* Copy remaining bytes after last possible match position. */
+    while (src < s->len) {
+        result->data[dst++] = s->data[src++];
+    }
+    result->data[new_len] = '\0';
+    return result;
+}
+
+RF_String* rf_string_join(RF_Array* parts, RF_String* sep) {
+    if (!parts || !sep) rf_panic("rf_string_join: NULL argument");
+    if (parts->len == 0) return rf_string_new("", 0);
+
+    /* Calculate total length. */
+    rf_int64 total = 0;
+    for (rf_int64 i = 0; i < parts->len; i++) {
+        RF_String** sp = (RF_String**)((char*)parts->data +
+                         (size_t)i * (size_t)parts->element_size);
+        total += (*sp)->len;
+    }
+    total += sep->len * (parts->len - 1);
+
+    RF_String* result = (RF_String*)malloc(sizeof(RF_String) + (size_t)total + 1);
+    if (!result) rf_panic("rf_string_join: out of memory");
+    result->refcount = 1;
+    result->len = total;
+
+    rf_int64 pos = 0;
+    for (rf_int64 i = 0; i < parts->len; i++) {
+        if (i > 0) {
+            memcpy(result->data + pos, sep->data, (size_t)sep->len);
+            pos += sep->len;
+        }
+        RF_String** sp = (RF_String**)((char*)parts->data +
+                         (size_t)i * (size_t)parts->element_size);
+        memcpy(result->data + pos, (*sp)->data, (size_t)(*sp)->len);
+        pos += (*sp)->len;
+    }
+    result->data[total] = '\0';
+    return result;
+}
+
+RF_String* rf_string_to_lower(RF_String* s) {
+    if (!s) rf_panic("rf_string_to_lower: NULL pointer");
+    RF_String* r = rf_string_new(s->data, s->len);
+    for (rf_int64 i = 0; i < r->len; i++) {
+        if (r->data[i] >= 'A' && r->data[i] <= 'Z') {
+            r->data[i] = r->data[i] + ('a' - 'A');
+        }
+    }
+    return r;
+}
+
+RF_String* rf_string_to_upper(RF_String* s) {
+    if (!s) rf_panic("rf_string_to_upper: NULL pointer");
+    RF_String* r = rf_string_new(s->data, s->len);
+    for (rf_int64 i = 0; i < r->len; i++) {
+        if (r->data[i] >= 'a' && r->data[i] <= 'z') {
+            r->data[i] = r->data[i] - ('a' - 'A');
+        }
+    }
+    return r;
+}
+
+/* ========================================================================
+ * Character Utilities (stdlib/char — RB-1-2)
+ * ======================================================================== */
+
+rf_bool rf_char_is_digit(rf_char c) {
+    return c >= '0' && c <= '9';
+}
+
+rf_bool rf_char_is_alpha(rf_char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
+rf_bool rf_char_is_alphanumeric(rf_char c) {
+    return rf_char_is_alpha(c) || rf_char_is_digit(c);
+}
+
+rf_bool rf_char_is_whitespace(rf_char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+rf_int rf_char_to_int(rf_char c) {
+    return (rf_int)c;
+}
+
+rf_char rf_int_to_char(rf_int n) {
+    return (rf_char)n;
+}
+
+RF_String* rf_char_to_string(rf_char c) {
+    /* ASCII fast path (bootstrap simplification). */
+    char buf[1];
+    buf[0] = (char)c;
+    return rf_string_new(buf, 1);
+}
+
+/* ========================================================================
+ * File I/O (stdlib/io — RB-1-3)
+ * ======================================================================== */
+
+RF_Option_ptr rf_read_file(RF_String* path) {
+    if (!path) return RF_NONE_PTR;
+    FILE* f = fopen(path->data, "rb");
+    if (!f) return RF_NONE_PTR;
+
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (sz < 0) { fclose(f); return RF_NONE_PTR; }
+
+    char* buf = (char*)malloc((size_t)sz);
+    if (!buf) { fclose(f); rf_panic("rf_read_file: out of memory"); }
+
+    size_t read = fread(buf, 1, (size_t)sz, f);
+    fclose(f);
+
+    RF_String* s = rf_string_new(buf, (rf_int64)read);
+    free(buf);
+    return RF_SOME_PTR(s);
+}
+
+rf_bool rf_write_file(RF_String* path, RF_String* contents) {
+    if (!path || !contents) return rf_false;
+    FILE* f = fopen(path->data, "wb");
+    if (!f) return rf_false;
+    size_t written = fwrite(contents->data, 1, (size_t)contents->len, f);
+    fclose(f);
+    return written == (size_t)contents->len;
+}
+
+/* ========================================================================
+ * Process Execution (stdlib/sys — RB-1-4)
+ * ======================================================================== */
+
+rf_int rf_run_process(RF_String* command, RF_Array* args) {
+    if (!command) rf_panic("rf_run_process: NULL command");
+
+    /* Build argv: [command, args..., NULL] */
+    rf_int64 argc = args ? args->len : 0;
+    char** argv = (char**)malloc(sizeof(char*) * (size_t)(argc + 2));
+    if (!argv) rf_panic("rf_run_process: out of memory");
+
+    argv[0] = command->data;
+    for (rf_int64 i = 0; i < argc; i++) {
+        RF_String** sp = (RF_String**)((char*)args->data +
+                         (size_t)i * (size_t)args->element_size);
+        argv[i + 1] = (*sp)->data;
+    }
+    argv[argc + 1] = NULL;
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        free(argv);
+        return -1;
+    }
+    if (pid == 0) {
+        /* Child process. */
+        execvp(argv[0], argv);
+        _exit(127);
+    }
+
+    /* Parent: wait for child. */
+    free(argv);
+    int status = 0;
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status)) return (rf_int)WEXITSTATUS(status);
+    return -1;
+}
+
+RF_Option_ptr rf_run_process_capture(RF_String* command, RF_Array* args) {
+    if (!command) rf_panic("rf_run_process_capture: NULL command");
+
+    /* Build argv. */
+    rf_int64 argc = args ? args->len : 0;
+    char** argv = (char**)malloc(sizeof(char*) * (size_t)(argc + 2));
+    if (!argv) rf_panic("rf_run_process_capture: out of memory");
+
+    argv[0] = command->data;
+    for (rf_int64 i = 0; i < argc; i++) {
+        RF_String** sp = (RF_String**)((char*)args->data +
+                         (size_t)i * (size_t)args->element_size);
+        argv[i + 1] = (*sp)->data;
+    }
+    argv[argc + 1] = NULL;
+
+    /* Create pipe for stderr. */
+    int pipefd[2];
+    if (pipe(pipefd) < 0) { free(argv); return RF_NONE_PTR; }
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        free(argv);
+        close(pipefd[0]);
+        close(pipefd[1]);
+        return RF_NONE_PTR;
+    }
+    if (pid == 0) {
+        /* Child: redirect stderr to pipe. */
+        close(pipefd[0]);
+        dup2(pipefd[1], STDERR_FILENO);
+        close(pipefd[1]);
+        execvp(argv[0], argv);
+        _exit(127);
+    }
+
+    /* Parent: read stderr from pipe. */
+    free(argv);
+    close(pipefd[1]);
+
+    RF_Buffer* buf = rf_buffer_new(1);
+    char c;
+    while (read(pipefd[0], &c, 1) == 1) {
+        rf_buffer_push(buf, &c);
+    }
+    close(pipefd[0]);
+
+    int status = 0;
+    waitpid(pid, &status, 0);
+    int exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+
+    if (exit_code != 0) {
+        /* Return captured stderr as some(string). */
+        RF_String* stderr_str = rf_string_new((const char*)buf->data, buf->len);
+        rf_buffer_release(buf);
+        return RF_SOME_PTR(stderr_str);
+    }
+
+    rf_buffer_release(buf);
+    return RF_NONE_PTR;  /* Success: none. */
+}
+
+/* ========================================================================
+ * Temporary File Support (stdlib/io — RB-1-5)
+ * ======================================================================== */
+
+RF_String* rf_tmpfile_create(RF_String* suffix, RF_String* contents) {
+    if (!suffix || !contents) rf_panic("rf_tmpfile_create: NULL argument");
+
+    /* Build template: /tmp/reflow_XXXXXX<suffix> */
+    const char* prefix = "/tmp/reflow_XXXXXX";
+    rf_int64 prefix_len = (rf_int64)strlen(prefix);
+    rf_int64 total_len = prefix_len + suffix->len;
+    char* tmpl = (char*)malloc((size_t)total_len + 1);
+    if (!tmpl) rf_panic("rf_tmpfile_create: out of memory");
+    memcpy(tmpl, prefix, (size_t)prefix_len);
+    memcpy(tmpl + prefix_len, suffix->data, (size_t)suffix->len);
+    tmpl[total_len] = '\0';
+
+    int fd = mkstemps(tmpl, (int)suffix->len);
+    if (fd < 0) {
+        free(tmpl);
+        rf_panic("rf_tmpfile_create: mkstemps failed");
+    }
+
+    /* Write contents. */
+    ssize_t written = write(fd, contents->data, (size_t)contents->len);
+    close(fd);
+    (void)written;
+
+    RF_String* path = rf_string_from_cstr(tmpl);
+    free(tmpl);
+    return path;
+}
+
+void rf_tmpfile_remove(RF_String* path) {
+    if (!path) return;
+    unlink(path->data);
+}
+
+/* ========================================================================
+ * Path Utilities (stdlib/path — RB-1-6)
+ * ======================================================================== */
+
+RF_String* rf_path_join(RF_String* a, RF_String* b) {
+    if (!a || !b) rf_panic("rf_path_join: NULL argument");
+    if (a->len == 0) return rf_string_new(b->data, b->len);
+    if (b->len == 0) return rf_string_new(a->data, a->len);
+    /* Check if a already ends with '/' */
+    if (a->data[a->len - 1] == '/') {
+        return rf_string_concat(a, b);
+    }
+    RF_String* slash = rf_string_from_cstr("/");
+    RF_String* tmp = rf_string_concat(a, slash);
+    RF_String* result = rf_string_concat(tmp, b);
+    rf_string_release(slash);
+    rf_string_release(tmp);
+    return result;
+}
+
+RF_String* rf_path_stem(RF_String* path) {
+    if (!path) rf_panic("rf_path_stem: NULL pointer");
+    /* Find last '/' */
+    rf_int64 start = 0;
+    for (rf_int64 i = path->len - 1; i >= 0; i--) {
+        if (path->data[i] == '/') { start = i + 1; break; }
+    }
+    /* Find last '.' after start */
+    rf_int64 end = path->len;
+    for (rf_int64 i = path->len - 1; i >= start; i--) {
+        if (path->data[i] == '.') { end = i; break; }
+    }
+    return rf_string_new(path->data + start, end - start);
+}
+
+RF_String* rf_path_parent(RF_String* path) {
+    if (!path) rf_panic("rf_path_parent: NULL pointer");
+    rf_int64 last_slash = -1;
+    for (rf_int64 i = path->len - 1; i >= 0; i--) {
+        if (path->data[i] == '/') { last_slash = i; break; }
+    }
+    if (last_slash < 0) return rf_string_from_cstr(".");
+    if (last_slash == 0) return rf_string_from_cstr("/");
+    return rf_string_new(path->data, last_slash);
+}
+
+RF_String* rf_path_with_suffix(RF_String* path, RF_String* suffix) {
+    if (!path || !suffix) rf_panic("rf_path_with_suffix: NULL argument");
+    /* Find last '.' */
+    rf_int64 dot = -1;
+    rf_int64 last_slash = -1;
+    for (rf_int64 i = path->len - 1; i >= 0; i--) {
+        if (path->data[i] == '/' && last_slash < 0) { last_slash = i; break; }
+        if (path->data[i] == '.' && dot < 0) { dot = i; }
+    }
+    rf_int64 base_end = (dot >= 0 && dot > last_slash) ? dot : path->len;
+    RF_String* base = rf_string_new(path->data, base_end);
+    RF_String* result = rf_string_concat(base, suffix);
+    rf_string_release(base);
+    return result;
+}
+
+RF_String* rf_path_cwd(void) {
+    char buf[PATH_MAX];
+    if (getcwd(buf, sizeof(buf)) == NULL) {
+        rf_panic("rf_path_cwd: getcwd failed");
+    }
+    return rf_string_from_cstr(buf);
+}
+
+RF_String* rf_path_resolve(RF_String* path) {
+    if (!path) rf_panic("rf_path_resolve: NULL pointer");
+    char resolved[PATH_MAX];
+    if (realpath(path->data, resolved) == NULL) {
+        /* If file doesn't exist, return the path as-is. */
+        return rf_string_new(path->data, path->len);
+    }
+    return rf_string_from_cstr(resolved);
+}
+
+rf_bool rf_path_exists(RF_String* path) {
+    if (!path) return rf_false;
+    return access(path->data, F_OK) == 0;
 }
 
 /* ========================================================================

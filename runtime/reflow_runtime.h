@@ -274,6 +274,70 @@ RF_Option_ptr rf_string_to_int64_opt(RF_String* s);
 RF_Option_ptr rf_string_to_float_opt(RF_String* s);
 
 /* ========================================================================
+ * String Operations (stdlib/string — RB-1-1)
+ * ======================================================================== */
+
+RF_Option_char rf_string_char_at(RF_String* s, rf_int64 idx);
+RF_String*     rf_string_substring(RF_String* s, rf_int64 start, rf_int64 end);
+RF_Option_int  rf_string_index_of(RF_String* haystack, RF_String* needle);
+rf_bool       rf_string_contains(RF_String* s, RF_String* needle);
+rf_bool       rf_string_starts_with(RF_String* s, RF_String* prefix);
+rf_bool       rf_string_ends_with(RF_String* s, RF_String* suffix);
+RF_Array*     rf_string_split(RF_String* s, RF_String* sep);
+RF_String*    rf_string_trim(RF_String* s);
+RF_String*    rf_string_trim_left(RF_String* s);
+RF_String*    rf_string_trim_right(RF_String* s);
+RF_String*    rf_string_replace(RF_String* s, RF_String* old_s, RF_String* new_s);
+RF_String*    rf_string_join(RF_Array* parts, RF_String* sep);
+RF_String*    rf_string_to_lower(RF_String* s);
+RF_String*    rf_string_to_upper(RF_String* s);
+
+/* ========================================================================
+ * Character Utilities (stdlib/char — RB-1-2)
+ * ======================================================================== */
+
+rf_bool    rf_char_is_digit(rf_char c);
+rf_bool    rf_char_is_alpha(rf_char c);
+rf_bool    rf_char_is_alphanumeric(rf_char c);
+rf_bool    rf_char_is_whitespace(rf_char c);
+rf_int     rf_char_to_int(rf_char c);
+rf_char    rf_int_to_char(rf_int n);
+RF_String* rf_char_to_string(rf_char c);
+
+/* ========================================================================
+ * File I/O (stdlib/io — RB-1-3)
+ * ======================================================================== */
+
+RF_Option_ptr rf_read_file(RF_String* path);
+rf_bool       rf_write_file(RF_String* path, RF_String* contents);
+
+/* ========================================================================
+ * Process Execution (stdlib/sys — RB-1-4)
+ * ======================================================================== */
+
+rf_int        rf_run_process(RF_String* command, RF_Array* args);
+RF_Option_ptr rf_run_process_capture(RF_String* command, RF_Array* args);
+
+/* ========================================================================
+ * Temporary File Support (stdlib/io — RB-1-5)
+ * ======================================================================== */
+
+RF_String* rf_tmpfile_create(RF_String* suffix, RF_String* contents);
+void       rf_tmpfile_remove(RF_String* path);
+
+/* ========================================================================
+ * Path Utilities (stdlib/path — RB-1-6)
+ * ======================================================================== */
+
+RF_String* rf_path_join(RF_String* a, RF_String* b);
+RF_String* rf_path_stem(RF_String* path);
+RF_String* rf_path_parent(RF_String* path);
+RF_String* rf_path_with_suffix(RF_String* path, RF_String* suffix);
+RF_String* rf_path_cwd(void);
+RF_String* rf_path_resolve(RF_String* path);
+rf_bool    rf_path_exists(RF_String* path);
+
+/* ========================================================================
  * Runtime Initialization
  * ======================================================================== */
 

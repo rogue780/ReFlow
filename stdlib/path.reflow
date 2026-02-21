@@ -1,0 +1,9 @@
+module path
+
+export fn join(a: string, b: string): string = native "rf_path_join"
+export fn stem(p: string): string = native "rf_path_stem"
+export fn parent(p: string): string = native "rf_path_parent"
+export fn with_suffix(p: string, suffix: string): string = native "rf_path_with_suffix"
+export fn cwd(): string = native "rf_path_cwd"
+export fn resolve(p: string): string = native "rf_path_resolve"
+export fn exists(p: string): bool = native "rf_path_exists"
