@@ -1,0 +1,6 @@
+join: foo/bar.txt
+stem: bar
+parent: foo
+with_suffix: foo/bar.c
+exists Makefile: true
+exists nope.xyz: false

@@ -1,0 +1,39 @@
+module tests.stdlib_string_test
+
+import io (println)
+import string
+
+fn main() {
+    let s = "Hello, World!"
+
+    let ch = string.char_at(s, 0)
+    match ch {
+        some(c): { println(f"char_at(0): {c}") }
+        none: { println("char_at(0): none") }
+    }
+
+    let sub = string.substring(s, 7, 12)
+    println(f"substring(7,12): {sub}")
+
+    let idx = string.index_of(s, "World")
+    match idx {
+        some(i): { println(f"index_of World: {i}") }
+        none: { println("index_of World: none") }
+    }
+
+    println(f"contains World: {string.contains(s, "World")}")
+    println(f"starts_with Hello: {string.starts_with(s, "Hello")}")
+    println(f"ends_with !: {string.ends_with(s, "!")}")
+
+    let lower = string.to_lower("HELLO")
+    println(f"to_lower: {lower}")
+
+    let upper = string.to_upper("hello")
+    println(f"to_upper: {upper}")
+
+    let trimmed = string.trim("  hi  ")
+    println(f"trim: [{trimmed}]")
+
+    let replaced = string.replace("aabaa", "a", "x")
+    println(f"replace: {replaced}")
+}

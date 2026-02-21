@@ -1,0 +1,10 @@
+char_at(0): H
+substring(7,12): World
+index_of World: 7
+contains World: true
+starts_with Hello: true
+ends_with !: true
+to_lower: hello
+to_upper: HELLO
+trim: [hi]
+replace: xxbxx

@@ -1,0 +1,19 @@
+module tests.stdlib_char_test
+
+import io (println)
+import char
+
+fn main() {
+    println(f"is_digit '5': {char.is_digit('5')}")
+    println(f"is_digit 'a': {char.is_digit('a')}")
+    println(f"is_alpha 'Z': {char.is_alpha('Z')}")
+    println(f"is_alpha '3': {char.is_alpha('3')}")
+    println(f"is_alphanumeric 'a': {char.is_alphanumeric('a')}")
+    println(f"is_alphanumeric '!': {char.is_alphanumeric('!')}")
+    println(f"is_whitespace ' ': {char.is_whitespace(' ')}")
+    println(f"is_whitespace 'x': {char.is_whitespace('x')}")
+    println(f"to_code 'A': {char.to_code('A')}")
+    let ch = char.from_code(66)
+    println(f"from_code 66: {ch}")
+    println(f"to_string 'R': {char.to_string('R')}")
+}

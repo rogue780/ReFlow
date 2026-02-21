@@ -1,0 +1,11 @@
+is_digit '5': true
+is_digit 'a': false
+is_alpha 'Z': true
+is_alpha '3': false
+is_alphanumeric 'a': true
+is_alphanumeric '!': false
+is_whitespace ' ': true
+is_whitespace 'x': false
+to_code 'A': 65
+from_code 66: B
+to_string 'R': R

@@ -1,0 +1,13 @@
+module tests.stdlib_path_test
+
+import io (println)
+import path
+
+fn main() {
+    println(f"join: {path.join("foo", "bar.txt")}")
+    println(f"stem: {path.stem("foo/bar.txt")}")
+    println(f"parent: {path.parent("foo/bar.txt")}")
+    println(f"with_suffix: {path.with_suffix("foo/bar.txt", ".c")}")
+    println(f"exists Makefile: {path.exists("Makefile")}")
+    println(f"exists nope.xyz: {path.exists("nope.xyz")}")
+}
