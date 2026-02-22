@@ -597,7 +597,7 @@ fn main(): none {
     def test_while_loop_type_check(self):
         result = check("""fn main(): none {
     let x: bool:mut = true
-    while x {
+    while (x) {
         x = false
     }
 }""")
@@ -687,6 +687,163 @@ fn main(): result<int, string> {
     def test_cast_expr(self):
         result = check("""fn main(): none {
     let x = cast<int64>(42)
+}""")
+        self.assertIsNotNone(result)
+
+
+# ---------------------------------------------------------------------------
+# Interface Fulfillment Validation
+# ---------------------------------------------------------------------------
+
+class TestInterfaceFulfillment(unittest.TestCase):
+    """Interface fulfillment validation (Gap #6, Gap #13)."""
+
+    def test_fulfills_non_generic_ok(self):
+        """A type that fulfills a non-generic interface with all methods passes."""
+        result = check("""
+interface Printable {
+    fn to_string(self): string
+}
+type Widget fulfills Printable {
+    name: string
+
+    fn to_string(self): string {
+        return self.name
+    }
+}""")
+        self.assertIsNotNone(result)
+
+    def test_fulfills_missing_method_error(self):
+        """A type missing a required method raises TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+interface Printable {
+    fn to_string(self): string
+}
+type Widget fulfills Printable {
+    name: string
+}""")
+        self.assertIn("missing required method 'to_string'", ctx.exception.message)
+
+    def test_fulfills_wrong_return_type_error(self):
+        """A method with wrong return type raises TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+interface Printable {
+    fn to_string(self): string
+}
+type Widget fulfills Printable {
+    name: string
+
+    fn to_string(self): int {
+        return 0
+    }
+}""")
+        self.assertIn("returns int", ctx.exception.message)
+        self.assertIn("requires string", ctx.exception.message)
+
+    def test_fulfills_generic_interface_ok(self):
+        """A type fulfilling Exception<string> with all 3 methods passes."""
+        result = check("""
+type AppError fulfills Exception<string> {
+    msg: string
+
+    fn message(self): string {
+        return self.msg
+    }
+    fn data(self): string {
+        return self.msg
+    }
+    fn original(self): string {
+        return self.msg
+    }
+}""")
+        self.assertIsNotNone(result)
+
+    def test_fulfills_exception_missing_method(self):
+        """Exception type missing 'original' raises TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+type AppError fulfills Exception<string> {
+    msg: string
+
+    fn message(self): string {
+        return self.msg
+    }
+    fn data(self): string {
+        return self.msg
+    }
+}""")
+        self.assertIn("missing required method 'original'", ctx.exception.message)
+
+    def test_fulfills_unknown_interface_error(self):
+        """Referencing an unknown interface raises TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+type Widget fulfills NonExistent {
+    name: string
+}""")
+        self.assertIn("unknown interface 'NonExistent'", ctx.exception.message)
+
+    def test_fulfills_pure_constraint(self):
+        """Interface pure method not matched by non-pure raises TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+interface Hashable {
+    pure fn hash(self): int
+}
+type Widget fulfills Hashable {
+    name: string
+
+    fn hash(self): int {
+        return 0
+    }
+}""")
+        self.assertIn("must be pure", ctx.exception.message)
+
+    def test_fulfills_wrong_param_count_error(self):
+        """A method with wrong parameter count raises TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+interface Printable {
+    fn to_string(self): string
+}
+type Widget fulfills Printable {
+    name: string
+
+    fn to_string(self, prefix: string): string {
+        return self.name
+    }
+}""")
+        self.assertIn("1 parameter(s)", ctx.exception.message)
+
+
+class TestCongruenceOperator(unittest.TestCase):
+    """Positive tests for the === congruence operator."""
+
+    def test_congruence_same_type_ok(self):
+        """=== on two values of the same struct type returns TBool."""
+        result = check("""type Point {
+    x: int
+    y: int
+}
+fn test(a: Point, b: Point): bool {
+    return a === b
+}""")
+        self.assertIsNotNone(result)
+
+    def test_congruence_different_struct_types_ok(self):
+        """=== on two different but congruent struct types returns TBool."""
+        result = check("""type A {
+    x: int
+    y: int
+}
+type B {
+    x: int
+    y: int
+}
+fn test(a: A, b: B): bool {
+    return a === b
 }""")
         self.assertIsNotNone(result)
 

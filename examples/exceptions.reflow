@@ -92,5 +92,44 @@ fn main() {
         println("Retry example done")
     }
 
+    ; --- Typed exceptions ---
+    ; Custom exception types fulfill Exception<T> and carry structured data
+    println("=== Typed exceptions ===")
+    try {
+        let result = parse_config("bad-input")
+        println(f"parsed: {result}")
+    } catch (ex: ConfigError) {
+        println(f"Caught ConfigError: {ex.message()}")
+        println(f"  bad input: {ex.data()}")
+        println(f"  original:  {ex.original()}")
+    }
+
     println("Program complete")
+}
+
+; --- Typed exception type ---
+; A custom exception fulfilling Exception<string>
+
+type ConfigError fulfills Exception<string> {
+    msg: string
+    input: string
+
+    fn message(self): string {
+        return self.msg
+    }
+
+    fn data(self): string {
+        return self.input
+    }
+
+    fn original(self): string {
+        return self.input
+    }
+}
+
+fn parse_config(s: string): string {
+    if s == "bad-input" {
+        throw ConfigError { msg: "invalid config key", input: s }
+    }
+    return "ok"
 }

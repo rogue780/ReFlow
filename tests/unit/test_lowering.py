@@ -670,7 +670,7 @@ class TestWhileStmtLowering(unittest.TestCase):
     def test_while_produces_lwhile(self):
         m = lower("""
             fn do_stuff(): none {
-                while true {
+                while (true) {
                     let x: int = 1
                 }
             }
@@ -726,7 +726,7 @@ class TestBreakStmtLowering(unittest.TestCase):
     def test_break_in_while(self):
         m = lower("""
             fn do_stuff(): none {
-                while true {
+                while (true) {
                     break
                 }
             }
@@ -749,7 +749,7 @@ class TestStreamFunctionLowering(unittest.TestCase):
         m = lower("""
             fn count(n: int): stream<int> {
                 let i: int:mut = 0
-                while i < n {
+                while (i < n) {
                     yield i
                     i++
                 }
@@ -776,7 +776,7 @@ class TestStreamFunctionLowering(unittest.TestCase):
         m = lower("""
             fn count(n: int): stream<int> {
                 let i: int:mut = 0
-                while i < n {
+                while (i < n) {
                     yield i
                     i++
                 }
@@ -986,6 +986,72 @@ class TestEdgeCases(unittest.TestCase):
         self.assertIsNotNone(outer_if)
         inner_if = find_stmt_of_type(outer_if.then, LIf)
         self.assertIsNotNone(inner_if)
+
+
+class TestCongruenceLowering(unittest.TestCase):
+    """Tests for === congruence operator lowering."""
+
+    def test_congruence_same_type_lowers_to_true(self):
+        """=== on two values of the same struct type lowers to rf_true."""
+        m = lower("""
+            type Point {
+                x: int
+                y: int
+            }
+            fn test(a: Point, b: Point): bool {
+                return a === b
+            }
+        """)
+        fn = find_fn(m, "test")
+        self.assertIsNotNone(fn)
+        ret = find_stmt_of_type(fn.body, LReturn)
+        self.assertIsNotNone(ret)
+        self.assertIsInstance(ret.value, LLit)
+        self.assertEqual(ret.value.value, "rf_true")
+
+    def test_congruence_different_fields_lowers_to_false(self):
+        """=== on two non-congruent types lowers to rf_false."""
+        m = lower("""
+            type A {
+                x: int
+                y: int
+            }
+            type B {
+                x: int
+                z: string
+            }
+            fn test(a: A, b: B): bool {
+                return a === b
+            }
+        """)
+        fn = find_fn(m, "test")
+        self.assertIsNotNone(fn)
+        ret = find_stmt_of_type(fn.body, LReturn)
+        self.assertIsNotNone(ret)
+        self.assertIsInstance(ret.value, LLit)
+        self.assertEqual(ret.value.value, "rf_false")
+
+    def test_congruence_congruent_different_names_lowers_to_true(self):
+        """=== on congruent types with different names lowers to rf_true."""
+        m = lower("""
+            type LogEntry {
+                timestamp: int
+                source: string
+            }
+            type EventRecord {
+                timestamp: int
+                source: string
+            }
+            fn test(a: LogEntry, b: EventRecord): bool {
+                return a === b
+            }
+        """)
+        fn = find_fn(m, "test")
+        self.assertIsNotNone(fn)
+        ret = find_stmt_of_type(fn.body, LReturn)
+        self.assertIsNotNone(ret)
+        self.assertIsInstance(ret.value, LLit)
+        self.assertEqual(ret.value.value, "rf_true")
 
 
 if __name__ == "__main__":

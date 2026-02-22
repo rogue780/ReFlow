@@ -1918,6 +1918,14 @@ class Lowerer:
             return LUnary("!", LCall("rf_string_eq", [left_expr, right_expr], LBool()),
                           LBool())
 
+        # Congruence operator — compile-time structural type comparison
+        if op == "===":
+            right_type = self._type_of(right)
+            if self._is_congruent(left_type, right_type):
+                return LLit("rf_true", LBool())
+            else:
+                return LLit("rf_false", LBool())
+
         # Integer checked arithmetic (RT-7-3-2)
         if isinstance(left_type, TInt) and op in ("+", "-", "*", "/", "%"):
             return LCheckedArith(op=op, left=left_expr, right=right_expr, c_type=lt)
@@ -3844,6 +3852,30 @@ class Lowerer:
         name = f"_rf_tmp_{self._tmp_counter}"
         self._tmp_counter += 1
         return name
+
+    def _is_congruent(self, a: Type, b: Type) -> bool:
+        """Check structural congruence: same field names and types."""
+        a_fields = self._get_struct_fields(a)
+        b_fields = self._get_struct_fields(b)
+        if a_fields is None or b_fields is None:
+            return False
+        return a_fields == b_fields
+
+    def _get_struct_fields(self, t: Type) -> dict[str, Type] | None:
+        """Get the field name→type mapping for a structural type."""
+        if isinstance(t, TNamed):
+            for decl in self._module.decls:
+                if isinstance(decl, TypeDecl) and decl.name == t.name:
+                    fields: dict[str, Type] = {}
+                    for f in decl.fields:
+                        ft = self._types.get(f.type_ann)
+                        if ft is None:
+                            ft = self._resolve_type_ann(f.type_ann) if f.type_ann else TAny()
+                        fields[f.name] = ft
+                    return fields
+        if isinstance(t, TRecord):
+            return dict(t.fields)
+        return None
 
     def _type_of(self, node: ASTNode) -> Type:
         """Look up the type of an AST node in the TypedModule."""
