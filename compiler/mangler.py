@@ -167,6 +167,16 @@ def mangle_stream_wrapper(module: str, fn_name: str,
     return f"_rf_swrap_{parts}_{fn_name}_{wrapper_id}"
 
 
+def mangle_fanout_wrapper(module: str, fn_name: str,
+                          fanout_id: int, branch_idx: int) -> str:
+    """Mangle a parallel fan-out branch wrapper function name.
+
+    Example: main, process, 0, 1 → _rf_fanout_main_process_0_1
+    """
+    parts = module.replace(".", "_")
+    return f"_rf_fanout_{parts}_{fn_name}_{fanout_id}_{branch_idx}"
+
+
 def mangle_exception_tag(module: str, type_name: str) -> str:
     """Integer constant name for exception type dispatch.
 

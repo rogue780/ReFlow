@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
+#include <stdatomic.h>
+#include <pthread.h>
 
 /* Boolean constants for use in generated code */
 #define rf_true  ((rf_bool)1)
@@ -105,7 +107,7 @@ typedef struct { rf_byte tag; void* value; } RF_Option_ptr;
  * ======================================================================== */
 
 typedef struct RF_String {
-    rf_int64 refcount;
+    _Atomic rf_int64 refcount;
     rf_int64 len;    /* byte length, not char count; excludes null terminator */
     char     data[]; /* flexible array member, UTF-8, always null-terminated */
 } RF_String;
@@ -159,7 +161,7 @@ RF_RESULT_TYPE(void*,   void*,      RF_Result_ptr_ptr)
  * ======================================================================== */
 
 typedef struct RF_Array {
-    rf_int64  refcount;
+    _Atomic rf_int64  refcount;
     rf_int64  len;
     void*     data;
     rf_int64  element_size;
@@ -186,7 +188,7 @@ struct RF_Stream {
     RF_StreamNext next_fn;
     RF_StreamFree free_fn;
     void*         state;
-    rf_int        refcount;
+    _Atomic rf_int refcount;
 };
 
 RF_Stream*    rf_stream_new(RF_StreamNext next_fn, RF_StreamFree free_fn, void* state);
@@ -260,7 +262,7 @@ void     rf_set_release(RF_Set* s);
  * ======================================================================== */
 
 typedef struct RF_Buffer {
-    rf_int64 refcount;
+    _Atomic rf_int64 refcount;
     rf_int64 len;
     rf_int64 capacity;
     rf_int64 element_size;
@@ -381,12 +383,27 @@ typedef struct RF_ExceptionFrame {
     rf_int exception_tag;  /* integer type tag for catch dispatch */
 } RF_ExceptionFrame;
 
-extern RF_ExceptionFrame* _rf_exception_current;
+extern _Thread_local RF_ExceptionFrame* _rf_exception_current;
 
 void _rf_exception_push(RF_ExceptionFrame* frame);
 void _rf_exception_pop(void);
 _Noreturn void _rf_throw(void* exception, rf_int tag);
 _Noreturn void _rf_rethrow(void);
+
+/* ========================================================================
+ * Parallel Fan-out
+ * ======================================================================== */
+
+typedef struct RF_FanoutBranch {
+    void* (*fn)(void*);
+    void*   arg;
+    void*   result;
+    void*   exception;
+    rf_int  exception_tag;
+    rf_bool has_exception;
+} RF_FanoutBranch;
+
+void rf_fanout_run(RF_FanoutBranch* branches, rf_int count);
 
 /* ========================================================================
  * Runtime Initialization

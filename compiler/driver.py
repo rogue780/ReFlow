@@ -423,6 +423,7 @@ def compile_source(source_path: str, *, output: str | None = None,
         result = subprocess.run(
             [
                 "clang", "-std=c11", "-Wall", "-Wextra",
+                "-pthread",
                 "-o", output_path,
                 tmp_path,
                 str(runtime_c),

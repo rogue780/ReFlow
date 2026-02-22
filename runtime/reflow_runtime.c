@@ -55,13 +55,12 @@ RF_String* rf_string_from_cstr(const char* cstr) {
 
 void rf_string_retain(RF_String* s) {
     if (!s) return;
-    s->refcount++;
+    atomic_fetch_add(&s->refcount, 1);
 }
 
 void rf_string_release(RF_String* s) {
     if (!s) return;
-    s->refcount--;
-    if (s->refcount == 0) {
+    if (atomic_fetch_sub(&s->refcount, 1) == 1) {
         free(s);
     }
 }
@@ -180,13 +179,12 @@ RF_Array* rf_array_new(rf_int64 len, rf_int64 element_size, void* initial_data) 
 
 void rf_array_retain(RF_Array* arr) {
     if (!arr) return;
-    arr->refcount++;
+    atomic_fetch_add(&arr->refcount, 1);
 }
 
 void rf_array_release(RF_Array* arr) {
     if (!arr) return;
-    arr->refcount--;
-    if (arr->refcount <= 0) {
+    if (atomic_fetch_sub(&arr->refcount, 1) == 1) {
         free(arr->data);
         free(arr);
     }
@@ -244,13 +242,12 @@ RF_Stream* rf_stream_new(RF_StreamNext next_fn, RF_StreamFree free_fn, void* sta
 
 void rf_stream_retain(RF_Stream* s) {
     if (!s) return;
-    s->refcount++;
+    atomic_fetch_add(&s->refcount, 1);
 }
 
 void rf_stream_release(RF_Stream* s) {
     if (!s) return;
-    s->refcount--;
-    if (s->refcount <= 0) {
+    if (atomic_fetch_sub(&s->refcount, 1) == 1) {
         if (s->free_fn) {
             s->free_fn(s);
         }
@@ -448,7 +445,7 @@ typedef struct {
 } RF_MapEntry;
 
 struct RF_Map {
-    rf_int64     refcount;
+    _Atomic rf_int64 refcount;
     rf_int64     count;
     rf_int64     capacity;
     RF_MapEntry* entries;
@@ -553,13 +550,12 @@ rf_int64 rf_map_len(RF_Map* m) {
 
 void rf_map_retain(RF_Map* m) {
     if (!m) return;
-    m->refcount++;
+    atomic_fetch_add(&m->refcount, 1);
 }
 
 void rf_map_release(RF_Map* m) {
     if (!m) return;
-    m->refcount--;
-    if (m->refcount > 0) return;
+    if (atomic_fetch_sub(&m->refcount, 1) != 1) return;
     for (rf_int64 i = 0; i < m->capacity; i++) {
         if (m->entries[i].occupied) {
             free(m->entries[i].key);
@@ -575,7 +571,7 @@ void rf_map_release(RF_Map* m) {
 
 struct RF_Set {
     RF_Map*  map;
-    rf_int64 refcount;
+    _Atomic rf_int64 refcount;
 };
 
 RF_Set* rf_set_new(void) {
@@ -629,13 +625,12 @@ rf_int64 rf_set_len(RF_Set* s) {
 
 void rf_set_retain(RF_Set* s) {
     if (!s) return;
-    s->refcount++;
+    atomic_fetch_add(&s->refcount, 1);
 }
 
 void rf_set_release(RF_Set* s) {
     if (!s) return;
-    s->refcount--;
-    if (s->refcount > 0) return;
+    if (atomic_fetch_sub(&s->refcount, 1) != 1) return;
     rf_map_release(s->map);
     free(s);
 }
@@ -711,15 +706,15 @@ void rf_buffer_reverse(RF_Buffer* buf) {
 
 void rf_buffer_retain(RF_Buffer* buf) {
     if (!buf) return;
-    buf->refcount++;
+    atomic_fetch_add(&buf->refcount, 1);
 }
 
 void rf_buffer_release(RF_Buffer* buf) {
     if (!buf) return;
-    buf->refcount--;
-    if (buf->refcount > 0) return;
-    free(buf->data);
-    free(buf);
+    if (atomic_fetch_sub(&buf->refcount, 1) == 1) {
+        free(buf->data);
+        free(buf);
+    }
 }
 
 RF_Buffer* rf_buffer_collect(RF_Stream* s, rf_int64 element_size) {
@@ -1345,7 +1340,7 @@ rf_bool rf_path_exists(RF_String* path) {
  * Exception Handling (setjmp/longjmp)
  * ======================================================================== */
 
-RF_ExceptionFrame* _rf_exception_current = NULL;
+_Thread_local RF_ExceptionFrame* _rf_exception_current = NULL;
 
 void _rf_exception_push(RF_ExceptionFrame* frame) {
     frame->parent = _rf_exception_current;
@@ -1378,6 +1373,47 @@ void _rf_rethrow(void) {
         exit(1);
     }
     longjmp(_rf_exception_current->jmp, 1);
+}
+
+/* ========================================================================
+ * Parallel Fan-out
+ * ======================================================================== */
+
+static void* _rf_fanout_worker(void* raw) {
+    RF_FanoutBranch* task = (RF_FanoutBranch*)raw;
+    task->has_exception = rf_false;
+    RF_ExceptionFrame ef;
+    _rf_exception_push(&ef);
+    if (setjmp(ef.jmp) == 0) {
+        task->result = task->fn(task->arg);
+    } else {
+        task->has_exception = rf_true;
+        task->exception = ef.exception;
+        task->exception_tag = ef.exception_tag;
+    }
+    _rf_exception_pop();
+    return NULL;
+}
+
+void rf_fanout_run(RF_FanoutBranch* branches, rf_int count) {
+    if (count <= 0) return;
+    if (count == 1) {
+        _rf_fanout_worker(&branches[0]);
+        return;
+    }
+    pthread_t* threads = malloc(sizeof(pthread_t) * (size_t)count);
+    /* Run branches 1..N-1 on new threads, branch 0 on current thread */
+    for (rf_int i = 1; i < count; i++)
+        pthread_create(&threads[i], NULL, _rf_fanout_worker, &branches[i]);
+    /* Branch 0 on main thread (preserves exception frame stack) */
+    _rf_fanout_worker(&branches[0]);
+    for (rf_int i = 1; i < count; i++)
+        pthread_join(threads[i], NULL);
+    free(threads);
+    /* Re-throw leftmost exception (sequential semantics) */
+    for (rf_int i = 0; i < count; i++)
+        if (branches[i].has_exception)
+            _rf_throw(branches[i].exception, branches[i].exception_tag);
 }
 
 /* ========================================================================
