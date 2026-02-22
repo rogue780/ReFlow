@@ -301,7 +301,16 @@ class TypeInfo:
     constructors: dict[str, TFn]
     is_sum_type: bool
     sum_type: TSum | None
-    interfaces: list[str]
+    interfaces: list[TypeExpr]
+
+
+@dataclass
+class InterfaceInfo:
+    name: str
+    type_params: list[str]
+    methods: dict[str, TFn]           # name -> sig (self param excluded)
+    constructor_name: str | None
+    constructor_sig: TFn | None
 
 
 # ---------------------------------------------------------------------------
@@ -368,11 +377,15 @@ class TypeChecker:
         self._consumed_streams: set[str] = set()
         self._in_pure_fn = False
         self._purity_map: dict[str, bool] = {}
+        self._interface_registry: dict[str, InterfaceInfo] = {}
 
     def check(self) -> TypedModule:
         """Run the type checking pass."""
+        self._register_builtin_interfaces()
         self._build_type_registry()
+        self._build_interface_registry()
         self._register_top_level_types()
+        self._validate_interface_fulfillment()
         self._check_all_bodies()
         return TypedModule(
             module=self._module,
@@ -464,6 +477,182 @@ class TypeChecker:
                 sum_type=sum_type,
                 interfaces=decl.interfaces,
             )
+
+    # ------------------------------------------------------------------
+    # Pre-pass: register builtin interfaces
+    # ------------------------------------------------------------------
+
+    def _register_builtin_interfaces(self) -> None:
+        """Register built-in interfaces like Exception<T>."""
+        self._interface_registry["Exception"] = InterfaceInfo(
+            name="Exception",
+            type_params=["T"],
+            methods={
+                "message": TFn((), TString(), False),
+                "data": TFn((), TTypeVar("T"), False),
+                "original": TFn((), TTypeVar("T"), False),
+            },
+            constructor_name=None,
+            constructor_sig=None,
+        )
+
+    # ------------------------------------------------------------------
+    # Pre-pass: build interface registry from InterfaceDecl nodes
+    # ------------------------------------------------------------------
+
+    def _build_interface_registry(self) -> None:
+        for decl in self._module.decls:
+            if not isinstance(decl, InterfaceDecl):
+                continue
+
+            methods: dict[str, TFn] = {}
+            for m in decl.methods:
+                params = []
+                for p in m.params:
+                    if p.name == "self":
+                        continue
+                    params.append(self._resolve_type_expr(p.type_ann))
+                ret = self._resolve_type_expr(m.return_type) if m.return_type else TNone()
+                methods[m.name] = TFn(tuple(params), ret, m.is_pure)
+
+            ctor_name: str | None = None
+            ctor_sig: TFn | None = None
+            if decl.constructor_sig is not None:
+                c = decl.constructor_sig
+                c_params = []
+                for p in c.params:
+                    if p.name == "self":
+                        continue
+                    c_params.append(self._resolve_type_expr(p.type_ann))
+                ctor_name = c.name
+                ctor_sig = TFn(tuple(c_params), TNone(), False)
+
+            self._interface_registry[decl.name] = InterfaceInfo(
+                name=decl.name,
+                type_params=decl.type_params,
+                methods=methods,
+                constructor_name=ctor_name,
+                constructor_sig=ctor_sig,
+            )
+
+    # ------------------------------------------------------------------
+    # Pre-pass: validate interface fulfillment
+    # ------------------------------------------------------------------
+
+    def _validate_interface_fulfillment(self) -> None:
+        for decl in self._module.decls:
+            if not isinstance(decl, TypeDecl):
+                continue
+            if not decl.interfaces:
+                continue
+
+            info = self._type_registry.get(decl.name)
+            if info is None:
+                continue
+
+            for iface_expr in decl.interfaces:
+                self._check_fulfillment(decl, info, iface_expr)
+
+    def _check_fulfillment(
+        self,
+        decl: TypeDecl,
+        info: TypeInfo,
+        iface_expr: TypeExpr,
+    ) -> None:
+        # Extract interface name and type args from the TypeExpr
+        match iface_expr:
+            case NamedType(name=iface_name):
+                type_args: list[Type] = []
+            case GenericType(base=NamedType(name=iface_name), args=args):
+                type_args = [self._resolve_type_expr(a) for a in args]
+            case _:
+                raise self._error(
+                    f"invalid interface expression in fulfills clause",
+                    decl,
+                )
+
+        iface = self._interface_registry.get(iface_name)
+        if iface is None:
+            raise self._error(
+                f"unknown interface '{iface_name}'",
+                decl,
+            )
+
+        # Validate type arg count
+        if len(type_args) != len(iface.type_params):
+            raise self._error(
+                f"interface '{iface_name}' expects {len(iface.type_params)} "
+                f"type argument(s) but got {len(type_args)}",
+                decl,
+            )
+
+        # Build substitution environment
+        env: TypeEnv = {}
+        for param_name, arg_type in zip(iface.type_params, type_args):
+            env[param_name] = arg_type
+
+        # Check each required method
+        for method_name, iface_sig in iface.methods.items():
+            actual_sig = info.methods.get(method_name)
+            if actual_sig is None:
+                raise self._error(
+                    f"type '{decl.name}' declares fulfills '{iface_name}' "
+                    f"but is missing required method '{method_name}'",
+                    decl,
+                )
+
+            # Apply substitution to get concrete expected signature
+            expected_sig = apply_env(iface_sig, env)
+            assert isinstance(expected_sig, TFn)
+
+            # Check return type compatibility
+            if not self._is_assignable(actual_sig.ret, expected_sig.ret):
+                raise self._error(
+                    f"type '{decl.name}' method '{method_name}' returns "
+                    f"{self._type_name(actual_sig.ret)} but interface "
+                    f"'{iface_name}' requires {self._type_name(expected_sig.ret)}",
+                    decl,
+                )
+
+            # Check param count
+            if len(actual_sig.params) != len(expected_sig.params):
+                raise self._error(
+                    f"type '{decl.name}' method '{method_name}' has "
+                    f"{len(actual_sig.params)} parameter(s) but interface "
+                    f"'{iface_name}' requires {len(expected_sig.params)}",
+                    decl,
+                )
+
+            # Check param types
+            for i, (actual_p, expected_p) in enumerate(
+                zip(actual_sig.params, expected_sig.params)
+            ):
+                if not self._is_assignable(expected_p, actual_p):
+                    raise self._error(
+                        f"type '{decl.name}' method '{method_name}' parameter "
+                        f"{i + 1} has type {self._type_name(actual_p)} but "
+                        f"interface '{iface_name}' requires "
+                        f"{self._type_name(expected_p)}",
+                        decl,
+                    )
+
+            # Check purity constraint
+            if iface_sig.is_pure and not actual_sig.is_pure:
+                raise self._error(
+                    f"type '{decl.name}' method '{method_name}' must be pure "
+                    f"as required by interface '{iface_name}'",
+                    decl,
+                )
+
+        # Check constructor constraint if interface has one
+        if iface.constructor_name is not None:
+            if iface.constructor_name not in info.constructors:
+                raise self._error(
+                    f"type '{decl.name}' declares fulfills '{iface_name}' "
+                    f"but is missing required constructor "
+                    f"'{iface.constructor_name}'",
+                    decl,
+                )
 
     # ------------------------------------------------------------------
     # Pre-pass: register top-level names in the type scope
@@ -1568,6 +1757,11 @@ class TypeChecker:
                 self._check_purity_body(then_b, fn_name)
                 if else_b is not None:
                     self._check_purity_body(else_b, fn_name)
+
+            case SnapshotExpr():
+                raise self._error(
+                    f"pure function '{fn_name}' cannot use snapshot()",
+                    node)
 
             case _:
                 pass  # Other nodes don't affect purity

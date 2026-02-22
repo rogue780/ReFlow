@@ -1,0 +1,9 @@
+module tests.errors.snapshot_in_pure
+
+type Config {
+    static counter: int = 0
+}
+
+pure fn bad(): int {
+    return snapshot(Config.counter)
+}

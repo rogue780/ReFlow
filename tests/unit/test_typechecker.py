@@ -818,6 +818,31 @@ type Widget fulfills Printable {
         self.assertIn("1 parameter(s)", ctx.exception.message)
 
 
+class TestSnapshotExpr(unittest.TestCase):
+    """Snapshot expression type checking."""
+
+    def test_snapshot_preserves_type(self):
+        """snapshot of a static int type-checks as int."""
+        result = check("""type Config {
+    static counter: int = 0
+}
+fn main(): none {
+    let snap = snapshot(Config.counter)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_pure_fn_with_snapshot_error(self):
+        """snapshot in pure fn raises TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""type Config {
+    static counter: int = 0
+}
+pure fn bad(): int {
+    return snapshot(Config.counter)
+}""")
+        self.assertIn("cannot use snapshot()", ctx.exception.message)
+
+
 class TestCongruenceOperator(unittest.TestCase):
     """Positive tests for the === congruence operator."""
 

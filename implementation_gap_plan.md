@@ -14,8 +14,8 @@
 | 8 | **Coroutine methods** | §Coroutines | Typechecker/Lowering | DONE | TCoroutine type with .next(), .send(), .done() methods fully implemented |
 | 9 | **TuplePattern in match** | §Pattern Matching | Lowering | DONE | TuplePattern destructuring lowers to field access on tuple struct (.f0, .f1, etc.) |
 | 10 | **Parallel fan-out** | §Composition | Lowering/Runtime | SEQUENTIAL | Parsed and purity-checked but executed sequentially; no threading |
-| 11 | **`snapshot()` runtime** | §Snapshot Values | Lowering/Runtime | STUB | Parsed; no `.refresh()`; no frozen-copy semantics at runtime |
-| 12 | **`typeof()` runtime** | §typeof | Lowering | STUB | Returns `TString` in typechecker; no actual type value at runtime |
+| 11 | **`snapshot()` runtime** | §Snapshot Values | Lowering/Runtime | DONE | Purity enforcement added; pass-through correct for value/immutable-heap types; .refresh() deferred as SPEC GAP (no parallelism) |
+| 12 | **`typeof()` runtime** | §typeof | Lowering | DONE | Returns `TString` in typechecker; lowers to `rf_string_from_cstr` with compile-time type name |
 | 13 | **Interface fulfillment** | §Interfaces | Typechecker | DONE | `fulfills` clause validates methods against interface contract; missing methods produce TypeError |
 | 14 | **Stream helpers** | §Streams | Stdlib | NOT IMPL | `chunks`, `group_by`, `take`, `skip`, `zip`, `flatten`, `map`, `filter`, `reduce` not in stdlib |
 | 15 | **`===` congruence op** | §Equality/Congruence | Typechecker/Lowering | NOT IMPL | Used internally for `coerce` but not exposed as operator in expressions |
