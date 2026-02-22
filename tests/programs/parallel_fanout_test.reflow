@@ -1,0 +1,18 @@
+module tests.parallel_fanout_test
+import io (println)
+
+pure fn double(x: int): int = x * 2
+pure fn square(x: int): int = x * x
+pure fn add(a: int, b: int): int = a + b
+
+pure fn greet(s: string): string = f"Hello, {s}!"
+pure fn shout(s: string): string = f"{s}!!!"
+pure fn both(a: string, b: string): string = f"{a} and {b}"
+
+fn main() {
+    let r1 = 5 -> <:(double | square) -> add
+    println(f"parallel: {r1}")
+
+    let r2 = "hello" -> <:(greet | shout) -> both
+    println(r2)
+}

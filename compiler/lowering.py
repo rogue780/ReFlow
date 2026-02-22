@@ -10,7 +10,7 @@ from compiler.errors import EmitError
 from compiler.mangler import (
     mangle, mangle_stream_frame, mangle_stream_next, mangle_stream_free,
     mangle_closure_frame, mangle_closure_fn, mangle_fn_wrapper,
-    mangle_stream_wrapper, mangle_exception_frame,
+    mangle_stream_wrapper, mangle_fanout_wrapper, mangle_exception_frame,
 )
 from compiler.ast_nodes import (
     # Base
@@ -246,6 +246,13 @@ class LVarDecl(LStmt):
 
 
 @dataclass
+class LArrayDecl(LStmt):
+    c_name: str
+    elem_type: LType
+    count: int
+
+
+@dataclass
 class LAssign(LStmt):
     target: LExpr
     value: LExpr
@@ -453,6 +460,9 @@ class Lowerer:
         self._current_fn_name: str = ""
         self._fn_wrapper_registry: dict[str, str] = {}
         self._capture_remap: dict[str, tuple[str, LType]] = {}
+
+        # Parallel fan-out support
+        self._fanout_counter: int = 0
 
         # Exception frame counter (per-function)
         self._exception_frame_counter: int = 0
@@ -1814,7 +1824,10 @@ class Lowerer:
 
             # Fan-out
             case FanOut(branches=branches):
-                # Lower each branch, collect into tuple
+                # Standalone fan-out: evaluate each branch, collect into tuple.
+                # Parallel flag ignored here — standalone fan-out does not
+                # distribute a shared input, so parallelism has no benefit.
+                # Parallel fan-out is meaningful in chain context only.
                 results: list[LExpr] = []
                 for branch in branches:
                     results.append(self._lower_expr(branch.expr))
@@ -2358,6 +2371,180 @@ class Lowerer:
                     return fn_decl.native_name
         return None
 
+    # ------------------------------------------------------------------
+    # Parallel fan-out lowering (Gap #10)
+    # ------------------------------------------------------------------
+
+    def _build_fanout_wrapper(self, branch_expr: Expr, branch_type: TFn,
+                              fanout_id: int, branch_idx: int,
+                              input_lt: LType) -> str:
+        """Generate a void*(void*) wrapper for a fan-out branch.
+
+        Returns the C name of the generated wrapper function.
+        """
+        module = self._module_path
+        fn_name = self._current_fn_name or "anon"
+        wrapper_c_name = mangle_fanout_wrapper(
+            module, fn_name, fanout_id, branch_idx)
+
+        result_lt = self._lower_type(branch_type.ret)
+
+        wrapper_params: list[tuple[str, LType]] = [
+            ("_arg", LPtr(LVoid())),
+        ]
+        wrapper_body: list[LStmt] = []
+
+        # Cast void* _arg to the typed input
+        if isinstance(input_lt, LPtr):
+            typed_input: LExpr = LCast(
+                LVar("_arg", LPtr(LVoid())), input_lt)
+        else:
+            typed_input = LCast(
+                LCast(LVar("_arg", LPtr(LVoid())), LInt(64, True)),
+                input_lt)
+
+        # Call the branch function
+        direct_name = self._get_direct_fn_c_name(branch_expr)
+        if direct_name is not None:
+            call_expr = LCall(direct_name, [typed_input], result_lt)
+        else:
+            # Closure: _arg carries a struct {void* input, RF_Closure* fn}
+            # For simplicity, only support direct function names in fan-out
+            call_expr = LCall(direct_name or "NULL", [typed_input], result_lt)
+
+        # Cast result back to void*
+        if isinstance(result_lt, LPtr):
+            result_expr: LExpr = LCast(call_expr, LPtr(LVoid()))
+        elif isinstance(result_lt, LVoid):
+            # void-returning branch: return NULL
+            wrapper_body.append(LExprStmt(call_expr))
+            wrapper_body.append(LReturn(
+                LCast(LLit("0", LInt(64, True)), LPtr(LVoid()))))
+            self._fn_defs.append(LFnDef(
+                c_name=wrapper_c_name,
+                params=wrapper_params,
+                ret=LPtr(LVoid()),
+                body=wrapper_body,
+                is_pure=False,
+                source_name=f"{module}.{fn_name}::fanout_{fanout_id}_{branch_idx}",
+            ))
+            return wrapper_c_name
+        else:
+            result_expr = LCast(
+                LCast(call_expr, LInt(64, True)), LPtr(LVoid()))
+
+        wrapper_body.append(LReturn(result_expr))
+
+        self._fn_defs.append(LFnDef(
+            c_name=wrapper_c_name,
+            params=wrapper_params,
+            ret=LPtr(LVoid()),
+            body=wrapper_body,
+            is_pure=False,
+            source_name=f"{module}.{fn_name}::fanout_{fanout_id}_{branch_idx}",
+        ))
+        return wrapper_c_name
+
+    def _lower_parallel_fanout_in_chain(self, fanout: FanOut,
+                                        input_var: str,
+                                        input_lt: LType) -> list[LExpr]:
+        """Lower a parallel fan-out in a chain context.
+
+        Generates wrapper functions, RF_FanoutBranch array, rf_fanout_run call,
+        and result extraction. Returns list of result LExprs to push on stack.
+        """
+        branches = fanout.branches
+        n = len(branches)
+        fanout_id = self._fanout_counter
+        self._fanout_counter += 1
+
+        branch_type = LStruct("RF_FanoutBranch")
+        tasks_name = self._fresh_temp()
+
+        # Declare RF_FanoutBranch array
+        self._pending_stmts.append(
+            LArrayDecl(c_name=tasks_name, elem_type=branch_type, count=n))
+
+        # Cast input to void*
+        if isinstance(input_lt, LPtr):
+            input_as_void: LExpr = LCast(
+                LVar(input_var, input_lt), LPtr(LVoid()))
+        else:
+            input_as_void = LCast(
+                LCast(LVar(input_var, input_lt), LInt(64, True)),
+                LPtr(LVoid()))
+
+        results: list[LExpr] = []
+
+        for i, branch in enumerate(branches):
+            bt = self._type_of(branch.expr)
+            if not isinstance(bt, TFn) or len(bt.params) == 0:
+                # Not a function branch — fall back to sequential
+                results.append(self._lower_expr(branch.expr))
+                continue
+
+            result_lt = self._lower_type(bt.ret)
+
+            # Generate wrapper function
+            wrapper_name = self._build_fanout_wrapper(
+                branch.expr, bt, fanout_id, i, input_lt)
+
+            # tasks[i].fn = wrapper
+            fn_ptr_type = LFnPtr([LPtr(LVoid())], LPtr(LVoid()))
+            self._pending_stmts.append(LAssign(
+                target=LFieldAccess(
+                    LIndex(LVar(tasks_name, branch_type),
+                           LLit(str(i), LInt(32, True)),
+                           branch_type),
+                    "fn", fn_ptr_type),
+                value=LVar(wrapper_name, fn_ptr_type),
+            ))
+
+            # tasks[i].arg = (void*)input
+            self._pending_stmts.append(LAssign(
+                target=LFieldAccess(
+                    LIndex(LVar(tasks_name, branch_type),
+                           LLit(str(i), LInt(32, True)),
+                           branch_type),
+                    "arg", LPtr(LVoid())),
+                value=input_as_void,
+            ))
+
+        # Call rf_fanout_run(tasks, n)
+        self._pending_stmts.append(LExprStmt(
+            LCall("rf_fanout_run",
+                  [LVar(tasks_name, branch_type),
+                   LLit(str(n), LInt(32, True))],
+                  LVoid())))
+
+        # Extract results from tasks[i].result
+        for i, branch in enumerate(branches):
+            bt = self._type_of(branch.expr)
+            if not isinstance(bt, TFn) or len(bt.params) == 0:
+                continue  # already added to results above
+
+            result_lt = self._lower_type(bt.ret)
+            raw_result = LFieldAccess(
+                LIndex(LVar(tasks_name, branch_type),
+                       LLit(str(i), LInt(32, True)),
+                       branch_type),
+                "result", LPtr(LVoid()))
+
+            if isinstance(result_lt, LPtr):
+                typed_result: LExpr = LCast(raw_result, result_lt)
+            elif isinstance(result_lt, LVoid):
+                continue
+            else:
+                typed_result = LCast(
+                    LCast(raw_result, LInt(64, True)), result_lt)
+
+            tmp = self._fresh_temp()
+            self._pending_stmts.append(
+                LVarDecl(c_name=tmp, c_type=result_lt, init=typed_result))
+            results.append(LVar(tmp, result_lt))
+
+        return results
+
     def _chain_call(self, elem_expr: Expr, elem_type: TFn,
                     args: list[LExpr], result_type: LType) -> LExpr:
         """Emit a call in a chain context — direct LCall for known functions,
@@ -2389,16 +2576,25 @@ class Lowerer:
                         LVarDecl(c_name=tmp, c_type=input_type,
                                  init=input_val))
 
-                    for branch in elem_expr.branches:
-                        bt = self._type_of(branch.expr)
-                        if isinstance(bt, TFn) and len(bt.params) > 0:
-                            result_type = self._lower_type(bt.ret)
-                            call = self._chain_call(
-                                branch.expr, bt,
-                                [LVar(tmp, input_type)], result_type)
-                            stack.append(call)
-                        else:
-                            stack.append(self._lower_expr(branch.expr))
+                    # Parallel fan-out: use rf_fanout_run
+                    if (elem_expr.parallel
+                            and len(elem_expr.branches) > 1):
+                        par_results = self._lower_parallel_fanout_in_chain(
+                            elem_expr, tmp, input_type)
+                        for r in par_results:
+                            stack.append(r)
+                    else:
+                        # Sequential fan-out
+                        for branch in elem_expr.branches:
+                            bt = self._type_of(branch.expr)
+                            if isinstance(bt, TFn) and len(bt.params) > 0:
+                                result_type = self._lower_type(bt.ret)
+                                call = self._chain_call(
+                                    branch.expr, bt,
+                                    [LVar(tmp, input_type)], result_type)
+                                stack.append(call)
+                            else:
+                                stack.append(self._lower_expr(branch.expr))
                 else:
                     # Long form: each branch produces its own value
                     for branch in elem_expr.branches:

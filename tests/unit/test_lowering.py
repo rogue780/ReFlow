@@ -1126,5 +1126,56 @@ class TestCongruenceLowering(unittest.TestCase):
         self.assertEqual(ret.value.value, "rf_true")
 
 
+class TestParallelFanout(unittest.TestCase):
+    """Gap #10: parallel fan-out lowering."""
+
+    def test_parallel_fanout_generates_fanout_run(self):
+        """Parallel fan-out in chain generates rf_fanout_run call."""
+        m = lower("""pure fn dbl(x: int): int = x * 2
+pure fn sqr(x: int): int = x * x
+pure fn add(a: int, b: int): int = a + b
+fn main() {
+    let r = 5 -> <:(dbl | sqr) -> add
+}""")
+        fn = find_fn(m, "main")
+        self.assertIsNotNone(fn)
+        # Look for rf_fanout_run call in statements
+        found_fanout_run = False
+        for stmt in fn.body:
+            if isinstance(stmt, LExprStmt) and isinstance(stmt.expr, LCall):
+                if stmt.expr.fn_name == "rf_fanout_run":
+                    found_fanout_run = True
+        self.assertTrue(found_fanout_run,
+                        "expected rf_fanout_run call in parallel fan-out")
+
+    def test_sequential_fanout_no_fanout_run(self):
+        """Sequential fan-out does not generate rf_fanout_run."""
+        m = lower("""pure fn dbl(x: int): int = x * 2
+pure fn sqr(x: int): int = x * x
+pure fn add(a: int, b: int): int = a + b
+fn main() {
+    let r = 5 -> (dbl | sqr) -> add
+}""")
+        fn = find_fn(m, "main")
+        self.assertIsNotNone(fn)
+        for stmt in fn.body:
+            if isinstance(stmt, LExprStmt) and isinstance(stmt.expr, LCall):
+                self.assertNotEqual(stmt.expr.fn_name, "rf_fanout_run",
+                                    "sequential fan-out should not use rf_fanout_run")
+
+    def test_parallel_fanout_generates_wrapper_functions(self):
+        """Parallel fan-out generates wrapper functions."""
+        m = lower("""pure fn dbl(x: int): int = x * 2
+pure fn sqr(x: int): int = x * x
+pure fn add(a: int, b: int): int = a + b
+fn main() {
+    let r = 5 -> <:(dbl | sqr) -> add
+}""")
+        wrapper_fns = [fn for fn in m.fn_defs
+                       if "_rf_fanout_" in fn.c_name]
+        self.assertEqual(len(wrapper_fns), 2,
+                         "expected 2 wrapper functions for 2 branches")
+
+
 if __name__ == "__main__":
     unittest.main()

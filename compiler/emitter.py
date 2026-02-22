@@ -15,7 +15,7 @@ from compiler.lowering import (
     LFieldAccess, LArrow, LIndex, LCast, LAddrOf, LDeref,
     LCompound, LCheckedArith, LSizeOf, LTernary, LArrayData,
     # Statements
-    LStmt, LVarDecl, LAssign, LReturn, LIf, LWhile, LBlock,
+    LStmt, LVarDecl, LArrayDecl, LAssign, LReturn, LIf, LWhile, LBlock,
     LExprStmt, LGoto, LLabel, LSwitch, LBreak,
 )
 
@@ -338,6 +338,8 @@ class Emitter:
         match stmt:
             case LVarDecl(c_name=name, c_type=ctype, init=init):
                 self._emit_var_decl(name, ctype, init)
+            case LArrayDecl(c_name=name, elem_type=elt, count=n):
+                self._emitln(f"{self._emit_ltype(elt)} {name}[{n}];")
             case LAssign(target=target, value=value):
                 self._emit_assign(target, value)
             case LReturn(value=value):
