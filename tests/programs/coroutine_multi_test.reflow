@@ -1,0 +1,38 @@
+module tests.coroutine_multi_test
+import io (println)
+
+fn naturals(start: int): stream<int> {
+    let i: int:mut = start
+    while true {
+        yield i
+        i = i + 1
+    }
+}
+
+fn main() {
+    ; Two independent coroutines from the same factory
+    let a :< naturals(0)
+    let b :< naturals(100)
+
+    ; Interleave calls
+    match a.next() {
+        some(v): { println(f"a={v}") }
+        none: { println("a=none") }
+    }
+    match b.next() {
+        some(v): { println(f"b={v}") }
+        none: { println("b=none") }
+    }
+    match a.next() {
+        some(v): { println(f"a={v}") }
+        none: { println("a=none") }
+    }
+    match b.next() {
+        some(v): { println(f"b={v}") }
+        none: { println("b=none") }
+    }
+
+    ; Check done (infinite streams never done)
+    println(f"a_done={a.done()}")
+    println(f"b_done={b.done()}")
+}

@@ -195,6 +195,20 @@ void          rf_stream_release(RF_Stream* s);
 RF_Option_ptr rf_stream_next(RF_Stream* s);
 
 /* ========================================================================
+ * Coroutines
+ * ======================================================================== */
+
+typedef struct RF_Coroutine {
+    RF_Stream* stream;
+    rf_bool    done;
+} RF_Coroutine;
+
+RF_Coroutine* rf_coroutine_new(RF_Stream* stream);
+RF_Option_ptr rf_coroutine_next(RF_Coroutine* c);
+rf_bool       rf_coroutine_done(RF_Coroutine* c);
+void          rf_coroutine_release(RF_Coroutine* c);
+
+/* ========================================================================
  * Closures
  * ======================================================================== */
 typedef struct RF_Closure {

@@ -40,7 +40,7 @@ from compiler.ast_nodes import (
 from compiler.typechecker import (
     TypedModule, Type,
     TInt, TFloat, TBool, TChar, TByte, TString, TNone,
-    TOption, TResult, TTuple, TArray, TStream, TBuffer, TMap, TSet,
+    TOption, TResult, TTuple, TArray, TStream, TCoroutine, TBuffer, TMap, TSet,
     TFn, TRecord, TNamed, TAlias, TSum, TVariant, TTypeVar, TAny,
 )
 from compiler.resolver import ResolvedModule, Symbol, SymbolKind
@@ -508,6 +508,8 @@ class Lowerer:
                 return LPtr(LStruct("RF_Array"))
             case TStream():
                 return LPtr(LStruct("RF_Stream"))
+            case TCoroutine():
+                return LPtr(LStruct("RF_Coroutine"))
             case TBuffer():
                 return LPtr(LStruct("RF_Buffer"))
             case TMap():
@@ -1880,9 +1882,11 @@ class Lowerer:
                     LPtr(LStruct("RF_String")),
                 )
 
-            # Coroutine start
+            # Coroutine start — wrap stream in RF_Coroutine
             case CoroutineStart(call=call):
-                return self._lower_expr(call)
+                stream_expr = self._lower_expr(call)
+                return LCall("rf_coroutine_new", [stream_expr],
+                             LPtr(LStruct("RF_Coroutine")))
 
             case _:
                 raise EmitError(
@@ -2041,6 +2045,10 @@ class Lowerer:
         lowered_args = [self._lower_expr(a) for a in expr.args]
         recv_type = self._type_of(expr.receiver)
 
+        if isinstance(recv_type, TCoroutine):
+            return self._lower_coroutine_method(expr, recv, recv_type,
+                                                lowered_args, lt)
+
         if isinstance(recv_type, TNamed):
             # User-defined type method
             c_name = mangle(self._module_path, recv_type.name, expr.method,
@@ -2050,6 +2058,86 @@ class Lowerer:
         # Built-in type methods
         method_c_name = f"rf_{self._type_name_str(recv_type)}_{expr.method}"
         return LCall(method_c_name, [recv] + lowered_args, lt)
+
+    def _lower_coroutine_method(self, expr: MethodCall, recv: LExpr,
+                                recv_type: TCoroutine,
+                                args: list[LExpr], lt: LType) -> LExpr:
+        """Lower coroutine method calls (.next, .done, .send)."""
+        if expr.method == "next":
+            return self._lower_coroutine_next(recv, recv_type)
+        elif expr.method == "done":
+            return LCall("rf_coroutine_done", [recv], LBool())
+        elif expr.method == "send":
+            raise EmitError(
+                message="coroutine .send() not yet implemented",
+                file=self._file, line=expr.line, col=expr.col)
+        raise EmitError(
+            message=f"unknown coroutine method: {expr.method}",
+            file=self._file, line=expr.line, col=expr.col)
+
+    def _lower_coroutine_next(self, recv: LExpr,
+                              recv_type: TCoroutine) -> LExpr:
+        """Lower coroutine .next() — returns option<yield_type>.
+
+        rf_coroutine_next returns RF_Option_ptr. For pointer-type yields
+        this is already correct. For value-type yields we convert to the
+        typed option struct (e.g. RF_Option_int).
+        """
+        yield_t = recv_type.yield_type
+        option_t = TOption(yield_t)
+        c_option_t = self._lower_type(option_t)
+
+        # Call rf_coroutine_next — returns RF_Option_ptr
+        raw_call = LCall("rf_coroutine_next", [recv],
+                         LStruct("RF_Option_ptr"))
+
+        # For pointer types, RF_Option_ptr IS the option type
+        if self._is_heap_type(yield_t):
+            return raw_call
+
+        # For value types, convert RF_Option_ptr → RF_Option_<type>
+        raw_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=raw_tmp, c_type=LStruct("RF_Option_ptr"),
+            init=raw_call))
+
+        result_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=result_tmp, c_type=c_option_t, init=None))
+
+        # result.tag = raw.tag
+        self._pending_stmts.append(LAssign(
+            target=LFieldAccess(LVar(result_tmp, c_option_t),
+                                "tag", LByte()),
+            value=LFieldAccess(LVar(raw_tmp, LStruct("RF_Option_ptr")),
+                               "tag", LByte())))
+
+        # if (raw.tag == 1) result.value = (YieldCType)(intptr_t)raw.value
+        c_yield_t = self._lower_type(yield_t)
+        cast_expr = LCast(
+            LCast(
+                LFieldAccess(LVar(raw_tmp, LStruct("RF_Option_ptr")),
+                             "value", LPtr(LVoid())),
+                LInt(64, True)),  # (intptr_t)raw.value
+            c_yield_t)           # (rf_int)(intptr_t)raw.value
+
+        self._pending_stmts.append(LIf(
+            cond=LBinOp("==",
+                LFieldAccess(LVar(raw_tmp, LStruct("RF_Option_ptr")),
+                             "tag", LByte()),
+                LLit("1", LByte()), LBool()),
+            then=[LAssign(
+                target=LFieldAccess(LVar(result_tmp, c_option_t),
+                                    "value", c_yield_t),
+                value=cast_expr)],
+            else_=[]))
+
+        return LVar(result_tmp, c_option_t)
+
+    def _is_heap_type(self, t: Type) -> bool:
+        """Check if a type is heap-allocated (pointer-based)."""
+        return isinstance(t, (TString, TArray, TStream, TBuffer,
+                              TMap, TSet, TNamed, TSum))
 
     def _get_direct_fn_c_name(self, expr: Expr) -> str | None:
         """If expr is an Ident bound to SymbolKind.FN, return its mangled C name."""
@@ -3893,6 +3981,8 @@ class Lowerer:
                 return f"array_{self._type_name_str(elem)}"
             case TStream(element=elem):
                 return f"stream_{self._type_name_str(elem)}"
+            case TCoroutine(yield_type=yt):
+                return f"coroutine_{self._type_name_str(yt)}"
             case TNamed(name=name):
                 return name
             case TSum(name=name):

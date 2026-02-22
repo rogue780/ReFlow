@@ -263,6 +263,35 @@ RF_Option_ptr rf_stream_next(RF_Stream* s) {
 }
 
 /* ========================================================================
+ * Coroutines
+ * ======================================================================== */
+
+RF_Coroutine* rf_coroutine_new(RF_Stream* stream) {
+    RF_Coroutine* c = (RF_Coroutine*)malloc(sizeof(RF_Coroutine));
+    if (!c) rf_panic("rf_coroutine_new: out of memory");
+    c->stream = stream;
+    c->done = rf_false;
+    return c;
+}
+
+RF_Option_ptr rf_coroutine_next(RF_Coroutine* c) {
+    RF_Option_ptr result = rf_stream_next(c->stream);
+    if (result.tag == 0) c->done = rf_true;
+    return result;
+}
+
+rf_bool rf_coroutine_done(RF_Coroutine* c) {
+    return c->done;
+}
+
+void rf_coroutine_release(RF_Coroutine* c) {
+    if (c) {
+        rf_stream_release(c->stream);
+        free(c);
+    }
+}
+
+/* ========================================================================
  * Map — open-addressing hash table (RT-1-6-1)
  * BOOTSTRAP: replace with production hash map
  * ======================================================================== */

@@ -1,0 +1,61 @@
+module examples.coroutines
+import io (println)
+
+fn counter(start: int): stream<int> {
+    let i: int:mut = start
+    while true {
+        yield i
+        i = i + 1
+    }
+}
+
+fn fibonacci(): stream<int> {
+    let a: int:mut = 0
+    let b: int:mut = 1
+    while true {
+        yield a
+        let tmp = a + b
+        a = b
+        b = tmp
+    }
+}
+
+fn main() {
+    ; Basic coroutine usage
+    println("=== Counter ===")
+    let gen :< counter(10)
+    match gen.next() {
+        some(v): { println(f"first: {v}") }
+        none: { println("done") }
+    }
+    match gen.next() {
+        some(v): { println(f"second: {v}") }
+        none: { println("done") }
+    }
+    println(f"done? {gen.done()}")
+
+    ; Fibonacci coroutine
+    println("=== Fibonacci ===")
+    let fib :< fibonacci()
+    let i: int:mut = 0
+    while i < 8 {
+        match fib.next() {
+            some(v): { println(f"fib({i}): {v}") }
+            none: { println("unexpected end") }
+        }
+        i = i + 1
+    }
+
+    ; Multiple independent coroutines
+    println("=== Multiple coroutines ===")
+    let a :< counter(0)
+    let b :< counter(100)
+    match a.next() {
+        some(v): { println(f"a: {v}") }
+        none: { println("done") }
+    }
+    match b.next() {
+        some(v): { println(f"b: {v}") }
+        none: { println("done") }
+    }
+}

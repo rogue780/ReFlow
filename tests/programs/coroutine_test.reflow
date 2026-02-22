@@ -1,0 +1,43 @@
+module tests.coroutine_test
+import io (println)
+
+fn counter(start: int): stream<int> {
+    let i: int:mut = start
+    while true {
+        yield i
+        i = i + 1
+        if i > start + 2 {
+            return
+        }
+    }
+}
+
+fn main() {
+    let gen :< counter(10)
+
+    ; First three calls return some
+    match gen.next() {
+        some(v): { println(f"v={v}") }
+        none: { println("none") }
+    }
+    match gen.next() {
+        some(v): { println(f"v={v}") }
+        none: { println("none") }
+    }
+    match gen.next() {
+        some(v): { println(f"v={v}") }
+        none: { println("none") }
+    }
+
+    ; done should still be false (last call was some)
+    println(f"done={gen.done()}")
+
+    ; Fourth call exhausts the stream
+    match gen.next() {
+        some(v): { println(f"v={v}") }
+        none: { println("none") }
+    }
+
+    ; Now done should be true
+    println(f"done={gen.done()}")
+}

@@ -113,6 +113,12 @@ class TStream(Type):
 
 
 @dataclass(frozen=True)
+class TCoroutine(Type):
+    yield_type: Type    # what .next() returns (inner type of option)
+    send_type: Type     # what .send() accepts (deferred)
+
+
+@dataclass(frozen=True)
 class TBuffer(Type):
     element: Type
 
@@ -206,6 +212,9 @@ def apply_env(t: Type, env: TypeEnv) -> Type:
 
         case TStream(element=elem):
             return TStream(apply_env(elem, env))
+
+        case TCoroutine(yield_type=yt, send_type=st):
+            return TCoroutine(apply_env(yt, env), apply_env(st, env))
 
         case TBuffer(element=elem):
             return TBuffer(apply_env(elem, env))
@@ -819,6 +828,29 @@ class TypeChecker:
                 recv_t = self._infer_expr(receiver, scope)
                 arg_types = [self._infer_expr(a, scope) for a in args]
 
+                # Built-in coroutine methods
+                if isinstance(recv_t, TCoroutine):
+                    if method_name == "next":
+                        if args:
+                            self._error("next() takes no arguments", expr)
+                        return TOption(recv_t.yield_type)
+                    elif method_name == "done":
+                        if args:
+                            self._error("done() takes no arguments", expr)
+                        return TBool()
+                    elif method_name == "send":
+                        if len(args) != 1:
+                            self._error("send() takes exactly one argument",
+                                        expr)
+                        elif arg_types:
+                            self._check_assignable(
+                                recv_t.send_type, arg_types[0], args[0])
+                        return TNone()
+                    else:
+                        self._error(
+                            f"coroutine has no method '{method_name}'", expr)
+                        return TAny()
+
                 # Look up method on the receiver type
                 method_type = self._lookup_method(recv_t, method_name, expr)
                 if method_type is not None:
@@ -1049,7 +1081,12 @@ class TypeChecker:
                 return TString()
 
             case CoroutineStart(call=call):
-                return self._infer_expr(call, scope)
+                call_type = self._infer_expr(call, scope)
+                if isinstance(call_type, TStream):
+                    send_type: Type = TAny()
+                    return TCoroutine(yield_type=call_type.element,
+                                      send_type=send_type)
+                return call_type
 
             case _:
                 return TAny()
