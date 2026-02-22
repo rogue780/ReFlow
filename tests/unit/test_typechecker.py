@@ -959,5 +959,48 @@ fn test(a: A, b: B): bool {
         self.assertIsNotNone(result)
 
 
+class TestParallelFanoutSafety(unittest.TestCase):
+    """Gap #10: parallel fan-out safety validation."""
+
+    def test_parallel_fanout_pure_branches_ok(self):
+        """Pure branches are always safe in parallel fan-out."""
+        result = check("""pure fn dbl(x: int): int = x * 2
+pure fn sqr(x: int): int = x * x
+pure fn add(a: int, b: int): int = a + b
+fn main() {
+    let r = 5 -> <:(dbl | sqr) -> add
+}""")
+        self.assertIsNotNone(result)
+
+    def test_sequential_fanout_allows_impure(self):
+        """Sequential fan-out does not enforce parallel safety."""
+        result = check("""fn dbl(x: int): int = x * 2
+fn sqr(x: int): int = x * x
+fn add(a: int, b: int): int = a + b
+fn main() {
+    let r = 5 -> (dbl | sqr) -> add
+}""")
+        self.assertIsNotNone(result)
+
+    def test_parallel_fanout_mut_param_error(self):
+        """Non-pure branch with :mut param is rejected in parallel fan-out."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""fn mutate(x: int:mut): int = x
+pure fn sqr(x: int): int = x * x
+fn main() {
+    let r = 5 -> <:(mutate | sqr)
+}""")
+        self.assertIn(":mut parameter", ctx.exception.message)
+
+    def test_parallel_fanout_impure_no_mut_ok(self):
+        """Non-pure branch without :mut params and no mutable statics is ok."""
+        result = check("""fn dbl(x: int): int = x * 2
+fn sqr(x: int): int = x * x
+fn main() {
+    let r = 5 -> <:(dbl | sqr)
+}""")
+        self.assertIsNotNone(result)
+
+
 if __name__ == "__main__":
     unittest.main()

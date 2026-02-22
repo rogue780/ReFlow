@@ -1,0 +1,8 @@
+module tests.parallel_fanout_mut_param
+
+fn mutate(x: int:mut): int = x
+pure fn sqr(x: int): int = x * x
+
+fn main() {
+    let r = 5 -> <:(mutate | sqr)
+}

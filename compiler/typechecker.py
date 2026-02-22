@@ -1250,7 +1250,9 @@ class TypeChecker:
             case CompositionChain(elements=elements):
                 return self._infer_chain(elements, scope, expr)
 
-            case FanOut(branches=branches):
+            case FanOut(branches=branches, parallel=parallel):
+                if parallel:
+                    self._check_parallel_fanout_safety(expr, expr)
                 results = []
                 for branch in branches:
                     bt = self._infer_expr(branch.expr, scope)
@@ -1536,6 +1538,8 @@ class TypeChecker:
         for elem in elements:
             # Fan-out: distribute stack input to each branch function
             if isinstance(elem.expr, FanOut):
+                if elem.expr.parallel:
+                    self._check_parallel_fanout_safety(elem.expr, node)
                 fan_results: list[Type] = []
                 consumed_input = False
                 for branch in elem.expr.branches:
@@ -1823,6 +1827,124 @@ class TypeChecker:
 
             case _:
                 pass  # Other nodes don't affect purity
+
+    # ------------------------------------------------------------------
+    # Parallel fan-out safety (Gap #10)
+    # ------------------------------------------------------------------
+
+    def _check_parallel_fanout_safety(self, fanout: FanOut,
+                                      node: ASTNode) -> None:
+        """Enforce spec lines 1604-1609: parallel fan-out branches must be
+        safe for concurrent execution."""
+        for branch in fanout.branches:
+            expr = branch.expr
+            # Lambdas: check body directly for mutable static access
+            if isinstance(expr, Lambda):
+                for p in expr.params:
+                    if isinstance(p.type_ann, MutType):
+                        raise self._error(
+                            "parallel fan-out branch cannot accept "
+                            f":mut parameter '{p.name}'", node)
+                if expr.body is not None:
+                    self._check_no_mutable_static_access(
+                        expr.body, "<lambda>", node)
+                continue
+            # Named functions: look up FnDecl via resolver
+            fn_decl = self._find_fn_decl(expr)
+            if fn_decl is None:
+                continue  # unknown — allow (may be a closure variable)
+            if fn_decl.is_pure:
+                continue  # pure functions are always safe
+            # Non-pure: reject :mut params
+            for p in fn_decl.params:
+                if isinstance(p.type_ann, MutType):
+                    raise self._error(
+                        "parallel fan-out branch "
+                        f"'{fn_decl.name}' cannot accept "
+                        f":mut parameter '{p.name}'", node)
+            # Non-pure: check body for mutable static access
+            if fn_decl.body is not None:
+                self._check_no_mutable_static_access(
+                    fn_decl.body, fn_decl.name, node)
+
+    def _find_fn_decl(self, expr: Expr) -> FnDecl | None:
+        """If expr is an Ident bound to a FnDecl, return it."""
+        if not isinstance(expr, Ident):
+            return None
+        sym = self._resolved.symbols.get(expr)
+        if sym is None:
+            return None
+        if isinstance(sym.decl, FnDecl):
+            return sym.decl
+        return None
+
+    def _check_no_mutable_static_access(self, body: ASTNode,
+                                        fn_name: str,
+                                        error_node: ASTNode) -> None:
+        """Walk AST looking for direct mutable static access.
+        # SPEC GAP: transitive mutable static analysis not implemented."""
+        match body:
+            case Block(stmts=stmts):
+                for s in stmts:
+                    self._check_no_mutable_static_access(
+                        s, fn_name, error_node)
+            case ExprStmt(expr=expr):
+                self._check_no_mutable_static_access(
+                    expr, fn_name, error_node)
+            case LetStmt(value=value):
+                self._check_no_mutable_static_access(
+                    value, fn_name, error_node)
+            case ReturnStmt(value=value):
+                if value is not None:
+                    self._check_no_mutable_static_access(
+                        value, fn_name, error_node)
+            case AssignStmt(target=target, value=value):
+                self._check_no_mutable_static_access(
+                    target, fn_name, error_node)
+                self._check_no_mutable_static_access(
+                    value, fn_name, error_node)
+            case Call(callee=callee, args=args):
+                self._check_no_mutable_static_access(
+                    callee, fn_name, error_node)
+                for a in args:
+                    self._check_no_mutable_static_access(
+                        a, fn_name, error_node)
+            case BinOp(left=left, right=right):
+                self._check_no_mutable_static_access(
+                    left, fn_name, error_node)
+                self._check_no_mutable_static_access(
+                    right, fn_name, error_node)
+            case UnaryOp(operand=operand):
+                self._check_no_mutable_static_access(
+                    operand, fn_name, error_node)
+            case FieldAccess():
+                sym = self._resolved.symbols.get(body)
+                if (sym is not None
+                        and sym.kind == SymbolKind.STATIC
+                        and sym.is_mut):
+                    raise self._error(
+                        f"parallel fan-out branch '{fn_name}' "
+                        "accesses mutable static", error_node)
+            case IfExpr(condition=cond, then_branch=then_b,
+                        else_branch=else_b):
+                self._check_no_mutable_static_access(
+                    cond, fn_name, error_node)
+                self._check_no_mutable_static_access(
+                    then_b, fn_name, error_node)
+                if else_b is not None:
+                    self._check_no_mutable_static_access(
+                        else_b, fn_name, error_node)
+            case IfStmt(condition=cond, then_branch=then_b,
+                        else_branch=else_b):
+                self._check_no_mutable_static_access(
+                    cond, fn_name, error_node)
+                self._check_no_mutable_static_access(
+                    then_b, fn_name, error_node)
+                if else_b is not None:
+                    self._check_no_mutable_static_access(
+                        else_b, fn_name, error_node)
+            case _:
+                pass
 
     # ------------------------------------------------------------------
     # Congruence checking (RT-6-7-1)
