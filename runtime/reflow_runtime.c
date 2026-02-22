@@ -260,6 +260,134 @@ RF_Option_ptr rf_stream_next(RF_Stream* s) {
 }
 
 /* ========================================================================
+ * Channel — bounded, thread-safe FIFO queue
+ * ======================================================================== */
+
+struct RF_Channel {
+    pthread_mutex_t  mutex;
+    pthread_cond_t   not_full;
+    pthread_cond_t   not_empty;
+    void**           buffer;
+    rf_int           capacity;
+    rf_int           head;
+    rf_int           tail;
+    rf_int           count;
+    rf_bool          closed;
+    _Atomic rf_int64 refcount;
+    void*            exception;
+    rf_int           exception_tag;
+    rf_bool          has_exception;
+};
+
+RF_Channel* rf_channel_new(rf_int capacity) {
+    if (capacity < 1) capacity = 1;
+    RF_Channel* ch = (RF_Channel*)malloc(sizeof(RF_Channel));
+    if (!ch) rf_panic("rf_channel_new: out of memory");
+    pthread_mutex_init(&ch->mutex, NULL);
+    pthread_cond_init(&ch->not_full, NULL);
+    pthread_cond_init(&ch->not_empty, NULL);
+    ch->buffer = (void**)malloc(sizeof(void*) * (size_t)capacity);
+    if (!ch->buffer) rf_panic("rf_channel_new: out of memory");
+    ch->capacity = capacity;
+    ch->head = 0;
+    ch->tail = 0;
+    ch->count = 0;
+    ch->closed = rf_false;
+    ch->refcount = 1;
+    ch->exception = NULL;
+    ch->exception_tag = 0;
+    ch->has_exception = rf_false;
+    return ch;
+}
+
+rf_bool rf_channel_send(RF_Channel* ch, void* val) {
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count == ch->capacity && !ch->closed) {
+        pthread_cond_wait(&ch->not_full, &ch->mutex);
+    }
+    if (ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return rf_false;
+    }
+    ch->buffer[ch->tail] = val;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return rf_true;
+}
+
+RF_Option_ptr rf_channel_recv(RF_Channel* ch) {
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count == 0 && !ch->closed) {
+        pthread_cond_wait(&ch->not_empty, &ch->mutex);
+    }
+    if (ch->count > 0) {
+        void* val = ch->buffer[ch->head];
+        ch->head = (ch->head + 1) % ch->capacity;
+        ch->count--;
+        pthread_cond_signal(&ch->not_full);
+        pthread_mutex_unlock(&ch->mutex);
+        return RF_SOME_PTR(val);
+    }
+    /* count == 0 && closed */
+    if (ch->has_exception) {
+        void* exc = ch->exception;
+        rf_int tag = ch->exception_tag;
+        pthread_mutex_unlock(&ch->mutex);
+        _rf_throw(exc, tag);
+    }
+    pthread_mutex_unlock(&ch->mutex);
+    return RF_NONE_PTR;
+}
+
+void rf_channel_close(RF_Channel* ch) {
+    pthread_mutex_lock(&ch->mutex);
+    ch->closed = rf_true;
+    pthread_cond_broadcast(&ch->not_full);
+    pthread_cond_broadcast(&ch->not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+}
+
+rf_int rf_channel_len(RF_Channel* ch) {
+    pthread_mutex_lock(&ch->mutex);
+    rf_int n = ch->count;
+    pthread_mutex_unlock(&ch->mutex);
+    return n;
+}
+
+rf_bool rf_channel_is_closed(RF_Channel* ch) {
+    pthread_mutex_lock(&ch->mutex);
+    rf_bool c = ch->closed;
+    pthread_mutex_unlock(&ch->mutex);
+    return c;
+}
+
+void rf_channel_set_exception(RF_Channel* ch, void* exception, rf_int tag) {
+    pthread_mutex_lock(&ch->mutex);
+    ch->exception = exception;
+    ch->exception_tag = tag;
+    ch->has_exception = rf_true;
+    pthread_mutex_unlock(&ch->mutex);
+}
+
+void rf_channel_retain(RF_Channel* ch) {
+    if (!ch) return;
+    atomic_fetch_add(&ch->refcount, 1);
+}
+
+void rf_channel_release(RF_Channel* ch) {
+    if (!ch) return;
+    if (atomic_fetch_sub(&ch->refcount, 1) == 1) {
+        pthread_mutex_destroy(&ch->mutex);
+        pthread_cond_destroy(&ch->not_full);
+        pthread_cond_destroy(&ch->not_empty);
+        free(ch->buffer);
+        free(ch);
+    }
+}
+
+/* ========================================================================
  * Coroutines
  * ======================================================================== */
 

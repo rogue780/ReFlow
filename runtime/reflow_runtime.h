@@ -197,6 +197,22 @@ void          rf_stream_release(RF_Stream* s);
 RF_Option_ptr rf_stream_next(RF_Stream* s);
 
 /* ========================================================================
+ * Channel — bounded, thread-safe FIFO queue
+ * ======================================================================== */
+
+typedef struct RF_Channel RF_Channel;
+
+RF_Channel*   rf_channel_new(rf_int capacity);
+rf_bool       rf_channel_send(RF_Channel* ch, void* val);
+RF_Option_ptr rf_channel_recv(RF_Channel* ch);
+void          rf_channel_close(RF_Channel* ch);
+rf_int        rf_channel_len(RF_Channel* ch);
+rf_bool       rf_channel_is_closed(RF_Channel* ch);
+void          rf_channel_set_exception(RF_Channel* ch, void* exception, rf_int tag);
+void          rf_channel_retain(RF_Channel* ch);
+void          rf_channel_release(RF_Channel* ch);
+
+/* ========================================================================
  * Coroutines
  * ======================================================================== */
 
