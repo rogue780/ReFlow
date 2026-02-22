@@ -47,10 +47,12 @@ export fn cross(a: Vec3, b: Vec3): Vec3 = ...
 ### Importing
 
 ```
-import math.vector                       ; imports all exports into math.vector namespace
+import math.vector                       ; imports all exports into vector namespace
 import math.vector (Vec3, dot)           ; named imports into local scope
 import math.vector as vec                ; aliased namespace
 ```
+
+The namespace for a bare import is the **last component** of the import path. `import math.vector` makes exports available as `vector.Vec3`, `vector.dot`, etc. Named imports (`import math.vector (Vec3, dot)`) bring names directly into scope. Aliased imports (`import math.vector as vec`) use the alias as the namespace: `vec.Vec3`.
 
 Imports are resolved by relative path from the project root. The module name must match the file path. `math.vector` resolves to `math/vector.reflow`.
 
@@ -203,7 +205,7 @@ All update operators are only valid on `:mut` bindings. Using them on an immutab
 | Operator | Description |
 |----------|-------------|
 | `@` | Copy operator. Cheap refcount increment for immutable heap data. Deep copy for mutable data. See [Ownership](#ownership). |
-| `:<` | Coroutine operator. `let b :< a()` launches `a()` as a coroutine. See [Coroutines](#coroutines). |
+| `:<` | Coroutine operator. `let b :< a()` spawns `a()` as a threaded producer. See [Coroutines](#coroutines). |
 | `? :` | Ternary. `let a = b == c ? d : e` |
 
 ---
@@ -237,6 +239,7 @@ All update operators are only valid on `:mut` bindings. Using them on an immutab
 | `buffer<T>` | Mutable, in-memory container for materializing stream data. See [Buffers](#buffers). |
 | `map<K, V>` | Key-value collection. Implements `collection<K, V>`. See [Collections](#collections). |
 | `set<T>` | Unordered collection of unique values. See [Collections](#collections). |
+| `channel<T>` | Bounded, thread-safe FIFO queue. See [Channels](#channels). |
 
 ### Value Types
 
@@ -1223,6 +1226,21 @@ Functions cannot access outer function scopes or module-level `let` bindings.
 
 Lambdas are the exception: a lambda can access anything in the scope where it is defined, including the enclosing function's parameters and locals.
 
+### Shadowing
+
+Inner scopes silently shadow outer names. The outer name is inaccessible within the inner scope. There is no parent accessor. This applies everywhere: blocks, functions, lambdas, match arms. No warning is emitted when shadowing occurs.
+
+```
+fn example(): none {
+    let x = 1
+    if true {
+        let x = 2       ; shadows outer x, no warning
+        print(x)         ; prints 2
+    }
+    print(x)             ; prints 1
+}
+```
+
 ```
 fn process(x: int, threshold: int): bool {
     let check = \(v: int => v > threshold)   ; captures threshold
@@ -1319,15 +1337,21 @@ process(@data)
 
 ### Ownership and Parallel Execution
 
-Mutable data cannot be shared across parallel fan-out branches. To use mutable data in parallel:
+Mutable data cannot be shared across parallel fan-out branches or coroutine boundaries. To use mutable data in parallel:
 
 - Transfer ownership (the sender loses access).
 - Copy with `@` (each branch gets an independent copy).
 - Use `snapshot()` on a static value (see [Snapshot Values](#snapshot-values)).
 
+Coroutines run on separate threads. Values passed to a coroutine function are owned by the coroutine's thread for its lifetime. Values yielded into the channel transfer ownership to the consumer. Immutable data can be safely shared between the spawning scope and the coroutine without copying.
+
 ### Ownership and Streams
 
-In streaming functions, parameters stay owned by the function for the stream's entire lifetime. The function is a suspended frame holding its captured variables until the stream closes. Ownership reverts only on stream close, not on each yield.
+In streaming functions consumed directly (without `:<`), parameters stay owned by the function for the stream's entire lifetime. The function is a suspended frame holding its captured variables until the stream closes. Ownership reverts only on stream close, not on each yield.
+
+### Ownership and Coroutines
+
+When a stream function is launched as a coroutine with `:<`, its parameters are owned by the producer thread for the coroutine's lifetime. Immutable parameters are shared via refcount increment. Mutable parameters are moved — the spawning scope loses access. Yielded values transfer ownership through the channel to the consumer.
 
 ### Ownership Summary
 
@@ -1355,7 +1379,11 @@ Mutable values follow single-owner semantics enforced at compile time. At any mo
 
 ### Stream Consumption
 
-A stream can only have one consumer. This is enforced at compile time where possible and at runtime otherwise.
+A stream can only have one consumer. This is enforced at compile time where possible and at runtime otherwise. When a stream is launched as a coroutine with `:<`, the coroutine handle is the sole consumer of the internal channel.
+
+### Channel Communication
+
+Channels provide thread-safe value transfer between coroutine producers and consumers. Sending a value into a channel is an atomic ownership transfer. Immutable values are shared via refcount (atomic increment). Mutable values are moved. Reference counting uses atomic operations to ensure thread safety.
 
 ```
 ; Compile error: stream consumed twice
@@ -1469,11 +1497,11 @@ For primitive types and strings: full exhaustiveness cannot always be verified s
 ### `while`
 
 ```
-while condition {
+while (condition) {
     do_something()
 }
 
-while condition {
+while (condition) {
     do_work()
 } finally {
     cleanup()
@@ -1607,6 +1635,8 @@ A `stream<T>` is a lazy, pull-based sequence produced one value at a time. The c
 
 A stream can have only one consumer.
 
+Streams are single-threaded by default. To run a stream-producing function on a separate thread with channel-based buffering, use the `:<` coroutine operator. See [Coroutines](#coroutines).
+
 ### `yield` and `return`
 
 In a `stream<T>` function:
@@ -1726,47 +1756,170 @@ fn batch_process(s: stream<record>): stream<record> {
 
 ---
 
+## Channels
+
+A `channel<T>` is a bounded, thread-safe FIFO queue for communicating values between threads. Channels are the foundation of coroutine communication and can also be used directly for custom concurrency patterns.
+
+### Creating Channels
+
+```
+let ch = channel<int>(64)           ; capacity of 64
+let ch = channel<string>(1)         ; capacity of 1 (tightly synchronized)
+```
+
+The capacity argument is required and must be a positive integer literal or constant. It determines how many values can be buffered before the sender blocks.
+
+### Channel API
+
+```
+ch.send(val: T)                     ; push a value; blocks if buffer is full
+ch.recv(): option<T>                ; pull a value; blocks if empty; returns none when closed
+ch.close()                          ; signal no more values will be sent
+ch.len(): int                       ; number of values currently buffered
+ch.is_closed(): bool                ; true if close() has been called
+```
+
+### Ownership and Channels
+
+Sending a value into a channel transfers ownership to the channel. Receiving a value transfers ownership to the receiver. Immutable data (the default) is shared by reference — sending an immutable string into a channel is a cheap refcount increment. Mutable data is moved: the sender loses access after `send`.
+
+```
+let ch = channel<string>(8)
+let msg = "hello"
+ch.send(msg)                        ; msg is immutable, refcount incremented
+; msg is still accessible here (immutable sharing)
+
+let data: array<int>:mut = [1, 2, 3]
+ch_mut.send(data)                   ; data is mutable, ownership transfers
+; data is no longer accessible here (moved)
+```
+
+### Single-Producer, Single-Consumer
+
+A channel has exactly one producer and one consumer. This is enforced at compile time where possible and at runtime otherwise. To fan values out to multiple consumers, use explicit routing logic or multiple channels.
+
+### Closing
+
+After `close()` is called, no more values can be sent (attempting to send panics). Values already buffered can still be received. Once all buffered values have been consumed, `recv()` returns `none`.
+
+---
+
 ## Coroutines
 
-Coroutines provide manual control over suspended, resumable execution. For most streaming pipelines, composition chains with `stream<T>` are preferred. The `:<` operator is for cases requiring explicit coroutine control: complex state machines, interleaving multiple producers, or bidirectional communication.
+The `:<` operator spawns a stream-producing function on a new thread, creating a **threaded producer** that communicates with the caller through an internal channel. This is ReFlow's primary mechanism for concurrent execution of producers and consumers.
+
+Streams (`stream<T>`) remain lazy and pull-based when consumed directly. The `:<` operator is what adds threading — it wraps a stream function in a concurrent producer that pushes values into a bounded channel as they are yielded.
+
+### Starting a Coroutine
 
 ```
-let b :< a(x)
+let gen :< producer(seed)
 ```
 
-The coroutine type is derived from the coroutine function's signature. If `a` has type `fn(ArgType): stream<YieldType>`, then `b` exposes:
+This:
+
+1. Creates a bounded channel internally.
+2. Spawns a new thread that runs `producer(seed)`.
+3. Each `yield` in the producer pushes a value into the channel (blocking if full).
+4. Returns immediately with a coroutine handle.
+
+### Configurable Buffer Capacity
+
+The default channel capacity is 64. To specify a different capacity:
 
 ```
-b.next(): option<YieldType>     ; receive next yielded value; none when done
-b.send(val: ArgType)             ; push a value into the coroutine, resuming it
-b.done(): bool                   ; true when coroutine has finished
+let gen :< producer(seed) with capacity(128)
+let gen :< producer(seed) with capacity(1)     ; tightly coupled, minimal buffering
 ```
+
+### Coroutine API
+
+The coroutine type is derived from the function's signature. If `producer` has type `fn(ArgType): stream<YieldType>`, then `gen` exposes:
+
+```
+gen.next(): option<YieldType>       ; read next value from channel; blocks if empty; none when done
+gen.send(val: ArgType)              ; write a value into the coroutine's input channel
+gen.done(): bool                    ; true when producer has finished AND channel is drained
+```
+
+`.next()` blocks the calling thread if the channel is empty and the producer is still running. It returns `none` only when the producer has finished (returned or fallen off the end of the function) and all buffered values have been consumed.
+
+`.done()` returns `true` only when both conditions hold: the producer thread has terminated and the internal channel has been fully drained. While buffered values remain, `.done()` returns `false` even if the producer has finished.
+
+`.send()` writes a value into a separate input channel that the producer can read from. This enables bidirectional communication. The producer receives sent values through a mechanism defined by the coroutine function's parameter type.
 
 The type parameters of `.send()` and `.next()` are always derived from the coroutine function. Passing the wrong type is a compile error.
+
+### Example: Basic Producer
 
 ```
 fn producer(seed: int): stream<int> {
     let current: int:mut = seed
-    while true {
-        yield current
+    while (true) {
+        yield current               ; pushes into channel, may block if full
         current = current * 2
     }
 }
 
-let gen :< producer(1)
-let a: option<int> = gen.next()   ; some(1)
-let b: option<int> = gen.next()   ; some(2)
-let c: option<int> = gen.next()   ; some(4)
+let gen :< producer(1)              ; spawns thread, returns immediately
+let a: option<int> = gen.next()     ; some(1) — reads from channel
+let b: option<int> = gen.next()     ; some(2)
+let c: option<int> = gen.next()     ; some(4)
 ```
 
-Immutable data can be safely shared across multiple coroutines:
+The producer runs concurrently. While the caller processes value `a`, the producer may have already computed and buffered values `b`, `c`, and beyond (up to the channel capacity).
+
+### Example: Concurrent Producers
+
+Immutable data can be safely shared across multiple coroutines without copying or locking:
 
 ```
 let config: Config = load_config()
 let a :< process_batch(config, chunk_1)
 let b :< process_batch(config, chunk_2)
-; both share config, zero copies, zero locks
+; both threads share config via refcount — zero copies, zero locks
 ```
+
+Both producers run concurrently on separate threads. The caller can interleave reads:
+
+```
+match a.next() { some(v): { handle(v) } none: {} }
+match b.next() { some(v): { handle(v) } none: {} }
+```
+
+### Backpressure
+
+Backpressure is automatic. When the channel is full, the producer's `yield` blocks until the consumer calls `.next()`. This prevents unbounded memory growth without requiring explicit flow control.
+
+A capacity of 1 creates tight synchronization: the producer can only advance one step ahead of the consumer. A larger capacity allows the producer to run ahead, smoothing out latency variations.
+
+### Exception Propagation
+
+If the producer thread throws an exception, it is captured and re-thrown on the consumer thread the next time `.next()` is called. This preserves the illusion of sequential execution for error handling:
+
+```
+fn failing_producer(): stream<int> {
+    yield 1
+    throw ParseError("bad data")
+}
+
+let gen :< failing_producer()
+let a = gen.next()                  ; some(1)
+let b = gen.next()                  ; throws ParseError on the caller's thread
+```
+
+### Coroutine Lifetime
+
+A coroutine's producer thread runs until the function returns, the stream is exhausted, or an exception is thrown. When the coroutine handle goes out of scope and is released, the runtime closes the channel and joins the producer thread. If the producer is blocked on a full channel, the close unblocks it.
+
+### Streams vs. Coroutines
+
+| | `stream<T>` | `let c :< fn()` |
+|---|---|---|
+| **Execution** | Lazy, pull-based, same thread | Eager, push-based, separate thread |
+| **Yield** | Suspends via state machine, resumes on next pull | Pushes into channel, blocks if full |
+| **Backpressure** | Inherent (consumer drives) | Channel capacity (producer blocks when full) |
+| **Use when** | Simple pipelines, composition chains | Concurrent production, I/O overlap, multiple producers |
 
 ---
 
