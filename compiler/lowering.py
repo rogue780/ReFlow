@@ -10,7 +10,7 @@ from compiler.errors import EmitError
 from compiler.mangler import (
     mangle, mangle_stream_frame, mangle_stream_next, mangle_stream_free,
     mangle_closure_frame, mangle_closure_fn, mangle_fn_wrapper,
-    mangle_exception_frame,
+    mangle_stream_wrapper, mangle_exception_frame,
 )
 from compiler.ast_nodes import (
     # Base
@@ -2063,6 +2063,10 @@ class Lowerer:
             return self._lower_coroutine_method(expr, recv, recv_type,
                                                 lowered_args, lt)
 
+        if isinstance(recv_type, TStream):
+            return self._lower_stream_method(expr, recv, recv_type,
+                                             lowered_args)
+
         if isinstance(recv_type, TNamed):
             # User-defined type method
             c_name = mangle(self._module_path, recv_type.name, expr.method,
@@ -2147,6 +2151,194 @@ class Lowerer:
             else_=[]))
 
         return LVar(result_tmp, c_option_t)
+
+    def _lower_stream_method(self, expr: MethodCall, recv: LExpr,
+                             recv_type: TStream,
+                             args: list[LExpr]) -> LExpr:
+        """Lower stream method calls (.take, .skip, .map, .filter, .reduce)."""
+        stream_lt = LPtr(LStruct("RF_Stream"))
+
+        if expr.method == "take":
+            return LCall("rf_stream_take", [recv, args[0]], stream_lt)
+
+        if expr.method == "skip":
+            return LCall("rf_stream_skip", [recv, args[0]], stream_lt)
+
+        if expr.method == "map":
+            wrapper = self._lower_stream_closure_wrapper(
+                expr.args[0], recv_type.element, "map")
+            return LCall("rf_stream_map", [recv, wrapper], stream_lt)
+
+        if expr.method == "filter":
+            wrapper = self._lower_stream_closure_wrapper(
+                expr.args[0], recv_type.element, "filter")
+            return LCall("rf_stream_filter", [recv, wrapper], stream_lt)
+
+        if expr.method == "reduce":
+            wrapper = self._lower_stream_closure_wrapper(
+                expr.args[1], recv_type.element, "reduce")
+            return LCall("rf_stream_reduce",
+                         [recv, args[0], wrapper], LPtr(LVoid()))
+
+        raise EmitError(
+            message=f"unknown stream method: {expr.method}",
+            file=self._file, line=expr.line, col=expr.col)
+
+    def _lower_stream_closure_wrapper(self, closure_ast: Expr,
+                                      elem_type: Type,
+                                      kind: str) -> LExpr:
+        """Generate a void*-based closure wrapper for stream helper methods.
+
+        The stream runtime helpers call closures with (void* env, void* arg)
+        signatures. User lambdas have typed signatures like (void* env, rf_int x).
+        This method generates a thin wrapper that casts between the two calling
+        conventions and wraps the original closure as the environment.
+        """
+        # Lower the original closure expression
+        inner_closure = self._lower_expr(closure_ast)
+        closure_lt = LPtr(LStruct("RF_Closure"))
+
+        # Get the closure type from the typechecker
+        fn_type = self._type_of(closure_ast)
+        if not isinstance(fn_type, TFn):
+            return inner_closure
+
+        module = self._module_path
+        fn_name = self._current_fn_name or "anon"
+        wrapper_id = self._lambda_counter
+        self._lambda_counter += 1
+
+        wrapper_c_name = mangle_stream_wrapper(module, fn_name, wrapper_id)
+
+        elem_lt = self._lower_type(elem_type)
+        ret_lt = self._lower_type(fn_type.ret)
+
+        if kind == "reduce":
+            # Wrapper signature: void* wrapper(void* _env, void* _acc, void* _arg)
+            acc_type = fn_type.params[0] if fn_type.params else elem_type
+            acc_lt = self._lower_type(acc_type)
+            wrapper_params: list[tuple[str, LType]] = [
+                ("_env", LPtr(LVoid())),
+                ("_acc", LPtr(LVoid())),
+                ("_arg", LPtr(LVoid())),
+            ]
+            wrapper_body: list[LStmt] = []
+
+            # RF_Closure* _inner = (RF_Closure*)_env;
+            wrapper_body.append(LVarDecl(
+                c_name="_inner", c_type=closure_lt,
+                init=LCast(LVar("_env", LPtr(LVoid())), closure_lt)))
+
+            # Cast _acc to typed accumulator
+            if isinstance(acc_lt, LPtr):
+                typed_acc: LExpr = LCast(
+                    LVar("_acc", LPtr(LVoid())), acc_lt)
+            else:
+                typed_acc = LCast(
+                    LCast(LVar("_acc", LPtr(LVoid())), LInt(64, True)),
+                    acc_lt)
+
+            # Cast _arg to typed element
+            if isinstance(elem_lt, LPtr):
+                typed_arg: LExpr = LCast(
+                    LVar("_arg", LPtr(LVoid())), elem_lt)
+            else:
+                typed_arg = LCast(
+                    LCast(LVar("_arg", LPtr(LVoid())), LInt(64, True)),
+                    elem_lt)
+
+            # Call inner: ((ret(*)(void*, acc_t, elem_t))_inner->fn)(_inner->env, typed_acc, typed_arg)
+            fn_ptr_type = LFnPtr([LPtr(LVoid()), acc_lt, elem_lt], ret_lt)
+            call_expr = LIndirectCall(
+                LCast(LArrow(LVar("_inner", closure_lt), "fn", LPtr(LVoid())),
+                      fn_ptr_type),
+                [LArrow(LVar("_inner", closure_lt), "env", LPtr(LVoid())),
+                 typed_acc, typed_arg],
+                ret_lt)
+
+            # Cast result back to void*
+            if isinstance(ret_lt, LPtr):
+                result_expr: LExpr = LCast(call_expr, LPtr(LVoid()))
+            else:
+                result_expr = LCast(
+                    LCast(call_expr, LInt(64, True)), LPtr(LVoid()))
+
+            wrapper_body.append(LReturn(result_expr))
+
+        else:
+            # map/filter: void* wrapper(void* _env, void* _arg)
+            wrapper_params = [
+                ("_env", LPtr(LVoid())),
+                ("_arg", LPtr(LVoid())),
+            ]
+            wrapper_body = []
+
+            # RF_Closure* _inner = (RF_Closure*)_env;
+            wrapper_body.append(LVarDecl(
+                c_name="_inner", c_type=closure_lt,
+                init=LCast(LVar("_env", LPtr(LVoid())), closure_lt)))
+
+            # Cast _arg to typed element
+            if isinstance(elem_lt, LPtr):
+                typed_arg = LCast(
+                    LVar("_arg", LPtr(LVoid())), elem_lt)
+            else:
+                typed_arg = LCast(
+                    LCast(LVar("_arg", LPtr(LVoid())), LInt(64, True)),
+                    elem_lt)
+
+            # Call inner: ((ret(*)(void*, elem_t))_inner->fn)(_inner->env, typed_arg)
+            fn_ptr_type = LFnPtr([LPtr(LVoid()), elem_lt], ret_lt)
+            call_expr = LIndirectCall(
+                LCast(LArrow(LVar("_inner", closure_lt), "fn", LPtr(LVoid())),
+                      fn_ptr_type),
+                [LArrow(LVar("_inner", closure_lt), "env", LPtr(LVoid())),
+                 typed_arg],
+                ret_lt)
+
+            # Cast result back to void*
+            if isinstance(ret_lt, LPtr):
+                result_expr = LCast(call_expr, LPtr(LVoid()))
+            else:
+                result_expr = LCast(
+                    LCast(call_expr, LInt(64, True)), LPtr(LVoid()))
+
+            wrapper_body.append(LReturn(result_expr))
+
+        # Register the wrapper function
+        self._fn_defs.append(LFnDef(
+            c_name=wrapper_c_name,
+            params=wrapper_params,
+            ret=LPtr(LVoid()),
+            body=wrapper_body,
+            is_pure=False,
+            source_name=f"{module}.{fn_name}::stream_{kind}_wrapper",
+        ))
+
+        # Create a new closure: fn=wrapper, env=original_closure
+        wrap_closure_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=wrap_closure_tmp,
+            c_type=closure_lt,
+            init=LCast(
+                LCall("malloc", [LSizeOf(LStruct("RF_Closure"))],
+                      LPtr(LVoid())),
+                closure_lt),
+        ))
+        # Set fn = wrapper
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(wrap_closure_tmp, closure_lt),
+                          "fn", LPtr(LVoid())),
+            value=LCast(LVar(wrapper_c_name, LPtr(LVoid())),
+                         LPtr(LVoid())),
+        ))
+        # Set env = original closure
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(wrap_closure_tmp, closure_lt),
+                          "env", LPtr(LVoid())),
+            value=LCast(inner_closure, LPtr(LVoid())),
+        ))
+        return LVar(wrap_closure_tmp, closure_lt)
 
     def _is_heap_type(self, t: Type) -> bool:
         """Check if a type is heap-allocated (pointer-based)."""

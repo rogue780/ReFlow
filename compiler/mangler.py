@@ -157,6 +157,16 @@ def mangle_fn_wrapper(module: str, fn_name: str) -> str:
     return f"_rf_wrap_{parts}_{fn_name}"
 
 
+def mangle_stream_wrapper(module: str, fn_name: str,
+                          wrapper_id: int) -> str:
+    """Mangle a stream helper closure wrapper function name.
+
+    Example: main, process, 0 → _rf_swrap_main_process_0
+    """
+    parts = module.replace(".", "_")
+    return f"_rf_swrap_{parts}_{fn_name}_{wrapper_id}"
+
+
 def mangle_exception_tag(module: str, type_name: str) -> str:
     """Integer constant name for exception type dispatch.
 

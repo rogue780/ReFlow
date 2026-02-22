@@ -988,6 +988,78 @@ class TestEdgeCases(unittest.TestCase):
         self.assertIsNotNone(inner_if)
 
 
+class TestStreamMethodLowering(unittest.TestCase):
+    """Stream helper method lowering."""
+
+    def test_stream_take_lowers_to_runtime_call(self):
+        """take on stream lowers to rf_stream_take call."""
+        m = lower("""
+            fn range(n: int): stream<int> {
+                let i: int:mut = 0
+                while (i < n) { yield i
+                    i++ }
+            }
+            fn do_stuff(): none {
+                for (x: int in range(10).take(3)) {
+                    let y = x
+                }
+            }
+        """)
+        fn = find_fn(m, "do_stuff")
+        self.assertIsNotNone(fn)
+        # Should have a call to rf_stream_take somewhere in the lowered body
+        found_take = False
+        for s in fn.body:
+            if isinstance(s, LVarDecl) and isinstance(s.init, LCall):
+                if s.init.fn_name == "rf_stream_take":
+                    found_take = True
+        self.assertTrue(found_take,
+                        "Expected rf_stream_take call in lowered body")
+
+    def test_stream_skip_lowers_to_runtime_call(self):
+        """skip on stream lowers to rf_stream_skip call."""
+        m = lower("""
+            fn range(n: int): stream<int> {
+                let i: int:mut = 0
+                while (i < n) { yield i
+                    i++ }
+            }
+            fn do_stuff(): none {
+                for (x: int in range(5).skip(2)) {
+                    let y = x
+                }
+            }
+        """)
+        fn = find_fn(m, "do_stuff")
+        self.assertIsNotNone(fn)
+        found_skip = False
+        for s in fn.body:
+            if isinstance(s, LVarDecl) and isinstance(s.init, LCall):
+                if s.init.fn_name == "rf_stream_skip":
+                    found_skip = True
+        self.assertTrue(found_skip,
+                        "Expected rf_stream_skip call in lowered body")
+
+    def test_stream_map_lowers_with_wrapper(self):
+        """map on stream generates a wrapper function."""
+        m = lower("""
+            fn range(n: int): stream<int> {
+                let i: int:mut = 0
+                while (i < n) { yield i
+                    i++ }
+            }
+            fn do_stuff(): none {
+                for (x: int in range(5).map(\\(x: int => x * 10))) {
+                    let y = x
+                }
+            }
+        """)
+        # Should have generated a stream wrapper function
+        wrapper = find_fn_containing(m, "_rf_swrap")
+        self.assertIsNotNone(wrapper,
+                             "Expected stream map wrapper function")
+
+
 class TestCongruenceLowering(unittest.TestCase):
     """Tests for === congruence operator lowering."""
 

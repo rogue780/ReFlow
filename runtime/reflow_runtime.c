@@ -292,6 +292,148 @@ void rf_coroutine_release(RF_Coroutine* c) {
 }
 
 /* ========================================================================
+ * Stream Helpers
+ * ======================================================================== */
+
+/* --- take --- */
+
+typedef struct {
+    RF_Stream* src;
+    rf_int     remaining;
+} RF_StreamTakeState;
+
+static RF_Option_ptr rf__stream_take_next(RF_Stream* self) {
+    RF_StreamTakeState* st = (RF_StreamTakeState*)self->state;
+    if (st->remaining <= 0) return RF_NONE_PTR;
+    st->remaining--;
+    return rf_stream_next(st->src);
+}
+
+static void rf__stream_take_free(RF_Stream* self) {
+    RF_StreamTakeState* st = (RF_StreamTakeState*)self->state;
+    rf_stream_release(st->src);
+    free(st);
+}
+
+RF_Stream* rf_stream_take(RF_Stream* src, rf_int n) {
+    rf_stream_retain(src);
+    RF_StreamTakeState* st = (RF_StreamTakeState*)malloc(sizeof(RF_StreamTakeState));
+    if (!st) rf_panic("rf_stream_take: out of memory");
+    st->src = src;
+    st->remaining = n;
+    return rf_stream_new(rf__stream_take_next, rf__stream_take_free, st);
+}
+
+/* --- skip --- */
+
+typedef struct {
+    RF_Stream* src;
+    rf_int     to_skip;
+    rf_bool    skipped;
+} RF_StreamSkipState;
+
+static RF_Option_ptr rf__stream_skip_next(RF_Stream* self) {
+    RF_StreamSkipState* st = (RF_StreamSkipState*)self->state;
+    if (!st->skipped) {
+        st->skipped = rf_true;
+        for (rf_int i = 0; i < st->to_skip; i++) {
+            RF_Option_ptr item = rf_stream_next(st->src);
+            if (item.tag == 0) return RF_NONE_PTR;
+        }
+    }
+    return rf_stream_next(st->src);
+}
+
+static void rf__stream_skip_free(RF_Stream* self) {
+    RF_StreamSkipState* st = (RF_StreamSkipState*)self->state;
+    rf_stream_release(st->src);
+    free(st);
+}
+
+RF_Stream* rf_stream_skip(RF_Stream* src, rf_int n) {
+    rf_stream_retain(src);
+    RF_StreamSkipState* st = (RF_StreamSkipState*)malloc(sizeof(RF_StreamSkipState));
+    if (!st) rf_panic("rf_stream_skip: out of memory");
+    st->src = src;
+    st->to_skip = n;
+    st->skipped = rf_false;
+    return rf_stream_new(rf__stream_skip_next, rf__stream_skip_free, st);
+}
+
+/* --- map --- */
+
+typedef struct {
+    RF_Stream*  src;
+    RF_Closure* fn;
+} RF_StreamMapState;
+
+static RF_Option_ptr rf__stream_map_next(RF_Stream* self) {
+    RF_StreamMapState* st = (RF_StreamMapState*)self->state;
+    RF_Option_ptr item = rf_stream_next(st->src);
+    if (item.tag == 0) return RF_NONE_PTR;
+    void* result = ((void*(*)(void*, void*))st->fn->fn)(st->fn->env, item.value);
+    return RF_SOME_PTR(result);
+}
+
+static void rf__stream_map_free(RF_Stream* self) {
+    RF_StreamMapState* st = (RF_StreamMapState*)self->state;
+    rf_stream_release(st->src);
+    free(st);
+}
+
+RF_Stream* rf_stream_map(RF_Stream* src, RF_Closure* fn) {
+    rf_stream_retain(src);
+    RF_StreamMapState* st = (RF_StreamMapState*)malloc(sizeof(RF_StreamMapState));
+    if (!st) rf_panic("rf_stream_map: out of memory");
+    st->src = src;
+    st->fn = fn;
+    return rf_stream_new(rf__stream_map_next, rf__stream_map_free, st);
+}
+
+/* --- filter --- */
+
+typedef struct {
+    RF_Stream*  src;
+    RF_Closure* fn;
+} RF_StreamFilterState;
+
+static RF_Option_ptr rf__stream_filter_next(RF_Stream* self) {
+    RF_StreamFilterState* st = (RF_StreamFilterState*)self->state;
+    while (1) {
+        RF_Option_ptr item = rf_stream_next(st->src);
+        if (item.tag == 0) return RF_NONE_PTR;
+        rf_bool keep = (rf_bool)(intptr_t)((void*(*)(void*, void*))st->fn->fn)(st->fn->env, item.value);
+        if (keep) return item;
+    }
+}
+
+static void rf__stream_filter_free(RF_Stream* self) {
+    RF_StreamFilterState* st = (RF_StreamFilterState*)self->state;
+    rf_stream_release(st->src);
+    free(st);
+}
+
+RF_Stream* rf_stream_filter(RF_Stream* src, RF_Closure* fn) {
+    rf_stream_retain(src);
+    RF_StreamFilterState* st = (RF_StreamFilterState*)malloc(sizeof(RF_StreamFilterState));
+    if (!st) rf_panic("rf_stream_filter: out of memory");
+    st->src = src;
+    st->fn = fn;
+    return rf_stream_new(rf__stream_filter_next, rf__stream_filter_free, st);
+}
+
+/* --- reduce --- */
+
+void* rf_stream_reduce(RF_Stream* src, void* init, RF_Closure* fn) {
+    void* acc = init;
+    RF_Option_ptr item;
+    while ((item = rf_stream_next(src)).tag == 1) {
+        acc = ((void*(*)(void*, void*, void*))fn->fn)(fn->env, acc, item.value);
+    }
+    return acc;
+}
+
+/* ========================================================================
  * Map — open-addressing hash table (RT-1-6-1)
  * BOOTSTRAP: replace with production hash map
  * ======================================================================== */

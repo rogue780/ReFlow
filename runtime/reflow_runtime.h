@@ -217,6 +217,16 @@ typedef struct RF_Closure {
 } RF_Closure;
 
 /* ========================================================================
+ * Stream Helpers
+ * ======================================================================== */
+
+RF_Stream* rf_stream_take(RF_Stream* src, rf_int n);
+RF_Stream* rf_stream_skip(RF_Stream* src, rf_int n);
+RF_Stream* rf_stream_map(RF_Stream* src, RF_Closure* fn);
+RF_Stream* rf_stream_filter(RF_Stream* src, RF_Closure* fn);
+void*      rf_stream_reduce(RF_Stream* src, void* init, RF_Closure* fn);
+
+/* ========================================================================
  * Map — open-addressing hash table (RT-1-6-1)
  * BOOTSTRAP: replace with production hash map
  * ======================================================================== */

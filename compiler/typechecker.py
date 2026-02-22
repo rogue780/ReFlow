@@ -1040,6 +1040,64 @@ class TypeChecker:
                             f"coroutine has no method '{method_name}'", expr)
                         return TAny()
 
+                # Built-in stream methods
+                if isinstance(recv_t, TStream):
+                    elem_t = recv_t.element
+                    if method_name == "take":
+                        if len(args) != 1:
+                            raise self._error(
+                                "take() requires exactly 1 argument", expr)
+                        if arg_types and not isinstance(arg_types[0],
+                                                        (TInt, TAny)):
+                            raise self._error(
+                                f"take() argument must be int, got "
+                                f"{self._type_name(arg_types[0])}", expr)
+                        return TStream(elem_t)
+                    elif method_name == "skip":
+                        if len(args) != 1:
+                            raise self._error(
+                                "skip() requires exactly 1 argument", expr)
+                        if arg_types and not isinstance(arg_types[0],
+                                                        (TInt, TAny)):
+                            raise self._error(
+                                f"skip() argument must be int, got "
+                                f"{self._type_name(arg_types[0])}", expr)
+                        return TStream(elem_t)
+                    elif method_name == "map":
+                        if len(args) != 1:
+                            raise self._error(
+                                "map() requires exactly 1 argument", expr)
+                        if arg_types and isinstance(arg_types[0], TFn):
+                            return TStream(arg_types[0].ret)
+                        return TStream(TAny())
+                    elif method_name == "filter":
+                        if len(args) != 1:
+                            raise self._error(
+                                "filter() requires exactly 1 argument", expr)
+                        if arg_types and isinstance(arg_types[0], TFn):
+                            if not isinstance(arg_types[0].ret,
+                                              (TBool, TAny)):
+                                raise self._error(
+                                    f"filter() predicate must return bool, "
+                                    f"got {self._type_name(arg_types[0].ret)}",
+                                    expr)
+                        return TStream(elem_t)
+                    elif method_name == "reduce":
+                        if len(args) != 2:
+                            raise self._error(
+                                "reduce() requires exactly 2 arguments "
+                                "(init, fn)", expr)
+                        return arg_types[0] if arg_types else TAny()
+                    elif method_name in ("zip", "flatten", "chunks",
+                                         "group_by"):
+                        # SPEC GAP: Tier 3 stream methods not yet implemented
+                        raise self._error(
+                            f"stream method '{method_name}' is not yet "
+                            f"implemented", expr)
+                    else:
+                        raise self._error(
+                            f"stream has no method '{method_name}'", expr)
+
                 # Look up method on the receiver type
                 method_type = self._lookup_method(recv_t, method_name, expr)
                 if method_type is not None:

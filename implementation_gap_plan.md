@@ -17,7 +17,7 @@
 | 11 | **`snapshot()` runtime** | §Snapshot Values | Lowering/Runtime | DONE | Purity enforcement added; pass-through correct for value/immutable-heap types; .refresh() deferred as SPEC GAP (no parallelism) |
 | 12 | **`typeof()` runtime** | §typeof | Lowering | DONE | Returns `TString` in typechecker; lowers to `rf_string_from_cstr` with compile-time type name |
 | 13 | **Interface fulfillment** | §Interfaces | Typechecker | DONE | `fulfills` clause validates methods against interface contract; missing methods produce TypeError |
-| 14 | **Stream helpers** | §Streams | Stdlib | NOT IMPL | `chunks`, `group_by`, `take`, `skip`, `zip`, `flatten`, `map`, `filter`, `reduce` not in stdlib |
+| 14 | **Stream helpers** | §Streams | Runtime/Typechecker/Lowering | PARTIAL | `take`, `skip`, `map`, `filter`, `reduce` implemented as built-in stream methods with runtime support; `zip`, `flatten`, `chunks`, `group_by` deferred as SPEC GAP |
 | 15 | **`===` congruence op** | §Equality/Congruence | Typechecker/Lowering | NOT IMPL | Used internally for `coerce` but not exposed as operator in expressions |
 
 ### Priority Classification

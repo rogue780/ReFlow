@@ -1,0 +1,33 @@
+module tests.stream_helpers_test
+
+import io (println)
+
+fn range(n: int): stream<int> {
+    let i: int:mut = 0
+    while (i < n) {
+        yield i
+        i++
+    }
+}
+
+fn main() {
+    ; take: first 3 elements of 0..9
+    for (x: int in range(10).take(3)) {
+        println(f"take: {x}")
+    }
+
+    ; skip: skip first 2 of 0..4
+    for (x: int in range(5).skip(2)) {
+        println(f"skip: {x}")
+    }
+
+    ; map: multiply each by 10
+    for (x: int in range(5).map(\(x: int => x * 10))) {
+        println(f"map: {x}")
+    }
+
+    ; filter: keep only > 6
+    for (x: int in range(10).filter(\(x: int => x > 6))) {
+        println(f"filter: {x}")
+    }
+}

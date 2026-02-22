@@ -818,6 +818,92 @@ type Widget fulfills Printable {
         self.assertIn("1 parameter(s)", ctx.exception.message)
 
 
+class TestStreamMethods(unittest.TestCase):
+    """Stream method type checking."""
+
+    def test_stream_take_returns_stream(self):
+        """take on stream<int> returns stream<int>."""
+        result = check("""fn range(n: int): stream<int> {
+    let i: int:mut = 0
+    while (i < n) { yield i
+        i++ }
+}
+fn main(): none {
+    let s = range(10).take(3)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_stream_skip_returns_stream(self):
+        """skip on stream<int> returns stream<int>."""
+        result = check("""fn range(n: int): stream<int> {
+    let i: int:mut = 0
+    while (i < n) { yield i
+        i++ }
+}
+fn main(): none {
+    let s = range(5).skip(2)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_stream_map_infers_return_type(self):
+        """map with int->int lambda returns stream<int>."""
+        result = check("""fn range(n: int): stream<int> {
+    let i: int:mut = 0
+    while (i < n) { yield i
+        i++ }
+}
+fn main(): none {
+    let s = range(5).map(\\(x: int => x * 2))
+}""")
+        self.assertIsNotNone(result)
+
+    def test_stream_filter_preserves_element_type(self):
+        """filter preserves stream element type."""
+        result = check("""fn range(n: int): stream<int> {
+    let i: int:mut = 0
+    while (i < n) { yield i
+        i++ }
+}
+fn main(): none {
+    let s = range(10).filter(\\(x: int => x > 5))
+}""")
+        self.assertIsNotNone(result)
+
+    def test_stream_reduce_returns_init_type(self):
+        """reduce returns the type of init."""
+        result = check("""fn range(n: int): stream<int> {
+    let i: int:mut = 0
+    while (i < n) { yield i
+        i++ }
+}
+fn main(): none {
+    let total = range(10).reduce(0, \\(acc: int, x: int => acc + x))
+}""")
+        self.assertIsNotNone(result)
+
+    def test_stream_unknown_method_error(self):
+        """Unknown method on stream raises TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""fn range(n: int): stream<int> {
+    yield 1
+}
+fn main(): none {
+    let s = range(5).nonexistent()
+}""")
+        self.assertIn("no method", ctx.exception.message)
+
+    def test_stream_zip_not_implemented_error(self):
+        """Tier 3 method zip raises clear error."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""fn range(n: int): stream<int> {
+    yield 1
+}
+fn main(): none {
+    let s = range(5).zip(range(3))
+}""")
+        self.assertIn("not yet implemented", ctx.exception.message)
+
+
 class TestSnapshotExpr(unittest.TestCase):
     """Snapshot expression type checking."""
 
