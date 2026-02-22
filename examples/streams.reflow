@@ -6,7 +6,7 @@ import io (println)
 ; Stream function: generates integers from 0 to n-1
 fn range(n: int): stream<int> {
     let i: int:mut = 0
-    while i < n {
+    while (i < n) {
         yield i
         i++
     }
@@ -15,7 +15,7 @@ fn range(n: int): stream<int> {
 ; Stream function: generates even numbers up to limit
 fn evens(limit: int): stream<int> {
     let i: int:mut = 0
-    while i <= limit {
+    while (i <= limit) {
         yield i
         i += 2
     }
@@ -25,7 +25,7 @@ fn evens(limit: int): stream<int> {
 fn fibonacci_stream(max: int): stream<int> {
     let a: int:mut = 0
     let b: int:mut = 1
-    while a <= max {
+    while (a <= max) {
         yield a
         let next = a + b
         a = b
@@ -56,6 +56,36 @@ fn main() {
     ; Fibonacci
     println("fibonacci up to 100:")
     for (n: int in fibonacci_stream(100)) {
+        println(f"  {n}")
+    }
+
+    ; Stream helpers: take
+    println("take(3) from range(10):")
+    for (n: int in range(10).take(3)) {
+        println(f"  {n}")
+    }
+
+    ; Stream helpers: skip
+    println("skip(7) from range(10):")
+    for (n: int in range(10).skip(7)) {
+        println(f"  {n}")
+    }
+
+    ; Stream helpers: map
+    println("range(5).map(x * 10):")
+    for (n: int in range(5).map(\(x: int => x * 10))) {
+        println(f"  {n}")
+    }
+
+    ; Stream helpers: filter
+    println("range(10).filter(x > 5):")
+    for (n: int in range(10).filter(\(x: int => x > 5))) {
+        println(f"  {n}")
+    }
+
+    ; Chaining helpers
+    println("range(20).filter(even).map(x*3).take(4):")
+    for (n: int in range(20).filter(\(x: int => x % 2 == 0)).map(\(x: int => x * 3)).take(4)) {
         println(f"  {n}")
     }
 }
