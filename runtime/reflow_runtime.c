@@ -391,16 +391,77 @@ void rf_channel_release(RF_Channel* ch) {
  * Coroutines
  * ======================================================================== */
 
+/* --- Threaded coroutine producer --- */
+
+typedef struct {
+    RF_Stream*  stream;
+    RF_Channel* channel;
+} _RF_CoroutineProducerArg;
+
+static void* _rf_coroutine_producer(void* raw) {
+    _RF_CoroutineProducerArg* arg = (_RF_CoroutineProducerArg*)raw;
+    RF_Stream* stream = arg->stream;
+    RF_Channel* channel = arg->channel;
+    free(arg);
+
+    RF_ExceptionFrame ef;
+    _rf_exception_push(&ef);
+    if (setjmp(ef.jmp) == 0) {
+        RF_Option_ptr item;
+        while ((item = rf_stream_next(stream)).tag == 1) {
+            if (!rf_channel_send(channel, item.value))
+                break;  /* channel closed by consumer */
+        }
+    } else {
+        rf_channel_set_exception(channel, ef.exception, ef.exception_tag);
+    }
+    _rf_exception_pop();
+    rf_channel_close(channel);
+    rf_stream_release(stream);
+    rf_channel_release(channel);  /* drop producer's ref */
+    return NULL;
+}
+
+/* --- Constructors --- */
+
 RF_Coroutine* rf_coroutine_new(RF_Stream* stream) {
     RF_Coroutine* c = (RF_Coroutine*)malloc(sizeof(RF_Coroutine));
     if (!c) rf_panic("rf_coroutine_new: out of memory");
     c->stream = stream;
+    c->channel = NULL;
     c->done = rf_false;
     return c;
 }
 
+RF_Coroutine* rf_coroutine_new_threaded(RF_Stream* stream, rf_int capacity) {
+    RF_Coroutine* c = (RF_Coroutine*)malloc(sizeof(RF_Coroutine));
+    if (!c) rf_panic("rf_coroutine_new_threaded: out of memory");
+    c->stream = NULL;
+    c->channel = rf_channel_new(capacity);
+    c->done = rf_false;
+
+    /* Producer holds refs to both stream and channel */
+    rf_stream_retain(stream);
+    rf_channel_retain(c->channel);  /* producer's ref (consumer holds the other) */
+
+    _RF_CoroutineProducerArg* arg = (_RF_CoroutineProducerArg*)malloc(sizeof(_RF_CoroutineProducerArg));
+    if (!arg) rf_panic("rf_coroutine_new_threaded: out of memory");
+    arg->stream = stream;
+    arg->channel = c->channel;
+
+    pthread_create(&c->thread, NULL, _rf_coroutine_producer, arg);
+    return c;
+}
+
+/* --- Operations --- */
+
 RF_Option_ptr rf_coroutine_next(RF_Coroutine* c) {
-    RF_Option_ptr result = rf_stream_next(c->stream);
+    RF_Option_ptr result;
+    if (c->channel) {
+        result = rf_channel_recv(c->channel);
+    } else {
+        result = rf_stream_next(c->stream);
+    }
     if (result.tag == 0) c->done = rf_true;
     return result;
 }
@@ -410,10 +471,15 @@ rf_bool rf_coroutine_done(RF_Coroutine* c) {
 }
 
 void rf_coroutine_release(RF_Coroutine* c) {
-    if (c) {
+    if (!c) return;
+    if (c->channel) {
+        rf_channel_close(c->channel);    /* unblock producer if blocked */
+        pthread_join(c->thread, NULL);   /* wait for producer to exit */
+        rf_channel_release(c->channel);  /* drop consumer's ref */
+    } else {
         rf_stream_release(c->stream);
-        free(c);
     }
+    free(c);
 }
 
 /* ========================================================================

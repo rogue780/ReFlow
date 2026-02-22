@@ -217,11 +217,14 @@ void          rf_channel_release(RF_Channel* ch);
  * ======================================================================== */
 
 typedef struct RF_Coroutine {
-    RF_Stream* stream;
-    rf_bool    done;
+    RF_Stream*  stream;      /* non-threaded: set; threaded: NULL */
+    RF_Channel* channel;     /* non-threaded: NULL; threaded: set */
+    pthread_t   thread;      /* only valid when channel != NULL */
+    rf_bool     done;
 } RF_Coroutine;
 
 RF_Coroutine* rf_coroutine_new(RF_Stream* stream);
+RF_Coroutine* rf_coroutine_new_threaded(RF_Stream* stream, rf_int capacity);
 RF_Option_ptr rf_coroutine_next(RF_Coroutine* c);
 rf_bool       rf_coroutine_done(RF_Coroutine* c);
 void          rf_coroutine_release(RF_Coroutine* c);
