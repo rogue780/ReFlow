@@ -10,6 +10,7 @@ from compiler.errors import EmitError
 from compiler.mangler import (
     mangle, mangle_stream_frame, mangle_stream_next, mangle_stream_free,
     mangle_closure_frame, mangle_closure_fn, mangle_fn_wrapper,
+    mangle_exception_frame,
 )
 from compiler.ast_nodes import (
     # Base
@@ -27,6 +28,7 @@ from compiler.ast_nodes import (
     LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
     BreakStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
     MatchStmt, TryStmt, MatchArm,
+    CatchBlock, FinallyBlock, RetryBlock,
     # Patterns
     WildcardPattern, LiteralPattern, BindPattern, SomePattern, NonePattern,
     OkPattern, ErrPattern, VariantPattern, TuplePattern,
@@ -451,6 +453,9 @@ class Lowerer:
         self._current_fn_name: str = ""
         self._fn_wrapper_registry: dict[str, str] = {}
         self._capture_remap: dict[str, tuple[str, LType]] = {}
+
+        # Exception frame counter (per-function)
+        self._exception_frame_counter: int = 0
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -1072,19 +1077,565 @@ class Lowerer:
         return [LExprStmt(value)]
 
     def _lower_try(self, stmt: TryStmt) -> list[LStmt]:
-        """Lower try/catch/retry/finally. RT-7-4-2.
-        For bootstrap: simplified approach using comments as placeholders."""
+        """Lower try/catch/retry/finally using setjmp/longjmp.
+
+        When finally is present, unhandled exceptions must not rethrow until
+        after the finally body runs. A _caught flag tracks whether the
+        exception was handled by a catch/retry block.
+
+        Generated pattern (with finally):
+            RF_ExceptionFrame _rf_ef_N;
+            rf_bool _rf_ef_N_caught = rf_true;  // assume success
+            _rf_exception_push(&_rf_ef_N);
+            if (setjmp(_rf_ef_N.jmp) == 0) {
+                // try body
+                _rf_exception_pop();
+            } else {
+                _rf_exception_pop();
+                _rf_ef_N_caught = rf_false;  // exception occurred
+                // catch dispatch (sets _caught back to rf_true if handled)
+            }
+            // finally body
+            if (!_rf_ef_N_caught) {
+                _rf_throw(_rf_ef_N.exception, _rf_ef_N.exception_tag);
+            }
+        """
         result: list[LStmt] = []
-        # Lower the try body directly
-        result.extend(self._lower_block(stmt.body))
-        # SPEC GAP: full try/catch lowering deferred to emitter integration
+        frame_idx = self._exception_frame_counter
+        self._exception_frame_counter += 1
+        frame_name = mangle_exception_frame(frame_idx)
+        frame_type = LStruct("RF_ExceptionFrame")
+        has_finally = stmt.finally_block is not None
+        caught_var = f"{frame_name}_caught"
+
+        # Declare exception frame on stack
+        result.append(LVarDecl(
+            c_name=frame_name,
+            c_type=frame_type,
+            init=None,
+        ))
+
+        # If finally is present, track whether exception was handled
+        if has_finally:
+            result.append(LVarDecl(
+                c_name=caught_var,
+                c_type=LBool(),
+                init=LLit("rf_true", LBool()),
+            ))
+
+        # Push frame
+        result.append(LExprStmt(LCall(
+            "_rf_exception_push",
+            [LAddrOf(LVar(frame_name, frame_type), LPtr(frame_type))],
+            LVoid(),
+        )))
+
+        # Build the try body (the "then" branch of setjmp == 0)
+        try_stmts: list[LStmt] = []
+        try_stmts.extend(self._lower_block(stmt.body))
+        try_stmts.append(LExprStmt(LCall(
+            "_rf_exception_pop", [], LVoid(),
+        )))
+
+        # Build the catch/retry branch (the "else" branch of setjmp != 0)
+        catch_stmts: list[LStmt] = []
+        catch_stmts.append(LExprStmt(LCall(
+            "_rf_exception_pop", [], LVoid(),
+        )))
+
+        if has_finally:
+            # Mark exception as not-yet-handled
+            catch_stmts.append(LAssign(
+                target=LVar(caught_var, LBool()),
+                value=LLit("rf_false", LBool()),
+            ))
+
+        # Build catch/retry dispatch chain
+        catch_stmts.extend(self._build_catch_dispatch(
+            stmt, frame_name, frame_type, has_finally, caught_var))
+
+        # setjmp condition: setjmp(_rf_ef_N.jmp) == 0
+        setjmp_call = LCall(
+            "setjmp",
+            [LFieldAccess(
+                LVar(frame_name, frame_type), "jmp",
+                LStruct("jmp_buf"),
+            )],
+            LInt(32, True),
+        )
+        condition = LBinOp(
+            "==", setjmp_call, LLit("0", LInt(32, True)), LBool(),
+        )
+
+        result.append(LIf(
+            cond=condition,
+            then=try_stmts,
+            else_=catch_stmts,
+        ))
+
+        # Finally block — always runs
+        if stmt.finally_block is not None:
+            result.extend(self._lower_finally_block(
+                stmt.finally_block, frame_name, frame_type))
+            # Rethrow if exception was not handled
+            result.append(LIf(
+                cond=LUnary("!", LVar(caught_var, LBool()), LBool()),
+                then=[LExprStmt(LCall(
+                    "_rf_throw",
+                    [LFieldAccess(LVar(frame_name, frame_type), "exception",
+                                  LPtr(LVoid())),
+                     LFieldAccess(LVar(frame_name, frame_type),
+                                  "exception_tag", LInt(32, True))],
+                    LVoid(),
+                ))],
+                else_=[],
+            ))
+
         return result
 
+    def _build_catch_dispatch(self, stmt: TryStmt,
+                              frame_name: str,
+                              frame_type: LType,
+                              has_finally: bool = False,
+                              caught_var: str = "") -> list[LStmt]:
+        """Build the catch dispatch chain for a try statement.
+
+        Handles retry blocks first (they wrap the function call in a loop),
+        then catch blocks as an if-else chain by exception tag, with a
+        default rethrow if no catch matches.
+
+        Catch blocks whose exception type matches a retry block are skipped
+        here — the retry handler already inlines the matching catch handler
+        for the exhausted-retries case.
+
+        When has_finally is True, catch/retry handlers set caught_var to
+        rf_true instead of rethrowing, so finally can run before rethrow.
+        """
+        dispatch_entries: list[tuple[int, list[LStmt]]] = []
+
+        # Track which tags are handled by retry blocks
+        retry_tags: set[int] = set()
+
+        for retry in stmt.retry_blocks:
+            tag = self._exception_tag_for_type_expr(retry.exception_type)
+            retry_tags.add(tag)
+            retry_stmts = self._build_retry_handler(
+                retry, frame_name, frame_type, stmt)
+            if has_finally:
+                retry_stmts.append(LAssign(
+                    target=LVar(caught_var, LBool()),
+                    value=LLit("rf_true", LBool()),
+                ))
+            dispatch_entries.append((tag, retry_stmts))
+
+        for catch in stmt.catch_blocks:
+            tag = self._exception_tag_for_type_expr(catch.exception_type)
+            # Skip catch blocks already handled by a retry block
+            if tag in retry_tags:
+                continue
+            catch_stmts = self._build_catch_handler(
+                catch, frame_name, frame_type)
+            if has_finally:
+                catch_stmts.append(LAssign(
+                    target=LVar(caught_var, LBool()),
+                    value=LLit("rf_true", LBool()),
+                ))
+            dispatch_entries.append((tag, catch_stmts))
+
+        if not dispatch_entries:
+            if has_finally:
+                # No catch/retry blocks — don't rethrow yet, let finally run
+                # The _caught flag is already rf_false, so post-finally rethrow will fire
+                return []
+            else:
+                # No catch or retry blocks, no finally — rethrow unconditionally
+                return [LExprStmt(LCall(
+                    "_rf_throw",
+                    [LFieldAccess(LVar(frame_name, frame_type), "exception",
+                                  LPtr(LVoid())),
+                     LFieldAccess(LVar(frame_name, frame_type), "exception_tag",
+                                  LInt(32, True))],
+                    LVoid(),
+                ))]
+
+        # Build if-else chain from dispatch entries
+        return self._build_tag_dispatch_chain(
+            dispatch_entries, frame_name, frame_type, has_finally)
+
+    def _build_tag_dispatch_chain(
+        self,
+        entries: list[tuple[int, list[LStmt]]],
+        frame_name: str,
+        frame_type: LType,
+        has_finally: bool = False,
+    ) -> list[LStmt]:
+        """Build an if/else-if chain dispatching on exception_tag.
+
+        When has_finally is True, the default else is empty (no rethrow) —
+        the caller handles rethrow after finally runs.
+        """
+        if not entries:
+            return []
+
+        if has_finally:
+            # Default: do nothing — _caught remains false, post-finally rethrow handles it
+            default_else: list[LStmt] = []
+        else:
+            # Default: rethrow immediately
+            default_else = [LExprStmt(LCall(
+                "_rf_throw",
+                [LFieldAccess(LVar(frame_name, frame_type), "exception",
+                              LPtr(LVoid())),
+                 LFieldAccess(LVar(frame_name, frame_type), "exception_tag",
+                              LInt(32, True))],
+                LVoid(),
+            ))]
+
+        # Build from last to first
+        current_else = default_else
+        for tag, stmts in reversed(entries):
+            cond = LBinOp(
+                "==",
+                LFieldAccess(LVar(frame_name, frame_type), "exception_tag",
+                             LInt(32, True)),
+                LLit(str(tag), LInt(32, True)),
+                LBool(),
+            )
+            current_else = [LIf(cond=cond, then=stmts, else_=current_else)]
+
+        return current_else
+
+    def _build_catch_handler(self, catch: CatchBlock,
+                             frame_name: str,
+                             frame_type: LType) -> list[LStmt]:
+        """Build the statements for a single catch block.
+
+        Binds the exception variable from the frame's exception pointer.
+        For string exceptions (tag 0): bind as RF_String*.
+        For typed exceptions: cast from void* to ExcType*.
+        """
+        stmts: list[LStmt] = []
+
+        exc_type = self._resolve_type_ann(catch.exception_type)
+        c_type = self._lower_type(exc_type)
+
+        if isinstance(exc_type, TString):
+            # String exception: cast void* to RF_String*
+            stmts.append(LVarDecl(
+                c_name=catch.exception_var,
+                c_type=LPtr(LStruct("RF_String")),
+                init=LCast(
+                    LFieldAccess(LVar(frame_name, frame_type), "exception",
+                                 LPtr(LVoid())),
+                    LPtr(LStruct("RF_String")),
+                ),
+            ))
+        else:
+            # Typed exception: cast void* to ExcType* and dereference
+            tmp = self._fresh_temp()
+            stmts.append(LVarDecl(
+                c_name=tmp,
+                c_type=LPtr(c_type),
+                init=LCast(
+                    LFieldAccess(LVar(frame_name, frame_type), "exception",
+                                 LPtr(LVoid())),
+                    LPtr(c_type),
+                ),
+            ))
+            stmts.append(LVarDecl(
+                c_name=catch.exception_var,
+                c_type=c_type,
+                init=LDeref(LVar(tmp, LPtr(c_type)), c_type),
+            ))
+
+        # Lower the catch body
+        stmts.extend(self._lower_block(catch.body))
+        return stmts
+
+    def _build_retry_handler(self, retry: RetryBlock,
+                             frame_name: str,
+                             frame_type: LType,
+                             try_stmt: TryStmt) -> list[LStmt]:
+        """Build the statements for a retry block.
+
+        Retry re-invokes the named function. The exception variable's `data`
+        field is mutable, allowing the retry body to correct it before re-invocation.
+
+        Generated pattern:
+            int _rf_attempts_N = 0;
+            ExcType* ex_ptr = (ExcType*)_rf_ef_N.exception;
+            ExcType ex = *ex_ptr;
+            while (_rf_attempts_N < max_attempts) {
+                _rf_attempts_N++;
+                // retry body (can modify ex.data fields)
+                // re-push frame, re-try the named function call
+                *ex_ptr = ex;  // write back modifications
+                _rf_exception_push(&_rf_ef_N);
+                if (setjmp(_rf_ef_N.jmp) == 0) {
+                    // call target_fn again with corrected data
+                    _rf_exception_pop();
+                    goto _rf_retry_success_N;
+                } else {
+                    _rf_exception_pop();
+                    ex_ptr = (ExcType*)_rf_ef_N.exception;
+                    ex = *ex_ptr;
+                }
+            }
+            // retries exhausted — fall through to catch or rethrow
+            _rf_retry_success_N: ;
+
+        For bootstrap simplification: the retry re-executes the entire try body
+        rather than just the named function, since isolating a single function
+        from a composition chain requires deep chain analysis that isn't yet
+        implemented. This matches the semantic intent for non-chain code.
+        """
+        stmts: list[LStmt] = []
+        exc_type = self._resolve_type_ann(retry.exception_type)
+        c_type = self._lower_type(exc_type)
+
+        max_attempts = retry.attempts if retry.attempts is not None else 2147483647
+
+        # Attempts counter
+        attempts_var = self._fresh_temp()
+        stmts.append(LVarDecl(
+            c_name=attempts_var,
+            c_type=LInt(32, True),
+            init=LLit("0", LInt(32, True)),
+        ))
+
+        # Bind exception variable
+        if isinstance(exc_type, TString):
+            # String exception
+            stmts.append(LVarDecl(
+                c_name=retry.exception_var,
+                c_type=LPtr(LStruct("RF_String")),
+                init=LCast(
+                    LFieldAccess(LVar(frame_name, LStruct("RF_ExceptionFrame")),
+                                 "exception", LPtr(LVoid())),
+                    LPtr(LStruct("RF_String")),
+                ),
+            ))
+        else:
+            # Typed exception: get pointer, dereference for local copy
+            exc_ptr = self._fresh_temp()
+            stmts.append(LVarDecl(
+                c_name=exc_ptr,
+                c_type=LPtr(c_type),
+                init=LCast(
+                    LFieldAccess(LVar(frame_name, LStruct("RF_ExceptionFrame")),
+                                 "exception", LPtr(LVoid())),
+                    LPtr(c_type),
+                ),
+            ))
+            stmts.append(LVarDecl(
+                c_name=retry.exception_var,
+                c_type=c_type,
+                init=LDeref(LVar(exc_ptr, LPtr(c_type)), c_type),
+            ))
+
+        # Success label for goto on successful retry
+        success_label = self._fresh_temp()
+
+        # Build loop body
+        loop_body: list[LStmt] = []
+
+        # Increment attempts
+        loop_body.append(LAssign(
+            target=LVar(attempts_var, LInt(32, True)),
+            value=LBinOp("+",
+                         LVar(attempts_var, LInt(32, True)),
+                         LLit("1", LInt(32, True)),
+                         LInt(32, True)),
+        ))
+
+        # Execute retry body (user code that modifies ex)
+        loop_body.extend(self._lower_block(retry.body))
+
+        # Write back modifications if typed exception
+        if not isinstance(exc_type, TString):
+            loop_body.append(LAssign(
+                target=LDeref(LVar(exc_ptr, LPtr(c_type)), c_type),
+                value=LVar(retry.exception_var, c_type),
+            ))
+
+        # Re-push exception frame for retry
+        frame_type_s = LStruct("RF_ExceptionFrame")
+        loop_body.append(LExprStmt(LCall(
+            "_rf_exception_push",
+            [LAddrOf(LVar(frame_name, frame_type_s), LPtr(frame_type_s))],
+            LVoid(),
+        )))
+
+        # Inner setjmp for retry
+        inner_setjmp = LCall(
+            "setjmp",
+            [LFieldAccess(LVar(frame_name, frame_type_s), "jmp",
+                          LStruct("jmp_buf"))],
+            LInt(32, True),
+        )
+        inner_cond = LBinOp("==", inner_setjmp, LLit("0", LInt(32, True)),
+                            LBool())
+
+        # Inner try body: re-run try body and goto success on completion
+        inner_try: list[LStmt] = []
+        inner_try.extend(self._lower_block(try_stmt.body))
+        inner_try.append(LExprStmt(LCall("_rf_exception_pop", [], LVoid())))
+        inner_try.append(LGoto(success_label))
+
+        # Inner catch: pop, re-bind exception, continue loop
+        inner_catch: list[LStmt] = []
+        inner_catch.append(LExprStmt(LCall("_rf_exception_pop", [], LVoid())))
+        if isinstance(exc_type, TString):
+            inner_catch.append(LAssign(
+                target=LVar(retry.exception_var, LPtr(LStruct("RF_String"))),
+                value=LCast(
+                    LFieldAccess(LVar(frame_name, frame_type_s),
+                                 "exception", LPtr(LVoid())),
+                    LPtr(LStruct("RF_String")),
+                ),
+            ))
+        else:
+            inner_catch.append(LAssign(
+                target=LVar(exc_ptr, LPtr(c_type)),
+                value=LCast(
+                    LFieldAccess(LVar(frame_name, frame_type_s),
+                                 "exception", LPtr(LVoid())),
+                    LPtr(c_type),
+                ),
+            ))
+            inner_catch.append(LAssign(
+                target=LVar(retry.exception_var, c_type),
+                value=LDeref(LVar(exc_ptr, LPtr(c_type)), c_type),
+            ))
+
+        loop_body.append(LIf(cond=inner_cond, then=inner_try, else_=inner_catch))
+
+        # While loop: while (attempts < max_attempts)
+        loop_cond = LBinOp(
+            "<",
+            LVar(attempts_var, LInt(32, True)),
+            LLit(str(max_attempts), LInt(32, True)),
+            LBool(),
+        )
+        stmts.append(LWhile(cond=loop_cond, body=loop_body))
+
+        # After loop: retries exhausted — find matching catch or rethrow
+        # Check if there's a catch block for this exception type
+        matching_catch = None
+        for catch in try_stmt.catch_blocks:
+            catch_type = self._resolve_type_ann(catch.exception_type)
+            catch_tag = self._exception_type_tag(catch_type)
+            retry_tag = self._exception_type_tag(exc_type)
+            if catch_tag == retry_tag:
+                matching_catch = catch
+                break
+
+        if matching_catch is not None:
+            # Execute the matching catch body directly — the exception variable
+            # is already bound from the retry block, so we only lower the body
+            # without re-declaring the variable.
+            stmts.extend(self._lower_block(matching_catch.body))
+        else:
+            # No matching catch — rethrow
+            stmts.append(LExprStmt(LCall(
+                "_rf_throw",
+                [LFieldAccess(LVar(frame_name, LStruct("RF_ExceptionFrame")),
+                              "exception", LPtr(LVoid())),
+                 LFieldAccess(LVar(frame_name, LStruct("RF_ExceptionFrame")),
+                              "exception_tag", LInt(32, True))],
+                LVoid(),
+            )))
+
+        # Success label
+        stmts.append(LLabel(success_label))
+
+        return stmts
+
+    def _lower_finally_block(self, fin: FinallyBlock,
+                             frame_name: str,
+                             frame_type: LType) -> list[LStmt]:
+        """Lower a finally block.
+
+        If the finally block captures the exception (? ex), bind it from the
+        frame's exception pointer (NULL if no exception occurred).
+        """
+        stmts: list[LStmt] = []
+
+        if fin.exception_var is not None:
+            # Bind exception as void* — NULL if no exception
+            stmts.append(LVarDecl(
+                c_name=fin.exception_var,
+                c_type=LPtr(LVoid()),
+                init=LFieldAccess(
+                    LVar(frame_name, frame_type), "exception",
+                    LPtr(LVoid()),
+                ),
+            ))
+
+        stmts.extend(self._lower_block(fin.body))
+        return stmts
+
+    def _exception_tag_for_type_expr(self, te: TypeExpr) -> int:
+        """Compute exception tag from a TypeExpr annotation."""
+        exc_type = self._resolve_type_ann(te)
+        if isinstance(exc_type, TString):
+            return 0
+        return self._exception_type_tag(exc_type)
+
     def _lower_throw(self, stmt: ThrowStmt) -> list[LStmt]:
-        """Lower throw statement."""
+        """Lower throw statement.
+
+        For string exceptions: _rf_throw(rf_string_from_cstr("msg"), 0)
+          where tag 0 means untyped/string exception.
+        For typed exceptions: heap-allocate the exception struct and pass pointer.
+        """
         exc_expr = self._lower_expr(stmt.exception)
-        # For bootstrap: call rf_panic with exception
-        return [LExprStmt(LCall("rf_panic", [exc_expr], LVoid()))]
+        exc_type = self._type_of(stmt.exception)
+
+        if isinstance(exc_type, TString):
+            # String exceptions use tag 0
+            return [LExprStmt(LCall(
+                "_rf_throw",
+                [LCast(exc_expr, LPtr(LVoid())),
+                 LLit("0", LInt(32, True))],
+                LVoid(),
+            ))]
+
+        # Typed exception: heap-allocate and pass pointer + tag
+        tag = self._exception_type_tag(exc_type)
+        c_type = self._lower_type(exc_type)
+        tmp = self._fresh_temp()
+        # Allocate: ExcType* tmp = malloc(sizeof(ExcType)); *tmp = exc_expr;
+        alloc = LVarDecl(
+            c_name=tmp,
+            c_type=LPtr(c_type),
+            init=LCast(
+                LCall("malloc", [LSizeOf(c_type)], LPtr(LVoid())),
+                LPtr(c_type),
+            ),
+        )
+        store = LAssign(
+            target=LDeref(LVar(tmp, LPtr(c_type)), c_type),
+            value=exc_expr,
+        )
+        throw = LExprStmt(LCall(
+            "_rf_throw",
+            [LCast(LVar(tmp, LPtr(c_type)), LPtr(LVoid())),
+             LLit(str(tag), LInt(32, True))],
+            LVoid(),
+        ))
+        return [alloc, store, throw]
+
+    def _exception_type_tag(self, t: Type) -> int:
+        """Compute a deterministic integer tag for an exception type.
+
+        Uses a simple string hash. Tag 0 is reserved for untyped/string exceptions.
+        """
+        name = self._type_name_str(t)
+        h = 0
+        for ch in name:
+            h = (h * 31 + ord(ch)) & 0x7FFFFFFF
+        return h if h != 0 else 1
 
     # ------------------------------------------------------------------
     # Expression lowering (RT-7-3-1 through RT-7-3-8)

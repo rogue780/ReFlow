@@ -1,0 +1,16 @@
+module tests.typeof_test
+
+import io (println)
+
+fn main() {
+    let x = 42
+    println(typeof(x))
+    let s = "hello"
+    println(typeof(s))
+    let b = true
+    println(typeof(b))
+    let f = 3.14
+    println(typeof(f))
+    let t = (1, 2)
+    println(typeof(t))
+}

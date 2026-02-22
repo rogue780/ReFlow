@@ -1171,6 +1171,45 @@ rf_bool rf_path_exists(RF_String* path) {
 }
 
 /* ========================================================================
+ * Exception Handling (setjmp/longjmp)
+ * ======================================================================== */
+
+RF_ExceptionFrame* _rf_exception_current = NULL;
+
+void _rf_exception_push(RF_ExceptionFrame* frame) {
+    frame->parent = _rf_exception_current;
+    frame->exception = NULL;
+    frame->exception_tag = -1;
+    _rf_exception_current = frame;
+}
+
+void _rf_exception_pop(void) {
+    if (_rf_exception_current) {
+        _rf_exception_current = _rf_exception_current->parent;
+    }
+}
+
+void _rf_throw(void* exception, rf_int tag) {
+    if (_rf_exception_current == NULL) {
+        fprintf(stderr, "ReFlow runtime error: unhandled exception (tag %d)\n", tag);
+        exit(1);
+    }
+    _rf_exception_current->exception = exception;
+    _rf_exception_current->exception_tag = tag;
+    longjmp(_rf_exception_current->jmp, 1);
+}
+
+void _rf_rethrow(void) {
+    /* Re-throw the current exception up to the parent frame.
+     * The exception pointer and tag are preserved from the catch dispatch. */
+    if (_rf_exception_current == NULL) {
+        fprintf(stderr, "ReFlow runtime error: unhandled exception (rethrow)\n");
+        exit(1);
+    }
+    longjmp(_rf_exception_current->jmp, 1);
+}
+
+/* ========================================================================
  * Runtime Initialization
  * ======================================================================== */
 

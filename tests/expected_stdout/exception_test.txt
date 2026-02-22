@@ -1,0 +1,7 @@
+success
+caught exception
+try body
+finally runs
+caught oops
+cleanup done
+all done

@@ -1,0 +1,96 @@
+; exceptions.reflow — Exception handling with try/catch/retry/finally
+module examples.exceptions
+
+import io (println)
+
+; A function that may throw a string exception
+fn parse_number(s: string): int {
+    if s == "bad" {
+        throw "parse error: invalid input"
+    }
+    return 42
+}
+
+; A function that validates input
+fn validate(x: int): int {
+    if x < 0 {
+        throw "validation error: negative value"
+    }
+    return x
+}
+
+fn main() {
+    ; --- Basic try/catch ---
+    ; Catch a string exception from a function call
+    println("=== Basic try/catch ===")
+    try {
+        let result = parse_number("bad")
+        println(f"result: {result}")
+    } catch (ex: string) {
+        println(f"Caught: parse failed")
+    }
+
+    ; --- Successful try (no exception) ---
+    println("=== Successful try ===")
+    try {
+        let result = parse_number("good")
+        println(f"result: {result}")
+    } catch (ex: string) {
+        println("this won't run")
+    }
+
+    ; --- try/catch/finally ---
+    ; The finally block always runs, whether or not an exception occurred
+    println("=== try/catch/finally ===")
+    try {
+        let val = validate(-1)
+        println(f"value: {val}")
+    } catch (ex: string) {
+        println("Caught: validation failed")
+    } finally {
+        println("Cleanup: always runs")
+    }
+
+    ; --- finally without catch ---
+    ; When there's no catch, the exception propagates after finally runs
+    println("=== finally without catch ===")
+    try {
+        try {
+            throw "inner error"
+        } finally {
+            println("Inner finally runs before propagation")
+        }
+    } catch (ex: string) {
+        println("Outer catch caught the propagated exception")
+    }
+
+    ; --- Nested try/catch ---
+    ; Exceptions can be re-thrown from catch blocks
+    println("=== Nested try/catch ===")
+    try {
+        try {
+            throw "original error"
+        } catch (ex: string) {
+            println("Inner catch: handling original error")
+            throw "wrapped error"
+        }
+    } catch (ex: string) {
+        println("Outer catch: caught wrapped error")
+    }
+
+    ; --- retry ---
+    ; Retry re-executes the try body up to N times before falling through to catch
+    println("=== retry ===")
+    try {
+        let val = parse_number("bad")
+        println(f"parsed: {val}")
+    } retry parse_number (ex: string, attempts: 3) {
+        println("Retrying parse...")
+    } catch (ex: string) {
+        println("All retries exhausted")
+    } finally {
+        println("Retry example done")
+    }
+
+    println("Program complete")
+}

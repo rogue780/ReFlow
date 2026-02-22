@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <setjmp.h>
 
 /* Boolean constants for use in generated code */
 #define rf_true  ((rf_bool)1)
@@ -344,6 +345,24 @@ RF_String* rf_path_with_suffix(RF_String* path, RF_String* suffix);
 RF_String* rf_path_cwd(void);
 RF_String* rf_path_resolve(RF_String* path);
 rf_bool    rf_path_exists(RF_String* path);
+
+/* ========================================================================
+ * Exception Handling (setjmp/longjmp)
+ * ======================================================================== */
+
+typedef struct RF_ExceptionFrame {
+    jmp_buf jmp;
+    struct RF_ExceptionFrame* parent;
+    void* exception;       /* heap-allocated exception value */
+    rf_int exception_tag;  /* integer type tag for catch dispatch */
+} RF_ExceptionFrame;
+
+extern RF_ExceptionFrame* _rf_exception_current;
+
+void _rf_exception_push(RF_ExceptionFrame* frame);
+void _rf_exception_pop(void);
+_Noreturn void _rf_throw(void* exception, rf_int tag);
+_Noreturn void _rf_rethrow(void);
 
 /* ========================================================================
  * Runtime Initialization

@@ -1,0 +1,46 @@
+module tests.exception_finally_test
+
+import io (println)
+
+fn main() {
+    ; Test: finally always runs (success)
+    try {
+        println("no error")
+    } finally {
+        println("finally 1")
+    }
+
+    ; Test: finally always runs (after catch)
+    try {
+        throw "boom"
+    } catch (ex: string) {
+        println("caught boom")
+    } finally {
+        println("finally 2")
+    }
+
+    ; Test: nested try/catch
+    try {
+        try {
+            throw "inner"
+        } catch (ex: string) {
+            println("inner caught")
+            throw "outer"
+        }
+    } catch (ex: string) {
+        println("outer caught")
+    }
+
+    ; Test: exception propagation (uncaught in inner, caught by outer)
+    try {
+        try {
+            throw "propagated"
+        } finally {
+            println("inner finally")
+        }
+    } catch (ex: string) {
+        println("outer caught propagated")
+    }
+
+    println("all done")
+}

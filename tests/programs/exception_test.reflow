@@ -1,0 +1,47 @@
+module tests.exception_test
+
+import io (println)
+
+fn might_fail(x: int): string {
+    if x < 0 {
+        throw "negative value"
+    }
+    return "success"
+}
+
+fn main() {
+    ; Test 1: try body succeeds, no exception
+    try {
+        let r = might_fail(1)
+        println(r)
+    } catch (ex: string) {
+        println("caught")
+    }
+
+    ; Test 2: try body throws, catch handles it
+    try {
+        let r = might_fail(-1)
+        println(r)
+    } catch (ex: string) {
+        println("caught exception")
+    }
+
+    ; Test 3: finally always runs (success case)
+    try {
+        println("try body")
+    } finally {
+        println("finally runs")
+    }
+
+    ; Test 4: catch + finally (exception case)
+    try {
+        throw "oops"
+        println("unreachable")
+    } catch (ex: string) {
+        println("caught oops")
+    } finally {
+        println("cleanup done")
+    }
+
+    println("all done")
+}

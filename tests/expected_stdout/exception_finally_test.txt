@@ -1,0 +1,9 @@
+no error
+finally 1
+caught boom
+finally 2
+inner caught
+outer caught
+inner finally
+outer caught propagated
+all done

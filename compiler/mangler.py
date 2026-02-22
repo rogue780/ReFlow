@@ -157,6 +157,23 @@ def mangle_fn_wrapper(module: str, fn_name: str) -> str:
     return f"_rf_wrap_{parts}_{fn_name}"
 
 
+def mangle_exception_tag(module: str, type_name: str) -> str:
+    """Integer constant name for exception type dispatch.
+
+    Example: domain.order.ParseError → _rf_exc_tag_domain_order_ParseError
+    """
+    parts = module.replace(".", "_")
+    return f"_rf_exc_tag_{parts}_{type_name}"
+
+
+def mangle_exception_frame(index: int) -> str:
+    """Local exception frame variable name.
+
+    Example: index 0 → _rf_ef_0
+    """
+    return f"_rf_ef_{index}"
+
+
 def _check_reserved(name: str | None, file: str, line: int, col: int) -> None:
     """Raise EmitError if a bare name is a C reserved word."""
     if name is not None and name in C_RESERVED:
