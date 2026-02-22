@@ -1,0 +1,11 @@
+module tests.fanout_test
+import io (println)
+
+pure fn double(x: int): int = x * 2
+pure fn square(x: int): int = x * x
+pure fn add(a: int, b: int): int = a + b
+
+fn main() {
+    let r1 = 5 -> (double | square) -> add
+    println(f"5 -> (double | square) -> add = {r1}")
+}
