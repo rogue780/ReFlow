@@ -13,7 +13,7 @@
 | 7 | **Coroutine operator (`:< `)** | §Coroutines | Lowering | DONE | `:< ` operator lowers to coroutine handle creation via rf_coroutine_new |
 | 8 | **Coroutine methods** | §Coroutines | Typechecker/Lowering | DONE | TCoroutine type with .next(), .send(), .done() methods fully implemented |
 | 9 | **TuplePattern in match** | §Pattern Matching | Lowering | DONE | TuplePattern destructuring lowers to field access on tuple struct (.f0, .f1, etc.) |
-| 10 | **Parallel fan-out** | §Composition | Lowering/Runtime | SEQUENTIAL | Parsed and purity-checked but executed sequentially; no threading |
+| 10 | **Parallel fan-out** | §Composition | Lowering/Runtime | DONE | Full pthreads parallel execution with safety validation, atomic refcounts, thread-local exceptions, rf_fanout_run API |
 | 11 | **`snapshot()` runtime** | §Snapshot Values | Lowering/Runtime | DONE | Purity enforcement added; pass-through correct for value/immutable-heap types; .refresh() deferred as SPEC GAP (no parallelism) |
 | 12 | **`typeof()` runtime** | §typeof | Lowering | DONE | Returns `TString` in typechecker; lowers to `rf_string_from_cstr` with compile-time type name |
 | 13 | **Interface fulfillment** | §Interfaces | Typechecker | DONE | `fulfills` clause validates methods against interface contract; missing methods produce TypeError |
@@ -339,9 +339,16 @@ In `_lower_binop`, handle `===`:
 
 These features have working workarounds and are lower priority.
 
-#### 6.1: Parallel Fan-out (#10)
+#### 6.1: Parallel Fan-out (#10) — DONE
 
-**Decision:** Defer to post-bootstrap. Sequential fan-out is correct; parallelism is a runtime optimization. Document as known limitation.
+Full pthreads-based parallel execution implemented:
+- Thread-local exception frames (`_Thread_local`)
+- Atomic reference counting on all heap types (`_Atomic` + `atomic_fetch_add/sub`)
+- `RF_FanoutBranch` struct + `rf_fanout_run()` runtime API
+- Typechecker safety validation (spec lines 1604-1609): pure always safe, non-pure with `:mut` params rejected, mutable static access rejected
+- Lowering generates per-branch `void*(void*)` wrapper functions and `rf_fanout_run()` calls
+- `-pthread` added to clang invocation
+- `# SPEC GAP: transitive mutable static analysis` — only direct body checked, not transitive callees
 
 #### 6.2: `snapshot()` (#11)
 
