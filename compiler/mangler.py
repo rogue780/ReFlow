@@ -194,6 +194,22 @@ def mangle_exception_frame(index: int) -> str:
     return f"_rf_ef_{index}"
 
 
+def mangle_monomorphized(module: str, fn_name: str, type_args: list[str]) -> str:
+    """Mangle a monomorphized function name.
+
+    Example: math, min, ["int"]   → rf_math_min__int
+    Example: math, min, ["float"] → rf_math_min__float
+    Example: testing, assert_eq, ["int"] → rf_testing_assert_eq__int
+
+    The double underscore separates the function name from the type
+    specialization suffix, making it visually distinct from the base name
+    and from method names (which use a single underscore).
+    """
+    parts = module.replace(".", "_")
+    suffix = "_".join(type_args)
+    return f"{_PREFIX}{parts}_{fn_name}__{suffix}"
+
+
 def _check_reserved(name: str | None, file: str, line: int, col: int) -> None:
     """Raise EmitError if a bare name is a C reserved word."""
     if name is not None and name in C_RESERVED:

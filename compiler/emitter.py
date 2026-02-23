@@ -419,6 +419,29 @@ class Emitter:
         self._pre_stmts = saved
         self._emitln(f"{expr_str};")
 
+    def _strip_outer_parens(self, s: str) -> str:
+        """Remove one layer of outer matching parens from a C expression string.
+
+        BinOp expressions are emitted as '(left op right)'. When used as the
+        condition in 'if (cond)' or 'while (cond)', the result is '((left op right))'
+        with redundant double parens. This helper removes the outer pair when the
+        parens span the entire string, producing 'if (left op right)' instead.
+        """
+        if len(s) < 2 or s[0] != '(' or s[-1] != ')':
+            return s
+        depth = 0
+        for i, c in enumerate(s):
+            if c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+            if depth == 0:
+                if i == len(s) - 1:
+                    return s[1:-1]
+                else:
+                    return s  # outer paren closes before end — not a wrapping pair
+        return s
+
     def _emit_if(self, cond: LExpr, then: list[LStmt],
                  else_: list[LStmt]) -> None:
         """Emit an if/else statement."""
@@ -428,7 +451,7 @@ class Emitter:
         self._flush_pre_stmts()
         self._pre_stmts = saved
 
-        self._emitln(f"if ({cond_str}) {{")
+        self._emitln(f"if ({self._strip_outer_parens(cond_str)}) {{")
         self._indent()
         for s in then:
             self._emit_stmt(s)
@@ -449,7 +472,7 @@ class Emitter:
         self._flush_pre_stmts()
         self._pre_stmts = saved
 
-        self._emitln(f"while ({cond_str}) {{")
+        self._emitln(f"while ({self._strip_outer_parens(cond_str)}) {{")
         self._indent()
         for s in body:
             self._emit_stmt(s)

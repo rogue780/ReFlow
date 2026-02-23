@@ -1,0 +1,15 @@
+module mono_min
+
+import io
+import conv
+
+pure fn min<T fulfills Comparable>(a: T, b: T): T {
+    return if a.compare(b) <= 0 { a } else { b }
+}
+
+fn main(): none {
+    let x = min(3, 7)
+    let y = min(1.5, 0.5)
+    io.println(conv.int_to_string(x))
+    io.println(conv.float_to_string(y))
+}

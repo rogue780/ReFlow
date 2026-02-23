@@ -8,7 +8,7 @@ void rf_tests_exception_test_main(void);
 
 /* ReFlow: tests.exception_test.might_fail */
 RF_String* rf_tests_exception_test_might_fail(rf_int x) {
-    if ((x < 0)) {
+    if (x < 0) {
         _rf_throw(((void*)rf_string_from_cstr("negative value")), 0);
     }
     return rf_string_from_cstr("success");
@@ -18,13 +18,13 @@ RF_String* rf_tests_exception_test_might_fail(rf_int x) {
 void rf_tests_exception_test_main(void) {
     RF_ExceptionFrame _rf_ef_0;
     _rf_exception_push((&_rf_ef_0));
-    if ((setjmp(_rf_ef_0.jmp) == 0)) {
+    if (setjmp(_rf_ef_0.jmp) == 0) {
         RF_String* r = rf_tests_exception_test_might_fail(1);
         rf_println(r);
         _rf_exception_pop();
     } else {
         _rf_exception_pop();
-        if ((_rf_ef_0.exception_tag == 0)) {
+        if (_rf_ef_0.exception_tag == 0) {
             RF_String* ex = ((RF_String*)_rf_ef_0.exception);
             rf_println(rf_string_from_cstr("caught"));
         } else {
@@ -33,13 +33,13 @@ void rf_tests_exception_test_main(void) {
     }
     RF_ExceptionFrame _rf_ef_1;
     _rf_exception_push((&_rf_ef_1));
-    if ((setjmp(_rf_ef_1.jmp) == 0)) {
+    if (setjmp(_rf_ef_1.jmp) == 0) {
         RF_String* r = rf_tests_exception_test_might_fail((-1));
         rf_println(r);
         _rf_exception_pop();
     } else {
         _rf_exception_pop();
-        if ((_rf_ef_1.exception_tag == 0)) {
+        if (_rf_ef_1.exception_tag == 0) {
             RF_String* ex = ((RF_String*)_rf_ef_1.exception);
             rf_println(rf_string_from_cstr("caught exception"));
         } else {
@@ -49,7 +49,7 @@ void rf_tests_exception_test_main(void) {
     RF_ExceptionFrame _rf_ef_2;
     rf_bool _rf_ef_2_caught = rf_true;
     _rf_exception_push((&_rf_ef_2));
-    if ((setjmp(_rf_ef_2.jmp) == 0)) {
+    if (setjmp(_rf_ef_2.jmp) == 0) {
         rf_println(rf_string_from_cstr("try body"));
         _rf_exception_pop();
     } else {
@@ -57,27 +57,27 @@ void rf_tests_exception_test_main(void) {
         _rf_ef_2_caught = rf_false;
     }
     rf_println(rf_string_from_cstr("finally runs"));
-    if ((!_rf_ef_2_caught)) {
+    if (!_rf_ef_2_caught) {
         _rf_throw(_rf_ef_2.exception, _rf_ef_2.exception_tag);
     }
     RF_ExceptionFrame _rf_ef_3;
     rf_bool _rf_ef_3_caught = rf_true;
     _rf_exception_push((&_rf_ef_3));
-    if ((setjmp(_rf_ef_3.jmp) == 0)) {
+    if (setjmp(_rf_ef_3.jmp) == 0) {
         _rf_throw(((void*)rf_string_from_cstr("oops")), 0);
         rf_println(rf_string_from_cstr("unreachable"));
         _rf_exception_pop();
     } else {
         _rf_exception_pop();
         _rf_ef_3_caught = rf_false;
-        if ((_rf_ef_3.exception_tag == 0)) {
+        if (_rf_ef_3.exception_tag == 0) {
             RF_String* ex = ((RF_String*)_rf_ef_3.exception);
             rf_println(rf_string_from_cstr("caught oops"));
             _rf_ef_3_caught = rf_true;
         }
     }
     rf_println(rf_string_from_cstr("cleanup done"));
-    if ((!_rf_ef_3_caught)) {
+    if (!_rf_ef_3_caught) {
         _rf_throw(_rf_ef_3.exception, _rf_ef_3.exception_tag);
     }
     rf_println(rf_string_from_cstr("all done"));

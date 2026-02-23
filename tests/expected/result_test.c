@@ -18,7 +18,7 @@ struct RF_Result_rf_int_RF_String_ptr {
 
 /* ReFlow: tests.result_test.safe_divide */
 RF_Result_rf_int_RF_String_ptr rf_tests_result_test_safe_divide(rf_int a, rf_int b) {
-    if ((b == 0)) {
+    if (b == 0) {
         return (RF_Result_rf_int_RF_String_ptr){.tag = 1, .err_val = rf_string_from_cstr("division by zero")};
     }
     rf_int _rf_e_1;
@@ -29,7 +29,7 @@ RF_Result_rf_int_RF_String_ptr rf_tests_result_test_safe_divide(rf_int a, rf_int
 /* ReFlow: tests.result_test.compute */
 RF_Result_rf_int_RF_String_ptr rf_tests_result_test_compute(rf_int x, rf_int y) {
     RF_Result_rf_int_RF_String_ptr _rf_tmp_0 = rf_tests_result_test_safe_divide(x, y);
-    if ((_rf_tmp_0.tag == 1)) {
+    if (_rf_tmp_0.tag == 1) {
         return _rf_tmp_0;
     }
     rf_int _rf_tmp_1 = _rf_tmp_0.ok_val;
@@ -42,7 +42,7 @@ RF_Result_rf_int_RF_String_ptr rf_tests_result_test_compute(rf_int x, rf_int y) 
 /* ReFlow: tests.result_test.main */
 void rf_tests_result_test_main(void) {
     RF_Result_rf_int_RF_String_ptr _rf_tmp_2 = rf_tests_result_test_safe_divide(10, 3);
-    if ((_rf_tmp_2.tag == 0)) {
+    if (_rf_tmp_2.tag == 0) {
         rf_int v = _rf_tmp_2.ok_val;
         RF_String* _rf_tmp_3 = rf_string_from_cstr("10 / 3 = ");
         rf_println(rf_string_concat(_rf_tmp_3, rf_int_to_string(v)));
@@ -52,7 +52,7 @@ void rf_tests_result_test_main(void) {
         rf_println(rf_string_concat(_rf_tmp_4, msg));
     }
     RF_Result_rf_int_RF_String_ptr _rf_tmp_5 = rf_tests_result_test_safe_divide(10, 0);
-    if ((_rf_tmp_5.tag == 0)) {
+    if (_rf_tmp_5.tag == 0) {
         rf_int v = _rf_tmp_5.ok_val;
         RF_String* _rf_tmp_6 = rf_string_from_cstr("10 / 0 = ");
         rf_println(rf_string_concat(_rf_tmp_6, rf_int_to_string(v)));
@@ -62,7 +62,7 @@ void rf_tests_result_test_main(void) {
         rf_println(rf_string_concat(_rf_tmp_7, msg));
     }
     RF_Result_rf_int_RF_String_ptr _rf_tmp_8 = rf_tests_result_test_compute(20, 4);
-    if ((_rf_tmp_8.tag == 0)) {
+    if (_rf_tmp_8.tag == 0) {
         rf_int v = _rf_tmp_8.ok_val;
         RF_String* _rf_tmp_9 = rf_string_from_cstr("compute(20, 4) = ");
         rf_println(rf_string_concat(_rf_tmp_9, rf_int_to_string(v)));
@@ -72,7 +72,7 @@ void rf_tests_result_test_main(void) {
         rf_println(rf_string_concat(_rf_tmp_10, msg));
     }
     RF_Result_rf_int_RF_String_ptr _rf_tmp_11 = rf_tests_result_test_compute(20, 0);
-    if ((_rf_tmp_11.tag == 0)) {
+    if (_rf_tmp_11.tag == 0) {
         rf_int v = _rf_tmp_11.ok_val;
         RF_String* _rf_tmp_12 = rf_string_from_cstr("compute(20, 0) = ");
         rf_println(rf_string_concat(_rf_tmp_12, rf_int_to_string(v)));

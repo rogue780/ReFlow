@@ -353,11 +353,18 @@ def _lower_and_emit_multi(
     dep_parts: list[str] = []
     collected_static_inits: list[tuple[str, str]] = []
 
+    # Build a dict of all TypedModules by module path so each Lowerer can
+    # access cross-module type information for monomorphization (SG-3-4-1).
+    all_typed: dict[str, object] = {}
+    for display_path, typed, is_root in modules:
+        mod_path = ".".join(typed.module.path) if typed.module.path else "main"
+        all_typed[mod_path] = typed
+
     # Lower and emit dependency modules (no header, no entry point).
     for display_path, typed, is_root in modules:
         if is_root:
             continue
-        lmodule = Lowerer(typed).lower()
+        lmodule = Lowerer(typed, all_typed=all_typed).lower()
         emitter = Emitter(lmodule, display_path, is_root=False)
         dep_parts.append(emitter.emit())
         collected_static_inits.extend(emitter.deferred_static_inits)
@@ -367,7 +374,7 @@ def _lower_and_emit_multi(
     for display_path, typed, is_root in modules:
         if not is_root:
             continue
-        lmodule = Lowerer(typed).lower()
+        lmodule = Lowerer(typed, all_typed=all_typed).lower()
         emitter = Emitter(
             lmodule, display_path, is_root=True,
             extra_static_inits=collected_static_inits)

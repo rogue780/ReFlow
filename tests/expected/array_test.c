@@ -7,7 +7,7 @@ void rf_tests_array_test_main(void) {
     RF_Array* nums = rf_array_new(5, sizeof(rf_int), (rf_int[]){10, 20, 30, 40, 50});
     rf_int total = 0;
     rf_int64 _rf_tmp_0 = 0;
-    while ((_rf_tmp_0 < rf_array_len(nums))) {
+    while (_rf_tmp_0 < rf_array_len(nums)) {
         rf_int n = (*((rf_int*)rf_array_get_ptr(nums, _rf_tmp_0)));
         rf_int _rf_e_1;
         RF_CHECKED_ADD(total, n, &_rf_e_1);
@@ -17,7 +17,7 @@ void rf_tests_array_test_main(void) {
     RF_String* _rf_tmp_1 = rf_string_from_cstr("sum = ");
     rf_println(rf_string_concat(_rf_tmp_1, rf_int_to_string(total)));
     rf_int64 _rf_tmp_2 = 0;
-    while ((_rf_tmp_2 < rf_array_len(rf_array_new(3, sizeof(rf_int), (rf_int[]){1, 2, 3})))) {
+    while (_rf_tmp_2 < rf_array_len(rf_array_new(3, sizeof(rf_int), (rf_int[]){1, 2, 3}))) {
         rf_int n = (*((rf_int*)rf_array_get_ptr(rf_array_new(3, sizeof(rf_int), (rf_int[]){1, 2, 3}), _rf_tmp_2)));
         RF_String* _rf_tmp_3 = rf_string_from_cstr("  ");
         rf_println(rf_string_concat(_rf_tmp_3, rf_int_to_string(n)));

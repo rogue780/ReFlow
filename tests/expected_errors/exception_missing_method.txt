@@ -1,0 +1,2 @@
+TypeError
+type 'AppError' declares fulfills 'Exception' but is missing required method 'original'

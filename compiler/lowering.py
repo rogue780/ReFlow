@@ -11,6 +11,7 @@ from compiler.mangler import (
     mangle, mangle_stream_frame, mangle_stream_next, mangle_stream_free,
     mangle_closure_frame, mangle_closure_fn, mangle_fn_wrapper,
     mangle_stream_wrapper, mangle_fanout_wrapper, mangle_exception_frame,
+    mangle_monomorphized,
 )
 from compiler.ast_nodes import (
     # Base
@@ -41,7 +42,7 @@ from compiler.typechecker import (
     TypedModule, Type,
     TInt, TFloat, TBool, TChar, TByte, TString, TNone,
     TOption, TResult, TTuple, TArray, TStream, TCoroutine, TBuffer, TMap, TSet,
-    TFn, TRecord, TNamed, TAlias, TSum, TVariant, TTypeVar, TAny,
+    TFn, TRecord, TNamed, TAlias, TSum, TVariant, TTypeVar, TAny, TSelf,
 )
 from compiler.resolver import ResolvedModule, Symbol, SymbolKind
 
@@ -417,6 +418,80 @@ _BUILTIN_TYPE_ANNS: dict[str, Type] = {
     "byte": TByte(),
     "string": TString(),
     "none": TNone(),
+    "void": TNone(),  # alias: some users write ': void' though ': none' is canonical
+}
+
+
+# ---------------------------------------------------------------------------
+# Monomorphization support (SG-3-3-1, SG-3-5-1)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class MonoSite:
+    """A single monomorphization request: one generic function + concrete types."""
+    fn_decl: FnDecl
+    type_env: dict[str, Type]   # e.g. {"T": TInt(32, True)}
+    mangled_name: str            # e.g. "rf_math_min__int"
+    src_module: str              # e.g. "math"
+
+
+@dataclass
+class BuiltinMethodOp:
+    """Lowering strategy for a built-in interface method on a concrete type."""
+    kind: str   # "compare", "binop", "checked_binop", "unary", "call"
+    op: str     # C operator, macro name, or C function name
+
+
+# Dispatch table: (type_name, method_name) → BuiltinMethodOp
+# Used when lowering interface method calls on built-in types (SG-3-5-1).
+BUILTIN_METHOD_OPS: dict[tuple[str, str], BuiltinMethodOp] = {
+    # --- Comparable.compare ---
+    # Numeric/char/byte: _rf_compare macro (ternary, no overflow concern)
+    ("int",    "compare"):    BuiltinMethodOp("compare", ""),
+    ("int64",  "compare"):    BuiltinMethodOp("compare", ""),
+    ("float",  "compare"):    BuiltinMethodOp("compare", ""),
+    ("char",   "compare"):    BuiltinMethodOp("compare", ""),
+    ("byte",   "compare"):    BuiltinMethodOp("compare", ""),
+    # String: runtime function
+    ("string", "compare"):    BuiltinMethodOp("call", "rf_string_cmp"),
+
+    # --- Numeric.add ---  CHECKED for integers (overflow → panic), plain for float
+    ("int",   "add"):         BuiltinMethodOp("checked_binop", "+"),
+    ("int64", "add"):         BuiltinMethodOp("checked_binop", "+"),
+    ("float", "add"):         BuiltinMethodOp("binop", "+"),
+
+    # --- Numeric.sub ---
+    ("int",   "sub"):         BuiltinMethodOp("checked_binop", "-"),
+    ("int64", "sub"):         BuiltinMethodOp("checked_binop", "-"),
+    ("float", "sub"):         BuiltinMethodOp("binop", "-"),
+
+    # --- Numeric.mul ---
+    ("int",   "mul"):         BuiltinMethodOp("checked_binop", "*"),
+    ("int64", "mul"):         BuiltinMethodOp("checked_binop", "*"),
+    ("float", "mul"):         BuiltinMethodOp("binop", "*"),
+
+    # --- Numeric.negate ---
+    ("int",   "negate"):      BuiltinMethodOp("unary", "-"),
+    ("int64", "negate"):      BuiltinMethodOp("unary", "-"),
+    ("float", "negate"):      BuiltinMethodOp("unary", "-"),
+
+    # --- Equatable.equals ---
+    ("int",    "equals"):     BuiltinMethodOp("binop", "=="),
+    ("int64",  "equals"):     BuiltinMethodOp("binop", "=="),
+    ("float",  "equals"):     BuiltinMethodOp("binop", "=="),
+    ("bool",   "equals"):     BuiltinMethodOp("binop", "=="),
+    ("char",   "equals"):     BuiltinMethodOp("binop", "=="),
+    ("byte",   "equals"):     BuiltinMethodOp("binop", "=="),
+    ("string", "equals"):     BuiltinMethodOp("call", "rf_string_eq"),
+
+    # --- Showable.to_string ---
+    ("int",    "to_string"):  BuiltinMethodOp("call", "rf_int_to_string"),
+    ("int64",  "to_string"):  BuiltinMethodOp("call", "rf_int64_to_string"),
+    ("float",  "to_string"):  BuiltinMethodOp("call", "rf_float_to_string"),
+    ("bool",   "to_string"):  BuiltinMethodOp("call", "rf_bool_to_string"),
+    ("string", "to_string"):  BuiltinMethodOp("call", "_rf_identity_string"),
+    ("char",   "to_string"):  BuiltinMethodOp("call", "rf_char_to_string"),
+    ("byte",   "to_string"):  BuiltinMethodOp("call", "rf_byte_to_string"),
 }
 
 
@@ -427,7 +502,8 @@ _BUILTIN_TYPE_ANNS: dict[str, Type] = {
 class Lowerer:
     """Transform a TypedModule into an LModule."""
 
-    def __init__(self, typed: TypedModule) -> None:
+    def __init__(self, typed: TypedModule,
+                 all_typed: dict[str, TypedModule] | None = None) -> None:
         self._typed = typed
         self._module: Module = typed.module
         self._resolved: ResolvedModule = typed.resolved
@@ -467,6 +543,14 @@ class Lowerer:
         # Exception frame counter (per-function)
         self._exception_frame_counter: int = 0
 
+        # Monomorphization support (SG-3-3-1, SG-3-4-1)
+        # all_typed: all compiled TypedModules by module path — used to access
+        # imported modules' type maps when monomorphizing cross-module generics.
+        self._all_typed: dict[str, TypedModule] | None = all_typed
+        # mono_sites: collected monomorphization requests keyed by
+        # (src_module, fn_name, (type_arg_names...))
+        self._mono_sites: dict[tuple[str, str, tuple[str, ...]], MonoSite] = {}
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
@@ -479,6 +563,15 @@ class Lowerer:
                     self._lower_fn_decl(decl)
                 case TypeDecl():
                     self._lower_type_decl(decl)
+
+        # Lower all collected monomorphization sites (SG-3-4-1).
+        # Emit them BEFORE the regular functions so callers can always find
+        # the definition above them in the same translation unit.
+        mono_fn_defs: list[LFnDef] = []
+        for site in self._mono_sites.values():
+            fn_def = self._lower_monomorphized_fn(site)
+            mono_fn_defs.append(fn_def)
+        self._fn_defs = mono_fn_defs + self._fn_defs
 
         # Detect entry point: a top-level function named "main".
         entry_point: str | None = None
@@ -626,6 +719,12 @@ class Lowerer:
             # Native functions are implemented in C — no LIR generated.
             return
         if fn.body is None:
+            return
+        # Bounded generic functions are emitted only via monomorphization (SG-3-4-3).
+        # Their unspecialized form contains unresolved TTypeVar and cannot be
+        # lowered to valid C. Specializations are collected during lowering of
+        # call sites and emitted at the end of lower().
+        if self._is_bounded_generic(fn):
             return
 
         # Check if this is a stream function
@@ -851,6 +950,13 @@ class Lowerer:
         val_type = self._type_of(stmt.value)
         c_type = self._lower_type(val_type)
         init = self._lower_expr(stmt.value)
+        # If the static type resolved to void* (TTypeVar/TAny — e.g. from a
+        # monomorphized call), use the concrete LType from the lowered expression.
+        if isinstance(c_type, LPtr) and isinstance(c_type.inner, LVoid):
+            expr_ct = getattr(init, 'c_type', None)
+            if expr_ct is not None and not (
+                    isinstance(expr_ct, LPtr) and isinstance(expr_ct.inner, LVoid)):
+                c_type = expr_ct
         # If there's a type annotation, prefer it for the declared type
         if stmt.type_ann is not None:
             ann_type = self._type_of(stmt.type_ann)
@@ -1972,6 +2078,17 @@ class Lowerer:
                     and isinstance(sym.decl, SumVariantDecl)):
                 return self._lower_variant_ctor(name, sym.decl, t, lt, lowered_args)
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
+                # Check if this is a bounded generic — monomorphize it (SG-3-4-2)
+                fn_decl_maybe = sym.decl if isinstance(sym.decl, FnDecl) else None
+                if fn_decl_maybe and self._is_bounded_generic(fn_decl_maybe):
+                    env = self._infer_type_env_from_call(fn_decl_maybe,
+                                                         list(expr.args))
+                    if env:
+                        mono_name = self._record_mono_site(
+                            self._module_path, fn_decl_maybe, env)
+                        # Substitute type env into return type for concrete LType
+                        concrete_lt = self._lower_type(self._deep_substitute(t, env))
+                        return LCall(mono_name, lowered_args, concrete_lt)
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, lowered_args, lt)
@@ -2062,8 +2179,14 @@ class Lowerer:
                 return LCall(fn_decl.native_name, lowered_args, lt)
             # Non-native imported function — use mangled name from source module
             if isinstance(fn_decl, FnDecl):
-                # Determine module path from the import's module scope
                 src_module = self._resolve_import_module_path(expr.receiver)
+                # Bounded generic — monomorphize at call site (SG-3-4-2)
+                if self._is_bounded_generic(fn_decl):
+                    env = self._infer_type_env_from_call(fn_decl, list(expr.args))
+                    if env:
+                        mono_name = self._record_mono_site(src_module, fn_decl, env)
+                        concrete_lt = self._lower_type(self._deep_substitute(t, env))
+                        return LCall(mono_name, lowered_args, concrete_lt)
                 c_name = mangle(src_module, None, fn_decl.name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, lowered_args, lt)
@@ -2086,8 +2209,14 @@ class Lowerer:
                             file=self._file, line=expr.line, col=expr.col)
             return LCall(c_name, [LAddrOf(recv, LPtr(self._lower_type(recv_type)))] + lowered_args, lt)
 
-        # Built-in type methods
-        method_c_name = f"rf_{self._type_name_str(recv_type)}_{expr.method}"
+        # Built-in type methods — check interface method dispatch table first (SG-3-5-1)
+        type_name = self._type_name_str(recv_type)
+        builtin_op = BUILTIN_METHOD_OPS.get((type_name, expr.method))
+        if builtin_op is not None:
+            return self._emit_builtin_method_op(builtin_op, recv, lowered_args, lt)
+
+        # Fallthrough: plain built-in type method (rf_<type>_<method>)
+        method_c_name = f"rf_{type_name}_{expr.method}"
         return LCall(method_c_name, [recv] + lowered_args, lt)
 
     def _lower_coroutine_method(self, expr: MethodCall, recv: LExpr,
@@ -3132,20 +3261,21 @@ class Lowerer:
         then_assign = self._extract_block_result(then_stmts, result_var)
 
         # Else branch
-        else_stmts: list[LStmt] = []
+        else_final: list[LStmt] = []
         if expr.else_branch is not None:
             if isinstance(expr.else_branch, Block):
                 else_stmts = self._lower_block(expr.else_branch)
-                else_assign = self._extract_block_result(else_stmts, result_var)
+                else_final = self._extract_block_result(else_stmts, result_var)
             else:
                 # Else is another IfExpr
                 else_result = self._lower_expr(expr.else_branch)
-                else_stmts = list(self._pending_stmts)
+                else_pending = list(self._pending_stmts)
                 self._pending_stmts = []
-                else_stmts.append(LAssign(result_var, else_result))
+                else_pending.append(LAssign(result_var, else_result))
+                else_final = else_pending
 
         self._pending_stmts.append(
-            LIf(cond=cond, then=then_assign, else_=else_stmts))
+            LIf(cond=cond, then=then_assign, else_=else_final))
 
         return result_var
 
@@ -4426,3 +4556,254 @@ class Lowerer:
                 return True
             case _:
                 return False
+
+    # ------------------------------------------------------------------
+    # Monomorphization helpers (SG-3-2-1 through SG-3-5-1)
+    # ------------------------------------------------------------------
+
+    def _is_bounded_generic(self, fn: FnDecl) -> bool:
+        """Return True if fn is a bounded generic (has type params with bounds)."""
+        return bool(fn.type_params and any(tp.bounds for tp in fn.type_params))
+
+    def _deep_substitute(self, ty: Type, env: dict[str, Type]) -> Type:
+        """Recursively replace TTypeVar (and bare TNamed type params) with concrete types.
+
+        'env' maps type parameter names to their concrete types.
+        Also handles TNamed("", name, ()) produced by _resolve_type_ann for type params
+        that were not recorded in typed.types (cross-module case).
+        """
+        if not env:
+            return ty
+        match ty:
+            case TTypeVar(name=name) if name in env:
+                return env[name]
+            # _resolve_type_ann maps unknown bare names to TNamed("", name, ())
+            # which includes type parameter names in cross-module functions.
+            case TNamed(module="", name=name, type_args=()) if name in env:
+                return env[name]
+            case TArray(element=elem):
+                return TArray(self._deep_substitute(elem, env))
+            case TStream(element=elem):
+                return TStream(self._deep_substitute(elem, env))
+            case TCoroutine(yield_type=yt, send_type=st):
+                return TCoroutine(self._deep_substitute(yt, env),
+                                  self._deep_substitute(st, env))
+            case TBuffer(element=elem):
+                return TBuffer(self._deep_substitute(elem, env))
+            case TOption(inner=inner):
+                return TOption(self._deep_substitute(inner, env))
+            case TResult(ok_type=ok, err_type=err):
+                return TResult(self._deep_substitute(ok, env),
+                               self._deep_substitute(err, env))
+            case TMap(key=key, value=val):
+                return TMap(self._deep_substitute(key, env),
+                            self._deep_substitute(val, env))
+            case TSet(element=elem):
+                return TSet(self._deep_substitute(elem, env))
+            case TTuple(elements=elems):
+                return TTuple(tuple(self._deep_substitute(e, env) for e in elems))
+            case TFn(params=params, ret=ret, is_pure=is_pure):
+                return TFn(
+                    tuple(self._deep_substitute(p, env) for p in params),
+                    self._deep_substitute(ret, env),
+                    is_pure,
+                )
+            case TNamed(module=mod, name=name, type_args=args):
+                return TNamed(mod, name,
+                              tuple(self._deep_substitute(a, env) for a in args))
+            case _:
+                # Leaf types (TInt, TFloat, TBool, TChar, TByte, TString,
+                # TNone, TAny, TSum, TRecord, TAlias) — return unchanged.
+                return ty
+
+    def _build_substituted_type_map(
+        self,
+        fn_decl: FnDecl,
+        env: dict[str, Type],
+        src_module: str | None = None,
+    ) -> dict[ASTNode, Type]:
+        """Build a type map with TTypeVar replaced by concrete types.
+
+        Merges the current module's types with those of src_module (if
+        cross-module and all_typed is available). This gives cross-module
+        monomorphization access to the source module's node types.
+        """
+        substituted: dict[ASTNode, Type] = {}
+
+        # Current module's types — TTypeVar → concrete
+        for node, ty in self._typed.types.items():
+            substituted[node] = self._deep_substitute(ty, env)
+
+        # Cross-module: merge source module's types
+        if (src_module and src_module != self._module_path
+                and self._all_typed):
+            src_typed = self._all_typed.get(src_module)
+            if src_typed is not None:
+                for node, ty in src_typed.types.items():
+                    substituted[node] = self._deep_substitute(ty, env)
+
+        return substituted
+
+    def _infer_type_env_from_call(
+        self,
+        fn_decl: FnDecl,
+        arg_exprs: list[Expr],
+    ) -> dict[str, Type]:
+        """Infer type variable bindings from call-site argument types.
+
+        Matches declared parameter types against actual argument types to
+        extract bindings like {"T": TInt(32, True)}. Works for both same-module
+        and cross-module functions (handles TNamed from _resolve_type_ann).
+        """
+        tp_names = {tp.name for tp in fn_decl.type_params}
+        env: dict[str, Type] = {}
+        for param, arg_expr in zip(fn_decl.params, arg_exprs):
+            if param.type_ann is None:
+                continue
+            # Prefer typed.types (has TTypeVar for same-module params);
+            # fall back to _resolve_type_ann for cross-module params.
+            declared = self._types.get(param.type_ann)
+            if declared is None:
+                declared = self._resolve_type_ann(param.type_ann)
+            actual = self._type_of(arg_expr)
+            self._match_type_vars(declared, actual, tp_names, env)
+        return env
+
+    def _match_type_vars(
+        self,
+        declared: Type,
+        actual: Type,
+        tp_names: set[str],
+        env: dict[str, Type],
+    ) -> None:
+        """Recursively match type variable positions in declared against actual."""
+        match declared:
+            case TTypeVar(name=name) if name in tp_names:
+                if name not in env:
+                    env[name] = actual
+            # Cross-module: type params come through as TNamed("", "T", ())
+            case TNamed(module="", name=name, type_args=()) if name in tp_names:
+                if name not in env:
+                    env[name] = actual
+            case TArray(element=elem):
+                if isinstance(actual, TArray):
+                    self._match_type_vars(elem, actual.element, tp_names, env)
+            case TOption(inner=inner):
+                if isinstance(actual, TOption):
+                    self._match_type_vars(inner, actual.inner, tp_names, env)
+            case TResult(ok_type=ok, err_type=err):
+                if isinstance(actual, TResult):
+                    self._match_type_vars(ok, actual.ok_type, tp_names, env)
+                    self._match_type_vars(err, actual.err_type, tp_names, env)
+            case _:
+                pass  # Leaf types — no type variables to match
+
+    def _record_mono_site(
+        self,
+        src_module: str,
+        fn_decl: FnDecl,
+        env: dict[str, Type],
+    ) -> str:
+        """Record a monomorphization site and return its mangled C name."""
+        type_args = [
+            self._type_name_str(env[tp.name])
+            for tp in fn_decl.type_params
+            if tp.name in env
+        ]
+        key = (src_module, fn_decl.name, tuple(type_args))
+        if key not in self._mono_sites:
+            mono_name = mangle_monomorphized(src_module, fn_decl.name, type_args)
+            self._mono_sites[key] = MonoSite(
+                fn_decl=fn_decl,
+                type_env=env,
+                mangled_name=mono_name,
+                src_module=src_module,
+            )
+        return self._mono_sites[key].mangled_name
+
+    def _lower_monomorphized_fn(self, site: MonoSite) -> LFnDef:
+        """Lower a bounded generic function with concrete type substitutions.
+
+        Swaps the type map for the duration of lowering so that all _type_of
+        calls return substituted types. After lowering, the original map is
+        restored.
+        """
+        fn_decl = site.fn_decl
+        env = site.type_env
+
+        # Build substituted type map (merges current + source module types)
+        sub_types = self._build_substituted_type_map(fn_decl, env, site.src_module)
+
+        # Save and swap the type map — all _type_of calls use sub_types
+        original_types = self._types
+        self._types = sub_types
+
+        # Save per-function context
+        saved_return_type = self._current_fn_return_type
+        saved_fn_name = self._current_fn_name
+        self._current_fn_name = fn_decl.name
+
+        ret_type_raw = self._type_of_return(fn_decl)
+        ret_type = self._deep_substitute(ret_type_raw, env)
+        self._current_fn_return_type = ret_type
+
+        # Lower parameters with concrete types
+        params: list[tuple[str, LType]] = []
+        for p in fn_decl.params:
+            p_type_raw = self._type_of(p.type_ann) if p.type_ann else TNone()
+            p_type = self._deep_substitute(p_type_raw, env)
+            params.append((p.name, self._lower_type(p_type)))
+
+        # Lower function body with substituted types
+        body: list[LStmt] = []
+        ret_lt = self._lower_type(ret_type)
+        if fn_decl.body is not None:
+            match fn_decl.body:
+                case Block():
+                    body = self._lower_block(fn_decl.body)
+                case Expr():
+                    expr_result = self._lower_expr(fn_decl.body)
+                    body = list(self._pending_stmts)
+                    self._pending_stmts = []
+                    body.append(LReturn(expr_result))
+
+        # Restore state
+        self._types = original_types
+        self._current_fn_return_type = saved_return_type
+        self._current_fn_name = saved_fn_name
+
+        return LFnDef(
+            c_name=site.mangled_name,
+            params=params,
+            ret=ret_lt,
+            body=body,
+            is_pure=fn_decl.is_pure,
+            source_name=f"{site.src_module}.{fn_decl.name}[mono]",
+        )
+
+    def _emit_builtin_method_op(
+        self,
+        op: BuiltinMethodOp,
+        recv: LExpr,
+        args: list[LExpr],
+        lt: LType,
+    ) -> LExpr:
+        """Emit the C expression for a built-in interface method call (SG-3-5-1)."""
+        match op.kind:
+            case "compare":
+                # _rf_compare(a, b) → ((a) < (b) ? -1 : ((a) > (b) ? 1 : 0))
+                return LCall("_rf_compare", [recv, args[0]], LInt(32, True))
+            case "binop":
+                return LBinOp(op.op, recv, args[0], lt)
+            case "checked_binop":
+                # Integer arithmetic — uses RF_CHECKED_ADD/SUB/MUL (overflow → panic)
+                return LCheckedArith(op=op.op, left=recv, right=args[0], c_type=lt)
+            case "unary":
+                return LUnary(op.op, recv, lt)
+            case "call":
+                return LCall(op.op, [recv] + args, lt)
+            case _:
+                raise EmitError(
+                    message=f"unknown BuiltinMethodOp kind: {op.kind!r}",
+                    file=self._file, line=0, col=0,
+                )

@@ -1,0 +1,10 @@
+interface Printable {
+    fn to_string(self): string
+}
+
+type Widget fulfills Printable {
+    name: string
+}
+
+fn main(): none {
+}

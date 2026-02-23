@@ -8,7 +8,7 @@ void rf_tests_option_test_main(void);
 
 /* ReFlow: tests.option_test.find_positive */
 RF_Option_int rf_tests_option_test_find_positive(rf_int x) {
-    if ((x > 0)) {
+    if (x > 0) {
         return (RF_Option_int){.tag = 1, .value = x};
     }
     return (RF_Option_int){.tag = 0};
@@ -17,7 +17,7 @@ RF_Option_int rf_tests_option_test_find_positive(rf_int x) {
 /* ReFlow: tests.option_test.main */
 void rf_tests_option_test_main(void) {
     RF_Option_int _rf_tmp_0 = rf_tests_option_test_find_positive(42);
-    if ((_rf_tmp_0.tag == 1)) {
+    if (_rf_tmp_0.tag == 1) {
         rf_int v = _rf_tmp_0.value;
         RF_String* _rf_tmp_1 = rf_string_from_cstr("found: ");
         rf_println(rf_string_concat(_rf_tmp_1, rf_int_to_string(v)));
@@ -25,7 +25,7 @@ void rf_tests_option_test_main(void) {
         rf_println(rf_string_from_cstr("not found"));
     }
     RF_Option_int _rf_tmp_2 = rf_tests_option_test_find_positive((-5));
-    if ((_rf_tmp_2.tag == 1)) {
+    if (_rf_tmp_2.tag == 1) {
         rf_int v = _rf_tmp_2.value;
         RF_String* _rf_tmp_3 = rf_string_from_cstr("found: ");
         rf_println(rf_string_concat(_rf_tmp_3, rf_int_to_string(v)));

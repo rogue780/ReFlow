@@ -8,7 +8,7 @@ void rf_tests_fibonacci_main(void);
 
 /* ReFlow: tests.fibonacci.fib */
 rf_int rf_tests_fibonacci_fib(rf_int n) {
-    if ((n <= 1)) {
+    if (n <= 1) {
         return n;
     }
     rf_int _rf_e_2;

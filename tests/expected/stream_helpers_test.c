@@ -46,7 +46,7 @@ RF_Option_ptr _rf_next_tests_stream_helpers_test_range(RF_Stream* self) {
     }
 _rf_state_0:;
     frame->i = 0;
-    while ((frame->i < frame->n)) {
+    while (frame->i < frame->n) {
         frame->_state = 1;
         return (RF_Option_ptr){.tag = 1, .value = ((void*)((rf_uint64)frame->i))};
 _rf_state_1:;
@@ -114,7 +114,7 @@ void rf_tests_stream_helpers_test_main(void) {
     RF_Stream* _rf_tmp_1 = rf_stream_take(rf_tests_stream_helpers_test_range(10), 3);
     while (1) {
         RF_Option_ptr _rf_tmp_0 = rf_stream_next(_rf_tmp_1);
-        if ((_rf_tmp_0.tag == 0)) {
+        if (_rf_tmp_0.tag == 0) {
             break;
         }
         rf_int x = ((rf_int)((rf_uint64)_rf_tmp_0.value));
@@ -124,7 +124,7 @@ void rf_tests_stream_helpers_test_main(void) {
     RF_Stream* _rf_tmp_4 = rf_stream_skip(rf_tests_stream_helpers_test_range(5), 2);
     while (1) {
         RF_Option_ptr _rf_tmp_3 = rf_stream_next(_rf_tmp_4);
-        if ((_rf_tmp_3.tag == 0)) {
+        if (_rf_tmp_3.tag == 0) {
             break;
         }
         rf_int x = ((rf_int)((rf_uint64)_rf_tmp_3.value));
@@ -143,7 +143,7 @@ void rf_tests_stream_helpers_test_main(void) {
     RF_Stream* _rf_tmp_10 = rf_stream_map(rf_tests_stream_helpers_test_range(5), _rf_tmp_8);
     while (1) {
         RF_Option_ptr _rf_tmp_9 = rf_stream_next(_rf_tmp_10);
-        if ((_rf_tmp_9.tag == 0)) {
+        if (_rf_tmp_9.tag == 0) {
             break;
         }
         rf_int x = ((rf_int)((rf_uint64)_rf_tmp_9.value));
@@ -162,7 +162,7 @@ void rf_tests_stream_helpers_test_main(void) {
     RF_Stream* _rf_tmp_16 = rf_stream_filter(rf_tests_stream_helpers_test_range(10), _rf_tmp_14);
     while (1) {
         RF_Option_ptr _rf_tmp_15 = rf_stream_next(_rf_tmp_16);
-        if ((_rf_tmp_15.tag == 0)) {
+        if (_rf_tmp_15.tag == 0) {
             break;
         }
         rf_int x = ((rf_int)((rf_uint64)_rf_tmp_15.value));

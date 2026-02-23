@@ -1,0 +1,15 @@
+module mono_checked_add
+
+import io
+import conv
+
+pure fn add_generic<T fulfills Numeric>(a: T, b: T): T {
+    return a.add(b)
+}
+
+fn main(): none {
+    let x = add_generic(3, 4)
+    let y = add_generic(1.5, 2.5)
+    io.println(conv.int_to_string(x))
+    io.println(conv.float_to_string(y))
+}

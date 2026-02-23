@@ -43,7 +43,7 @@ _rf_state_1:;
         frame->i = _rf_e_1;
         rf_int _rf_e_2;
         RF_CHECKED_ADD(frame->start, 2, &_rf_e_2);
-        if ((frame->i > _rf_e_2)) {
+        if (frame->i > _rf_e_2) {
             goto _rf_stream_done;
         }
     }
@@ -72,11 +72,11 @@ void rf_tests_coroutine_test_main(void) {
     RF_Option_ptr _rf_tmp_0 = rf_coroutine_next(gen);
     RF_Option_int _rf_tmp_1;
     _rf_tmp_1.tag = _rf_tmp_0.tag;
-    if ((_rf_tmp_0.tag == 1)) {
+    if (_rf_tmp_0.tag == 1) {
         _rf_tmp_1.value = ((rf_int)((rf_int64)_rf_tmp_0.value));
     }
     RF_Option_int _rf_tmp_2 = _rf_tmp_1;
-    if ((_rf_tmp_2.tag == 1)) {
+    if (_rf_tmp_2.tag == 1) {
         rf_int v = _rf_tmp_2.value;
         RF_String* _rf_tmp_3 = rf_string_from_cstr("v=");
         rf_println(rf_string_concat(_rf_tmp_3, rf_int_to_string(v)));
@@ -86,11 +86,11 @@ void rf_tests_coroutine_test_main(void) {
     RF_Option_ptr _rf_tmp_4 = rf_coroutine_next(gen);
     RF_Option_int _rf_tmp_5;
     _rf_tmp_5.tag = _rf_tmp_4.tag;
-    if ((_rf_tmp_4.tag == 1)) {
+    if (_rf_tmp_4.tag == 1) {
         _rf_tmp_5.value = ((rf_int)((rf_int64)_rf_tmp_4.value));
     }
     RF_Option_int _rf_tmp_6 = _rf_tmp_5;
-    if ((_rf_tmp_6.tag == 1)) {
+    if (_rf_tmp_6.tag == 1) {
         rf_int v = _rf_tmp_6.value;
         RF_String* _rf_tmp_7 = rf_string_from_cstr("v=");
         rf_println(rf_string_concat(_rf_tmp_7, rf_int_to_string(v)));
@@ -100,11 +100,11 @@ void rf_tests_coroutine_test_main(void) {
     RF_Option_ptr _rf_tmp_8 = rf_coroutine_next(gen);
     RF_Option_int _rf_tmp_9;
     _rf_tmp_9.tag = _rf_tmp_8.tag;
-    if ((_rf_tmp_8.tag == 1)) {
+    if (_rf_tmp_8.tag == 1) {
         _rf_tmp_9.value = ((rf_int)((rf_int64)_rf_tmp_8.value));
     }
     RF_Option_int _rf_tmp_10 = _rf_tmp_9;
-    if ((_rf_tmp_10.tag == 1)) {
+    if (_rf_tmp_10.tag == 1) {
         rf_int v = _rf_tmp_10.value;
         RF_String* _rf_tmp_11 = rf_string_from_cstr("v=");
         rf_println(rf_string_concat(_rf_tmp_11, rf_int_to_string(v)));
@@ -116,11 +116,11 @@ void rf_tests_coroutine_test_main(void) {
     RF_Option_ptr _rf_tmp_13 = rf_coroutine_next(gen);
     RF_Option_int _rf_tmp_14;
     _rf_tmp_14.tag = _rf_tmp_13.tag;
-    if ((_rf_tmp_13.tag == 1)) {
+    if (_rf_tmp_13.tag == 1) {
         _rf_tmp_14.value = ((rf_int)((rf_int64)_rf_tmp_13.value));
     }
     RF_Option_int _rf_tmp_15 = _rf_tmp_14;
-    if ((_rf_tmp_15.tag == 1)) {
+    if (_rf_tmp_15.tag == 1) {
         rf_int v = _rf_tmp_15.value;
         RF_String* _rf_tmp_16 = rf_string_from_cstr("v=");
         rf_println(rf_string_concat(_rf_tmp_16, rf_int_to_string(v)));

@@ -1,0 +1,7 @@
+module unbounded_method_call
+
+fn bad<T>(a: T): int {
+    return a.compare(a)
+}
+
+fn main(): void { }

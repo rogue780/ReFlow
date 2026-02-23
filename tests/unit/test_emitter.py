@@ -345,7 +345,7 @@ class TestEmitStmt(unittest.TestCase):
                    LLit("0", LInt(32, True)), LBool()),
             [LReturn(LLit("1", LInt(32, True)))],
             [LReturn(LLit("0", LInt(32, True)))]))
-        self.assertIn("if ((x > 0)) {", result)
+        self.assertIn("if (x > 0) {", result)
         self.assertIn("} else {", result)
         self.assertIn("return 0;", result)
 
@@ -354,7 +354,7 @@ class TestEmitStmt(unittest.TestCase):
             LBinOp("<", LVar("i", LInt(32, True)),
                    LVar("n", LInt(32, True)), LBool()),
             [LExprStmt(LCall("do_something", [], LVoid()))]))
-        self.assertIn("while ((i < n)) {", result)
+        self.assertIn("while (i < n) {", result)
         self.assertIn("do_something();", result)
 
     def test_block(self) -> None:

@@ -7,7 +7,7 @@ void rf_tests_stdlib_io_test_main(void) {
     RF_String* tmp = rf_tmpfile_create(rf_string_from_cstr(".txt"), rf_string_from_cstr("hello from reflow"));
     RF_Option_ptr contents = rf_read_file(tmp);
     RF_Option_ptr _rf_tmp_0 = contents;
-    if ((_rf_tmp_0.tag == 1)) {
+    if (_rf_tmp_0.tag == 1) {
         RF_String* s = _rf_tmp_0.value;
         RF_String* _rf_tmp_1 = rf_string_from_cstr("read: ");
         rf_println(rf_string_concat(_rf_tmp_1, s));
@@ -17,7 +17,7 @@ void rf_tests_stdlib_io_test_main(void) {
     rf_tmpfile_remove(tmp);
     RF_Option_ptr after = rf_read_file(tmp);
     RF_Option_ptr _rf_tmp_2 = after;
-    if ((_rf_tmp_2.tag == 1)) {
+    if (_rf_tmp_2.tag == 1) {
         RF_String* s = _rf_tmp_2.value;
         RF_String* _rf_tmp_3 = rf_string_from_cstr("after remove: ");
         rf_println(rf_string_concat(_rf_tmp_3, s));
@@ -29,7 +29,7 @@ void rf_tests_stdlib_io_test_main(void) {
     rf_println(rf_string_concat(_rf_tmp_4, rf_bool_to_string(wrote)));
     RF_Option_ptr contents2 = rf_read_file(tmp);
     RF_Option_ptr _rf_tmp_5 = contents2;
-    if ((_rf_tmp_5.tag == 1)) {
+    if (_rf_tmp_5.tag == 1) {
         RF_String* s = _rf_tmp_5.value;
         RF_String* _rf_tmp_6 = rf_string_from_cstr("read2: ");
         rf_println(rf_string_concat(_rf_tmp_6, s));

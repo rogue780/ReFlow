@@ -183,6 +183,19 @@ class TAny(Type):
     pass
 
 
+@dataclass(frozen=True)
+class TSelf(Type):
+    """The implementing type in an interface method signature (SG-1-1-2).
+
+    Appears in built-in interface definitions like Comparable.compare where
+    the 'other' parameter has type `self` (the implementing type). At
+    fulfillment-checking time, TSelf is substituted with the concrete type.
+    At body-level method resolution time, TSelf is substituted with the
+    TTypeVar of the bounded parameter.
+    """
+    pass
+
+
 # ---------------------------------------------------------------------------
 # TypeEnv — generic type variable bindings (RT-6-1-2)
 # ---------------------------------------------------------------------------
@@ -379,10 +392,16 @@ class TypeChecker:
         self._in_pure_fn = False
         self._purity_map: dict[str, bool] = {}
         self._interface_registry: dict[str, InterfaceInfo] = {}
+        self._builtin_fulfillments: dict[str, list[str]] = {}
+        self._builtin_method_sigs: dict[tuple[str, str], TFn] = {}
+        # Tracks the current FnDecl being type-checked (for body-level resolution)
+        self._current_fn_decl: FnDecl | None = None
 
     def check(self) -> TypedModule:
         """Run the type checking pass."""
         self._register_builtin_interfaces()
+        self._register_builtin_fulfillments()
+        self._register_builtin_method_sigs()
         self._build_type_registry()
         self._build_interface_registry()
         self._register_top_level_types()
@@ -484,7 +503,12 @@ class TypeChecker:
     # ------------------------------------------------------------------
 
     def _register_builtin_interfaces(self) -> None:
-        """Register built-in interfaces like Exception<T>."""
+        """Register built-in interfaces (SG-1-1-1).
+
+        Exception<T> was here originally; the four core interfaces
+        (Comparable, Numeric, Equatable, Showable) are added here too.
+        TSelf() represents the implementing type in non-receiver parameters.
+        """
         self._interface_registry["Exception"] = InterfaceInfo(
             name="Exception",
             type_params=[TypeParam(name="T", bounds=[], line=0, col=0)],
@@ -496,6 +520,138 @@ class TypeChecker:
             constructor_name=None,
             constructor_sig=None,
         )
+
+        # Comparable: ordering comparison
+        self._interface_registry["Comparable"] = InterfaceInfo(
+            name="Comparable",
+            type_params=[],
+            methods={
+                "compare": TFn((TSelf(),), TInt(32, True), True),
+            },
+            constructor_name=None,
+            constructor_sig=None,
+        )
+
+        # Numeric: arithmetic operations
+        self._interface_registry["Numeric"] = InterfaceInfo(
+            name="Numeric",
+            type_params=[],
+            methods={
+                "negate": TFn((), TSelf(), True),
+                "add": TFn((TSelf(),), TSelf(), True),
+                "sub": TFn((TSelf(),), TSelf(), True),
+                "mul": TFn((TSelf(),), TSelf(), True),
+            },
+            constructor_name=None,
+            constructor_sig=None,
+        )
+
+        # Equatable: value equality
+        self._interface_registry["Equatable"] = InterfaceInfo(
+            name="Equatable",
+            type_params=[],
+            methods={
+                "equals": TFn((TSelf(),), TBool(), True),
+            },
+            constructor_name=None,
+            constructor_sig=None,
+        )
+
+        # Showable: human-readable string conversion
+        self._interface_registry["Showable"] = InterfaceInfo(
+            name="Showable",
+            type_params=[],
+            methods={
+                "to_string": TFn((), TString(), True),
+            },
+            constructor_name=None,
+            constructor_sig=None,
+        )
+
+    def _register_builtin_fulfillments(self) -> None:
+        """Record which built-in types fulfill core interfaces (SG-1-2-1)."""
+        self._builtin_fulfillments = {
+            "int":    ["Comparable", "Numeric", "Equatable", "Showable"],
+            "int16":  ["Comparable", "Numeric", "Equatable", "Showable"],
+            "int32":  ["Comparable", "Numeric", "Equatable", "Showable"],
+            "int64":  ["Comparable", "Numeric", "Equatable", "Showable"],
+            "uint":   ["Comparable", "Numeric", "Equatable", "Showable"],
+            "uint16": ["Comparable", "Numeric", "Equatable", "Showable"],
+            "uint32": ["Comparable", "Numeric", "Equatable", "Showable"],
+            "uint64": ["Comparable", "Numeric", "Equatable", "Showable"],
+            "float":  ["Comparable", "Numeric", "Equatable", "Showable"],
+            "float32":["Comparable", "Numeric", "Equatable", "Showable"],
+            "float64":["Comparable", "Numeric", "Equatable", "Showable"],
+            "string": ["Comparable", "Equatable", "Showable"],
+            "bool":   ["Equatable", "Showable"],
+            "char":   ["Comparable", "Equatable", "Showable"],
+            "byte":   ["Comparable", "Equatable", "Showable"],
+        }
+
+    def _register_builtin_method_sigs(self) -> None:
+        """Register method signatures for built-in types (SG-1-2-3).
+
+        Needed by Epic 2 (body-level method resolution) so the type checker
+        knows the concrete signatures of synthetic methods on built-in types.
+        """
+        int_t    = TInt(32, True)
+        int64_t  = TInt(64, True)
+        float_t  = TFloat(64)
+        string_t = TString()
+        bool_t   = TBool()
+        char_t   = TChar()
+        byte_t   = TByte()
+
+        def _num_sigs(t: Type) -> dict[tuple[str, str], TFn]:
+            name = self._type_name(t)
+            return {
+                (name, "compare"): TFn((t,), int_t, True),
+                (name, "negate"):  TFn((), t, True),
+                (name, "add"):     TFn((t,), t, True),
+                (name, "sub"):     TFn((t,), t, True),
+                (name, "mul"):     TFn((t,), t, True),
+                (name, "equals"):  TFn((t,), bool_t, True),
+                (name, "to_string"): TFn((), string_t, True),
+            }
+
+        sigs: dict[tuple[str, str], TFn] = {}
+        for t in [int_t, int64_t, float_t,
+                  TInt(16, True), TInt(32, True),
+                  TInt(64, True), TInt(32, False),
+                  TInt(16, False), TInt(64, False),
+                  TFloat(32), TFloat(64)]:
+            sigs.update(_num_sigs(t))
+
+        # string
+        sigs[("string", "compare")]   = TFn((string_t,), int_t, True)
+        sigs[("string", "equals")]    = TFn((string_t,), bool_t, True)
+        sigs[("string", "to_string")] = TFn((), string_t, True)
+
+        # bool
+        sigs[("bool", "equals")]    = TFn((bool_t,), bool_t, True)
+        sigs[("bool", "to_string")] = TFn((), string_t, True)
+
+        # char
+        sigs[("char", "compare")]   = TFn((char_t,), int_t, True)
+        sigs[("char", "equals")]    = TFn((char_t,), bool_t, True)
+        sigs[("char", "to_string")] = TFn((), string_t, True)
+
+        # byte
+        sigs[("byte", "compare")]   = TFn((byte_t,), int_t, True)
+        sigs[("byte", "equals")]    = TFn((byte_t,), bool_t, True)
+        sigs[("byte", "to_string")] = TFn((), string_t, True)
+
+        self._builtin_method_sigs = sigs
+
+    def _substitute_self(self, sig: TFn, replacement: Type) -> TFn:
+        """Replace TSelf with a concrete type or type variable in a TFn (SG-2-1-4).
+
+        Intentionally shallow: TSelf only appears at the top level of
+        interface method signatures for the four core interfaces.
+        """
+        def _sub(t: Type) -> Type:
+            return replacement if isinstance(t, TSelf) else t
+        return TFn(tuple(_sub(p) for p in sig.params), _sub(sig.ret), sig.is_pure)
 
     # ------------------------------------------------------------------
     # Pre-pass: build interface registry from InterfaceDecl nodes
@@ -783,8 +939,14 @@ class TypeChecker:
                 node,
             )
 
-        # Look up the concrete type's info
         concrete_name = self._type_name(concrete)
+
+        # Fast path: built-in fulfillment (SG-1-2-2)
+        builtin_ifaces = self._builtin_fulfillments.get(concrete_name, [])
+        if iface_name in builtin_ifaces:
+            return  # satisfied without method-by-method checking
+
+        # Slow path: look up the concrete type's info and check methods
         info = self._type_registry.get(concrete_name)
         if info is None:
             raise self._error(
@@ -829,6 +991,57 @@ class TypeChecker:
             for bound_expr in tp.bounds:
                 self._check_type_satisfies_bound(
                     concrete, bound_expr, node, tp.name, fn_decl.name)
+
+    # ------------------------------------------------------------------
+    # Body-level method resolution for bounded type variables (SG-2-1)
+    # ------------------------------------------------------------------
+
+    def _find_type_param(self, name: str) -> TypeParam | None:
+        """Find the TypeParam that introduced a type variable by name (SG-2-1-3)."""
+        if self._current_fn_decl is not None:
+            for tp in self._current_fn_decl.type_params:
+                if tp.name == name:
+                    return tp
+        return None
+
+    def _resolve_interface_name_from_expr(self, bound_expr: TypeExpr) -> str | None:
+        """Extract the interface name from a bound TypeExpr."""
+        match bound_expr:
+            case NamedType(name=iface_name):
+                return iface_name
+            case GenericType(base=NamedType(name=iface_name)):
+                return iface_name
+            case _:
+                return None
+
+    def _resolve_method_on_typevar(
+        self,
+        tv: TTypeVar,
+        method_name: str,
+        node: ASTNode,
+    ) -> TFn | None:
+        """Resolve a method call on a type variable using its bounds (SG-2-1-1).
+
+        Returns the method's TFn signature with TSelf replaced by the TTypeVar,
+        or None if no bound interface provides the method.
+        """
+        tp = self._find_type_param(tv.name)
+        if tp is None or not tp.bounds:
+            return None
+
+        for bound_expr in tp.bounds:
+            iface_name = self._resolve_interface_name_from_expr(bound_expr)
+            if iface_name is None:
+                continue
+            iface = self._interface_registry.get(iface_name)
+            if iface is None:
+                continue
+            if method_name in iface.methods:
+                sig = iface.methods[method_name]
+                # Replace TSelf with the type variable (SG-2-1-4)
+                return self._substitute_self(sig, tv)
+
+        return None
 
     # ------------------------------------------------------------------
     # Pre-pass: register top-level names in the type scope
@@ -897,9 +1110,11 @@ class TypeChecker:
         old_ret = self._current_return_type
         old_consumed = self._consumed_streams
         old_pure = self._in_pure_fn
+        old_fn_decl = self._current_fn_decl
         self._current_return_type = ret_type
         self._consumed_streams = set()
         self._in_pure_fn = fn.is_pure
+        self._current_fn_decl = fn
 
         match fn.body:
             case Block():
@@ -917,6 +1132,7 @@ class TypeChecker:
         self._current_return_type = old_ret
         self._consumed_streams = old_consumed
         self._in_pure_fn = old_pure
+        self._current_fn_decl = old_fn_decl
 
     def _check_type_decl(self, decl: TypeDecl) -> None:
         for s in decl.static_members:
@@ -1282,6 +1498,20 @@ class TypeChecker:
                     else:
                         raise self._error(
                             f"stream has no method '{method_name}'", expr)
+
+                # SG-2-1-2: method on type variable via bounds
+                if isinstance(recv_t, TTypeVar):
+                    sig = self._resolve_method_on_typevar(
+                        recv_t, method_name, expr)
+                    if sig is not None:
+                        self._check_call_args(sig, arg_types, args, expr)
+                        return sig.ret
+                    raise self._error(
+                        f"no method '{method_name}' on type variable "
+                        f"'{recv_t.name}' — add a bound like "
+                        f"'fulfills <Interface>'",
+                        expr,
+                    )
 
                 # Look up method on the receiver type
                 method_type = self._lookup_method(recv_t, method_name, expr)

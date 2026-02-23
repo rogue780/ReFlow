@@ -1010,6 +1010,70 @@ interface SortedContainer<T fulfills Comparable> {
 Any type fulfilling `SortedContainer` must supply a concrete type for `T`
 that itself fulfills `Comparable`.
 
+### Core Built-in Interfaces
+
+These four interfaces exist without any `interface` declaration in user code.
+They are registered by the compiler and fulfilled by built-in types via
+compiler-synthesized method implementations (not source-level `fulfills`
+declarations).
+
+```
+; Ordering comparison.
+; Returns negative if self < other, zero if equal, positive if self > other.
+interface Comparable {
+    pure fn compare(self, other: self): int
+}
+
+; Arithmetic operations on numeric types.
+interface Numeric {
+    pure fn negate(self): self
+    pure fn add(self, other: self): self
+    pure fn sub(self, other: self): self
+    pure fn mul(self, other: self): self
+}
+
+; Value equality.
+interface Equatable {
+    pure fn equals(self, other: self): bool
+}
+
+; Human-readable string conversion.
+interface Showable {
+    pure fn to_string(self): string
+}
+```
+
+The `self` type annotation in non-receiver parameters (e.g.,
+`compare(self, other: self)`) means "the implementing type." When
+`int fulfills Comparable`, the method signature becomes
+`compare(self: int, other: int): int`.
+
+`Numeric` intentionally omits a `zero()` static factory. Functions that
+need a zero value (such as `sum`) accept it as an explicit parameter.
+
+### Built-in Fulfillments
+
+| Type | Comparable | Numeric | Equatable | Showable |
+|------|:---:|:---:|:---:|:---:|
+| `int` | yes | yes | yes | yes |
+| `int64` | yes | yes | yes | yes |
+| `float` | yes | yes | yes | yes |
+| `string` | yes (lexicographic) | — | yes | yes (identity) |
+| `bool` | — | — | yes | yes |
+| `char` | yes (Unicode scalar) | — | yes | yes |
+| `byte` | yes | — | yes | yes |
+
+Operator mappings for the compiler's synthetic implementations:
+
+- `compare(other)` → `(self < other) ? -1 : (self > other) ? 1 : 0`
+- `negate()` → `-self`
+- `add(other)` → `self + other` (checked for integer types)
+- `sub(other)` → `self - other` (checked for integer types)
+- `mul(other)` → `self * other` (checked for integer types)
+- `equals(other)` → `self == other`
+- `to_string()` → calls the corresponding runtime conversion function
+- `string.to_string()` → returns `self` (identity, retains)
+
 ### The `collection` Interface
 
 `collection<K, V>` is a built-in interface. Standard collection types (`map<K, V>`, `array<T>`, `buffer<T>`) implement it. Custom types may also fulfill it.

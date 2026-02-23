@@ -3,7 +3,7 @@ import io (println)
 
 fn naturals(start: int): stream<int> {
     let i: int:mut = start
-    while true {
+    while (true) {
         yield i
         i = i + 1
     }

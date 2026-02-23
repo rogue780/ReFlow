@@ -129,6 +129,27 @@ RF_String* rf_int_to_string(rf_int v);
 RF_String* rf_int64_to_string(rf_int64 v);
 RF_String* rf_float_to_string(rf_float v);
 RF_String* rf_bool_to_string(rf_bool v);
+RF_String* rf_byte_to_string(rf_byte v);
+
+/* ========================================================================
+ * Built-in Interface Method Helpers (SG-3-5-2)
+ *
+ * These support the synthetic Comparable / Equatable / Showable methods
+ * on built-in types that the compiler emits for monomorphized generic code.
+ * ======================================================================== */
+
+/* _rf_compare: Comparable.compare for numeric/char/byte types.
+ * Returns negative if a < b, zero if a == b, positive if a > b. */
+#define _rf_compare(a, b) ((a) < (b) ? -1 : ((a) > (b) ? 1 : 0))
+
+/* _rf_identity_string: Showable.to_string for string (identity).
+ * Retains the string (caller's responsibility to release) and returns it.
+ * NOTE: The self-hosted compiler could detect this as a no-op and elide
+ * the call. For the reference compiler the overhead is negligible. */
+static inline RF_String* _rf_identity_string(RF_String* s) {
+    rf_string_retain(s);
+    return s;
+}
 
 /* ========================================================================
  * Result Types (RT-1-3-2)

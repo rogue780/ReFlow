@@ -1,0 +1,13 @@
+type AppError fulfills Exception<string> {
+    msg: string
+
+    fn message(self): string {
+        return self.msg
+    }
+    fn data(self): string {
+        return self.msg
+    }
+}
+
+fn main(): none {
+}

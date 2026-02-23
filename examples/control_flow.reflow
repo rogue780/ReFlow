@@ -23,7 +23,7 @@ fn main() {
     ; While loop with mutable counter
     let i: int:mut = 1
     let total: int:mut = 0
-    while i <= 10 {
+    while (i <= 10) {
         total += i
         i++
     }
@@ -31,7 +31,7 @@ fn main() {
 
     ; While loop with break
     let j: int:mut = 0
-    while true {
+    while (true) {
         if j >= 5 {
             break
         }
@@ -41,7 +41,7 @@ fn main() {
 
     ; FizzBuzz
     let k: int:mut = 1
-    while k <= 15 {
+    while (k <= 15) {
         println(fizzbuzz(k))
         k++
     }

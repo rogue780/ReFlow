@@ -6,7 +6,7 @@ import io (println)
 fn repeat(s: string, n: int): string {
     let result: string:mut = ""
     let i: int:mut = 0
-    while i < n {
+    while (i < n) {
         result = result + s
         i++
     }

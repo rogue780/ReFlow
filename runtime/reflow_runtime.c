@@ -162,6 +162,12 @@ RF_String* rf_bool_to_string(rf_bool v) {
     return v ? rf_string_new("true", 4) : rf_string_new("false", 5);
 }
 
+RF_String* rf_byte_to_string(rf_byte v) {
+    char buf[8];
+    int len = snprintf(buf, sizeof(buf), "%u", (unsigned)v);
+    return rf_string_new(buf, len);
+}
+
 /* ========================================================================
  * Array (RT-1-4-1, RT-1-4-2)
  * ======================================================================== */

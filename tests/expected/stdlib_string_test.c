@@ -7,7 +7,7 @@ void rf_tests_stdlib_string_test_main(void) {
     RF_String* s = rf_string_from_cstr("Hello, World!");
     RF_Option_char ch = rf_string_char_at(s, 0);
     RF_Option_char _rf_tmp_0 = ch;
-    if ((_rf_tmp_0.tag == 1)) {
+    if (_rf_tmp_0.tag == 1) {
         rf_char c = _rf_tmp_0.value;
         RF_String* _rf_tmp_1 = rf_string_from_cstr("char_at(0): ");
         rf_println(rf_string_concat(_rf_tmp_1, rf_char_to_string(c)));
@@ -19,7 +19,7 @@ void rf_tests_stdlib_string_test_main(void) {
     rf_println(rf_string_concat(_rf_tmp_2, sub));
     RF_Option_int idx = rf_string_index_of(s, rf_string_from_cstr("World"));
     RF_Option_int _rf_tmp_3 = idx;
-    if ((_rf_tmp_3.tag == 1)) {
+    if (_rf_tmp_3.tag == 1) {
         rf_int i = _rf_tmp_3.value;
         RF_String* _rf_tmp_4 = rf_string_from_cstr("index_of World: ");
         rf_println(rf_string_concat(_rf_tmp_4, rf_int_to_string(i)));

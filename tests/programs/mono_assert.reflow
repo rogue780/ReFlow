@@ -1,0 +1,17 @@
+module mono_assert
+
+import io
+import sys
+
+fn my_assert_eq<T fulfills (Equatable, Showable)>(expected: T, actual: T, msg: string): void {
+    if !expected.equals(actual) {
+        io.eprintln(f"FAIL: {msg}")
+        sys.exit(1)
+    }
+}
+
+fn main(): none {
+    my_assert_eq(42, 42, "int equality")
+    my_assert_eq("hello", "hello", "string equality")
+    io.println("all passed")
+}

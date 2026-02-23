@@ -19,7 +19,7 @@ void rf_tests_exception_retry_test_main(void) {
     RF_ExceptionFrame _rf_ef_0;
     rf_bool _rf_ef_0_caught = rf_true;
     _rf_exception_push((&_rf_ef_0));
-    if ((setjmp(_rf_ef_0.jmp) == 0)) {
+    if (setjmp(_rf_ef_0.jmp) == 0) {
         rf_int val = rf_tests_exception_retry_test_parse_value(rf_string_from_cstr("bad"));
         RF_String* _rf_tmp_0 = rf_string_from_cstr("got: ");
         rf_println(rf_string_concat(_rf_tmp_0, rf_int_to_string(val)));
@@ -27,14 +27,14 @@ void rf_tests_exception_retry_test_main(void) {
     } else {
         _rf_exception_pop();
         _rf_ef_0_caught = rf_false;
-        if ((_rf_ef_0.exception_tag == 0)) {
+        if (_rf_ef_0.exception_tag == 0) {
             rf_int _rf_tmp_1 = 0;
             RF_String* ex = ((RF_String*)_rf_ef_0.exception);
-            while ((_rf_tmp_1 < 2)) {
+            while (_rf_tmp_1 < 2) {
                 _rf_tmp_1 = (_rf_tmp_1 + 1);
                 rf_println(rf_string_from_cstr("retry attempt"));
                 _rf_exception_push((&_rf_ef_0));
-                if ((setjmp(_rf_ef_0.jmp) == 0)) {
+                if (setjmp(_rf_ef_0.jmp) == 0) {
                     rf_int val = rf_tests_exception_retry_test_parse_value(rf_string_from_cstr("bad"));
                     RF_String* _rf_tmp_3 = rf_string_from_cstr("got: ");
                     rf_println(rf_string_concat(_rf_tmp_3, rf_int_to_string(val)));
@@ -51,7 +51,7 @@ _rf_tmp_2:;
         }
     }
     rf_println(rf_string_from_cstr("finally after retry"));
-    if ((!_rf_ef_0_caught)) {
+    if (!_rf_ef_0_caught) {
         _rf_throw(_rf_ef_0.exception, _rf_ef_0.exception_tag);
     }
     rf_println(rf_string_from_cstr("done"));

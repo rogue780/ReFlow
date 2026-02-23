@@ -757,7 +757,7 @@ class TestStatements(unittest.TestCase):
     def test_while_stmt(self):
         src = """fn main(): none {
     let x: bool:mut = true
-    while x {
+    while (x) {
         x = false
     }
 }"""
