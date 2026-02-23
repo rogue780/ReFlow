@@ -1,0 +1,35 @@
+// Self-test example: exercises testing, conv, string, and math modules.
+// This program runs assertions and prints the results.
+// If any assertion fails, the program exits with an error.
+
+import testing
+import conv
+import math
+import io
+
+fn main(): void {
+    io.println("Running self-tests...")
+
+    // Math module tests
+    testing.assert_eq_int(5, math.abs_int(-5), "abs_int(-5) should be 5")
+    testing.assert_eq_int(0, math.abs_int(0), "abs_int(0) should be 0")
+    testing.assert_eq_int(3, math.min_int(3, 7), "min_int(3, 7) should be 3")
+    testing.assert_eq_int(7, math.max_int(3, 7), "max_int(3, 7) should be 7")
+    testing.assert_eq_int(5, math.clamp_int(10, 1, 5), "clamp_int(10, 1, 5) should be 5")
+    testing.assert_eq_int(1, math.clamp_int(-3, 1, 5), "clamp_int(-3, 1, 5) should be 1")
+    testing.assert_eq_int(3, math.clamp_int(3, 1, 5), "clamp_int(3, 1, 5) should be 3")
+
+    // Conv module tests
+    testing.assert_eq_string("42", conv.int_to_string(42), "int_to_string(42)")
+    testing.assert_eq_string("-1", conv.int_to_string(-1), "int_to_string(-1)")
+    testing.assert_eq_string("true", conv.bool_to_string(true), "bool_to_string(true)")
+    testing.assert_eq_string("false", conv.bool_to_string(false), "bool_to_string(false)")
+
+    // Boolean logic tests
+    testing.assert_true(true, "true should be true")
+    testing.assert_false(false, "false should be false")
+    testing.assert_eq_bool(true, 1 == 1, "1 == 1 should be true")
+    testing.assert_eq_bool(false, 1 == 2, "1 == 2 should be false")
+
+    io.println("All self-tests passed!")
+}
