@@ -391,6 +391,36 @@ void rf_channel_release(RF_Channel* ch) {
     }
 }
 
+/* Non-blocking channel operations (SL-5-5) */
+
+rf_bool rf_channel_try_send(RF_Channel* ch, void* val) {
+    pthread_mutex_lock(&ch->mutex);
+    if (ch->closed || ch->count == ch->capacity) {
+        pthread_mutex_unlock(&ch->mutex);
+        return rf_false;
+    }
+    ch->buffer[ch->tail] = val;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return rf_true;
+}
+
+RF_Option_ptr rf_channel_try_recv(RF_Channel* ch) {
+    pthread_mutex_lock(&ch->mutex);
+    if (ch->count == 0) {
+        pthread_mutex_unlock(&ch->mutex);
+        return RF_NONE_PTR;
+    }
+    void* val = ch->buffer[ch->head];
+    ch->head = (ch->head + 1) % ch->capacity;
+    ch->count--;
+    pthread_cond_signal(&ch->not_full);
+    pthread_mutex_unlock(&ch->mutex);
+    return RF_SOME_PTR(val);
+}
+
 /* ========================================================================
  * Coroutines
  * ======================================================================== */
@@ -771,6 +801,164 @@ static void _rf_empty_free(RF_Stream* self) {
 
 RF_Stream* rf_stream_empty(void) {
     return rf_stream_new(_rf_empty_next, _rf_empty_free, NULL);
+}
+
+/* ========================================================================
+ * Stream Transformation (SL-5-3)
+ * ======================================================================== */
+
+/* --- enumerate --- */
+
+typedef struct {
+    RF_Stream* source;
+    rf_int64   index;
+} _RF_EnumerateState;
+
+static RF_Option_ptr _rf_enumerate_next(RF_Stream* self) {
+    _RF_EnumerateState* st = (_RF_EnumerateState*)self->state;
+    RF_Option_ptr item = rf_stream_next(st->source);
+    if (item.tag == 0) return RF_NONE_PTR;
+    RF_Pair* pair = (RF_Pair*)malloc(sizeof(RF_Pair));
+    if (!pair) rf_panic("rf_stream_enumerate: out of memory");
+    pair->first = (void*)(intptr_t)(st->index++);
+    pair->second = item.value;
+    return RF_SOME_PTR(pair);
+}
+
+static void _rf_enumerate_free(RF_Stream* self) {
+    _RF_EnumerateState* st = (_RF_EnumerateState*)self->state;
+    rf_stream_release(st->source);
+    free(st);
+}
+
+RF_Stream* rf_stream_enumerate(RF_Stream* source) {
+    rf_stream_retain(source);
+    _RF_EnumerateState* st = (_RF_EnumerateState*)malloc(sizeof(_RF_EnumerateState));
+    if (!st) rf_panic("rf_stream_enumerate: out of memory");
+    st->source = source;
+    st->index = 0;
+    return rf_stream_new(_rf_enumerate_next, _rf_enumerate_free, st);
+}
+
+/* --- zip --- */
+
+typedef struct {
+    RF_Stream* a;
+    RF_Stream* b;
+} _RF_ZipState;
+
+static RF_Option_ptr _rf_zip_next(RF_Stream* self) {
+    _RF_ZipState* st = (_RF_ZipState*)self->state;
+    RF_Option_ptr item_a = rf_stream_next(st->a);
+    if (item_a.tag == 0) return RF_NONE_PTR;
+    RF_Option_ptr item_b = rf_stream_next(st->b);
+    if (item_b.tag == 0) return RF_NONE_PTR;
+    RF_Pair* pair = (RF_Pair*)malloc(sizeof(RF_Pair));
+    if (!pair) rf_panic("rf_stream_zip: out of memory");
+    pair->first = item_a.value;
+    pair->second = item_b.value;
+    return RF_SOME_PTR(pair);
+}
+
+static void _rf_zip_free(RF_Stream* self) {
+    _RF_ZipState* st = (_RF_ZipState*)self->state;
+    rf_stream_release(st->a);
+    rf_stream_release(st->b);
+    free(st);
+}
+
+RF_Stream* rf_stream_zip(RF_Stream* a, RF_Stream* b) {
+    rf_stream_retain(a);
+    rf_stream_retain(b);
+    _RF_ZipState* st = (_RF_ZipState*)malloc(sizeof(_RF_ZipState));
+    if (!st) rf_panic("rf_stream_zip: out of memory");
+    st->a = a;
+    st->b = b;
+    return rf_stream_new(_rf_zip_next, _rf_zip_free, st);
+}
+
+/* --- chain --- */
+
+typedef struct {
+    RF_Stream* a;
+    RF_Stream* b;
+    rf_bool    a_done;
+} _RF_ChainState;
+
+static RF_Option_ptr _rf_chain_next(RF_Stream* self) {
+    _RF_ChainState* st = (_RF_ChainState*)self->state;
+    if (!st->a_done) {
+        RF_Option_ptr item = rf_stream_next(st->a);
+        if (item.tag == 1) return item;
+        st->a_done = rf_true;
+    }
+    return rf_stream_next(st->b);
+}
+
+static void _rf_chain_free(RF_Stream* self) {
+    _RF_ChainState* st = (_RF_ChainState*)self->state;
+    rf_stream_release(st->a);
+    rf_stream_release(st->b);
+    free(st);
+}
+
+RF_Stream* rf_stream_chain(RF_Stream* a, RF_Stream* b) {
+    rf_stream_retain(a);
+    rf_stream_retain(b);
+    _RF_ChainState* st = (_RF_ChainState*)malloc(sizeof(_RF_ChainState));
+    if (!st) rf_panic("rf_stream_chain: out of memory");
+    st->a = a;
+    st->b = b;
+    st->a_done = rf_false;
+    return rf_stream_new(_rf_chain_next, _rf_chain_free, st);
+}
+
+/* --- flat_map --- */
+
+typedef struct {
+    RF_Stream*  source;
+    RF_Closure* f;
+    RF_Stream*  current_sub;
+} _RF_FlatMapState;
+
+static RF_Option_ptr _rf_flat_map_next(RF_Stream* self) {
+    _RF_FlatMapState* st = (_RF_FlatMapState*)self->state;
+    for (;;) {
+        /* Try to pull from the current sub-stream */
+        if (st->current_sub) {
+            RF_Option_ptr item = rf_stream_next(st->current_sub);
+            if (item.tag == 1) return item;
+            /* Sub-stream exhausted */
+            rf_stream_release(st->current_sub);
+            st->current_sub = NULL;
+        }
+        /* Pull next element from source */
+        RF_Option_ptr src_item = rf_stream_next(st->source);
+        if (src_item.tag == 0) return RF_NONE_PTR;
+        /* Call closure: RF_Stream* (*)(void* item, void* env) */
+        typedef RF_Stream* (*FlatMapFn)(void*, void*);
+        FlatMapFn fn = (FlatMapFn)st->f->fn;
+        st->current_sub = fn(src_item.value, st->f->env);
+    }
+}
+
+static void _rf_flat_map_free(RF_Stream* self) {
+    _RF_FlatMapState* st = (_RF_FlatMapState*)self->state;
+    rf_stream_release(st->source);
+    if (st->current_sub) {
+        rf_stream_release(st->current_sub);
+    }
+    free(st);
+}
+
+RF_Stream* rf_stream_flat_map(RF_Stream* source, RF_Closure* f) {
+    rf_stream_retain(source);
+    _RF_FlatMapState* st = (_RF_FlatMapState*)malloc(sizeof(_RF_FlatMapState));
+    if (!st) rf_panic("rf_stream_flat_map: out of memory");
+    st->source = source;
+    st->f = f;
+    st->current_sub = NULL;
+    return rf_stream_new(_rf_flat_map_next, _rf_flat_map_free, st);
 }
 
 /* ========================================================================
@@ -1255,6 +1443,186 @@ RF_Buffer* rf_buffer_slice(RF_Buffer* buf, rf_int64 start, rf_int64 end) {
            (size_t)(count * buf->element_size));
     result->len = count;
     return result;
+}
+
+/* ========================================================================
+ * Sort (stdlib/sort)
+ * ======================================================================== */
+
+/* --- closure-based sort (rf_sort_array_by) --- */
+
+static _Thread_local RF_Closure* _rf_sort_closure;
+static _Thread_local rf_int64 _rf_sort_elem_size;
+
+static int _rf_sort_closure_cmp(const void* a, const void* b) {
+    typedef rf_int (*CmpFn)(void*, void*, void*);
+    CmpFn fn = (CmpFn)_rf_sort_closure->fn;
+    return (int)fn((void*)a, (void*)b, _rf_sort_closure->env);
+}
+
+RF_Array* rf_sort_array_by(RF_Array* arr, RF_Closure* cmp) {
+    if (!arr) rf_panic("rf_sort_array_by: NULL array");
+    if (!cmp) rf_panic("rf_sort_array_by: NULL closure");
+    if (arr->len == 0) return rf_array_new(0, arr->element_size, NULL);
+
+    /* Copy data into temp buffer */
+    size_t total = (size_t)arr->len * (size_t)arr->element_size;
+    void* tmp = malloc(total);
+    if (!tmp) rf_panic("rf_sort_array_by: out of memory");
+    memcpy(tmp, arr->data, total);
+
+    /* Set thread-local closure and sort */
+    _rf_sort_closure = cmp;
+    _rf_sort_elem_size = arr->element_size;
+    qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _rf_sort_closure_cmp);
+
+    RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
+    free(tmp);
+    return result;
+}
+
+/* --- int sort --- */
+
+static int _rf_cmp_int(const void* a, const void* b) {
+    rf_int va = *(const rf_int*)a;
+    rf_int vb = *(const rf_int*)b;
+    return (va > vb) - (va < vb);
+}
+
+RF_Array* rf_sort_ints(RF_Array* arr) {
+    if (!arr) rf_panic("rf_sort_ints: NULL array");
+    if (arr->len == 0) return rf_array_new(0, arr->element_size, NULL);
+
+    size_t total = (size_t)arr->len * (size_t)arr->element_size;
+    void* tmp = malloc(total);
+    if (!tmp) rf_panic("rf_sort_ints: out of memory");
+    memcpy(tmp, arr->data, total);
+
+    qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _rf_cmp_int);
+
+    RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
+    free(tmp);
+    return result;
+}
+
+/* --- string sort --- */
+
+static int _rf_cmp_string(const void* a, const void* b) {
+    RF_String* sa = *(RF_String* const*)a;
+    RF_String* sb = *(RF_String* const*)b;
+    return rf_string_cmp(sa, sb);
+}
+
+RF_Array* rf_sort_strings(RF_Array* arr) {
+    if (!arr) rf_panic("rf_sort_strings: NULL array");
+    if (arr->len == 0) return rf_array_new(0, arr->element_size, NULL);
+
+    size_t total = (size_t)arr->len * (size_t)arr->element_size;
+    void* tmp = malloc(total);
+    if (!tmp) rf_panic("rf_sort_strings: out of memory");
+    memcpy(tmp, arr->data, total);
+
+    qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _rf_cmp_string);
+
+    RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
+    free(tmp);
+    return result;
+}
+
+/* --- float sort --- */
+
+static int _rf_cmp_float(const void* a, const void* b) {
+    rf_float va = *(const rf_float*)a;
+    rf_float vb = *(const rf_float*)b;
+    return (va > vb) - (va < vb);
+}
+
+RF_Array* rf_sort_floats(RF_Array* arr) {
+    if (!arr) rf_panic("rf_sort_floats: NULL array");
+    if (arr->len == 0) return rf_array_new(0, arr->element_size, NULL);
+
+    size_t total = (size_t)arr->len * (size_t)arr->element_size;
+    void* tmp = malloc(total);
+    if (!tmp) rf_panic("rf_sort_floats: out of memory");
+    memcpy(tmp, arr->data, total);
+
+    qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _rf_cmp_float);
+
+    RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
+    free(tmp);
+    return result;
+}
+
+/* --- reverse --- */
+
+RF_Array* rf_array_reverse(RF_Array* arr) {
+    if (!arr) rf_panic("rf_array_reverse: NULL array");
+    if (arr->len == 0) return rf_array_new(0, arr->element_size, NULL);
+
+    rf_int64 esz = arr->element_size;
+    size_t total = (size_t)arr->len * (size_t)esz;
+    void* tmp = malloc(total);
+    if (!tmp) rf_panic("rf_array_reverse: out of memory");
+
+    for (rf_int64 i = 0; i < arr->len; i++) {
+        char* src = (char*)arr->data + i * esz;
+        char* dst = (char*)tmp + (arr->len - 1 - i) * esz;
+        memcpy(dst, src, (size_t)esz);
+    }
+
+    RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
+    free(tmp);
+    return result;
+}
+
+/* ========================================================================
+ * Bytes (stdlib/bytes)
+ * ======================================================================== */
+
+RF_Array* rf_bytes_slice(RF_Array* arr, rf_int64 start, rf_int64 end) {
+    if (!arr) rf_panic("rf_bytes_slice: NULL array");
+    rf_int64 len = rf_array_len(arr);
+    if (start < 0) start = 0;
+    if (start > len) start = len;
+    if (end < start) end = start;
+    if (end > len) end = len;
+    rf_int64 slice_len = end - start;
+    if (slice_len == 0) return rf_array_new(0, 1, NULL);
+    rf_byte* src = (rf_byte*)arr->data + start;
+    return rf_array_new(slice_len, 1, src);
+}
+
+RF_Array* rf_bytes_concat(RF_Array* a, RF_Array* b) {
+    if (!a) rf_panic("rf_bytes_concat: NULL first argument");
+    if (!b) rf_panic("rf_bytes_concat: NULL second argument");
+    rf_int64 a_len = rf_array_len(a);
+    rf_int64 b_len = rf_array_len(b);
+    rf_int64 total = a_len + b_len;
+    if (total == 0) return rf_array_new(0, 1, NULL);
+    rf_byte* buf = (rf_byte*)malloc((size_t)total);
+    if (!buf) rf_panic("rf_bytes_concat: out of memory");
+    if (a_len > 0) memcpy(buf, a->data, (size_t)a_len);
+    if (b_len > 0) memcpy(buf + a_len, b->data, (size_t)b_len);
+    RF_Array* result = rf_array_new(total, 1, buf);
+    free(buf);
+    return result;
+}
+
+RF_Option_ptr rf_bytes_index_of(RF_Array* haystack, rf_byte needle) {
+    if (!haystack) rf_panic("rf_bytes_index_of: NULL array");
+    rf_int64 len = rf_array_len(haystack);
+    rf_byte* data = (rf_byte*)haystack->data;
+    for (rf_int64 i = 0; i < len; i++) {
+        if (data[i] == needle) {
+            return RF_SOME_PTR((void*)(intptr_t)i);
+        }
+    }
+    return RF_NONE_PTR;
+}
+
+rf_int64 rf_bytes_len(RF_Array* arr) {
+    if (!arr) rf_panic("rf_bytes_len: NULL array");
+    return rf_array_len(arr);
 }
 
 /* ========================================================================
@@ -1942,6 +2310,274 @@ RF_Option_ptr rf_path_list_dir(RF_String* path) {
 }
 
 /* ========================================================================
+ * File Handle I/O (stdlib/file)
+ * ======================================================================== */
+
+struct RF_File {
+    FILE*   fp;
+    rf_bool is_binary;
+};
+
+/* --- Opening --- */
+
+static RF_Option_ptr rf__file_open(RF_String* path, const char* mode, rf_bool is_binary) {
+    if (!path) return RF_NONE_PTR;
+    FILE* fp = fopen(path->data, mode);
+    if (!fp) return RF_NONE_PTR;
+    RF_File* f = (RF_File*)malloc(sizeof(RF_File));
+    if (!f) { fclose(fp); rf_panic("rf_file_open: out of memory"); }
+    f->fp = fp;
+    f->is_binary = is_binary;
+    return RF_SOME_PTR(f);
+}
+
+RF_Option_ptr rf_file_open_read(RF_String* path) {
+    return rf__file_open(path, "r", rf_false);
+}
+
+RF_Option_ptr rf_file_open_write(RF_String* path) {
+    return rf__file_open(path, "w", rf_false);
+}
+
+RF_Option_ptr rf_file_open_append(RF_String* path) {
+    return rf__file_open(path, "a", rf_false);
+}
+
+RF_Option_ptr rf_file_open_read_bytes(RF_String* path) {
+    return rf__file_open(path, "rb", rf_true);
+}
+
+RF_Option_ptr rf_file_open_write_bytes(RF_String* path) {
+    return rf__file_open(path, "wb", rf_true);
+}
+
+/* --- Closing --- */
+
+void rf_file_close(RF_File* f) {
+    if (!f) return;
+    if (f->fp) {
+        fclose(f->fp);
+        f->fp = NULL;
+    }
+    free(f);
+}
+
+/* --- Reading --- */
+
+RF_Option_ptr rf_file_read_bytes(RF_File* f, rf_int n) {
+    if (!f || !f->fp || n <= 0) return RF_NONE_PTR;
+    rf_byte* buf = (rf_byte*)malloc((size_t)n);
+    if (!buf) rf_panic("rf_file_read_bytes: out of memory");
+    size_t read_count = fread(buf, 1, (size_t)n, f->fp);
+    if (read_count == 0) {
+        free(buf);
+        return RF_NONE_PTR;
+    }
+    RF_Array* arr = rf_array_new((rf_int64)read_count, sizeof(rf_byte), buf);
+    free(buf);
+    return RF_SOME_PTR(arr);
+}
+
+RF_Option_ptr rf_file_read_line(RF_File* f) {
+    if (!f || !f->fp) return RF_NONE_PTR;
+    rf_int64 cap = 128;
+    rf_int64 len = 0;
+    char* buf = (char*)malloc((size_t)cap);
+    if (!buf) rf_panic("rf_file_read_line: out of memory");
+
+    int c;
+    while ((c = fgetc(f->fp)) != EOF) {
+        if (len + 1 >= cap) {
+            cap *= 2;
+            char* nb = (char*)realloc(buf, (size_t)cap);
+            if (!nb) { free(buf); rf_panic("rf_file_read_line: out of memory"); }
+            buf = nb;
+        }
+        if (c == '\n') break;
+        buf[len++] = (char)c;
+    }
+
+    if (len == 0 && c == EOF) {
+        free(buf);
+        return RF_NONE_PTR;
+    }
+
+    /* Strip trailing \r for CRLF line endings */
+    if (len > 0 && buf[len - 1] == '\r') len--;
+
+    RF_String* s = rf_string_new(buf, len);
+    free(buf);
+    return RF_SOME_PTR(s);
+}
+
+RF_Option_ptr rf_file_read_all(RF_File* f) {
+    if (!f || !f->fp) return RF_NONE_PTR;
+
+    /* Save current position, seek to end to get remaining size */
+    long cur = ftell(f->fp);
+    if (cur < 0) return RF_NONE_PTR;
+    fseek(f->fp, 0, SEEK_END);
+    long end = ftell(f->fp);
+    if (end < 0) { fseek(f->fp, cur, SEEK_SET); return RF_NONE_PTR; }
+    fseek(f->fp, cur, SEEK_SET);
+
+    long remaining = end - cur;
+    if (remaining <= 0) {
+        /* Try reading in a loop in case ftell doesn't work (e.g. pipes) */
+        RF_Buffer* buf = rf_buffer_new(1);
+        int c;
+        while ((c = fgetc(f->fp)) != EOF) {
+            char ch = (char)c;
+            rf_buffer_push(buf, &ch);
+        }
+        if (buf->len == 0) {
+            rf_buffer_release(buf);
+            return RF_NONE_PTR;
+        }
+        RF_String* s = rf_string_new((const char*)buf->data, buf->len);
+        rf_buffer_release(buf);
+        return RF_SOME_PTR(s);
+    }
+
+    char* data = (char*)malloc((size_t)remaining);
+    if (!data) rf_panic("rf_file_read_all: out of memory");
+    size_t read_count = fread(data, 1, (size_t)remaining, f->fp);
+    RF_String* s = rf_string_new(data, (rf_int64)read_count);
+    free(data);
+    return RF_SOME_PTR(s);
+}
+
+RF_Option_ptr rf_file_read_all_bytes(RF_File* f) {
+    if (!f || !f->fp) return RF_NONE_PTR;
+
+    long cur = ftell(f->fp);
+    if (cur < 0) return RF_NONE_PTR;
+    fseek(f->fp, 0, SEEK_END);
+    long end = ftell(f->fp);
+    if (end < 0) { fseek(f->fp, cur, SEEK_SET); return RF_NONE_PTR; }
+    fseek(f->fp, cur, SEEK_SET);
+
+    long remaining = end - cur;
+    if (remaining <= 0) {
+        /* Fallback: read in a loop */
+        RF_Buffer* buf = rf_buffer_new(1);
+        int c;
+        while ((c = fgetc(f->fp)) != EOF) {
+            rf_byte b = (rf_byte)c;
+            rf_buffer_push(buf, &b);
+        }
+        if (buf->len == 0) {
+            rf_buffer_release(buf);
+            return RF_NONE_PTR;
+        }
+        RF_Array* arr = rf_array_new(buf->len, sizeof(rf_byte), buf->data);
+        rf_buffer_release(buf);
+        return RF_SOME_PTR(arr);
+    }
+
+    rf_byte* data = (rf_byte*)malloc((size_t)remaining);
+    if (!data) rf_panic("rf_file_read_all_bytes: out of memory");
+    size_t read_count = fread(data, 1, (size_t)remaining, f->fp);
+    RF_Array* arr = rf_array_new((rf_int64)read_count, sizeof(rf_byte), data);
+    free(data);
+    return RF_SOME_PTR(arr);
+}
+
+/* --- Streams --- */
+
+typedef struct {
+    RF_File* file;
+} _RF_FileLinesState;
+
+static RF_Option_ptr _rf_file_lines_next(RF_Stream* self) {
+    _RF_FileLinesState* st = (_RF_FileLinesState*)self->state;
+    return rf_file_read_line(st->file);
+}
+
+static void _rf_file_lines_free(RF_Stream* self) {
+    /* Does NOT close the file -- caller manages file lifetime */
+    free(self->state);
+}
+
+RF_Stream* rf_file_lines(RF_File* f) {
+    _RF_FileLinesState* st = (_RF_FileLinesState*)malloc(sizeof(_RF_FileLinesState));
+    if (!st) rf_panic("rf_file_lines: out of memory");
+    st->file = f;
+    return rf_stream_new(_rf_file_lines_next, _rf_file_lines_free, st);
+}
+
+typedef struct {
+    RF_File* file;
+} _RF_FileByteStreamState;
+
+static RF_Option_ptr _rf_file_byte_stream_next(RF_Stream* self) {
+    _RF_FileByteStreamState* st = (_RF_FileByteStreamState*)self->state;
+    if (!st->file || !st->file->fp) return RF_NONE_PTR;
+    int c = fgetc(st->file->fp);
+    if (c == EOF) return RF_NONE_PTR;
+    return (RF_Option_ptr){.tag = 1, .value = (void*)(uintptr_t)(rf_byte)c};
+}
+
+static void _rf_file_byte_stream_free(RF_Stream* self) {
+    /* Does NOT close the file -- caller manages file lifetime */
+    free(self->state);
+}
+
+RF_Stream* rf_file_byte_stream(RF_File* f) {
+    _RF_FileByteStreamState* st = (_RF_FileByteStreamState*)malloc(sizeof(_RF_FileByteStreamState));
+    if (!st) rf_panic("rf_file_byte_stream: out of memory");
+    st->file = f;
+    return rf_stream_new(_rf_file_byte_stream_next, _rf_file_byte_stream_free, st);
+}
+
+/* --- Writing --- */
+
+rf_bool rf_file_write_bytes(RF_File* f, RF_Array* data) {
+    if (!f || !f->fp || !data) return rf_false;
+    size_t total = (size_t)data->len * (size_t)data->element_size;
+    size_t written = fwrite(data->data, 1, total, f->fp);
+    return written == total ? rf_true : rf_false;
+}
+
+rf_bool rf_file_write_string(RF_File* f, RF_String* s) {
+    if (!f || !f->fp || !s) return rf_false;
+    size_t written = fwrite(s->data, 1, (size_t)s->len, f->fp);
+    return written == (size_t)s->len ? rf_true : rf_false;
+}
+
+rf_bool rf_file_flush(RF_File* f) {
+    if (!f || !f->fp) return rf_false;
+    return fflush(f->fp) == 0 ? rf_true : rf_false;
+}
+
+/* --- Seeking --- */
+
+rf_bool rf_file_seek(RF_File* f, rf_int64 offset) {
+    if (!f || !f->fp) return rf_false;
+    return fseek(f->fp, (long)offset, SEEK_SET) == 0 ? rf_true : rf_false;
+}
+
+rf_bool rf_file_seek_end(RF_File* f, rf_int64 offset) {
+    if (!f || !f->fp) return rf_false;
+    return fseek(f->fp, (long)offset, SEEK_END) == 0 ? rf_true : rf_false;
+}
+
+rf_int64 rf_file_position(RF_File* f) {
+    if (!f || !f->fp) return -1;
+    return (rf_int64)ftell(f->fp);
+}
+
+rf_int64 rf_file_size(RF_File* f) {
+    if (!f || !f->fp) return -1;
+    long cur = ftell(f->fp);
+    if (cur < 0) return -1;
+    fseek(f->fp, 0, SEEK_END);
+    long sz = ftell(f->fp);
+    fseek(f->fp, cur, SEEK_SET);
+    return (rf_int64)sz;
+}
+
+/* ========================================================================
  * Math Functions (stdlib/math)
  * ======================================================================== */
 
@@ -2151,4 +2787,457 @@ RF_Option_ptr rf_string_to_float_opt(RF_String* s) {
         return (RF_Option_ptr){.tag = 1, .value = p};
     }
     return RF_NONE_PTR;
+}
+
+/* ========================================================================
+ * Random (stdlib/random) — xoshiro256** PRNG
+ * ======================================================================== */
+
+/* Thread-local xoshiro256** state */
+static _Thread_local uint64_t _rf_rng_state[4];
+static _Thread_local rf_bool _rf_rng_seeded = rf_false;
+
+static uint64_t _rf_rotl(uint64_t x, int k) {
+    return (x << k) | (x >> (64 - k));
+}
+
+static void _rf_rng_ensure_seeded(void) {
+    if (_rf_rng_seeded) return;
+    FILE* f = fopen("/dev/urandom", "rb");
+    if (f) {
+        size_t n = fread(_rf_rng_state, sizeof(uint64_t), 4, f);
+        fclose(f);
+        if (n == 4) { _rf_rng_seeded = rf_true; return; }
+    }
+    /* Fallback: seed from time + thread ID */
+    uint64_t seed = (uint64_t)time(NULL) ^ ((uint64_t)(uintptr_t)&_rf_rng_state);
+    _rf_rng_state[0] = seed;
+    _rf_rng_state[1] = seed ^ 0x123456789ABCDEF0ULL;
+    _rf_rng_state[2] = seed ^ 0xFEDCBA9876543210ULL;
+    _rf_rng_state[3] = seed ^ 0xACEACEACEACEACEAULL;
+    _rf_rng_seeded = rf_true;
+}
+
+static uint64_t _rf_rng_next_u64(void) {
+    _rf_rng_ensure_seeded();
+    uint64_t result = _rf_rotl(_rf_rng_state[1] * 5, 7) * 9;
+    uint64_t t = _rf_rng_state[1] << 17;
+    _rf_rng_state[2] ^= _rf_rng_state[0];
+    _rf_rng_state[3] ^= _rf_rng_state[1];
+    _rf_rng_state[1] ^= _rf_rng_state[2];
+    _rf_rng_state[0] ^= _rf_rng_state[3];
+    _rf_rng_state[2] ^= t;
+    _rf_rng_state[3] = _rf_rotl(_rf_rng_state[3], 45);
+    return result;
+}
+
+rf_int rf_random_int_range(rf_int min, rf_int max) {
+    if (min > max) rf_panic("random.int_range: min > max");
+    if (min == max) return min;
+    uint64_t range = (uint64_t)(max - min) + 1;
+    uint64_t limit = UINT64_MAX - (UINT64_MAX % range);
+    uint64_t r;
+    do { r = _rf_rng_next_u64(); } while (r >= limit);
+    return min + (rf_int)(r % range);
+}
+
+rf_int64 rf_random_int64_range(rf_int64 min, rf_int64 max) {
+    if (min > max) rf_panic("random.int64_range: min > max");
+    if (min == max) return min;
+    uint64_t range = (uint64_t)(max - min) + 1;
+    uint64_t limit = UINT64_MAX - (UINT64_MAX % range);
+    uint64_t r;
+    do { r = _rf_rng_next_u64(); } while (r >= limit);
+    return min + (rf_int64)(r % range);
+}
+
+rf_float rf_random_float_unit(void) {
+    uint64_t r = _rf_rng_next_u64() >> 11;  /* 53 bits */
+    return (rf_float)r * (1.0 / ((uint64_t)1 << 53));
+}
+
+rf_bool rf_random_bool(void) {
+    return (_rf_rng_next_u64() & 1) ? rf_true : rf_false;
+}
+
+RF_Array* rf_random_bytes(rf_int n) {
+    if (n <= 0) return rf_array_new(0, 1, NULL);
+    rf_byte* buf = (rf_byte*)malloc((size_t)n);
+    if (!buf) rf_panic("rf_random_bytes: out of memory");
+    FILE* f = fopen("/dev/urandom", "rb");
+    if (f) {
+        size_t read = fread(buf, 1, (size_t)n, f);
+        fclose(f);
+        if (read < (size_t)n) {
+            /* Fill remainder from PRNG */
+            _rf_rng_ensure_seeded();
+            for (rf_int i = (rf_int)read; i < n; i++) {
+                buf[i] = (rf_byte)(_rf_rng_next_u64() & 0xFF);
+            }
+        }
+    } else {
+        _rf_rng_ensure_seeded();
+        for (rf_int i = 0; i < n; i++) {
+            buf[i] = (rf_byte)(_rf_rng_next_u64() & 0xFF);
+        }
+    }
+    RF_Array* arr = rf_array_new(n, 1, buf);
+    free(buf);
+    return arr;
+}
+
+RF_Array* rf_random_shuffle(RF_Array* arr) {
+    rf_int64 len = rf_array_len(arr);
+    if (len <= 1) {
+        rf_array_retain(arr);
+        return arr;
+    }
+    rf_int64 elem_size = arr->element_size;
+    rf_byte* buf = (rf_byte*)malloc((size_t)(len * elem_size));
+    if (!buf) rf_panic("rf_random_shuffle: out of memory");
+    memcpy(buf, arr->data, (size_t)(len * elem_size));
+    _rf_rng_ensure_seeded();
+    for (rf_int64 i = len - 1; i > 0; i--) {
+        rf_int64 j = (rf_int64)(_rf_rng_next_u64() % (uint64_t)(i + 1));
+        /* swap buf[i] and buf[j] */
+        if (elem_size <= 16) {
+            rf_byte tmp[16];
+            memcpy(tmp, buf + i * elem_size, (size_t)elem_size);
+            memcpy(buf + i * elem_size, buf + j * elem_size, (size_t)elem_size);
+            memcpy(buf + j * elem_size, tmp, (size_t)elem_size);
+        } else {
+            rf_byte* t = (rf_byte*)malloc((size_t)elem_size);
+            if (!t) rf_panic("rf_random_shuffle: out of memory");
+            memcpy(t, buf + i * elem_size, (size_t)elem_size);
+            memcpy(buf + i * elem_size, buf + j * elem_size, (size_t)elem_size);
+            memcpy(buf + j * elem_size, t, (size_t)elem_size);
+            free(t);
+        }
+    }
+    RF_Array* result = rf_array_new(len, elem_size, buf);
+    free(buf);
+    return result;
+}
+
+RF_Option_ptr rf_random_choice(RF_Array* arr) {
+    rf_int64 len = rf_array_len(arr);
+    if (len == 0) return RF_NONE_PTR;
+    rf_int64 idx = (rf_int64)(_rf_rng_next_u64() % (uint64_t)len);
+    void* ptr = rf_array_get_ptr(arr, idx);
+    /* For pointer-sized elements, dereference; for smaller, return pointer to data */
+    if (arr->element_size == sizeof(void*)) {
+        return RF_SOME_PTR(*(void**)ptr);
+    }
+    return RF_SOME_PTR(ptr);
+}
+
+/* ========================================================================
+ * Time (stdlib/time)
+ * ======================================================================== */
+
+struct RF_Instant {
+    struct timespec ts;
+};
+
+struct RF_DateTime {
+    time_t     epoch;
+    rf_int     utc_offset;
+    struct tm  components;
+};
+
+/* --- Monotonic time --- */
+
+RF_Instant* rf_time_now(void) {
+    RF_Instant* inst = (RF_Instant*)malloc(sizeof(RF_Instant));
+    if (!inst) rf_panic("rf_time_now: out of memory");
+    clock_gettime(CLOCK_MONOTONIC, &inst->ts);
+    return inst;
+}
+
+rf_int64 rf_time_elapsed_ms(RF_Instant* since) {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    rf_int64 sec_diff = (rf_int64)(now.tv_sec - since->ts.tv_sec);
+    rf_int64 nsec_diff = (rf_int64)(now.tv_nsec - since->ts.tv_nsec);
+    return sec_diff * 1000 + nsec_diff / 1000000;
+}
+
+rf_int64 rf_time_elapsed_us(RF_Instant* since) {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    rf_int64 sec_diff = (rf_int64)(now.tv_sec - since->ts.tv_sec);
+    rf_int64 nsec_diff = (rf_int64)(now.tv_nsec - since->ts.tv_nsec);
+    return sec_diff * 1000000 + nsec_diff / 1000;
+}
+
+rf_int64 rf_time_diff_ms(RF_Instant* start, RF_Instant* end) {
+    rf_int64 sec_diff = (rf_int64)(end->ts.tv_sec - start->ts.tv_sec);
+    rf_int64 nsec_diff = (rf_int64)(end->ts.tv_nsec - start->ts.tv_nsec);
+    return sec_diff * 1000 + nsec_diff / 1000000;
+}
+
+void rf_instant_release(RF_Instant* inst) {
+    free(inst);
+}
+
+/* --- Wall clock --- */
+
+RF_DateTime* rf_time_datetime_now(void) {
+    RF_DateTime* dt = (RF_DateTime*)malloc(sizeof(RF_DateTime));
+    if (!dt) rf_panic("rf_time_datetime_now: out of memory");
+    dt->epoch = time(NULL);
+    localtime_r(&dt->epoch, &dt->components);
+    dt->utc_offset = (rf_int)dt->components.tm_gmtoff;
+    return dt;
+}
+
+RF_DateTime* rf_time_datetime_utc(void) {
+    RF_DateTime* dt = (RF_DateTime*)malloc(sizeof(RF_DateTime));
+    if (!dt) rf_panic("rf_time_datetime_utc: out of memory");
+    dt->epoch = time(NULL);
+    gmtime_r(&dt->epoch, &dt->components);
+    dt->utc_offset = 0;
+    return dt;
+}
+
+rf_int64 rf_time_unix_timestamp(void) {
+    return (rf_int64)time(NULL);
+}
+
+rf_int64 rf_time_unix_timestamp_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return (rf_int64)ts.tv_sec * 1000 + (rf_int64)ts.tv_nsec / 1000000;
+}
+
+void rf_datetime_release(RF_DateTime* dt) {
+    free(dt);
+}
+
+/* --- Formatting --- */
+
+RF_String* rf_time_format_iso8601(RF_DateTime* dt) {
+    char buf[64];
+    /* Format: 2026-02-22T14:30:45+00:00 */
+    strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &dt->components);
+    /* Append timezone offset */
+    int off = dt->utc_offset;
+    char sign = off >= 0 ? '+' : '-';
+    if (off < 0) off = -off;
+    int h = off / 3600;
+    int m = (off % 3600) / 60;
+    char full[80];
+    snprintf(full, sizeof(full), "%s%c%02d:%02d", buf, sign, h, m);
+    return rf_string_from_cstr(full);
+}
+
+RF_String* rf_time_format_rfc2822(RF_DateTime* dt) {
+    char buf[64];
+    /* Format: Sat, 22 Feb 2026 14:30:45 +0000 */
+    strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S", &dt->components);
+    int off = dt->utc_offset;
+    char sign = off >= 0 ? '+' : '-';
+    if (off < 0) off = -off;
+    int h = off / 3600;
+    int m = (off % 3600) / 60;
+    char full[80];
+    snprintf(full, sizeof(full), "%s %c%02d%02d", buf, sign, h, m);
+    return rf_string_from_cstr(full);
+}
+
+RF_String* rf_time_format_http(RF_DateTime* dt) {
+    /* HTTP date is always GMT. Convert to UTC if needed. */
+    struct tm utc;
+    gmtime_r(&dt->epoch, &utc);
+    char buf[64];
+    strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &utc);
+    return rf_string_from_cstr(buf);
+}
+
+/* --- Component accessors --- */
+
+rf_int rf_time_year(RF_DateTime* dt) { return (rf_int)(dt->components.tm_year + 1900); }
+rf_int rf_time_month(RF_DateTime* dt) { return (rf_int)(dt->components.tm_mon + 1); }
+rf_int rf_time_day(RF_DateTime* dt) { return (rf_int)dt->components.tm_mday; }
+rf_int rf_time_hour(RF_DateTime* dt) { return (rf_int)dt->components.tm_hour; }
+rf_int rf_time_minute(RF_DateTime* dt) { return (rf_int)dt->components.tm_min; }
+rf_int rf_time_second(RF_DateTime* dt) { return (rf_int)dt->components.tm_sec; }
+
+/* ========================================================================
+ * Testing (stdlib/testing)
+ * ======================================================================== */
+
+static void _rf_test_throw(RF_String* msg) {
+    _rf_throw(msg, RF_TEST_FAILURE_TAG);
+}
+
+void rf_test_assert_true(rf_bool val, RF_String* msg) {
+    if (val != rf_true) {
+        RF_String* prefix = rf_string_from_cstr("assertion failed (expected true): ");
+        RF_String* full = rf_string_concat(prefix, msg);
+        rf_string_release(prefix);
+        _rf_test_throw(full);
+    }
+}
+
+void rf_test_assert_false(rf_bool val, RF_String* msg) {
+    if (val != rf_false) {
+        RF_String* prefix = rf_string_from_cstr("assertion failed (expected false): ");
+        RF_String* full = rf_string_concat(prefix, msg);
+        rf_string_release(prefix);
+        _rf_test_throw(full);
+    }
+}
+
+void rf_test_assert_eq_int(rf_int expected, rf_int actual, RF_String* msg) {
+    if (expected != actual) {
+        char buf[128];
+        snprintf(buf, sizeof(buf), "expected %d, got %d: ", expected, actual);
+        RF_String* prefix = rf_string_from_cstr(buf);
+        RF_String* full = rf_string_concat(prefix, msg);
+        rf_string_release(prefix);
+        _rf_test_throw(full);
+    }
+}
+
+void rf_test_assert_eq_int64(rf_int64 expected, rf_int64 actual, RF_String* msg) {
+    if (expected != actual) {
+        char buf[128];
+        snprintf(buf, sizeof(buf), "expected %lld, got %lld: ",
+                 (long long)expected, (long long)actual);
+        RF_String* prefix = rf_string_from_cstr(buf);
+        RF_String* full = rf_string_concat(prefix, msg);
+        rf_string_release(prefix);
+        _rf_test_throw(full);
+    }
+}
+
+void rf_test_assert_eq_string(RF_String* expected, RF_String* actual, RF_String* msg) {
+    if (!rf_string_eq(expected, actual)) {
+        RF_String* pre1 = rf_string_from_cstr("expected \"");
+        RF_String* pre2 = rf_string_concat(pre1, expected);
+        RF_String* pre3 = rf_string_from_cstr("\", got \"");
+        RF_String* pre4 = rf_string_concat(pre2, pre3);
+        RF_String* pre5 = rf_string_concat(pre4, actual);
+        RF_String* pre6 = rf_string_from_cstr("\": ");
+        RF_String* pre7 = rf_string_concat(pre5, pre6);
+        RF_String* full = rf_string_concat(pre7, msg);
+        rf_string_release(pre1);
+        rf_string_release(pre2);
+        rf_string_release(pre3);
+        rf_string_release(pre4);
+        rf_string_release(pre5);
+        rf_string_release(pre6);
+        rf_string_release(pre7);
+        _rf_test_throw(full);
+    }
+}
+
+void rf_test_assert_eq_bool(rf_bool expected, rf_bool actual, RF_String* msg) {
+    if (expected != actual) {
+        const char* exp_str = expected ? "true" : "false";
+        const char* act_str = actual ? "true" : "false";
+        char buf[128];
+        snprintf(buf, sizeof(buf), "expected %s, got %s: ", exp_str, act_str);
+        RF_String* prefix = rf_string_from_cstr(buf);
+        RF_String* full = rf_string_concat(prefix, msg);
+        rf_string_release(prefix);
+        _rf_test_throw(full);
+    }
+}
+
+void rf_test_assert_eq_float(rf_float expected, rf_float actual,
+                              rf_float epsilon, RF_String* msg) {
+    rf_float diff = expected - actual;
+    if (diff < 0) diff = -diff;
+    if (diff > epsilon) {
+        char buf[128];
+        snprintf(buf, sizeof(buf), "expected %f, got %f (epsilon %f): ",
+                 expected, actual, epsilon);
+        RF_String* prefix = rf_string_from_cstr(buf);
+        RF_String* full = rf_string_concat(prefix, msg);
+        rf_string_release(prefix);
+        _rf_test_throw(full);
+    }
+}
+
+void* rf_test_assert_some(RF_Option_ptr opt, RF_String* msg) {
+    if (opt.tag == 0) {
+        RF_String* prefix = rf_string_from_cstr("expected Some, got None: ");
+        RF_String* full = rf_string_concat(prefix, msg);
+        rf_string_release(prefix);
+        _rf_test_throw(full);
+    }
+    return opt.value;
+}
+
+void rf_test_assert_none(RF_Option_ptr opt, RF_String* msg) {
+    if (opt.tag != 0) {
+        RF_String* prefix = rf_string_from_cstr("expected None, got Some: ");
+        RF_String* full = rf_string_concat(prefix, msg);
+        rf_string_release(prefix);
+        _rf_test_throw(full);
+    }
+}
+
+void rf_test_fail(RF_String* msg) {
+    _rf_test_throw(msg);
+}
+
+RF_TestResult rf_test_run(RF_String* name, RF_Closure* test_fn) {
+    RF_TestResult result;
+    result.name = name;
+    result.failure_msg = NULL;
+
+    RF_ExceptionFrame ef;
+    _rf_exception_push(&ef);
+    if (setjmp(ef.jmp) == 0) {
+        /* Call the test closure: void (*)(void* env) */
+        typedef void (*TestFn)(void*);
+        TestFn fn = (TestFn)test_fn->fn;
+        fn(test_fn->env);
+        result.passed = 1;
+    } else {
+        result.passed = 0;
+        if (ef.exception_tag == RF_TEST_FAILURE_TAG) {
+            result.failure_msg = (RF_String*)ef.exception;
+        } else {
+            result.failure_msg = rf_string_from_cstr("unexpected exception");
+        }
+    }
+    _rf_exception_pop();
+    return result;
+}
+
+void rf_test_report(RF_TestResult* result) {
+    if (result->passed) {
+        fprintf(stdout, "  PASS  %.*s\n",
+                (int)rf_string_len(result->name), result->name->data);
+    } else {
+        fprintf(stdout, "  FAIL  %.*s: %.*s\n",
+                (int)rf_string_len(result->name), result->name->data,
+                (int)rf_string_len(result->failure_msg), result->failure_msg->data);
+    }
+}
+
+rf_int rf_test_run_all(RF_Array* tests) {
+    rf_int64 len = rf_array_len(tests);
+    rf_int failures = 0;
+    rf_int total = 0;
+
+    for (rf_int64 i = 0; i < len; i++) {
+        /* Each element is a pointer to a struct { RF_String* name; RF_Closure* fn; } */
+        typedef struct { RF_String* name; RF_Closure* fn; } TestEntry;
+        TestEntry* entry = *(TestEntry**)rf_array_get_ptr(tests, i);
+        RF_TestResult result = rf_test_run(entry->name, entry->fn);
+        rf_test_report(&result);
+        total++;
+        if (!result.passed) failures++;
+    }
+
+    fprintf(stdout, "\n%d/%d tests passed\n", total - failures, total);
+    if (failures > 0) {
+        fprintf(stdout, "%d FAILED\n", failures);
+    }
+    return failures;
 }

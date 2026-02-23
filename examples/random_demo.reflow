@@ -1,0 +1,12 @@
+module main
+
+import random
+
+fn main(): int =
+  let roll = random.int_range(1, 6)
+  let coin = random.bool()
+  let pct = random.float_unit()
+  println(f"Dice roll: {roll}")
+  println(f"Coin flip: {coin}")
+  println(f"Random pct: {pct}")
+  0

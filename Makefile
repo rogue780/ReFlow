@@ -45,6 +45,27 @@ test-runtime:
 	$(CC) -o tests/runtime/test_stream_consume tests/runtime/test_stream_consume.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
 	tests/runtime/test_stream_consume
 	@rm -f tests/runtime/test_stream_consume
+	$(CC) -o tests/runtime/test_stream_transform tests/runtime/test_stream_transform.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_stream_transform
+	@rm -f tests/runtime/test_stream_transform
+	$(CC) -o tests/runtime/test_sort tests/runtime/test_sort.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_sort
+	@rm -f tests/runtime/test_sort
+	$(CC) -o tests/runtime/test_channel_ext tests/runtime/test_channel_ext.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_channel_ext
+	@rm -f tests/runtime/test_channel_ext
+	$(CC) -o tests/runtime/test_file tests/runtime/test_file.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_file
+	@rm -f tests/runtime/test_file
+	$(CC) -o tests/runtime/test_bytes tests/runtime/test_bytes.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_bytes
+	@rm -f tests/runtime/test_bytes
+	$(CC) -o tests/runtime/test_random tests/runtime/test_random.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_random
+	@rm -f tests/runtime/test_random
+	$(CC) -o tests/runtime/test_time tests/runtime/test_time.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_time
+	@rm -f tests/runtime/test_time
 
 check:
 	$(PYTHON) -m mypy compiler/

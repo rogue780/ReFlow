@@ -1,0 +1,5 @@
+module random
+
+export fn int_range(min: int, max: int): int = native "rf_random_int_range"
+export fn float_unit(): float = native "rf_random_float_unit"
+export fn bool(): bool = native "rf_random_bool"

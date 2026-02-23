@@ -212,6 +212,10 @@ void          rf_channel_set_exception(RF_Channel* ch, void* exception, rf_int t
 void          rf_channel_retain(RF_Channel* ch);
 void          rf_channel_release(RF_Channel* ch);
 
+/* Non-blocking channel operations (SL-5-5) */
+rf_bool       rf_channel_try_send(RF_Channel* ch, void* val);
+RF_Option_ptr rf_channel_try_recv(RF_Channel* ch);
+
 /* ========================================================================
  * Coroutines
  * ======================================================================== */
@@ -253,6 +257,19 @@ RF_Stream* rf_stream_range_step(rf_int start, rf_int end, rf_int step);
 RF_Stream* rf_stream_from_array(RF_Array* arr);
 RF_Stream* rf_stream_repeat(void* val, rf_int n);
 RF_Stream* rf_stream_empty(void);
+
+/* Stream Transformation (SL-5-3) */
+
+/* Pair struct for enumerate and zip */
+typedef struct {
+    void* first;
+    void* second;
+} RF_Pair;
+
+RF_Stream* rf_stream_enumerate(RF_Stream* source);
+RF_Stream* rf_stream_zip(RF_Stream* a, RF_Stream* b);
+RF_Stream* rf_stream_chain(RF_Stream* a, RF_Stream* b);
+RF_Stream* rf_stream_flat_map(RF_Stream* source, RF_Closure* f);
 
 /* Stream Consumption (SL-5-4) */
 RF_Array*     rf_stream_to_array(RF_Stream* src, rf_int64 element_size);
@@ -326,6 +343,25 @@ void          rf_buffer_insert(RF_Buffer* buf, rf_int64 idx, void* element);
 RF_Option_ptr rf_buffer_remove(RF_Buffer* buf, rf_int64 idx);
 rf_bool       rf_buffer_contains(RF_Buffer* buf, void* element, rf_int64 element_size);
 RF_Buffer*    rf_buffer_slice(RF_Buffer* buf, rf_int64 start, rf_int64 end);
+
+/* ========================================================================
+ * Sort (stdlib/sort)
+ * ======================================================================== */
+
+RF_Array* rf_sort_array_by(RF_Array* arr, RF_Closure* cmp);
+RF_Array* rf_sort_ints(RF_Array* arr);
+RF_Array* rf_sort_strings(RF_Array* arr);
+RF_Array* rf_sort_floats(RF_Array* arr);
+RF_Array* rf_array_reverse(RF_Array* arr);
+
+/* ========================================================================
+ * Bytes (stdlib/bytes)
+ * ======================================================================== */
+
+RF_Array* rf_bytes_slice(RF_Array* arr, rf_int64 start, rf_int64 end);
+RF_Array* rf_bytes_concat(RF_Array* a, RF_Array* b);
+RF_Option_ptr rf_bytes_index_of(RF_Array* haystack, rf_byte needle);
+rf_int64  rf_bytes_len(RF_Array* arr);
 
 /* ========================================================================
  * I/O Primitives (RT-1-8-1)
@@ -448,6 +484,43 @@ rf_float rf_math_sqrt(rf_float f);
 rf_float rf_math_log(rf_float f);
 
 /* ========================================================================
+ * File Handle I/O (stdlib/file)
+ * ======================================================================== */
+
+typedef struct RF_File RF_File;
+
+/* Opening */
+RF_Option_ptr rf_file_open_read(RF_String* path);
+RF_Option_ptr rf_file_open_write(RF_String* path);
+RF_Option_ptr rf_file_open_append(RF_String* path);
+RF_Option_ptr rf_file_open_read_bytes(RF_String* path);
+RF_Option_ptr rf_file_open_write_bytes(RF_String* path);
+
+/* Closing */
+void rf_file_close(RF_File* f);
+
+/* Reading */
+RF_Option_ptr rf_file_read_bytes(RF_File* f, rf_int n);
+RF_Option_ptr rf_file_read_line(RF_File* f);
+RF_Option_ptr rf_file_read_all(RF_File* f);
+RF_Option_ptr rf_file_read_all_bytes(RF_File* f);
+
+/* Streams */
+RF_Stream* rf_file_lines(RF_File* f);
+RF_Stream* rf_file_byte_stream(RF_File* f);
+
+/* Writing */
+rf_bool rf_file_write_bytes(RF_File* f, RF_Array* data);
+rf_bool rf_file_write_string(RF_File* f, RF_String* s);
+rf_bool rf_file_flush(RF_File* f);
+
+/* Seeking */
+rf_bool rf_file_seek(RF_File* f, rf_int64 offset);
+rf_bool rf_file_seek_end(RF_File* f, rf_int64 offset);
+rf_int64 rf_file_position(RF_File* f);
+rf_int64 rf_file_size(RF_File* f);
+
+/* ========================================================================
  * Exception Handling (setjmp/longjmp)
  * ======================================================================== */
 
@@ -479,6 +552,81 @@ typedef struct RF_FanoutBranch {
 } RF_FanoutBranch;
 
 void rf_fanout_run(RF_FanoutBranch* branches, rf_int count);
+
+/* ========================================================================
+ * Random (stdlib/random)
+ * ======================================================================== */
+
+rf_int    rf_random_int_range(rf_int min, rf_int max);
+rf_int64  rf_random_int64_range(rf_int64 min, rf_int64 max);
+rf_float  rf_random_float_unit(void);
+rf_bool   rf_random_bool(void);
+RF_Array* rf_random_bytes(rf_int n);
+RF_Array* rf_random_shuffle(RF_Array* arr);
+RF_Option_ptr rf_random_choice(RF_Array* arr);
+
+/* ========================================================================
+ * Time (stdlib/time)
+ * ======================================================================== */
+
+typedef struct RF_Instant RF_Instant;
+typedef struct RF_DateTime RF_DateTime;
+
+/* Monotonic time */
+RF_Instant* rf_time_now(void);
+rf_int64    rf_time_elapsed_ms(RF_Instant* since);
+rf_int64    rf_time_elapsed_us(RF_Instant* since);
+rf_int64    rf_time_diff_ms(RF_Instant* start, RF_Instant* end);
+void        rf_instant_release(RF_Instant* inst);
+
+/* Wall clock */
+RF_DateTime* rf_time_datetime_now(void);
+RF_DateTime* rf_time_datetime_utc(void);
+rf_int64     rf_time_unix_timestamp(void);
+rf_int64     rf_time_unix_timestamp_ms(void);
+void         rf_datetime_release(RF_DateTime* dt);
+
+/* Formatting */
+RF_String* rf_time_format_iso8601(RF_DateTime* dt);
+RF_String* rf_time_format_rfc2822(RF_DateTime* dt);
+RF_String* rf_time_format_http(RF_DateTime* dt);
+
+/* Component accessors */
+rf_int rf_time_year(RF_DateTime* dt);
+rf_int rf_time_month(RF_DateTime* dt);
+rf_int rf_time_day(RF_DateTime* dt);
+rf_int rf_time_hour(RF_DateTime* dt);
+rf_int rf_time_minute(RF_DateTime* dt);
+rf_int rf_time_second(RF_DateTime* dt);
+
+/* ========================================================================
+ * Testing (stdlib/testing)
+ * ======================================================================== */
+
+#define RF_TEST_FAILURE_TAG 9999
+
+/* Assertions — all throw with RF_TEST_FAILURE_TAG on failure */
+void rf_test_assert_true(rf_bool val, RF_String* msg);
+void rf_test_assert_false(rf_bool val, RF_String* msg);
+void rf_test_assert_eq_int(rf_int expected, rf_int actual, RF_String* msg);
+void rf_test_assert_eq_int64(rf_int64 expected, rf_int64 actual, RF_String* msg);
+void rf_test_assert_eq_string(RF_String* expected, RF_String* actual, RF_String* msg);
+void rf_test_assert_eq_bool(rf_bool expected, rf_bool actual, RF_String* msg);
+void rf_test_assert_eq_float(rf_float expected, rf_float actual, rf_float epsilon, RF_String* msg);
+void* rf_test_assert_some(RF_Option_ptr opt, RF_String* msg);
+void rf_test_assert_none(RF_Option_ptr opt, RF_String* msg);
+void rf_test_fail(RF_String* msg);
+
+/* Test runner */
+typedef struct {
+    RF_String* name;
+    rf_int     passed;
+    RF_String* failure_msg;
+} RF_TestResult;
+
+RF_TestResult rf_test_run(RF_String* name, RF_Closure* test_fn);
+rf_int rf_test_run_all(RF_Array* tests);
+void rf_test_report(RF_TestResult* result);
 
 /* ========================================================================
  * Runtime Initialization
