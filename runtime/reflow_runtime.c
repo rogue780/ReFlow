@@ -214,6 +214,11 @@ void* rf_array_get_ptr(RF_Array* arr, rf_int64 idx) {
 RF_Option_ptr rf_array_get_safe(RF_Array* arr, rf_int64 idx) {
     if (!arr || idx < 0 || idx >= arr->len) return RF_NONE_PTR;
     void* ptr = (char*)arr->data + (size_t)idx * (size_t)arr->element_size;
+    /* For pointer-sized elements (strings, opaque types), dereference the
+       slot to return the stored pointer, not a pointer to the slot. */
+    if (arr->element_size == sizeof(void*)) {
+        return RF_SOME_PTR(*(void**)ptr);
+    }
     return RF_SOME_PTR(ptr);
 }
 
