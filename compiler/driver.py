@@ -20,7 +20,7 @@ from compiler.lowering import Lowerer
 from compiler.emitter import Emitter
 
 # Stdlib module names that live in the stdlib/ directory.
-_STDLIB_MODULES = frozenset({"io", "sys", "conv", "string", "char", "path"})
+_STDLIB_MODULES = frozenset({"io", "sys", "conv", "string", "char", "path", "math"})
 
 
 # ---------------------------------------------------------------------------
@@ -428,6 +428,7 @@ def compile_source(source_path: str, *, output: str | None = None,
                 tmp_path,
                 str(runtime_c),
                 "-I", str(runtime_include),
+                "-lm",
             ],
             capture_output=True,
             text=True,

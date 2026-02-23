@@ -15,3 +15,5 @@ export fn join(parts: array<string>, sep: string): string = native "rf_string_jo
 export fn to_lower(s: string): string = native "rf_string_to_lower"
 export fn to_upper(s: string): string = native "rf_string_to_upper"
 export fn len(s: string): int = native "rf_string_len"
+export pure fn to_bytes(s: string): array<byte> = native "rf_string_to_bytes"
+export pure fn from_bytes(data: array<byte>): string = native "rf_string_from_bytes"

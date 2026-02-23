@@ -247,6 +247,22 @@ RF_Stream* rf_stream_map(RF_Stream* src, RF_Closure* fn);
 RF_Stream* rf_stream_filter(RF_Stream* src, RF_Closure* fn);
 void*      rf_stream_reduce(RF_Stream* src, void* init, RF_Closure* fn);
 
+/* Stream Construction (SL-5-2) */
+RF_Stream* rf_stream_range(rf_int start, rf_int end);
+RF_Stream* rf_stream_range_step(rf_int start, rf_int end, rf_int step);
+RF_Stream* rf_stream_from_array(RF_Array* arr);
+RF_Stream* rf_stream_repeat(void* val, rf_int n);
+RF_Stream* rf_stream_empty(void);
+
+/* Stream Consumption (SL-5-4) */
+RF_Array*     rf_stream_to_array(RF_Stream* src, rf_int64 element_size);
+void          rf_stream_foreach(RF_Stream* src, RF_Closure* fn);
+rf_int        rf_stream_count(RF_Stream* src);
+rf_bool       rf_stream_any(RF_Stream* src, RF_Closure* fn);
+rf_bool       rf_stream_all(RF_Stream* src, RF_Closure* fn);
+RF_Option_ptr rf_stream_find(RF_Stream* src, RF_Closure* fn);
+rf_int        rf_stream_sum_int(RF_Stream* src);
+
 /* ========================================================================
  * Map — open-addressing hash table (RT-1-6-1)
  * BOOTSTRAP: replace with production hash map
@@ -300,6 +316,17 @@ void          rf_buffer_reverse(RF_Buffer* buf);
 void          rf_buffer_retain(RF_Buffer* buf);
 void          rf_buffer_release(RF_Buffer* buf);
 
+/* Buffer extensions (SL-4-3) */
+RF_Array*     rf_buffer_to_array(RF_Buffer* buf);
+void          rf_buffer_clear(RF_Buffer* buf);
+RF_Option_ptr rf_buffer_pop(RF_Buffer* buf);
+RF_Option_ptr rf_buffer_last(RF_Buffer* buf);
+void          rf_buffer_set(RF_Buffer* buf, rf_int64 idx, void* element);
+void          rf_buffer_insert(RF_Buffer* buf, rf_int64 idx, void* element);
+RF_Option_ptr rf_buffer_remove(RF_Buffer* buf, rf_int64 idx);
+rf_bool       rf_buffer_contains(RF_Buffer* buf, void* element, rf_int64 element_size);
+RF_Buffer*    rf_buffer_slice(RF_Buffer* buf, rf_int64 start, rf_int64 end);
+
 /* ========================================================================
  * I/O Primitives (RT-1-8-1)
  * ======================================================================== */
@@ -318,6 +345,8 @@ RF_Option_ptr rf_read_byte(void);
 
 void          rf_sys_exit(rf_int code);
 RF_Array*     rf_sys_args(void);
+RF_Option_ptr rf_env_get(RF_String* name);
+rf_int64      rf_clock_ms(void);
 
 /* ========================================================================
  * Conversion Wrappers (stdlib/conv) — option-returning variants
@@ -345,6 +374,8 @@ RF_String*    rf_string_replace(RF_String* s, RF_String* old_s, RF_String* new_s
 RF_String*    rf_string_join(RF_Array* parts, RF_String* sep);
 RF_String*    rf_string_to_lower(RF_String* s);
 RF_String*    rf_string_to_upper(RF_String* s);
+RF_Array*     rf_string_to_bytes(RF_String* s);
+RF_String*    rf_string_from_bytes(RF_Array* data);
 
 /* ========================================================================
  * Character Utilities (stdlib/char — RB-1-2)
@@ -364,6 +395,9 @@ RF_String* rf_char_to_string(rf_char c);
 
 RF_Option_ptr rf_read_file(RF_String* path);
 rf_bool       rf_write_file(RF_String* path, RF_String* contents);
+RF_Option_ptr rf_read_file_bytes(RF_String* path);
+rf_bool       rf_write_file_bytes(RF_String* path, RF_Array* data);
+rf_bool       rf_append_file(RF_String* path, RF_String* contents);
 
 /* ========================================================================
  * Process Execution (stdlib/sys — RB-1-4)
@@ -390,6 +424,28 @@ RF_String* rf_path_with_suffix(RF_String* path, RF_String* suffix);
 RF_String* rf_path_cwd(void);
 RF_String* rf_path_resolve(RF_String* path);
 rf_bool    rf_path_exists(RF_String* path);
+rf_bool       rf_path_is_dir(RF_String* path);
+rf_bool       rf_path_is_file(RF_String* path);
+RF_Option_ptr rf_path_extension(RF_String* path);
+RF_Option_ptr rf_path_list_dir(RF_String* path);
+
+/* ========================================================================
+ * Math Functions (stdlib/math)
+ * ======================================================================== */
+
+rf_int   rf_math_abs_int(rf_int n);
+rf_float rf_math_abs_float(rf_float f);
+rf_int   rf_math_min_int(rf_int a, rf_int b);
+rf_int   rf_math_max_int(rf_int a, rf_int b);
+rf_float rf_math_min_float(rf_float a, rf_float b);
+rf_float rf_math_max_float(rf_float a, rf_float b);
+rf_int   rf_math_clamp_int(rf_int val, rf_int lo, rf_int hi);
+rf_float rf_math_floor(rf_float f);
+rf_float rf_math_ceil(rf_float f);
+rf_float rf_math_round(rf_float f);
+rf_float rf_math_pow(rf_float base, rf_float exp);
+rf_float rf_math_sqrt(rf_float f);
+rf_float rf_math_log(rf_float f);
 
 /* ========================================================================
  * Exception Handling (setjmp/longjmp)
