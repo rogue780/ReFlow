@@ -52,9 +52,9 @@ static void test_parse_true(void) {
     RF_JsonValue* val = (RF_JsonValue*)result.value;
     assert(rf_json_type_tag(val) == RF_JSON_BOOL);
 
-    RF_Option_ptr b = rf_json_as_bool(val);
+    RF_Option_bool b = rf_json_as_bool(val);
     assert(b.tag == 1);
-    assert((intptr_t)b.value == 1);
+    assert(b.value == rf_true);
 
     rf_json_release(val);
     rf_string_release(input);
@@ -74,9 +74,9 @@ static void test_parse_false(void) {
     RF_JsonValue* val = (RF_JsonValue*)result.value;
     assert(rf_json_type_tag(val) == RF_JSON_BOOL);
 
-    RF_Option_ptr b = rf_json_as_bool(val);
+    RF_Option_bool b = rf_json_as_bool(val);
     assert(b.tag == 1);
-    assert((intptr_t)b.value == 0);
+    assert(b.value == rf_false);
 
     rf_json_release(val);
     rf_string_release(input);
@@ -96,9 +96,9 @@ static void test_parse_integer(void) {
     RF_JsonValue* val = (RF_JsonValue*)result.value;
     assert(rf_json_type_tag(val) == RF_JSON_INT);
 
-    RF_Option_ptr i = rf_json_as_int(val);
+    RF_Option_int64 i = rf_json_as_int(val);
     assert(i.tag == 1);
-    assert((rf_int64)(intptr_t)i.value == 42);
+    assert(i.value == 42);
 
     rf_json_release(val);
     rf_string_release(input);
@@ -118,9 +118,9 @@ static void test_parse_negative_integer(void) {
     RF_JsonValue* val = (RF_JsonValue*)result.value;
     assert(rf_json_type_tag(val) == RF_JSON_INT);
 
-    RF_Option_ptr i = rf_json_as_int(val);
+    RF_Option_int64 i = rf_json_as_int(val);
     assert(i.tag == 1);
-    assert((rf_int64)(intptr_t)i.value == -123);
+    assert(i.value == -123);
 
     rf_json_release(val);
     rf_string_release(input);
@@ -140,11 +140,9 @@ static void test_parse_float(void) {
     RF_JsonValue* val = (RF_JsonValue*)result.value;
     assert(rf_json_type_tag(val) == RF_JSON_FLOAT);
 
-    RF_Option_ptr f = rf_json_as_float(val);
+    RF_Option_float f = rf_json_as_float(val);
     assert(f.tag == 1);
-    union { void* p; rf_float f; } u;
-    u.p = f.value;
-    assert(fabs(u.f - 3.14) < 0.001);
+    assert(fabs(f.value - 3.14) < 0.001);
 
     rf_json_release(val);
     rf_string_release(input);
@@ -244,16 +242,16 @@ static void test_parse_int_array(void) {
     /* Check first element */
     RF_Option_ptr e0 = rf_json_get_index(val, 0);
     assert(e0.tag == 1);
-    RF_Option_ptr i0 = rf_json_as_int((RF_JsonValue*)e0.value);
+    RF_Option_int64 i0 = rf_json_as_int((RF_JsonValue*)e0.value);
     assert(i0.tag == 1);
-    assert((rf_int64)(intptr_t)i0.value == 1);
+    assert(i0.value == 1);
 
     /* Check third element */
     RF_Option_ptr e2 = rf_json_get_index(val, 2);
     assert(e2.tag == 1);
-    RF_Option_ptr i2 = rf_json_as_int((RF_JsonValue*)e2.value);
+    RF_Option_int64 i2 = rf_json_as_int((RF_JsonValue*)e2.value);
     assert(i2.tag == 1);
-    assert((rf_int64)(intptr_t)i2.value == 3);
+    assert(i2.value == 3);
 
     rf_json_release(val);
     rf_string_release(input);
@@ -330,9 +328,9 @@ static void test_parse_nested_object(void) {
     RF_Option_ptr got_b = rf_json_get(inner, key_b);
     assert(got_b.tag == 1);
     RF_JsonValue* b_val = (RF_JsonValue*)got_b.value;
-    RF_Option_ptr i = rf_json_as_int(b_val);
+    RF_Option_int64 i = rf_json_as_int(b_val);
     assert(i.tag == 1);
-    assert((rf_int64)(intptr_t)i.value == 1);
+    assert(i.value == 1);
 
     rf_string_release(key_b);
     rf_string_release(key_a);
@@ -494,9 +492,9 @@ static void test_serialize_roundtrip(void) {
     RF_String* key_value = rf_string_from_cstr("value");
     RF_Option_ptr got2 = rf_json_get(val2, key_value);
     assert(got2.tag == 1);
-    RF_Option_ptr iv = rf_json_as_int((RF_JsonValue*)got2.value);
+    RF_Option_int64 iv = rf_json_as_int((RF_JsonValue*)got2.value);
     assert(iv.tag == 1);
-    assert((rf_int64)(intptr_t)iv.value == 42);
+    assert(iv.value == 42);
 
     rf_string_release(key_value);
     rf_string_release(expected_name);
@@ -536,11 +534,11 @@ static void test_accessor_type_mismatch(void) {
     RF_JsonValue* val = (RF_JsonValue*)result.value;
 
     /* Try to get int from a string value */
-    RF_Option_ptr i = rf_json_as_int(val);
+    RF_Option_int64 i = rf_json_as_int(val);
     assert(i.tag == 0);
 
     /* Try to get bool from a string value */
-    RF_Option_ptr b = rf_json_as_bool(val);
+    RF_Option_bool b = rf_json_as_bool(val);
     assert(b.tag == 0);
 
     /* Try to get array from a string value */
@@ -593,9 +591,9 @@ static void test_parse_whitespace(void) {
     RF_String* key = rf_string_from_cstr("key");
     RF_Option_ptr got = rf_json_get(val, key);
     assert(got.tag == 1);
-    RF_Option_ptr i = rf_json_as_int((RF_JsonValue*)got.value);
+    RF_Option_int64 i = rf_json_as_int((RF_JsonValue*)got.value);
     assert(i.tag == 1);
-    assert((rf_int64)(intptr_t)i.value == 42);
+    assert(i.value == 42);
 
     rf_string_release(key);
     rf_json_release(val);
@@ -685,11 +683,9 @@ static void test_parse_scientific_float(void) {
     RF_JsonValue* val = (RF_JsonValue*)result.value;
     assert(rf_json_type_tag(val) == RF_JSON_FLOAT);
 
-    RF_Option_ptr f = rf_json_as_float(val);
+    RF_Option_float f = rf_json_as_float(val);
     assert(f.tag == 1);
-    union { void* p; rf_float f; } u;
-    u.p = f.value;
-    assert(fabs(u.f - 150.0) < 0.001);
+    assert(fabs(f.value - 150.0) < 0.001);
 
     rf_json_release(val);
     rf_string_release(input);
@@ -804,9 +800,9 @@ static void test_parse_zero(void) {
     RF_JsonValue* val = (RF_JsonValue*)result.value;
     assert(rf_json_type_tag(val) == RF_JSON_INT);
 
-    RF_Option_ptr i = rf_json_as_int(val);
+    RF_Option_int64 i = rf_json_as_int(val);
     assert(i.tag == 1);
-    assert((rf_int64)(intptr_t)i.value == 0);
+    assert(i.value == 0);
 
     rf_json_release(val);
     rf_string_release(input);

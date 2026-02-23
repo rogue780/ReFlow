@@ -3428,22 +3428,22 @@ RF_Option_ptr rf_json_as_string(RF_JsonValue* val) {
     return RF_SOME_PTR(val->data.string_val);
 }
 
-RF_Option_ptr rf_json_as_int(RF_JsonValue* val) {
-    if (!val || val->tag != RF_JSON_INT) return RF_NONE_PTR;
-    return RF_SOME_PTR((void*)(intptr_t)val->data.int_val);
+RF_Option_int64 rf_json_as_int(RF_JsonValue* val) {
+    if (val && val->tag == RF_JSON_INT)
+        return (RF_Option_int64){.tag = 1, .value = val->data.int_val};
+    return (RF_Option_int64){.tag = 0};
 }
 
-RF_Option_ptr rf_json_as_float(RF_JsonValue* val) {
-    if (!val || val->tag != RF_JSON_FLOAT) return RF_NONE_PTR;
-    /* Store double bits as void* - caller must cast back */
-    union { rf_float f; void* p; } u;
-    u.f = val->data.float_val;
-    return RF_SOME_PTR(u.p);
+RF_Option_float rf_json_as_float(RF_JsonValue* val) {
+    if (val && val->tag == RF_JSON_FLOAT)
+        return (RF_Option_float){.tag = 1, .value = val->data.float_val};
+    return (RF_Option_float){.tag = 0};
 }
 
-RF_Option_ptr rf_json_as_bool(RF_JsonValue* val) {
-    if (!val || val->tag != RF_JSON_BOOL) return RF_NONE_PTR;
-    return RF_SOME_PTR((void*)(intptr_t)val->data.bool_val);
+RF_Option_bool rf_json_as_bool(RF_JsonValue* val) {
+    if (val && val->tag == RF_JSON_BOOL)
+        return (RF_Option_bool){.tag = 1, .value = val->data.bool_val};
+    return (RF_Option_bool){.tag = 0};
 }
 
 RF_Option_ptr rf_json_as_array(RF_JsonValue* val) {
