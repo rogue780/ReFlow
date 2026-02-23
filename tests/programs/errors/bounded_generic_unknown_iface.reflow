@@ -1,0 +1,13 @@
+; Bound references nonexistent interface
+module test
+
+type Foo { x: int }
+
+fn process<T fulfills NonExistent>(val: T): int {
+    return 0
+}
+
+fn main(): void {
+    let f = Foo { x: 1 }
+    process(f)
+}

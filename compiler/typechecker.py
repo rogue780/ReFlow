@@ -32,6 +32,7 @@ from compiler.ast_nodes import (
     # Declarations
     ModuleDecl, ImportDecl, FnDecl, TypeDecl, InterfaceDecl, AliasDecl,
     FieldDecl, ConstructorDecl, StaticMemberDecl, SumVariantDecl, Param,
+    TypeParam,
     # Top-level
     Module,
 )
@@ -292,7 +293,7 @@ class TypeScope:
 @dataclass
 class TypeInfo:
     name: str
-    type_params: list[str]
+    type_params: list[TypeParam]
     fields: dict[str, Type]
     field_mutability: dict[str, bool]
     methods: dict[str, TFn]
@@ -307,7 +308,7 @@ class TypeInfo:
 @dataclass
 class InterfaceInfo:
     name: str
-    type_params: list[str]
+    type_params: list[TypeParam]
     methods: dict[str, TFn]           # name -> sig (self param excluded)
     constructor_name: str | None
     constructor_sig: TFn | None
@@ -486,7 +487,7 @@ class TypeChecker:
         """Register built-in interfaces like Exception<T>."""
         self._interface_registry["Exception"] = InterfaceInfo(
             name="Exception",
-            type_params=["T"],
+            type_params=[TypeParam(name="T", bounds=[], line=0, col=0)],
             methods={
                 "message": TFn((), TString(), False),
                 "data": TFn((), TTypeVar("T"), False),
@@ -588,17 +589,45 @@ class TypeChecker:
 
         # Build substitution environment
         env: TypeEnv = {}
-        for param_name, arg_type in zip(iface.type_params, type_args):
-            env[param_name] = arg_type
+        for tp, arg_type in zip(iface.type_params, type_args):
+            env[tp.name] = arg_type
+
+        self._check_methods_satisfy_interface(
+            type_name=decl.name,
+            type_methods=info.methods,
+            type_constructors=info.constructors,
+            iface=iface,
+            iface_name=iface_name,
+            type_args=type_args,
+            node=decl,
+            context_msg=f"type '{decl.name}' declares fulfills '{iface_name}'",
+        )
+
+    def _check_methods_satisfy_interface(
+        self,
+        type_name: str,
+        type_methods: dict[str, TFn],
+        type_constructors: dict[str, TFn],
+        iface: InterfaceInfo,
+        iface_name: str,
+        type_args: list[Type],
+        node: ASTNode,
+        context_msg: str,
+    ) -> None:
+        """Shared helper: verify that a type's methods satisfy an interface."""
+        # Build substitution environment
+        env: TypeEnv = {}
+        for tp, arg_type in zip(iface.type_params, type_args):
+            env[tp.name] = arg_type
 
         # Check each required method
         for method_name, iface_sig in iface.methods.items():
-            actual_sig = info.methods.get(method_name)
+            actual_sig = type_methods.get(method_name)
             if actual_sig is None:
                 raise self._error(
-                    f"type '{decl.name}' declares fulfills '{iface_name}' "
-                    f"but is missing required method '{method_name}'",
-                    decl,
+                    f"{context_msg} but is missing required method "
+                    f"'{method_name}'",
+                    node,
                 )
 
             # Apply substitution to get concrete expected signature
@@ -608,19 +637,19 @@ class TypeChecker:
             # Check return type compatibility
             if not self._is_assignable(actual_sig.ret, expected_sig.ret):
                 raise self._error(
-                    f"type '{decl.name}' method '{method_name}' returns "
+                    f"{context_msg}: method '{method_name}' returns "
                     f"{self._type_name(actual_sig.ret)} but interface "
                     f"'{iface_name}' requires {self._type_name(expected_sig.ret)}",
-                    decl,
+                    node,
                 )
 
             # Check param count
             if len(actual_sig.params) != len(expected_sig.params):
                 raise self._error(
-                    f"type '{decl.name}' method '{method_name}' has "
+                    f"{context_msg}: method '{method_name}' has "
                     f"{len(actual_sig.params)} parameter(s) but interface "
                     f"'{iface_name}' requires {len(expected_sig.params)}",
-                    decl,
+                    node,
                 )
 
             # Check param types
@@ -629,30 +658,177 @@ class TypeChecker:
             ):
                 if not self._is_assignable(expected_p, actual_p):
                     raise self._error(
-                        f"type '{decl.name}' method '{method_name}' parameter "
+                        f"{context_msg}: method '{method_name}' parameter "
                         f"{i + 1} has type {self._type_name(actual_p)} but "
                         f"interface '{iface_name}' requires "
                         f"{self._type_name(expected_p)}",
-                        decl,
+                        node,
                     )
 
             # Check purity constraint
             if iface_sig.is_pure and not actual_sig.is_pure:
                 raise self._error(
-                    f"type '{decl.name}' method '{method_name}' must be pure "
+                    f"{context_msg}: method '{method_name}' must be pure "
                     f"as required by interface '{iface_name}'",
-                    decl,
+                    node,
                 )
 
         # Check constructor constraint if interface has one
         if iface.constructor_name is not None:
-            if iface.constructor_name not in info.constructors:
+            if iface.constructor_name not in type_constructors:
                 raise self._error(
-                    f"type '{decl.name}' declares fulfills '{iface_name}' "
-                    f"but is missing required constructor "
+                    f"{context_msg} but is missing required constructor "
                     f"'{iface.constructor_name}'",
-                    decl,
+                    node,
                 )
+
+    # ------------------------------------------------------------------
+    # Bounded generic validation (BG-2-2)
+    # ------------------------------------------------------------------
+
+    def _match_type_env(
+        self,
+        pattern: Type,
+        concrete: Type,
+        env: TypeEnv,
+        tp_names: set[str],
+    ) -> None:
+        """Recursively match pattern against concrete to extract type var bindings."""
+        match pattern:
+            case TTypeVar(name=name) if name in tp_names:
+                if name not in env:
+                    env[name] = concrete
+            case TArray(element=elem):
+                if isinstance(concrete, TArray):
+                    self._match_type_env(elem, concrete.element, env, tp_names)
+            case TOption(inner=inner):
+                if isinstance(concrete, TOption):
+                    self._match_type_env(inner, concrete.inner, env, tp_names)
+            case TStream(element=elem):
+                if isinstance(concrete, TStream):
+                    self._match_type_env(elem, concrete.element, env, tp_names)
+            case TBuffer(element=elem):
+                if isinstance(concrete, TBuffer):
+                    self._match_type_env(elem, concrete.element, env, tp_names)
+            case TResult(ok_type=ok_t, err_type=err_t):
+                if isinstance(concrete, TResult):
+                    self._match_type_env(ok_t, concrete.ok_type, env, tp_names)
+                    self._match_type_env(err_t, concrete.err_type, env, tp_names)
+            case TMap(key=k, value=v):
+                if isinstance(concrete, TMap):
+                    self._match_type_env(k, concrete.key, env, tp_names)
+                    self._match_type_env(v, concrete.value, env, tp_names)
+            case TSet(element=elem):
+                if isinstance(concrete, TSet):
+                    self._match_type_env(elem, concrete.element, env, tp_names)
+            case TFn(params=params, ret=ret):
+                if isinstance(concrete, TFn) and len(params) == len(concrete.params):
+                    for p, cp in zip(params, concrete.params):
+                        self._match_type_env(p, cp, env, tp_names)
+                    self._match_type_env(ret, concrete.ret, env, tp_names)
+            case TNamed(name=name, type_args=args):
+                if isinstance(concrete, TNamed) and concrete.name == name:
+                    for a, ca in zip(args, concrete.type_args):
+                        self._match_type_env(a, ca, env, tp_names)
+
+    def _infer_type_env_from_call(
+        self,
+        fn_decl: FnDecl,
+        arg_types: list[Type],
+    ) -> TypeEnv:
+        """Infer concrete types for type params from call arguments."""
+        env: TypeEnv = {}
+        tp_names = {tp.name for tp in fn_decl.type_params}
+        for param, arg_t in zip(fn_decl.params, arg_types):
+            resolved = self._resolve_type_expr(param.type_ann)
+            self._match_type_env(resolved, arg_t, env, tp_names)
+        return env
+
+    def _check_type_satisfies_bound(
+        self,
+        concrete: Type,
+        bound_expr: TypeExpr,
+        node: ASTNode,
+        tp_name: str,
+        fn_name: str,
+    ) -> None:
+        """Verify that a concrete type satisfies an interface bound."""
+        # Resolve the bound to an interface name + type args
+        match bound_expr:
+            case NamedType(name=iface_name):
+                bound_type_args: list[Type] = []
+            case GenericType(base=NamedType(name=iface_name), args=args):
+                bound_type_args = [self._resolve_type_expr(a) for a in args]
+            case _:
+                raise self._error(
+                    f"invalid interface expression in bound for type "
+                    f"parameter '{tp_name}'",
+                    node,
+                )
+
+        iface = self._interface_registry.get(iface_name)
+        if iface is None:
+            raise self._error(
+                f"unknown interface '{iface_name}' in bound for type "
+                f"parameter '{tp_name}'",
+                node,
+            )
+
+        # Validate type arg count on the bound
+        if len(bound_type_args) != len(iface.type_params):
+            raise self._error(
+                f"interface '{iface_name}' expects "
+                f"{len(iface.type_params)} type argument(s) but bound "
+                f"provides {len(bound_type_args)}",
+                node,
+            )
+
+        # Look up the concrete type's info
+        concrete_name = self._type_name(concrete)
+        info = self._type_registry.get(concrete_name)
+        if info is None:
+            raise self._error(
+                f"type '{concrete_name}' does not fulfill interface "
+                f"'{iface_name}' required by type parameter '{tp_name}'"
+                f" in call to '{fn_name}'",
+                node,
+            )
+
+        self._check_methods_satisfy_interface(
+            type_name=concrete_name,
+            type_methods=info.methods,
+            type_constructors=info.constructors,
+            iface=iface,
+            iface_name=iface_name,
+            type_args=bound_type_args,
+            node=node,
+            context_msg=(
+                f"type '{concrete_name}' does not fulfill interface "
+                f"'{iface_name}' required by type parameter '{tp_name}'"
+                f" in call to '{fn_name}'"
+            ),
+        )
+
+    def _validate_generic_call_bounds(
+        self,
+        fn_decl: FnDecl,
+        arg_types: list[Type],
+        node: ASTNode,
+    ) -> None:
+        """Check all bounded type params are satisfied at this call site."""
+        # Skip if no bounded params
+        if not any(tp.bounds for tp in fn_decl.type_params):
+            return
+        env = self._infer_type_env_from_call(fn_decl, arg_types)
+        for tp in fn_decl.type_params:
+            if not tp.bounds:
+                continue
+            concrete = env.get(tp.name)
+            if concrete is None or isinstance(concrete, (TAny, TTypeVar)):
+                continue  # cannot validate — generic context
+            for bound_expr in tp.bounds:
+                self._check_type_satisfies_bound(
+                    concrete, bound_expr, node, tp.name, fn_decl.name)
 
     # ------------------------------------------------------------------
     # Pre-pass: register top-level names in the type scope
@@ -992,6 +1168,12 @@ class TypeChecker:
 
                 if isinstance(callee_t, TFn):
                     self._check_call_args(callee_t, arg_types, args, expr)
+                    # BG-2-2-3: validate bounded generic call
+                    resolved_sym = self._resolved.symbols.get(callee)
+                    if resolved_sym is not None and isinstance(
+                            resolved_sym.decl, FnDecl):
+                        self._validate_generic_call_bounds(
+                            resolved_sym.decl, arg_types, expr)
                     return callee_t.ret
                 # Calling a non-function — might be a constructor or TAny
                 if isinstance(callee_t, TAny):
@@ -1011,6 +1193,9 @@ class TypeChecker:
                     if isinstance(fn_decl, FnDecl):
                         fn_type = self._fn_decl_type(fn_decl)
                         self._check_call_args(fn_type, arg_types, args, expr)
+                        # BG-2-2-4: validate bounded generic call
+                        self._validate_generic_call_bounds(
+                            fn_decl, arg_types, expr)
                         return fn_type.ret
                     return TAny()
 
@@ -2074,10 +2259,35 @@ class TypeChecker:
             return (self._is_assignable(source.ok_type, target.ok_type) and
                     self._is_assignable(source.err_type, target.err_type))
 
-        # TTypeVar matches if names match
-        if (isinstance(source, TTypeVar) and isinstance(target, TTypeVar)
-                and source.name == target.name):
+        # TTypeVar: a type variable accepts any type (generic param matching)
+        if isinstance(target, TTypeVar) or isinstance(source, TTypeVar):
             return True
+
+        # Structural assignability for container types with type vars
+        if isinstance(source, TArray) and isinstance(target, TArray):
+            return self._is_assignable(source.element, target.element)
+        if isinstance(source, TStream) and isinstance(target, TStream):
+            return self._is_assignable(source.element, target.element)
+        if isinstance(source, TBuffer) and isinstance(target, TBuffer):
+            return self._is_assignable(source.element, target.element)
+        if isinstance(source, TMap) and isinstance(target, TMap):
+            return (self._is_assignable(source.key, target.key) and
+                    self._is_assignable(source.value, target.value))
+        if isinstance(source, TSet) and isinstance(target, TSet):
+            return self._is_assignable(source.element, target.element)
+        if isinstance(source, TNamed) and isinstance(target, TNamed):
+            if source.name == target.name:
+                if len(source.type_args) == len(target.type_args):
+                    return all(
+                        self._is_assignable(s, t)
+                        for s, t in zip(source.type_args, target.type_args)
+                    )
+        if isinstance(source, TTuple) and isinstance(target, TTuple):
+            if len(source.elements) == len(target.elements):
+                return all(
+                    self._is_assignable(s, t)
+                    for s, t in zip(source.elements, target.elements)
+                )
 
         # Nominal TSum equality: same name means same type
         if (isinstance(source, TSum) and isinstance(target, TSum)

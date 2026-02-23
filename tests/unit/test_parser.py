@@ -36,6 +36,8 @@ from compiler.ast_nodes import (
     # Patterns
     WildcardPattern, LiteralPattern, BindPattern, SomePattern, NonePattern,
     OkPattern, ErrPattern, VariantPattern, TuplePattern,
+    # Type parameters
+    TypeParam,
 )
 
 
@@ -231,12 +233,16 @@ class TestFnDecl(unittest.TestCase):
     def test_generic_fn_single_type_param(self) -> None:
         decl = parse_first_decl("fn identity<T>(x: T): T = x")
         self.assertIsInstance(decl, FnDecl)
-        self.assertEqual(decl.type_params, ["T"])
+        self.assertEqual(len(decl.type_params), 1)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(decl.type_params[0].bounds, [])
 
     def test_generic_fn_multiple_type_params(self) -> None:
         decl = parse_first_decl("fn transform<T, U>(x: T): U { return x }")
         self.assertIsInstance(decl, FnDecl)
-        self.assertEqual(decl.type_params, ["T", "U"])
+        self.assertEqual(len(decl.type_params), 2)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(decl.type_params[1].name, "U")
 
     def test_fn_no_type_params_by_default(self) -> None:
         decl = parse_first_decl("fn foo(): int = 1")
@@ -323,7 +329,20 @@ class TestTypeDecl(unittest.TestCase):
         src = "type MyType fulfills Serializable { x: int }"
         decl = parse_first_decl(src)
         self.assertIsInstance(decl, TypeDecl)
-        self.assertIn("Serializable", decl.interfaces)
+        self.assertEqual(len(decl.interfaces), 1)
+        self.assertIsInstance(decl.interfaces[0], NamedType)
+        self.assertEqual(decl.interfaces[0].name, "Serializable")
+
+    def test_type_fulfills_generic_interface(self) -> None:
+        src = "type MyError fulfills Exception<string> { msg: string }"
+        decl = parse_first_decl(src)
+        self.assertIsInstance(decl, TypeDecl)
+        self.assertEqual(len(decl.interfaces), 1)
+        self.assertIsInstance(decl.interfaces[0], GenericType)
+        base = decl.interfaces[0].base
+        self.assertIsInstance(base, NamedType)
+        self.assertEqual(base.name, "Exception")
+        self.assertEqual(len(decl.interfaces[0].args), 1)
 
     def test_export_type(self) -> None:
         decl = parse_first_decl("export type Point { x: float, y: float }")
@@ -434,7 +453,9 @@ class TestAliasDecl(unittest.TestCase):
         decl = parse_first_decl(src)
         self.assertIsInstance(decl, AliasDecl)
         self.assertEqual(decl.name, "Transform")
-        self.assertEqual(decl.type_params, ["T", "U"])
+        self.assertEqual(len(decl.type_params), 2)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(decl.type_params[1].name, "U")
 
     def test_alias_no_type_params_by_default(self) -> None:
         decl = parse_first_decl("alias Timestamp: int")
@@ -1062,18 +1083,18 @@ class TestWhileStmt(unittest.TestCase):
     """While statement parsing."""
 
     def test_simple_while(self) -> None:
-        stmt = parse_stmt("while cond { x++ }")
+        stmt = parse_stmt("while (cond) { x++ }")
         self.assertIsInstance(stmt, WhileStmt)
         self.assertIsInstance(stmt.condition, Ident)
         self.assertIsInstance(stmt.body, Block)
 
     def test_while_no_finally_by_default(self) -> None:
-        stmt = parse_stmt("while cond { x++ }")
+        stmt = parse_stmt("while (cond) { x++ }")
         self.assertIsInstance(stmt, WhileStmt)
         self.assertIsNone(stmt.finally_block)
 
     def test_while_condition_is_expr(self) -> None:
-        stmt = parse_stmt("while i < n { i++ }")
+        stmt = parse_stmt("while (i < n) { i++ }")
         self.assertIsInstance(stmt, WhileStmt)
         self.assertIsInstance(stmt.condition, BinOp)
 
@@ -1564,6 +1585,108 @@ class TestExpressionEdgeCases(unittest.TestCase):
         expr = parse_expr("a ?? b || c")
         # outer should be NullCoalesce since it's lowest precedence
         self.assertIsInstance(expr, NullCoalesce)
+
+
+class TestBoundedGenerics(unittest.TestCase):
+    """BG-1-3-2: Parser tests for bounded generic type parameters."""
+
+    def test_single_bound(self) -> None:
+        decl = parse_first_decl(
+            "fn f<T fulfills Printable>(x: T): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertEqual(len(decl.type_params), 1)
+        tp = decl.type_params[0]
+        self.assertEqual(tp.name, "T")
+        self.assertEqual(len(tp.bounds), 1)
+        self.assertIsInstance(tp.bounds[0], NamedType)
+        self.assertEqual(tp.bounds[0].name, "Printable")
+
+    def test_no_bound_unchanged(self) -> None:
+        decl = parse_first_decl("fn f<T>(x: T): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertEqual(len(decl.type_params), 1)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(decl.type_params[0].bounds, [])
+
+    def test_multiple_params_each_bounded(self) -> None:
+        decl = parse_first_decl(
+            "fn f<T fulfills A, U fulfills B>(x: T, y: U): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertEqual(len(decl.type_params), 2)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(len(decl.type_params[0].bounds), 1)
+        self.assertEqual(decl.type_params[0].bounds[0].name, "A")
+        self.assertEqual(decl.type_params[1].name, "U")
+        self.assertEqual(len(decl.type_params[1].bounds), 1)
+        self.assertEqual(decl.type_params[1].bounds[0].name, "B")
+
+    def test_multi_bound_parenthesized(self) -> None:
+        decl = parse_first_decl(
+            "fn f<T fulfills (A, B)>(x: T): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertEqual(len(decl.type_params), 1)
+        tp = decl.type_params[0]
+        self.assertEqual(tp.name, "T")
+        self.assertEqual(len(tp.bounds), 2)
+        self.assertEqual(tp.bounds[0].name, "A")
+        self.assertEqual(tp.bounds[1].name, "B")
+
+    def test_generic_interface_bound(self) -> None:
+        decl = parse_first_decl(
+            "fn f<T fulfills Mappable<int>>(x: T): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        tp = decl.type_params[0]
+        self.assertEqual(len(tp.bounds), 1)
+        self.assertIsInstance(tp.bounds[0], GenericType)
+
+    def test_bounded_type_decl(self) -> None:
+        decl = parse_first_decl(
+            "type Box<T fulfills P> { val: T }")
+        self.assertIsInstance(decl, TypeDecl)
+        self.assertEqual(len(decl.type_params), 1)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(len(decl.type_params[0].bounds), 1)
+        self.assertEqual(decl.type_params[0].bounds[0].name, "P")
+
+    def test_bounded_interface_decl(self) -> None:
+        decl = parse_first_decl(
+            "interface Container<T fulfills Comparable> {\n"
+            "    fn min(self): T\n"
+            "}")
+        self.assertIsInstance(decl, InterfaceDecl)
+        self.assertEqual(len(decl.type_params), 1)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(len(decl.type_params[0].bounds), 1)
+
+    def test_bounded_alias_decl(self) -> None:
+        decl = parse_first_decl(
+            "alias Sorted<T fulfills Comparable>: array<T>")
+        self.assertIsInstance(decl, AliasDecl)
+        self.assertEqual(len(decl.type_params), 1)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(len(decl.type_params[0].bounds), 1)
+
+    def test_mixed_bounded_unbounded(self) -> None:
+        decl = parse_first_decl(
+            "fn f<T fulfills A, U>(x: T, y: U): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertEqual(len(decl.type_params), 2)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(len(decl.type_params[0].bounds), 1)
+        self.assertEqual(decl.type_params[1].name, "U")
+        self.assertEqual(len(decl.type_params[1].bounds), 0)
+
+    def test_disambiguation_comma(self) -> None:
+        """<T fulfills A, B> = two params: T with bound A, unbounded B."""
+        decl = parse_first_decl(
+            "fn f<T fulfills A, B>(x: T, y: B): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertEqual(len(decl.type_params), 2)
+        self.assertEqual(decl.type_params[0].name, "T")
+        self.assertEqual(len(decl.type_params[0].bounds), 1)
+        self.assertEqual(decl.type_params[0].bounds[0].name, "A")
+        self.assertEqual(decl.type_params[1].name, "B")
+        self.assertEqual(len(decl.type_params[1].bounds), 0)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,19 @@
+; Bounded generic call with type that does not fulfill the bound
+module test
+
+interface Printable {
+    fn to_str(self): string
+}
+
+type Plain {
+    x: int
+}
+
+fn format<T fulfills Printable>(val: T): string {
+    return "ok"
+}
+
+fn main(): void {
+    let p = Plain { x: 1 }
+    format(p)
+}

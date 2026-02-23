@@ -100,6 +100,7 @@ from compiler.ast_nodes import (
     InterfaceDecl,
     AliasDecl,
     SumVariantDecl,
+    TypeParam,
     # Top-level
     Module,
 )
@@ -464,7 +465,7 @@ class Parser:
         name = name_tok.value
 
         # Optional generic type parameters
-        type_params: list[str] = []
+        type_params: list[TypeParam] = []
         if self.check(TokenType.LT):
             type_params = self._parse_type_params()
 
@@ -520,17 +521,39 @@ class Parser:
             native_name=native_name,
         )
 
-    def _parse_type_params(self) -> list[str]:
-        """Parse generic type parameter list: <T, U, V>"""
+    def _parse_type_param(self) -> TypeParam:
+        """Parse a single type parameter: IDENT [ fulfills BOUND ]"""
+        tok = self.expect(TokenType.IDENT)
+        bounds: list[TypeExpr] = []
+        if self.check(TokenType.FULFILLS):
+            self.advance()
+            if self.check(TokenType.LPAREN):
+                # Multiple bounds: T fulfills (A, B, C)
+                self.advance()
+                bounds.append(self.parse_type_expr())
+                while self.check(TokenType.COMMA):
+                    self.advance()
+                    bounds.append(self.parse_type_expr())
+                self.expect(TokenType.RPAREN)
+            else:
+                # Single bound: T fulfills A
+                bounds.append(self.parse_type_expr())
+        return TypeParam(
+            name=tok.value,
+            bounds=bounds,
+            line=tok.line,
+            col=tok.col,
+        )
+
+    def _parse_type_params(self) -> list[TypeParam]:
+        """Parse generic type parameter list: <T, U fulfills V, W>"""
         self.expect(TokenType.LT)
-        params: list[str] = []
+        params: list[TypeParam] = []
         if not self.check(TokenType.GT):
-            tok = self.expect(TokenType.IDENT)
-            params.append(tok.value)
+            params.append(self._parse_type_param())
             while self.check(TokenType.COMMA):
                 self.advance()
-                tok = self.expect(TokenType.IDENT)
-                params.append(tok.value)
+                params.append(self._parse_type_param())
         self.expect(TokenType.GT)
         return params
 
@@ -578,20 +601,18 @@ class Parser:
         name = name_tok.value
 
         # Optional generic type params
-        type_params: list[str] = []
+        type_params: list[TypeParam] = []
         if self.check(TokenType.LT):
             type_params = self._parse_type_params()
 
         # Check for 'fulfills'
-        interfaces: list[str] = []
+        interfaces: list[TypeExpr] = []
         if self.check(TokenType.FULFILLS):
             self.advance()
-            iface_tok = self.expect(TokenType.IDENT)
-            interfaces.append(iface_tok.value)
+            interfaces.append(self.parse_type_expr())
             while self.check(TokenType.COMMA):
                 self.advance()
-                iface_tok = self.expect(TokenType.IDENT)
-                interfaces.append(iface_tok.value)
+                interfaces.append(self.parse_type_expr())
 
         # Sum type: type Name = | Variant1(...) | Variant2
         if self.check(TokenType.ASSIGN):
@@ -604,8 +625,8 @@ class Parser:
         self,
         tok: Token,
         name: str,
-        type_params: list[str],
-        interfaces: list[str],
+        type_params: list[TypeParam],
+        interfaces: list[TypeExpr],
         is_export: bool,
     ) -> TypeDecl:
         """Parse a sum type: type Name = | Variant1(fields) | Variant2"""
@@ -670,8 +691,8 @@ class Parser:
         self,
         tok: Token,
         name: str,
-        type_params: list[str],
-        interfaces: list[str],
+        type_params: list[TypeParam],
+        interfaces: list[TypeExpr],
         is_export: bool,
     ) -> TypeDecl:
         """Parse a struct type: type Name { fields, methods, constructors, statics }"""
@@ -808,7 +829,7 @@ class Parser:
         tok = self.expect(TokenType.INTERFACE)
         name_tok = self.expect(TokenType.IDENT)
 
-        type_params: list[str] = []
+        type_params: list[TypeParam] = []
         if self.check(TokenType.LT):
             type_params = self._parse_type_params()
 
@@ -876,7 +897,7 @@ class Parser:
         tok = self.expect(TokenType.ALIAS)
         name_tok = self.expect(TokenType.IDENT)
 
-        type_params: list[str] = []
+        type_params: list[TypeParam] = []
         if self.check(TokenType.LT):
             type_params = self._parse_type_params()
 
@@ -1183,9 +1204,11 @@ class Parser:
         )
 
     def parse_while_stmt(self) -> WhileStmt:
-        """Parse: while expr { block } [finally { block }]"""
+        """Parse: while (expr) { block } [finally { block }]"""
         tok = self.expect(TokenType.WHILE)
+        self.expect(TokenType.LPAREN)
         condition = self.parse_expr()
+        self.expect(TokenType.RPAREN)
         body = self.parse_block()
 
         finally_block: Block | None = None

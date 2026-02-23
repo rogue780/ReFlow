@@ -908,6 +908,32 @@ type Pair<A, B> {
 }
 ```
 
+Type parameters may carry interface bounds using `fulfills`. The bound
+restricts which concrete types may be substituted for the parameter:
+
+```
+type SortedList<T fulfills Comparable> {
+    items: array<T>,
+
+    fn insert(self, val: T): SortedList<T> {
+        ; T is guaranteed to have compare()
+        ...
+    }
+}
+
+let valid: SortedList<int> = ...            ; ok: int fulfills Comparable
+let invalid: SortedList<MyPlainType> = ...  ; compile error: MyPlainType does not fulfill Comparable
+```
+
+Multiple bounds on a single parameter require parentheses:
+
+```
+type IndexedCache<K fulfills (Hashable, Comparable), V> {
+    data: map<K, V>,
+    ...
+}
+```
+
 ### Fulfilling Interfaces
 
 ```
@@ -968,6 +994,21 @@ interface Mappable<T> {
     fn map<U>(self, f: fn(T): U): Mappable<U>
 }
 ```
+
+### Bounded Type Parameters on Interfaces
+
+Interface type parameters may also carry bounds:
+
+```
+interface SortedContainer<T fulfills Comparable> {
+    fn insert(self, val: T): self
+    fn min(self): option<T>
+    fn max(self): option<T>
+}
+```
+
+Any type fulfilling `SortedContainer` must supply a concrete type for `T`
+that itself fulfills `Comparable`.
 
 ### The `collection` Interface
 
@@ -1142,6 +1183,49 @@ fn transform<T, U>(s: stream<T>, f: fn(T): U): stream<U> {
         yield f(item)
     }
 }
+```
+
+### Bounded Generic Functions
+
+Type parameters on functions may carry interface bounds. The compiler checks
+bounds at each call site: the concrete type inferred for the parameter must
+fulfill the required interface.
+
+```
+; Single bound
+fn max<T fulfills Comparable>(a: T, b: T): T {
+    return if a.compare(b) > 0 then a else b
+}
+
+; Multiple bounds on one parameter (parenthesized)
+fn format_and_hash<T fulfills (Printable, Hashable)>(val: T): int {
+    io.println(val.to_str())
+    return val.hash()
+}
+
+; Multiple bounded parameters
+fn convert<A fulfills Serializable, B fulfills Parseable>(a: A): B {
+    return B.from_string(a.serialize())
+}
+
+; Mixed bounded and unbounded
+fn wrap<T fulfills Printable, U>(val: T, extra: U): string {
+    return val.to_str()
+}
+```
+
+**Disambiguation rule**: Without parentheses, a comma after a bound name starts
+a new type parameter. `<T fulfills A, B>` declares two parameters: `T` with
+bound `A`, and unbounded `B`. To give `T` two bounds, use parentheses:
+`<T fulfills (A, B)>`.
+
+Bounded generics also work on type declarations, interface declarations, and
+type aliases:
+
+```
+type Box<T fulfills Serializable> { value: T }
+interface Transformer<T fulfills Parseable> { fn transform(self, input: T): T }
+alias Sortable<T fulfills Comparable>: array<T>
 ```
 
 ### Pure Functions

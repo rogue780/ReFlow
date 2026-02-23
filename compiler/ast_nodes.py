@@ -488,9 +488,15 @@ class ImportDecl(Decl):
 
 
 @dataclass
+class TypeParam(ASTNode):
+    name: str
+    bounds: list[TypeExpr]  # empty = unconstrained
+
+
+@dataclass
 class FnDecl(Decl):
     name: str
-    type_params: list[str]
+    type_params: list[TypeParam]
     params: list[Param]
     return_type: TypeExpr | None
     body: Block | Expr | None    # None for interface declarations
@@ -510,12 +516,12 @@ class Param(ASTNode):
 @dataclass
 class TypeDecl(Decl):
     name: str
-    type_params: list[str]
+    type_params: list[TypeParam]
     fields: list[FieldDecl]
     methods: list[FnDecl]
     constructors: list[ConstructorDecl]
     static_members: list[StaticMemberDecl]
-    interfaces: list[str]
+    interfaces: list[TypeExpr]
     is_export: bool
     is_sum_type: bool
     variants: list[SumVariantDecl]
@@ -547,7 +553,7 @@ class StaticMemberDecl(ASTNode):
 @dataclass
 class InterfaceDecl(Decl):
     name: str
-    type_params: list[str]
+    type_params: list[TypeParam]
     methods: list[FnDecl]
     constructor_sig: ConstructorDecl | None
     is_export: bool
@@ -556,7 +562,7 @@ class InterfaceDecl(Decl):
 @dataclass
 class AliasDecl(Decl):
     name: str
-    type_params: list[str]
+    type_params: list[TypeParam]
     target: TypeExpr
     is_export: bool
 

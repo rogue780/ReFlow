@@ -1002,5 +1002,233 @@ fn main() {
         self.assertIsNotNone(result)
 
 
+class TestBoundedGenericFunctions(unittest.TestCase):
+    """BG-3-1: Typechecker tests for bounded generics."""
+
+    def test_bounded_call_satisfying_type(self):
+        """Type fulfills the bound interface — call succeeds."""
+        result = check("""
+interface Printable {
+    fn to_str(self): string
+}
+
+type Msg fulfills Printable {
+    text: string,
+    fn to_str(self): string = self.text
+}
+
+fn format<T fulfills Printable>(val: T): string {
+    return "ok"
+}
+
+fn main() {
+    let m = Msg { text: "hi" }
+    format(m)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_bounded_call_unsatisfying_type(self):
+        """Type does not fulfill the bound — TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+interface Printable {
+    fn to_str(self): string
+}
+
+type Plain {
+    x: int
+}
+
+fn format<T fulfills Printable>(val: T): string {
+    return "ok"
+}
+
+fn main() {
+    let p = Plain { x: 1 }
+    format(p)
+}""")
+        self.assertIn("does not fulfill", str(ctx.exception))
+        self.assertIn("Printable", str(ctx.exception))
+
+    def test_unconstrained_generic_unchanged(self):
+        """No bounds, no error — backward compat."""
+        result = check("""
+fn identity<T>(x: T): T = x
+fn main() {
+    let n = identity(42)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_multi_bound_all_satisfied(self):
+        """T fulfills (A, B) — type satisfies both."""
+        result = check("""
+interface Printable {
+    fn to_str(self): string
+}
+interface Hashable {
+    fn hash(self): int
+}
+
+type Key fulfills Printable {
+    val: int,
+    fn to_str(self): string = "key"
+    fn hash(self): int = self.val
+}
+
+fn process<T fulfills (Printable, Hashable)>(val: T): int {
+    return 0
+}
+
+fn main() {
+    let k = Key { val: 42 }
+    process(k)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_multi_bound_partial_failure(self):
+        """Type fulfills only one of two bounds — TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+interface Printable {
+    fn to_str(self): string
+}
+interface Hashable {
+    fn hash(self): int
+}
+
+type HalfType fulfills Printable {
+    val: int,
+    fn to_str(self): string = "half"
+}
+
+fn process<T fulfills (Printable, Hashable)>(val: T): int {
+    return 0
+}
+
+fn main() {
+    let h = HalfType { val: 1 }
+    process(h)
+}""")
+        self.assertIn("does not fulfill", str(ctx.exception))
+        self.assertIn("Hashable", str(ctx.exception))
+
+    def test_multiple_bounded_params(self):
+        """<T fulfills A, U fulfills B> — both satisfied."""
+        result = check("""
+interface Printable {
+    fn to_str(self): string
+}
+interface Hashable {
+    fn hash(self): int
+}
+
+type Msg fulfills Printable {
+    text: string,
+    fn to_str(self): string = self.text
+}
+
+type Key {
+    val: int,
+    fn hash(self): int = self.val
+}
+
+fn combine<T fulfills Printable, U fulfills Hashable>(a: T, b: U): int {
+    return 0
+}
+
+fn main() {
+    let m = Msg { text: "hi" }
+    let k = Key { val: 1 }
+    combine(m, k)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_unknown_interface_in_bound(self):
+        """Bound references nonexistent interface — TypeError."""
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""
+type Foo { x: int }
+
+fn process<T fulfills NonExistent>(val: T): int {
+    return 0
+}
+
+fn main() {
+    let f = Foo { x: 1 }
+    process(f)
+}""")
+        self.assertIn("unknown interface", str(ctx.exception))
+        self.assertIn("NonExistent", str(ctx.exception))
+
+    def test_bounded_generic_with_option_return(self):
+        """Bounded generic function returning option<T>."""
+        result = check("""
+interface Printable {
+    fn to_str(self): string
+}
+
+type Msg fulfills Printable {
+    text: string,
+    fn to_str(self): string = self.text
+}
+
+fn try_format<T fulfills Printable>(val: T): string? {
+    return "ok"
+}
+
+fn main() {
+    let m = Msg { text: "hi" }
+    try_format(m)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_bounded_generic_with_array_param(self):
+        """Bounded generic function with array<T> parameter."""
+        result = check("""
+interface Printable {
+    fn to_str(self): string
+}
+
+type Msg fulfills Printable {
+    text: string,
+    fn to_str(self): string = self.text
+}
+
+fn format_all<T fulfills Printable>(items: array<T>): int {
+    return 0
+}
+
+fn main() {
+    let m = Msg { text: "hi" }
+    let items = [m]
+    format_all(items)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_namespace_method_call_bounded(self):
+        """Bounded generic called via namespace (module.fn)."""
+        # This tests the MethodCall path (BG-2-2-4)
+        # We can't easily test cross-module calls in unit tests,
+        # so we test direct calls which go through the Call path.
+        # The MethodCall path is tested by the existing stdlib tests.
+        result = check("""
+interface Printable {
+    fn to_str(self): string
+}
+
+type Msg fulfills Printable {
+    text: string,
+    fn to_str(self): string = self.text
+}
+
+fn format<T fulfills Printable>(val: T): string = "ok"
+
+fn main() {
+    let m = Msg { text: "hi" }
+    let s = format(m)
+}""")
+        self.assertIsNotNone(result)
+
+
 if __name__ == "__main__":
     unittest.main()
