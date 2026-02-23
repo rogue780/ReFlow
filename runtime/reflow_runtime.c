@@ -12,6 +12,11 @@
 #include <dirent.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <fcntl.h>
 
 /* ========================================================================
  * Panic Functions (RT-1-1-3)
@@ -3240,4 +3245,910 @@ rf_int rf_test_run_all(RF_Array* tests) {
         fprintf(stdout, "%d FAILED\n", failures);
     }
     return failures;
+}
+
+/* ========================================================================
+ * Net (stdlib/net)
+ * ======================================================================== */
+
+struct RF_TcpListener {
+    int fd;
+};
+
+struct RF_TcpConnection {
+    int fd;
+};
+
+RF_Option_ptr rf_net_listen(RF_String* addr, rf_int port) {
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) return RF_NONE_PTR;
+
+    int opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    struct sockaddr_in sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons((uint16_t)port);
+
+    if (addr && rf_string_len(addr) > 0) {
+        char buf[256];
+        rf_int64 len = rf_string_len(addr);
+        if (len >= (rf_int64)sizeof(buf)) len = (rf_int64)(sizeof(buf) - 1);
+        memcpy(buf, addr->data, (size_t)len);
+        buf[len] = '\0';
+        inet_pton(AF_INET, buf, &sa.sin_addr);
+    } else {
+        sa.sin_addr.s_addr = INADDR_ANY;
+    }
+
+    if (bind(fd, (struct sockaddr*)&sa, sizeof(sa)) < 0) {
+        close(fd);
+        return RF_NONE_PTR;
+    }
+
+    if (listen(fd, 128) < 0) {
+        close(fd);
+        return RF_NONE_PTR;
+    }
+
+    RF_TcpListener* listener = (RF_TcpListener*)malloc(sizeof(RF_TcpListener));
+    if (!listener) { close(fd); return RF_NONE_PTR; }
+    listener->fd = fd;
+    return RF_SOME_PTR(listener);
+}
+
+RF_Option_ptr rf_net_accept(RF_TcpListener* listener) {
+    if (!listener || listener->fd < 0) return RF_NONE_PTR;
+
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    int client_fd = accept(listener->fd, (struct sockaddr*)&client_addr, &client_len);
+    if (client_fd < 0) return RF_NONE_PTR;
+
+    RF_TcpConnection* conn = (RF_TcpConnection*)malloc(sizeof(RF_TcpConnection));
+    if (!conn) { close(client_fd); return RF_NONE_PTR; }
+    conn->fd = client_fd;
+    return RF_SOME_PTR(conn);
+}
+
+void rf_net_close_listener(RF_TcpListener* listener) {
+    if (listener) {
+        if (listener->fd >= 0) {
+            close(listener->fd);
+            listener->fd = -1;
+        }
+        free(listener);
+    }
+}
+
+RF_Option_ptr rf_net_connect(RF_String* host, rf_int port) {
+    if (!host) return RF_NONE_PTR;
+
+    char host_buf[256];
+    rf_int64 hlen = rf_string_len(host);
+    if (hlen >= (rf_int64)sizeof(host_buf)) return RF_NONE_PTR;
+    memcpy(host_buf, host->data, (size_t)hlen);
+    host_buf[hlen] = '\0';
+
+    char port_buf[16];
+    snprintf(port_buf, sizeof(port_buf), "%d", port);
+
+    struct addrinfo hints, *res;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if (getaddrinfo(host_buf, port_buf, &hints, &res) != 0) {
+        return RF_NONE_PTR;
+    }
+
+    int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (fd < 0) {
+        freeaddrinfo(res);
+        return RF_NONE_PTR;
+    }
+
+    if (connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
+        close(fd);
+        freeaddrinfo(res);
+        return RF_NONE_PTR;
+    }
+
+    freeaddrinfo(res);
+    RF_TcpConnection* conn = (RF_TcpConnection*)malloc(sizeof(RF_TcpConnection));
+    if (!conn) { close(fd); return RF_NONE_PTR; }
+    conn->fd = fd;
+    return RF_SOME_PTR(conn);
+}
+
+RF_Option_ptr rf_net_read(RF_TcpConnection* conn, rf_int max_bytes) {
+    if (!conn || conn->fd < 0 || max_bytes <= 0) return RF_NONE_PTR;
+
+    rf_byte* buf = (rf_byte*)malloc((size_t)max_bytes);
+    if (!buf) return RF_NONE_PTR;
+
+    ssize_t n = recv(conn->fd, buf, (size_t)max_bytes, 0);
+    if (n < 0) {
+        free(buf);
+        return RF_NONE_PTR;
+    }
+
+    /* n == 0 means connection closed — return SOME with empty array */
+    RF_Array* arr = rf_array_new((rf_int64)n, sizeof(rf_byte), NULL);
+    if (n > 0) {
+        memcpy(arr->data, buf, (size_t)n);
+    }
+    free(buf);
+    return RF_SOME_PTR(arr);
+}
+
+rf_bool rf_net_write(RF_TcpConnection* conn, RF_Array* data) {
+    if (!conn || conn->fd < 0 || !data) return rf_false;
+
+    rf_int64 total = rf_array_len(data);
+    rf_int64 sent = 0;
+    while (sent < total) {
+        ssize_t n = send(conn->fd, (char*)data->data + sent,
+                         (size_t)(total - sent), 0);
+        if (n <= 0) return rf_false;
+        sent += n;
+    }
+    return rf_true;
+}
+
+rf_bool rf_net_write_string(RF_TcpConnection* conn, RF_String* s) {
+    if (!conn || conn->fd < 0 || !s) return rf_false;
+
+    rf_int64 total = rf_string_len(s);
+    rf_int64 sent = 0;
+    while (sent < total) {
+        ssize_t n = send(conn->fd, s->data + sent,
+                         (size_t)(total - sent), 0);
+        if (n <= 0) return rf_false;
+        sent += n;
+    }
+    return rf_true;
+}
+
+void rf_net_close(RF_TcpConnection* conn) {
+    if (conn) {
+        if (conn->fd >= 0) {
+            close(conn->fd);
+            conn->fd = -1;
+        }
+        free(conn);
+    }
+}
+
+rf_bool rf_net_set_timeout(RF_TcpConnection* conn, rf_int ms) {
+    if (!conn || conn->fd < 0) return rf_false;
+
+    struct timeval tv;
+    tv.tv_sec = ms / 1000;
+    tv.tv_usec = (ms % 1000) * 1000;
+
+    if (setsockopt(conn->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+        return rf_false;
+    }
+    if (setsockopt(conn->fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
+        return rf_false;
+    }
+    return rf_true;
+}
+
+RF_Option_ptr rf_net_remote_addr(RF_TcpConnection* conn) {
+    if (!conn || conn->fd < 0) return RF_NONE_PTR;
+
+    struct sockaddr_in sa;
+    socklen_t sa_len = sizeof(sa);
+    if (getpeername(conn->fd, (struct sockaddr*)&sa, &sa_len) < 0) {
+        return RF_NONE_PTR;
+    }
+
+    char ip_buf[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &sa.sin_addr, ip_buf, sizeof(ip_buf));
+    int port = ntohs(sa.sin_port);
+
+    char result[280];
+    snprintf(result, sizeof(result), "%s:%d", ip_buf, port);
+
+    RF_String* addr_str = rf_string_from_cstr(result);
+    return RF_SOME_PTR(addr_str);
+}
+
+/* ========================================================================
+ * JSON (stdlib/json)
+ * ======================================================================== */
+
+struct RF_JsonValue {
+    rf_byte tag;  /* RF_JSON_NULL..RF_JSON_OBJECT */
+    union {
+        rf_bool     bool_val;
+        rf_int64    int_val;
+        rf_float    float_val;
+        RF_String*  string_val;
+        RF_Array*   array_val;   /* Array of RF_JsonValue* */
+        RF_Map*     object_val;  /* Map of RF_String* -> RF_JsonValue* */
+    } data;
+};
+
+/* --- Constructors --- */
+
+RF_JsonValue* rf_json_null(void) {
+    RF_JsonValue* v = (RF_JsonValue*)malloc(sizeof(RF_JsonValue));
+    if (!v) rf_panic("rf_json_null: out of memory");
+    v->tag = RF_JSON_NULL;
+    memset(&v->data, 0, sizeof(v->data));
+    return v;
+}
+
+RF_JsonValue* rf_json_bool(rf_bool val) {
+    RF_JsonValue* v = (RF_JsonValue*)malloc(sizeof(RF_JsonValue));
+    if (!v) rf_panic("rf_json_bool: out of memory");
+    v->tag = RF_JSON_BOOL;
+    v->data.bool_val = val;
+    return v;
+}
+
+RF_JsonValue* rf_json_int(rf_int64 val) {
+    RF_JsonValue* v = (RF_JsonValue*)malloc(sizeof(RF_JsonValue));
+    if (!v) rf_panic("rf_json_int: out of memory");
+    v->tag = RF_JSON_INT;
+    v->data.int_val = val;
+    return v;
+}
+
+RF_JsonValue* rf_json_float(rf_float val) {
+    RF_JsonValue* v = (RF_JsonValue*)malloc(sizeof(RF_JsonValue));
+    if (!v) rf_panic("rf_json_float: out of memory");
+    v->tag = RF_JSON_FLOAT;
+    v->data.float_val = val;
+    return v;
+}
+
+RF_JsonValue* rf_json_string(RF_String* val) {
+    RF_JsonValue* v = (RF_JsonValue*)malloc(sizeof(RF_JsonValue));
+    if (!v) rf_panic("rf_json_string: out of memory");
+    v->tag = RF_JSON_STRING;
+    v->data.string_val = val;
+    if (val) rf_string_retain(val);
+    return v;
+}
+
+RF_JsonValue* rf_json_array(RF_Array* items) {
+    RF_JsonValue* v = (RF_JsonValue*)malloc(sizeof(RF_JsonValue));
+    if (!v) rf_panic("rf_json_array: out of memory");
+    v->tag = RF_JSON_ARRAY;
+    v->data.array_val = items;
+    if (items) rf_array_retain(items);
+    return v;
+}
+
+RF_JsonValue* rf_json_object(RF_Map* entries) {
+    RF_JsonValue* v = (RF_JsonValue*)malloc(sizeof(RF_JsonValue));
+    if (!v) rf_panic("rf_json_object: out of memory");
+    v->tag = RF_JSON_OBJECT;
+    v->data.object_val = entries;
+    if (entries) rf_map_retain(entries);
+    return v;
+}
+
+/* --- Release --- */
+
+void rf_json_release(RF_JsonValue* val) {
+    if (!val) return;
+    switch (val->tag) {
+        case RF_JSON_STRING:
+            rf_string_release(val->data.string_val);
+            break;
+        case RF_JSON_ARRAY: {
+            RF_Array* arr = val->data.array_val;
+            if (arr) {
+                rf_int64 len = rf_array_len(arr);
+                for (rf_int64 i = 0; i < len; i++) {
+                    RF_JsonValue** slot = (RF_JsonValue**)rf_array_get_ptr(arr, i);
+                    if (slot && *slot) rf_json_release(*slot);
+                }
+                rf_array_release(arr);
+            }
+            break;
+        }
+        case RF_JSON_OBJECT: {
+            RF_Map* m = val->data.object_val;
+            if (m) rf_map_release(m);
+            break;
+        }
+        default:
+            break;
+    }
+    free(val);
+}
+
+/* --- Accessors --- */
+
+RF_Option_ptr rf_json_get(RF_JsonValue* obj, RF_String* key) {
+    if (!obj || obj->tag != RF_JSON_OBJECT || !key) return RF_NONE_PTR;
+    RF_Map* m = obj->data.object_val;
+    if (!m) return RF_NONE_PTR;
+    return rf_map_get(m, key->data, key->len);
+}
+
+RF_Option_ptr rf_json_get_index(RF_JsonValue* arr, rf_int64 index) {
+    if (!arr || arr->tag != RF_JSON_ARRAY) return RF_NONE_PTR;
+    RF_Array* a = arr->data.array_val;
+    if (!a || index < 0 || index >= rf_array_len(a)) return RF_NONE_PTR;
+    RF_JsonValue** slot = (RF_JsonValue**)rf_array_get_ptr(a, index);
+    if (!slot) return RF_NONE_PTR;
+    return RF_SOME_PTR(*slot);
+}
+
+RF_Option_ptr rf_json_as_string(RF_JsonValue* val) {
+    if (!val || val->tag != RF_JSON_STRING) return RF_NONE_PTR;
+    return RF_SOME_PTR(val->data.string_val);
+}
+
+RF_Option_ptr rf_json_as_int(RF_JsonValue* val) {
+    if (!val || val->tag != RF_JSON_INT) return RF_NONE_PTR;
+    return RF_SOME_PTR((void*)(intptr_t)val->data.int_val);
+}
+
+RF_Option_ptr rf_json_as_float(RF_JsonValue* val) {
+    if (!val || val->tag != RF_JSON_FLOAT) return RF_NONE_PTR;
+    /* Store double bits as void* - caller must cast back */
+    union { rf_float f; void* p; } u;
+    u.f = val->data.float_val;
+    return RF_SOME_PTR(u.p);
+}
+
+RF_Option_ptr rf_json_as_bool(RF_JsonValue* val) {
+    if (!val || val->tag != RF_JSON_BOOL) return RF_NONE_PTR;
+    return RF_SOME_PTR((void*)(intptr_t)val->data.bool_val);
+}
+
+RF_Option_ptr rf_json_as_array(RF_JsonValue* val) {
+    if (!val || val->tag != RF_JSON_ARRAY) return RF_NONE_PTR;
+    return RF_SOME_PTR(val->data.array_val);
+}
+
+rf_bool rf_json_is_null(RF_JsonValue* val) {
+    if (!val) return rf_false;
+    return val->tag == RF_JSON_NULL ? rf_true : rf_false;
+}
+
+rf_byte rf_json_type_tag(RF_JsonValue* val) {
+    if (!val) return RF_JSON_NULL;
+    return val->tag;
+}
+
+/* --- Parser --- */
+
+typedef struct {
+    const char* input;
+    rf_int64    pos;
+    rf_int64    len;
+} _RF_JsonParser;
+
+static RF_JsonValue* _rf_json_parse_value(_RF_JsonParser* p);
+
+static void _rf_json_skip_ws(_RF_JsonParser* p) {
+    while (p->pos < p->len) {
+        char c = p->input[p->pos];
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+            p->pos++;
+        else
+            break;
+    }
+}
+
+static RF_JsonValue* _rf_json_parse_string_value(_RF_JsonParser* p) {
+    /* p->pos points to opening '"' */
+    p->pos++; /* skip '"' */
+    rf_int64 cap = 64;
+    rf_int64 len = 0;
+    char* buf = (char*)malloc((size_t)cap);
+    if (!buf) return NULL;
+
+    while (p->pos < p->len) {
+        char c = p->input[p->pos];
+        if (c == '"') {
+            p->pos++; /* skip closing '"' */
+            buf[len] = '\0';
+            RF_String* s = rf_string_new(buf, len);
+            free(buf);
+            return rf_json_string(s);
+        }
+        if (c == '\\') {
+            p->pos++;
+            if (p->pos >= p->len) { free(buf); return NULL; }
+            char esc = p->input[p->pos];
+            switch (esc) {
+                case '"': case '\\': case '/': buf[len++] = esc; break;
+                case 'b': buf[len++] = '\b'; break;
+                case 'f': buf[len++] = '\f'; break;
+                case 'n': buf[len++] = '\n'; break;
+                case 'r': buf[len++] = '\r'; break;
+                case 't': buf[len++] = '\t'; break;
+                case 'u': {
+                    /* \uXXXX - parse 4 hex digits, emit as UTF-8 */
+                    if (p->pos + 4 >= p->len) { free(buf); return NULL; }
+                    char hex[5] = {0};
+                    memcpy(hex, &p->input[p->pos + 1], 4);
+                    unsigned int cp = (unsigned int)strtoul(hex, NULL, 16);
+                    p->pos += 4;
+                    if (cp < 0x80) {
+                        buf[len++] = (char)cp;
+                    } else if (cp < 0x800) {
+                        buf[len++] = (char)(0xC0 | (cp >> 6));
+                        buf[len++] = (char)(0x80 | (cp & 0x3F));
+                    } else {
+                        buf[len++] = (char)(0xE0 | (cp >> 12));
+                        buf[len++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+                        buf[len++] = (char)(0x80 | (cp & 0x3F));
+                    }
+                    break;
+                }
+                default: free(buf); return NULL;
+            }
+        } else {
+            buf[len++] = c;
+        }
+        p->pos++;
+        if (len + 6 >= cap) { cap *= 2; buf = (char*)realloc(buf, (size_t)cap); }
+    }
+    free(buf);
+    return NULL;
+}
+
+/* Parse a raw string (not wrapped in RF_JsonValue) — returns RF_String* or NULL */
+static RF_String* _rf_json_parse_string_raw(_RF_JsonParser* p) {
+    RF_JsonValue* jv = _rf_json_parse_string_value(p);
+    if (!jv) return NULL;
+    RF_String* s = jv->data.string_val;
+    rf_string_retain(s);
+    rf_json_release(jv);
+    return s;
+}
+
+static RF_JsonValue* _rf_json_parse_number(_RF_JsonParser* p) {
+    rf_int64 start = p->pos;
+    rf_bool is_float = rf_false;
+    if (p->input[p->pos] == '-') p->pos++;
+    while (p->pos < p->len && p->input[p->pos] >= '0' && p->input[p->pos] <= '9') p->pos++;
+    if (p->pos < p->len && p->input[p->pos] == '.') {
+        is_float = rf_true;
+        p->pos++;
+        while (p->pos < p->len && p->input[p->pos] >= '0' && p->input[p->pos] <= '9') p->pos++;
+    }
+    if (p->pos < p->len && (p->input[p->pos] == 'e' || p->input[p->pos] == 'E')) {
+        is_float = rf_true;
+        p->pos++;
+        if (p->pos < p->len && (p->input[p->pos] == '+' || p->input[p->pos] == '-')) p->pos++;
+        while (p->pos < p->len && p->input[p->pos] >= '0' && p->input[p->pos] <= '9') p->pos++;
+    }
+    char nbuf[64];
+    rf_int64 num_len = p->pos - start;
+    if (num_len >= 63) num_len = 63;
+    memcpy(nbuf, &p->input[start], (size_t)num_len);
+    nbuf[num_len] = '\0';
+    if (is_float) return rf_json_float(strtod(nbuf, NULL));
+    return rf_json_int((rf_int64)strtoll(nbuf, NULL, 10));
+}
+
+static RF_JsonValue* _rf_json_parse_array(_RF_JsonParser* p) {
+    p->pos++; /* skip '[' */
+    _rf_json_skip_ws(p);
+
+    /* Collect items into a buffer, then convert to RF_Array */
+    rf_int64 cap = 8;
+    rf_int64 count = 0;
+    RF_JsonValue** items = (RF_JsonValue**)malloc((size_t)cap * sizeof(RF_JsonValue*));
+    if (!items) return NULL;
+
+    if (p->pos < p->len && p->input[p->pos] == ']') {
+        p->pos++; /* empty array */
+        RF_Array* arr = rf_array_new(0, sizeof(RF_JsonValue*), NULL);
+        free(items);
+        return rf_json_array(arr);
+    }
+
+    for (;;) {
+        _rf_json_skip_ws(p);
+        RF_JsonValue* elem = _rf_json_parse_value(p);
+        if (!elem) {
+            /* Cleanup on failure */
+            for (rf_int64 i = 0; i < count; i++) rf_json_release(items[i]);
+            free(items);
+            return NULL;
+        }
+        if (count >= cap) {
+            cap *= 2;
+            items = (RF_JsonValue**)realloc(items, (size_t)cap * sizeof(RF_JsonValue*));
+        }
+        items[count++] = elem;
+
+        _rf_json_skip_ws(p);
+        if (p->pos >= p->len) {
+            for (rf_int64 i = 0; i < count; i++) rf_json_release(items[i]);
+            free(items);
+            return NULL;
+        }
+        if (p->input[p->pos] == ']') {
+            p->pos++;
+            break;
+        }
+        if (p->input[p->pos] != ',') {
+            for (rf_int64 i = 0; i < count; i++) rf_json_release(items[i]);
+            free(items);
+            return NULL;
+        }
+        p->pos++; /* skip ',' */
+    }
+
+    RF_Array* arr = rf_array_new(count, sizeof(RF_JsonValue*), items);
+    free(items);
+    /* Array now owns the pointers; don't release the elements */
+    return rf_json_array(arr);
+}
+
+static RF_JsonValue* _rf_json_parse_object(_RF_JsonParser* p) {
+    p->pos++; /* skip '{' */
+    _rf_json_skip_ws(p);
+
+    RF_Map* map = rf_map_new();
+
+    if (p->pos < p->len && p->input[p->pos] == '}') {
+        p->pos++; /* empty object */
+        RF_JsonValue* result = rf_json_object(map);
+        rf_map_release(map);
+        return result;
+    }
+
+    for (;;) {
+        _rf_json_skip_ws(p);
+        if (p->pos >= p->len || p->input[p->pos] != '"') {
+            rf_map_release(map);
+            return NULL;
+        }
+        RF_String* key = _rf_json_parse_string_raw(p);
+        if (!key) {
+            rf_map_release(map);
+            return NULL;
+        }
+
+        _rf_json_skip_ws(p);
+        if (p->pos >= p->len || p->input[p->pos] != ':') {
+            rf_string_release(key);
+            rf_map_release(map);
+            return NULL;
+        }
+        p->pos++; /* skip ':' */
+
+        _rf_json_skip_ws(p);
+        RF_JsonValue* val = _rf_json_parse_value(p);
+        if (!val) {
+            rf_string_release(key);
+            rf_map_release(map);
+            return NULL;
+        }
+
+        RF_Map* new_map = rf_map_set(map, key->data, key->len, val);
+        rf_map_release(map);
+        map = new_map;
+        rf_string_release(key);
+
+        _rf_json_skip_ws(p);
+        if (p->pos >= p->len) {
+            rf_map_release(map);
+            return NULL;
+        }
+        if (p->input[p->pos] == '}') {
+            p->pos++;
+            break;
+        }
+        if (p->input[p->pos] != ',') {
+            rf_map_release(map);
+            return NULL;
+        }
+        p->pos++; /* skip ',' */
+    }
+
+    RF_JsonValue* result = rf_json_object(map);
+    rf_map_release(map);
+    return result;
+}
+
+static RF_JsonValue* _rf_json_parse_value(_RF_JsonParser* p) {
+    _rf_json_skip_ws(p);
+    if (p->pos >= p->len) return NULL;
+
+    char c = p->input[p->pos];
+    switch (c) {
+        case '"': return _rf_json_parse_string_value(p);
+        case '{': return _rf_json_parse_object(p);
+        case '[': return _rf_json_parse_array(p);
+        case 't':
+            if (p->pos + 3 < p->len &&
+                p->input[p->pos+1] == 'r' && p->input[p->pos+2] == 'u' &&
+                p->input[p->pos+3] == 'e') {
+                p->pos += 4;
+                return rf_json_bool(rf_true);
+            }
+            return NULL;
+        case 'f':
+            if (p->pos + 4 < p->len &&
+                p->input[p->pos+1] == 'a' && p->input[p->pos+2] == 'l' &&
+                p->input[p->pos+3] == 's' && p->input[p->pos+4] == 'e') {
+                p->pos += 5;
+                return rf_json_bool(rf_false);
+            }
+            return NULL;
+        case 'n':
+            if (p->pos + 3 < p->len &&
+                p->input[p->pos+1] == 'u' && p->input[p->pos+2] == 'l' &&
+                p->input[p->pos+3] == 'l') {
+                p->pos += 4;
+                return rf_json_null();
+            }
+            return NULL;
+        default:
+            if (c == '-' || (c >= '0' && c <= '9'))
+                return _rf_json_parse_number(p);
+            return NULL;
+    }
+}
+
+RF_Option_ptr rf_json_parse(RF_String* s) {
+    if (!s) return RF_NONE_PTR;
+    _RF_JsonParser parser = { .input = s->data, .pos = 0, .len = s->len };
+    RF_JsonValue* val = _rf_json_parse_value(&parser);
+    if (!val) return RF_NONE_PTR;
+    /* Skip trailing whitespace and verify nothing extra */
+    _rf_json_skip_ws(&parser);
+    if (parser.pos != parser.len) {
+        rf_json_release(val);
+        return RF_NONE_PTR;
+    }
+    return RF_SOME_PTR(val);
+}
+
+/* --- Serializer (dynamic string buffer) --- */
+
+typedef struct {
+    char*    buf;
+    rf_int64 len;
+    rf_int64 cap;
+} _RF_JsonBuf;
+
+static void _rf_jbuf_init(_RF_JsonBuf* b) {
+    b->cap = 128;
+    b->len = 0;
+    b->buf = (char*)malloc((size_t)b->cap);
+    if (!b->buf) rf_panic("json serialize: out of memory");
+}
+
+static void _rf_jbuf_ensure(_RF_JsonBuf* b, rf_int64 extra) {
+    while (b->len + extra >= b->cap) {
+        b->cap *= 2;
+        b->buf = (char*)realloc(b->buf, (size_t)b->cap);
+        if (!b->buf) rf_panic("json serialize: out of memory");
+    }
+}
+
+static void _rf_jbuf_append_cstr(_RF_JsonBuf* b, const char* s) {
+    rf_int64 slen = (rf_int64)strlen(s);
+    _rf_jbuf_ensure(b, slen);
+    memcpy(b->buf + b->len, s, (size_t)slen);
+    b->len += slen;
+}
+
+static void _rf_jbuf_append_char(_RF_JsonBuf* b, char c) {
+    _rf_jbuf_ensure(b, 1);
+    b->buf[b->len++] = c;
+}
+
+static void _rf_jbuf_append_chars(_RF_JsonBuf* b, char c, rf_int count) {
+    _rf_jbuf_ensure(b, (rf_int64)count);
+    for (rf_int i = 0; i < count; i++) {
+        b->buf[b->len++] = c;
+    }
+}
+
+static void _rf_jbuf_append_escaped_string(_RF_JsonBuf* b, RF_String* s) {
+    _rf_jbuf_append_char(b, '"');
+    for (rf_int64 i = 0; i < s->len; i++) {
+        unsigned char c = (unsigned char)s->data[i];
+        switch (c) {
+            case '"':  _rf_jbuf_append_cstr(b, "\\\""); break;
+            case '\\': _rf_jbuf_append_cstr(b, "\\\\"); break;
+            case '\b': _rf_jbuf_append_cstr(b, "\\b"); break;
+            case '\f': _rf_jbuf_append_cstr(b, "\\f"); break;
+            case '\n': _rf_jbuf_append_cstr(b, "\\n"); break;
+            case '\r': _rf_jbuf_append_cstr(b, "\\r"); break;
+            case '\t': _rf_jbuf_append_cstr(b, "\\t"); break;
+            default:
+                if (c < 0x20) {
+                    char esc[8];
+                    snprintf(esc, sizeof(esc), "\\u%04x", c);
+                    _rf_jbuf_append_cstr(b, esc);
+                } else {
+                    _rf_jbuf_append_char(b, (char)c);
+                }
+                break;
+        }
+    }
+    _rf_jbuf_append_char(b, '"');
+}
+
+static RF_String* _rf_jbuf_to_string(_RF_JsonBuf* b) {
+    RF_String* s = rf_string_new(b->buf, b->len);
+    free(b->buf);
+    return s;
+}
+
+/* Forward declaration for recursive serialization */
+static void _rf_json_serialize(_RF_JsonBuf* b, RF_JsonValue* val);
+static void _rf_json_serialize_pretty(_RF_JsonBuf* b, RF_JsonValue* val,
+                                      rf_int indent, rf_int depth);
+
+static void _rf_json_serialize(_RF_JsonBuf* b, RF_JsonValue* val) {
+    if (!val) { _rf_jbuf_append_cstr(b, "null"); return; }
+    switch (val->tag) {
+        case RF_JSON_NULL:
+            _rf_jbuf_append_cstr(b, "null");
+            break;
+        case RF_JSON_BOOL:
+            _rf_jbuf_append_cstr(b, val->data.bool_val ? "true" : "false");
+            break;
+        case RF_JSON_INT: {
+            char nbuf[32];
+            snprintf(nbuf, sizeof(nbuf), "%lld", (long long)val->data.int_val);
+            _rf_jbuf_append_cstr(b, nbuf);
+            break;
+        }
+        case RF_JSON_FLOAT: {
+            char nbuf[64];
+            snprintf(nbuf, sizeof(nbuf), "%.17g", val->data.float_val);
+            _rf_jbuf_append_cstr(b, nbuf);
+            break;
+        }
+        case RF_JSON_STRING:
+            _rf_jbuf_append_escaped_string(b, val->data.string_val);
+            break;
+        case RF_JSON_ARRAY: {
+            _rf_jbuf_append_char(b, '[');
+            RF_Array* arr = val->data.array_val;
+            if (arr) {
+                rf_int64 len = rf_array_len(arr);
+                for (rf_int64 i = 0; i < len; i++) {
+                    if (i > 0) _rf_jbuf_append_char(b, ',');
+                    RF_JsonValue** slot = (RF_JsonValue**)rf_array_get_ptr(arr, i);
+                    _rf_json_serialize(b, slot ? *slot : NULL);
+                }
+            }
+            _rf_jbuf_append_char(b, ']');
+            break;
+        }
+        case RF_JSON_OBJECT: {
+            _rf_jbuf_append_char(b, '{');
+            RF_Map* m = val->data.object_val;
+            if (m) {
+                /* Iterate over map entries directly using internal knowledge
+                 * of RF_Map structure. We access the entries array and capacity
+                 * to iterate over occupied slots. */
+                rf_int64 first = 1;
+                /* Access map internals: count, capacity, entries are at known offsets.
+                 * Since RF_Map is defined in this file, we can cast. */
+                rf_int64 map_cap = m->capacity;
+                for (rf_int64 i = 0; i < map_cap; i++) {
+                    RF_MapEntry* e = &m->entries[i];
+                    if (!e->occupied) continue;
+                    if (!first) _rf_jbuf_append_char(b, ',');
+                    first = 0;
+                    /* Key is raw bytes, create temp string for escaping */
+                    RF_String* key_str = rf_string_new((const char*)e->key, e->key_len);
+                    _rf_jbuf_append_escaped_string(b, key_str);
+                    rf_string_release(key_str);
+                    _rf_jbuf_append_char(b, ':');
+                    _rf_json_serialize(b, (RF_JsonValue*)e->val);
+                }
+            }
+            _rf_jbuf_append_char(b, '}');
+            break;
+        }
+    }
+}
+
+RF_String* rf_json_to_string(RF_JsonValue* val) {
+    _RF_JsonBuf buf;
+    _rf_jbuf_init(&buf);
+    _rf_json_serialize(&buf, val);
+    return _rf_jbuf_to_string(&buf);
+}
+
+/* --- Pretty serializer --- */
+
+static void _rf_json_serialize_pretty(_RF_JsonBuf* b, RF_JsonValue* val,
+                                      rf_int indent, rf_int depth) {
+    if (!val) { _rf_jbuf_append_cstr(b, "null"); return; }
+    switch (val->tag) {
+        case RF_JSON_NULL:
+            _rf_jbuf_append_cstr(b, "null");
+            break;
+        case RF_JSON_BOOL:
+            _rf_jbuf_append_cstr(b, val->data.bool_val ? "true" : "false");
+            break;
+        case RF_JSON_INT: {
+            char nbuf[32];
+            snprintf(nbuf, sizeof(nbuf), "%lld", (long long)val->data.int_val);
+            _rf_jbuf_append_cstr(b, nbuf);
+            break;
+        }
+        case RF_JSON_FLOAT: {
+            char nbuf[64];
+            snprintf(nbuf, sizeof(nbuf), "%.17g", val->data.float_val);
+            _rf_jbuf_append_cstr(b, nbuf);
+            break;
+        }
+        case RF_JSON_STRING:
+            _rf_jbuf_append_escaped_string(b, val->data.string_val);
+            break;
+        case RF_JSON_ARRAY: {
+            RF_Array* arr = val->data.array_val;
+            rf_int64 len = arr ? rf_array_len(arr) : 0;
+            if (len == 0) {
+                _rf_jbuf_append_cstr(b, "[]");
+            } else {
+                _rf_jbuf_append_cstr(b, "[\n");
+                for (rf_int64 i = 0; i < len; i++) {
+                    _rf_jbuf_append_chars(b, ' ', indent * (depth + 1));
+                    RF_JsonValue** slot = (RF_JsonValue**)rf_array_get_ptr(arr, i);
+                    _rf_json_serialize_pretty(b, slot ? *slot : NULL, indent, depth + 1);
+                    if (i + 1 < len) _rf_jbuf_append_char(b, ',');
+                    _rf_jbuf_append_char(b, '\n');
+                }
+                _rf_jbuf_append_chars(b, ' ', indent * depth);
+                _rf_jbuf_append_char(b, ']');
+            }
+            break;
+        }
+        case RF_JSON_OBJECT: {
+            RF_Map* m = val->data.object_val;
+            rf_int64 cnt = m ? rf_map_len(m) : 0;
+            if (cnt == 0) {
+                _rf_jbuf_append_cstr(b, "{}");
+            } else {
+                _rf_jbuf_append_cstr(b, "{\n");
+                rf_int64 map_cap = m->capacity;
+                rf_int64 first = 1;
+                rf_int64 emitted = 0;
+                for (rf_int64 i = 0; i < map_cap; i++) {
+                    RF_MapEntry* e = &m->entries[i];
+                    if (!e->occupied) continue;
+                    if (!first) {
+                        _rf_jbuf_append_cstr(b, ",\n");
+                    }
+                    first = 0;
+                    _rf_jbuf_append_chars(b, ' ', indent * (depth + 1));
+                    RF_String* key_str = rf_string_new((const char*)e->key, e->key_len);
+                    _rf_jbuf_append_escaped_string(b, key_str);
+                    rf_string_release(key_str);
+                    _rf_jbuf_append_cstr(b, ": ");
+                    _rf_json_serialize_pretty(b, (RF_JsonValue*)e->val, indent, depth + 1);
+                    emitted++;
+                }
+                _rf_jbuf_append_char(b, '\n');
+                _rf_jbuf_append_chars(b, ' ', indent * depth);
+                _rf_jbuf_append_char(b, '}');
+            }
+            break;
+        }
+    }
+}
+
+RF_String* rf_json_to_string_pretty(RF_JsonValue* val, rf_int indent) {
+    _RF_JsonBuf buf;
+    _rf_jbuf_init(&buf);
+    _rf_json_serialize_pretty(&buf, val, indent, 0);
+    return _rf_jbuf_to_string(&buf);
 }

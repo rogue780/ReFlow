@@ -69,6 +69,12 @@ test-runtime:
 	$(CC) -o tests/runtime/test_testing tests/runtime/test_testing.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
 	tests/runtime/test_testing
 	@rm -f tests/runtime/test_testing
+	$(CC) -o tests/runtime/test_net tests/runtime/test_net.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_net
+	@rm -f tests/runtime/test_net
+	$(CC) -o tests/runtime/test_json tests/runtime/test_json.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_json
+	@rm -f tests/runtime/test_json
 
 check:
 	$(PYTHON) -m mypy compiler/

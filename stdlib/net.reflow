@@ -1,0 +1,11 @@
+module net
+
+// TCP networking module.
+//
+// Most net functions use opaque RF_TcpListener* and RF_TcpConnection* types
+// that cannot be expressed in ReFlow yet. The C runtime functions
+// (rf_net_listen, rf_net_connect, rf_net_accept, rf_net_read, rf_net_write,
+// rf_net_write_string, rf_net_close, rf_net_close_listener,
+// rf_net_set_timeout, rf_net_remote_addr) are available for direct use from
+// generated code, but the .reflow wrapper is minimal until opaque types are
+// supported in the type system.

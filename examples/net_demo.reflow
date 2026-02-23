@@ -1,0 +1,26 @@
+// net_demo.reflow — Example showing intent of TCP networking module.
+//
+// Most net functions operate on opaque RF_TcpListener and RF_TcpConnection
+// types that cannot yet be expressed in the ReFlow type system. The C runtime
+// functions are fully functional and tested; this example documents the
+// intended high-level API once opaque types are supported.
+//
+// Intended usage:
+//
+//   import net
+//
+//   let listener = net.listen("0.0.0.0", 8080)
+//   match listener
+//     | some(l) =>
+//       let conn = net.accept(l)
+//       match conn
+//         | some(c) =>
+//           let data = net.read(c, 1024)
+//           net.write_string(c, "Hello from ReFlow!")
+//           net.close(c)
+//         | none => println("accept failed")
+//       net.close_listener(l)
+//     | none => println("listen failed")
+
+fn main(): int =
+  0

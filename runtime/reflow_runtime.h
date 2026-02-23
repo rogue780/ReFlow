@@ -629,6 +629,73 @@ rf_int rf_test_run_all(RF_Array* tests);
 void rf_test_report(RF_TestResult* result);
 
 /* ========================================================================
+ * Net (stdlib/net)
+ * ======================================================================== */
+
+typedef struct RF_TcpListener RF_TcpListener;
+typedef struct RF_TcpConnection RF_TcpConnection;
+
+/* Listener */
+RF_Option_ptr rf_net_listen(RF_String* addr, rf_int port);
+RF_Option_ptr rf_net_accept(RF_TcpListener* listener);
+void          rf_net_close_listener(RF_TcpListener* listener);
+
+/* Connection */
+RF_Option_ptr rf_net_connect(RF_String* host, rf_int port);
+RF_Option_ptr rf_net_read(RF_TcpConnection* conn, rf_int max_bytes);
+rf_bool       rf_net_write(RF_TcpConnection* conn, RF_Array* data);
+rf_bool       rf_net_write_string(RF_TcpConnection* conn, RF_String* s);
+void          rf_net_close(RF_TcpConnection* conn);
+
+/* Utilities */
+rf_bool       rf_net_set_timeout(RF_TcpConnection* conn, rf_int ms);
+RF_Option_ptr rf_net_remote_addr(RF_TcpConnection* conn);
+
+/* ========================================================================
+ * JSON (stdlib/json)
+ * ======================================================================== */
+
+typedef struct RF_JsonValue RF_JsonValue;
+
+/* JSON value type tags */
+#define RF_JSON_NULL   0
+#define RF_JSON_BOOL   1
+#define RF_JSON_INT    2
+#define RF_JSON_FLOAT  3
+#define RF_JSON_STRING 4
+#define RF_JSON_ARRAY  5
+#define RF_JSON_OBJECT 6
+
+/* Constructors */
+RF_JsonValue* rf_json_null(void);
+RF_JsonValue* rf_json_bool(rf_bool val);
+RF_JsonValue* rf_json_int(rf_int64 val);
+RF_JsonValue* rf_json_float(rf_float val);
+RF_JsonValue* rf_json_string(RF_String* val);
+RF_JsonValue* rf_json_array(RF_Array* items);
+RF_JsonValue* rf_json_object(RF_Map* entries);
+
+/* Parsing */
+RF_Option_ptr rf_json_parse(RF_String* s);
+
+/* Serializing */
+RF_String* rf_json_to_string(RF_JsonValue* val);
+RF_String* rf_json_to_string_pretty(RF_JsonValue* val, rf_int indent);
+
+/* Accessors */
+RF_Option_ptr rf_json_get(RF_JsonValue* obj, RF_String* key);
+RF_Option_ptr rf_json_get_index(RF_JsonValue* arr, rf_int64 index);
+RF_Option_ptr rf_json_as_string(RF_JsonValue* val);
+RF_Option_ptr rf_json_as_int(RF_JsonValue* val);
+RF_Option_ptr rf_json_as_float(RF_JsonValue* val);
+RF_Option_ptr rf_json_as_bool(RF_JsonValue* val);
+RF_Option_ptr rf_json_as_array(RF_JsonValue* val);
+rf_bool       rf_json_is_null(RF_JsonValue* val);
+rf_byte       rf_json_type_tag(RF_JsonValue* val);
+
+void rf_json_release(RF_JsonValue* val);
+
+/* ========================================================================
  * Runtime Initialization
  * ======================================================================== */
 
