@@ -288,8 +288,11 @@ String manipulation. All functions are `pure`.
 | `to_lower` | `pure fn to_lower(s: string): string` | Implemented | `rf_string_to_lower` |
 | `to_upper` | `pure fn to_upper(s: string): string` | Implemented | `rf_string_to_upper` |
 | `concat` | `pure fn concat(a: string, b: string): string` | Implemented | `rf_string_concat` |
-| `to_bytes` | `pure fn to_bytes(s: string): array<byte>` | Planned | `rf_string_to_bytes` |
-| `from_bytes` | `pure fn from_bytes(data: array<byte>): string` | Planned | `rf_string_from_bytes` |
+| `to_bytes` | `pure fn to_bytes(s: string): array<byte>` | Implemented | `rf_string_to_bytes` |
+| `from_bytes` | `pure fn from_bytes(data: array<byte>): string` | Implemented | `rf_string_from_bytes` |
+| `repeat` | `fn repeat(s: string, n: int): string` | Implemented | `rf_string_repeat` |
+| `url_decode` | `fn url_decode(s: string): string` | Implemented | `rf_string_url_decode` |
+| `url_encode` | `fn url_encode(s: string): string` | Implemented | `rf_string_url_encode` |
 
 ### Behavior Notes
 
@@ -300,6 +303,65 @@ String manipulation. All functions are `pure`.
 - `index_of` returns the byte offset of the first occurrence, or `none`.
 - `to_bytes` / `from_bytes` convert between string and raw byte array. No
   encoding validation on `from_bytes` (caller's responsibility).
+- `repeat(s, n)` returns `s` concatenated `n` times. Returns `""` for `n <= 0`.
+- `url_decode` decodes percent-encoded strings (`%20` → space, `+` → space).
+- `url_encode` encodes non-URL-safe characters as `%XX`.
+
+---
+
+## Module: `string_builder`
+
+**File:** `stdlib/string_builder.reflow`
+
+Mutable string builder for efficient incremental string construction.
+Avoids the O(n^2) cost of repeated `+` concatenation.
+
+| Function | Signature | Status | Runtime |
+|----------|-----------|--------|---------|
+| `new` | `fn new(): StringBuilder` | Implemented | `rf_sb_new` |
+| `with_capacity` | `fn with_capacity(cap: int64): StringBuilder` | Implemented | `rf_sb_with_capacity` |
+| `append` | `fn append(sb: StringBuilder, s: string): none` | Implemented | `rf_sb_append` |
+| `append_char` | `fn append_char(sb: StringBuilder, c: char): none` | Implemented | `rf_sb_append_char` |
+| `append_int` | `fn append_int(sb: StringBuilder, v: int): none` | Implemented | `rf_sb_append_int` |
+| `append_int64` | `fn append_int64(sb: StringBuilder, v: int64): none` | Implemented | `rf_sb_append_int64` |
+| `append_float` | `fn append_float(sb: StringBuilder, v: float): none` | Implemented | `rf_sb_append_float` |
+| `build` | `fn build(sb: StringBuilder): string` | Implemented | `rf_sb_build` |
+| `len` | `fn len(sb: StringBuilder): int64` | Implemented | `rf_sb_len` |
+| `clear` | `fn clear(sb: StringBuilder): none` | Implemented | `rf_sb_clear` |
+
+### Behavior Notes
+
+- `build` creates a new `RF_String` from the builder's contents. The builder
+  can continue to be used after calling `build`.
+- `clear` resets the builder to empty without deallocating its internal buffer.
+- `with_capacity` pre-allocates buffer space to avoid reallocation.
+
+---
+
+## Module: `array`
+
+**File:** `stdlib/array.reflow`
+
+Array access and manipulation functions.
+
+| Function | Signature | Status | Runtime |
+|----------|-----------|--------|---------|
+| `get_int` | `fn get_int(arr: array<int>, idx: int): int?` | Implemented | `rf_array_get_int` |
+| `get_int64` | `fn get_int64(arr: array<int64>, idx: int): int64?` | Implemented | `rf_array_get_int64` |
+| `get_float` | `fn get_float(arr: array<float>, idx: int): float?` | Implemented | `rf_array_get_float` |
+| `get_bool` | `fn get_bool(arr: array<bool>, idx: int): bool?` | Implemented | `rf_array_get_bool` |
+| `get` | `fn get(arr: array<string>, idx: int): string?` | Implemented | `rf_array_get_safe` |
+| `len` | `fn len(arr: array<int>): int` | Implemented | `rf_array_len_int` |
+| `len64` | `fn len64(arr: array<int>): int64` | Implemented | `rf_array_len` |
+| `concat_int` | `fn concat_int(a: array<int>, b: array<int>): array<int>` | Implemented | `rf_array_concat` |
+| `concat_string` | `fn concat_string(a: array<string>, b: array<string>): array<string>` | Implemented | `rf_array_concat` |
+| `concat_byte` | `fn concat_byte(a: array<byte>, b: array<byte>): array<byte>` | Implemented | `rf_array_concat` |
+
+### Behavior Notes
+
+- `get_*` functions return `none` for out-of-bounds indices (safe access).
+- `len` returns the array length as `int` (truncated from int64).
+- `concat_*` creates a new array combining both input arrays.
 
 ---
 
@@ -623,17 +685,23 @@ this module provides a user-facing API.
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `new` | `fn new(): map<K, V>` | Implemented | `rf_map_new` |
-| `set` | `fn set(m: map<K, V>, key: K, val: V): map<K, V>` | Implemented | `rf_map_set` |
-| `get` | `fn get(m: map<K, V>, key: K): V?` | Implemented | `rf_map_get` |
-| `has` | `fn has(m: map<K, V>, key: K): bool` | Implemented | `rf_map_has` |
-| `len` | `fn len(m: map<K, V>): int64` | Implemented | `rf_map_len` |
+| `new` | `fn new(): map<string, string>` | Implemented | `rf_map_new` |
+| `set` | `fn set(m: map<string, string>, key: string, val: string): map<string, string>` | Implemented | `rf_map_set_str` |
+| `get` | `fn get(m: map<string, string>, key: string): string?` | Implemented | `rf_map_get_str` |
+| `has` | `fn has(m: map<string, string>, key: string): bool` | Implemented | `rf_map_has_str` |
+| `remove` | `fn remove(m: map<string, string>, key: string): map<string, string>` | Implemented | `rf_map_remove_str` |
+| `len` | `fn len(m: map<string, string>): int64` | Implemented | `rf_map_len` |
+| `keys` | `fn keys(m: map<string, string>): array<string>` | Implemented | `rf_map_keys` |
+| `values` | `fn values(m: map<string, string>): array<string>` | Implemented | `rf_map_values` |
 
 ### Behavior Notes
 
+- The current implementation is specialized for `string` keys and values.
+  Generic `map<K, V>` support requires monomorphization improvements.
 - Maps are persistent (immutable). `set` returns a new map. This aligns
   with ReFlow's ownership model.
 - Keys are compared by byte content (structural equality).
+- `keys` and `values` return arrays in insertion order.
 
 ---
 
@@ -932,7 +1000,7 @@ type DateTime  // opaque, wall-clock time with timezone info
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `now` | `fn now(): Instant` | Planned | `rf_time_now` |
+| `mono_now` | `fn mono_now(): Instant` | Planned | `rf_time_now` |
 | `elapsed_ms` | `fn elapsed_ms(start: Instant): int64` | Planned | `rf_time_elapsed_ms` |
 | `elapsed_us` | `fn elapsed_us(start: Instant): int64` | Planned | `rf_time_elapsed_us` |
 | `diff_ms` | `pure fn diff_ms(start: Instant, end: Instant): int64` | Planned | `rf_time_diff_ms` |
@@ -941,29 +1009,29 @@ type DateTime  // opaque, wall-clock time with timezone info
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `datetime_now` | `fn datetime_now(): DateTime` | Planned | `rf_time_datetime_now` |
-| `datetime_utc` | `fn datetime_utc(): DateTime` | Planned | `rf_time_datetime_utc` |
-| `unix_timestamp` | `fn unix_timestamp(): int64` | Planned | `rf_time_unix_timestamp` |
-| `unix_timestamp_ms` | `fn unix_timestamp_ms(): int64` | Planned | `rf_time_unix_timestamp_ms` |
+| `datetime_now` | `fn datetime_now(): DateTime` | Implemented | `rf_time_datetime_now` |
+| `datetime_utc` | `fn datetime_utc(): DateTime` | Implemented | `rf_time_datetime_utc` |
+| `now` | `fn now(): int64` | Implemented | `rf_time_unix_timestamp` |
+| `now_ms` | `fn now_ms(): int64` | Implemented | `rf_time_unix_timestamp_ms` |
 
 ### Formatting
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `format_iso8601` | `pure fn format_iso8601(dt: DateTime): string` | Planned | `rf_time_format_iso8601` |
-| `format_rfc2822` | `pure fn format_rfc2822(dt: DateTime): string` | Planned | `rf_time_format_rfc2822` |
-| `format_http` | `pure fn format_http(dt: DateTime): string` | Planned | `rf_time_format_http` |
+| `format_iso8601` | `fn format_iso8601(dt: DateTime): string` | Implemented | `rf_time_format_iso8601` |
+| `format_rfc2822` | `fn format_rfc2822(dt: DateTime): string` | Implemented | `rf_time_format_rfc2822` |
+| `format_http` | `fn format_http(dt: DateTime): string` | Implemented | `rf_time_format_http` |
 
 ### Components
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `year` | `pure fn year(dt: DateTime): int` | Planned | `rf_time_year` |
-| `month` | `pure fn month(dt: DateTime): int` | Planned | `rf_time_month` |
-| `day` | `pure fn day(dt: DateTime): int` | Planned | `rf_time_day` |
-| `hour` | `pure fn hour(dt: DateTime): int` | Planned | `rf_time_hour` |
-| `minute` | `pure fn minute(dt: DateTime): int` | Planned | `rf_time_minute` |
-| `second` | `pure fn second(dt: DateTime): int` | Planned | `rf_time_second` |
+| `year` | `fn year(dt: DateTime): int` | Implemented | `rf_time_year` |
+| `month` | `fn month(dt: DateTime): int` | Implemented | `rf_time_month` |
+| `day` | `fn day(dt: DateTime): int` | Implemented | `rf_time_day` |
+| `hour` | `fn hour(dt: DateTime): int` | Implemented | `rf_time_hour` |
+| `minute` | `fn minute(dt: DateTime): int` | Implemented | `rf_time_minute` |
+| `second` | `fn second(dt: DateTime): int` | Implemented | `rf_time_second` |
 
 ### Behavior Notes
 
@@ -1218,7 +1286,8 @@ fn main(): none {
 | `file` | 0 | 20 | 20 |
 | `sys` | 4 | 2 | 6 |
 | `conv` | 7 | 0 | 7 |
-| `string` | 16 | 2 | 18 |
+| `string` | 19 | 2 | 21 |
+| `string_builder` | 10 | 0 | 10 |
 | `char` | 7 | 0 | 7 |
 | `path` | 7 | 4 | 11 |
 | `math` | 0 | 13 | 13 |
@@ -1226,12 +1295,13 @@ fn main(): none {
 | `stream` | 5 | 17 | 22 |
 | `channel` | 6 | 2 | 8 |
 | `bytes` | 0 | 6 | 6 |
-| `map` | 5 | 0 | 5 |
+| `array` | 10 | 0 | 10 |
+| `map` | 8 | 0 | 8 |
 | `set` | 5 | 2 | 7 |
 | `buffer` | 9 | 9 | 18 |
 | `sort` | 0 | 5 | 5 |
 | `json` | 0 | 19 | 19 |
 | `random` | 0 | 7 | 7 |
-| `time` | 0 | 17 | 17 |
+| `time` | 13 | 4 | 17 |
 | `testing` | 0 | 13 | 13 |
-| **Total** | **80** | **151** | **231** |
+| **Total** | **119** | **138** | **257** |

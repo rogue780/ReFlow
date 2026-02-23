@@ -24,7 +24,7 @@ from compiler.ast_nodes import (
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     # Statements
     LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
-    BreakStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
+    BreakStmt, ContinueStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
     MatchStmt, TryStmt, Block, MatchArm, RetryBlock, CatchBlock, FinallyBlock,
     # Patterns
     WildcardPattern, LiteralPattern, BindPattern, SomePattern, NonePattern,
@@ -1338,12 +1338,24 @@ class TypeChecker:
                 if op in _ARITHMETIC_OPS:
                     if op == "+" and isinstance(lt, TString) and isinstance(rt, TString):
                         return TString()
+                    # Auto-coerce Showable in string + context
+                    if op == "+" and isinstance(lt, TString) and self._is_showable(rt):
+                        return TString()
+                    if op == "+" and self._is_showable(lt) and isinstance(rt, TString):
+                        return TString()
                     if not isinstance(lt, _NUMERIC_TYPES) or not isinstance(rt, _NUMERIC_TYPES):
                         raise self._error(
                             f"arithmetic operator '{op}' requires numeric "
                             f"operands, got {self._type_name(lt)} and "
                             f"{self._type_name(rt)}", expr)
+                    # Implicit int -> int64 widening
                     if not self._types_equal(lt, rt):
+                        if isinstance(lt, TInt) and isinstance(rt, TInt) and lt.signed == rt.signed:
+                            # Widen to the larger type
+                            if lt.width < rt.width:
+                                return rt
+                            elif rt.width < lt.width:
+                                return lt
                         raise self._error(
                             f"mixed-type arithmetic: {self._type_name(lt)} "
                             f"and {self._type_name(rt)} (use cast<T>)", expr)
@@ -1827,6 +1839,9 @@ class TypeChecker:
                 self._infer_expr(exception, scope)
 
             case BreakStmt():
+                pass
+
+            case ContinueStmt():
                 pass
 
             case ExprStmt(expr=ex):
@@ -2524,6 +2539,12 @@ class TypeChecker:
                 and source.name == target.name):
             return True
 
+        # Implicit integer widening: int -> int64 (same signedness, wider target)
+        if (isinstance(source, TInt) and isinstance(target, TInt)
+                and source.signed == target.signed
+                and source.width < target.width):
+            return True
+
         # TAlias: unwrap
         if isinstance(source, TAlias):
             return self._is_assignable(source.underlying, target)
@@ -2536,6 +2557,11 @@ class TypeChecker:
         if type(a) != type(b):
             return False
         return a == b
+
+    def _is_showable(self, t: Type) -> bool:
+        """Check if a type fulfills the Showable interface."""
+        type_name = self._type_name(t)
+        return "Showable" in self._builtin_fulfillments.get(type_name, [])
 
     # ------------------------------------------------------------------
     # Method and field lookup

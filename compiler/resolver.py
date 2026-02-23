@@ -23,7 +23,7 @@ from compiler.ast_nodes import (
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     # Statements
     LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
-    BreakStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
+    BreakStmt, ContinueStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
     MatchStmt, TryStmt, Block, MatchArm, RetryBlock, CatchBlock, FinallyBlock,
     # Patterns
     WildcardPattern, LiteralPattern, BindPattern, SomePattern, NonePattern,
@@ -685,6 +685,9 @@ class Resolver:
                 self._resolve_expr(exception, scope)
 
             case BreakStmt():
+                pass
+
+            case ContinueStmt():
                 pass
 
             case ExprStmt(expr=expr):

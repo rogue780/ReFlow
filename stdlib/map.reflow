@@ -1,0 +1,13 @@
+module map
+
+; Map with string keys — the most common use case.
+; Values are stored as opaque pointers; use the typed get/set wrappers.
+
+export fn new(): map<string, string> = native "rf_map_new"
+export fn set(m: map<string, string>, key: string, val: string): map<string, string> = native "rf_map_set_str"
+export fn get(m: map<string, string>, key: string): string? = native "rf_map_get_str"
+export fn has(m: map<string, string>, key: string): bool = native "rf_map_has_str"
+export fn remove(m: map<string, string>, key: string): map<string, string> = native "rf_map_remove_str"
+export fn len(m: map<string, string>): int64 = native "rf_map_len"
+export fn keys(m: map<string, string>): array<string> = native "rf_map_keys"
+export fn values(m: map<string, string>): array<string> = native "rf_map_values"

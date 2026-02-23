@@ -1,0 +1,12 @@
+module array
+
+export fn get_int(arr: array<int>, idx: int): int? = native "rf_array_get_int"
+export fn get_int64(arr: array<int64>, idx: int): int64? = native "rf_array_get_int64"
+export fn get_float(arr: array<float>, idx: int): float? = native "rf_array_get_float"
+export fn get_bool(arr: array<bool>, idx: int): bool? = native "rf_array_get_bool"
+export fn get(arr: array<string>, idx: int): string? = native "rf_array_get_safe"
+export fn len(arr: array<int>): int = native "rf_array_len_int"
+export fn len64(arr: array<int>): int64 = native "rf_array_len"
+export fn concat_int(a: array<int>, b: array<int>): array<int> = native "rf_array_concat"
+export fn concat_string(a: array<string>, b: array<string>): array<string> = native "rf_array_concat"
+export fn concat_byte(a: array<byte>, b: array<byte>): array<byte> = native "rf_array_concat"

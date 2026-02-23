@@ -345,6 +345,11 @@ class BreakStmt(Stmt):
 
 
 @dataclass
+class ContinueStmt(Stmt):
+    pass
+
+
+@dataclass
 class ExprStmt(Stmt):
     expr: Expr
 

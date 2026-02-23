@@ -1,0 +1,54 @@
+; match_expression_demo.reflow — Match as an expression that returns values
+module examples.match_expression_demo
+
+import io (println)
+
+; Match as the last expression in a function body is an implicit return
+fn classify(x: int): string {
+    match x {
+        0: "zero"
+        1: "one"
+        _: "other"
+    }
+}
+
+fn http_status(code: int): string {
+    match code {
+        200: "OK"
+        201: "Created"
+        301: "Moved Permanently"
+        400: "Bad Request"
+        404: "Not Found"
+        500: "Internal Server Error"
+        _: "Unknown"
+    }
+}
+
+type Shape {
+    Circle(radius: float)
+    Rectangle(width: float, height: float)
+    Triangle(base: float, height: float)
+}
+
+fn describe(s: Shape): string {
+    match s {
+        Circle(r): f"Circle with radius {r}"
+        Rectangle(w, h): f"Rectangle {w}x{h}"
+        Triangle(b, h): f"Triangle base={b} height={h}"
+    }
+}
+
+fn main() {
+    println(classify(0))
+    println(classify(1))
+    println(classify(42))
+
+    println(http_status(200))
+    println(http_status(404))
+    println(http_status(999))
+
+    let c = Circle(5.0)
+    let r = Rectangle(3.0, 4.0)
+    println(describe(c))
+    println(describe(r))
+}

@@ -1,0 +1,42 @@
+; string_builder_demo.reflow — Efficient string construction
+module examples.string_builder_demo
+
+import io (println)
+import string_builder (new, append, append_int, append_char, build)
+
+fn main() {
+    ; Build an HTML table row
+    let sb = new()
+    append(sb, "<tr>")
+    append(sb, "<td>Alice</td>")
+    append(sb, "<td>")
+    append_int(sb, 42)
+    append(sb, "</td>")
+    append(sb, "</tr>")
+    let row = build(sb)
+    println(row)
+
+    ; Build a comma-separated list
+    let list_sb = new()
+    let nums = [10, 20, 30, 40, 50]
+    let i: int:mut = 0
+    for (n: int in nums) {
+        if i > 0 {
+            append(list_sb, ", ")
+        }
+        append_int(list_sb, n)
+        i = i + 1
+    }
+    let csv = build(list_sb)
+    println(f"Numbers: {csv}")
+
+    ; Build a pattern with chars
+    let pat_sb = new()
+    let j: int:mut = 0
+    while (j < 5) {
+        append_char(pat_sb, '*')
+        j = j + 1
+    }
+    let stars = build(pat_sb)
+    println(stars)
+}

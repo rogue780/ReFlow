@@ -1,4 +1,4 @@
-; control_flow.reflow — If/else, while, break, ternary
+; control_flow.reflow — If/else, while, break, continue, ternary
 module examples.control_flow
 
 import io (println)
@@ -38,6 +38,18 @@ fn main() {
         j++
     }
     println(f"broke at j = {j}")
+
+    ; While loop with continue — skip even numbers
+    let n: int:mut = 0
+    let odd_sum: int:mut = 0
+    while (n < 10) {
+        n++
+        if n % 2 == 0 {
+            continue
+        }
+        odd_sum = odd_sum + n
+    }
+    println(f"sum of odds 1..9 = {odd_sum}")
 
     ; FizzBuzz
     let k: int:mut = 1

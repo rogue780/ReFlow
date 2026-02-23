@@ -196,6 +196,14 @@ RF_Option_ptr rf_array_get_safe(RF_Array* arr, rf_int64 idx);
 rf_int64      rf_array_len(RF_Array* arr);
 RF_Array*     rf_array_push(RF_Array* arr, void* element);
 
+/* Array stdlib extensions */
+RF_Option_int   rf_array_get_int(RF_Array* arr, rf_int64 idx);
+RF_Option_int64 rf_array_get_int64(RF_Array* arr, rf_int64 idx);
+RF_Option_float rf_array_get_float(RF_Array* arr, rf_int64 idx);
+RF_Option_bool  rf_array_get_bool(RF_Array* arr, rf_int64 idx);
+rf_int          rf_array_len_int(RF_Array* arr);
+RF_Array*       rf_array_concat(RF_Array* a, RF_Array* b);
+
 /* ========================================================================
  * Stream (RT-1-5-1)
  * ======================================================================== */
@@ -316,6 +324,14 @@ rf_int64      rf_map_len(RF_Map* m);
 void          rf_map_retain(RF_Map* m);
 void          rf_map_release(RF_Map* m);
 
+/* Map string-key convenience wrappers (stdlib/map) */
+RF_Map*       rf_map_set_str(RF_Map* m, RF_String* key, void* val);
+RF_Option_ptr rf_map_get_str(RF_Map* m, RF_String* key);
+rf_bool       rf_map_has_str(RF_Map* m, RF_String* key);
+RF_Map*       rf_map_remove_str(RF_Map* m, RF_String* key);
+RF_Array*     rf_map_keys(RF_Map* m);
+RF_Array*     rf_map_values(RF_Map* m);
+
 /* ========================================================================
  * Set (RT-1-6-2)
  * ======================================================================== */
@@ -430,6 +446,34 @@ RF_String*    rf_string_to_lower(RF_String* s);
 RF_String*    rf_string_to_upper(RF_String* s);
 RF_Array*     rf_string_to_bytes(RF_String* s);
 RF_String*    rf_string_from_bytes(RF_Array* data);
+RF_String*    rf_string_repeat(RF_String* s, rf_int n);
+RF_String*    rf_string_url_decode(RF_String* s);
+RF_String*    rf_string_url_encode(RF_String* s);
+
+/* ========================================================================
+ * String Builder (stdlib/string_builder)
+ * ======================================================================== */
+
+typedef struct RF_StringBuilder {
+    _Atomic rf_int64 refcount;
+    char*    data;
+    rf_int64 len;
+    rf_int64 capacity;
+} RF_StringBuilder;
+
+RF_StringBuilder* rf_sb_new(void);
+RF_StringBuilder* rf_sb_with_capacity(rf_int64 cap);
+void              rf_sb_append(RF_StringBuilder* sb, RF_String* s);
+void              rf_sb_append_cstr(RF_StringBuilder* sb, const char* s);
+void              rf_sb_append_char(RF_StringBuilder* sb, rf_char c);
+void              rf_sb_append_int(RF_StringBuilder* sb, rf_int v);
+void              rf_sb_append_int64(RF_StringBuilder* sb, rf_int64 v);
+void              rf_sb_append_float(RF_StringBuilder* sb, rf_float v);
+RF_String*        rf_sb_build(RF_StringBuilder* sb);
+rf_int64          rf_sb_len(RF_StringBuilder* sb);
+void              rf_sb_clear(RF_StringBuilder* sb);
+void              rf_sb_retain(RF_StringBuilder* sb);
+void              rf_sb_release(RF_StringBuilder* sb);
 
 /* ========================================================================
  * Character Utilities (stdlib/char — RB-1-2)

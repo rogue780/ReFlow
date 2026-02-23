@@ -172,17 +172,35 @@ class TestBinOpInference(unittest.TestCase):
                        if isinstance(n, BinOp)]
         self.assertTrue(any(isinstance(t, TBool) for t in binop_types))
 
-    def test_mixed_type_arithmetic_error(self):
-        """RT-6-8-1: int where int64 expected (mixed types)."""
+    def test_mixed_type_arithmetic_widening(self):
+        """int + int64 now widens to int64 via implicit widening."""
+        result = check("""fn widen(x: int, y: int64): int64 {
+    return x + y
+}""")
+        binop_types = [t for n, t in result.types.items()
+                       if isinstance(n, BinOp)]
+        self.assertTrue(any(isinstance(t, TInt) and t.width == 64 for t in binop_types))
+
+    def test_mixed_signedness_arithmetic_error(self):
+        """Mixed signedness still produces an error."""
         with self.assertRaises(ReFlowTypeError) as ctx:
-            check("""fn bad(x: int, y: int64): int {
+            check("""fn bad(x: int, y: uint): int {
     return x + y
 }""")
         self.assertIn("mixed-type arithmetic", ctx.exception.message)
 
-    def test_non_numeric_arithmetic_error(self):
+    def test_string_plus_showable_coercion(self):
+        """string + int auto-coerces via Showable."""
+        result = check("""fn greet(n: int): string {
+    return "count: " + n
+}""")
+        binop_types = [t for n, t in result.types.items()
+                       if isinstance(n, BinOp)]
+        self.assertTrue(any(isinstance(t, TString) for t in binop_types))
+
+    def test_non_numeric_non_string_arithmetic_error(self):
         with self.assertRaises(ReFlowTypeError) as ctx:
-            check("""fn bad(x: int, y: string): int {
+            check("""fn bad(x: bool, y: bool): bool {
     return x + y
 }""")
         self.assertIn("requires numeric operands", ctx.exception.message)

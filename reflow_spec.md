@@ -107,7 +107,7 @@ fn private(): int = 99       ; not importable
 
 ## Keywords
 
-`module`, `import`, `export`, `as`, `alias`, `type`, `typeof`, `mut`, `imut`, `let`, `fn`, `return`, `yield`, `try`, `retry`, `catch`, `finally`, `interface`, `fulfills`, `constructor`, `self`, `for`, `in`, `while`, `if`, `else`, `match`, `none`, `break`, `static`, `pure`, `record`, `some`, `ok`, `err`, `coerce`, `cast`, `snapshot`, `throw`, and all built-in type names.
+`module`, `import`, `export`, `as`, `alias`, `type`, `typeof`, `mut`, `imut`, `let`, `fn`, `return`, `yield`, `try`, `retry`, `catch`, `finally`, `interface`, `fulfills`, `constructor`, `self`, `for`, `in`, `while`, `if`, `else`, `match`, `none`, `break`, `continue`, `static`, `pure`, `record`, `some`, `ok`, `err`, `coerce`, `cast`, `snapshot`, `throw`, and all built-in type names.
 
 ---
 
@@ -340,7 +340,21 @@ let d: int32 = cast<int32>(b)     ; narrowing, throws if out of range
 let e: int = cast<int>(3.9)       ; truncates toward zero: e == 3
 ```
 
-There are no implicit numeric coercions. Passing an `int` where `int64` is expected is a compile error without an explicit `cast`.
+### Implicit Integer Widening
+
+Integer types of the same signedness widen implicitly when the target is strictly wider. This applies to arithmetic operations, function arguments, and variable assignments:
+
+```
+let a: int = 100
+let b: int64 = 200
+let c: int64 = a + b    ; a is implicitly widened to int64
+let d: int64 = a        ; implicit widening in assignment
+
+fn accept_large(n: int64): none { }
+accept_large(a)          ; int implicitly widens to int64
+```
+
+Mixed signedness (e.g., `int + uint`) remains a compile error. Narrowing (e.g., `int64` to `int`) still requires explicit `cast<T>`. Float-to-int and int-to-float conversions remain explicit.
 
 ---
 
@@ -1359,6 +1373,19 @@ let summary = f"Total: {items -> count}, Average: {items -> average -> round(2)}
 
 Standard string concatenation with `+` remains available for simple cases.
 
+### Showable Auto-coercion in String Concatenation
+
+When one operand of `+` is a `string` and the other is a type that fulfills `Showable`, the compiler automatically inserts a `.to_string()` call on the non-string operand. This allows natural string building:
+
+```
+let count = 42
+let msg = "count: " + count     ; "count: 42"
+let pi = 3.14
+let s = "pi = " + pi + "!"     ; "pi = 3.14!"
+```
+
+This coercion applies only to `+` and only when at least one operand is statically `string`. It does not apply to other arithmetic operators.
+
 ---
 
 ## Scoping
@@ -1655,6 +1682,21 @@ while (condition) {
     cleanup()
 }
 ```
+
+### Loop Control: `break` and `continue`
+
+`break` exits the innermost enclosing `while` or `for` loop. `continue` skips the remainder of the current iteration and proceeds to the next one.
+
+```
+while (i < 100) {
+    i = i + 1
+    if i == 50 { continue }  ; skip 50, keep going
+    if i == 75 { break }     ; stop at 75
+    process(i)
+}
+```
+
+Both `break` and `continue` trigger the `finally` block of the enclosing loop if one is present.
 
 ### `for`
 

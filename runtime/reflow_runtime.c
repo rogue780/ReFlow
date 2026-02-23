@@ -3990,3 +3990,337 @@ RF_String* rf_json_to_string_pretty(RF_JsonValue* val, rf_int indent) {
     _rf_json_serialize_pretty(&buf, val, indent, 0);
     return _rf_jbuf_to_string(&buf);
 }
+
+/* ========================================================================
+ * Array stdlib extensions
+ * ======================================================================== */
+
+RF_Option_int rf_array_get_int(RF_Array* arr, rf_int64 idx) {
+    if (!arr || idx < 0 || idx >= arr->len)
+        return (RF_Option_int){.tag = 0, .value = 0};
+    rf_int* ptr = (rf_int*)((char*)arr->data + idx * arr->element_size);
+    return (RF_Option_int){.tag = 1, .value = *ptr};
+}
+
+RF_Option_int64 rf_array_get_int64(RF_Array* arr, rf_int64 idx) {
+    if (!arr || idx < 0 || idx >= arr->len)
+        return (RF_Option_int64){.tag = 0, .value = 0};
+    rf_int64* ptr = (rf_int64*)((char*)arr->data + idx * arr->element_size);
+    return (RF_Option_int64){.tag = 1, .value = *ptr};
+}
+
+RF_Option_float rf_array_get_float(RF_Array* arr, rf_int64 idx) {
+    if (!arr || idx < 0 || idx >= arr->len)
+        return (RF_Option_float){.tag = 0, .value = 0.0};
+    rf_float* ptr = (rf_float*)((char*)arr->data + idx * arr->element_size);
+    return (RF_Option_float){.tag = 1, .value = *ptr};
+}
+
+RF_Option_bool rf_array_get_bool(RF_Array* arr, rf_int64 idx) {
+    if (!arr || idx < 0 || idx >= arr->len)
+        return (RF_Option_bool){.tag = 0, .value = rf_false};
+    rf_bool* ptr = (rf_bool*)((char*)arr->data + idx * arr->element_size);
+    return (RF_Option_bool){.tag = 1, .value = *ptr};
+}
+
+rf_int rf_array_len_int(RF_Array* arr) {
+    if (!arr) return 0;
+    return (rf_int)arr->len;
+}
+
+RF_Array* rf_array_concat(RF_Array* a, RF_Array* b) {
+    if (!a && !b) return rf_array_new(0, sizeof(void*), NULL);
+    if (!a) { rf_array_retain(b); return b; }
+    if (!b) { rf_array_retain(a); return a; }
+    if (a->element_size != b->element_size)
+        rf_panic("rf_array_concat: element size mismatch");
+    rf_int64 total = a->len + b->len;
+    void* data = malloc((size_t)(total * a->element_size));
+    if (!data) rf_panic("rf_array_concat: out of memory");
+    memcpy(data, a->data, (size_t)(a->len * a->element_size));
+    memcpy((char*)data + a->len * a->element_size,
+           b->data, (size_t)(b->len * b->element_size));
+    RF_Array* result = rf_array_new(total, a->element_size, data);
+    free(data);
+    return result;
+}
+
+/* ========================================================================
+ * String extensions: repeat, URL encode/decode
+ * ======================================================================== */
+
+RF_String* rf_string_repeat(RF_String* s, rf_int n) {
+    if (!s || n <= 0) return rf_string_from_cstr("");
+    rf_int64 total = s->len * (rf_int64)n;
+    RF_String* result = (RF_String*)malloc(sizeof(RF_String) + (size_t)total + 1);
+    if (!result) rf_panic("rf_string_repeat: out of memory");
+    result->refcount = 1;
+    result->len = total;
+    for (rf_int i = 0; i < n; i++) {
+        memcpy(result->data + (rf_int64)i * s->len, s->data, (size_t)s->len);
+    }
+    result->data[total] = '\0';
+    return result;
+}
+
+static int _rf_hex_digit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'F') return 10 + c - 'A';
+    if (c >= 'a' && c <= 'f') return 10 + c - 'a';
+    return -1;
+}
+
+RF_String* rf_string_url_decode(RF_String* s) {
+    if (!s) return rf_string_from_cstr("");
+    char* buf = (char*)malloc((size_t)s->len + 1);
+    if (!buf) rf_panic("rf_string_url_decode: out of memory");
+    rf_int64 j = 0;
+    for (rf_int64 i = 0; i < s->len; i++) {
+        if (s->data[i] == '%' && i + 2 < s->len) {
+            int hi = _rf_hex_digit(s->data[i + 1]);
+            int lo = _rf_hex_digit(s->data[i + 2]);
+            if (hi >= 0 && lo >= 0) {
+                buf[j++] = (char)(hi * 16 + lo);
+                i += 2;
+                continue;
+            }
+        }
+        if (s->data[i] == '+') {
+            buf[j++] = ' ';
+        } else {
+            buf[j++] = s->data[i];
+        }
+    }
+    buf[j] = '\0';
+    RF_String* result = rf_string_new(buf, j);
+    free(buf);
+    return result;
+}
+
+RF_String* rf_string_url_encode(RF_String* s) {
+    if (!s) return rf_string_from_cstr("");
+    /* Worst case: every byte becomes %XX = 3x expansion */
+    char* buf = (char*)malloc((size_t)s->len * 3 + 1);
+    if (!buf) rf_panic("rf_string_url_encode: out of memory");
+    rf_int64 j = 0;
+    for (rf_int64 i = 0; i < s->len; i++) {
+        unsigned char c = (unsigned char)s->data[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+            (c >= '0' && c <= '9') || c == '-' || c == '_' ||
+            c == '.' || c == '~') {
+            buf[j++] = (char)c;
+        } else {
+            buf[j++] = '%';
+            buf[j++] = "0123456789ABCDEF"[c >> 4];
+            buf[j++] = "0123456789ABCDEF"[c & 0x0F];
+        }
+    }
+    buf[j] = '\0';
+    RF_String* result = rf_string_new(buf, j);
+    free(buf);
+    return result;
+}
+
+/* ========================================================================
+ * String Builder
+ * ======================================================================== */
+
+static void _rf_sb_grow(RF_StringBuilder* sb, rf_int64 needed) {
+    rf_int64 new_cap = sb->capacity;
+    while (new_cap < sb->len + needed) {
+        new_cap = new_cap < 64 ? 64 : new_cap * 2;
+    }
+    if (new_cap != sb->capacity) {
+        sb->data = (char*)realloc(sb->data, (size_t)new_cap);
+        if (!sb->data) rf_panic("rf_sb_grow: out of memory");
+        sb->capacity = new_cap;
+    }
+}
+
+RF_StringBuilder* rf_sb_new(void) {
+    RF_StringBuilder* sb = (RF_StringBuilder*)malloc(sizeof(RF_StringBuilder));
+    if (!sb) rf_panic("rf_sb_new: out of memory");
+    sb->refcount = 1;
+    sb->data = NULL;
+    sb->len = 0;
+    sb->capacity = 0;
+    return sb;
+}
+
+RF_StringBuilder* rf_sb_with_capacity(rf_int64 cap) {
+    RF_StringBuilder* sb = rf_sb_new();
+    if (cap > 0) {
+        sb->data = (char*)malloc((size_t)cap);
+        if (!sb->data) rf_panic("rf_sb_with_capacity: out of memory");
+        sb->capacity = cap;
+    }
+    return sb;
+}
+
+void rf_sb_append(RF_StringBuilder* sb, RF_String* s) {
+    if (!sb || !s) return;
+    _rf_sb_grow(sb, s->len);
+    memcpy(sb->data + sb->len, s->data, (size_t)s->len);
+    sb->len += s->len;
+}
+
+void rf_sb_append_cstr(RF_StringBuilder* sb, const char* s) {
+    if (!sb || !s) return;
+    rf_int64 slen = (rf_int64)strlen(s);
+    _rf_sb_grow(sb, slen);
+    memcpy(sb->data + sb->len, s, (size_t)slen);
+    sb->len += slen;
+}
+
+void rf_sb_append_char(RF_StringBuilder* sb, rf_char c) {
+    if (!sb) return;
+    /* UTF-8 encode the char (up to 4 bytes) */
+    char buf[4];
+    int n = 0;
+    if (c < 0x80) {
+        buf[0] = (char)c; n = 1;
+    } else if (c < 0x800) {
+        buf[0] = (char)(0xC0 | (c >> 6));
+        buf[1] = (char)(0x80 | (c & 0x3F)); n = 2;
+    } else if (c < 0x10000) {
+        buf[0] = (char)(0xE0 | (c >> 12));
+        buf[1] = (char)(0x80 | ((c >> 6) & 0x3F));
+        buf[2] = (char)(0x80 | (c & 0x3F)); n = 3;
+    } else {
+        buf[0] = (char)(0xF0 | (c >> 18));
+        buf[1] = (char)(0x80 | ((c >> 12) & 0x3F));
+        buf[2] = (char)(0x80 | ((c >> 6) & 0x3F));
+        buf[3] = (char)(0x80 | (c & 0x3F)); n = 4;
+    }
+    _rf_sb_grow(sb, n);
+    memcpy(sb->data + sb->len, buf, (size_t)n);
+    sb->len += n;
+}
+
+void rf_sb_append_int(RF_StringBuilder* sb, rf_int v) {
+    if (!sb) return;
+    char buf[32];
+    int n = snprintf(buf, sizeof(buf), "%d", (int)v);
+    _rf_sb_grow(sb, n);
+    memcpy(sb->data + sb->len, buf, (size_t)n);
+    sb->len += n;
+}
+
+void rf_sb_append_int64(RF_StringBuilder* sb, rf_int64 v) {
+    if (!sb) return;
+    char buf[32];
+    int n = snprintf(buf, sizeof(buf), "%lld", (long long)v);
+    _rf_sb_grow(sb, n);
+    memcpy(sb->data + sb->len, buf, (size_t)n);
+    sb->len += n;
+}
+
+void rf_sb_append_float(RF_StringBuilder* sb, rf_float v) {
+    if (!sb) return;
+    char buf[64];
+    int n = snprintf(buf, sizeof(buf), "%g", v);
+    _rf_sb_grow(sb, n);
+    memcpy(sb->data + sb->len, buf, (size_t)n);
+    sb->len += n;
+}
+
+RF_String* rf_sb_build(RF_StringBuilder* sb) {
+    if (!sb || sb->len == 0) return rf_string_from_cstr("");
+    return rf_string_new(sb->data, sb->len);
+}
+
+rf_int64 rf_sb_len(RF_StringBuilder* sb) {
+    if (!sb) return 0;
+    return sb->len;
+}
+
+void rf_sb_clear(RF_StringBuilder* sb) {
+    if (!sb) return;
+    sb->len = 0;
+}
+
+void rf_sb_retain(RF_StringBuilder* sb) {
+    if (!sb) return;
+    atomic_fetch_add(&sb->refcount, 1);
+}
+
+void rf_sb_release(RF_StringBuilder* sb) {
+    if (!sb) return;
+    if (atomic_fetch_sub(&sb->refcount, 1) == 1) {
+        free(sb->data);
+        free(sb);
+    }
+}
+
+/* ========================================================================
+ * Map string-key convenience wrappers
+ * ======================================================================== */
+
+RF_Map* rf_map_set_str(RF_Map* m, RF_String* key, void* val) {
+    if (!key) rf_panic("rf_map_set_str: NULL key");
+    return rf_map_set(m, key->data, key->len, val);
+}
+
+RF_Option_ptr rf_map_get_str(RF_Map* m, RF_String* key) {
+    if (!key) return (RF_Option_ptr){.tag = 0, .value = NULL};
+    return rf_map_get(m, key->data, key->len);
+}
+
+rf_bool rf_map_has_str(RF_Map* m, RF_String* key) {
+    if (!key) return rf_false;
+    return rf_map_has(m, key->data, key->len);
+}
+
+RF_Map* rf_map_remove_str(RF_Map* m, RF_String* key) {
+    if (!m || !key) return m;
+    /* Find and unoccupy the entry */
+    uint64_t hash = 14695981039346656037ULL;
+    for (rf_int64 i = 0; i < key->len; i++) {
+        hash ^= (unsigned char)key->data[i];
+        hash *= 1099511628211ULL;
+    }
+    rf_int64 idx = (rf_int64)(hash % (uint64_t)m->capacity);
+    for (rf_int64 step = 0; step < m->capacity; step++) {
+        RF_MapEntry* e = &m->entries[idx];
+        if (!e->occupied) break;
+        if (e->key_len == key->len && memcmp(e->key, key->data, (size_t)key->len) == 0) {
+            e->occupied = 0;
+            m->count--;
+            break;
+        }
+        idx = (idx + 1) % m->capacity;
+    }
+    return m;
+}
+
+RF_Array* rf_map_keys(RF_Map* m) {
+    if (!m) return rf_array_new(0, sizeof(RF_String*), NULL);
+    RF_String** keys = (RF_String**)malloc((size_t)m->count * sizeof(RF_String*));
+    if (!keys) rf_panic("rf_map_keys: out of memory");
+    rf_int64 j = 0;
+    for (rf_int64 i = 0; i < m->capacity; i++) {
+        RF_MapEntry* e = &m->entries[i];
+        if (e->occupied) {
+            keys[j++] = rf_string_new((const char*)e->key, e->key_len);
+        }
+    }
+    RF_Array* arr = rf_array_new(j, sizeof(RF_String*), keys);
+    free(keys);
+    return arr;
+}
+
+RF_Array* rf_map_values(RF_Map* m) {
+    if (!m) return rf_array_new(0, sizeof(void*), NULL);
+    void** vals = (void**)malloc((size_t)m->count * sizeof(void*));
+    if (!vals) rf_panic("rf_map_values: out of memory");
+    rf_int64 j = 0;
+    for (rf_int64 i = 0; i < m->capacity; i++) {
+        RF_MapEntry* e = &m->entries[i];
+        if (e->occupied) {
+            vals[j++] = e->val;
+        }
+    }
+    RF_Array* arr = rf_array_new(j, sizeof(void*), vals);
+    free(vals);
+    return arr;
+}

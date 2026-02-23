@@ -16,7 +16,7 @@ from compiler.lowering import (
     LCompound, LCheckedArith, LSizeOf, LTernary, LArrayData,
     # Statements
     LStmt, LVarDecl, LArrayDecl, LAssign, LReturn, LIf, LWhile, LBlock,
-    LExprStmt, LGoto, LLabel, LSwitch, LBreak,
+    LExprStmt, LGoto, LLabel, LSwitch, LBreak, LContinue,
 )
 
 
@@ -362,6 +362,8 @@ class Emitter:
                 self._emit(f"{name}:;\n")
             case LBreak():
                 self._emitln("break;")
+            case LContinue():
+                self._emitln("continue;")
             case _:
                 raise EmitError(
                     message=f"unknown LStmt: {stmt}",

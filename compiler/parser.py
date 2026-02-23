@@ -67,6 +67,7 @@ from compiler.ast_nodes import (
     YieldStmt,
     ThrowStmt,
     BreakStmt,
+    ContinueStmt,
     ExprStmt,
     IfStmt,
     WhileStmt,
@@ -1127,6 +1128,8 @@ class Parser:
                 return self.parse_throw_stmt()
             case TokenType.BREAK:
                 return self.parse_break_stmt()
+            case TokenType.CONTINUE:
+                return self.parse_continue_stmt()
             case _:
                 return self._parse_expr_or_assign_stmt()
 
@@ -1450,6 +1453,11 @@ class Parser:
         """Parse: break"""
         tok = self.expect(TokenType.BREAK)
         return BreakStmt(line=tok.line, col=tok.col)
+
+    def parse_continue_stmt(self) -> ContinueStmt:
+        """Parse: continue"""
+        tok = self.expect(TokenType.CONTINUE)
+        return ContinueStmt(line=tok.line, col=tok.col)
 
     def _is_stmt_terminator(self) -> bool:
         """Check if the current token would terminate a statement.

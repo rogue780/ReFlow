@@ -27,7 +27,7 @@ from compiler.ast_nodes import (
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     # Statements
     LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
-    BreakStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
+    BreakStmt, ContinueStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
     MatchStmt, TryStmt, MatchArm,
     CatchBlock, FinallyBlock, RetryBlock,
     # Patterns
@@ -309,6 +309,11 @@ class LBreak(LStmt):
     pass
 
 
+@dataclass
+class LContinue(LStmt):
+    pass
+
+
 # ---------------------------------------------------------------------------
 # Top-level LIR nodes (RT-7-1-1)
 # ---------------------------------------------------------------------------
@@ -374,6 +379,19 @@ def _ltype_c_name(lt: LType) -> str:
         case _:
             return "unknown"
 
+
+# ---------------------------------------------------------------------------
+# Opaque runtime types — TNamed with empty module resolves to these C types
+# ---------------------------------------------------------------------------
+
+_OPAQUE_TYPE_MAP: dict[str, str] = {
+    "Socket": "RF_Socket",
+    "file": "RF_File",
+    "JsonValue": "RF_JsonValue",
+    "StringBuilder": "RF_StringBuilder",
+    "DateTime": "RF_DateTime",
+    "Instant": "RF_Instant",
+}
 
 # ---------------------------------------------------------------------------
 # Option type name mapping — uses pre-defined runtime types where possible
@@ -678,6 +696,9 @@ class Lowerer:
             case TTuple(elements=elems):
                 return self._lower_tuple_type(elems)
             case TNamed(module=mod, name=name):
+                # Opaque runtime types get their C type directly
+                if not mod and name in _OPAQUE_TYPE_MAP:
+                    return LPtr(LStruct(_OPAQUE_TYPE_MAP[name]))
                 c_name = mangle(mod if mod else self._module_path, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
@@ -808,6 +829,11 @@ class Lowerer:
         match fn.body:
             case Block():
                 body = self._lower_block(fn.body)
+                # Implicit return: if the function has a non-void return type
+                # and the last statement doesn't already contain a return,
+                # inject returns into the tail position (handles match, if/else).
+                if body and not isinstance(ret_lt, LVoid):
+                    self._inject_tail_returns(body)
             case Expr():
                 expr_result = self._lower_expr(fn.body)
                 body = list(self._pending_stmts)
@@ -865,6 +891,8 @@ class Lowerer:
             match method.body:
                 case Block():
                     body = self._lower_block(method.body)
+                    if body and not isinstance(ret_lt, LVoid):
+                        self._inject_tail_returns(body)
                 case Expr():
                     expr_result = self._lower_expr(method.body)
                     body = list(self._pending_stmts)
@@ -967,6 +995,31 @@ class Lowerer:
             self._pending_stmts = saved
         return result
 
+    def _inject_tail_returns(self, stmts: list[LStmt]) -> None:
+        """Inject LReturn into the tail position of a statement list.
+
+        Handles match-as-expression in tail position: if the last statement
+        is an LExprStmt, convert it to LReturn. If it's an LIf or LSwitch,
+        recurse into the arms/cases to inject returns into their tails.
+        Already-present LReturn statements are left alone.
+        """
+        if not stmts:
+            return
+        last = stmts[-1]
+        if isinstance(last, LReturn):
+            return  # already has a return
+        if isinstance(last, LExprStmt):
+            stmts[-1] = LReturn(last.expr)
+        elif isinstance(last, LIf):
+            self._inject_tail_returns(last.then)
+            self._inject_tail_returns(last.else_)
+        elif isinstance(last, LSwitch):
+            for _, case_stmts in last.cases:
+                self._inject_tail_returns(case_stmts)
+            self._inject_tail_returns(last.default)
+        elif isinstance(last, LBlock):
+            self._inject_tail_returns(last.stmts)
+
     def _lower_stmt(self, stmt: Stmt) -> list[LStmt]:
         match stmt:
             case LetStmt():
@@ -989,6 +1042,8 @@ class Lowerer:
                 return self._lower_expr_stmt(stmt)
             case BreakStmt():
                 return [LBreak()]
+            case ContinueStmt():
+                return [LContinue()]
             case YieldStmt():
                 # Yield outside stream fn — should not happen after type check,
                 # but handle gracefully
@@ -2098,10 +2153,13 @@ class Lowerer:
         t = self._type_of(expr)
         lt = self._lower_type(t)
         left_type = self._type_of(left)
+        right_type = self._type_of(right)
 
-        # String concatenation
-        if op == "+" and isinstance(left_type, TString):
-            return LCall("rf_string_concat", [left_expr, right_expr],
+        # String concatenation (including Showable auto-coercion)
+        if op == "+" and isinstance(t, TString):
+            l_str = left_expr if isinstance(left_type, TString) else self._to_string_expr(left_expr, left_type)
+            r_str = right_expr if isinstance(right_type, TString) else self._to_string_expr(right_expr, right_type)
+            return LCall("rf_string_concat", [l_str, r_str],
                          LPtr(LStruct("RF_String")))
 
         # String equality
@@ -2120,8 +2178,16 @@ class Lowerer:
                 return LLit("rf_false", LBool())
 
         # Integer checked arithmetic (RT-7-3-2)
-        if isinstance(left_type, TInt) and op in ("+", "-", "*", "/", "%"):
-            return LCheckedArith(op=op, left=left_expr, right=right_expr, c_type=lt)
+        if isinstance(left_type, TInt) and isinstance(right_type, TInt) and op in ("+", "-", "*", "/", "%"):
+            # Implicit widening: cast narrower operand to wider type
+            l = left_expr
+            r = right_expr
+            if left_type.width != right_type.width:
+                if left_type.width < right_type.width:
+                    l = LCast(left_expr, self._lower_type(right_type))
+                else:
+                    r = LCast(right_expr, self._lower_type(left_type))
+            return LCheckedArith(op=op, left=l, right=r, c_type=lt)
 
         # Logical operators
         if op == "&&":

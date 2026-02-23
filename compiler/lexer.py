@@ -41,6 +41,7 @@ class TokenType(Enum):
     MATCH = auto()
     NONE = auto()
     BREAK = auto()
+    CONTINUE = auto()
     STATIC = auto()
     PURE = auto()
     RECORD = auto()
@@ -160,6 +161,7 @@ _KEYWORDS: dict[str, TokenType] = {
     "match": TokenType.MATCH,
     "none": TokenType.NONE,
     "break": TokenType.BREAK,
+    "continue": TokenType.CONTINUE,
     "static": TokenType.STATIC,
     "pure": TokenType.PURE,
     "record": TokenType.RECORD,
