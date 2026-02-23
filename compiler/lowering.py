@@ -10,8 +10,8 @@ from compiler.errors import EmitError
 from compiler.mangler import (
     mangle, mangle_stream_frame, mangle_stream_next, mangle_stream_free,
     mangle_closure_frame, mangle_closure_fn, mangle_fn_wrapper,
-    mangle_stream_wrapper, mangle_fanout_wrapper, mangle_exception_frame,
-    mangle_monomorphized,
+    mangle_stream_wrapper, mangle_sort_wrapper, mangle_fanout_wrapper,
+    mangle_exception_frame, mangle_monomorphized,
 )
 from compiler.ast_nodes import (
     # Base
@@ -424,6 +424,51 @@ _BUILTIN_TYPE_ANNS: dict[str, Type] = {
 
 # ---------------------------------------------------------------------------
 # Monomorphization support (SG-3-3-1, SG-3-5-1)
+#
+# Algorithm overview (SG-5-2-2):
+#
+# Bounded generic functions (`fn f<T fulfills Interface>(...)`) cannot be
+# compiled to a single C function because the concrete representation of T
+# is unknown until call time. The lowering pass resolves this via compile-time
+# specialization (monomorphization):
+#
+# 1. COLLECTION PHASE — whenever a bounded generic call is encountered in
+#    `_lower_call` or `_lower_method_call`, `_record_mono_site` is called with
+#    the concrete type environment ({"T": TInt(32,True), ...}) inferred from
+#    the actual argument types at that call site.  Each unique
+#    (src_module, fn_name, type_args) triple is recorded exactly once in
+#    `_mono_sites` and assigned a mangled C name via `mangle_monomorphized`
+#    (e.g. `rf_math_min__int`).  The call site emits a direct call to that
+#    mangled name.
+#
+# 2. EMISSION PHASE — after all declarations have been lowered, `lower()`
+#    iterates `_mono_sites` and calls `_lower_monomorphized_fn` for each one.
+#    That method temporarily swaps the type map, resolver, and module path so
+#    that the function body is lowered as if it were in its source module, with
+#    every TTypeVar("T") substituted for the concrete type.  The resulting
+#    `LFnDef` nodes are prepended to `_fn_defs` so they appear before any
+#    callers in the generated C translation unit.
+#
+# 3. TYPE SUBSTITUTION — `_build_substituted_types` walks the source module's
+#    type map (from `all_typed`) and replaces each TTypeVar whose name appears
+#    in the type environment with its concrete type.  This is a shallow
+#    substitution: only top-level TTypeVar occurrences are replaced (nested
+#    generics such as option<T> are handled by the same mechanism recursively
+#    in `_substitute_type`).
+#
+# 4. INTERFACE METHOD DISPATCH — inside a monomorphized body, calls to bounded
+#    interface methods (e.g. `a.compare(b)`) are handled by `_lower_method_call`
+#    consulting `BUILTIN_METHOD_OPS`.  Each (concrete_type_name, method_name)
+#    pair maps to a `BuiltinMethodOp` describing the C operator or macro to
+#    emit (e.g. `_rf_compare` for numeric `compare`, `RF_CHECKED_ADD` for
+#    `Numeric.add`).  This avoids virtual dispatch for all built-in types.
+#
+# 5. CROSS-MODULE GENERICS — when a generic function lives in an imported
+#    module (e.g. `stdlib/math.reflow`), its `FnDecl` is retrieved via the
+#    resolver and its body is lowered with the source module's TypedModule
+#    (looked up in `all_typed`).  If the source module's TypedModule is absent
+#    (e.g. stdlib modules compiled without debug info), `_ltype_to_type_name`
+#    provides a fallback for resolving method names from LType alone.
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -2090,6 +2135,23 @@ class Lowerer:
         """Lower function call."""
         t = self._type_of(expr)
         lt = self._lower_type(t)
+
+        # Special case: rf_sort_array_by wraps the comparator closure so that
+        # it bridges qsort's element-pointer convention with ReFlow's typed closures.
+        # Must be intercepted before lowering all args to avoid double-lowering.
+        if isinstance(expr.callee, Ident) and len(expr.args) >= 2:
+            sym = self._resolved.symbols.get(expr.callee)
+            if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.IMPORT):
+                decl = sym.decl
+                if isinstance(decl, FnDecl) and decl.native_name == "rf_sort_array_by":
+                    arr_arg = self._lower_expr(expr.args[0])
+                    arr_type = self._type_of(expr.args[0])
+                    elem_type = (arr_type.element if isinstance(arr_type, TArray)
+                                 else TAny())
+                    wrapped_cmp = self._lower_sort_closure_wrapper(
+                        expr.args[1], elem_type)
+                    return LCall("rf_sort_array_by", [arr_arg, wrapped_cmp], lt)
+
         lowered_args = [self._lower_expr(a) for a in expr.args]
 
         if isinstance(expr.callee, Ident):
@@ -2509,6 +2571,104 @@ class Lowerer:
                          LPtr(LVoid())),
         ))
         # Set env = original closure
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(wrap_closure_tmp, closure_lt),
+                          "env", LPtr(LVoid())),
+            value=LCast(inner_closure, LPtr(LVoid())),
+        ))
+        return LVar(wrap_closure_tmp, closure_lt)
+
+    def _lower_sort_closure_wrapper(self, closure_ast: Expr,
+                                    elem_type: Type) -> LExpr:
+        """Generate a sort comparator closure wrapper for rf_sort_array_by.
+
+        rf_sort_array_by expects a closure whose fn pointer has signature:
+            rf_int (*)(void* env, const void* a_ptr, const void* b_ptr)
+        where a_ptr and b_ptr are pointers into the array's element buffer.
+
+        ReFlow lambdas have typed signatures like:
+            rf_int (*)(void* env, rf_int a, rf_int b)
+
+        This generates a thin wrapper that:
+          1. Receives (env=outer_env, a_ptr, b_ptr)
+          2. Unpacks inner closure from outer_env
+          3. Dereferences a_ptr and b_ptr to typed element values
+          4. Calls the inner closure with (inner->env, a_val, b_val)
+        """
+        inner_closure = self._lower_expr(closure_ast)
+        closure_lt = LPtr(LStruct("RF_Closure"))
+
+        fn_type = self._type_of(closure_ast)
+        if not isinstance(fn_type, TFn):
+            return inner_closure
+
+        module = self._module_path
+        fn_name = self._current_fn_name or "anon"
+        wrapper_id = self._lambda_counter
+        self._lambda_counter += 1
+
+        wrapper_c_name = mangle_sort_wrapper(module, fn_name, wrapper_id)
+        elem_lt = self._lower_type(elem_type)
+
+        wrapper_params: list[tuple[str, LType]] = [
+            ("_env", LPtr(LVoid())),
+            ("_a", LPtr(LVoid())),
+            ("_b", LPtr(LVoid())),
+        ]
+        wrapper_body: list[LStmt] = []
+
+        # RF_Closure* _inner = (RF_Closure*)_env;
+        wrapper_body.append(LVarDecl(
+            c_name="_inner", c_type=closure_lt,
+            init=LCast(LVar("_env", LPtr(LVoid())), closure_lt)))
+
+        # T a_val = *(T*)_a;
+        wrapper_body.append(LVarDecl(
+            c_name="a_val", c_type=elem_lt,
+            init=LDeref(LCast(LVar("_a", LPtr(LVoid())), LPtr(elem_lt)), elem_lt)))
+
+        # T b_val = *(T*)_b;
+        wrapper_body.append(LVarDecl(
+            c_name="b_val", c_type=elem_lt,
+            init=LDeref(LCast(LVar("_b", LPtr(LVoid())), LPtr(elem_lt)), elem_lt)))
+
+        # Call inner: ((rf_int(*)(void*, T, T))_inner->fn)(_inner->env, a_val, b_val)
+        ret_lt = LInt(32, True)  # rf_int — comparator return type
+        fn_ptr_type = LFnPtr([LPtr(LVoid()), elem_lt, elem_lt], ret_lt)
+        call_expr = LIndirectCall(
+            LCast(LArrow(LVar("_inner", closure_lt), "fn", LPtr(LVoid())),
+                  fn_ptr_type),
+            [LArrow(LVar("_inner", closure_lt), "env", LPtr(LVoid())),
+             LVar("a_val", elem_lt),
+             LVar("b_val", elem_lt)],
+            ret_lt)
+        wrapper_body.append(LReturn(call_expr))
+
+        # Register wrapper function
+        self._fn_defs.append(LFnDef(
+            c_name=wrapper_c_name,
+            params=wrapper_params,
+            ret=ret_lt,
+            body=wrapper_body,
+            is_pure=False,
+            source_name=f"{module}.{fn_name}::sort_cmp_wrapper",
+        ))
+
+        # Create outer closure: fn=wrapper, env=inner_closure
+        wrap_closure_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=wrap_closure_tmp,
+            c_type=closure_lt,
+            init=LCast(
+                LCall("malloc", [LSizeOf(LStruct("RF_Closure"))],
+                      LPtr(LVoid())),
+                closure_lt),
+        ))
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(wrap_closure_tmp, closure_lt),
+                          "fn", LPtr(LVoid())),
+            value=LCast(LVar(wrapper_c_name, LPtr(LVoid())), LPtr(LVoid())),
+        ))
         self._pending_stmts.append(LAssign(
             target=LArrow(LVar(wrap_closure_tmp, closure_lt),
                           "env", LPtr(LVoid())),

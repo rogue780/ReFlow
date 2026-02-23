@@ -167,6 +167,16 @@ def mangle_stream_wrapper(module: str, fn_name: str,
     return f"_rf_swrap_{parts}_{fn_name}_{wrapper_id}"
 
 
+def mangle_sort_wrapper(module: str, fn_name: str,
+                        wrapper_id: int) -> str:
+    """Mangle a sort comparator closure wrapper function name.
+
+    Example: sort, sort, 0 → _rf_srtwrap_sort_sort_0
+    """
+    parts = module.replace(".", "_")
+    return f"_rf_srtwrap_{parts}_{fn_name}_{wrapper_id}"
+
+
 def mangle_fanout_wrapper(module: str, fn_name: str,
                           fanout_id: int, branch_idx: int) -> str:
     """Mangle a parallel fan-out branch wrapper function name.

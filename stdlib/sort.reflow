@@ -1,6 +1,8 @@
 module sort
 
-export pure fn sort_ints(arr: array<int>): array<int> = native "rf_sort_ints"
-export pure fn sort_strings(arr: array<string>): array<string> = native "rf_sort_strings"
-export pure fn sort_floats(arr: array<float>): array<float> = native "rf_sort_floats"
-export pure fn reverse(arr: array<int>): array<int> = native "rf_array_reverse"
+export pure fn sort<T fulfills Comparable>(arr: array<T>): array<T> {
+    return sort_by(arr, \(a: T, b: T => a.compare(b)))
+}
+
+export pure fn sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T> = native "rf_sort_array_by"
+export pure fn reverse<T>(arr: array<T>): array<T> = native "rf_array_reverse"

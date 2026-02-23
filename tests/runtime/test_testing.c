@@ -1,6 +1,10 @@
 /*
  * C-level tests for stdlib/testing assertions and runner.
  *
+ * Note: rf_test_assert_eq_int, rf_test_assert_eq_string, rf_test_assert_eq_bool
+ * were removed in SG-4-3-2 (those behaviors are now in monomorphized ReFlow code).
+ * This file tests the remaining runtime testing functions.
+ *
  * Compile and run via: make test-runtime
  */
 #define _POSIX_C_SOURCE 200809L
@@ -102,110 +106,7 @@ static void test_assert_false_fails(void) {
 }
 
 /* ========================================================================
- * Test 5: assert_eq_int passes on equal values
- * ======================================================================== */
-
-static void test_assert_eq_int_passes(void) {
-    TEST(assert_eq_int_passes);
-
-    RF_String* msg = rf_string_from_cstr("should pass");
-    rf_test_assert_eq_int(42, 42, msg);
-    rf_string_release(msg);
-
-    PASS();
-}
-
-/* ========================================================================
- * Test 6: assert_eq_int fails on different values
- * ======================================================================== */
-
-static void test_assert_eq_int_fails(void) {
-    TEST(assert_eq_int_fails);
-
-    RF_ExceptionFrame ef;
-    _rf_exception_push(&ef);
-    rf_bool caught = rf_false;
-    if (setjmp(ef.jmp) == 0) {
-        RF_String* msg = rf_string_from_cstr("int check");
-        rf_test_assert_eq_int(42, 43, msg);
-        assert(0 && "should have thrown");
-    } else {
-        caught = rf_true;
-        assert(ef.exception_tag == RF_TEST_FAILURE_TAG);
-        RF_String* err = (RF_String*)ef.exception;
-        assert(strstr(err->data, "expected 42, got 43") != NULL);
-    }
-    _rf_exception_pop();
-    assert(caught == rf_true);
-
-    PASS();
-}
-
-/* ========================================================================
- * Test 7: assert_eq_string passes on equal strings
- * ======================================================================== */
-
-static void test_assert_eq_string_passes(void) {
-    TEST(assert_eq_string_passes);
-
-    RF_String* a = rf_string_from_cstr("hello");
-    RF_String* b = rf_string_from_cstr("hello");
-    RF_String* msg = rf_string_from_cstr("strings match");
-    rf_test_assert_eq_string(a, b, msg);
-    rf_string_release(a);
-    rf_string_release(b);
-    rf_string_release(msg);
-
-    PASS();
-}
-
-/* ========================================================================
- * Test 8: assert_eq_string fails on different strings
- * ======================================================================== */
-
-static void test_assert_eq_string_fails(void) {
-    TEST(assert_eq_string_fails);
-
-    RF_ExceptionFrame ef;
-    _rf_exception_push(&ef);
-    rf_bool caught = rf_false;
-    if (setjmp(ef.jmp) == 0) {
-        RF_String* a = rf_string_from_cstr("hello");
-        RF_String* b = rf_string_from_cstr("world");
-        RF_String* msg = rf_string_from_cstr("string check");
-        rf_test_assert_eq_string(a, b, msg);
-        assert(0 && "should have thrown");
-    } else {
-        caught = rf_true;
-        assert(ef.exception_tag == RF_TEST_FAILURE_TAG);
-        RF_String* err = (RF_String*)ef.exception;
-        assert(strstr(err->data, "expected") != NULL);
-        assert(strstr(err->data, "hello") != NULL);
-        assert(strstr(err->data, "world") != NULL);
-    }
-    _rf_exception_pop();
-    assert(caught == rf_true);
-
-    PASS();
-}
-
-/* ========================================================================
- * Test 9: assert_eq_bool passes on matching booleans
- * ======================================================================== */
-
-static void test_assert_eq_bool_passes(void) {
-    TEST(assert_eq_bool_passes);
-
-    RF_String* msg = rf_string_from_cstr("bools match");
-    rf_test_assert_eq_bool(rf_true, rf_true, msg);
-    rf_test_assert_eq_bool(rf_false, rf_false, msg);
-    rf_string_release(msg);
-
-    PASS();
-}
-
-/* ========================================================================
- * Test 10: assert_eq_float passes within epsilon
+ * Test 5: assert_eq_float passes within epsilon
  * ======================================================================== */
 
 static void test_assert_eq_float_passes(void) {
@@ -220,7 +121,7 @@ static void test_assert_eq_float_passes(void) {
 }
 
 /* ========================================================================
- * Test 11: assert_eq_float fails outside epsilon
+ * Test 6: assert_eq_float fails outside epsilon
  * ======================================================================== */
 
 static void test_assert_eq_float_fails(void) {
@@ -247,7 +148,7 @@ static void test_assert_eq_float_fails(void) {
 }
 
 /* ========================================================================
- * Test 12: assert_some passes on Some value and returns it
+ * Test 7: assert_some passes on Some value and returns it
  * ======================================================================== */
 
 static void test_assert_some_passes(void) {
@@ -264,7 +165,7 @@ static void test_assert_some_passes(void) {
 }
 
 /* ========================================================================
- * Test 13: assert_some fails on None
+ * Test 8: assert_some fails on None
  * ======================================================================== */
 
 static void test_assert_some_fails(void) {
@@ -291,7 +192,7 @@ static void test_assert_some_fails(void) {
 }
 
 /* ========================================================================
- * Test 14: assert_none passes on None
+ * Test 9: assert_none passes on None
  * ======================================================================== */
 
 static void test_assert_none_passes(void) {
@@ -306,7 +207,7 @@ static void test_assert_none_passes(void) {
 }
 
 /* ========================================================================
- * Test 15: assert_none fails on Some
+ * Test 10: assert_none fails on Some
  * ======================================================================== */
 
 static void test_assert_none_fails(void) {
@@ -333,7 +234,7 @@ static void test_assert_none_fails(void) {
 }
 
 /* ========================================================================
- * Test 16: fail always throws
+ * Test 11: fail always throws
  * ======================================================================== */
 
 static void test_fail(void) {
@@ -359,7 +260,7 @@ static void test_fail(void) {
 }
 
 /* ========================================================================
- * Test 17: rf_test_run with passing closure
+ * Test 12: rf_test_run with passing closure
  * ======================================================================== */
 
 static void _passing_test(void* env) {
@@ -386,7 +287,7 @@ static void test_run_passing(void) {
 }
 
 /* ========================================================================
- * Test 18: rf_test_run with failing closure
+ * Test 13: rf_test_run with failing closure
  * ======================================================================== */
 
 static void _failing_test(void* env) {
@@ -424,11 +325,6 @@ int main(void) {
     test_assert_true_fails();
     test_assert_false_passes();
     test_assert_false_fails();
-    test_assert_eq_int_passes();
-    test_assert_eq_int_fails();
-    test_assert_eq_string_passes();
-    test_assert_eq_string_fails();
-    test_assert_eq_bool_passes();
     test_assert_eq_float_passes();
     test_assert_eq_float_fails();
     test_assert_some_passes();

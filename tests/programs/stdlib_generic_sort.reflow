@@ -1,0 +1,16 @@
+module stdlib_generic_sort
+
+import sort
+import conv
+import io
+
+fn main(): void {
+    let ints = sort.sort([3, 1, 4, 1, 5])
+    let strs = sort.sort(["banana", "apple", "cherry"])
+    for (n: int in ints) {
+        io.println(conv.to_string(n))
+    }
+    for (s: string in strs) {
+        io.println(s)
+    }
+}

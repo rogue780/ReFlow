@@ -1,10 +1,12 @@
 /*
  * C-level tests for math runtime functions (stdlib/math).
  *
- * Compile and run via:
- *   cc -o tests/runtime/test_math tests/runtime/test_math.c \
- *      runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
- *   ./tests/runtime/test_math
+ * Note: rf_math_abs_int, rf_math_abs_float, rf_math_min_int/float,
+ * rf_math_max_int/float, rf_math_clamp_int were removed in SG-4-1-2
+ * (those behaviors are now in monomorphized ReFlow code).
+ * This file tests the remaining float-specific runtime functions.
+ *
+ * Compile and run via: make test-runtime
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
@@ -23,121 +25,6 @@ static int tests_passed = 0;
     do { tests_passed++; printf("PASS\n"); } while(0)
 
 #define FLOAT_EQ(a, b) (fabs((a) - (b)) < 1e-9)
-
-/* ========================================================================
- * abs_int
- * ======================================================================== */
-
-static void test_abs_int_positive(void) {
-    TEST(abs_int_positive);
-    assert(rf_math_abs_int(42) == 42);
-    PASS();
-}
-
-static void test_abs_int_negative(void) {
-    TEST(abs_int_negative);
-    assert(rf_math_abs_int(-42) == 42);
-    PASS();
-}
-
-static void test_abs_int_zero(void) {
-    TEST(abs_int_zero);
-    assert(rf_math_abs_int(0) == 0);
-    PASS();
-}
-
-/* ========================================================================
- * abs_float
- * ======================================================================== */
-
-static void test_abs_float_positive(void) {
-    TEST(abs_float_positive);
-    assert(FLOAT_EQ(rf_math_abs_float(3.14), 3.14));
-    PASS();
-}
-
-static void test_abs_float_negative(void) {
-    TEST(abs_float_negative);
-    assert(FLOAT_EQ(rf_math_abs_float(-3.14), 3.14));
-    PASS();
-}
-
-static void test_abs_float_zero(void) {
-    TEST(abs_float_zero);
-    assert(FLOAT_EQ(rf_math_abs_float(0.0), 0.0));
-    PASS();
-}
-
-/* ========================================================================
- * min_int / max_int
- * ======================================================================== */
-
-static void test_min_int(void) {
-    TEST(min_int);
-    assert(rf_math_min_int(3, 7) == 3);
-    assert(rf_math_min_int(7, 3) == 3);
-    assert(rf_math_min_int(5, 5) == 5);
-    assert(rf_math_min_int(-10, 10) == -10);
-    PASS();
-}
-
-static void test_max_int(void) {
-    TEST(max_int);
-    assert(rf_math_max_int(3, 7) == 7);
-    assert(rf_math_max_int(7, 3) == 7);
-    assert(rf_math_max_int(5, 5) == 5);
-    assert(rf_math_max_int(-10, 10) == 10);
-    PASS();
-}
-
-/* ========================================================================
- * min_float / max_float
- * ======================================================================== */
-
-static void test_min_float(void) {
-    TEST(min_float);
-    assert(FLOAT_EQ(rf_math_min_float(1.5, 2.5), 1.5));
-    assert(FLOAT_EQ(rf_math_min_float(2.5, 1.5), 1.5));
-    assert(FLOAT_EQ(rf_math_min_float(-1.0, 1.0), -1.0));
-    PASS();
-}
-
-static void test_max_float(void) {
-    TEST(max_float);
-    assert(FLOAT_EQ(rf_math_max_float(1.5, 2.5), 2.5));
-    assert(FLOAT_EQ(rf_math_max_float(2.5, 1.5), 2.5));
-    assert(FLOAT_EQ(rf_math_max_float(-1.0, 1.0), 1.0));
-    PASS();
-}
-
-/* ========================================================================
- * clamp_int
- * ======================================================================== */
-
-static void test_clamp_int_below(void) {
-    TEST(clamp_int_below_range);
-    assert(rf_math_clamp_int(-5, 0, 10) == 0);
-    PASS();
-}
-
-static void test_clamp_int_within(void) {
-    TEST(clamp_int_within_range);
-    assert(rf_math_clamp_int(5, 0, 10) == 5);
-    PASS();
-}
-
-static void test_clamp_int_above(void) {
-    TEST(clamp_int_above_range);
-    assert(rf_math_clamp_int(15, 0, 10) == 10);
-    PASS();
-}
-
-static void test_clamp_int_at_boundaries(void) {
-    TEST(clamp_int_at_boundaries);
-    assert(rf_math_clamp_int(0, 0, 10) == 0);
-    assert(rf_math_clamp_int(10, 0, 10) == 10);
-    PASS();
-}
 
 /* ========================================================================
  * floor / ceil / round
@@ -205,7 +92,6 @@ static void test_log(void) {
     TEST(log);
     assert(FLOAT_EQ(rf_math_log(1.0), 0.0));
     assert(FLOAT_EQ(rf_math_log(M_E), 1.0));
-    /* log(e^2) = 2 */
     assert(FLOAT_EQ(rf_math_log(M_E * M_E), 2.0));
     PASS();
 }
@@ -215,23 +101,9 @@ static void test_log(void) {
  * ======================================================================== */
 
 int main(void) {
-    printf("Math function tests\n");
+    printf("Math function tests (float-specific, SG-4-1 / SG-5-2-1)\n");
     printf("========================================\n");
 
-    test_abs_int_positive();
-    test_abs_int_negative();
-    test_abs_int_zero();
-    test_abs_float_positive();
-    test_abs_float_negative();
-    test_abs_float_zero();
-    test_min_int();
-    test_max_int();
-    test_min_float();
-    test_max_float();
-    test_clamp_int_below();
-    test_clamp_int_within();
-    test_clamp_int_above();
-    test_clamp_int_at_boundaries();
     test_floor();
     test_ceil();
     test_round();

@@ -1461,14 +1461,23 @@ RF_Buffer* rf_buffer_slice(RF_Buffer* buf, rf_int64 start, rf_int64 end) {
  * ======================================================================== */
 
 /* --- closure-based sort (rf_sort_array_by) --- */
+/*
+ * The comparator closure must have fn signature:
+ *   rf_int (*)(void* env, const void* a_ptr, const void* b_ptr)
+ * where a_ptr and b_ptr are pointers into the array's element buffer.
+ *
+ * The compiler generates a sort comparator wrapper (via _lower_sort_closure_wrapper
+ * in lowering.py) that dereferences a_ptr and b_ptr to typed element values
+ * before calling the user's typed comparator closure. This bridging is needed
+ * because qsort passes element addresses, not element values.
+ */
 
 static _Thread_local RF_Closure* _rf_sort_closure;
-static _Thread_local rf_int64 _rf_sort_elem_size;
 
 static int _rf_sort_closure_cmp(const void* a, const void* b) {
-    typedef rf_int (*CmpFn)(void*, void*, void*);
+    typedef rf_int (*CmpFn)(void*, const void*, const void*);
     CmpFn fn = (CmpFn)_rf_sort_closure->fn;
-    return (int)fn((void*)a, (void*)b, _rf_sort_closure->env);
+    return (int)fn(_rf_sort_closure->env, a, b);
 }
 
 RF_Array* rf_sort_array_by(RF_Array* arr, RF_Closure* cmp) {
@@ -1484,80 +1493,7 @@ RF_Array* rf_sort_array_by(RF_Array* arr, RF_Closure* cmp) {
 
     /* Set thread-local closure and sort */
     _rf_sort_closure = cmp;
-    _rf_sort_elem_size = arr->element_size;
     qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _rf_sort_closure_cmp);
-
-    RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
-    free(tmp);
-    return result;
-}
-
-/* --- int sort --- */
-
-static int _rf_cmp_int(const void* a, const void* b) {
-    rf_int va = *(const rf_int*)a;
-    rf_int vb = *(const rf_int*)b;
-    return (va > vb) - (va < vb);
-}
-
-RF_Array* rf_sort_ints(RF_Array* arr) {
-    if (!arr) rf_panic("rf_sort_ints: NULL array");
-    if (arr->len == 0) return rf_array_new(0, arr->element_size, NULL);
-
-    size_t total = (size_t)arr->len * (size_t)arr->element_size;
-    void* tmp = malloc(total);
-    if (!tmp) rf_panic("rf_sort_ints: out of memory");
-    memcpy(tmp, arr->data, total);
-
-    qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _rf_cmp_int);
-
-    RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
-    free(tmp);
-    return result;
-}
-
-/* --- string sort --- */
-
-static int _rf_cmp_string(const void* a, const void* b) {
-    RF_String* sa = *(RF_String* const*)a;
-    RF_String* sb = *(RF_String* const*)b;
-    return rf_string_cmp(sa, sb);
-}
-
-RF_Array* rf_sort_strings(RF_Array* arr) {
-    if (!arr) rf_panic("rf_sort_strings: NULL array");
-    if (arr->len == 0) return rf_array_new(0, arr->element_size, NULL);
-
-    size_t total = (size_t)arr->len * (size_t)arr->element_size;
-    void* tmp = malloc(total);
-    if (!tmp) rf_panic("rf_sort_strings: out of memory");
-    memcpy(tmp, arr->data, total);
-
-    qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _rf_cmp_string);
-
-    RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
-    free(tmp);
-    return result;
-}
-
-/* --- float sort --- */
-
-static int _rf_cmp_float(const void* a, const void* b) {
-    rf_float va = *(const rf_float*)a;
-    rf_float vb = *(const rf_float*)b;
-    return (va > vb) - (va < vb);
-}
-
-RF_Array* rf_sort_floats(RF_Array* arr) {
-    if (!arr) rf_panic("rf_sort_floats: NULL array");
-    if (arr->len == 0) return rf_array_new(0, arr->element_size, NULL);
-
-    size_t total = (size_t)arr->len * (size_t)arr->element_size;
-    void* tmp = malloc(total);
-    if (!tmp) rf_panic("rf_sort_floats: out of memory");
-    memcpy(tmp, arr->data, total);
-
-    qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _rf_cmp_float);
 
     RF_Array* result = rf_array_new(arr->len, arr->element_size, tmp);
     free(tmp);

@@ -1,0 +1,14 @@
+module stdlib_generic_math
+
+import math
+import conv
+import io
+
+fn main(): void {
+    ; Generic math functions work with both int and float
+    io.println(conv.to_string(math.abs(-5)))
+    io.println(conv.to_string(math.abs(-3.14)))
+    io.println(conv.to_string(math.min(10, 3)))
+    io.println(conv.to_string(math.max(1.0, 2.0)))
+    io.println(conv.to_string(math.clamp(15, 0, 10)))
+}

@@ -1,8 +1,9 @@
 /*
- * C-level tests for sort functions (SL-4-4).
+ * C-level tests for sort functions (SG-4-2 / SG-5-2-1).
  *
- * These tests cover: rf_sort_ints, rf_sort_strings, rf_sort_floats,
- * rf_array_reverse, rf_sort_array_by.
+ * Tests cover: rf_sort_array_by (with env-first closure convention),
+ * rf_array_reverse.  The type-specific rf_sort_ints/strings/floats were
+ * removed in SG-4-2-2; tests now use rf_sort_array_by with typed comparators.
  *
  * Compile and run via: make test-runtime
  */
@@ -23,6 +24,38 @@ static int tests_passed = 0;
     do { tests_passed++; printf("PASS\n"); } while(0)
 
 /* ========================================================================
+ * Comparator functions — env-first convention: (void* env, const void* a, const void* b)
+ * ======================================================================== */
+
+static rf_int _cmp_int_asc(void* env, const void* a, const void* b) {
+    (void)env;
+    rf_int va = *(const rf_int*)a;
+    rf_int vb = *(const rf_int*)b;
+    return (va > vb) - (va < vb);
+}
+
+static rf_int _cmp_int_desc(void* env, const void* a, const void* b) {
+    (void)env;
+    rf_int va = *(const rf_int*)a;
+    rf_int vb = *(const rf_int*)b;
+    return (vb > va) - (vb < va);
+}
+
+static rf_int _cmp_string_asc(void* env, const void* a, const void* b) {
+    (void)env;
+    RF_String* sa = *(RF_String* const*)a;
+    RF_String* sb = *(RF_String* const*)b;
+    return rf_string_cmp(sa, sb);
+}
+
+static rf_int _cmp_float_asc(void* env, const void* a, const void* b) {
+    (void)env;
+    rf_float va = *(const rf_float*)a;
+    rf_float vb = *(const rf_float*)b;
+    return (va > vb) - (va < vb);
+}
+
+/* ========================================================================
  * Test 1: sort_ints_ascending — sort unsorted array
  * ======================================================================== */
 
@@ -32,7 +65,8 @@ static void test_sort_ints_ascending(void) {
     rf_int data[] = {3, 1, 4, 1, 5, 9, 2, 6};
     RF_Array* arr = rf_array_new(8, sizeof(rf_int), data);
 
-    RF_Array* sorted = rf_sort_ints(arr);
+    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
     assert(rf_array_len(sorted) == 8);
     assert(*(rf_int*)rf_array_get_ptr(sorted, 0) == 1);
     assert(*(rf_int*)rf_array_get_ptr(sorted, 1) == 1);
@@ -61,7 +95,8 @@ static void test_sort_ints_already_sorted(void) {
     rf_int data[] = {1, 2, 3, 4, 5};
     RF_Array* arr = rf_array_new(5, sizeof(rf_int), data);
 
-    RF_Array* sorted = rf_sort_ints(arr);
+    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
     assert(rf_array_len(sorted) == 5);
     for (rf_int64 i = 0; i < 5; i++) {
         assert(*(rf_int*)rf_array_get_ptr(sorted, i) == (rf_int)(i + 1));
@@ -82,7 +117,8 @@ static void test_sort_ints_single(void) {
     rf_int data[] = {42};
     RF_Array* arr = rf_array_new(1, sizeof(rf_int), data);
 
-    RF_Array* sorted = rf_sort_ints(arr);
+    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
     assert(rf_array_len(sorted) == 1);
     assert(*(rf_int*)rf_array_get_ptr(sorted, 0) == 42);
 
@@ -100,7 +136,8 @@ static void test_sort_ints_empty(void) {
 
     RF_Array* arr = rf_array_new(0, sizeof(rf_int), NULL);
 
-    RF_Array* sorted = rf_sort_ints(arr);
+    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
     assert(rf_array_len(sorted) == 0);
 
     rf_array_release(sorted);
@@ -122,7 +159,8 @@ static void test_sort_strings_lexicographic(void) {
     RF_String* data[] = {banana, apple, cherry};
     RF_Array* arr = rf_array_new(3, sizeof(RF_String*), data);
 
-    RF_Array* sorted = rf_sort_strings(arr);
+    RF_Closure cmp = { .fn = (void*)_cmp_string_asc, .env = NULL };
+    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
     assert(rf_array_len(sorted) == 3);
 
     RF_String* s0 = *(RF_String**)rf_array_get_ptr(sorted, 0);
@@ -151,7 +189,8 @@ static void test_sort_floats(void) {
     rf_float data[] = {3.14, 1.0, 2.71};
     RF_Array* arr = rf_array_new(3, sizeof(rf_float), data);
 
-    RF_Array* sorted = rf_sort_floats(arr);
+    RF_Closure cmp = { .fn = (void*)_cmp_float_asc, .env = NULL };
+    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
     assert(rf_array_len(sorted) == 3);
     assert(*(rf_float*)rf_array_get_ptr(sorted, 0) == 1.0);
     assert(*(rf_float*)rf_array_get_ptr(sorted, 1) == 2.71);
@@ -228,21 +267,13 @@ static void test_reverse_empty(void) {
  * Test 10: sort_array_by_closure — descending sort via closure
  * ======================================================================== */
 
-static rf_int _descending_cmp(void* a, void* b, void* env) {
-    (void)env;
-    rf_int va = *(rf_int*)a;
-    rf_int vb = *(rf_int*)b;
-    /* Reverse ordering */
-    return (vb > va) - (vb < va);
-}
-
 static void test_sort_array_by_closure(void) {
     TEST(sort_array_by_closure);
 
     rf_int data[] = {3, 1, 4, 1, 5};
     RF_Array* arr = rf_array_new(5, sizeof(rf_int), data);
 
-    RF_Closure cmp = { .fn = (void*)_descending_cmp, .env = NULL };
+    RF_Closure cmp = { .fn = (void*)_cmp_int_desc, .env = NULL };
     RF_Array* sorted = rf_sort_array_by(arr, &cmp);
 
     assert(rf_array_len(sorted) == 5);
@@ -267,7 +298,8 @@ static void test_sort_ints_duplicates(void) {
     rf_int data[] = {5, 3, 5, 3, 1, 1, 5, 3, 1};
     RF_Array* arr = rf_array_new(9, sizeof(rf_int), data);
 
-    RF_Array* sorted = rf_sort_ints(arr);
+    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
     assert(rf_array_len(sorted) == 9);
     assert(*(rf_int*)rf_array_get_ptr(sorted, 0) == 1);
     assert(*(rf_int*)rf_array_get_ptr(sorted, 1) == 1);
@@ -289,7 +321,7 @@ static void test_sort_ints_duplicates(void) {
  * ======================================================================== */
 
 int main(void) {
-    printf("Sort function tests (SL-4-4)\n");
+    printf("Sort function tests (SG-4-2 / SG-5-2-1)\n");
     printf("========================================\n");
 
     test_sort_ints_ascending();

@@ -370,9 +370,6 @@ RF_Buffer*    rf_buffer_slice(RF_Buffer* buf, rf_int64 start, rf_int64 end);
  * ======================================================================== */
 
 RF_Array* rf_sort_array_by(RF_Array* arr, RF_Closure* cmp);
-RF_Array* rf_sort_ints(RF_Array* arr);
-RF_Array* rf_sort_strings(RF_Array* arr);
-RF_Array* rf_sort_floats(RF_Array* arr);
 RF_Array* rf_array_reverse(RF_Array* arr);
 
 /* ========================================================================
