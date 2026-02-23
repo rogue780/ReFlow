@@ -406,9 +406,9 @@ rf_int64      rf_clock_ms(void);
  * Conversion Wrappers (stdlib/conv) — option-returning variants
  * ======================================================================== */
 
-RF_Option_ptr rf_string_to_int_opt(RF_String* s);
-RF_Option_ptr rf_string_to_int64_opt(RF_String* s);
-RF_Option_ptr rf_string_to_float_opt(RF_String* s);
+RF_Option_int   rf_string_to_int_opt(RF_String* s);
+RF_Option_int64 rf_string_to_int64_opt(RF_String* s);
+RF_Option_float rf_string_to_float_opt(RF_String* s);
 
 /* ========================================================================
  * String Operations (stdlib/string — RB-1-1)

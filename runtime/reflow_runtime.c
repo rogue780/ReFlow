@@ -2679,30 +2679,28 @@ rf_int64 rf_clock_ms(void) {
  * Conversion Wrappers (stdlib/conv)
  * ======================================================================== */
 
-RF_Option_ptr rf_string_to_int_opt(RF_String* s) {
+RF_Option_int rf_string_to_int_opt(RF_String* s) {
     rf_int val;
     if (rf_string_to_int(s, &val)) {
-        return (RF_Option_ptr){.tag = 1, .value = (void*)(uintptr_t)val};
+        return (RF_Option_int){.tag = 1, .value = val};
     }
-    return RF_NONE_PTR;
+    return (RF_Option_int){.tag = 0, .value = 0};
 }
 
-RF_Option_ptr rf_string_to_int64_opt(RF_String* s) {
+RF_Option_int64 rf_string_to_int64_opt(RF_String* s) {
     rf_int64 val;
     if (rf_string_to_int64(s, &val)) {
-        return (RF_Option_ptr){.tag = 1, .value = (void*)(uintptr_t)val};
+        return (RF_Option_int64){.tag = 1, .value = val};
     }
-    return RF_NONE_PTR;
+    return (RF_Option_int64){.tag = 0, .value = 0};
 }
 
-RF_Option_ptr rf_string_to_float_opt(RF_String* s) {
+RF_Option_float rf_string_to_float_opt(RF_String* s) {
     rf_float val;
     if (rf_string_to_float(s, &val)) {
-        void* p;
-        memcpy(&p, &val, sizeof(val));
-        return (RF_Option_ptr){.tag = 1, .value = p};
+        return (RF_Option_float){.tag = 1, .value = val};
     }
-    return RF_NONE_PTR;
+    return (RF_Option_float){.tag = 0, .value = 0.0};
 }
 
 /* ========================================================================

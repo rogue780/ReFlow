@@ -1837,7 +1837,7 @@ class Lowerer:
                 return LLit("rf_true" if v else "rf_false", LBool())
 
             case StringLit(value=v):
-                escaped = v.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+                escaped = v.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t").replace("\0", "\\0")
                 return LCall(
                     "rf_string_from_cstr",
                     [LLit(f'"{escaped}"', LPtr(LVoid()))],
@@ -3212,7 +3212,7 @@ class Lowerer:
         for part in expr.parts:
             if isinstance(part, str):
                 if part:
-                    escaped = part.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+                    escaped = part.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t").replace("\0", "\\0")
                     parts.append(LCall(
                         "rf_string_from_cstr",
                         [LLit(f'"{escaped}"', LPtr(LVoid()))],
