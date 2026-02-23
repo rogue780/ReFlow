@@ -1,0 +1,9 @@
+module testing
+
+export fn assert_true(val: bool, msg: string): void = native "rf_test_assert_true"
+export fn assert_false(val: bool, msg: string): void = native "rf_test_assert_false"
+export fn assert_eq_int(expected: int, actual: int, msg: string): void = native "rf_test_assert_eq_int"
+export fn assert_eq_int64(expected: int64, actual: int64, msg: string): void = native "rf_test_assert_eq_int64"
+export fn assert_eq_string(expected: string, actual: string, msg: string): void = native "rf_test_assert_eq_string"
+export fn assert_eq_bool(expected: bool, actual: bool, msg: string): void = native "rf_test_assert_eq_bool"
+export fn fail(msg: string): void = native "rf_test_fail"

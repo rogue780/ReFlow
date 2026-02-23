@@ -1,0 +1,27 @@
+module sort_demo
+
+import sort
+
+fn main(): int =
+  let nums = [5, 3, 1, 4, 2]
+  let sorted_nums = sort.sort_ints(nums)
+  println(int_to_string(sorted_nums[0]))
+  println(int_to_string(sorted_nums[1]))
+  println(int_to_string(sorted_nums[2]))
+  println(int_to_string(sorted_nums[3]))
+  println(int_to_string(sorted_nums[4]))
+
+  let words = ["banana", "apple", "cherry"]
+  let sorted_words = sort.sort_strings(words)
+  println(sorted_words[0])
+  println(sorted_words[1])
+  println(sorted_words[2])
+
+  let reversed = sort.reverse(sorted_nums)
+  println(int_to_string(reversed[0]))
+  println(int_to_string(reversed[1]))
+  println(int_to_string(reversed[2]))
+  println(int_to_string(reversed[3]))
+  println(int_to_string(reversed[4]))
+
+  0

@@ -1,0 +1,21 @@
+module bytes_demo
+
+import bytes
+
+fn main(): int {
+    let data = bytes.from_string("Hello, World!")
+    let length = bytes.len(data)
+    println("Byte length: " + int_to_string(length))
+
+    let slice = bytes.slice(data, 0, 5)
+    let greeting = bytes.to_string(slice)
+    println("Slice [0..5]: " + greeting)
+
+    let a = bytes.from_string("Hello")
+    let b = bytes.from_string(", World!")
+    let combined = bytes.concat(a, b)
+    let result = bytes.to_string(combined)
+    println("Concatenated: " + result)
+
+    return 0
+}

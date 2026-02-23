@@ -1,0 +1,4 @@
+module time
+
+export fn now(): int64 = native "rf_time_unix_timestamp"
+export fn now_ms(): int64 = native "rf_time_unix_timestamp_ms"

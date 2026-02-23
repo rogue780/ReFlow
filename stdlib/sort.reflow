@@ -1,0 +1,6 @@
+module sort
+
+export pure fn sort_ints(arr: array<int>): array<int> = native "rf_sort_ints"
+export pure fn sort_strings(arr: array<string>): array<string> = native "rf_sort_strings"
+export pure fn sort_floats(arr: array<float>): array<float> = native "rf_sort_floats"
+export pure fn reverse(arr: array<int>): array<int> = native "rf_array_reverse"

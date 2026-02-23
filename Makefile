@@ -66,6 +66,9 @@ test-runtime:
 	$(CC) -o tests/runtime/test_time tests/runtime/test_time.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
 	tests/runtime/test_time
 	@rm -f tests/runtime/test_time
+	$(CC) -o tests/runtime/test_testing tests/runtime/test_testing.c runtime/reflow_runtime.c -lpthread -lm -I runtime -std=c11
+	tests/runtime/test_testing
+	@rm -f tests/runtime/test_testing
 
 check:
 	$(PYTHON) -m mypy compiler/
