@@ -489,34 +489,34 @@ class TestPurityChecking(unittest.TestCase):
     """RT-6-6-1, RT-6-8-3."""
 
     def test_pure_fn_calling_non_pure(self):
-        """RT-6-8-3: pure fn calling non-pure."""
+        """RT-6-8-3: fn:pure calling non-pure."""
         with self.assertRaises(ReFlowTypeError) as ctx:
             check("""fn impure(): none { }
-pure fn bad(): none {
+fn:pure bad(): none {
     impure()
 }""")
         self.assertIn("cannot call non-pure", ctx.exception.message)
         self.assertIn("impure", ctx.exception.message)
 
     def test_pure_fn_calling_pure_ok(self):
-        result = check("""pure fn square(x: int): int {
+        result = check("""fn:pure square(x: int): int {
     return x * x
 }
-pure fn double_square(x: int): int {
+fn:pure double_square(x: int): int {
     return square(x)
 }""")
         self.assertIsNotNone(result)
 
     def test_pure_fn_with_mut_param_error(self):
         with self.assertRaises(ReFlowTypeError) as ctx:
-            check("""pure fn bad(x: int:mut): none {
+            check("""fn:pure bad(x: int:mut): none {
     x += 1
 }""")
         self.assertIn("cannot accept :mut parameter", ctx.exception.message)
 
     def test_pure_fn_local_mut_ok(self):
         """Pure functions can use local :mut variables."""
-        result = check("""pure fn sum(a: int, b: int): int {
+        result = check("""fn:pure sum(a: int, b: int): int {
     let total: int:mut = 0
     total = a + b
     return total
@@ -808,7 +808,7 @@ type Widget fulfills NonExistent {
         with self.assertRaises(ReFlowTypeError) as ctx:
             check("""
 interface Hashable {
-    pure fn hash(self): int
+    fn:pure hash(self): int
 }
 type Widget fulfills Hashable {
     name: string
@@ -936,12 +936,12 @@ fn main(): none {
         self.assertIsNotNone(result)
 
     def test_pure_fn_with_snapshot_error(self):
-        """snapshot in pure fn raises TypeError."""
+        """snapshot in fn:pure raises TypeError."""
         with self.assertRaises(ReFlowTypeError) as ctx:
             check("""type Config {
     static counter: int = 0
 }
-pure fn bad(): int {
+fn:pure bad(): int {
     return snapshot(Config.counter)
 }""")
         self.assertIn("cannot use snapshot()", ctx.exception.message)
@@ -982,9 +982,9 @@ class TestParallelFanoutSafety(unittest.TestCase):
 
     def test_parallel_fanout_pure_branches_ok(self):
         """Pure branches are always safe in parallel fan-out."""
-        result = check("""pure fn dbl(x: int): int = x * 2
-pure fn sqr(x: int): int = x * x
-pure fn add(a: int, b: int): int = a + b
+        result = check("""fn:pure dbl(x: int): int = x * 2
+fn:pure sqr(x: int): int = x * x
+fn:pure add(a: int, b: int): int = a + b
 fn main() {
     let r = 5 -> <:(dbl | sqr) -> add
 }""")
@@ -1004,7 +1004,7 @@ fn main() {
         """Non-pure branch with :mut param is rejected in parallel fan-out."""
         with self.assertRaises(ReFlowTypeError) as ctx:
             check("""fn mutate(x: int:mut): int = x
-pure fn sqr(x: int): int = x * x
+fn:pure sqr(x: int): int = x * x
 fn main() {
     let r = 5 -> <:(mutate | sqr)
 }""")

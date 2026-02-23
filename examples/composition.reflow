@@ -3,12 +3,12 @@ module examples.composition
 
 import io (println)
 
-pure fn double(x: int): int = x * 2
-pure fn triple(x: int): int = x * 3
-pure fn square(x: int): int = x * x
-pure fn add(x: int, y: int): int = x + y
-pure fn mul(x: int, y: int): int = x * y
-pure fn negate(x: int): int = 0 - x
+fn:pure double(x: int): int = x * 2
+fn:pure triple(x: int): int = x * 3
+fn:pure square(x: int): int = x * x
+fn:pure add(x: int, y: int): int = x + y
+fn:pure mul(x: int, y: int): int = x * y
+fn:pure negate(x: int): int = 0 - x
 
 fn main() {
     ; Linear chain: 5 -> double -> square

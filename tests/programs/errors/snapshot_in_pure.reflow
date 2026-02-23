@@ -4,6 +4,6 @@ type Config {
     static counter: int = 0
 }
 
-pure fn bad(): int {
+fn:pure bad(): int {
     return snapshot(Config.counter)
 }

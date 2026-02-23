@@ -3,7 +3,7 @@ module mono_min
 import io
 import conv
 
-pure fn min<T fulfills Comparable>(a: T, b: T): T {
+fn:pure min<T fulfills Comparable>(a: T, b: T): T {
     return if a.compare(b) <= 0 { a } else { b }
 }
 

@@ -897,7 +897,7 @@ class TestPurityPreservation(unittest.TestCase):
     """Purity flags are preserved in lowered functions."""
 
     def test_pure_fn_flag(self):
-        m = lower("pure fn add(a: int, b: int): int { return a }")
+        m = lower("fn:pure add(a: int, b: int): int { return a }")
         fn = find_fn(m, "add")
         self.assertIsNotNone(fn)
         self.assertTrue(fn.is_pure)
@@ -1131,9 +1131,9 @@ class TestParallelFanout(unittest.TestCase):
 
     def test_parallel_fanout_generates_fanout_run(self):
         """Parallel fan-out in chain generates rf_fanout_run call."""
-        m = lower("""pure fn dbl(x: int): int = x * 2
-pure fn sqr(x: int): int = x * x
-pure fn add(a: int, b: int): int = a + b
+        m = lower("""fn:pure dbl(x: int): int = x * 2
+fn:pure sqr(x: int): int = x * x
+fn:pure add(a: int, b: int): int = a + b
 fn main() {
     let r = 5 -> <:(dbl | sqr) -> add
 }""")
@@ -1150,9 +1150,9 @@ fn main() {
 
     def test_sequential_fanout_no_fanout_run(self):
         """Sequential fan-out does not generate rf_fanout_run."""
-        m = lower("""pure fn dbl(x: int): int = x * 2
-pure fn sqr(x: int): int = x * x
-pure fn add(a: int, b: int): int = a + b
+        m = lower("""fn:pure dbl(x: int): int = x * 2
+fn:pure sqr(x: int): int = x * x
+fn:pure add(a: int, b: int): int = a + b
 fn main() {
     let r = 5 -> (dbl | sqr) -> add
 }""")
@@ -1165,9 +1165,9 @@ fn main() {
 
     def test_parallel_fanout_generates_wrapper_functions(self):
         """Parallel fan-out generates wrapper functions."""
-        m = lower("""pure fn dbl(x: int): int = x * 2
-pure fn sqr(x: int): int = x * x
-pure fn add(a: int, b: int): int = a + b
+        m = lower("""fn:pure dbl(x: int): int = x * 2
+fn:pure sqr(x: int): int = x * x
+fn:pure add(a: int, b: int): int = a + b
 fn main() {
     let r = 5 -> <:(dbl | sqr) -> add
 }""")

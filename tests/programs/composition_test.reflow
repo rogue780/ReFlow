@@ -2,9 +2,9 @@ module tests.composition_test
 
 import io (println)
 
-pure fn double(x: int): int = x * 2
-pure fn square(x: int): int = x * x
-pure fn add_one(x: int): int = x + 1
+fn:pure double(x: int): int = x * 2
+fn:pure square(x: int): int = x * x
+fn:pure add_one(x: int): int = x + 1
 
 fn main() {
     ; Simple chain

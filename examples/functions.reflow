@@ -4,10 +4,10 @@ module examples.functions
 import io (println)
 
 ; Expression-form function
-pure fn add(x: int, y: int): int = x + y
+fn:pure add(x: int, y: int): int = x + y
 
 ; Expression-form with single expression
-pure fn square(n: int): int = n * n
+fn:pure square(n: int): int = n * n
 
 ; Block-form function
 fn factorial(n: int): int {
@@ -18,7 +18,7 @@ fn factorial(n: int): int {
 }
 
 ; Pure function calling other pure functions
-pure fn sum_of_squares(a: int, b: int): int = add(square(a), square(b))
+fn:pure sum_of_squares(a: int, b: int): int = add(square(a), square(b))
 
 ; Function with multiple return paths
 fn classify(n: int): string {

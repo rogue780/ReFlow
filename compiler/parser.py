@@ -370,10 +370,11 @@ class Parser:
 
         match tok.type:
             case TokenType.FN:
-                return self.parse_fn_decl(is_export=is_export, is_static=False, is_pure=False)
+                return self.parse_fn_decl(is_export=is_export)
             case TokenType.PURE:
-                self.advance()
-                return self.parse_fn_decl(is_export=is_export, is_static=False, is_pure=True)
+                raise self._error(
+                    "use 'fn:pure' instead of 'pure fn'"
+                )
             case TokenType.TYPE:
                 return self.parse_type_decl(is_export=is_export)
             case TokenType.INTERFACE:
@@ -446,22 +447,57 @@ class Parser:
             alias=alias,
         )
 
+    def _parse_fn_modifiers(self) -> tuple[bool, bool]:
+        """Parse colon-chain modifiers after 'fn': fn:pure, fn:static, fn:pure:static.
+
+        Returns (is_pure, is_static). Enforces order: :pure must come before :static.
+        Raises ParseError for wrong order, duplicates, or unknown modifiers.
+        """
+        is_pure = False
+        is_static = False
+
+        while self.check(TokenType.COLON):
+            # Peek ahead to see if next token is a modifier keyword
+            next_tok = self.peek2()
+            if next_tok.type not in (TokenType.PURE, TokenType.STATIC):
+                # Not a modifier colon — stop (it's the return type colon, etc.)
+                break
+
+            self.advance()  # consume ':'
+            mod_tok = self.advance()  # consume modifier keyword
+
+            if mod_tok.type == TokenType.PURE:
+                if is_pure:
+                    raise self._error("duplicate modifier ':pure'", mod_tok)
+                if is_static:
+                    raise self._error(
+                        "wrong modifier order: use 'fn:pure:static' not 'fn:static:pure'",
+                        mod_tok,
+                    )
+                is_pure = True
+            elif mod_tok.type == TokenType.STATIC:
+                if is_static:
+                    raise self._error("duplicate modifier ':static'", mod_tok)
+                is_static = True
+
+        return is_pure, is_static
+
     def parse_fn_decl(
         self,
         is_export: bool = False,
-        is_static: bool = False,
-        is_pure: bool = False,
         allow_no_body: bool = False,
     ) -> FnDecl:
         """Parse a function declaration.
 
         Supports:
-        - Full body: fn name<T>(params): RetType { body }
+        - Full body: fn:pure name<T>(params): RetType { body }
         - Expression body: fn name(params): RetType = expr
         - Interface signature: fn name(params): RetType (no body, when allow_no_body=True)
+        - Colon-chain modifiers: fn:pure, fn:static, fn:pure:static
         - Optional function-level finally block after body
         """
         tok = self.expect(TokenType.FN)
+        is_pure, is_static = self._parse_fn_modifiers()
         name_tok = self.expect(TokenType.IDENT)
         name = name_tok.value
 
@@ -709,14 +745,15 @@ class Parser:
 
             if member_tok.type == TokenType.STATIC:
                 self.advance()
-                # static fn ... or static name: Type = value
+                # static data member or old-style 'static fn' (now an error)
                 if self.check(TokenType.FN):
-                    fn_decl = self.parse_fn_decl(is_static=True)
-                    methods.append(fn_decl)
+                    raise self._error(
+                        "use 'fn:static' instead of 'static fn'"
+                    )
                 elif self.check(TokenType.PURE):
-                    self.advance()
-                    fn_decl = self.parse_fn_decl(is_static=True, is_pure=True)
-                    methods.append(fn_decl)
+                    raise self._error(
+                        "use 'fn:pure:static' instead of 'static pure fn'"
+                    )
                 else:
                     static_member = self._parse_static_member_body(member_tok)
                     static_members.append(static_member)
@@ -727,10 +764,9 @@ class Parser:
                 methods.append(fn_decl)
                 self.match_token(TokenType.COMMA)
             elif member_tok.type == TokenType.PURE:
-                self.advance()
-                fn_decl = self.parse_fn_decl(is_pure=True)
-                methods.append(fn_decl)
-                self.match_token(TokenType.COMMA)
+                raise self._error(
+                    "use 'fn:pure' instead of 'pure fn'"
+                )
             elif member_tok.type == TokenType.CONSTRUCTOR:
                 constructor = self.parse_constructor_decl()
                 constructors.append(constructor)
@@ -847,10 +883,9 @@ class Parser:
                 methods.append(fn_decl)
                 self.match_token(TokenType.COMMA)
             elif member_tok.type == TokenType.PURE:
-                self.advance()
-                fn_decl = self.parse_fn_decl(is_pure=True, allow_no_body=True)
-                methods.append(fn_decl)
-                self.match_token(TokenType.COMMA)
+                raise self._error(
+                    "use 'fn:pure' instead of 'pure fn'"
+                )
             elif member_tok.type == TokenType.CONSTRUCTOR:
                 constructor_sig = self._parse_constructor_sig()
                 self.match_token(TokenType.COMMA)

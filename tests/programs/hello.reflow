@@ -1,6 +1,6 @@
 module tests.hello
 
-pure fn add(x: int, y: int): int = x + y
+fn:pure add(x: int, y: int): int = x + y
 
 fn main() {
     add(1,2)

@@ -35,14 +35,14 @@ type Point fulfills Printable {
 ; Interfaces can require methods to be pure
 
 interface Hashable {
-    pure fn hash(self): int
+    fn:pure hash(self): int
 }
 
 type Pixel fulfills Hashable {
     x: int
     y: int
 
-    pure fn hash(self): int {
+    fn:pure hash(self): int {
         return self.x * 31 + self.y
     }
 }

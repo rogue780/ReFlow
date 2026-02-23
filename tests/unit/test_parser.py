@@ -209,7 +209,7 @@ class TestFnDecl(unittest.TestCase):
         self.assertNotIsInstance(decl.body, Block)
 
     def test_pure_fn(self) -> None:
-        decl = parse_first_decl("pure fn square(x: int): int = x")
+        decl = parse_first_decl("fn:pure square(x: int): int = x")
         self.assertIsInstance(decl, FnDecl)
         self.assertTrue(decl.is_pure)
         self.assertEqual(decl.name, "square")
@@ -275,10 +275,51 @@ class TestFnDecl(unittest.TestCase):
         self.assertIsNotNone(param.type_ann)
 
     def test_export_pure_fn(self) -> None:
-        decl = parse_first_decl("export pure fn compute(x: int): int = x")
+        decl = parse_first_decl("export fn:pure compute(x: int): int = x")
         self.assertIsInstance(decl, FnDecl)
         self.assertTrue(decl.is_export)
         self.assertTrue(decl.is_pure)
+
+    def test_fn_static(self) -> None:
+        decl = parse_first_decl("type Foo { fn:static bar(): int = 42 }")
+        self.assertIsInstance(decl, TypeDecl)
+        method = decl.methods[0]
+        self.assertIsInstance(method, FnDecl)
+        self.assertTrue(method.is_static)
+        self.assertFalse(method.is_pure)
+
+    def test_fn_pure_static(self) -> None:
+        decl = parse_first_decl("type Foo { fn:pure:static baz(): int = 42 }")
+        self.assertIsInstance(decl, TypeDecl)
+        method = decl.methods[0]
+        self.assertIsInstance(method, FnDecl)
+        self.assertTrue(method.is_pure)
+        self.assertTrue(method.is_static)
+
+    def test_fn_static_pure_error(self) -> None:
+        with self.assertRaises(ParseError) as ctx:
+            parse_first_decl("type Foo { fn:static:pure baz(): int = 42 }")
+        self.assertIn("fn:pure:static", ctx.exception.message)
+
+    def test_old_pure_fn_error(self) -> None:
+        with self.assertRaises(ParseError) as ctx:
+            parse_first_decl("pure fn foo(): int = 1")
+        self.assertIn("fn:pure", ctx.exception.message)
+
+    def test_old_static_fn_error(self) -> None:
+        with self.assertRaises(ParseError) as ctx:
+            parse_first_decl("type Foo { static fn bar(): int = 42 }")
+        self.assertIn("fn:static", ctx.exception.message)
+
+    def test_duplicate_pure_error(self) -> None:
+        with self.assertRaises(ParseError) as ctx:
+            parse_first_decl("fn:pure:pure foo(): int = 1")
+        self.assertIn("duplicate", ctx.exception.message)
+
+    def test_duplicate_static_error(self) -> None:
+        with self.assertRaises(ParseError) as ctx:
+            parse_first_decl("type Foo { fn:static:static bar(): int = 42 }")
+        self.assertIn("duplicate", ctx.exception.message)
 
 
 class TestTypeDecl(unittest.TestCase):

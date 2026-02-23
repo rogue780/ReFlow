@@ -4,6 +4,6 @@ fn impure_fn(): int {
     return 42
 }
 
-pure fn compute(x: int): int {
+fn:pure compute(x: int): int {
     return impure_fn() + x
 }

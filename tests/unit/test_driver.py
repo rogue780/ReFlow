@@ -86,7 +86,7 @@ class TestEmitOnly(unittest.TestCase):
 
     def test_emit_only_no_entry_point_without_main(self):
         """emit_only on a module without main omits the C entry point."""
-        source = 'module test.lib\n\npure fn add(x: int, y: int): int = x + y\n'
+        source = 'module test.lib\n\nfn:pure add(x: int, y: int): int = x + y\n'
         path = _write_temp_reflow(source)
         try:
             captured = io.StringIO()
@@ -205,7 +205,7 @@ class TestCompileSource(unittest.TestCase):
 
     def test_compile_source_link_failure_no_main(self):
         """compile_source returns 1 when the module has no main function."""
-        source = 'module test.lib\n\npure fn add(x: int, y: int): int = x + y\n'
+        source = 'module test.lib\n\nfn:pure add(x: int, y: int): int = x + y\n'
         path = _write_temp_reflow(source)
         try:
             with tempfile.TemporaryDirectory() as tmpdir:

@@ -3,9 +3,9 @@ module examples.pipeline
 
 import io (println)
 
-pure fn double(x: int): int = x * 2
-pure fn square(x: int): int = x * x
-pure fn add(x: int, y: int): int = x + y
+fn:pure double(x: int): int = x * 2
+fn:pure square(x: int): int = x * x
+fn:pure add(x: int, y: int): int = x + y
 
 fn main() {
     ; x -> (double | square) -> add

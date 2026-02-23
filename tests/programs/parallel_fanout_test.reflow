@@ -1,13 +1,13 @@
 module tests.parallel_fanout_test
 import io (println)
 
-pure fn double(x: int): int = x * 2
-pure fn square(x: int): int = x * x
-pure fn add(a: int, b: int): int = a + b
+fn:pure double(x: int): int = x * 2
+fn:pure square(x: int): int = x * x
+fn:pure add(a: int, b: int): int = a + b
 
-pure fn greet(s: string): string = f"Hello, {s}!"
-pure fn shout(s: string): string = f"{s}!!!"
-pure fn both(a: string, b: string): string = f"{a} and {b}"
+fn:pure greet(s: string): string = f"Hello, {s}!"
+fn:pure shout(s: string): string = f"{s}!!!"
+fn:pure both(a: string, b: string): string = f"{a} and {b}"
 
 fn main() {
     let r1 = 5 -> <:(double | square) -> add

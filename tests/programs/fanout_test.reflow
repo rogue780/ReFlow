@@ -1,9 +1,9 @@
 module tests.fanout_test
 import io (println)
 
-pure fn double(x: int): int = x * 2
-pure fn square(x: int): int = x * x
-pure fn add(a: int, b: int): int = a + b
+fn:pure double(x: int): int = x * 2
+fn:pure square(x: int): int = x * x
+fn:pure add(a: int, b: int): int = a + b
 
 fn main() {
     let r1 = 5 -> (double | square) -> add

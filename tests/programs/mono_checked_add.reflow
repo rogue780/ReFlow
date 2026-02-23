@@ -3,7 +3,7 @@ module mono_checked_add
 import io
 import conv
 
-pure fn add_generic<T fulfills Numeric>(a: T, b: T): T {
+fn:pure add_generic<T fulfills Numeric>(a: T, b: T): T {
     return a.add(b)
 }
 
