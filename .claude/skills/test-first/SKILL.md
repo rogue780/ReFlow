@@ -103,7 +103,7 @@ tests/expected_errors/missing_match_arm.txt →
 - Non-exhaustive match on sum type → `TypeError`
 - Non-exhaustive match on `option<T>` → `TypeError`
 - Non-exhaustive match on primitive → warning only (no error)
-- `pure fn` calling non-pure → `TypeError`
+- `fn:pure` calling non-pure → `TypeError`
 - Double stream consumption → `TypeError`
 - `:mut` param with immutable arg → `TypeError`
 - Fan-out arity mismatch → `TypeError`

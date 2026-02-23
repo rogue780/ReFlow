@@ -95,7 +95,7 @@ Create `compiler/errors.py`. Define a base `ReFlowError` dataclass with fields: 
 Create `tests/run_tests.py`. It discovers all `.reflow` files under `tests/programs/`, compiles each with `reflow emit-c`, and diffs the output against the corresponding file in `tests/expected/`. A test passes if the diff is empty. If no expected file exists, the test is marked as "new" and the generated output is written as the new expected file (golden file pattern). Exit code 0 means all tests pass.
 
 **RT-0-2-2**
-Create a `tests/programs/hello.reflow` with a single `pure fn add(x: int, y: int): int = x + y` function. Create its expected C output. This is the canary test that runs throughout all subsequent development.
+Create a `tests/programs/hello.reflow` with a single `fn:pure add(x: int, y: int): int = x + y` function. Create its expected C output. This is the canary test that runs throughout all subsequent development.
 
 **RT-0-2-3**
 Add a `Makefile` with targets:
@@ -1322,7 +1322,7 @@ Implement stream single-consumer check. Track each `stream<T>` binding. Flag it 
 ## Story 6-6: Purity Checking
 
 **RT-6-6-1** `[BLOCKER]`
-Implement purity checking for `pure fn`. Walk the function body and verify:
+Implement purity checking for `fn:pure`. Walk the function body and verify:
 - Every called function is also marked `pure`
 - No mutable statics are read or written
 - No I/O functions are called (functions in the `io` module)
@@ -1358,7 +1358,7 @@ Test that passing an `int` where `int64` is expected raises `TypeError`.
 Test that a `match` on a sum type missing a variant raises `TypeError`.
 
 **RT-6-8-3**
-Test that a `pure fn` calling a non-pure function raises `TypeError`.
+Test that a `fn:pure` calling a non-pure function raises `TypeError`.
 
 **RT-6-8-4**
 Test that consuming the same stream twice raises `TypeError`.
@@ -1814,7 +1814,7 @@ A suite of complete ReFlow programs that compile and produce correct output.
 `tests/programs/retry_test.reflow`: uses `try`/`retry` with a counter to verify the named function is re-invoked the correct number of times.
 
 **RT-10-1-11**
-`tests/programs/pure_test.reflow`: a `pure fn` with a full chain, verified to compile. A non-pure call inside a `pure fn` is verified to produce a `TypeError`.
+`tests/programs/pure_test.reflow`: a `fn:pure` with a full chain, verified to compile. A non-pure call inside a `fn:pure` is verified to produce a `TypeError`.
 
 **RT-10-1-12**
 `tests/programs/module_test/`: a multi-file program with two modules, one importing from the other. Verifies module resolution, export visibility, and linking.

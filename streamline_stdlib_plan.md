@@ -77,25 +77,25 @@ These are language-level built-in interfaces — they exist without an
 ; Ordering comparison. Returns negative if self < other, zero if equal,
 ; positive if self > other.
 interface Comparable {
-    pure fn compare(self, other: self): int
+    fn:pure compare(self, other: self): int
 }
 
 ; Arithmetic operations on numeric types.
 interface Numeric {
-    pure fn negate(self): self
-    pure fn add(self, other: self): self
-    pure fn sub(self, other: self): self
-    pure fn mul(self, other: self): self
+    fn:pure negate(self): self
+    fn:pure add(self, other: self): self
+    fn:pure sub(self, other: self): self
+    fn:pure mul(self, other: self): self
 }
 
 ; Value equality.
 interface Equatable {
-    pure fn equals(self, other: self): bool
+    fn:pure equals(self, other: self): bool
 }
 
 ; Human-readable string conversion.
 interface Showable {
-    pure fn to_string(self): string
+    fn:pure to_string(self): string
 }
 ```
 
@@ -927,7 +927,7 @@ Add a golden file test for a monomorphized function.
 ```
 module mono_min
 
-pure fn min<T fulfills Comparable>(a: T, b: T): T {
+fn:pure min<T fulfills Comparable>(a: T, b: T): T {
     return if a.compare(b) <= 0 then a else b
 }
 
@@ -983,7 +983,7 @@ code.
 ```
 module mono_checked_add
 
-pure fn add_generic<T fulfills Numeric>(a: T, b: T): T {
+fn:pure add_generic<T fulfills Numeric>(a: T, b: T): T {
     return a.add(b)
 }
 
@@ -1042,49 +1042,49 @@ Rewrite `stdlib/math.reflow` with generic functions.
 ```
 module math
 
-export pure fn abs_int(n: int): int = native "rf_math_abs_int"
-export pure fn abs_float(f: float): float = native "rf_math_abs_float"
-export pure fn min_int(a: int, b: int): int = native "rf_math_min_int"
-export pure fn max_int(a: int, b: int): int = native "rf_math_max_int"
-export pure fn min_float(a: float, b: float): float = native "rf_math_min_float"
-export pure fn max_float(a: float, b: float): float = native "rf_math_max_float"
-export pure fn clamp_int(val: int, lo: int, hi: int): int = native "rf_math_clamp_int"
-export pure fn floor(f: float): float = native "rf_math_floor"
-export pure fn ceil(f: float): float = native "rf_math_ceil"
-export pure fn round(f: float): float = native "rf_math_round"
-export pure fn pow(base: float, exp: float): float = native "rf_math_pow"
-export pure fn sqrt(f: float): float = native "rf_math_sqrt"
-export pure fn log(f: float): float = native "rf_math_log"
+export fn:pure abs_int(n: int): int = native "rf_math_abs_int"
+export fn:pure abs_float(f: float): float = native "rf_math_abs_float"
+export fn:pure min_int(a: int, b: int): int = native "rf_math_min_int"
+export fn:pure max_int(a: int, b: int): int = native "rf_math_max_int"
+export fn:pure min_float(a: float, b: float): float = native "rf_math_min_float"
+export fn:pure max_float(a: float, b: float): float = native "rf_math_max_float"
+export fn:pure clamp_int(val: int, lo: int, hi: int): int = native "rf_math_clamp_int"
+export fn:pure floor(f: float): float = native "rf_math_floor"
+export fn:pure ceil(f: float): float = native "rf_math_ceil"
+export fn:pure round(f: float): float = native "rf_math_round"
+export fn:pure pow(base: float, exp: float): float = native "rf_math_pow"
+export fn:pure sqrt(f: float): float = native "rf_math_sqrt"
+export fn:pure log(f: float): float = native "rf_math_log"
 ```
 
 **After:**
 ```
 module math
 
-export pure fn abs<T fulfills (Numeric, Comparable)>(n: T): T {
+export fn:pure abs<T fulfills (Numeric, Comparable)>(n: T): T {
     let neg = n.negate()
     return if n.compare(neg) < 0 then neg else n
 }
 
-export pure fn min<T fulfills Comparable>(a: T, b: T): T {
+export fn:pure min<T fulfills Comparable>(a: T, b: T): T {
     return if a.compare(b) <= 0 then a else b
 }
 
-export pure fn max<T fulfills Comparable>(a: T, b: T): T {
+export fn:pure max<T fulfills Comparable>(a: T, b: T): T {
     return if a.compare(b) >= 0 then a else b
 }
 
-export pure fn clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T {
+export fn:pure clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T {
     return max(min(val, hi), lo)
 }
 
 ; Float-specific (inherently float operations)
-export pure fn floor(f: float): float = native "rf_math_floor"
-export pure fn ceil(f: float): float = native "rf_math_ceil"
-export pure fn round(f: float): float = native "rf_math_round"
-export pure fn pow(base: float, exp: float): float = native "rf_math_pow"
-export pure fn sqrt(f: float): float = native "rf_math_sqrt"
-export pure fn log(f: float): float = native "rf_math_log"
+export fn:pure floor(f: float): float = native "rf_math_floor"
+export fn:pure ceil(f: float): float = native "rf_math_ceil"
+export fn:pure round(f: float): float = native "rf_math_round"
+export fn:pure pow(base: float, exp: float): float = native "rf_math_pow"
+export fn:pure sqrt(f: float): float = native "rf_math_sqrt"
+export fn:pure log(f: float): float = native "rf_math_log"
 ```
 
 Note: `abs` uses `n.compare(n.negate())` instead of `n.compare(zero)`,
@@ -1130,22 +1130,22 @@ Rewrite `stdlib/sort.reflow` with a generic `sort` function.
 ```
 module sort
 
-export pure fn sort_ints(arr: array<int>): array<int> = native "rf_sort_ints"
-export pure fn sort_strings(arr: array<string>): array<string> = native "rf_sort_strings"
-export pure fn sort_floats(arr: array<float>): array<float> = native "rf_sort_floats"
-export pure fn reverse(arr: array<int>): array<int> = native "rf_array_reverse"
+export fn:pure sort_ints(arr: array<int>): array<int> = native "rf_sort_ints"
+export fn:pure sort_strings(arr: array<string>): array<string> = native "rf_sort_strings"
+export fn:pure sort_floats(arr: array<float>): array<float> = native "rf_sort_floats"
+export fn:pure reverse(arr: array<int>): array<int> = native "rf_array_reverse"
 ```
 
 **After:**
 ```
 module sort
 
-export pure fn sort<T fulfills Comparable>(arr: array<T>): array<T> {
+export fn:pure sort<T fulfills Comparable>(arr: array<T>): array<T> {
     return sort_by(arr, fn(a: T, b: T): int { a.compare(b) })
 }
 
-export pure fn sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T> = native "rf_sort_array_by"
-export pure fn reverse<T>(arr: array<T>): array<T> = native "rf_array_reverse"
+export fn:pure sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T> = native "rf_sort_array_by"
+export fn:pure reverse<T>(arr: array<T>): array<T> = native "rf_array_reverse"
 ```
 
 Note: `sort_by` and `reverse` remain `native` because they are type-erased
@@ -1242,28 +1242,28 @@ Rewrite `stdlib/conv.reflow` with a generic `to_string`.
 ```
 module conv
 
-export pure fn int_to_string(n: int): string = native "rf_int_to_string"
-export pure fn int64_to_string(n: int64): string = native "rf_int64_to_string"
-export pure fn float_to_string(f: float): string = native "rf_float_to_string"
-export pure fn bool_to_string(b: bool): string = native "rf_bool_to_string"
+export fn:pure int_to_string(n: int): string = native "rf_int_to_string"
+export fn:pure int64_to_string(n: int64): string = native "rf_int64_to_string"
+export fn:pure float_to_string(f: float): string = native "rf_float_to_string"
+export fn:pure bool_to_string(b: bool): string = native "rf_bool_to_string"
 
-export pure fn string_to_int(s: string): int? = native "rf_string_to_int_opt"
-export pure fn string_to_int64(s: string): int64? = native "rf_string_to_int64_opt"
-export pure fn string_to_float(s: string): float? = native "rf_string_to_float_opt"
+export fn:pure string_to_int(s: string): int? = native "rf_string_to_int_opt"
+export fn:pure string_to_int64(s: string): int64? = native "rf_string_to_int64_opt"
+export fn:pure string_to_float(s: string): float? = native "rf_string_to_float_opt"
 ```
 
 **After:**
 ```
 module conv
 
-export pure fn to_string<T fulfills Showable>(val: T): string {
+export fn:pure to_string<T fulfills Showable>(val: T): string {
     return val.to_string()
 }
 
 ; Parsing remains type-specific (different rules per type)
-export pure fn string_to_int(s: string): int? = native "rf_string_to_int_opt"
-export pure fn string_to_int64(s: string): int64? = native "rf_string_to_int64_opt"
-export pure fn string_to_float(s: string): float? = native "rf_string_to_float_opt"
+export fn:pure string_to_int(s: string): int? = native "rf_string_to_int_opt"
+export fn:pure string_to_int64(s: string): int64? = native "rf_string_to_int64_opt"
+export fn:pure string_to_float(s: string): float? = native "rf_string_to_float_opt"
 ```
 
 The `to_string` generic function is trivial — it just delegates to the
@@ -1486,7 +1486,7 @@ Kotlin-style pattern with a self-referential type parameter:
 
 ```
 interface Comparable<T> {
-    pure fn compare(self, other: T): int
+    fn:pure compare(self, other: T): int
 }
 ```
 

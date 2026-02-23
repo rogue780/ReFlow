@@ -242,10 +242,10 @@ Type conversions. All functions are `pure`.
 
 | Function | Signature | Status | Notes |
 |----------|-----------|--------|-------|
-| `to_string` | `pure fn to_string<T fulfills Showable>(val: T): string` | Planned | generic |
-| `string_to_int` | `pure fn string_to_int(s: string): int?` | Implemented | `rf_string_to_int_opt` |
-| `string_to_int64` | `pure fn string_to_int64(s: string): int64?` | Implemented | `rf_string_to_int64_opt` |
-| `string_to_float` | `pure fn string_to_float(s: string): float?` | Implemented | `rf_string_to_float_opt` |
+| `to_string` | `fn:pure to_string<T fulfills Showable>(val: T): string` | Planned | generic |
+| `string_to_int` | `fn:pure string_to_int(s: string): int?` | Implemented | `rf_string_to_int_opt` |
+| `string_to_int64` | `fn:pure string_to_int64(s: string): int64?` | Implemented | `rf_string_to_int64_opt` |
+| `string_to_float` | `fn:pure string_to_float(s: string): float?` | Implemented | `rf_string_to_float_opt` |
 
 `to_string` is a trivial generic wrapper: `return val.to_string()`. Its
 value is providing a uniform calling convention. The underlying C runtime
@@ -272,24 +272,24 @@ String manipulation. All functions are `pure`.
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `len` | `pure fn len(s: string): int64` | Implemented | `rf_string_len` |
-| `char_at` | `pure fn char_at(s: string, idx: int64): char?` | Implemented | `rf_string_char_at` |
-| `substring` | `pure fn substring(s: string, start: int64, end: int64): string` | Implemented | `rf_string_substring` |
-| `index_of` | `pure fn index_of(s: string, needle: string): int?` | Implemented | `rf_string_index_of` |
-| `contains` | `pure fn contains(s: string, needle: string): bool` | Implemented | `rf_string_contains` |
-| `starts_with` | `pure fn starts_with(s: string, prefix: string): bool` | Implemented | `rf_string_starts_with` |
-| `ends_with` | `pure fn ends_with(s: string, suffix: string): bool` | Implemented | `rf_string_ends_with` |
-| `split` | `pure fn split(s: string, sep: string): array<string>` | Implemented | `rf_string_split` |
-| `trim` | `pure fn trim(s: string): string` | Implemented | `rf_string_trim` |
-| `trim_left` | `pure fn trim_left(s: string): string` | Implemented | `rf_string_trim_left` |
-| `trim_right` | `pure fn trim_right(s: string): string` | Implemented | `rf_string_trim_right` |
-| `replace` | `pure fn replace(s: string, old: string, new: string): string` | Implemented | `rf_string_replace` |
-| `join` | `pure fn join(parts: array<string>, sep: string): string` | Implemented | `rf_string_join` |
-| `to_lower` | `pure fn to_lower(s: string): string` | Implemented | `rf_string_to_lower` |
-| `to_upper` | `pure fn to_upper(s: string): string` | Implemented | `rf_string_to_upper` |
-| `concat` | `pure fn concat(a: string, b: string): string` | Implemented | `rf_string_concat` |
-| `to_bytes` | `pure fn to_bytes(s: string): array<byte>` | Implemented | `rf_string_to_bytes` |
-| `from_bytes` | `pure fn from_bytes(data: array<byte>): string` | Implemented | `rf_string_from_bytes` |
+| `len` | `fn:pure len(s: string): int64` | Implemented | `rf_string_len` |
+| `char_at` | `fn:pure char_at(s: string, idx: int64): char?` | Implemented | `rf_string_char_at` |
+| `substring` | `fn:pure substring(s: string, start: int64, end: int64): string` | Implemented | `rf_string_substring` |
+| `index_of` | `fn:pure index_of(s: string, needle: string): int?` | Implemented | `rf_string_index_of` |
+| `contains` | `fn:pure contains(s: string, needle: string): bool` | Implemented | `rf_string_contains` |
+| `starts_with` | `fn:pure starts_with(s: string, prefix: string): bool` | Implemented | `rf_string_starts_with` |
+| `ends_with` | `fn:pure ends_with(s: string, suffix: string): bool` | Implemented | `rf_string_ends_with` |
+| `split` | `fn:pure split(s: string, sep: string): array<string>` | Implemented | `rf_string_split` |
+| `trim` | `fn:pure trim(s: string): string` | Implemented | `rf_string_trim` |
+| `trim_left` | `fn:pure trim_left(s: string): string` | Implemented | `rf_string_trim_left` |
+| `trim_right` | `fn:pure trim_right(s: string): string` | Implemented | `rf_string_trim_right` |
+| `replace` | `fn:pure replace(s: string, old: string, new: string): string` | Implemented | `rf_string_replace` |
+| `join` | `fn:pure join(parts: array<string>, sep: string): string` | Implemented | `rf_string_join` |
+| `to_lower` | `fn:pure to_lower(s: string): string` | Implemented | `rf_string_to_lower` |
+| `to_upper` | `fn:pure to_upper(s: string): string` | Implemented | `rf_string_to_upper` |
+| `concat` | `fn:pure concat(a: string, b: string): string` | Implemented | `rf_string_concat` |
+| `to_bytes` | `fn:pure to_bytes(s: string): array<byte>` | Implemented | `rf_string_to_bytes` |
+| `from_bytes` | `fn:pure from_bytes(data: array<byte>): string` | Implemented | `rf_string_from_bytes` |
 | `repeat` | `fn repeat(s: string, n: int): string` | Implemented | `rf_string_repeat` |
 | `url_decode` | `fn url_decode(s: string): string` | Implemented | `rf_string_url_decode` |
 | `url_encode` | `fn url_encode(s: string): string` | Implemented | `rf_string_url_encode` |
@@ -373,13 +373,13 @@ Character classification and conversion. All functions are `pure`.
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `is_digit` | `pure fn is_digit(c: char): bool` | Implemented | `rf_char_is_digit` |
-| `is_alpha` | `pure fn is_alpha(c: char): bool` | Implemented | `rf_char_is_alpha` |
-| `is_alphanumeric` | `pure fn is_alphanumeric(c: char): bool` | Implemented | `rf_char_is_alphanumeric` |
-| `is_whitespace` | `pure fn is_whitespace(c: char): bool` | Implemented | `rf_char_is_whitespace` |
-| `to_int` | `pure fn to_int(c: char): int` | Implemented | `rf_char_to_int` |
-| `from_int` | `pure fn from_int(n: int): char` | Implemented | `rf_int_to_char` |
-| `to_string` | `pure fn to_string(c: char): string` | Implemented | `rf_char_to_string` |
+| `is_digit` | `fn:pure is_digit(c: char): bool` | Implemented | `rf_char_is_digit` |
+| `is_alpha` | `fn:pure is_alpha(c: char): bool` | Implemented | `rf_char_is_alpha` |
+| `is_alphanumeric` | `fn:pure is_alphanumeric(c: char): bool` | Implemented | `rf_char_is_alphanumeric` |
+| `is_whitespace` | `fn:pure is_whitespace(c: char): bool` | Implemented | `rf_char_is_whitespace` |
+| `to_int` | `fn:pure to_int(c: char): int` | Implemented | `rf_char_to_int` |
+| `from_int` | `fn:pure from_int(n: int): char` | Implemented | `rf_int_to_char` |
+| `to_string` | `fn:pure to_string(c: char): string` | Implemented | `rf_char_to_string` |
 
 ### Behavior Notes
 
@@ -397,16 +397,16 @@ functions touch the filesystem.
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `join` | `pure fn join(a: string, b: string): string` | Implemented | `rf_path_join` |
-| `stem` | `pure fn stem(path: string): string` | Implemented | `rf_path_stem` |
-| `parent` | `pure fn parent(path: string): string` | Implemented | `rf_path_parent` |
-| `with_suffix` | `pure fn with_suffix(path: string, suffix: string): string` | Implemented | `rf_path_with_suffix` |
+| `join` | `fn:pure join(a: string, b: string): string` | Implemented | `rf_path_join` |
+| `stem` | `fn:pure stem(path: string): string` | Implemented | `rf_path_stem` |
+| `parent` | `fn:pure parent(path: string): string` | Implemented | `rf_path_parent` |
+| `with_suffix` | `fn:pure with_suffix(path: string, suffix: string): string` | Implemented | `rf_path_with_suffix` |
 | `cwd` | `fn cwd(): string` | Implemented | `rf_path_cwd` |
 | `resolve` | `fn resolve(path: string): string` | Implemented | `rf_path_resolve` |
 | `exists` | `fn exists(path: string): bool` | Implemented | `rf_path_exists` |
 | `is_dir` | `fn is_dir(path: string): bool` | Planned | `rf_path_is_dir` |
 | `is_file` | `fn is_file(path: string): bool` | Planned | `rf_path_is_file` |
-| `extension` | `pure fn extension(path: string): string?` | Planned | `rf_path_extension` |
+| `extension` | `fn:pure extension(path: string): string?` | Planned | `rf_path_extension` |
 | `list_dir` | `fn list_dir(path: string): array<string>?` | Planned | `rf_path_list_dir` |
 
 ### Behavior Notes
@@ -432,16 +432,16 @@ Numeric operations. All functions are `pure`.
 
 | Function | Signature | Status | Notes |
 |----------|-----------|--------|-------|
-| `abs` | `pure fn abs<T fulfills (Numeric, Comparable)>(n: T): T` | Planned | generic |
-| `min` | `pure fn min<T fulfills Comparable>(a: T, b: T): T` | Planned | generic |
-| `max` | `pure fn max<T fulfills Comparable>(a: T, b: T): T` | Planned | generic |
-| `clamp` | `pure fn clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T` | Planned | generic |
-| `floor` | `pure fn floor(f: float): float` | Planned | `rf_math_floor` |
-| `ceil` | `pure fn ceil(f: float): float` | Planned | `rf_math_ceil` |
-| `round` | `pure fn round(f: float): float` | Planned | `rf_math_round` |
-| `pow` | `pure fn pow(base: float, exp: float): float` | Planned | `rf_math_pow` |
-| `sqrt` | `pure fn sqrt(f: float): float` | Planned | `rf_math_sqrt` |
-| `log` | `pure fn log(f: float): float` | Planned | `rf_math_log` |
+| `abs` | `fn:pure abs<T fulfills (Numeric, Comparable)>(n: T): T` | Planned | generic |
+| `min` | `fn:pure min<T fulfills Comparable>(a: T, b: T): T` | Planned | generic |
+| `max` | `fn:pure max<T fulfills Comparable>(a: T, b: T): T` | Planned | generic |
+| `clamp` | `fn:pure clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T` | Planned | generic |
+| `floor` | `fn:pure floor(f: float): float` | Planned | `rf_math_floor` |
+| `ceil` | `fn:pure ceil(f: float): float` | Planned | `rf_math_ceil` |
+| `round` | `fn:pure round(f: float): float` | Planned | `rf_math_round` |
+| `pow` | `fn:pure pow(base: float, exp: float): float` | Planned | `rf_math_pow` |
+| `sqrt` | `fn:pure sqrt(f: float): float` | Planned | `rf_math_sqrt` |
+| `log` | `fn:pure log(f: float): float` | Planned | `rf_math_log` |
 
 The generic functions are implemented in ReFlow using `Comparable` and
 `Numeric` interface methods. The compiler monomorphizes them at each call
@@ -559,24 +559,24 @@ they drive effects in the underlying source.
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `range` | `pure fn range(start: int, end: int): stream<int>` | Planned | `rf_stream_range` |
-| `range_step` | `pure fn range_step(start: int, end: int, step: int): stream<int>` | Planned | `rf_stream_range_step` |
-| `from_array` | `pure fn from_array(arr: array<T>): stream<T>` | Planned | `rf_stream_from_array` |
-| `repeat` | `pure fn repeat(val: T, n: int): stream<T>` | Planned | `rf_stream_repeat` |
-| `empty` | `pure fn empty(): stream<T>` | Planned | `rf_stream_empty` |
+| `range` | `fn:pure range(start: int, end: int): stream<int>` | Planned | `rf_stream_range` |
+| `range_step` | `fn:pure range_step(start: int, end: int, step: int): stream<int>` | Planned | `rf_stream_range_step` |
+| `from_array` | `fn:pure from_array(arr: array<T>): stream<T>` | Planned | `rf_stream_from_array` |
+| `repeat` | `fn:pure repeat(val: T, n: int): stream<T>` | Planned | `rf_stream_repeat` |
+| `empty` | `fn:pure empty(): stream<T>` | Planned | `rf_stream_empty` |
 
 ### Transformation (lazy — return new streams)
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `take` | `pure fn take(src: stream<T>, n: int): stream<T>` | Implemented | `rf_stream_take` |
-| `skip` | `pure fn skip(src: stream<T>, n: int): stream<T>` | Implemented | `rf_stream_skip` |
-| `map` | `pure fn map(src: stream<T>, f: fn(T): U): stream<U>` | Implemented | `rf_stream_map` |
-| `filter` | `pure fn filter(src: stream<T>, f: fn(T): bool): stream<T>` | Implemented | `rf_stream_filter` |
-| `enumerate` | `pure fn enumerate(src: stream<T>): stream<(int, T)>` | Planned | `rf_stream_enumerate` |
-| `zip` | `pure fn zip(a: stream<T>, b: stream<U>): stream<(T, U)>` | Planned | `rf_stream_zip` |
-| `chain` | `pure fn chain(a: stream<T>, b: stream<T>): stream<T>` | Planned | `rf_stream_chain` |
-| `flat_map` | `pure fn flat_map(src: stream<T>, f: fn(T): stream<U>): stream<U>` | Planned | `rf_stream_flat_map` |
+| `take` | `fn:pure take(src: stream<T>, n: int): stream<T>` | Implemented | `rf_stream_take` |
+| `skip` | `fn:pure skip(src: stream<T>, n: int): stream<T>` | Implemented | `rf_stream_skip` |
+| `map` | `fn:pure map(src: stream<T>, f: fn(T): U): stream<U>` | Implemented | `rf_stream_map` |
+| `filter` | `fn:pure filter(src: stream<T>, f: fn(T): bool): stream<T>` | Implemented | `rf_stream_filter` |
+| `enumerate` | `fn:pure enumerate(src: stream<T>): stream<(int, T)>` | Planned | `rf_stream_enumerate` |
+| `zip` | `fn:pure zip(a: stream<T>, b: stream<U>): stream<(T, U)>` | Planned | `rf_stream_zip` |
+| `chain` | `fn:pure chain(a: stream<T>, b: stream<T>): stream<T>` | Planned | `rf_stream_chain` |
+| `flat_map` | `fn:pure flat_map(src: stream<T>, f: fn(T): stream<U>): stream<U>` | Planned | `rf_stream_flat_map` |
 
 ### Consumption (eager — exhaust the stream)
 
@@ -657,12 +657,12 @@ protocols, file formats, etc. All manipulation functions are `pure`.
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `from_string` | `pure fn from_string(s: string): array<byte>` | Planned | `rf_bytes_from_string` |
-| `to_string` | `pure fn to_string(data: array<byte>): string` | Planned | `rf_bytes_to_string` |
-| `slice` | `pure fn slice(data: array<byte>, start: int64, end: int64): array<byte>` | Planned | `rf_bytes_slice` |
-| `concat` | `pure fn concat(a: array<byte>, b: array<byte>): array<byte>` | Planned | `rf_bytes_concat` |
-| `index_of` | `pure fn index_of(data: array<byte>, needle: array<byte>): int?` | Planned | `rf_bytes_index_of` |
-| `len` | `pure fn len(data: array<byte>): int64` | Planned | `rf_bytes_len` |
+| `from_string` | `fn:pure from_string(s: string): array<byte>` | Planned | `rf_bytes_from_string` |
+| `to_string` | `fn:pure to_string(data: array<byte>): string` | Planned | `rf_bytes_to_string` |
+| `slice` | `fn:pure slice(data: array<byte>, start: int64, end: int64): array<byte>` | Planned | `rf_bytes_slice` |
+| `concat` | `fn:pure concat(a: array<byte>, b: array<byte>): array<byte>` | Planned | `rf_bytes_concat` |
+| `index_of` | `fn:pure index_of(data: array<byte>, needle: array<byte>): int?` | Planned | `rf_bytes_index_of` |
+| `len` | `fn:pure len(data: array<byte>): int64` | Planned | `rf_bytes_len` |
 
 ### Behavior Notes
 
@@ -796,9 +796,9 @@ new arrays (arrays are immutable in ReFlow). Pure.
 
 | Function | Signature | Status | Notes |
 |----------|-----------|--------|-------|
-| `sort` | `pure fn sort<T fulfills Comparable>(arr: array<T>): array<T>` | Planned | generic |
-| `sort_by` | `pure fn sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T>` | Planned | `rf_sort_array_by` |
-| `reverse` | `pure fn reverse<T>(arr: array<T>): array<T>` | Planned | `rf_array_reverse` |
+| `sort` | `fn:pure sort<T fulfills Comparable>(arr: array<T>): array<T>` | Planned | generic |
+| `sort_by` | `fn:pure sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T>` | Planned | `rf_sort_array_by` |
+| `reverse` | `fn:pure reverse<T>(arr: array<T>): array<T>` | Planned | `rf_array_reverse` |
 
 `sort` is implemented in ReFlow as `sort_by(arr, fn(a: T, b: T): int { a.compare(b) })`.
 The compiler monomorphizes it for each concrete element type. `sort_by` and
@@ -863,33 +863,33 @@ type JsonValue = sum {
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `to_string` | `pure fn to_string(val: JsonValue): string` | Planned | `rf_json_to_string` |
-| `to_string_pretty` | `pure fn to_string_pretty(val: JsonValue, indent: int): string` | Planned | `rf_json_to_string_pretty` |
+| `to_string` | `fn:pure to_string(val: JsonValue): string` | Planned | `rf_json_to_string` |
+| `to_string_pretty` | `fn:pure to_string_pretty(val: JsonValue, indent: int): string` | Planned | `rf_json_to_string_pretty` |
 
 ### Accessors (convenience for navigating parsed JSON)
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `get` | `pure fn get(val: JsonValue, key: string): JsonValue?` | Planned | `rf_json_get` |
-| `get_index` | `pure fn get_index(val: JsonValue, idx: int): JsonValue?` | Planned | `rf_json_get_index` |
-| `as_string` | `pure fn as_string(val: JsonValue): string?` | Planned | `rf_json_as_string` |
-| `as_int` | `pure fn as_int(val: JsonValue): int64?` | Planned | `rf_json_as_int` |
-| `as_float` | `pure fn as_float(val: JsonValue): float?` | Planned | `rf_json_as_float` |
-| `as_bool` | `pure fn as_bool(val: JsonValue): bool?` | Planned | `rf_json_as_bool` |
-| `as_array` | `pure fn as_array(val: JsonValue): array<JsonValue>?` | Planned | `rf_json_as_array` |
-| `is_null` | `pure fn is_null(val: JsonValue): bool` | Planned | `rf_json_is_null` |
+| `get` | `fn:pure get(val: JsonValue, key: string): JsonValue?` | Planned | `rf_json_get` |
+| `get_index` | `fn:pure get_index(val: JsonValue, idx: int): JsonValue?` | Planned | `rf_json_get_index` |
+| `as_string` | `fn:pure as_string(val: JsonValue): string?` | Planned | `rf_json_as_string` |
+| `as_int` | `fn:pure as_int(val: JsonValue): int64?` | Planned | `rf_json_as_int` |
+| `as_float` | `fn:pure as_float(val: JsonValue): float?` | Planned | `rf_json_as_float` |
+| `as_bool` | `fn:pure as_bool(val: JsonValue): bool?` | Planned | `rf_json_as_bool` |
+| `as_array` | `fn:pure as_array(val: JsonValue): array<JsonValue>?` | Planned | `rf_json_as_array` |
+| `is_null` | `fn:pure is_null(val: JsonValue): bool` | Planned | `rf_json_is_null` |
 
 ### Building (convenience for constructing JSON)
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `null_val` | `pure fn null_val(): JsonValue` | Planned | `rf_json_null` |
-| `string_val` | `pure fn string_val(s: string): JsonValue` | Planned | `rf_json_string` |
-| `int_val` | `pure fn int_val(n: int64): JsonValue` | Planned | `rf_json_int` |
-| `float_val` | `pure fn float_val(f: float): JsonValue` | Planned | `rf_json_float` |
-| `bool_val` | `pure fn bool_val(b: bool): JsonValue` | Planned | `rf_json_bool` |
-| `array_val` | `pure fn array_val(items: array<JsonValue>): JsonValue` | Planned | `rf_json_array` |
-| `object_val` | `pure fn object_val(m: map<string, JsonValue>): JsonValue` | Planned | `rf_json_object` |
+| `null_val` | `fn:pure null_val(): JsonValue` | Planned | `rf_json_null` |
+| `string_val` | `fn:pure string_val(s: string): JsonValue` | Planned | `rf_json_string` |
+| `int_val` | `fn:pure int_val(n: int64): JsonValue` | Planned | `rf_json_int` |
+| `float_val` | `fn:pure float_val(f: float): JsonValue` | Planned | `rf_json_float` |
+| `bool_val` | `fn:pure bool_val(b: bool): JsonValue` | Planned | `rf_json_bool` |
+| `array_val` | `fn:pure array_val(items: array<JsonValue>): JsonValue` | Planned | `rf_json_array` |
+| `object_val` | `fn:pure object_val(m: map<string, JsonValue>): JsonValue` | Planned | `rf_json_object` |
 
 ### Behavior Notes
 
@@ -1003,7 +1003,7 @@ type DateTime  // opaque, wall-clock time with timezone info
 | `mono_now` | `fn mono_now(): Instant` | Planned | `rf_time_now` |
 | `elapsed_ms` | `fn elapsed_ms(start: Instant): int64` | Planned | `rf_time_elapsed_ms` |
 | `elapsed_us` | `fn elapsed_us(start: Instant): int64` | Planned | `rf_time_elapsed_us` |
-| `diff_ms` | `pure fn diff_ms(start: Instant, end: Instant): int64` | Planned | `rf_time_diff_ms` |
+| `diff_ms` | `fn:pure diff_ms(start: Instant, end: Instant): int64` | Planned | `rf_time_diff_ms` |
 
 ### Wall-Clock Time
 

@@ -105,7 +105,7 @@ A function marked `pure` must satisfy all of these simultaneously:
 - It does not call `snapshot()`
 - It does not accept `:mut` parameters
 
-The check is transitive: if `pure fn a` calls `fn b`, and `b` calls `io.print`, then `a` fails the purity check even though `a` does not directly call `io.print`.
+The check is transitive: if `fn:pure a` calls `fn b`, and `b` calls `io.print`, then `a` fails the purity check even though `a` does not directly call `io.print`.
 
 Build the purity map bottom-up: leaf functions first, callers after. A function with unknown callees (imported from an unanalyzed module) is assumed non-pure unless explicitly declared `pure` in its import.
 

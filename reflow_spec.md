@@ -835,7 +835,7 @@ type Config {
     static port: int:mut = 5432,
     static max_retries: int = 3,
 
-    static fn connection_string(): string {
+    fn:static connection_string(): string {
         return f"postgres://{Config.host}:{Config.port}"
     }
 }
@@ -995,7 +995,7 @@ The `self` return type means "returns an instance of whatever type fulfills this
 
 ```
 interface Transform<T, U> {
-    pure fn apply(self, input: T): U
+    fn:pure apply(self, input: T): U
 }
 ```
 
@@ -1035,25 +1035,25 @@ declarations).
 ; Ordering comparison.
 ; Returns negative if self < other, zero if equal, positive if self > other.
 interface Comparable {
-    pure fn compare(self, other: self): int
+    fn:pure compare(self, other: self): int
 }
 
 ; Arithmetic operations on numeric types.
 interface Numeric {
-    pure fn negate(self): self
-    pure fn add(self, other: self): self
-    pure fn sub(self, other: self): self
-    pure fn mul(self, other: self): self
+    fn:pure negate(self): self
+    fn:pure add(self, other: self): self
+    fn:pure sub(self, other: self): self
+    fn:pure mul(self, other: self): self
 }
 
 ; Value equality.
 interface Equatable {
-    pure fn equals(self, other: self): bool
+    fn:pure equals(self, other: self): bool
 }
 
 ; Human-readable string conversion.
 interface Showable {
-    pure fn to_string(self): string
+    fn:pure to_string(self): string
 }
 ```
 
@@ -1320,15 +1320,15 @@ A `pure` function is deterministic: the same inputs always produce the same outp
 `pure` functions may use local `:mut` variables internally, as long as the mutation does not escape.
 
 ```
-pure fn square(x: int): int = x * x
+fn:pure square(x: int): int = x * x
 
-pure fn sum(items: array<int>): int {
+fn:pure sum(items: array<int>): int {
     let total: int:mut = 0
     for(item: int in items) { total += item }
     return total
 }
 
-pure fn bad(x: int): int = x + random()    ; compile error: random() is not pure
+fn:pure bad(x: int): int = x + random()    ; compile error: random() is not pure
 ```
 
 #### Caching and Memoization
@@ -2295,7 +2295,7 @@ fn validate_order(o: Order): result<Order, string> {
 }
 
 ; pure: no I/O, no mutation of external state, deterministic
-pure fn apply_discount(o: Order): Order =
+fn:pure apply_discount(o: Order): Order =
     Order { amount: o.amount * 0.95, ..o }    ; struct spread: copy all fields, override amount
 
 fn run(): result<int, string> {

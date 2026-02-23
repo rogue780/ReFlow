@@ -332,23 +332,23 @@ Create `stdlib/char.reflow`:
 ```
 module char
 
-export pure fn is_digit(c: char): bool = native "rf_char_is_digit"
-export pure fn is_alpha(c: char): bool = native "rf_char_is_alpha"
-export pure fn is_alphanumeric(c: char): bool = native "rf_char_is_alphanumeric"
-export pure fn is_whitespace(c: char): bool = native "rf_char_is_whitespace"
+export fn:pure is_digit(c: char): bool = native "rf_char_is_digit"
+export fn:pure is_alpha(c: char): bool = native "rf_char_is_alpha"
+export fn:pure is_alphanumeric(c: char): bool = native "rf_char_is_alphanumeric"
+export fn:pure is_whitespace(c: char): bool = native "rf_char_is_whitespace"
 ```
 
 **RB-1-2-2**
 Add `rf_char_to_int` and `rf_int_to_char` to the C runtime. These are trivial casts between `rf_char` (uint32_t) and `rf_int` (int32_t). Add to `stdlib/char.reflow`:
 ```
-export pure fn to_code(c: char): int = native "rf_char_to_int"
-export pure fn from_code(n: int): char = native "rf_int_to_char"
+export fn:pure to_code(c: char): int = native "rf_char_to_int"
+export fn:pure from_code(n: int): char = native "rf_int_to_char"
 ```
 
 **RB-1-2-3**
 Add `rf_char_to_string` to the C runtime. Converts a single char to a one-character string. Add to `stdlib/char.reflow`:
 ```
-export pure fn to_string(c: char): string = native "rf_char_to_string"
+export fn:pure to_string(c: char): string = native "rf_char_to_string"
 ```
 
 ---
