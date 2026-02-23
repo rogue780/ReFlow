@@ -10,6 +10,6 @@ pure fn add_generic<T fulfills Numeric>(a: T, b: T): T {
 fn main(): none {
     let x = add_generic(3, 4)
     let y = add_generic(1.5, 2.5)
-    io.println(conv.int_to_string(x))
-    io.println(conv.float_to_string(y))
+    io.println(conv.to_string(x))
+    io.println(conv.to_string(y))
 }

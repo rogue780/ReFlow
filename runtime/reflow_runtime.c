@@ -2592,37 +2592,6 @@ rf_int64 rf_file_size(RF_File* f) {
  * Math Functions (stdlib/math)
  * ======================================================================== */
 
-rf_int rf_math_abs_int(rf_int n) {
-    if (n == INT32_MIN) rf_panic_overflow();
-    return n < 0 ? -n : n;
-}
-
-rf_float rf_math_abs_float(rf_float f) {
-    return fabs(f);
-}
-
-rf_int rf_math_min_int(rf_int a, rf_int b) {
-    return a < b ? a : b;
-}
-
-rf_int rf_math_max_int(rf_int a, rf_int b) {
-    return a > b ? a : b;
-}
-
-rf_float rf_math_min_float(rf_float a, rf_float b) {
-    return a < b ? a : b;
-}
-
-rf_float rf_math_max_float(rf_float a, rf_float b) {
-    return a > b ? a : b;
-}
-
-rf_int rf_math_clamp_int(rf_int val, rf_int lo, rf_int hi) {
-    if (val < lo) return lo;
-    if (val > hi) return hi;
-    return val;
-}
-
 rf_float rf_math_floor(rf_float f) {
     return floor(f);
 }
@@ -3094,63 +3063,6 @@ void rf_test_assert_true(rf_bool val, RF_String* msg) {
 void rf_test_assert_false(rf_bool val, RF_String* msg) {
     if (val != rf_false) {
         RF_String* prefix = rf_string_from_cstr("assertion failed (expected false): ");
-        RF_String* full = rf_string_concat(prefix, msg);
-        rf_string_release(prefix);
-        _rf_test_throw(full);
-    }
-}
-
-void rf_test_assert_eq_int(rf_int expected, rf_int actual, RF_String* msg) {
-    if (expected != actual) {
-        char buf[128];
-        snprintf(buf, sizeof(buf), "expected %d, got %d: ", expected, actual);
-        RF_String* prefix = rf_string_from_cstr(buf);
-        RF_String* full = rf_string_concat(prefix, msg);
-        rf_string_release(prefix);
-        _rf_test_throw(full);
-    }
-}
-
-void rf_test_assert_eq_int64(rf_int64 expected, rf_int64 actual, RF_String* msg) {
-    if (expected != actual) {
-        char buf[128];
-        snprintf(buf, sizeof(buf), "expected %lld, got %lld: ",
-                 (long long)expected, (long long)actual);
-        RF_String* prefix = rf_string_from_cstr(buf);
-        RF_String* full = rf_string_concat(prefix, msg);
-        rf_string_release(prefix);
-        _rf_test_throw(full);
-    }
-}
-
-void rf_test_assert_eq_string(RF_String* expected, RF_String* actual, RF_String* msg) {
-    if (!rf_string_eq(expected, actual)) {
-        RF_String* pre1 = rf_string_from_cstr("expected \"");
-        RF_String* pre2 = rf_string_concat(pre1, expected);
-        RF_String* pre3 = rf_string_from_cstr("\", got \"");
-        RF_String* pre4 = rf_string_concat(pre2, pre3);
-        RF_String* pre5 = rf_string_concat(pre4, actual);
-        RF_String* pre6 = rf_string_from_cstr("\": ");
-        RF_String* pre7 = rf_string_concat(pre5, pre6);
-        RF_String* full = rf_string_concat(pre7, msg);
-        rf_string_release(pre1);
-        rf_string_release(pre2);
-        rf_string_release(pre3);
-        rf_string_release(pre4);
-        rf_string_release(pre5);
-        rf_string_release(pre6);
-        rf_string_release(pre7);
-        _rf_test_throw(full);
-    }
-}
-
-void rf_test_assert_eq_bool(rf_bool expected, rf_bool actual, RF_String* msg) {
-    if (expected != actual) {
-        const char* exp_str = expected ? "true" : "false";
-        const char* act_str = actual ? "true" : "false";
-        char buf[128];
-        snprintf(buf, sizeof(buf), "expected %s, got %s: ", exp_str, act_str);
-        RF_String* prefix = rf_string_from_cstr(buf);
         RF_String* full = rf_string_concat(prefix, msg);
         rf_string_release(prefix);
         _rf_test_throw(full);

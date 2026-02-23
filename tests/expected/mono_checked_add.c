@@ -6,6 +6,10 @@ rf_int rf_mono_checked_add_add_generic__int(rf_int a, rf_int b);
 
 rf_float rf_mono_checked_add_add_generic__float(rf_float a, rf_float b);
 
+RF_String* rf_conv_to_string__int(rf_int val);
+
+RF_String* rf_conv_to_string__float(rf_float val);
+
 void rf_mono_checked_add_main(void);
 
 /* ReFlow: mono_checked_add.add_generic[mono] */
@@ -20,12 +24,22 @@ rf_float rf_mono_checked_add_add_generic__float(rf_float a, rf_float b) {
     return (a + b);
 }
 
+/* ReFlow: conv.to_string[mono] */
+RF_String* rf_conv_to_string__int(rf_int val) {
+    return rf_int_to_string(val);
+}
+
+/* ReFlow: conv.to_string[mono] */
+RF_String* rf_conv_to_string__float(rf_float val) {
+    return rf_float_to_string(val);
+}
+
 /* ReFlow: mono_checked_add.main */
 void rf_mono_checked_add_main(void) {
     rf_int x = rf_mono_checked_add_add_generic__int(3, 4);
     rf_float y = rf_mono_checked_add_add_generic__float(1.5, 2.5);
-    rf_println(rf_int_to_string(x));
-    rf_println(rf_float_to_string(y));
+    rf_println(rf_conv_to_string__int(x));
+    rf_println(rf_conv_to_string__float(y));
 }
 
 /* Entry point */

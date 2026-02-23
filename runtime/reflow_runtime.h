@@ -490,13 +490,6 @@ RF_Option_ptr rf_path_list_dir(RF_String* path);
  * Math Functions (stdlib/math)
  * ======================================================================== */
 
-rf_int   rf_math_abs_int(rf_int n);
-rf_float rf_math_abs_float(rf_float f);
-rf_int   rf_math_min_int(rf_int a, rf_int b);
-rf_int   rf_math_max_int(rf_int a, rf_int b);
-rf_float rf_math_min_float(rf_float a, rf_float b);
-rf_float rf_math_max_float(rf_float a, rf_float b);
-rf_int   rf_math_clamp_int(rf_int val, rf_int lo, rf_int hi);
 rf_float rf_math_floor(rf_float f);
 rf_float rf_math_ceil(rf_float f);
 rf_float rf_math_round(rf_float f);
@@ -629,10 +622,6 @@ rf_int rf_time_second(RF_DateTime* dt);
 /* Assertions — all throw with RF_TEST_FAILURE_TAG on failure */
 void rf_test_assert_true(rf_bool val, RF_String* msg);
 void rf_test_assert_false(rf_bool val, RF_String* msg);
-void rf_test_assert_eq_int(rf_int expected, rf_int actual, RF_String* msg);
-void rf_test_assert_eq_int64(rf_int64 expected, rf_int64 actual, RF_String* msg);
-void rf_test_assert_eq_string(RF_String* expected, RF_String* actual, RF_String* msg);
-void rf_test_assert_eq_bool(rf_bool expected, rf_bool actual, RF_String* msg);
 void rf_test_assert_eq_float(rf_float expected, rf_float actual, rf_float epsilon, RF_String* msg);
 void* rf_test_assert_some(RF_Option_ptr opt, RF_String* msg);
 void rf_test_assert_none(RF_Option_ptr opt, RF_String* msg);

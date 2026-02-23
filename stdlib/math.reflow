@@ -1,12 +1,23 @@
 module math
 
-export pure fn abs_int(n: int): int = native "rf_math_abs_int"
-export pure fn abs_float(f: float): float = native "rf_math_abs_float"
-export pure fn min_int(a: int, b: int): int = native "rf_math_min_int"
-export pure fn max_int(a: int, b: int): int = native "rf_math_max_int"
-export pure fn min_float(a: float, b: float): float = native "rf_math_min_float"
-export pure fn max_float(a: float, b: float): float = native "rf_math_max_float"
-export pure fn clamp_int(val: int, lo: int, hi: int): int = native "rf_math_clamp_int"
+export pure fn abs<T fulfills (Numeric, Comparable)>(n: T): T {
+    let neg = n.negate()
+    return if n.compare(neg) < 0 { neg } else { n }
+}
+
+export pure fn min<T fulfills Comparable>(a: T, b: T): T {
+    return if a.compare(b) <= 0 { a } else { b }
+}
+
+export pure fn max<T fulfills Comparable>(a: T, b: T): T {
+    return if a.compare(b) >= 0 { a } else { b }
+}
+
+export pure fn clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T {
+    return if val.compare(lo) < 0 { lo } else { if val.compare(hi) > 0 { hi } else { val } }
+}
+
+; Float-specific operations (inherently float, no generic equivalent)
 export pure fn floor(f: float): float = native "rf_math_floor"
 export pure fn ceil(f: float): float = native "rf_math_ceil"
 export pure fn round(f: float): float = native "rf_math_round"

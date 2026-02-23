@@ -10,6 +10,6 @@ pure fn min<T fulfills Comparable>(a: T, b: T): T {
 fn main(): none {
     let x = min(3, 7)
     let y = min(1.5, 0.5)
-    io.println(conv.int_to_string(x))
-    io.println(conv.float_to_string(y))
+    io.println(conv.to_string(x))
+    io.println(conv.to_string(y))
 }

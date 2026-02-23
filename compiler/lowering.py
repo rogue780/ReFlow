@@ -551,6 +551,13 @@ class Lowerer:
         # (src_module, fn_name, (type_arg_names...))
         self._mono_sites: dict[tuple[str, str, tuple[str, ...]], MonoSite] = {}
 
+        # Per-function map: let-binding name → concrete LType.
+        # The typechecker propagates TTypeVar through generic-call return types,
+        # so _lower_type(_type_of(ident)) may give LPtr(LVoid) for vars that
+        # actually hold a concrete int/float/etc.  We track the concrete type
+        # from _lower_let so _lower_ident can use it as a fallback.
+        self._let_var_ltypes: dict[str, LType] = {}
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
@@ -737,6 +744,8 @@ class Lowerer:
         self._current_fn_return_type = ret_type
         saved_fn_name = self._current_fn_name
         self._current_fn_name = fn.name
+        saved_let_var_ltypes = self._let_var_ltypes
+        self._let_var_ltypes = {}
 
         c_name = mangle(self._module_path, None, fn.name,
                         file=self._file, line=fn.line, col=fn.col)
@@ -744,7 +753,9 @@ class Lowerer:
         params: list[tuple[str, LType]] = []
         for p in fn.params:
             p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
-            params.append((p.name, self._lower_type(p_type)))
+            p_lt = self._lower_type(p_type)
+            params.append((p.name, p_lt))
+            self._let_var_ltypes[p.name] = p_lt
 
         ret_lt = self._lower_type(ret_type)
 
@@ -768,6 +779,7 @@ class Lowerer:
         ))
         self._current_fn_return_type = saved_return_type
         self._current_fn_name = saved_fn_name
+        self._let_var_ltypes = saved_let_var_ltypes
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
         """Lower a type declaration. RT-7-2-2."""
@@ -968,6 +980,10 @@ class Lowerer:
                             ("value", init)],
                     c_type=c_type,
                 )
+        # Track concrete LType so _lower_ident can use it when the type map
+        # contains TTypeVar/TAny (typechecker doesn't substitute generic call
+        # return types, so let-bound vars may appear typed as TTypeVar).
+        self._let_var_ltypes[stmt.name] = c_type
         return [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
 
     def _lower_assign(self, stmt: AssignStmt) -> list[LStmt]:
@@ -1811,6 +1827,13 @@ class Lowerer:
                     return LVar(remap_expr, remap_lt)
                 t = self._type_of(expr)
                 lt = self._lower_type(t)
+                # Fallback: if the semantic type resolved to void* (TTypeVar or TAny
+                # from bounded-generic call return), use the concrete LType tracked
+                # during let-binding or parameter lowering.
+                if isinstance(lt, LPtr) and isinstance(lt.inner, LVoid):
+                    concrete_lt = self._let_var_ltypes.get(name)
+                    if concrete_lt is not None:
+                        lt = concrete_lt
                 sym = self._resolved.symbols.get(expr)
                 if sym is not None and sym.kind == SymbolKind.FN:
                     # Function reference used as value — wrap in closure
@@ -2081,14 +2104,17 @@ class Lowerer:
                 # Check if this is a bounded generic — monomorphize it (SG-3-4-2)
                 fn_decl_maybe = sym.decl if isinstance(sym.decl, FnDecl) else None
                 if fn_decl_maybe and self._is_bounded_generic(fn_decl_maybe):
-                    env = self._infer_type_env_from_call(fn_decl_maybe,
-                                                         list(expr.args))
+                    env = self._infer_type_env_from_call(
+                        fn_decl_maybe, list(expr.args), lowered_args)
                     if env:
                         mono_name = self._record_mono_site(
                             self._module_path, fn_decl_maybe, env)
                         # Substitute type env into return type for concrete LType
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
                         return LCall(mono_name, lowered_args, concrete_lt)
+                # Same-module native function — use the native C name directly
+                if fn_decl_maybe and fn_decl_maybe.native_name is not None:
+                    return LCall(fn_decl_maybe.native_name, lowered_args, lt)
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, lowered_args, lt)
@@ -2182,7 +2208,8 @@ class Lowerer:
                 src_module = self._resolve_import_module_path(expr.receiver)
                 # Bounded generic — monomorphize at call site (SG-3-4-2)
                 if self._is_bounded_generic(fn_decl):
-                    env = self._infer_type_env_from_call(fn_decl, list(expr.args))
+                    env = self._infer_type_env_from_call(
+                        fn_decl, list(expr.args), lowered_args)
                     if env:
                         mono_name = self._record_mono_site(src_module, fn_decl, env)
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
@@ -2211,6 +2238,13 @@ class Lowerer:
 
         # Built-in type methods — check interface method dispatch table first (SG-3-5-1)
         type_name = self._type_name_str(recv_type)
+        if type_name == "unknown":
+            # Fall back to deriving type name from the LType of the lowered receiver.
+            # This handles cross-module monomorphized contexts where the source module's
+            # type map isn't available in all_typed (e.g. stdlib modules).
+            ltype_name = self._ltype_to_type_name(getattr(recv, 'c_type', None))
+            if ltype_name is not None:
+                type_name = ltype_name
         builtin_op = BUILTIN_METHOD_OPS.get((type_name, expr.method))
         if builtin_op is not None:
             return self._emit_builtin_method_op(builtin_op, recv, lowered_args, lt)
@@ -2802,8 +2836,11 @@ class Lowerer:
 
         # 2. Generate implementation function
         impl_params: list[tuple[str, LType]] = [("_env", LPtr(LVoid()))]
-        for p in expr.params:
-            p_type = self._type_of(p.type_ann) if p.type_ann else TAny()
+        # Use t.params[i] instead of self._type_of(p.type_ann): the TFn type
+        # is already substituted in monomorphized context, so this correctly
+        # resolves TTypeVar("T") to the concrete type.
+        for i, p in enumerate(expr.params):
+            p_type = t.params[i] if i < len(t.params) else TAny()
             impl_params.append((p.name, self._lower_type(p_type)))
 
         ret_lt = self._lower_type(t.ret)
@@ -4506,6 +4543,64 @@ class Lowerer:
             case _:
                 return TAny()
 
+    def _ltype_to_type(self, lt: LType | None) -> Type | None:
+        """Convert an LType back to the corresponding semantic Type, if possible.
+
+        Used as a fallback when the type map contains TTypeVar/TAny for variables
+        whose concrete type is known from their LType (e.g. let-bound vars that
+        received the result of a bounded generic call).
+        """
+        match lt:
+            case LInt(width=32, signed=True):
+                return TInt(32, True)
+            case LInt(width=w, signed=True):
+                return TInt(w, True)
+            case LInt(width=w, signed=False):
+                return TInt(w, False)
+            case LFloat(width=64):
+                return TFloat(64)
+            case LFloat(width=w):
+                return TFloat(w)
+            case LBool():
+                return TBool()
+            case LChar():
+                return TChar()
+            case LByte():
+                return TByte()
+            case LPtr(inner=LStruct(c_name="RF_String")):
+                return TString()
+            case _:
+                return None
+
+    def _ltype_to_type_name(self, lt: LType | None) -> str | None:
+        """Convert an LType to the type-name string used in C function names.
+
+        Used as a fallback in _lower_method_call when the semantic type is
+        unavailable (TAny) — e.g. inside cross-module monomorphized bodies
+        whose source TypedModule isn't in all_typed.
+        """
+        match lt:
+            case LInt(width=32, signed=True):
+                return "int"
+            case LInt(width=w, signed=True):
+                return f"int{w}"
+            case LInt(width=w, signed=False):
+                return f"uint{w}"
+            case LFloat(width=64):
+                return "float"
+            case LFloat(width=w):
+                return f"float{w}"
+            case LBool():
+                return "bool"
+            case LChar():
+                return "char"
+            case LByte():
+                return "byte"
+            case LPtr(inner=LStruct(c_name="RF_String")):
+                return "string"
+            case _:
+                return None
+
     def _type_name_str(self, t: Type) -> str:
         """Return a human-readable name for a type."""
         match t:
@@ -4648,16 +4743,22 @@ class Lowerer:
         self,
         fn_decl: FnDecl,
         arg_exprs: list[Expr],
+        lowered_args: list[LExpr] | None = None,
     ) -> dict[str, Type]:
         """Infer type variable bindings from call-site argument types.
 
         Matches declared parameter types against actual argument types to
         extract bindings like {"T": TInt(32, True)}. Works for both same-module
         and cross-module functions (handles TNamed from _resolve_type_ann).
+
+        When lowered_args is provided, uses the LType of already-lowered
+        arguments as a fallback when the semantic type is TTypeVar or TAny
+        (which happens because the typechecker propagates TTypeVar through
+        bounded-generic call return types without substituting them).
         """
         tp_names = {tp.name for tp in fn_decl.type_params}
         env: dict[str, Type] = {}
-        for param, arg_expr in zip(fn_decl.params, arg_exprs):
+        for i, (param, arg_expr) in enumerate(zip(fn_decl.params, arg_exprs)):
             if param.type_ann is None:
                 continue
             # Prefer typed.types (has TTypeVar for same-module params);
@@ -4666,6 +4767,14 @@ class Lowerer:
             if declared is None:
                 declared = self._resolve_type_ann(param.type_ann)
             actual = self._type_of(arg_expr)
+            # Fallback: if the semantic type is TTypeVar or TAny (typechecker
+            # doesn't substitute generic call return types), use the LType of
+            # the already-lowered argument expression to get the concrete type.
+            if isinstance(actual, (TTypeVar, TAny)) and lowered_args is not None:
+                if i < len(lowered_args):
+                    lt_type = self._ltype_to_type(getattr(lowered_args[i], 'c_type', None))
+                    if lt_type is not None:
+                        actual = lt_type
             self._match_type_vars(declared, actual, tp_names, env)
         return env
 
@@ -4724,9 +4833,9 @@ class Lowerer:
     def _lower_monomorphized_fn(self, site: MonoSite) -> LFnDef:
         """Lower a bounded generic function with concrete type substitutions.
 
-        Swaps the type map for the duration of lowering so that all _type_of
-        calls return substituted types. After lowering, the original map is
-        restored.
+        Swaps the type map, resolver, and module path for the duration of
+        lowering so that all symbol lookups and _type_of calls resolve against
+        the source module. After lowering, all state is restored.
         """
         fn_decl = site.fn_decl
         env = site.type_env
@@ -4738,10 +4847,23 @@ class Lowerer:
         original_types = self._types
         self._types = sub_types
 
+        # For cross-module monomorphization, swap resolver and module path so
+        # that symbol lookups (fn calls, imports) resolve against the source
+        # module, not the calling module.
+        saved_resolved = self._resolved
+        saved_module_path = self._module_path
+        if site.src_module != self._module_path and self._all_typed:
+            src_typed = self._all_typed.get(site.src_module)
+            if src_typed is not None:
+                self._resolved = src_typed.resolved
+                self._module_path = site.src_module
+
         # Save per-function context
         saved_return_type = self._current_fn_return_type
         saved_fn_name = self._current_fn_name
         self._current_fn_name = fn_decl.name
+        saved_let_var_ltypes = self._let_var_ltypes
+        self._let_var_ltypes = {}
 
         ret_type_raw = self._type_of_return(fn_decl)
         ret_type = self._deep_substitute(ret_type_raw, env)
@@ -4752,7 +4874,9 @@ class Lowerer:
         for p in fn_decl.params:
             p_type_raw = self._type_of(p.type_ann) if p.type_ann else TNone()
             p_type = self._deep_substitute(p_type_raw, env)
-            params.append((p.name, self._lower_type(p_type)))
+            p_lt = self._lower_type(p_type)
+            params.append((p.name, p_lt))
+            self._let_var_ltypes[p.name] = p_lt
 
         # Lower function body with substituted types
         body: list[LStmt] = []
@@ -4769,8 +4893,11 @@ class Lowerer:
 
         # Restore state
         self._types = original_types
+        self._resolved = saved_resolved
+        self._module_path = saved_module_path
         self._current_fn_return_type = saved_return_type
         self._current_fn_name = saved_fn_name
+        self._let_var_ltypes = saved_let_var_ltypes
 
         return LFnDef(
             c_name=site.mangled_name,

@@ -11,10 +11,19 @@ rf_int rf_tests_programs_multi_helper_double(rf_int x) {
     return _rf_e_1;
 }
 
+RF_String* rf_conv_to_string__int(rf_int val);
+
+void rf_tests_programs_multi_main_main(void);
+
+/* ReFlow: conv.to_string[mono] */
+RF_String* rf_conv_to_string__int(rf_int val) {
+    return rf_int_to_string(val);
+}
+
 /* ReFlow: tests.programs.multi_main.main */
 void rf_tests_programs_multi_main_main(void) {
     rf_int result = rf_tests_programs_multi_helper_double(21);
-    rf_println(rf_int_to_string(result));
+    rf_println(rf_conv_to_string__int(result));
 }
 
 /* Entry point */

@@ -88,15 +88,35 @@ def _resolve_import_path(project_root: Path, import_path: list[str]) -> Path:
 # Stdlib discovery
 # ---------------------------------------------------------------------------
 
+# Module-level cache: one parse+resolve+typecheck per stdlib module per process.
+# Keyed by module name. Value is a TypedModule (typed as object to avoid
+# exposing TypedModule in the function signature).
+_stdlib_typed_cache: dict[str, object] = {}
+
+
+def _get_stdlib_typed(module_name: str) -> object:
+    """Return the TypedModule for a stdlib module, running the full pipeline once.
+
+    Caches the result so each stdlib module is parsed+resolved+type-checked
+    at most once per process. The cache ensures AST node identity is stable:
+    all downstream passes (Resolver, Lowerer) that reference stdlib FnDecls
+    see the SAME Python objects whose types are stored in the TypedModule.types
+    dict, enabling correct cross-module monomorphization.
+    """
+    if module_name not in _stdlib_typed_cache:
+        stdlib_path = _stdlib_dir() / f"{module_name}.reflow"
+        source = stdlib_path.read_text()
+        display = f"stdlib/{module_name}.reflow"
+        tokens = Lexer(source, display).tokenize()
+        module = Parser(tokens, display).parse()
+        resolved = Resolver(module).resolve()
+        _stdlib_typed_cache[module_name] = TypeChecker(resolved).check()
+    return _stdlib_typed_cache[module_name]
+
+
 def _load_stdlib_module(module_name: str) -> ModuleScope:
-    """Parse and resolve a stdlib module, returning its ModuleScope."""
-    stdlib_path = _stdlib_dir() / f"{module_name}.reflow"
-    source = stdlib_path.read_text()
-    display = f"stdlib/{module_name}.reflow"
-    tokens = Lexer(source, display).tokenize()
-    module = Parser(tokens, display).parse()
-    resolved = Resolver(module).resolve()
-    return resolved.module_scope
+    """Return the ModuleScope for a stdlib module (via the typed module cache)."""
+    return _get_stdlib_typed(module_name).resolved.module_scope  # type: ignore[attr-defined]
 
 
 def _discover_stdlib_imports(module: Module) -> dict[str, ModuleScope]:
@@ -338,6 +358,31 @@ def _run_multi_pipeline(
 # Lowering + emitting helpers for multi-module
 # ---------------------------------------------------------------------------
 
+def _build_all_typed(
+    modules: list[tuple[str, object, bool]],
+) -> dict[str, object]:
+    """Build all_typed dict: user modules + stdlib TypedModules for monomorphization.
+
+    The stdlib entries use _get_stdlib_typed (cached), which ensures AST node
+    identity is stable across Resolver and Lowerer (same parse, same objects).
+    """
+    all_typed: dict[str, object] = {}
+    for _display_path, typed, _is_root in modules:
+        mod_path = ".".join(typed.module.path) if typed.module.path else "main"  # type: ignore[attr-defined]
+        all_typed[mod_path] = typed
+
+    # Merge in stdlib TypedModules for cross-module generic monomorphization.
+    for _display_path, typed, _is_root in modules:
+        for imp in typed.module.imports:  # type: ignore[attr-defined]
+            module_key = ".".join(imp.path)
+            if module_key in _STDLIB_MODULES and module_key not in all_typed:
+                try:
+                    all_typed[module_key] = _get_stdlib_typed(module_key)
+                except Exception:
+                    pass  # non-fatal: monomorphization falls back to LType dispatch
+    return all_typed
+
+
 def _lower_and_emit_multi(
     modules: list[tuple[str, object, bool]],
 ) -> str:
@@ -353,12 +398,7 @@ def _lower_and_emit_multi(
     dep_parts: list[str] = []
     collected_static_inits: list[tuple[str, str]] = []
 
-    # Build a dict of all TypedModules by module path so each Lowerer can
-    # access cross-module type information for monomorphization (SG-3-4-1).
-    all_typed: dict[str, object] = {}
-    for display_path, typed, is_root in modules:
-        mod_path = ".".join(typed.module.path) if typed.module.path else "main"
-        all_typed[mod_path] = typed
+    all_typed = _build_all_typed(modules)
 
     # Lower and emit dependency modules (no header, no entry point).
     for display_path, typed, is_root in modules:
@@ -400,9 +440,10 @@ def compile_source(source_path: str, *, output: str | None = None,
     modules = _run_multi_pipeline(source_path)
 
     if len(modules) == 1:
-        # Single module fast path.
+        # Single module fast path — still needs stdlib all_typed for mono.
         display_path, typed, _ = modules[0]
-        lmodule = Lowerer(typed).lower()
+        all_typed = _build_all_typed(modules)
+        lmodule = Lowerer(typed, all_typed=all_typed).lower()
         c_source = Emitter(lmodule, display_path).emit()
     else:
         c_source = _lower_and_emit_multi(modules)
@@ -459,8 +500,10 @@ def emit_only(source_path: str, *, output: str | None = None,
     modules = _run_multi_pipeline(source_path)
 
     if len(modules) == 1:
+        # Single module fast path — still needs stdlib all_typed for mono.
         display_path, typed, _ = modules[0]
-        lmodule = Lowerer(typed).lower()
+        all_typed = _build_all_typed(modules)
+        lmodule = Lowerer(typed, all_typed=all_typed).lower()
         c_source = Emitter(lmodule, display_path).emit()
     else:
         c_source = _lower_and_emit_multi(modules)
