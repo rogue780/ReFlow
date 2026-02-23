@@ -2160,8 +2160,11 @@ RF_String* rf_path_stem(RF_String* path) {
 
 RF_String* rf_path_parent(RF_String* path) {
     if (!path) rf_panic("rf_path_parent: NULL pointer");
+    rf_int64 len = path->len;
+    /* Skip trailing slash so parent("/a/b/") == "/a", not "/a/b" */
+    if (len > 1 && path->data[len - 1] == '/') len--;
     rf_int64 last_slash = -1;
-    for (rf_int64 i = path->len - 1; i >= 0; i--) {
+    for (rf_int64 i = len - 1; i >= 0; i--) {
         if (path->data[i] == '/') { last_slash = i; break; }
     }
     if (last_slash < 0) return rf_string_from_cstr(".");
