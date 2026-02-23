@@ -1,0 +1,42 @@
+; string_demo.reflow — Demonstrates the string module
+module examples.string_demo
+
+import io (println)
+import string (len, char_at, substring, index_of, contains, starts_with, ends_with, split, trim, trim_left, trim_right, replace, join, to_lower, to_upper, to_bytes, from_bytes)
+import conv (int_to_string)
+
+fn main() {
+    let s: string = "Hello, World!"
+
+    ; Length and character access
+    println(f"len: {len(s)}")
+    match char_at(s, 0) {
+        some(c) -> println(f"char_at(0): {c}")
+        none -> println("out of bounds")
+    }
+
+    ; Substrings and searching
+    println(f"substring(0, 5): {substring(s, 0, 5)}")
+    match index_of(s, "World") {
+        some(idx) -> println(f"index_of 'World': {idx}")
+        none -> println("not found")
+    }
+    println(f"contains 'World': {contains(s, "World")}")
+    println(f"starts_with 'Hello': {starts_with(s, "Hello")}")
+    println(f"ends_with '!': {ends_with(s, "!")}")
+
+    ; Transformation
+    println(f"to_lower: {to_lower(s)}")
+    println(f"to_upper: {to_upper(s)}")
+    println(f"replace: {replace(s, "World", "ReFlow")}")
+    println(f"trim: '{trim("  hello  ")}'")
+
+    ; Split and join
+    let parts: array<string> = split("a,b,c", ",")
+    println(f"split 'a,b,c': {join(parts, " | ")}")
+
+    ; Bytes conversion
+    let bytes: array<byte> = to_bytes("ReFlow")
+    let back: string = from_bytes(bytes)
+    println(f"to_bytes -> from_bytes: {back}")
+}
