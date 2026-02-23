@@ -1,5 +1,5 @@
 /*
- * C-level tests for RF_TcpListener, RF_TcpConnection, and net functions.
+ * C-level tests for RF_Socket and net functions.
  *
  * Compile and run via: make test-runtime
  */
@@ -14,9 +14,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-/* Re-declare opaque structs so tests can access fd for port discovery */
-struct RF_TcpListener { int fd; };
-struct RF_TcpConnection { int fd; };
+/* Re-declare opaque struct so tests can access fd for port discovery */
+struct RF_Socket { int fd; };
 
 static int tests_run = 0;
 static int tests_passed = 0;
@@ -31,12 +30,12 @@ static int tests_passed = 0;
  * Helper: start a listener on loopback with OS-assigned port
  * ======================================================================== */
 
-static RF_TcpListener* _start_listener(rf_int* out_port) {
+static RF_Socket* _start_listener(rf_int* out_port) {
     RF_String* addr = rf_string_from_cstr("127.0.0.1");
     RF_Option_ptr opt = rf_net_listen(addr, 0);
     rf_string_release(addr);
     if (opt.tag == 0) return NULL;
-    RF_TcpListener* listener = (RF_TcpListener*)opt.value;
+    RF_Socket* listener = (RF_Socket*)opt.value;
 
     /* Get the actual assigned port */
     struct sockaddr_in sa;
@@ -47,12 +46,12 @@ static RF_TcpListener* _start_listener(rf_int* out_port) {
 }
 
 /* Helper: connect to loopback on a given port */
-static RF_TcpConnection* _connect_to(rf_int port) {
+static RF_Socket* _connect_to(rf_int port) {
     RF_String* host = rf_string_from_cstr("127.0.0.1");
     RF_Option_ptr opt = rf_net_connect(host, port);
     rf_string_release(host);
     if (opt.tag == 0) return NULL;
-    return (RF_TcpConnection*)opt.value;
+    return (RF_Socket*)opt.value;
 }
 
 /* ========================================================================
@@ -63,11 +62,11 @@ static void test_listen_on_random_port(void) {
     TEST(listen_on_random_port);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
     assert(port > 0);
 
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 
@@ -79,14 +78,14 @@ static void test_listen_and_close(void) {
     TEST(listen_and_close);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
     /* Close — should not crash */
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
 
     /* Close NULL — should not crash */
-    rf_net_close_listener(NULL);
+    rf_net_close(NULL);
 
     PASS();
 }
@@ -99,20 +98,20 @@ static void test_connect_and_accept(void) {
     TEST(connect_and_accept);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
-    RF_TcpConnection* client = _connect_to(port);
+    RF_Socket* client = _connect_to(port);
     assert(client != NULL);
 
     RF_Option_ptr accept_opt = rf_net_accept(listener);
     assert(accept_opt.tag == 1);
-    RF_TcpConnection* server = (RF_TcpConnection*)accept_opt.value;
+    RF_Socket* server = (RF_Socket*)accept_opt.value;
     assert(server != NULL);
 
     rf_net_close(client);
     rf_net_close(server);
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 
@@ -124,15 +123,15 @@ static void test_write_read_roundtrip(void) {
     TEST(write_read_roundtrip);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
-    RF_TcpConnection* client = _connect_to(port);
+    RF_Socket* client = _connect_to(port);
     assert(client != NULL);
 
     RF_Option_ptr accept_opt = rf_net_accept(listener);
     assert(accept_opt.tag == 1);
-    RF_TcpConnection* server = (RF_TcpConnection*)accept_opt.value;
+    RF_Socket* server = (RF_Socket*)accept_opt.value;
 
     /* Send bytes from client */
     rf_byte data[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F}; /* "Hello" */
@@ -156,7 +155,7 @@ static void test_write_read_roundtrip(void) {
 
     rf_net_close(client);
     rf_net_close(server);
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 
@@ -168,15 +167,15 @@ static void test_write_string_roundtrip(void) {
     TEST(write_string_roundtrip);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
-    RF_TcpConnection* client = _connect_to(port);
+    RF_Socket* client = _connect_to(port);
     assert(client != NULL);
 
     RF_Option_ptr accept_opt = rf_net_accept(listener);
     assert(accept_opt.tag == 1);
-    RF_TcpConnection* server = (RF_TcpConnection*)accept_opt.value;
+    RF_Socket* server = (RF_Socket*)accept_opt.value;
 
     /* Send string from client */
     RF_String* msg = rf_string_from_cstr("Hello, network!");
@@ -194,7 +193,7 @@ static void test_write_string_roundtrip(void) {
 
     rf_net_close(client);
     rf_net_close(server);
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 
@@ -206,15 +205,15 @@ static void test_close_connection(void) {
     TEST(close_connection);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
-    RF_TcpConnection* client = _connect_to(port);
+    RF_Socket* client = _connect_to(port);
     assert(client != NULL);
 
     RF_Option_ptr accept_opt = rf_net_accept(listener);
     assert(accept_opt.tag == 1);
-    RF_TcpConnection* server = (RF_TcpConnection*)accept_opt.value;
+    RF_Socket* server = (RF_Socket*)accept_opt.value;
 
     /* Close both — should not crash */
     rf_net_close(client);
@@ -223,7 +222,7 @@ static void test_close_connection(void) {
     /* Close NULL — should not crash */
     rf_net_close(NULL);
 
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 
@@ -235,15 +234,15 @@ static void test_read_after_close(void) {
     TEST(read_after_close);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
-    RF_TcpConnection* client = _connect_to(port);
+    RF_Socket* client = _connect_to(port);
     assert(client != NULL);
 
     RF_Option_ptr accept_opt = rf_net_accept(listener);
     assert(accept_opt.tag == 1);
-    RF_TcpConnection* server = (RF_TcpConnection*)accept_opt.value;
+    RF_Socket* server = (RF_Socket*)accept_opt.value;
 
     /* Close the sender side */
     rf_net_close(client);
@@ -259,7 +258,7 @@ static void test_read_after_close(void) {
     rf_array_release(recv_arr);
 
     rf_net_close(server);
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 
@@ -271,15 +270,15 @@ static void test_remote_addr_format(void) {
     TEST(remote_addr_format);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
-    RF_TcpConnection* client = _connect_to(port);
+    RF_Socket* client = _connect_to(port);
     assert(client != NULL);
 
     RF_Option_ptr accept_opt = rf_net_accept(listener);
     assert(accept_opt.tag == 1);
-    RF_TcpConnection* server = (RF_TcpConnection*)accept_opt.value;
+    RF_Socket* server = (RF_Socket*)accept_opt.value;
 
     /* Get remote addr of client as seen by server */
     RF_Option_ptr addr_opt = rf_net_remote_addr(server);
@@ -294,7 +293,7 @@ static void test_remote_addr_format(void) {
 
     rf_net_close(client);
     rf_net_close(server);
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 
@@ -306,15 +305,15 @@ static void test_set_timeout(void) {
     TEST(set_timeout);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
-    RF_TcpConnection* client = _connect_to(port);
+    RF_Socket* client = _connect_to(port);
     assert(client != NULL);
 
     RF_Option_ptr accept_opt = rf_net_accept(listener);
     assert(accept_opt.tag == 1);
-    RF_TcpConnection* server = (RF_TcpConnection*)accept_opt.value;
+    RF_Socket* server = (RF_Socket*)accept_opt.value;
 
     /* Set timeout — should return true */
     rf_bool ok = rf_net_set_timeout(client, 5000);
@@ -325,7 +324,7 @@ static void test_set_timeout(void) {
 
     rf_net_close(client);
     rf_net_close(server);
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 
@@ -356,15 +355,15 @@ static void test_multiple_writes_reads(void) {
     TEST(multiple_writes_reads);
 
     rf_int port = 0;
-    RF_TcpListener* listener = _start_listener(&port);
+    RF_Socket* listener = _start_listener(&port);
     assert(listener != NULL);
 
-    RF_TcpConnection* client = _connect_to(port);
+    RF_Socket* client = _connect_to(port);
     assert(client != NULL);
 
     RF_Option_ptr accept_opt = rf_net_accept(listener);
     assert(accept_opt.tag == 1);
-    RF_TcpConnection* server = (RF_TcpConnection*)accept_opt.value;
+    RF_Socket* server = (RF_Socket*)accept_opt.value;
 
     /* Send multiple strings from client */
     RF_String* msg1 = rf_string_from_cstr("AAA");
@@ -387,7 +386,7 @@ static void test_multiple_writes_reads(void) {
 
     rf_net_close(client);
     rf_net_close(server);
-    rf_net_close_listener(listener);
+    rf_net_close(listener);
     PASS();
 }
 

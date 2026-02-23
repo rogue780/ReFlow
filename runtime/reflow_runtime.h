@@ -639,24 +639,17 @@ void rf_test_report(RF_TestResult* result);
  * Net (stdlib/net)
  * ======================================================================== */
 
-typedef struct RF_TcpListener RF_TcpListener;
-typedef struct RF_TcpConnection RF_TcpConnection;
+typedef struct RF_Socket RF_Socket;
 
-/* Listener */
 RF_Option_ptr rf_net_listen(RF_String* addr, rf_int port);
-RF_Option_ptr rf_net_accept(RF_TcpListener* listener);
-void          rf_net_close_listener(RF_TcpListener* listener);
-
-/* Connection */
+RF_Option_ptr rf_net_accept(RF_Socket* listener);
 RF_Option_ptr rf_net_connect(RF_String* host, rf_int port);
-RF_Option_ptr rf_net_read(RF_TcpConnection* conn, rf_int max_bytes);
-rf_bool       rf_net_write(RF_TcpConnection* conn, RF_Array* data);
-rf_bool       rf_net_write_string(RF_TcpConnection* conn, RF_String* s);
-void          rf_net_close(RF_TcpConnection* conn);
-
-/* Utilities */
-rf_bool       rf_net_set_timeout(RF_TcpConnection* conn, rf_int ms);
-RF_Option_ptr rf_net_remote_addr(RF_TcpConnection* conn);
+RF_Option_ptr rf_net_read(RF_Socket* sock, rf_int max_bytes);
+rf_bool       rf_net_write(RF_Socket* sock, RF_Array* data);
+rf_bool       rf_net_write_string(RF_Socket* sock, RF_String* s);
+void          rf_net_close(RF_Socket* sock);
+rf_bool       rf_net_set_timeout(RF_Socket* sock, rf_int ms);
+RF_Option_ptr rf_net_remote_addr(RF_Socket* sock);
 
 /* ========================================================================
  * JSON (stdlib/json)

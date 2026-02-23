@@ -1,0 +1,18 @@
+module stdlib_net_smoke
+
+import net
+import io
+
+fn main(): void {
+    let listener = net.listen("127.0.0.1", 0)
+    match listener {
+        some(l): {
+            io.println("listen ok")
+            net.close(l)
+        }
+        none: {
+            io.println("listen failed")
+        }
+    }
+    io.println("done")
+}

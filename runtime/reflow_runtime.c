@@ -3105,11 +3105,7 @@ rf_int rf_test_run_all(RF_Array* tests) {
  * Net (stdlib/net)
  * ======================================================================== */
 
-struct RF_TcpListener {
-    int fd;
-};
-
-struct RF_TcpConnection {
+struct RF_Socket {
     int fd;
 };
 
@@ -3146,13 +3142,13 @@ RF_Option_ptr rf_net_listen(RF_String* addr, rf_int port) {
         return RF_NONE_PTR;
     }
 
-    RF_TcpListener* listener = (RF_TcpListener*)malloc(sizeof(RF_TcpListener));
+    RF_Socket* listener = (RF_Socket*)malloc(sizeof(RF_Socket));
     if (!listener) { close(fd); return RF_NONE_PTR; }
     listener->fd = fd;
     return RF_SOME_PTR(listener);
 }
 
-RF_Option_ptr rf_net_accept(RF_TcpListener* listener) {
+RF_Option_ptr rf_net_accept(RF_Socket* listener) {
     if (!listener || listener->fd < 0) return RF_NONE_PTR;
 
     struct sockaddr_in client_addr;
@@ -3160,20 +3156,10 @@ RF_Option_ptr rf_net_accept(RF_TcpListener* listener) {
     int client_fd = accept(listener->fd, (struct sockaddr*)&client_addr, &client_len);
     if (client_fd < 0) return RF_NONE_PTR;
 
-    RF_TcpConnection* conn = (RF_TcpConnection*)malloc(sizeof(RF_TcpConnection));
+    RF_Socket* conn = (RF_Socket*)malloc(sizeof(RF_Socket));
     if (!conn) { close(client_fd); return RF_NONE_PTR; }
     conn->fd = client_fd;
     return RF_SOME_PTR(conn);
-}
-
-void rf_net_close_listener(RF_TcpListener* listener) {
-    if (listener) {
-        if (listener->fd >= 0) {
-            close(listener->fd);
-            listener->fd = -1;
-        }
-        free(listener);
-    }
 }
 
 RF_Option_ptr rf_net_connect(RF_String* host, rf_int port) {
@@ -3210,13 +3196,13 @@ RF_Option_ptr rf_net_connect(RF_String* host, rf_int port) {
     }
 
     freeaddrinfo(res);
-    RF_TcpConnection* conn = (RF_TcpConnection*)malloc(sizeof(RF_TcpConnection));
+    RF_Socket* conn = (RF_Socket*)malloc(sizeof(RF_Socket));
     if (!conn) { close(fd); return RF_NONE_PTR; }
     conn->fd = fd;
     return RF_SOME_PTR(conn);
 }
 
-RF_Option_ptr rf_net_read(RF_TcpConnection* conn, rf_int max_bytes) {
+RF_Option_ptr rf_net_read(RF_Socket* conn, rf_int max_bytes) {
     if (!conn || conn->fd < 0 || max_bytes <= 0) return RF_NONE_PTR;
 
     rf_byte* buf = (rf_byte*)malloc((size_t)max_bytes);
@@ -3237,7 +3223,7 @@ RF_Option_ptr rf_net_read(RF_TcpConnection* conn, rf_int max_bytes) {
     return RF_SOME_PTR(arr);
 }
 
-rf_bool rf_net_write(RF_TcpConnection* conn, RF_Array* data) {
+rf_bool rf_net_write(RF_Socket* conn, RF_Array* data) {
     if (!conn || conn->fd < 0 || !data) return rf_false;
 
     rf_int64 total = rf_array_len(data);
@@ -3251,7 +3237,7 @@ rf_bool rf_net_write(RF_TcpConnection* conn, RF_Array* data) {
     return rf_true;
 }
 
-rf_bool rf_net_write_string(RF_TcpConnection* conn, RF_String* s) {
+rf_bool rf_net_write_string(RF_Socket* conn, RF_String* s) {
     if (!conn || conn->fd < 0 || !s) return rf_false;
 
     rf_int64 total = rf_string_len(s);
@@ -3265,7 +3251,7 @@ rf_bool rf_net_write_string(RF_TcpConnection* conn, RF_String* s) {
     return rf_true;
 }
 
-void rf_net_close(RF_TcpConnection* conn) {
+void rf_net_close(RF_Socket* conn) {
     if (conn) {
         if (conn->fd >= 0) {
             close(conn->fd);
@@ -3275,7 +3261,7 @@ void rf_net_close(RF_TcpConnection* conn) {
     }
 }
 
-rf_bool rf_net_set_timeout(RF_TcpConnection* conn, rf_int ms) {
+rf_bool rf_net_set_timeout(RF_Socket* conn, rf_int ms) {
     if (!conn || conn->fd < 0) return rf_false;
 
     struct timeval tv;
@@ -3291,7 +3277,7 @@ rf_bool rf_net_set_timeout(RF_TcpConnection* conn, rf_int ms) {
     return rf_true;
 }
 
-RF_Option_ptr rf_net_remote_addr(RF_TcpConnection* conn) {
+RF_Option_ptr rf_net_remote_addr(RF_Socket* conn) {
     if (!conn || conn->fd < 0) return RF_NONE_PTR;
 
     struct sockaddr_in sa;
