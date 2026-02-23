@@ -3,7 +3,8 @@ module http.server
 ; server.reflow — HTTP/1.1 static file server
 ;
 ; A working static file server that exercises the ReFlow stdlib:
-;   net, file, path, string, bytes, conv, io, sys, time, sort
+;   net, file, path, string, bytes, conv, io, sys, time, sort, array,
+;   string_builder
 ;
 ; Usage: server [port] [document_root]
 ;   port          — TCP port to listen on (default: 8080)
@@ -13,17 +14,13 @@ module http.server
 ;   - Serves static files with Content-Type detection (~25 MIME types)
 ;   - Auto-serves index.html for directories, or generates HTML listing
 ;   - Path traversal protection (rejects "..", "%00", non-"/" paths)
+;   - URL percent-decoding (%20, %2F, etc. handled correctly)
+;   - RFC 7231 Date header on every response
 ;   - GET-only (405 for other methods)
 ;   - Connection: close (one request per connection)
 ;
 ; Known limitations:
-;   1. No array indexing in stdlib — uses counter-based iteration
-;   2. No URL percent-decoding — paths with %20 etc. won't match filesystem
-;   3. No RFC 7231 Date header — log uses Unix timestamp
-;   4. Socket is an opaque runtime type that cannot yet be used as a declared
-;      function parameter type outside its defining module; all socket I/O
-;      is handled inline in the accept loop
-;   5. No keep-alive — one request per connection
+;   1. No keep-alive — one request per connection
 
 import net
 import io
@@ -34,6 +31,8 @@ import bytes
 import conv
 import time
 import sort
+import array
+import string_builder
 
 ; ---------------------------------------------------------------------------
 ; mime_type — map file extension to MIME type
@@ -42,31 +41,31 @@ fn mime_type(ext: string): string {
     let lower = string.to_lower(ext)
     match lower {
         ".html": { return "text/html; charset=utf-8" }
-        ".htm": { return "text/html; charset=utf-8" }
-        ".css": { return "text/css; charset=utf-8" }
-        ".js": { return "application/javascript; charset=utf-8" }
+        ".htm":  { return "text/html; charset=utf-8" }
+        ".css":  { return "text/css; charset=utf-8" }
+        ".js":   { return "application/javascript; charset=utf-8" }
         ".json": { return "application/json; charset=utf-8" }
-        ".xml": { return "application/xml; charset=utf-8" }
-        ".txt": { return "text/plain; charset=utf-8" }
-        ".csv": { return "text/csv; charset=utf-8" }
-        ".md": { return "text/markdown; charset=utf-8" }
-        ".png": { return "image/png" }
-        ".jpg": { return "image/jpeg" }
+        ".xml":  { return "application/xml; charset=utf-8" }
+        ".txt":  { return "text/plain; charset=utf-8" }
+        ".csv":  { return "text/csv; charset=utf-8" }
+        ".md":   { return "text/markdown; charset=utf-8" }
+        ".png":  { return "image/png" }
+        ".jpg":  { return "image/jpeg" }
         ".jpeg": { return "image/jpeg" }
-        ".gif": { return "image/gif" }
-        ".svg": { return "image/svg+xml" }
-        ".ico": { return "image/x-icon" }
+        ".gif":  { return "image/gif" }
+        ".svg":  { return "image/svg+xml" }
+        ".ico":  { return "image/x-icon" }
         ".webp": { return "image/webp" }
         ".woff": { return "font/woff" }
-        ".woff2": { return "font/woff2" }
-        ".ttf": { return "font/ttf" }
-        ".otf": { return "font/otf" }
-        ".pdf": { return "application/pdf" }
-        ".zip": { return "application/zip" }
-        ".gz": { return "application/gzip" }
-        ".tar": { return "application/x-tar" }
+        ".woff2":{ return "font/woff2" }
+        ".ttf":  { return "font/ttf" }
+        ".otf":  { return "font/otf" }
+        ".pdf":  { return "application/pdf" }
+        ".zip":  { return "application/zip" }
+        ".gz":   { return "application/gzip" }
+        ".tar":  { return "application/x-tar" }
         ".wasm": { return "application/wasm" }
-        _: { return "application/octet-stream" }
+        _:       { return "application/octet-stream" }
     }
 }
 
@@ -82,21 +81,30 @@ fn status_text(code: int): string {
         404: { return "Not Found" }
         405: { return "Method Not Allowed" }
         500: { return "Internal Server Error" }
-        _: { return "Unknown" }
+        _:   { return "Unknown" }
     }
 }
 
 ; ---------------------------------------------------------------------------
 ; log_request — print a timestamped log line to stdout
+;   Uses RFC 7231 HTTP-date format via time.format_http
 ; ---------------------------------------------------------------------------
 fn log_request(addr: string, method: string, url_path: string, status: int): none {
-    let ts = time.now()
-    io.println("[" + conv.to_string(ts) + "] " + addr + " " + method + " " + url_path + " -> " + conv.to_string(status))
+    let dt = time.datetime_now()
+    let ts = time.format_http(dt)
+    io.println("[" + ts + "] " + addr + " " + method + " " + url_path + " -> " + conv.to_string(status))
 }
 
 ; ---------------------------------------------------------------------------
-; sanitize_path — validate and clean a URL path
+; sanitize_path — validate, URL-decode, and clean a URL path
 ;   Returns none if the path is unsafe.
+;
+;   Order of operations:
+;     1. Reject obviously empty or non-root-relative paths
+;     2. Reject raw null-byte percent-encoding (%00) before decoding
+;     3. URL-decode (so %2e%2e → ".." is caught by the traversal check)
+;     4. Reject paths containing ".." after decoding
+;     5. Strip query string and fragment
 ; ---------------------------------------------------------------------------
 fn sanitize_path(raw: string): string? {
     ; Reject empty paths
@@ -109,21 +117,25 @@ fn sanitize_path(raw: string): string? {
         return none
     }
 
-    ; Reject null bytes
+    ; Reject null-byte injection in percent-encoded form before decoding
     if string.contains(raw, "%00") {
         return none
     }
 
-    ; Reject path traversal
-    if string.contains(raw, "..") {
+    ; URL-decode so encoded traversal sequences (%2e%2e, %2f, etc.) are
+    ; caught by the checks below
+    let decoded = string.url_decode(raw)
+
+    ; Reject path traversal (now catches both ".." and "%2e%2e")
+    if string.contains(decoded, "..") {
         return none
     }
 
     ; Strip query string
-    let clean: string:mut = raw
-    match string.index_of(raw, "?") {
+    let clean: string:mut = decoded
+    match string.index_of(decoded, "?") {
         some(idx): {
-            clean = string.substring(raw, 0, idx)
+            clean = string.substring(decoded, 0, idx)
         }
         none: {}
     }
@@ -145,20 +157,27 @@ fn sanitize_path(raw: string): string? {
 }
 
 ; ---------------------------------------------------------------------------
-; build_response_header — construct full HTTP/1.1 header block ending with
+; build_response_header — construct a full HTTP/1.1 header block ending with
 ;   a blank line (double CRLF).
+;   Includes a RFC 7231 Date header.
+;   Uses StringBuilder for efficient header assembly.
 ; ---------------------------------------------------------------------------
 fn build_response_header(status: int, content_type: string, content_length: int64): string {
     let reason = status_text(status)
-    let len_str = conv.to_string(content_length)
-    let crlf = "\r\n"
-    let header: string:mut = "HTTP/1.1 " + conv.to_string(status) + " " + reason + crlf
-    header = header + "Content-Type: " + content_type + crlf
-    header = header + "Content-Length: " + len_str + crlf
-    header = header + "Connection: close" + crlf
-    header = header + "Server: ReFlow/0.1" + crlf
-    header = header + crlf
-    return header
+    let dt = time.datetime_now()
+    let date = time.format_http(dt)
+
+    let sb = string_builder.new()
+    string_builder.append(sb, "HTTP/1.1 " + conv.to_string(status) + " " + reason + "\r\n")
+    string_builder.append(sb, "Date: " + date + "\r\n")
+    string_builder.append(sb, "Content-Type: " + content_type + "\r\n")
+    string_builder.append(sb, "Content-Length: ")
+    string_builder.append_int64(sb, content_length)
+    string_builder.append(sb, "\r\n")
+    string_builder.append(sb, "Connection: close\r\n")
+    string_builder.append(sb, "Server: ReFlow/0.1\r\n")
+    string_builder.append(sb, "\r\n")
+    return string_builder.build(sb)
 }
 
 ; ---------------------------------------------------------------------------
@@ -174,14 +193,10 @@ fn build_error_body(code: int, message: string): string {
 ; mime_for_path — determine the MIME type for a given filesystem path
 ; ---------------------------------------------------------------------------
 fn mime_for_path(fs_path: string): string {
-    let content_type: string:mut = "application/octet-stream"
     match path.extension(fs_path) {
-        some(ext): {
-            content_type = mime_type(ext)
-        }
-        none: {}
+        some(ext): { return mime_type(ext) }
+        none:      { return "application/octet-stream" }
     }
-    return content_type
 }
 
 ; ---------------------------------------------------------------------------
@@ -197,22 +212,24 @@ fn url_for_entry(dir_url: string, name: string): string {
 ; ---------------------------------------------------------------------------
 ; build_directory_html — generate an HTML directory listing page
 ;   Returns none if the directory cannot be listed.
+;   Uses StringBuilder to avoid O(n²) string concatenation.
 ; ---------------------------------------------------------------------------
 fn build_directory_html(url_path: string, fs_path: string): string? {
     match path.list_dir(fs_path) {
         some(entries): {
             let sorted = sort.sort(entries)
+            let sb = string_builder.new()
 
-            let html: string:mut = "<html><head><title>Index of " + url_path + "</title>"
-            html = html + "<style>"
-            html = html + "body{font-family:monospace;margin:2em;}"
-            html = html + "a{text-decoration:none;color:#0366d6;}"
-            html = html + "a:hover{text-decoration:underline;}"
-            html = html + "li{padding:0.2em 0;}"
-            html = html + ".dir{font-weight:bold;}"
-            html = html + "</style></head><body>"
-            html = html + "<h1>Index of " + url_path + "</h1>"
-            html = html + "<ul>"
+            string_builder.append(sb, "<html><head><title>Index of " + url_path + "</title>")
+            string_builder.append(sb, "<style>")
+            string_builder.append(sb, "body{font-family:monospace;margin:2em;}")
+            string_builder.append(sb, "a{text-decoration:none;color:#0366d6;}")
+            string_builder.append(sb, "a:hover{text-decoration:underline;}")
+            string_builder.append(sb, "li{padding:0.2em 0;}")
+            string_builder.append(sb, ".dir{font-weight:bold;}")
+            string_builder.append(sb, "</style></head><body>")
+            string_builder.append(sb, "<h1>Index of " + url_path + "</h1>")
+            string_builder.append(sb, "<ul>")
 
             ; Parent directory link (unless at root)
             if url_path != "/" {
@@ -220,7 +237,7 @@ fn build_directory_html(url_path: string, fs_path: string): string? {
                 if string.len(parent_url) == 0 {
                     parent_url = "/"
                 }
-                html = html + "<li><a href=\"" + parent_url + "\">../</a></li>"
+                string_builder.append(sb, "<li><a href=\"" + parent_url + "\">../</a></li>")
             }
 
             ; First pass: directories (bold, trailing /)
@@ -228,7 +245,7 @@ fn build_directory_html(url_path: string, fs_path: string): string? {
                 let entry_path = path.join(fs_path, entry)
                 if path.is_dir(entry_path) {
                     let href = url_for_entry(url_path, entry)
-                    html = html + "<li class=\"dir\"><a href=\"" + href + "/\">" + entry + "/</a></li>"
+                    string_builder.append(sb, "<li class=\"dir\"><a href=\"" + href + "/\">" + entry + "/</a></li>")
                 }
             }
 
@@ -237,12 +254,12 @@ fn build_directory_html(url_path: string, fs_path: string): string? {
                 let entry_path = path.join(fs_path, entry)
                 if path.is_file(entry_path) {
                     let href = url_for_entry(url_path, entry)
-                    html = html + "<li><a href=\"" + href + "\">" + entry + "</a></li>"
+                    string_builder.append(sb, "<li><a href=\"" + href + "\">" + entry + "</a></li>")
                 }
             }
 
-            html = html + "</ul><hr><em>ReFlow/0.1</em></body></html>"
-            return some(html)
+            string_builder.append(sb, "</ul><hr><em>ReFlow/0.1</em></body></html>")
+            return some(string_builder.build(sb))
         }
         none: {
             return none
@@ -277,20 +294,24 @@ fn build_redirect(location: string): string {
     let body = "<html><body>Moved to <a href=\"" + location + "\">" + location + "</a></body></html>"
     let body_bytes = string.to_bytes(body)
     let body_len = bytes.len(body_bytes)
-    let crlf = "\r\n"
-    let header: string:mut = "HTTP/1.1 301 " + reason + crlf
-    header = header + "Location: " + location + crlf
-    header = header + "Content-Type: text/html; charset=utf-8" + crlf
-    header = header + "Content-Length: " + conv.to_string(body_len) + crlf
-    header = header + "Connection: close" + crlf
-    header = header + "Server: ReFlow/0.1" + crlf
-    header = header + crlf
-    return header + body
+    let sb = string_builder.new()
+    string_builder.append(sb, "HTTP/1.1 301 " + reason + "\r\n")
+    string_builder.append(sb, "Location: " + location + "\r\n")
+    string_builder.append(sb, "Content-Type: text/html; charset=utf-8\r\n")
+    string_builder.append(sb, "Content-Length: ")
+    string_builder.append_int64(sb, body_len)
+    string_builder.append(sb, "\r\n")
+    string_builder.append(sb, "Connection: close\r\n")
+    string_builder.append(sb, "Server: ReFlow/0.1\r\n")
+    string_builder.append(sb, "\r\n")
+    string_builder.append(sb, body)
+    return string_builder.build(sb)
 }
 
 ; ---------------------------------------------------------------------------
 ; parse_request_line — extract (METHOD, /path) from raw HTTP request text
 ;   Returns none if the request line is malformed.
+;   Uses array.get for direct index access (no counter-based workaround).
 ; ---------------------------------------------------------------------------
 fn parse_request_line(raw: string): (string, string)? {
     ; Extract the first line (up to CRLF)
@@ -307,33 +328,24 @@ fn parse_request_line(raw: string): (string, string)? {
     ; Split on spaces: "GET /path HTTP/1.1"
     let parts = string.split(request_line, " ")
 
-    ; Extract parts[0] (method) and parts[1] (path) via counter
-    ; (no array indexing available in stdlib)
-    let method: string:mut = ""
-    let url_path: string:mut = ""
-    let idx: int:mut = 0
-    for (part: string in parts) {
-        if idx == 0 {
-            method = part
+    ; Use array.get for direct index access
+    match array.get(parts, 0) {
+        some(method): {
+            match array.get(parts, 1) {
+                some(url_path): {
+                    if string.len(method) == 0 {
+                        return none
+                    }
+                    if string.len(url_path) == 0 {
+                        return none
+                    }
+                    return some((method, url_path))
+                }
+                none: { return none }
+            }
         }
-        if idx == 1 {
-            url_path = part
-        }
-        idx = idx + 1
+        none: { return none }
     }
-
-    ; Need at least method and path
-    if idx < 2 {
-        return none
-    }
-    if string.len(method) == 0 {
-        return none
-    }
-    if string.len(url_path) == 0 {
-        return none
-    }
-
-    return some((method, url_path))
 }
 
 ; ---------------------------------------------------------------------------
@@ -345,31 +357,36 @@ fn parse_request_line(raw: string): (string, string)? {
 ;       -> for each client: read request, route, respond, close
 ;
 ; Each accepted connection is handled inline in the accept loop.
-; A future version could spawn handle_connection as a coroutine via :<
-; once the compiler supports Socket as a function parameter type.
+; A future version could extract handle_connection as a separate function
+; once Socket is fully usable as a declared parameter type in user modules.
 ; ---------------------------------------------------------------------------
 fn main(): none {
     ; Parse CLI arguments: [port] [document_root]
+    ; Uses array.get for direct index access instead of a counter loop.
     let argv = sys.args()
     let port: int:mut = 8080
     let doc_root: string:mut = "."
-    let arg_idx: int:mut = 0
-    for (arg: string in argv) {
-        if arg_idx == 1 {
-            match conv.string_to_int(arg) {
+
+    match array.get(argv, 1) {
+        some(port_str): {
+            match conv.string_to_int(port_str) {
                 some(p): {
                     port = p
                 }
                 none: {
-                    io.eprintln("Invalid port: " + arg)
+                    io.eprintln("Invalid port: " + port_str)
                     sys.exit(1)
                 }
             }
         }
-        if arg_idx == 2 {
-            doc_root = arg
+        none: {}
+    }
+
+    match array.get(argv, 2) {
+        some(root): {
+            doc_root = root
         }
-        arg_idx = arg_idx + 1
+        none: {}
     }
 
     ; Resolve document root to absolute path
@@ -432,7 +449,7 @@ fn main(): none {
                                             status = 405
                                             log_request(addr, method, url_path, status)
                                         } else {
-                                            ; Sanitize the URL path
+                                            ; Sanitize and URL-decode the path
                                             match sanitize_path(url_path) {
                                                 some(clean_path): {
                                                     let fs_path = resolve_fs_path(resolved_root, clean_path)
@@ -524,7 +541,7 @@ fn main(): none {
                                                     log_request(addr, method, clean_path, status)
                                                 }
                                                 none: {
-                                                    ; Invalid path (traversal, null bytes, etc.)
+                                                    ; Invalid path (traversal, null bytes, encoded tricks, etc.)
                                                     let eb = build_error_body(400, "Invalid request path.")
                                                     let ebs = string.to_bytes(eb)
                                                     let ebl = bytes.len(ebs)
