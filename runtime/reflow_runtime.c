@@ -3212,16 +3212,14 @@ RF_Option_ptr rf_net_read(RF_Socket* conn, rf_int max_bytes) {
     if (!buf) return RF_NONE_PTR;
 
     ssize_t n = recv(conn->fd, buf, (size_t)max_bytes, 0);
-    if (n < 0) {
+    if (n <= 0) {
+        /* n < 0: error; n == 0: peer closed connection (EOF) */
         free(buf);
         return RF_NONE_PTR;
     }
 
-    /* n == 0 means connection closed — return SOME with empty array */
     RF_Array* arr = rf_array_new((rf_int64)n, sizeof(rf_byte), NULL);
-    if (n > 0) {
-        memcpy(arr->data, buf, (size_t)n);
-    }
+    memcpy(arr->data, buf, (size_t)n);
     free(buf);
     return RF_SOME_PTR(arr);
 }
@@ -3233,7 +3231,7 @@ rf_bool rf_net_write(RF_Socket* conn, RF_Array* data) {
     rf_int64 sent = 0;
     while (sent < total) {
         ssize_t n = send(conn->fd, (char*)data->data + sent,
-                         (size_t)(total - sent), 0);
+                         (size_t)(total - sent), MSG_NOSIGNAL);
         if (n <= 0) return rf_false;
         sent += n;
     }
@@ -3247,7 +3245,7 @@ rf_bool rf_net_write_string(RF_Socket* conn, RF_String* s) {
     rf_int64 sent = 0;
     while (sent < total) {
         ssize_t n = send(conn->fd, s->data + sent,
-                         (size_t)(total - sent), 0);
+                         (size_t)(total - sent), MSG_NOSIGNAL);
         if (n <= 0) return rf_false;
         sent += n;
     }
