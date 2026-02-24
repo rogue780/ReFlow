@@ -17,6 +17,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <signal.h>
 
 /* ========================================================================
  * Panic Functions (RT-1-1-3)
@@ -2746,6 +2747,7 @@ static char** _rf_argv = NULL;
 void _rf_runtime_init(int argc, char** argv) {
     _rf_argc = argc;
     _rf_argv = argv;
+    signal(SIGPIPE, SIG_IGN);
 }
 
 /* ========================================================================
@@ -3415,7 +3417,7 @@ rf_bool rf_net_write_string_fd(rf_int fd, RF_String* s) {
     rf_int64 total = rf_string_len(s);
     rf_int64 sent = 0;
     while (sent < total) {
-        ssize_t n = send(fd, s->data + sent, (size_t)(total - sent), 0);
+        ssize_t n = send(fd, s->data + sent, (size_t)(total - sent), MSG_NOSIGNAL);
         if (n <= 0) return rf_false;
         sent += n;
     }
