@@ -467,19 +467,39 @@ class Emitter:
         self._emitln("}")
 
     def _emit_while(self, cond: LExpr, body: list[LStmt]) -> None:
-        """Emit a while loop."""
+        """Emit a while loop.
+
+        When the condition produces pre-statements (e.g. RF_CHECKED_MUL for
+        ``d * d <= n``), those pre-statements must be re-evaluated on every
+        iteration, not just once before the loop.  We detect this case and
+        emit a ``while (1) { <pre-stmts>; if (!cond) break; <body> }`` loop
+        so the temporaries are recomputed each time.
+        """
         saved = self._pre_stmts
         self._pre_stmts = []
         cond_str = self._emit_expr(cond)
-        self._flush_pre_stmts()
+        cond_pre = list(self._pre_stmts)
         self._pre_stmts = saved
 
-        self._emitln(f"while ({self._strip_outer_parens(cond_str)}) {{")
-        self._indent()
-        for s in body:
-            self._emit_stmt(s)
-        self._dedent()
-        self._emitln("}")
+        if cond_pre:
+            # Condition has side-effecting pre-statements that must run
+            # each iteration (e.g. checked-arithmetic temps).
+            self._emitln("while (1) {")
+            self._indent()
+            for s in cond_pre:
+                self._emitln(s)
+            self._emitln(f"if (!({self._strip_outer_parens(cond_str)})) break;")
+            for s in body:
+                self._emit_stmt(s)
+            self._dedent()
+            self._emitln("}")
+        else:
+            self._emitln(f"while ({self._strip_outer_parens(cond_str)}) {{")
+            self._indent()
+            for s in body:
+                self._emit_stmt(s)
+            self._dedent()
+            self._emitln("}")
 
     def _emit_block(self, stmts: list[LStmt]) -> None:
         """Emit a block statement."""
