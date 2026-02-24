@@ -1,17 +1,27 @@
 module tests.coroutine_send_test
 import io (println)
 
-; Receivable coroutine: first param is stream<string> (the inbox)
+; Receivable coroutine: first param is stream<string> (the inbox).
+; The inbox is non-blocking — for-in drains available messages then exits.
+; The producer loops, checking the inbox each iteration.
 fn echo_worker(inbox: stream<string>): stream<string> {
-    for (msg: string in inbox) {
-        yield "echo: " + msg
+    let running: bool:mut = true
+    while (running) {
+        let got_any: bool:mut = false
+        for (msg: string in inbox) {
+            got_any = true
+            yield "echo: " + msg
+        }
+        ; If inbox was empty AND we never got anything, stop.
+        ; (Channel closed after all messages consumed.)
+        if !got_any { running = false }
     }
 }
 
 fn main() {
     let w :< echo_worker()
 
-    ; Send messages into the inbox
+    ; Send messages into the inbox (queued in channel FIFO)
     w.send("hello")
     w.send("world")
     w.send("done")

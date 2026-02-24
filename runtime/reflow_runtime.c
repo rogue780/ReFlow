@@ -572,6 +572,19 @@ RF_Stream* rf_stream_from_channel(RF_Channel* ch) {
                          (void*)ch);
 }
 
+/* Non-blocking variant: try_recv returns none immediately if empty */
+static RF_Option_ptr _rf_stream_from_channel_try_next(RF_Stream* self) {
+    RF_Channel* ch = (RF_Channel*)self->state;
+    return rf_channel_try_recv(ch);
+}
+
+RF_Stream* rf_stream_from_channel_nonblocking(RF_Channel* ch) {
+    rf_channel_retain(ch);  /* stream holds a ref */
+    return rf_stream_new(_rf_stream_from_channel_try_next,
+                         _rf_stream_from_channel_free,
+                         (void*)ch);
+}
+
 /* ========================================================================
  * Stream Helpers
  * ======================================================================== */
@@ -3339,6 +3352,24 @@ RF_Option_ptr rf_net_remote_addr(RF_Socket* conn) {
 
     RF_String* addr_str = rf_string_from_cstr(result);
     return RF_SOME_PTR(addr_str);
+}
+
+rf_int rf_net_fd(RF_Socket* conn) {
+    if (!conn || conn->fd < 0) return -1;
+    return conn->fd;
+}
+
+rf_bool rf_net_write_string_fd(rf_int fd, RF_String* s) {
+    if (fd < 0 || !s) return rf_false;
+
+    rf_int64 total = rf_string_len(s);
+    rf_int64 sent = 0;
+    while (sent < total) {
+        ssize_t n = send(fd, s->data + sent, (size_t)(total - sent), 0);
+        if (n <= 0) return rf_false;
+        sent += n;
+    }
+    return rf_true;
 }
 
 /* ========================================================================

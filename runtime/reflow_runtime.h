@@ -266,6 +266,7 @@ void          rf_coroutine_send(RF_Coroutine* c, void* val);
 rf_bool       rf_coroutine_try_send(RF_Coroutine* c, void* val);
 void          rf_coroutine_set_input(RF_Coroutine* c, RF_Channel* input);
 RF_Stream*    rf_stream_from_channel(RF_Channel* ch);
+RF_Stream*    rf_stream_from_channel_nonblocking(RF_Channel* ch);
 
 /* ========================================================================
  * Closures
@@ -699,6 +700,8 @@ rf_bool       rf_net_write_string(RF_Socket* sock, RF_String* s);
 void          rf_net_close(RF_Socket* sock);
 rf_bool       rf_net_set_timeout(RF_Socket* sock, rf_int ms);
 RF_Option_ptr rf_net_remote_addr(RF_Socket* sock);
+rf_int        rf_net_fd(RF_Socket* conn);
+rf_bool       rf_net_write_string_fd(rf_int fd, RF_String* s);
 
 /* ========================================================================
  * JSON (stdlib/json)

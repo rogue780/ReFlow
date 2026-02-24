@@ -2405,11 +2405,12 @@ class Lowerer:
             init=LCall("rf_channel_new",
                         [LLit("64", LInt(32, True))], ch_ptr)))
 
-        # 2. Create inbox stream: RF_Stream* _rf_tmp_M = rf_stream_from_channel(input_ch)
+        # 2. Create inbox stream (non-blocking: try_recv so for-in drains
+        #    available messages without blocking the producer thread)
         inbox_tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(
             c_name=inbox_tmp, c_type=stream_ptr,
-            init=LCall("rf_stream_from_channel",
+            init=LCall("rf_stream_from_channel_nonblocking",
                         [LVar(input_ch_tmp, ch_ptr)], stream_ptr)))
 
         # 3. Lower the call args, prepending the inbox stream
