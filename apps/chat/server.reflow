@@ -99,21 +99,26 @@ fn log(msg: string): none {
 ; Broadcast helper — send message to all clients except sender
 ; ===========================================================================
 
-fn broadcast(client_fds: map<string, string>, exclude_addr: string, msg: string): none {
+fn broadcast(client_fds: map<string, string>, exclude_addr: string, msg: string): array<string> {
     let addrs = map.keys(client_fds)
+    let dead: array<string>:mut = []
     let k: int:mut = 0
     while (k < array.len_string(addrs)) {
         if let some(a) = array.get(addrs, k) {
             if a != exclude_addr {
                 if let some(fs) = map.get(client_fds, a) {
                     if let some(f) = conv.string_to_int(fs) {
-                        net.write_to_fd(f, msg)
+                        let sent = net.write_to_fd(f, msg)
+                        if !sent {
+                            dead = array.push(dead, a)
+                        }
                     }
                 }
             }
         }
         k = k + 1
     }
+    return dead
 }
 
 ; Send a message to a specific fd stored as string in client_fds
@@ -123,6 +128,29 @@ fn send_to(client_fds: map<string, string>, addr: string, msg: string): none {
             net.write_to_fd(f, msg)
         }
     }
+}
+
+; Remove dead clients from state maps and notify remaining clients.
+; Returns (updated_nicknames, updated_client_fds).
+fn remove_dead_clients(
+    dead: array<string>,
+    nicknames: map<string, string>,
+    client_fds: map<string, string>
+): (map<string, string>, map<string, string>) {
+    let nicks: map<string, string>:mut = nicknames
+    let fds: map<string, string>:mut = client_fds
+    let i: int:mut = 0
+    while (i < array.len_string(dead)) {
+        if let some(addr) = array.get(dead, i) {
+            let nick = map.get(nicks, addr) ?? addr
+            nicks = map.remove(nicks, addr)
+            fds = map.remove(fds, addr)
+            broadcast(fds, "", "*** " + nick + " has disconnected ***\r\n")
+            log("[disconnect] " + nick + " (connection lost)")
+        }
+        i = i + 1
+    }
+    return (nicks, fds)
 }
 
 ; ===========================================================================
@@ -179,14 +207,15 @@ fn dispatch_message(
     arg: string,
     nicknames: map<string, string>,
     client_fds: map<string, string>
-): (map<string, string>, bool) {
+): (map<string, string>, map<string, string>, bool) {
     let sender_nick = map.get(nicknames, sender_addr) ?? sender_addr
     let nicks: map<string, string>:mut = nicknames
+    let fds: map<string, string>:mut = client_fds
 
     match cmd {
         "/quit": {
-            send_to(client_fds, sender_addr, "Goodbye!\r\n")
-            return (nicks, false)
+            send_to(fds, sender_addr, "Goodbye!\r\n")
+            return (nicks, fds, false)
         }
         "/help": {
             let help_text = "Commands:\r\n"
@@ -195,19 +224,22 @@ fn dispatch_message(
                 + "  /list        - List online users\r\n"
                 + "  /quit        - Disconnect\r\n"
                 + "  (anything else is sent as chat)\r\n"
-            send_to(client_fds, sender_addr, help_text)
+            send_to(fds, sender_addr, help_text)
         }
         "/nick": {
             if let some(reason) = validate_nick(arg) {
-                send_to(client_fds, sender_addr, "Error: " + reason + "\r\n")
+                send_to(fds, sender_addr, "Error: " + reason + "\r\n")
             } else {
                 if is_nick_taken(nicks, arg) {
-                    send_to(client_fds, sender_addr, "Nickname '" + arg + "' is already taken.\r\n")
+                    send_to(fds, sender_addr, "Nickname '" + arg + "' is already taken.\r\n")
                 } else {
                     let old_nick = sender_nick
                     nicks = map.set(nicks, sender_addr, arg)
-                    send_to(client_fds, sender_addr, "You are now known as " + arg + "\r\n")
-                    broadcast(client_fds, sender_addr, "*** " + old_nick + " is now known as " + arg + " ***\r\n")
+                    send_to(fds, sender_addr, "You are now known as " + arg + "\r\n")
+                    let dead = broadcast(fds, sender_addr, "*** " + old_nick + " is now known as " + arg + " ***\r\n")
+                    let cleaned = remove_dead_clients(dead, nicks, fds)
+                    nicks = cleaned.0
+                    fds = cleaned.1
                     log("[nick] " + old_nick + " -> " + arg)
                 }
             }
@@ -225,20 +257,23 @@ fn dispatch_message(
                 }
                 k = k + 1
             }
-            send_to(client_fds, sender_addr, list_msg)
+            send_to(fds, sender_addr, list_msg)
         }
         "/say": {
             let chat_msg = "[" + sender_nick + "] " + arg + "\r\n"
             log("[chat] " + sender_nick + ": " + arg)
-            broadcast(client_fds, sender_addr, chat_msg)
+            let dead = broadcast(fds, sender_addr, chat_msg)
+            let cleaned = remove_dead_clients(dead, nicks, fds)
+            nicks = cleaned.0
+            fds = cleaned.1
         }
         "/empty": {}
         _: {
-            send_to(client_fds, sender_addr, "Unknown command: " + cmd + ". Type /help for commands.\r\n")
+            send_to(fds, sender_addr, "Unknown command: " + cmd + ". Type /help for commands.\r\n")
         }
     }
 
-    return (nicks, true)
+    return (nicks, fds, true)
 }
 
 ; ===========================================================================
@@ -290,7 +325,10 @@ fn main(): none {
                 log("[connect] " + nick + " from " + addr)
 
                 ; Broadcast join notification
-                broadcast(client_fds, addr, "*** " + nick + " has joined ***\r\n")
+                let dead = broadcast(client_fds, addr, "*** " + nick + " has joined ***\r\n")
+                let cleaned = remove_dead_clients(dead, nicknames, client_fds)
+                nicknames = cleaned.0
+                client_fds = cleaned.1
 
                 ; Spawn client coroutine and track it
                 let handler :< client_handler(client, addr)
@@ -313,14 +351,18 @@ fn main(): none {
 
                             let result = dispatch_message(sender_addr, cmd, arg, nicknames, client_fds)
                             nicknames = result.0
-                            let alive = result.1
+                            client_fds = result.1
+                            let alive = result.2
 
                             if !alive {
                                 ; Client requested disconnect
                                 let leaving_nick = map.get(nicknames, sender_addr) ?? sender_addr
                                 nicknames = map.remove(nicknames, sender_addr)
                                 client_fds = map.remove(client_fds, sender_addr)
-                                broadcast(client_fds, "", "*** " + leaving_nick + " has left ***\r\n")
+                                let dead = broadcast(client_fds, "", "*** " + leaving_nick + " has left ***\r\n")
+                                let cleaned = remove_dead_clients(dead, nicknames, client_fds)
+                                nicknames = cleaned.0
+                                client_fds = cleaned.1
                                 log("[disconnect] " + leaving_nick)
                             }
                         }
@@ -332,7 +374,10 @@ fn main(): none {
                                 let leaving_nick = map.get(nicknames, addr) ?? addr
                                 nicknames = map.remove(nicknames, addr)
                                 client_fds = map.remove(client_fds, addr)
-                                broadcast(client_fds, "", "*** " + leaving_nick + " has left ***\r\n")
+                                let dead = broadcast(client_fds, "", "*** " + leaving_nick + " has left ***\r\n")
+                                let cleaned = remove_dead_clients(dead, nicknames, client_fds)
+                                nicknames = cleaned.0
+                                client_fds = cleaned.1
                                 log("[disconnect] " + leaving_nick)
                             }
                         }
