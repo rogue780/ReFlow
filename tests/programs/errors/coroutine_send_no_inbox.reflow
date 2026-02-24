@@ -1,0 +1,10 @@
+module tests.errors.coroutine_send_no_inbox
+
+fn counter(start: int): stream<int> {
+    yield start
+}
+
+fn main() {
+    let c :< counter(1)
+    c.send(42)
+}

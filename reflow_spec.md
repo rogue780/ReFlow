@@ -1528,6 +1528,8 @@ In streaming functions consumed directly (without `:<`), parameters stay owned b
 
 When a stream function is launched as a coroutine with `:<`, its parameters are owned by the producer thread for the coroutine's lifetime. Immutable parameters are shared via refcount increment. Mutable parameters are moved — the spawning scope loses access. Yielded values transfer ownership through the channel to the consumer.
 
+For receivable coroutines (first parameter is `stream<S>`), the inbox stream is created by the runtime and owned by the producer thread. Values sent via `.send()` transfer ownership through the inbox channel to the producer, following the same rules as yielded values in the reverse direction: immutable data is shared via refcount, mutable data is moved.
+
 ### Ownership Summary
 
 | Action | Effect |
@@ -2024,11 +2026,11 @@ let gen :< producer(seed) with capacity(1)     ; tightly coupled, minimal buffer
 
 ### Coroutine API
 
-The coroutine type is derived from the function's signature. If `producer` has type `fn(ArgType): stream<YieldType>`, then `gen` exposes:
+The coroutine handle exposes up to three methods, depending on whether the coroutine function is **receivable** (supports bidirectional communication).
 
 ```
 gen.next(): option<YieldType>       ; read next value from channel; blocks if empty; none when done
-gen.send(val: ArgType)              ; write a value into the coroutine's input channel
+gen.send(val: SendType)             ; push a value into the producer's inbox stream (receivable only)
 gen.done(): bool                    ; true when producer has finished AND channel is drained
 ```
 
@@ -2036,9 +2038,48 @@ gen.done(): bool                    ; true when producer has finished AND channe
 
 `.done()` returns `true` only when both conditions hold: the producer thread has terminated and the internal channel has been fully drained. While buffered values remain, `.done()` returns `false` even if the producer has finished.
 
-`.send()` writes a value into a separate input channel that the producer can read from. This enables bidirectional communication. The producer receives sent values through a mechanism defined by the coroutine function's parameter type.
+### Receivable Coroutines and `.send()`
 
-The type parameters of `.send()` and `.next()` are always derived from the coroutine function. Passing the wrong type is a compile error.
+A coroutine function is **receivable** when its first parameter has type `stream<S>`. This first parameter is the **inbox** — a stream that the runtime automatically creates and wires to the coroutine handle's `.send()` method. The inbox parameter is implicit at the call site; remaining parameters are passed as normal arguments.
+
+```
+fn handler(inbox: stream<string>, config: Config): stream<Result> { ... }
+
+let h :< handler(my_config)         ; inbox is auto-created; my_config maps to 2nd param
+h.send("command")                   ; pushes "command" onto inbox: stream<string>
+match h.next() { ... }              ; pulls from yields: option<Result>
+```
+
+The type of `.send()` is derived from the inbox parameter: if the first parameter is `stream<S>`, then `.send()` accepts `S`. The type of `.next()` is derived from the return type: if the function returns `stream<Y>`, then `.next()` returns `option<Y>`. The two types are independent.
+
+| Method | Type | Direction |
+|--------|------|-----------|
+| `.send(val)` | `S` from first param `stream<S>` | consumer → producer |
+| `.next()` | `option<Y>` from return `stream<Y>` | producer → consumer |
+| `yield val` | `Y` | producer emits |
+| inbox consumption | `S` | producer receives |
+
+If the first parameter is **not** `stream<S>`, the coroutine is **send-less** — calling `.send()` is a compile error.
+
+Inside the producer function, the inbox is consumed like any other stream: via `for-in`, pattern matching on `.next()` calls, or any stream operation. The inbox is backed by a bounded channel, so the consumer's `.send()` blocks if the inbox buffer is full (backpressure applies in both directions).
+
+### Receivable Coroutine Example
+
+```
+fn echo_worker(inbox: stream<string>): stream<string> {
+    for (msg: string in inbox) {
+        yield "echo: " + msg
+    }
+}
+
+let w :< echo_worker()
+w.send("hello")
+w.send("world")
+match w.next() { some(v): { io.println(v) } none: {} }  ; "echo: hello"
+match w.next() { some(v): { io.println(v) } none: {} }  ; "echo: world"
+```
+
+The type parameters of `.send()` and `.next()` are always derived from the coroutine function's signature. Passing the wrong type is a compile error.
 
 ### Example: Basic Producer
 
@@ -2100,7 +2141,7 @@ let b = gen.next()                  ; throws ParseError on the caller's thread
 
 ### Coroutine Lifetime
 
-A coroutine's producer thread runs until the function returns, the stream is exhausted, or an exception is thrown. When the coroutine handle goes out of scope and is released, the runtime closes the channel and joins the producer thread. If the producer is blocked on a full channel, the close unblocks it.
+A coroutine's producer thread runs until the function returns, the stream is exhausted, or an exception is thrown. When the coroutine handle goes out of scope and is released, the runtime closes both the output channel and the inbox channel (if receivable), then joins the producer thread. If the producer is blocked on a full channel or waiting on an empty inbox, the close unblocks it.
 
 ### Streams vs. Coroutines
 
@@ -2109,7 +2150,8 @@ A coroutine's producer thread runs until the function returns, the stream is exh
 | **Execution** | Lazy, pull-based, same thread | Eager, push-based, separate thread |
 | **Yield** | Suspends via state machine, resumes on next pull | Pushes into channel, blocks if full |
 | **Backpressure** | Inherent (consumer drives) | Channel capacity (producer blocks when full) |
-| **Use when** | Simple pipelines, composition chains | Concurrent production, I/O overlap, multiple producers |
+| **Bidirectional** | No | Yes, if first param is `stream<S>` (receivable) |
+| **Use when** | Simple pipelines, composition chains | Concurrent production, I/O overlap, bidirectional communication |
 
 ---
 

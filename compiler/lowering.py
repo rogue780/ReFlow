@@ -2132,6 +2132,11 @@ class Lowerer:
 
             # Coroutine start — wrap stream in RF_Coroutine
             case CoroutineStart(call=call):
+                coro_type = self._type_of(expr)
+                is_receivable = (isinstance(coro_type, TCoroutine)
+                                 and not isinstance(coro_type.send_type, TAny))
+                if is_receivable:
+                    return self._lower_receivable_coroutine_start(call, expr)
                 stream_expr = self._lower_expr(call)
                 return LCall("rf_coroutine_new", [stream_expr],
                              LPtr(LStruct("RF_Coroutine")))
@@ -2381,6 +2386,101 @@ class Lowerer:
         method_c_name = f"rf_{type_name}_{expr.method}"
         return LCall(method_c_name, [recv] + lowered_args, lt)
 
+    def _lower_receivable_coroutine_start(
+            self, call: Call, expr: CoroutineStart) -> LExpr:
+        """Lower a receivable coroutine start (first param is stream<T>).
+
+        Creates an input channel, wraps it as a stream for the inbox param,
+        prepends it to the function call args, creates a threaded coroutine,
+        and wires up the input channel.
+        """
+        coro_ptr = LPtr(LStruct("RF_Coroutine"))
+        ch_ptr = LPtr(LStruct("RF_Channel"))
+        stream_ptr = LPtr(LStruct("RF_Stream"))
+
+        # 1. Create the input channel: RF_Channel* _rf_tmp_N = rf_channel_new(64)
+        input_ch_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=input_ch_tmp, c_type=ch_ptr,
+            init=LCall("rf_channel_new",
+                        [LLit("64", LInt(32, True))], ch_ptr)))
+
+        # 2. Create inbox stream: RF_Stream* _rf_tmp_M = rf_stream_from_channel(input_ch)
+        inbox_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=inbox_tmp, c_type=stream_ptr,
+            init=LCall("rf_stream_from_channel",
+                        [LVar(input_ch_tmp, ch_ptr)], stream_ptr)))
+
+        # 3. Lower the call args, prepending the inbox stream
+        lowered_args = [LVar(inbox_tmp, stream_ptr)]
+        lowered_args.extend(self._lower_expr(a) for a in call.args)
+
+        # 4. Build the function call to get the stream (with inbox as first arg)
+        call_t = self._type_of(call)
+        call_lt = self._lower_type(call_t)
+        # Resolve the function name using the same logic as _lower_call
+        fn_c_name: str | None = None
+        if isinstance(call.callee, Ident):
+            sym = self._resolved.symbols.get(call.callee)
+            if sym is not None and sym.kind in (SymbolKind.FN,
+                                                 SymbolKind.CONSTRUCTOR):
+                fn_decl = sym.decl if isinstance(sym.decl, FnDecl) else None
+                if fn_decl and fn_decl.native_name is not None:
+                    fn_c_name = fn_decl.native_name
+                else:
+                    fn_c_name = mangle(self._module_path, None,
+                                       call.callee.name,
+                                       file=self._file,
+                                       line=call.line, col=call.col)
+            elif sym is not None and sym.kind == SymbolKind.IMPORT:
+                fn_decl = sym.decl
+                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
+                    fn_c_name = fn_decl.native_name
+                else:
+                    fn_c_name = mangle(
+                        getattr(sym, 'module_path', self._module_path),
+                        None, call.callee.name,
+                        file=self._file, line=call.line, col=call.col)
+        elif isinstance(call.callee, MethodCall):
+            # Namespace function call: mod.fn_name(args)
+            callee_sym = self._resolved.symbols.get(call.callee)
+            if callee_sym is not None:
+                fn_decl = callee_sym.decl
+                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
+                    fn_c_name = fn_decl.native_name
+
+        if fn_c_name is None:
+            # Fallback: lower the callee expr normally
+            callee_expr = self._lower_expr(call.callee)
+            fn_c_name = getattr(callee_expr, 'c_name',
+                                getattr(callee_expr, 'fn', 'unknown'))
+
+        stream_call = LCall(fn_c_name, lowered_args, call_lt)
+
+        # 5. Store stream result: RF_Stream* _rf_tmp_P = fn(inbox, args...)
+        stream_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=stream_tmp, c_type=stream_ptr, init=stream_call))
+
+        # 6. Create threaded coroutine: rf_coroutine_new_threaded(stream, 64)
+        coro_tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(
+            c_name=coro_tmp, c_type=coro_ptr,
+            init=LCall("rf_coroutine_new_threaded",
+                        [LVar(stream_tmp, stream_ptr),
+                         LLit("64", LInt(32, True))],
+                        coro_ptr)))
+
+        # 7. Wire up input channel: rf_coroutine_set_input(coro, input_ch)
+        self._pending_stmts.append(LExprStmt(
+            LCall("rf_coroutine_set_input",
+                  [LVar(coro_tmp, coro_ptr),
+                   LVar(input_ch_tmp, ch_ptr)],
+                  LVoid())))
+
+        return LVar(coro_tmp, coro_ptr)
+
     def _lower_coroutine_method(self, expr: MethodCall, recv: LExpr,
                                 recv_type: TCoroutine,
                                 args: list[LExpr], lt: LType) -> LExpr:
@@ -2390,9 +2490,16 @@ class Lowerer:
         elif expr.method == "done":
             return LCall("rf_coroutine_done", [recv], LBool())
         elif expr.method == "send":
-            raise EmitError(
-                message="coroutine .send() not yet implemented",
-                file=self._file, line=expr.line, col=expr.col)
+            if not args:
+                raise EmitError(
+                    message="coroutine .send() requires one argument",
+                    file=self._file, line=expr.line, col=expr.col)
+            # Cast value to void* for rf_coroutine_send
+            send_val = args[0]
+            send_type = recv_type.send_type
+            cast_val = self._box_for_channel(send_val, send_type)
+            return LCall("rf_coroutine_send",
+                         [recv, cast_val], LVoid())
         raise EmitError(
             message=f"unknown coroutine method: {expr.method}",
             file=self._file, line=expr.line, col=expr.col)
@@ -2746,6 +2853,17 @@ class Lowerer:
         """Check if a type is heap-allocated (pointer-based)."""
         return isinstance(t, (TString, TArray, TStream, TBuffer,
                               TMap, TSet, TNamed, TSum))
+
+    def _box_for_channel(self, val: LExpr, val_type: Type) -> LExpr:
+        """Cast a value to void* for channel send.
+
+        Heap types are already pointers. Value types (int, bool, float, byte)
+        are cast through uintptr_t: (void*)(uintptr_t)val.
+        """
+        if self._is_heap_type(val_type):
+            return LCast(val, LPtr(LVoid()))
+        # Value type — cast through uint64 to void*
+        return LCast(LCast(val, LInt(64, False)), LPtr(LVoid()))
 
     def _get_direct_fn_c_name(self, expr: Expr) -> str | None:
         """If expr is an Ident bound to SymbolKind.FN, return its mangled C name."""
@@ -4513,11 +4631,57 @@ class Lowerer:
                 result.append(LIf(cond=cond, then=then_body, else_=else_body))
 
             elif isinstance(stmt, ForStmt):
-                # Lower for loop normally, recurse into body
-                for_stmts = self._lower_for(stmt)
-                # The for lowering returns a list with LWhile; we need to
-                # handle yields inside. For simplicity, just include as-is.
-                result.extend(for_stmts)
+                # Lower for-over-stream with yield-aware body lowering.
+                # We reconstruct the while loop structure from _lower_for_stream
+                # but recurse into _lower_stream_stmts for the body so that
+                # yield statements get proper state machine resume labels.
+                iter_t = self._type_of(stmt.iterable)
+                if isinstance(iter_t, TStream):
+                    stream_expr = self._lower_expr(stmt.iterable)
+                    stream_lt = LPtr(LStruct("RF_Stream"))
+                    stream_elem_t = iter_t.element
+                    elem_lt = self._lower_type(stream_elem_t)
+                    next_name = self._fresh_temp()
+                    # Use stream_expr directly inside the loop (no local temp)
+                    # so it survives yield resume via frame rewriting.
+                    next_decl = LVarDecl(
+                        c_name=next_name,
+                        c_type=LStruct("RF_Option_ptr"),
+                        init=LCall("rf_stream_next", [stream_expr],
+                                   LStruct("RF_Option_ptr")))
+                    tag_check = LIf(
+                        cond=LBinOp(
+                            op="==",
+                            left=LFieldAccess(
+                                LVar(next_name, LStruct("RF_Option_ptr")),
+                                "tag", LByte()),
+                            right=LLit("0", LByte()),
+                            c_type=LBool()),
+                        then=[LBreak()], else_=[])
+                    value_access = LFieldAccess(
+                        LVar(next_name, LStruct("RF_Option_ptr")),
+                        "value", LPtr(LVoid()))
+                    if isinstance(elem_lt, LPtr):
+                        item_init = LCast(value_access, elem_lt)
+                    else:
+                        item_init = LCast(LCast(value_access,
+                                                LInt(64, False)), elem_lt)
+                    item_decl = LVarDecl(c_name=stmt.var, c_type=elem_lt,
+                                         init=item_init)
+                    # Recurse into body with yield-aware lowering
+                    inner_body = self._lower_stream_stmts(
+                        stmt.body.stmts, frame_var, elem_type, yield_counter)
+                    loop_body = [next_decl, tag_check, item_decl] + inner_body
+                    result.append(LWhile(cond=LLit("1", LBool()),
+                                         body=loop_body))
+                    if stmt.finally_block is not None:
+                        result.extend(self._lower_stream_stmts(
+                            stmt.finally_block.stmts, frame_var,
+                            elem_type, yield_counter))
+                else:
+                    # Non-stream for loops: lower normally
+                    for_stmts = self._lower_for(stmt)
+                    result.extend(for_stmts)
 
             else:
                 saved = self._pending_stmts

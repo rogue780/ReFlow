@@ -250,9 +250,10 @@ RF_Option_ptr rf_channel_try_recv(RF_Channel* ch);
  * ======================================================================== */
 
 typedef struct RF_Coroutine {
-    RF_Stream*  stream;      /* non-threaded: set; threaded: NULL */
-    RF_Channel* channel;     /* non-threaded: NULL; threaded: set */
-    pthread_t   thread;      /* only valid when channel != NULL */
+    RF_Stream*  stream;          /* non-threaded: set; threaded: NULL */
+    RF_Channel* channel;         /* non-threaded: NULL; threaded: set (output) */
+    RF_Channel* input_channel;   /* receivable: set; otherwise: NULL */
+    pthread_t   thread;          /* only valid when channel != NULL */
     rf_bool     done;
 } RF_Coroutine;
 
@@ -261,6 +262,10 @@ RF_Coroutine* rf_coroutine_new_threaded(RF_Stream* stream, rf_int capacity);
 RF_Option_ptr rf_coroutine_next(RF_Coroutine* c);
 rf_bool       rf_coroutine_done(RF_Coroutine* c);
 void          rf_coroutine_release(RF_Coroutine* c);
+void          rf_coroutine_send(RF_Coroutine* c, void* val);
+rf_bool       rf_coroutine_try_send(RF_Coroutine* c, void* val);
+void          rf_coroutine_set_input(RF_Coroutine* c, RF_Channel* input);
+RF_Stream*    rf_stream_from_channel(RF_Channel* ch);
 
 /* ========================================================================
  * Closures

@@ -1441,12 +1441,23 @@ class TypeChecker:
                             self._error("done() takes no arguments", expr)
                         return TBool()
                     elif method_name == "send":
-                        if len(args) != 1:
+                        if isinstance(recv_t.send_type, TAny):
+                            raise self._error(
+                                ".send() is not available on this coroutine; "
+                                "the coroutine function's first parameter "
+                                "must be stream<T> to enable .send()",
+                                expr)
+                        elif len(args) != 1:
                             self._error("send() takes exactly one argument",
                                         expr)
                         elif arg_types:
-                            self._check_assignable(
-                                recv_t.send_type, arg_types[0], args[0])
+                            if not self._is_assignable(
+                                    arg_types[0], recv_t.send_type):
+                                self._error(
+                                    f"send() argument type mismatch: expected "
+                                    f"{self._type_name(recv_t.send_type)}, "
+                                    f"got {self._type_name(arg_types[0])}",
+                                    args[0])
                         return TNone()
                     else:
                         self._error(
@@ -1757,9 +1768,39 @@ class TypeChecker:
                 return TString()
 
             case CoroutineStart(call=call):
-                call_type = self._infer_expr(call, scope)
+                # Check if the function is receivable (first param is stream<T>)
+                # before type-checking the call, so we can adjust arg count.
+                callee_sym = self._resolved.symbols.get(call.callee)
+                is_receivable = False
+                send_type: Type = TAny()
+                if (callee_sym is not None
+                        and isinstance(callee_sym.decl, FnDecl)
+                        and callee_sym.decl.params):
+                    first_param_type = self._resolve_type_expr(
+                        callee_sym.decl.params[0].type_ann)
+                    if isinstance(first_param_type, TStream):
+                        is_receivable = True
+                        send_type = first_param_type.element
+
+                if is_receivable:
+                    # Receivable coroutine: inbox param is implicit.
+                    # Type-check the call with the inbox param excluded.
+                    fn_decl = callee_sym.decl
+                    fn_type = self._fn_decl_type(fn_decl)
+                    # Skip the first param (inbox stream) for arg validation
+                    adjusted_params = fn_type.params[1:]
+                    adjusted_fn_type = TFn(adjusted_params, fn_type.ret,
+                                           fn_type.is_pure)
+                    arg_types = [self._infer_expr(a, scope) for a in call.args]
+                    self._check_call_args(adjusted_fn_type, arg_types,
+                                          call.args, call)
+                    # Store the call's type (the return type = stream<Y>)
+                    call_type = fn_type.ret
+                    self._types[call] = call_type
+                else:
+                    call_type = self._infer_expr(call, scope)
+
                 if isinstance(call_type, TStream):
-                    send_type: Type = TAny()
                     return TCoroutine(yield_type=call_type.element,
                                       send_type=send_type)
                 return call_type

@@ -479,6 +479,7 @@ RF_Coroutine* rf_coroutine_new(RF_Stream* stream) {
     if (!c) rf_panic("rf_coroutine_new: out of memory");
     c->stream = stream;
     c->channel = NULL;
+    c->input_channel = NULL;
     c->done = rf_false;
     return c;
 }
@@ -488,6 +489,7 @@ RF_Coroutine* rf_coroutine_new_threaded(RF_Stream* stream, rf_int capacity) {
     if (!c) rf_panic("rf_coroutine_new_threaded: out of memory");
     c->stream = NULL;
     c->channel = rf_channel_new(capacity);
+    c->input_channel = NULL;
     c->done = rf_false;
 
     /* Producer holds refs to both stream and channel */
@@ -522,6 +524,10 @@ rf_bool rf_coroutine_done(RF_Coroutine* c) {
 
 void rf_coroutine_release(RF_Coroutine* c) {
     if (!c) return;
+    if (c->input_channel) {
+        rf_channel_close(c->input_channel);    /* unblock producer if waiting on inbox */
+        rf_channel_release(c->input_channel);  /* drop consumer-side ref */
+    }
     if (c->channel) {
         rf_channel_close(c->channel);    /* unblock producer if blocked */
         pthread_join(c->thread, NULL);   /* wait for producer to exit */
@@ -530,6 +536,40 @@ void rf_coroutine_release(RF_Coroutine* c) {
         rf_stream_release(c->stream);
     }
     free(c);
+}
+
+void rf_coroutine_send(RF_Coroutine* c, void* val) {
+    if (!c->input_channel) rf_panic("rf_coroutine_send: coroutine has no input channel");
+    rf_channel_send(c->input_channel, val);
+}
+
+rf_bool rf_coroutine_try_send(RF_Coroutine* c, void* val) {
+    if (!c->input_channel) return rf_false;
+    return rf_channel_try_send(c->input_channel, val);
+}
+
+void rf_coroutine_set_input(RF_Coroutine* c, RF_Channel* input) {
+    c->input_channel = input;
+    rf_channel_retain(input);  /* consumer-side ref */
+}
+
+/* --- Stream backed by a channel (for receivable coroutine inbox) --- */
+
+static RF_Option_ptr _rf_stream_from_channel_next(RF_Stream* self) {
+    RF_Channel* ch = (RF_Channel*)self->state;
+    return rf_channel_recv(ch);
+}
+
+static void _rf_stream_from_channel_free(RF_Stream* self) {
+    RF_Channel* ch = (RF_Channel*)self->state;
+    rf_channel_release(ch);  /* drop the stream's ref */
+}
+
+RF_Stream* rf_stream_from_channel(RF_Channel* ch) {
+    rf_channel_retain(ch);  /* stream holds a ref */
+    return rf_stream_new(_rf_stream_from_channel_next,
+                         _rf_stream_from_channel_free,
+                         (void*)ch);
 }
 
 /* ========================================================================

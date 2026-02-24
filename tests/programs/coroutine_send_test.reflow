@@ -1,0 +1,34 @@
+module tests.coroutine_send_test
+import io (println)
+
+; Receivable coroutine: first param is stream<string> (the inbox)
+fn echo_worker(inbox: stream<string>): stream<string> {
+    for (msg: string in inbox) {
+        yield "echo: " + msg
+    }
+}
+
+fn main() {
+    let w :< echo_worker()
+
+    ; Send messages into the inbox
+    w.send("hello")
+    w.send("world")
+    w.send("done")
+
+    ; Read echoed responses
+    match w.next() {
+        some(v): { println(v) }
+        none: { println("none") }
+    }
+    match w.next() {
+        some(v): { println(v) }
+        none: { println("none") }
+    }
+    match w.next() {
+        some(v): { println(v) }
+        none: { println("none") }
+    }
+
+    println("test complete")
+}
