@@ -6,11 +6,11 @@ A command-line tool for querying and transforming JSON files. Reads a JSON
 file, evaluates a dot-path expression to extract values, and prints results.
 A practical Unix-style utility — pipe-friendly, composable, zero-config.
 
-**File:** `apps/jsonq/jsonq.reflow`
+**File:** `apps/jsonq/jsonq.flow`
 
 **Usage:**
 ```
-python main.py run apps/jsonq/jsonq.reflow -- <file.json> <query> [options]
+python main.py run apps/jsonq/jsonq.flow -- <file.json> <query> [options]
 ```
 
 **Examples:**
@@ -66,7 +66,7 @@ cat data.json | jsonq - "name"
 ## Story 1-1: CLI Argument Parsing
 
 **JQ-1-1-1** `[BLOCKER]`
-Create `apps/jsonq/jsonq.reflow` with a `main()` that:
+Create `apps/jsonq/jsonq.flow` with a `main()` that:
 - Reads `sys.args()`.
 - Expects at least 2 args: `<file>` and `<query>`.
 - On missing args, prints usage and exits with code 1.
@@ -235,7 +235,7 @@ Create test JSON files in `apps/jsonq/testdata/`:
 - `array.json` — top-level array of objects.
 
 **JQ-4-1-2**
-Create `tests/programs/app_json_query.reflow` — a self-test version that:
+Create `tests/programs/app_json_query.flow` — a self-test version that:
 - Writes test JSON to a temp file.
 - Runs queries against it using the query engine functions directly.
 - Prints results and verifies correctness.

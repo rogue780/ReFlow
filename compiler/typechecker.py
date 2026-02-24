@@ -8,7 +8,7 @@ import warnings as _warnings
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
-from compiler.errors import TypeError as ReFlowTypeError
+from compiler.errors import TypeError as FlowTypeError
 from compiler.ast_nodes import (
     # Base
     ASTNode, TypeExpr, Expr, Stmt, Decl, Pattern,
@@ -2734,8 +2734,8 @@ class TypeChecker:
             return expr.name
         return type(expr).__name__
 
-    def _error(self, message: str, node: ASTNode) -> ReFlowTypeError:
-        return ReFlowTypeError(
+    def _error(self, message: str, node: ASTNode) -> FlowTypeError:
+        return FlowTypeError(
             message=message,
             file=self._file,
             line=node.line,

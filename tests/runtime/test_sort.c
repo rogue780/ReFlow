@@ -1,15 +1,15 @@
 /*
  * C-level tests for sort functions (SG-4-2 / SG-5-2-1).
  *
- * Tests cover: rf_sort_array_by (with env-first closure convention),
- * rf_array_reverse.  The type-specific rf_sort_ints/strings/floats were
- * removed in SG-4-2-2; tests now use rf_sort_array_by with typed comparators.
+ * Tests cover: fl_sort_array_by (with env-first closure convention),
+ * fl_array_reverse.  The type-specific fl_sort_ints/strings/floats were
+ * removed in SG-4-2-2; tests now use fl_sort_array_by with typed comparators.
  *
  * Compile and run via: make test-runtime
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,31 +27,31 @@ static int tests_passed = 0;
  * Comparator functions — env-first convention: (void* env, const void* a, const void* b)
  * ======================================================================== */
 
-static rf_int _cmp_int_asc(void* env, const void* a, const void* b) {
+static fl_int _cmp_int_asc(void* env, const void* a, const void* b) {
     (void)env;
-    rf_int va = *(const rf_int*)a;
-    rf_int vb = *(const rf_int*)b;
+    fl_int va = *(const fl_int*)a;
+    fl_int vb = *(const fl_int*)b;
     return (va > vb) - (va < vb);
 }
 
-static rf_int _cmp_int_desc(void* env, const void* a, const void* b) {
+static fl_int _cmp_int_desc(void* env, const void* a, const void* b) {
     (void)env;
-    rf_int va = *(const rf_int*)a;
-    rf_int vb = *(const rf_int*)b;
+    fl_int va = *(const fl_int*)a;
+    fl_int vb = *(const fl_int*)b;
     return (vb > va) - (vb < va);
 }
 
-static rf_int _cmp_string_asc(void* env, const void* a, const void* b) {
+static fl_int _cmp_string_asc(void* env, const void* a, const void* b) {
     (void)env;
-    RF_String* sa = *(RF_String* const*)a;
-    RF_String* sb = *(RF_String* const*)b;
-    return rf_string_cmp(sa, sb);
+    FL_String* sa = *(FL_String* const*)a;
+    FL_String* sb = *(FL_String* const*)b;
+    return fl_string_cmp(sa, sb);
 }
 
-static rf_int _cmp_float_asc(void* env, const void* a, const void* b) {
+static fl_int _cmp_float_asc(void* env, const void* a, const void* b) {
     (void)env;
-    rf_float va = *(const rf_float*)a;
-    rf_float vb = *(const rf_float*)b;
+    fl_float va = *(const fl_float*)a;
+    fl_float vb = *(const fl_float*)b;
     return (va > vb) - (va < vb);
 }
 
@@ -62,26 +62,26 @@ static rf_int _cmp_float_asc(void* env, const void* a, const void* b) {
 static void test_sort_ints_ascending(void) {
     TEST(sort_ints_ascending);
 
-    rf_int data[] = {3, 1, 4, 1, 5, 9, 2, 6};
-    RF_Array* arr = rf_array_new(8, sizeof(rf_int), data);
+    fl_int data[] = {3, 1, 4, 1, 5, 9, 2, 6};
+    FL_Array* arr = fl_array_new(8, sizeof(fl_int), data);
 
-    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
-    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
-    assert(rf_array_len(sorted) == 8);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 0) == 1);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 1) == 1);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 2) == 2);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 3) == 3);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 4) == 4);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 5) == 5);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 6) == 6);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 7) == 9);
+    FL_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    FL_Array* sorted = fl_sort_array_by(arr, &cmp);
+    assert(fl_array_len(sorted) == 8);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 0) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 1) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 2) == 2);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 3) == 3);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 4) == 4);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 5) == 5);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 6) == 6);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 7) == 9);
 
     /* Original array should be unchanged */
-    assert(*(rf_int*)rf_array_get_ptr(arr, 0) == 3);
+    assert(*(fl_int*)fl_array_get_ptr(arr, 0) == 3);
 
-    rf_array_release(sorted);
-    rf_array_release(arr);
+    fl_array_release(sorted);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -92,18 +92,18 @@ static void test_sort_ints_ascending(void) {
 static void test_sort_ints_already_sorted(void) {
     TEST(sort_ints_already_sorted);
 
-    rf_int data[] = {1, 2, 3, 4, 5};
-    RF_Array* arr = rf_array_new(5, sizeof(rf_int), data);
+    fl_int data[] = {1, 2, 3, 4, 5};
+    FL_Array* arr = fl_array_new(5, sizeof(fl_int), data);
 
-    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
-    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
-    assert(rf_array_len(sorted) == 5);
-    for (rf_int64 i = 0; i < 5; i++) {
-        assert(*(rf_int*)rf_array_get_ptr(sorted, i) == (rf_int)(i + 1));
+    FL_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    FL_Array* sorted = fl_sort_array_by(arr, &cmp);
+    assert(fl_array_len(sorted) == 5);
+    for (fl_int64 i = 0; i < 5; i++) {
+        assert(*(fl_int*)fl_array_get_ptr(sorted, i) == (fl_int)(i + 1));
     }
 
-    rf_array_release(sorted);
-    rf_array_release(arr);
+    fl_array_release(sorted);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -114,16 +114,16 @@ static void test_sort_ints_already_sorted(void) {
 static void test_sort_ints_single(void) {
     TEST(sort_ints_single);
 
-    rf_int data[] = {42};
-    RF_Array* arr = rf_array_new(1, sizeof(rf_int), data);
+    fl_int data[] = {42};
+    FL_Array* arr = fl_array_new(1, sizeof(fl_int), data);
 
-    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
-    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
-    assert(rf_array_len(sorted) == 1);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 0) == 42);
+    FL_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    FL_Array* sorted = fl_sort_array_by(arr, &cmp);
+    assert(fl_array_len(sorted) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 0) == 42);
 
-    rf_array_release(sorted);
-    rf_array_release(arr);
+    fl_array_release(sorted);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -134,14 +134,14 @@ static void test_sort_ints_single(void) {
 static void test_sort_ints_empty(void) {
     TEST(sort_ints_empty);
 
-    RF_Array* arr = rf_array_new(0, sizeof(rf_int), NULL);
+    FL_Array* arr = fl_array_new(0, sizeof(fl_int), NULL);
 
-    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
-    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
-    assert(rf_array_len(sorted) == 0);
+    FL_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    FL_Array* sorted = fl_sort_array_by(arr, &cmp);
+    assert(fl_array_len(sorted) == 0);
 
-    rf_array_release(sorted);
-    rf_array_release(arr);
+    fl_array_release(sorted);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -152,30 +152,30 @@ static void test_sort_ints_empty(void) {
 static void test_sort_strings_lexicographic(void) {
     TEST(sort_strings_lexicographic);
 
-    RF_String* banana = rf_string_from_cstr("banana");
-    RF_String* apple = rf_string_from_cstr("apple");
-    RF_String* cherry = rf_string_from_cstr("cherry");
+    FL_String* banana = fl_string_from_cstr("banana");
+    FL_String* apple = fl_string_from_cstr("apple");
+    FL_String* cherry = fl_string_from_cstr("cherry");
 
-    RF_String* data[] = {banana, apple, cherry};
-    RF_Array* arr = rf_array_new(3, sizeof(RF_String*), data);
+    FL_String* data[] = {banana, apple, cherry};
+    FL_Array* arr = fl_array_new(3, sizeof(FL_String*), data);
 
-    RF_Closure cmp = { .fn = (void*)_cmp_string_asc, .env = NULL };
-    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
-    assert(rf_array_len(sorted) == 3);
+    FL_Closure cmp = { .fn = (void*)_cmp_string_asc, .env = NULL };
+    FL_Array* sorted = fl_sort_array_by(arr, &cmp);
+    assert(fl_array_len(sorted) == 3);
 
-    RF_String* s0 = *(RF_String**)rf_array_get_ptr(sorted, 0);
-    RF_String* s1 = *(RF_String**)rf_array_get_ptr(sorted, 1);
-    RF_String* s2 = *(RF_String**)rf_array_get_ptr(sorted, 2);
+    FL_String* s0 = *(FL_String**)fl_array_get_ptr(sorted, 0);
+    FL_String* s1 = *(FL_String**)fl_array_get_ptr(sorted, 1);
+    FL_String* s2 = *(FL_String**)fl_array_get_ptr(sorted, 2);
 
-    assert(rf_string_eq(s0, apple));
-    assert(rf_string_eq(s1, banana));
-    assert(rf_string_eq(s2, cherry));
+    assert(fl_string_eq(s0, apple));
+    assert(fl_string_eq(s1, banana));
+    assert(fl_string_eq(s2, cherry));
 
-    rf_array_release(sorted);
-    rf_array_release(arr);
-    rf_string_release(banana);
-    rf_string_release(apple);
-    rf_string_release(cherry);
+    fl_array_release(sorted);
+    fl_array_release(arr);
+    fl_string_release(banana);
+    fl_string_release(apple);
+    fl_string_release(cherry);
     PASS();
 }
 
@@ -186,18 +186,18 @@ static void test_sort_strings_lexicographic(void) {
 static void test_sort_floats(void) {
     TEST(sort_floats);
 
-    rf_float data[] = {3.14, 1.0, 2.71};
-    RF_Array* arr = rf_array_new(3, sizeof(rf_float), data);
+    fl_float data[] = {3.14, 1.0, 2.71};
+    FL_Array* arr = fl_array_new(3, sizeof(fl_float), data);
 
-    RF_Closure cmp = { .fn = (void*)_cmp_float_asc, .env = NULL };
-    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
-    assert(rf_array_len(sorted) == 3);
-    assert(*(rf_float*)rf_array_get_ptr(sorted, 0) == 1.0);
-    assert(*(rf_float*)rf_array_get_ptr(sorted, 1) == 2.71);
-    assert(*(rf_float*)rf_array_get_ptr(sorted, 2) == 3.14);
+    FL_Closure cmp = { .fn = (void*)_cmp_float_asc, .env = NULL };
+    FL_Array* sorted = fl_sort_array_by(arr, &cmp);
+    assert(fl_array_len(sorted) == 3);
+    assert(*(fl_float*)fl_array_get_ptr(sorted, 0) == 1.0);
+    assert(*(fl_float*)fl_array_get_ptr(sorted, 1) == 2.71);
+    assert(*(fl_float*)fl_array_get_ptr(sorted, 2) == 3.14);
 
-    rf_array_release(sorted);
-    rf_array_release(arr);
+    fl_array_release(sorted);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -208,22 +208,22 @@ static void test_sort_floats(void) {
 static void test_reverse_basic(void) {
     TEST(reverse_basic);
 
-    rf_int data[] = {1, 2, 3, 4, 5};
-    RF_Array* arr = rf_array_new(5, sizeof(rf_int), data);
+    fl_int data[] = {1, 2, 3, 4, 5};
+    FL_Array* arr = fl_array_new(5, sizeof(fl_int), data);
 
-    RF_Array* rev = rf_array_reverse(arr);
-    assert(rf_array_len(rev) == 5);
-    assert(*(rf_int*)rf_array_get_ptr(rev, 0) == 5);
-    assert(*(rf_int*)rf_array_get_ptr(rev, 1) == 4);
-    assert(*(rf_int*)rf_array_get_ptr(rev, 2) == 3);
-    assert(*(rf_int*)rf_array_get_ptr(rev, 3) == 2);
-    assert(*(rf_int*)rf_array_get_ptr(rev, 4) == 1);
+    FL_Array* rev = fl_array_reverse(arr);
+    assert(fl_array_len(rev) == 5);
+    assert(*(fl_int*)fl_array_get_ptr(rev, 0) == 5);
+    assert(*(fl_int*)fl_array_get_ptr(rev, 1) == 4);
+    assert(*(fl_int*)fl_array_get_ptr(rev, 2) == 3);
+    assert(*(fl_int*)fl_array_get_ptr(rev, 3) == 2);
+    assert(*(fl_int*)fl_array_get_ptr(rev, 4) == 1);
 
     /* Original unchanged */
-    assert(*(rf_int*)rf_array_get_ptr(arr, 0) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(arr, 0) == 1);
 
-    rf_array_release(rev);
-    rf_array_release(arr);
+    fl_array_release(rev);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -234,15 +234,15 @@ static void test_reverse_basic(void) {
 static void test_reverse_single(void) {
     TEST(reverse_single);
 
-    rf_int data[] = {99};
-    RF_Array* arr = rf_array_new(1, sizeof(rf_int), data);
+    fl_int data[] = {99};
+    FL_Array* arr = fl_array_new(1, sizeof(fl_int), data);
 
-    RF_Array* rev = rf_array_reverse(arr);
-    assert(rf_array_len(rev) == 1);
-    assert(*(rf_int*)rf_array_get_ptr(rev, 0) == 99);
+    FL_Array* rev = fl_array_reverse(arr);
+    assert(fl_array_len(rev) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(rev, 0) == 99);
 
-    rf_array_release(rev);
-    rf_array_release(arr);
+    fl_array_release(rev);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -253,13 +253,13 @@ static void test_reverse_single(void) {
 static void test_reverse_empty(void) {
     TEST(reverse_empty);
 
-    RF_Array* arr = rf_array_new(0, sizeof(rf_int), NULL);
+    FL_Array* arr = fl_array_new(0, sizeof(fl_int), NULL);
 
-    RF_Array* rev = rf_array_reverse(arr);
-    assert(rf_array_len(rev) == 0);
+    FL_Array* rev = fl_array_reverse(arr);
+    assert(fl_array_len(rev) == 0);
 
-    rf_array_release(rev);
-    rf_array_release(arr);
+    fl_array_release(rev);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -270,21 +270,21 @@ static void test_reverse_empty(void) {
 static void test_sort_array_by_closure(void) {
     TEST(sort_array_by_closure);
 
-    rf_int data[] = {3, 1, 4, 1, 5};
-    RF_Array* arr = rf_array_new(5, sizeof(rf_int), data);
+    fl_int data[] = {3, 1, 4, 1, 5};
+    FL_Array* arr = fl_array_new(5, sizeof(fl_int), data);
 
-    RF_Closure cmp = { .fn = (void*)_cmp_int_desc, .env = NULL };
-    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
+    FL_Closure cmp = { .fn = (void*)_cmp_int_desc, .env = NULL };
+    FL_Array* sorted = fl_sort_array_by(arr, &cmp);
 
-    assert(rf_array_len(sorted) == 5);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 0) == 5);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 1) == 4);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 2) == 3);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 3) == 1);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 4) == 1);
+    assert(fl_array_len(sorted) == 5);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 0) == 5);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 1) == 4);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 2) == 3);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 3) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 4) == 1);
 
-    rf_array_release(sorted);
-    rf_array_release(arr);
+    fl_array_release(sorted);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -295,24 +295,24 @@ static void test_sort_array_by_closure(void) {
 static void test_sort_ints_duplicates(void) {
     TEST(sort_ints_duplicates);
 
-    rf_int data[] = {5, 3, 5, 3, 1, 1, 5, 3, 1};
-    RF_Array* arr = rf_array_new(9, sizeof(rf_int), data);
+    fl_int data[] = {5, 3, 5, 3, 1, 1, 5, 3, 1};
+    FL_Array* arr = fl_array_new(9, sizeof(fl_int), data);
 
-    RF_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
-    RF_Array* sorted = rf_sort_array_by(arr, &cmp);
-    assert(rf_array_len(sorted) == 9);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 0) == 1);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 1) == 1);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 2) == 1);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 3) == 3);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 4) == 3);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 5) == 3);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 6) == 5);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 7) == 5);
-    assert(*(rf_int*)rf_array_get_ptr(sorted, 8) == 5);
+    FL_Closure cmp = { .fn = (void*)_cmp_int_asc, .env = NULL };
+    FL_Array* sorted = fl_sort_array_by(arr, &cmp);
+    assert(fl_array_len(sorted) == 9);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 0) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 1) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 2) == 1);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 3) == 3);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 4) == 3);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 5) == 3);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 6) == 5);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 7) == 5);
+    assert(*(fl_int*)fl_array_get_ptr(sorted, 8) == 5);
 
-    rf_array_release(sorted);
-    rf_array_release(arr);
+    fl_array_release(sorted);
+    fl_array_release(arr);
     PASS();
 }
 

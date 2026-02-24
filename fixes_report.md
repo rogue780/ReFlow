@@ -1,7 +1,7 @@
-# ReFlow Fixes Report
+# Flow Fixes Report
 
 Improvements and additions identified while building the HTTP static file server
-(`apps/http/server/server.reflow`). All 14 items have been implemented and tested.
+(`apps/http/server/server.flow`). All 14 items have been implemented and tested.
 
 ---
 
@@ -21,7 +21,7 @@ it converts it to `LReturn`. If it's an `LIf` or `LSwitch` (which is what
 `match` lowers to), it recurses into each branch's tail position. Applied to
 both standalone functions and methods.
 
-**Example:** `examples/match_expression_demo.reflow`
+**Example:** `examples/match_expression_demo.flow`
 
 ---
 
@@ -38,7 +38,7 @@ name based on the importing module's path instead of the canonical runtime name.
 
 **Fix:** Added `_OPAQUE_TYPE_MAP` dictionary in `lowering.py` that maps opaque
 type names (`Socket`, `file`, `JsonValue`, `StringBuilder`, `DateTime`, `Instant`)
-to their canonical C runtime struct names (`RF_Socket`, `RF_File`, etc.). The
+to their canonical C runtime struct names (`FL_Socket`, `FL_File`, etc.). The
 `_lower_type` method checks this map before falling through to standard name
 mangling.
 
@@ -55,59 +55,59 @@ mangling.
 ## 4. Array Get/Len/Indexing
 
 **Category:** New stdlib module
-**Files changed:** `runtime/reflow_runtime.h`, `runtime/reflow_runtime.c`,
-`stdlib/array.reflow`, `compiler/driver.py`
+**Files changed:** `runtime/flow_runtime.h`, `runtime/flow_runtime.c`,
+`stdlib/array.flow`, `compiler/driver.py`
 
 **Problem:** Arrays had no safe access or length functions. The only way to
 interact with array elements was via `for` loops. This made it impossible to
 extract specific elements by index (e.g., CLI args, HTTP request parts).
 
-**Fix:** Added typed safe-access functions (`rf_array_get_int`, `rf_array_get_int64`,
-`rf_array_get_float`, `rf_array_get_bool`) and a generic pointer-based one
-(`rf_array_get_safe`) to the runtime. Added `rf_array_len_int` (returns `int`)
-alongside the existing `rf_array_len` (returns `int64`). Created `stdlib/array.reflow`
+**Fix:** Added typed safe-access functions (`fl_array_get_int`, `fl_array_get_int64`,
+`fl_array_get_float`, `fl_array_get_bool`) and a generic pointer-based one
+(`fl_array_get_safe`) to the runtime. Added `fl_array_len_int` (returns `int`)
+alongside the existing `fl_array_len` (returns `int64`). Created `stdlib/array.flow`
 exposing all functions. Added `"array"` to `_STDLIB_MODULES` in `driver.py`.
 
-**Example:** `examples/array_demo.reflow`
+**Example:** `examples/array_demo.flow`
 
 ---
 
 ## 5. String Builder
 
 **Category:** New runtime type + stdlib module
-**Files changed:** `runtime/reflow_runtime.h`, `runtime/reflow_runtime.c`,
-`stdlib/string_builder.reflow`, `compiler/lowering.py`, `compiler/driver.py`
+**Files changed:** `runtime/flow_runtime.h`, `runtime/flow_runtime.c`,
+`stdlib/string_builder.flow`, `compiler/lowering.py`, `compiler/driver.py`
 
 **Problem:** Building strings incrementally with `+` concatenation is O(n^2)
 because each concatenation allocates a new string. The HTTP server needs to build
 response headers, HTML pages, and log messages efficiently.
 
-**Fix:** Added `RF_StringBuilder` struct to the runtime with a full API: `new`,
+**Fix:** Added `FL_StringBuilder` struct to the runtime with a full API: `new`,
 `with_capacity`, `append`, `append_cstr`, `append_char`, `append_int`,
 `append_int64`, `append_float`, `build`, `len`, `clear`, `retain`, `release`.
-Created `stdlib/string_builder.reflow`. Added `StringBuilder` to the opaque type
+Created `stdlib/string_builder.flow`. Added `StringBuilder` to the opaque type
 map in lowering.
 
-**Example:** `examples/string_builder_demo.reflow`
+**Example:** `examples/string_builder_demo.flow`
 
 ---
 
 ## 6. Map Module (String-Key API)
 
 **Category:** New stdlib module
-**Files changed:** `runtime/reflow_runtime.h`, `runtime/reflow_runtime.c`,
-`stdlib/map.reflow`, `compiler/driver.py`
+**Files changed:** `runtime/flow_runtime.h`, `runtime/flow_runtime.c`,
+`stdlib/map.flow`, `compiler/driver.py`
 
-**Problem:** The runtime had `RF_Map` with a low-level byte-key API, but there
-was no way to use maps from ReFlow code with string keys (the most common case).
+**Problem:** The runtime had `FL_Map` with a low-level byte-key API, but there
+was no way to use maps from Flow code with string keys (the most common case).
 
-**Fix:** Added string-key convenience functions to the runtime: `rf_map_set_str`,
-`rf_map_get_str`, `rf_map_has_str`, `rf_map_remove_str`, `rf_map_keys`,
-`rf_map_values`. These handle the `s->data`/`s->len` extraction internally.
-Created `stdlib/map.reflow` with all 8 functions. Added `"map"` to
+**Fix:** Added string-key convenience functions to the runtime: `fl_map_set_str`,
+`fl_map_get_str`, `fl_map_has_str`, `fl_map_remove_str`, `fl_map_keys`,
+`fl_map_values`. These handle the `s->data`/`s->len` extraction internally.
+Created `stdlib/map.flow` with all 8 functions. Added `"map"` to
 `_STDLIB_MODULES`.
 
-**Example:** `examples/map_demo.reflow`
+**Example:** `examples/map_demo.flow`
 
 ---
 
@@ -118,7 +118,7 @@ Created `stdlib/map.reflow` with all 8 functions. Added `"map"` to
 `compiler/parser.py`, `compiler/resolver.py`, `compiler/typechecker.py`,
 `compiler/lowering.py`, `compiler/emitter.py`
 
-**Problem:** ReFlow had `break` for loops but no `continue`. This forced awkward
+**Problem:** Flow had `break` for loops but no `continue`. This forced awkward
 control flow patterns (wrapping loop bodies in if/else to skip iterations).
 
 **Fix:** Full pipeline implementation:
@@ -130,10 +130,10 @@ control flow patterns (wrapping loop bodies in if/else to skip iterations).
 - Lowering: Added `LContinue` LIR node
 - Emitter: Emits `continue;`
 
-**Spec update:** Added to `reflow_spec.md` keywords list and new "Loop Control:
+**Spec update:** Added to `flow_spec.md` keywords list and new "Loop Control:
 break and continue" section.
 
-**Example:** Updated `examples/control_flow.reflow` with continue demo
+**Example:** Updated `examples/control_flow.flow` with continue demo
 
 ---
 
@@ -159,12 +159,12 @@ and one operand is `string` while the other fulfills `Showable`, the result type
 is `string`. Modified the lowering's `_lower_binop`: when the result type is
 `TString` and an operand is not a string, it calls `_to_string_expr()` (the same
 conversion used by f-strings) on the non-string operand, then emits
-`rf_string_concat`.
+`fl_string_concat`.
 
 **Spec update:** Added "Showable Auto-coercion in String Concatenation" section
-to `reflow_spec.md`.
+to `flow_spec.md`.
 
-**Example:** `examples/string_extras_demo.reflow`
+**Example:** `examples/string_extras_demo.flow`
 
 ---
 
@@ -175,7 +175,7 @@ to `reflow_spec.md`.
 
 **Problem:** `let small: int = 5; let big: int64 = 100; let sum = small + big`
 was a type error. Users had no way to mix integer widths in arithmetic without
-explicit casting (which ReFlow doesn't expose).
+explicit casting (which Flow doesn't expose).
 
 **Fix:** Modified the type checker to allow arithmetic between integers of the
 same signedness but different widths, returning the wider type. Added widening
@@ -183,43 +183,43 @@ to `_is_assignable` so `int` can be assigned to `int64` parameters. Modified the
 lowering to insert `LCast` on the narrower operand in checked arithmetic
 operations.
 
-**Spec update:** Added "Implicit Integer Widening" section to `reflow_spec.md`.
+**Spec update:** Added "Implicit Integer Widening" section to `flow_spec.md`.
 
-**Example:** `examples/int_widening_demo.reflow`
+**Example:** `examples/int_widening_demo.flow`
 
 ---
 
 ## 11. URL Percent-Encoding/Decoding
 
 **Category:** New stdlib functions
-**Files changed:** `runtime/reflow_runtime.h`, `runtime/reflow_runtime.c`,
-`stdlib/string.reflow`
+**Files changed:** `runtime/flow_runtime.h`, `runtime/flow_runtime.c`,
+`stdlib/string.flow`
 
 **Problem:** The HTTP server cannot correctly handle URLs with spaces, special
 characters, or non-ASCII content. No way to decode `%20` to a space or encode
 special characters for safe URLs.
 
-**Fix:** Added `rf_string_url_decode` (handles `%XX` hex sequences and `+` as
-space) and `rf_string_url_encode` (encodes everything except unreserved
+**Fix:** Added `fl_string_url_decode` (handles `%XX` hex sequences and `+` as
+space) and `fl_string_url_encode` (encodes everything except unreserved
 characters per RFC 3986) to the runtime. Exposed as `url_decode` and
-`url_encode` in `stdlib/string.reflow`.
+`url_encode` in `stdlib/string.flow`.
 
 **Spec update:** Added to `stdlib_spec.md` string module.
 
-**Example:** `examples/string_extras_demo.reflow`
+**Example:** `examples/string_extras_demo.flow`
 
 ---
 
 ## 12. Date/Time Formatting
 
 **Category:** Stdlib extension
-**Files changed:** `stdlib/time.reflow`, `compiler/lowering.py`
+**Files changed:** `stdlib/time.flow`, `compiler/lowering.py`
 
 **Problem:** The time module only exposed `now()` (Unix timestamp). The HTTP
 server needs RFC 7231 formatted dates for `Date:` headers, and logging needs
 human-readable timestamps.
 
-**Fix:** Exposed existing runtime functions through `stdlib/time.reflow`:
+**Fix:** Exposed existing runtime functions through `stdlib/time.flow`:
 `datetime_now`, `datetime_utc`, `format_iso8601`, `format_rfc2822`, `format_http`,
 `year`, `month`, `day`, `hour`, `minute`, `second`. Added `DateTime` and
 `Instant` to the opaque type map in lowering.
@@ -232,33 +232,33 @@ from "Planned" to "Implemented".
 ## 13. Array Concatenation
 
 **Category:** New runtime function + stdlib binding
-**Files changed:** `runtime/reflow_runtime.h`, `runtime/reflow_runtime.c`,
-`stdlib/array.reflow`
+**Files changed:** `runtime/flow_runtime.h`, `runtime/flow_runtime.c`,
+`stdlib/array.flow`
 
 **Problem:** No way to combine two arrays. The HTTP server needs this for building
 response byte arrays (header bytes + body bytes).
 
-**Fix:** Added `rf_array_concat` to the runtime — allocates a new array and
+**Fix:** Added `fl_array_concat` to the runtime — allocates a new array and
 copies elements from both inputs. Exposed as `concat_int`, `concat_string`, and
-`concat_byte` in `stdlib/array.reflow` (typed wrappers over the generic function).
+`concat_byte` in `stdlib/array.flow` (typed wrappers over the generic function).
 
-**Example:** `examples/array_demo.reflow`
+**Example:** `examples/array_demo.flow`
 
 ---
 
 ## 14. String Repeat
 
 **Category:** New runtime function + stdlib binding
-**Files changed:** `runtime/reflow_runtime.h`, `runtime/reflow_runtime.c`,
-`stdlib/string.reflow`
+**Files changed:** `runtime/flow_runtime.h`, `runtime/flow_runtime.c`,
+`stdlib/string.flow`
 
 **Problem:** No efficient way to repeat a string N times. Useful for generating
 padding, separators, and indentation.
 
-**Fix:** Added `rf_string_repeat` to the runtime — pre-calculates total length,
-allocates once, copies in a loop. Exposed as `repeat` in `stdlib/string.reflow`.
+**Fix:** Added `fl_string_repeat` to the runtime — pre-calculates total length,
+allocates once, copies in a loop. Exposed as `repeat` in `stdlib/string.flow`.
 
-**Example:** `examples/string_extras_demo.reflow`
+**Example:** `examples/string_extras_demo.flow`
 
 ---
 
@@ -283,5 +283,5 @@ allocates once, copies in a loop. Exposed as `repeat` in `stdlib/string.reflow`.
 
 **Files modified:** 14 compiler/runtime/stdlib files
 **New files:** 7 (3 stdlib modules, 4 example programs)
-**Spec updates:** `reflow_spec.md` (3 new sections), `stdlib_spec.md` (3 new modules, updated counts)
+**Spec updates:** `flow_spec.md` (3 new sections), `stdlib_spec.md` (3 new modules, updated counts)
 **Tests:** All 918 existing tests pass. 2 unit tests updated to reflect new semantics.

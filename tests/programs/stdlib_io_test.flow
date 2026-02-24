@@ -1,0 +1,32 @@
+module tests.stdlib_io_test
+
+import io (println, write_file, read_file, tmpfile_create, tmpfile_remove)
+
+fn main() {
+    let tmp = tmpfile_create(".txt", "hello from flow")
+
+    let contents = read_file(tmp)
+    match contents {
+        some(s): { println(f"read: {s}") }
+        none: { println("read: none") }
+    }
+
+    tmpfile_remove(tmp)
+
+    let after = read_file(tmp)
+    match after {
+        some(s): { println(f"after remove: {s}") }
+        none: { println("after remove: none") }
+    }
+
+    let wrote = write_file(tmp, "overwrite test")
+    println(f"write_file: {wrote}")
+
+    let contents2 = read_file(tmp)
+    match contents2 {
+        some(s): { println(f"read2: {s}") }
+        none: { println("read2: none") }
+    }
+
+    tmpfile_remove(tmp)
+}

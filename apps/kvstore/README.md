@@ -7,10 +7,10 @@ handling via coroutines, and optional disk persistence.
 
 ```bash
 # Start the server (default port 6379)
-python main.py run apps/kvstore/server.reflow
+python main.py run apps/kvstore/server.flow
 
 # Specify a custom port
-python main.py run apps/kvstore/server.reflow -- 7000
+python main.py run apps/kvstore/server.flow -- 7000
 ```
 
 Connect with netcat:

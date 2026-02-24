@@ -1,4 +1,4 @@
-# ReFlow: Spec-to-Implementation Gap Analysis & Plan
+# Flow: Spec-to-Implementation Gap Analysis & Plan
 
 ## Gap Table
 
@@ -8,14 +8,14 @@
 | 2 | **Try/Catch** | §Exception Handling | Lowering/Emitter | DONE | Full setjmp/longjmp-based try/catch with type-dispatched catch blocks |
 | 3 | **Finally blocks** | §Exception Handling | Lowering/Emitter | DONE | Finally blocks run unconditionally after try/catch completion |
 | 4 | **Retry blocks** | §Exception Handling | Lowering/Emitter | DONE | Retry with attempt counting and re-execution of target function |
-| 5 | **Throw statement** | §Exception Handling | Lowering | DONE | Throw lowers to rf_throw() with proper exception propagation via longjmp |
+| 5 | **Throw statement** | §Exception Handling | Lowering | DONE | Throw lowers to fl_throw() with proper exception propagation via longjmp |
 | 6 | **Exception types** | §Exception Handling | Typechecker | DONE | Exception<T> interface enforcement with message/data/original method validation |
-| 7 | **Coroutine operator (`:< `)** | §Coroutines | Lowering | DONE | `:< ` operator lowers to coroutine handle creation via rf_coroutine_new |
+| 7 | **Coroutine operator (`:< `)** | §Coroutines | Lowering | DONE | `:< ` operator lowers to coroutine handle creation via fl_coroutine_new |
 | 8 | **Coroutine methods** | §Coroutines | Typechecker/Lowering | DONE | TCoroutine type with .next(), .send(), .done() methods fully implemented |
 | 9 | **TuplePattern in match** | §Pattern Matching | Lowering | DONE | TuplePattern destructuring lowers to field access on tuple struct (.f0, .f1, etc.) |
-| 10 | **Parallel fan-out** | §Composition | Lowering/Runtime | DONE | Full pthreads parallel execution with safety validation, atomic refcounts, thread-local exceptions, rf_fanout_run API |
+| 10 | **Parallel fan-out** | §Composition | Lowering/Runtime | DONE | Full pthreads parallel execution with safety validation, atomic refcounts, thread-local exceptions, fl_fanout_run API |
 | 11 | **`snapshot()` runtime** | §Snapshot Values | Lowering/Runtime | DONE | Purity enforcement added; pass-through correct for value/immutable-heap types; .refresh() deferred as SPEC GAP (no parallelism) |
-| 12 | **`typeof()` runtime** | §typeof | Lowering | DONE | Returns `TString` in typechecker; lowers to `rf_string_from_cstr` with compile-time type name |
+| 12 | **`typeof()` runtime** | §typeof | Lowering | DONE | Returns `TString` in typechecker; lowers to `fl_string_from_cstr` with compile-time type name |
 | 13 | **Interface fulfillment** | §Interfaces | Typechecker | DONE | `fulfills` clause validates methods against interface contract; missing methods produce TypeError |
 | 14 | **Stream helpers** | §Streams | Runtime/Typechecker/Lowering | PARTIAL | `take`, `skip`, `map`, `filter`, `reduce` implemented as built-in stream methods with runtime support; `zip`, `flatten`, `chunks`, `group_by` deferred as SPEC GAP |
 | 15 | **`===` congruence op** | §Equality/Congruence | Typechecker/Lowering | NOT IMPL | Used internally for `coerce` but not exposed as operator in expressions |
@@ -71,13 +71,13 @@ Add emission for the new LIR nodes:
 
 #### Step 1.2: Add closure type representation
 
-File: `runtime/reflow_runtime.h`
+File: `runtime/flow_runtime.h`
 
 ```c
-typedef struct RF_Closure {
+typedef struct FL_Closure {
     void* fn;      /* function pointer */
     void* env;     /* captured environment */
-} RF_Closure;
+} FL_Closure;
 ```
 
 #### Step 1.3: Implement lambda lowering
@@ -100,7 +100,7 @@ When a `Call` expression's callee has type `TFn` and the lowered callee is a clo
 
 #### Step 1.5: Tests
 
-- `tests/programs/lambda_test.reflow` — lambda creation, capture, higher-order functions
+- `tests/programs/lambda_test.flow` — lambda creation, capture, higher-order functions
 - `tests/expected/lambda_test.c` — golden file
 - `tests/expected_stdout/lambda_test.txt` — execution output
 
@@ -114,30 +114,30 @@ When a `Call` expression's callee has type `TFn` and the lowered callee is a clo
 
 #### Step 2.1: Runtime exception infrastructure
 
-File: `runtime/reflow_runtime.h`
+File: `runtime/flow_runtime.h`
 
 ```c
 #include <setjmp.h>
 
-typedef struct RF_ExceptionFrame {
+typedef struct FL_ExceptionFrame {
     jmp_buf              jmp;
-    struct RF_ExceptionFrame* parent;
+    struct FL_ExceptionFrame* parent;
     void*                exception;     /* pointer to thrown exception value */
-    rf_int               exception_tag; /* type tag for catch dispatch */
-} RF_ExceptionFrame;
+    fl_int               exception_tag; /* type tag for catch dispatch */
+} FL_ExceptionFrame;
 
-void  rf_exception_push(RF_ExceptionFrame* frame);
-void  rf_exception_pop(void);
-void  rf_throw(void* exception, rf_int tag);
+void  fl_exception_push(FL_ExceptionFrame* frame);
+void  fl_exception_pop(void);
+void  fl_throw(void* exception, fl_int tag);
 ```
 
-File: `runtime/reflow_runtime.c`
+File: `runtime/flow_runtime.c`
 
 Implement:
-- Thread-local `_rf_current_exception_frame` pointer
-- `rf_exception_push` — pushes frame onto stack
-- `rf_exception_pop` — pops frame
-- `rf_throw` — stores exception in current frame, calls `longjmp`
+- Thread-local `_fl_current_exception_frame` pointer
+- `fl_exception_push` — pushes frame onto stack
+- `fl_exception_pop` — pops frame
+- `fl_throw` — stores exception in current frame, calls `longjmp`
 
 #### Step 2.2: Add LIR nodes for exception handling
 
@@ -174,19 +174,19 @@ File: `compiler/emitter.py`
 
 Emit `LTry` as:
 ```c
-RF_ExceptionFrame _ef;
-rf_exception_push(&_ef);
+FL_ExceptionFrame _ef;
+fl_exception_push(&_ef);
 if (setjmp(_ef.jmp) == 0) {
     /* try body */
-    rf_exception_pop();
+    fl_exception_pop();
 } else {
-    rf_exception_pop();
+    fl_exception_pop();
     /* catch dispatch: switch on _ef.exception_tag */
     if (_ef.exception_tag == TAG_MyError) {
         MyError* e = (MyError*)_ef.exception;
         /* catch body */
     } else {
-        rf_throw(_ef.exception, _ef.exception_tag); /* re-throw */
+        fl_throw(_ef.exception, _ef.exception_tag); /* re-throw */
     }
 }
 /* finally body (always runs) */
@@ -194,7 +194,7 @@ if (setjmp(_ef.jmp) == 0) {
 
 Emit `LThrow` as:
 ```c
-rf_throw((void*)&exception_value, TAG_ExceptionType);
+fl_throw((void*)&exception_value, TAG_ExceptionType);
 ```
 
 #### Step 2.6: Retry lowering
@@ -202,18 +202,18 @@ rf_throw((void*)&exception_value, TAG_ExceptionType);
 For retry blocks, generate:
 ```c
 for (int _retry_count = 0; _retry_count < max_attempts; _retry_count++) {
-    RF_ExceptionFrame _ef;
-    rf_exception_push(&_ef);
+    FL_ExceptionFrame _ef;
+    fl_exception_push(&_ef);
     if (setjmp(_ef.jmp) == 0) {
         result = target_fn(args...);
-        rf_exception_pop();
+        fl_exception_pop();
         break;
     } else {
-        rf_exception_pop();
+        fl_exception_pop();
         if (_ef.exception_tag == TAG_ExpectedError) {
             /* retry body: mutate ex.data */
         } else {
-            rf_throw(_ef.exception, _ef.exception_tag); /* re-throw */
+            fl_throw(_ef.exception, _ef.exception_tag); /* re-throw */
         }
     }
 }
@@ -230,9 +230,9 @@ In `_build_type_registry`, when a `TypeDecl` has `interfaces`:
 
 #### Step 2.8: Tests
 
-- `tests/programs/exception_test.reflow` — try/catch/finally with custom exception type
-- `tests/programs/retry_test.reflow` — retry with attempt counter and data correction
-- `tests/programs/errors/missing_interface_method.reflow` — negative test for fulfillment
+- `tests/programs/exception_test.flow` — try/catch/finally with custom exception type
+- `tests/programs/retry_test.flow` — retry with attempt counter and data correction
+- `tests/programs/errors/missing_interface_method.flow` — negative test for fulfillment
 - Golden files and expected stdout for each
 
 ---
@@ -247,13 +247,13 @@ File: `compiler/lowering.py`
 
 In all match lowering methods (`_lower_match_generic`, `_lower_match_sum`, etc.), add handling for `TuplePattern`:
 
-1. The subject is a tuple struct (e.g., `RF_Tuple_int_int`)
+1. The subject is a tuple struct (e.g., `FL_Tuple_int_int`)
 2. Each element in the pattern binds to the corresponding tuple field (`.f0`, `.f1`, etc.)
 3. Generate `LVarDecl` for each bound variable with `init = LFieldAccess(subject, f"f{i}")`
 
 #### Step 3.2: Tests
 
-- `tests/programs/tuple_match_test.reflow` — match on tuple values with binding
+- `tests/programs/tuple_match_test.flow` — match on tuple values with binding
 - Golden file and expected stdout
 
 ---
@@ -262,7 +262,7 @@ In all match lowering methods (`_lower_match_generic`, `_lower_match_sum`, etc.)
 
 **Goal:** `let co :< gen(x)` creates a coroutine handle with `.next()`, `.send()`, `.done()`.
 
-**Design:** A coroutine is a stream with bidirectional communication. The handle wraps an `RF_Stream*` with an additional send channel.
+**Design:** A coroutine is a stream with bidirectional communication. The handle wraps an `FL_Stream*` with an additional send channel.
 
 #### Step 4.1: Add `TCoroutine` type
 
@@ -279,35 +279,35 @@ Update `CoroutineStart` type inference: if the call returns `TStream(T)`, the co
 
 #### Step 4.2: Add coroutine runtime support
 
-File: `runtime/reflow_runtime.h`
+File: `runtime/flow_runtime.h`
 
 ```c
-typedef struct RF_Coroutine {
-    RF_Stream* stream;
+typedef struct FL_Coroutine {
+    FL_Stream* stream;
     void*      send_value;    /* value passed via .send() */
-    rf_bool    has_send;      /* whether send_value is populated */
-    rf_bool    done;          /* coroutine finished */
-} RF_Coroutine;
+    fl_bool    has_send;      /* whether send_value is populated */
+    fl_bool    done;          /* coroutine finished */
+} FL_Coroutine;
 
-RF_Coroutine* rf_coroutine_new(RF_Stream* stream);
-RF_Option_ptr rf_coroutine_next(RF_Coroutine* co);
-void          rf_coroutine_send(RF_Coroutine* co, void* value);
-rf_bool       rf_coroutine_done(RF_Coroutine* co);
-void          rf_coroutine_release(RF_Coroutine* co);
+FL_Coroutine* fl_coroutine_new(FL_Stream* stream);
+FL_Option_ptr fl_coroutine_next(FL_Coroutine* co);
+void          fl_coroutine_send(FL_Coroutine* co, void* value);
+fl_bool       fl_coroutine_done(FL_Coroutine* co);
+void          fl_coroutine_release(FL_Coroutine* co);
 ```
 
 #### Step 4.3: Lower coroutine operations
 
 File: `compiler/lowering.py`
 
-- `CoroutineStart(call)` → `LCall("rf_coroutine_new", [lowered_call])` wrapping the stream
-- `.next()` on coroutine → `LCall("rf_coroutine_next", [co])`
-- `.send(val)` on coroutine → `LCall("rf_coroutine_send", [co, val])`
-- `.done()` on coroutine → `LCall("rf_coroutine_done", [co])`
+- `CoroutineStart(call)` → `LCall("fl_coroutine_new", [lowered_call])` wrapping the stream
+- `.next()` on coroutine → `LCall("fl_coroutine_next", [co])`
+- `.send(val)` on coroutine → `LCall("fl_coroutine_send", [co, val])`
+- `.done()` on coroutine → `LCall("fl_coroutine_done", [co])`
 
 #### Step 4.4: Tests
 
-- `tests/programs/coroutine_test.reflow` — create coroutine, call .next(), .send(), .done()
+- `tests/programs/coroutine_test.flow` — create coroutine, call .next(), .send(), .done()
 - Golden file and expected stdout
 
 ---
@@ -344,9 +344,9 @@ These features have working workarounds and are lower priority.
 Full pthreads-based parallel execution implemented:
 - Thread-local exception frames (`_Thread_local`)
 - Atomic reference counting on all heap types (`_Atomic` + `atomic_fetch_add/sub`)
-- `RF_FanoutBranch` struct + `rf_fanout_run()` runtime API
+- `FL_FanoutBranch` struct + `fl_fanout_run()` runtime API
 - Typechecker safety validation (spec lines 1604-1609): pure always safe, non-pure with `:mut` params rejected, mutable static access rejected
-- Lowering generates per-branch `void*(void*)` wrapper functions and `rf_fanout_run()` calls
+- Lowering generates per-branch `void*(void*)` wrapper functions and `fl_fanout_run()` calls
 - `-pthread` added to clang invocation
 - `# SPEC GAP: transitive mutable static analysis` — only direct body checked, not transitive callees
 
@@ -354,17 +354,17 @@ Full pthreads-based parallel execution implemented:
 
 **Decision:** Implement as `@copy` equivalent for now. The `.refresh()` method requires mutable reference tracking that is complex and not needed for bootstrap.
 
-Implementation: In lowering, `SnapshotExpr(target)` → `LCall("rf_snapshot", [lowered_target])` which does a deep copy. Add `rf_snapshot` to runtime as alias for deep copy.
+Implementation: In lowering, `SnapshotExpr(target)` → `LCall("fl_snapshot", [lowered_target])` which does a deep copy. Add `fl_snapshot` to runtime as alias for deep copy.
 
 #### 6.3: `typeof()` (#12)
 
-**Decision:** Implement as compile-time string constant. `typeof(expr)` → `rf_string_from_cstr("int")` (the type name as a string). This matches the spec's compile-time semantics.
+**Decision:** Implement as compile-time string constant. `typeof(expr)` → `fl_string_from_cstr("int")` (the type name as a string). This matches the spec's compile-time semantics.
 
-Implementation: In lowering, `TypeofExpr(inner)` → `LCall("rf_string_from_cstr", [LLit(quoted_type_name)])`.
+Implementation: In lowering, `TypeofExpr(inner)` → `LCall("fl_string_from_cstr", [LLit(quoted_type_name)])`.
 
 #### 6.4: Stream Helpers (#14)
 
-**Decision:** Implement as stdlib functions in `stdlib/stream.reflow`. These are library code, not compiler features.
+**Decision:** Implement as stdlib functions in `stdlib/stream.flow`. These are library code, not compiler features.
 
 Functions to implement:
 - `take(s: stream<T>, n: int): stream<T>`

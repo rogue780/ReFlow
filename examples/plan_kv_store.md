@@ -4,13 +4,13 @@
 
 An in-memory key-value store with a TCP text protocol, concurrent client
 handling via coroutines, and optional disk persistence. Think `redis-cli` but
-built entirely in ReFlow.
+built entirely in Flow.
 
-**File:** `apps/kvstore/server.reflow`
+**File:** `apps/kvstore/server.flow`
 
 **Usage:**
 ```
-python main.py run apps/kvstore/server.reflow -- [port]
+python main.py run apps/kvstore/server.flow -- [port]
 ```
 Connect with: `nc localhost <port>`
 
@@ -49,7 +49,7 @@ Responses prefixed with `+` on success, `-` on error.
 ## Story 1-1: TCP Server with Accept Loop
 
 **KV-1-1-1** `[BLOCKER]`
-Create `apps/kvstore/server.reflow` with:
+Create `apps/kvstore/server.flow` with:
 - Port from `sys.args()`, default 6370.
 - `net.listen` + accept loop.
 - Per-client coroutine via `:< handle_client(sock)`.
@@ -240,7 +240,7 @@ Add a `FLUSHALL` command that clears the entire store. Response: `+OK`.
 ## Story 4-3: Testing
 
 **KV-4-3-1**
-Create `tests/programs/app_kv_store.reflow` — a self-test version that:
+Create `tests/programs/app_kv_store.flow` — a self-test version that:
 - Starts the server on a random high port.
 - Spawns a coroutine client that connects and runs a scripted sequence:
   `SET foo bar`, `GET foo`, `DEL foo`, `GET foo`, `KEYS`, `COUNT`.

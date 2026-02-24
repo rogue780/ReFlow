@@ -1,8 +1,8 @@
-# ReFlow Bounded Generics: Implementation Plan
+# Flow Bounded Generics: Implementation Plan
 
 ## Overview
 
-ReFlow has generics (`<T>`) and interface fulfillment (`type Foo fulfills Bar`),
+Flow has generics (`<T>`) and interface fulfillment (`type Foo fulfills Bar`),
 but these two features are disconnected. There is no way to constrain a type
 parameter to types that satisfy a specific interface. This forces the stdlib to
 define per-type variants (`abs_int`, `abs_float`, `min_int`, `min_float`) instead
@@ -45,7 +45,7 @@ Spec changes come first. Every implementation ticket references a spec section.
 ## Story 0-1: Language Specification Update
 
 **BG-0-1-1** `[BLOCKER]`
-Add bounded generics to the specification in `reflow_spec.md`.
+Add bounded generics to the specification in `flow_spec.md`.
 
 This is not an appendix or addendum. Bounded generics are integrated into the
 existing sections:
@@ -526,7 +526,7 @@ Add typechecker tests for interactions with existing features.
 **BG-3-2-1**
 Add negative compile test: unsatisfied bound.
 
-`tests/programs/errors/bounded_generic_unsatisfied.reflow`:
+`tests/programs/errors/bounded_generic_unsatisfied.flow`:
 ```
 interface Printable {
     fn to_str(self): string
@@ -553,7 +553,7 @@ does not fulfill interface 'Printable'
 **BG-3-2-2**
 Add negative compile test: unknown interface in bound.
 
-`tests/programs/errors/bounded_generic_unknown_iface.reflow`:
+`tests/programs/errors/bounded_generic_unknown_iface.flow`:
 ```
 fn process<T fulfills NonExistent>(val: T): void { }
 
@@ -569,7 +569,7 @@ unknown interface 'NonExistent'
 **BG-3-2-3**
 Add negative compile test: wrong type argument count with bounded generic type.
 
-`tests/programs/errors/bounded_generic_wrong_args.reflow`:
+`tests/programs/errors/bounded_generic_wrong_args.flow`:
 ```
 interface Sized {
     fn size(self): int
@@ -663,13 +663,13 @@ This plan ensures readiness by:
 
 | File | Change |
 |------|--------|
-| `reflow_spec.md` | Extend generics and interfaces sections with bounded generics |
+| `flow_spec.md` | Extend generics and interfaces sections with bounded generics |
 | `compiler/ast_nodes.py` | Add `TypeParam` dataclass, change 4 field types |
 | `compiler/parser.py` | New `_parse_type_param`, rewrite `_parse_type_params`, update 6 signatures |
 | `compiler/typechecker.py` | Update `TypeInfo`/`InterfaceInfo` field types, update all `type_params` reads, add 4 new methods, wire into `Call`/`MethodCall`/type instantiation |
 | `tests/unit/test_parser.py` | Fix 5 existing tests, add ~10 new bounded generic tests |
 | `tests/unit/test_typechecker.py` | Add ~14 new bounded generic tests |
-| `tests/programs/errors/bounded_generic_*.reflow` | 3 new error programs |
+| `tests/programs/errors/bounded_generic_*.flow` | 3 new error programs |
 | `tests/expected_errors/bounded_generic_*.txt` | 3 new expected error files |
 
 # Files NOT Modified

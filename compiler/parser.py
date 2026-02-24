@@ -208,7 +208,7 @@ _TOPLEVEL_ONLY_TOKENS = frozenset({
 
 
 class Parser:
-    """Recursive-descent parser with Pratt expression parsing for ReFlow."""
+    """Recursive-descent parser with Pratt expression parsing for Flow."""
 
     def __init__(self, tokens: list[Token], filename: str) -> None:
         self._tokens = tokens

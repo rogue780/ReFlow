@@ -2,15 +2,15 @@
 
 ## Overview
 
-A multi-client TCP chat server written in ReFlow. Users connect with `nc` or
+A multi-client TCP chat server written in Flow. Users connect with `nc` or
 `telnet`, pick a nickname, and exchange messages in real time. Each client
 connection is handled by a coroutine on its own thread.
 
-**File:** `apps/chat/server.reflow`
+**File:** `apps/chat/server.flow`
 
 **Usage:**
 ```
-python main.py run apps/chat/server.reflow -- [port]
+python main.py run apps/chat/server.flow -- [port]
 ```
 Connect with: `nc localhost <port>`
 
@@ -37,7 +37,7 @@ Stand up the TCP listener, accept loop, and per-client coroutine model.
 ## Story 1-1: TCP Accept Loop
 
 **CHAT-1-1-1** `[BLOCKER]`
-Create `apps/chat/server.reflow` with a `main()` that:
+Create `apps/chat/server.flow` with a `main()` that:
 - Reads port from `sys.args()` (default 9000).
 - Calls `net.listen("0.0.0.0", port)`.
 - Prints "Chat server listening on port NNNN".
@@ -154,7 +154,7 @@ The core feature: messages from one client are delivered to all others.
 
 **CHAT-3-1-1** `[BLOCKER]`
 Design the broadcast approach. Since each client runs in its own coroutine
-and ReFlow doesn't have shared mutable state across threads, broadcasting
+and Flow doesn't have shared mutable state across threads, broadcasting
 requires a coordination mechanism.
 
 Approach: Use a dedicated broadcast coroutine that owns the client socket list.
@@ -213,7 +213,7 @@ not crash the server — just remove the dead client.
 **CHAT-4-1-2**
 Add a welcome message sent on connect:
 ```
-Welcome to ReFlow Chat!
+Welcome to Flow Chat!
 Type /help for commands.
 Your nickname is: user_xxx
 ```
@@ -244,7 +244,7 @@ Print a periodic status line every 60 seconds (or on SIGUSR1 if feasible):
 ## Story 4-3: Testing
 
 **CHAT-4-3-1**
-Create `tests/programs/app_chat_server.reflow` — a self-test version that:
+Create `tests/programs/app_chat_server.flow` — a self-test version that:
 - Starts the server on a random high port.
 - Spawns a coroutine client that connects, sends `/nick testbot`, sends
   "hello", reads back the echo/broadcast, and disconnects.

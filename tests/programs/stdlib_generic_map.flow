@@ -1,0 +1,41 @@
+; stdlib_generic_map.flow — Tests generic map functions
+module tests.stdlib_generic_map
+
+import io (println)
+import map
+import array
+import conv
+
+fn main() {
+    ; Test map<string, string> — same as before but with generic signatures
+    let m: map<string, string>:mut = map.new()
+    m = map.set(m, "greeting", "hello")
+    m = map.set(m, "farewell", "goodbye")
+
+    println(f"has greeting={map.has(m, "greeting")}")
+    println(f"has missing={map.has(m, "missing")}")
+
+    match map.get(m, "greeting") {
+        some(v): { println(f"greeting={v}") }
+        none: { println("greeting=none") }
+    }
+
+    match map.get(m, "farewell") {
+        some(v): { println(f"farewell={v}") }
+        none: { println("farewell=none") }
+    }
+
+    ; Keys and values
+    let ks = map.keys(m)
+    println(f"keys count={array.len_string(ks)}")
+
+    let vs = map.values(m)
+    println(f"values count={array.len_string(vs)}")
+
+    ; Remove
+    m = map.remove(m, "greeting")
+    println(f"after remove has greeting={map.has(m, "greeting")}")
+
+    ; Test len
+    println(f"len={map.len(m)}")
+}

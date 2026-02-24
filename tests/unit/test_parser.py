@@ -46,9 +46,9 @@ from compiler.ast_nodes import (
 # ---------------------------------------------------------------------------
 
 def parse(source: str) -> Module:
-    """Lex and parse *source* using the filename 'test.reflow'."""
-    tokens = Lexer(source, "test.reflow").tokenize()
-    parser = Parser(tokens, "test.reflow")
+    """Lex and parse *source* using the filename 'test.flow'."""
+    tokens = Lexer(source, "test.flow").tokenize()
+    parser = Parser(tokens, "test.flow")
     return parser.parse()
 
 
@@ -117,7 +117,7 @@ class TestModuleDecl(unittest.TestCase):
 
     def test_module_decl_filename_stored(self) -> None:
         mod = parse("module main")
-        self.assertEqual(mod.filename, "test.reflow")
+        self.assertEqual(mod.filename, "test.flow")
 
     def test_module_decl_type(self) -> None:
         # The module path is directly on the Module node (not a separate decl)
@@ -1395,7 +1395,7 @@ class TestParseErrors(unittest.TestCase):
     def test_parse_error_has_file(self) -> None:
         with self.assertRaises(ParseError) as ctx:
             parse("fn foo(): int { return 1")
-        self.assertEqual(ctx.exception.file, "test.reflow")
+        self.assertEqual(ctx.exception.file, "test.flow")
 
     def test_parse_error_has_line(self) -> None:
         with self.assertRaises(ParseError) as ctx:

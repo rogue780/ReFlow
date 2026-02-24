@@ -1,0 +1,127 @@
+; coroutines.flow — Threaded producers with channel-based communication
+module examples.coroutines
+import io (println)
+
+; === Basic Coroutine ===
+; A coroutine is a stream function spawned on a separate thread with :<
+; Yielded values are pushed into a bounded internal channel (FIFO)
+
+fn counter(start: int): stream<int> {
+    let i: int:mut = start
+    while (true) {
+        yield i
+        i = i + 1
+    }
+}
+
+fn fibonacci(): stream<int> {
+    let a: int:mut = 0
+    let b: int:mut = 1
+    while (true) {
+        yield a
+        let tmp = a + b
+        a = b
+        b = tmp
+    }
+}
+
+; === Bounded producer ===
+; Produces exactly N values, then the stream ends naturally
+
+fn range(n: int): stream<int> {
+    let i: int:mut = 0
+    while (i < n) {
+        yield i
+        i = i + 1
+    }
+}
+
+fn main() {
+    ; --- Basic coroutine usage ---
+    ; :< spawns counter() on a new thread, returns immediately
+    println("=== Counter ===")
+    let gen :< counter(10)
+    match gen.next() {
+        some(v): { println(f"first: {v}") }
+        none: { println("done") }
+    }
+    match gen.next() {
+        some(v): { println(f"second: {v}") }
+        none: { println("done") }
+    }
+    println(f"done? {gen.done()}")
+
+    ; --- Fibonacci coroutine ---
+    println("=== Fibonacci ===")
+    let fib :< fibonacci()
+    let i: int:mut = 0
+    while (i < 8) {
+        match fib.next() {
+            some(v): { println(f"fib({i}): {v}") }
+            none: { println("unexpected end") }
+        }
+        i = i + 1
+    }
+
+    ; --- Configurable buffer capacity ---
+    ; with capacity(N) controls how far ahead the producer can run
+    ; Default is 64; capacity(1) = tightly synchronized
+    println("=== Capacity ===")
+    let tight :< range(5) with capacity(1)
+    while (!tight.done()) {
+        match tight.next() {
+            some(v): { println(f"  tight: {v}") }
+            none: {}
+        }
+    }
+
+    let buffered :< range(5) with capacity(128)
+    while (!buffered.done()) {
+        match buffered.next() {
+            some(v): { println(f"  buffered: {v}") }
+            none: {}
+        }
+    }
+
+    ; --- Multiple independent coroutines ---
+    ; Each runs on its own thread; immutable data shared via refcount
+    println("=== Multiple coroutines ===")
+    let a :< counter(0)
+    let b :< counter(100)
+    match a.next() {
+        some(v): { println(f"a: {v}") }
+        none: { println("done") }
+    }
+    match b.next() {
+        some(v): { println(f"b: {v}") }
+        none: { println("done") }
+    }
+
+    ; --- Concurrent producers sharing immutable data ---
+    ; Immutable values are safely shared across threads without copying
+    println("=== Shared immutable config ===")
+    let prefix = "item"
+    let c1 :< label_range(prefix, 0, 3)
+    let c2 :< label_range(prefix, 10, 3)
+    let j: int:mut = 0
+    while (j < 3) {
+        match c1.next() {
+            some(v): { println(f"  c1: {v}") }
+            none: {}
+        }
+        match c2.next() {
+            some(v): { println(f"  c2: {v}") }
+            none: {}
+        }
+        j = j + 1
+    }
+}
+
+; Helper: produces labeled values
+fn label_range(prefix: string, start: int, count: int): stream<string> {
+    let i: int:mut = 0
+    while (i < count) {
+        yield f"{prefix}-{start + i}"
+        i = i + 1
+    }
+}

@@ -1,9 +1,9 @@
 ---
 name: test-first
-description: Enforces the testing discipline required for the ReFlow compiler project. Read this skill before starting any ticket that involves writing or modifying compiler code.
+description: Enforces the testing discipline required for the Flow compiler project. Read this skill before starting any ticket that involves writing or modifying compiler code.
 ---
 
-# Test-First Discipline for the ReFlow Compiler
+# Test-First Discipline for the Flow Compiler
 
 Tests are not optional and are not something to add after a ticket is "done." A ticket without tests is not done. This skill defines exactly how testing works in this project and what is required before marking any ticket complete.
 
@@ -38,38 +38,38 @@ Write unit tests as plain Python using `unittest` or `pytest`. Each test file mi
 
 ### Golden File Tests — `tests/programs/` and `tests/expected/`
 
-For the emitter. Each `.reflow` file in `tests/programs/` has a corresponding `.c` file in `tests/expected/`. The test harness runs the full pipeline on the source, diffs the output against the expected file, and fails if they differ.
+For the emitter. Each `.flow` file in `tests/programs/` has a corresponding `.c` file in `tests/expected/`. The test harness runs the full pipeline on the source, diffs the output against the expected file, and fails if they differ.
 
 **When to update a golden file:**
 Only when you intentionally change emitter behavior. When you update a golden file, do it deliberately: generate the new expected output, review it to confirm it is correct, then commit both the emitter change and the updated golden file in the same commit.
 
 Never auto-update golden files without reviewing the diff. The point of golden files is to catch unintended changes.
 
-**Naming convention:** the `.reflow` file and its `.c` file have the same base name.
+**Naming convention:** the `.flow` file and its `.c` file have the same base name.
 ```
-tests/programs/option_test.reflow
+tests/programs/option_test.flow
 tests/expected/option_test.c
 ```
 
 ### End-to-End Tests — `tests/programs/` with `.expected_stdout`
 
-For programs that produce output. Each `.reflow` file can have a corresponding `.expected_stdout` file. The test harness compiles, links, runs the binary, and diffs stdout.
+For programs that produce output. Each `.flow` file can have a corresponding `.expected_stdout` file. The test harness compiles, links, runs the binary, and diffs stdout.
 
 ```
-tests/programs/hello.reflow
+tests/programs/hello.flow
 tests/expected_stdout/hello.txt    → "Hello, World!\n"
 ```
 
 ### Negative Tests — `tests/programs/errors/` and `tests/expected_errors/`
 
-For programs that should fail to compile. Each `.reflow` file in `tests/programs/errors/` has a `.expected_error` file in `tests/expected_errors/` containing:
+For programs that should fail to compile. Each `.flow` file in `tests/programs/errors/` has a `.expected_error` file in `tests/expected_errors/` containing:
 - The expected error class name (e.g., `TypeError`, `ResolveError`)
 - A prefix of the expected error message
 
 The test harness verifies the compiler exits with code 1 and the error output contains the expected class and message prefix.
 
 ```
-tests/programs/errors/missing_match_arm.reflow
+tests/programs/errors/missing_match_arm.flow
 tests/expected_errors/missing_match_arm.txt →
     TypeError
     match on Shape is not exhaustive: missing variant 'Triangle'
@@ -116,8 +116,8 @@ tests/expected_errors/missing_match_arm.txt →
 - `result<T, E>` emits tagged union
 - Sum type emits tagged union with one case per variant
 - Streaming function emits frame struct + next + free + factory
-- Overflow-checked arithmetic emits `RF_CHECKED_ADD` etc.
-- F-string emits chain of `rf_string_concat` calls
+- Overflow-checked arithmetic emits `FL_CHECKED_ADD` etc.
+- F-string emits chain of `fl_string_concat` calls
 
 ---
 
@@ -125,12 +125,12 @@ tests/expected_errors/missing_match_arm.txt →
 
 When adding a new language feature to the emitter:
 
-1. Write the `.reflow` test program first.
+1. Write the `.flow` test program first.
 2. Run the emitter. It will fail or produce wrong output.
 3. Fix the emitter until the output is correct.
 4. Copy the correct output to `tests/expected/<name>.c`.
 5. Run `make test`. The golden file test should now pass.
-6. Commit: the `.reflow` source, the `.c` expected file, and the emitter changes together.
+6. Commit: the `.flow` source, the `.c` expected file, and the emitter changes together.
 
 When changing existing emitter behavior:
 
@@ -163,7 +163,7 @@ python -m pytest tests/unit/test_lexer.py::test_fstring_nested_braces -v
 
 Regenerate a specific golden file (do this only after confirming the output is correct):
 ```bash
-python main.py emit-c tests/programs/option_test.reflow > tests/expected/option_test.c
+python main.py emit-c tests/programs/option_test.flow > tests/expected/option_test.c
 ```
 
 ---

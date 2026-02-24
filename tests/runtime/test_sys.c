@@ -1,11 +1,11 @@
 /*
- * C-level tests for rf_env_get and rf_clock_ms (stdlib/sys extensions).
+ * C-level tests for fl_env_get and fl_clock_ms (stdlib/sys extensions).
  *
  * Compile and run via: make test-runtime
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,88 +22,88 @@ static int tests_passed = 0;
     do { tests_passed++; printf("PASS\n"); } while(0)
 
 /* ========================================================================
- * Test 1: rf_env_get for PATH (always set)
+ * Test 1: fl_env_get for PATH (always set)
  * ======================================================================== */
 
 static void test_env_get_path(void) {
     TEST(env_get_PATH_returns_some);
 
-    RF_String* name = rf_string_from_cstr("PATH");
-    RF_Option_ptr result = rf_env_get(name);
+    FL_String* name = fl_string_from_cstr("PATH");
+    FL_Option_ptr result = fl_env_get(name);
 
     assert(result.tag == 1);  /* some */
-    RF_String* val = (RF_String*)result.value;
+    FL_String* val = (FL_String*)result.value;
     assert(val->len > 0);
 
-    rf_string_release(val);
-    rf_string_release(name);
+    fl_string_release(val);
+    fl_string_release(name);
     PASS();
 }
 
 /* ========================================================================
- * Test 2: rf_env_get for nonexistent variable
+ * Test 2: fl_env_get for nonexistent variable
  * ======================================================================== */
 
 static void test_env_get_nonexistent(void) {
     TEST(env_get_nonexistent_returns_none);
 
-    RF_String* name = rf_string_from_cstr("RF_TEST_NONEXISTENT_VAR_12345");
-    RF_Option_ptr result = rf_env_get(name);
+    FL_String* name = fl_string_from_cstr("FL_TEST_NONEXISTENT_VAR_12345");
+    FL_Option_ptr result = fl_env_get(name);
 
     assert(result.tag == 0);  /* none */
 
-    rf_string_release(name);
+    fl_string_release(name);
     PASS();
 }
 
 /* ========================================================================
- * Test 3: rf_env_get after setenv
+ * Test 3: fl_env_get after setenv
  * ======================================================================== */
 
 static void test_env_get_after_setenv(void) {
     TEST(env_get_after_setenv);
 
-    setenv("RF_TEST_VAR", "hello", 1);
+    setenv("FL_TEST_VAR", "hello", 1);
 
-    RF_String* name = rf_string_from_cstr("RF_TEST_VAR");
-    RF_Option_ptr result = rf_env_get(name);
+    FL_String* name = fl_string_from_cstr("FL_TEST_VAR");
+    FL_Option_ptr result = fl_env_get(name);
 
     assert(result.tag == 1);  /* some */
-    RF_String* val = (RF_String*)result.value;
-    RF_String* expected = rf_string_from_cstr("hello");
-    assert(rf_string_eq(val, expected));
+    FL_String* val = (FL_String*)result.value;
+    FL_String* expected = fl_string_from_cstr("hello");
+    assert(fl_string_eq(val, expected));
 
-    rf_string_release(val);
-    rf_string_release(expected);
-    rf_string_release(name);
+    fl_string_release(val);
+    fl_string_release(expected);
+    fl_string_release(name);
 
-    unsetenv("RF_TEST_VAR");
+    unsetenv("FL_TEST_VAR");
     PASS();
 }
 
 /* ========================================================================
- * Test 4: rf_clock_ms returns a positive value
+ * Test 4: fl_clock_ms returns a positive value
  * ======================================================================== */
 
 static void test_clock_ms_positive(void) {
     TEST(clock_ms_returns_positive);
 
-    rf_int64 ms = rf_clock_ms();
+    fl_int64 ms = fl_clock_ms();
     assert(ms > 0);
 
     PASS();
 }
 
 /* ========================================================================
- * Test 5: rf_clock_ms is monotonically increasing
+ * Test 5: fl_clock_ms is monotonically increasing
  * ======================================================================== */
 
 static void test_clock_ms_monotonic(void) {
     TEST(clock_ms_monotonically_increasing);
 
-    rf_int64 t1 = rf_clock_ms();
+    fl_int64 t1 = fl_clock_ms();
     usleep(10000);  /* 10ms */
-    rf_int64 t2 = rf_clock_ms();
+    fl_int64 t2 = fl_clock_ms();
 
     assert(t2 >= t1 + 5);  /* at least 5ms elapsed (generous margin) */
 
@@ -115,7 +115,7 @@ static void test_clock_ms_monotonic(void) {
  * ======================================================================== */
 
 int main(void) {
-    printf("rf_env_get and rf_clock_ms tests\n");
+    printf("fl_env_get and fl_clock_ms tests\n");
     printf("================================\n");
 
     test_env_get_path();

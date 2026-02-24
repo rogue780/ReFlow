@@ -1,11 +1,11 @@
 /*
- * C-level tests for RF_File handle-based I/O (stdlib/file).
+ * C-level tests for FL_File handle-based I/O (stdlib/file).
  *
  * Compile and run via: make test-runtime
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,23 +27,23 @@ static int tests_passed = 0;
 static void test_open_read_and_read_all(void) {
     TEST(open_read_and_read_all);
 
-    RF_String* path = rf_string_from_cstr("tests/runtime/test_file.c");
-    RF_Option_ptr opt = rf_file_open_read(path);
+    FL_String* path = fl_string_from_cstr("tests/runtime/test_file.c");
+    FL_Option_ptr opt = fl_file_open_read(path);
     assert(opt.tag == 1);
 
-    RF_File* f = (RF_File*)opt.value;
-    RF_Option_ptr content_opt = rf_file_read_all(f);
+    FL_File* f = (FL_File*)opt.value;
+    FL_Option_ptr content_opt = fl_file_read_all(f);
     assert(content_opt.tag == 1);
 
-    RF_String* content = (RF_String*)content_opt.value;
+    FL_String* content = (FL_String*)content_opt.value;
     assert(content->len > 0);
 
     /* Verify it starts with the expected comment */
     assert(strncmp(content->data, "/*", 2) == 0);
 
-    rf_string_release(content);
-    rf_file_close(f);
-    rf_string_release(path);
+    fl_string_release(content);
+    fl_file_close(f);
+    fl_string_release(path);
     PASS();
 }
 
@@ -54,32 +54,32 @@ static void test_open_read_and_read_all(void) {
 static void test_open_write_and_read_back(void) {
     TEST(open_write_and_read_back);
 
-    const char* tmp_path = "/tmp/rf_test_file_write.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* message = rf_string_from_cstr("Hello, ReFlow file handles!");
+    const char* tmp_path = "/tmp/fl_test_file_write.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* message = fl_string_from_cstr("Hello, Flow file handles!");
 
     /* Write */
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_bool ok = rf_file_write_string(wf, message);
-    assert(ok == rf_true);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_bool ok = fl_file_write_string(wf, message);
+    assert(ok == fl_true);
+    fl_file_close(wf);
 
     /* Read back */
-    RF_Option_ptr ropt = rf_file_open_read(path);
+    FL_Option_ptr ropt = fl_file_open_read(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
-    RF_Option_ptr content_opt = rf_file_read_all(rf_);
+    FL_File* fl_ = (FL_File*)ropt.value;
+    FL_Option_ptr content_opt = fl_file_read_all(fl_);
     assert(content_opt.tag == 1);
-    RF_String* content = (RF_String*)content_opt.value;
-    assert(rf_string_eq(content, message) == rf_true);
+    FL_String* content = (FL_String*)content_opt.value;
+    assert(fl_string_eq(content, message) == fl_true);
 
-    rf_string_release(content);
-    rf_file_close(rf_);
+    fl_string_release(content);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(message);
+    fl_string_release(path);
+    fl_string_release(message);
     PASS();
 }
 
@@ -90,42 +90,42 @@ static void test_open_write_and_read_back(void) {
 static void test_read_line_strips_newline(void) {
     TEST(read_line_strips_newline);
 
-    const char* tmp_path = "/tmp/rf_test_file_readline.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* data = rf_string_from_cstr("hello\nworld\n");
+    const char* tmp_path = "/tmp/fl_test_file_readline.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* data = fl_string_from_cstr("hello\nworld\n");
 
     /* Write data */
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_file_write_string(wf, data);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_file_write_string(wf, data);
+    fl_file_close(wf);
 
     /* Read lines */
-    RF_Option_ptr ropt = rf_file_open_read(path);
+    FL_Option_ptr ropt = fl_file_open_read(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
+    FL_File* fl_ = (FL_File*)ropt.value;
 
-    RF_Option_ptr l1 = rf_file_read_line(rf_);
+    FL_Option_ptr l1 = fl_file_read_line(fl_);
     assert(l1.tag == 1);
-    RF_String* line1 = (RF_String*)l1.value;
-    RF_String* expected1 = rf_string_from_cstr("hello");
-    assert(rf_string_eq(line1, expected1) == rf_true);
+    FL_String* line1 = (FL_String*)l1.value;
+    FL_String* expected1 = fl_string_from_cstr("hello");
+    assert(fl_string_eq(line1, expected1) == fl_true);
 
-    RF_Option_ptr l2 = rf_file_read_line(rf_);
+    FL_Option_ptr l2 = fl_file_read_line(fl_);
     assert(l2.tag == 1);
-    RF_String* line2 = (RF_String*)l2.value;
-    RF_String* expected2 = rf_string_from_cstr("world");
-    assert(rf_string_eq(line2, expected2) == rf_true);
+    FL_String* line2 = (FL_String*)l2.value;
+    FL_String* expected2 = fl_string_from_cstr("world");
+    assert(fl_string_eq(line2, expected2) == fl_true);
 
-    rf_string_release(line1);
-    rf_string_release(line2);
-    rf_string_release(expected1);
-    rf_string_release(expected2);
-    rf_file_close(rf_);
+    fl_string_release(line1);
+    fl_string_release(line2);
+    fl_string_release(expected1);
+    fl_string_release(expected2);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(data);
+    fl_string_release(path);
+    fl_string_release(data);
     PASS();
 }
 
@@ -136,33 +136,33 @@ static void test_read_line_strips_newline(void) {
 static void test_read_line_eof_returns_none(void) {
     TEST(read_line_eof_returns_none);
 
-    const char* tmp_path = "/tmp/rf_test_file_eof.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* data = rf_string_from_cstr("only\n");
+    const char* tmp_path = "/tmp/fl_test_file_eof.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* data = fl_string_from_cstr("only\n");
 
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_file_write_string(wf, data);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_file_write_string(wf, data);
+    fl_file_close(wf);
 
-    RF_Option_ptr ropt = rf_file_open_read(path);
+    FL_Option_ptr ropt = fl_file_open_read(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
+    FL_File* fl_ = (FL_File*)ropt.value;
 
-    RF_Option_ptr l1 = rf_file_read_line(rf_);
+    FL_Option_ptr l1 = fl_file_read_line(fl_);
     assert(l1.tag == 1);
-    RF_String* line1 = (RF_String*)l1.value;
-    rf_string_release(line1);
+    FL_String* line1 = (FL_String*)l1.value;
+    fl_string_release(line1);
 
     /* Next read should return NONE */
-    RF_Option_ptr l2 = rf_file_read_line(rf_);
+    FL_Option_ptr l2 = fl_file_read_line(fl_);
     assert(l2.tag == 0);
 
-    rf_file_close(rf_);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(data);
+    fl_string_release(path);
+    fl_string_release(data);
     PASS();
 }
 
@@ -173,33 +173,33 @@ static void test_read_line_eof_returns_none(void) {
 static void test_read_bytes_exact(void) {
     TEST(read_bytes_exact);
 
-    const char* tmp_path = "/tmp/rf_test_file_readbytes.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* data = rf_string_from_cstr("ABCDEFGHIJ");
+    const char* tmp_path = "/tmp/fl_test_file_readbytes.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* data = fl_string_from_cstr("ABCDEFGHIJ");
 
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_file_write_string(wf, data);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_file_write_string(wf, data);
+    fl_file_close(wf);
 
-    RF_Option_ptr ropt = rf_file_open_read_bytes(path);
+    FL_Option_ptr ropt = fl_file_open_read_bytes(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
+    FL_File* fl_ = (FL_File*)ropt.value;
 
-    RF_Option_ptr bopt = rf_file_read_bytes(rf_, 5);
+    FL_Option_ptr bopt = fl_file_read_bytes(fl_, 5);
     assert(bopt.tag == 1);
-    RF_Array* arr = (RF_Array*)bopt.value;
+    FL_Array* arr = (FL_Array*)bopt.value;
     assert(arr->len == 5);
-    rf_byte* bytes = (rf_byte*)arr->data;
+    fl_byte* bytes = (fl_byte*)arr->data;
     assert(bytes[0] == 'A');
     assert(bytes[4] == 'E');
 
-    rf_array_release(arr);
-    rf_file_close(rf_);
+    fl_array_release(arr);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(data);
+    fl_string_release(path);
+    fl_string_release(data);
     PASS();
 }
 
@@ -210,38 +210,38 @@ static void test_read_bytes_exact(void) {
 static void test_read_all_bytes(void) {
     TEST(read_all_bytes);
 
-    const char* tmp_path = "/tmp/rf_test_file_readallbytes.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
+    const char* tmp_path = "/tmp/fl_test_file_readallbytes.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
 
     /* Write known bytes */
-    rf_byte known[] = {0x00, 0x01, 0xFF, 0x42, 0x80};
-    RF_Option_ptr wopt = rf_file_open_write_bytes(path);
+    fl_byte known[] = {0x00, 0x01, 0xFF, 0x42, 0x80};
+    FL_Option_ptr wopt = fl_file_open_write_bytes(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    RF_Array* write_arr = rf_array_new(5, sizeof(rf_byte), known);
-    rf_file_write_bytes(wf, write_arr);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    FL_Array* write_arr = fl_array_new(5, sizeof(fl_byte), known);
+    fl_file_write_bytes(wf, write_arr);
+    fl_file_close(wf);
 
     /* Read back */
-    RF_Option_ptr ropt = rf_file_open_read_bytes(path);
+    FL_Option_ptr ropt = fl_file_open_read_bytes(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
-    RF_Option_ptr bopt = rf_file_read_all_bytes(rf_);
+    FL_File* fl_ = (FL_File*)ropt.value;
+    FL_Option_ptr bopt = fl_file_read_all_bytes(fl_);
     assert(bopt.tag == 1);
-    RF_Array* arr = (RF_Array*)bopt.value;
+    FL_Array* arr = (FL_Array*)bopt.value;
     assert(arr->len == 5);
-    rf_byte* data = (rf_byte*)arr->data;
+    fl_byte* data = (fl_byte*)arr->data;
     assert(data[0] == 0x00);
     assert(data[1] == 0x01);
     assert(data[2] == 0xFF);
     assert(data[3] == 0x42);
     assert(data[4] == 0x80);
 
-    rf_array_release(write_arr);
-    rf_array_release(arr);
-    rf_file_close(rf_);
+    fl_array_release(write_arr);
+    fl_array_release(arr);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
+    fl_string_release(path);
     PASS();
 }
 
@@ -252,37 +252,37 @@ static void test_read_all_bytes(void) {
 static void test_write_bytes_from_array(void) {
     TEST(write_bytes_from_array);
 
-    const char* tmp_path = "/tmp/rf_test_file_writebytes.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
+    const char* tmp_path = "/tmp/fl_test_file_writebytes.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
 
-    rf_byte vals[] = {10, 20, 30, 40, 50};
-    RF_Array* arr = rf_array_new(5, sizeof(rf_byte), vals);
+    fl_byte vals[] = {10, 20, 30, 40, 50};
+    FL_Array* arr = fl_array_new(5, sizeof(fl_byte), vals);
 
-    RF_Option_ptr wopt = rf_file_open_write_bytes(path);
+    FL_Option_ptr wopt = fl_file_open_write_bytes(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_bool ok = rf_file_write_bytes(wf, arr);
-    assert(ok == rf_true);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_bool ok = fl_file_write_bytes(wf, arr);
+    assert(ok == fl_true);
+    fl_file_close(wf);
 
     /* Read back and verify */
-    RF_Option_ptr ropt = rf_file_open_read_bytes(path);
+    FL_Option_ptr ropt = fl_file_open_read_bytes(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
-    RF_Option_ptr bopt = rf_file_read_all_bytes(rf_);
+    FL_File* fl_ = (FL_File*)ropt.value;
+    FL_Option_ptr bopt = fl_file_read_all_bytes(fl_);
     assert(bopt.tag == 1);
-    RF_Array* read_arr = (RF_Array*)bopt.value;
+    FL_Array* read_arr = (FL_Array*)bopt.value;
     assert(read_arr->len == 5);
-    rf_byte* data = (rf_byte*)read_arr->data;
+    fl_byte* data = (fl_byte*)read_arr->data;
     assert(data[0] == 10);
     assert(data[2] == 30);
     assert(data[4] == 50);
 
-    rf_array_release(arr);
-    rf_array_release(read_arr);
-    rf_file_close(rf_);
+    fl_array_release(arr);
+    fl_array_release(read_arr);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
+    fl_string_release(path);
     PASS();
 }
 
@@ -293,52 +293,52 @@ static void test_write_bytes_from_array(void) {
 static void test_file_position_and_seek(void) {
     TEST(file_position_and_seek);
 
-    const char* tmp_path = "/tmp/rf_test_file_seek.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* data = rf_string_from_cstr("0123456789");
+    const char* tmp_path = "/tmp/fl_test_file_seek.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* data = fl_string_from_cstr("0123456789");
 
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_file_write_string(wf, data);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_file_write_string(wf, data);
+    fl_file_close(wf);
 
-    RF_Option_ptr ropt = rf_file_open_read(path);
+    FL_Option_ptr ropt = fl_file_open_read(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
+    FL_File* fl_ = (FL_File*)ropt.value;
 
     /* Position should start at 0 */
-    assert(rf_file_position(rf_) == 0);
+    assert(fl_file_position(fl_) == 0);
 
     /* Read 5 bytes to advance */
-    RF_Option_ptr bopt = rf_file_read_bytes(rf_, 5);
+    FL_Option_ptr bopt = fl_file_read_bytes(fl_, 5);
     assert(bopt.tag == 1);
-    RF_Array* arr = (RF_Array*)bopt.value;
-    rf_array_release(arr);
+    FL_Array* arr = (FL_Array*)bopt.value;
+    fl_array_release(arr);
 
     /* Position should now be 5 */
-    assert(rf_file_position(rf_) == 5);
+    assert(fl_file_position(fl_) == 5);
 
     /* Seek back to 0 */
-    rf_bool ok = rf_file_seek(rf_, 0);
-    assert(ok == rf_true);
-    assert(rf_file_position(rf_) == 0);
+    fl_bool ok = fl_file_seek(fl_, 0);
+    assert(ok == fl_true);
+    assert(fl_file_position(fl_) == 0);
 
     /* Read first 3 bytes again */
-    bopt = rf_file_read_bytes(rf_, 3);
+    bopt = fl_file_read_bytes(fl_, 3);
     assert(bopt.tag == 1);
-    arr = (RF_Array*)bopt.value;
+    arr = (FL_Array*)bopt.value;
     assert(arr->len == 3);
-    rf_byte* bytes = (rf_byte*)arr->data;
+    fl_byte* bytes = (fl_byte*)arr->data;
     assert(bytes[0] == '0');
     assert(bytes[1] == '1');
     assert(bytes[2] == '2');
-    rf_array_release(arr);
+    fl_array_release(arr);
 
-    rf_file_close(rf_);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(data);
+    fl_string_release(path);
+    fl_string_release(data);
     PASS();
 }
 
@@ -349,28 +349,28 @@ static void test_file_position_and_seek(void) {
 static void test_file_seek_end(void) {
     TEST(file_seek_end);
 
-    const char* tmp_path = "/tmp/rf_test_file_seekend.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* data = rf_string_from_cstr("ABCDE");
+    const char* tmp_path = "/tmp/fl_test_file_seekend.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* data = fl_string_from_cstr("ABCDE");
 
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_file_write_string(wf, data);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_file_write_string(wf, data);
+    fl_file_close(wf);
 
-    RF_Option_ptr ropt = rf_file_open_read(path);
+    FL_Option_ptr ropt = fl_file_open_read(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
+    FL_File* fl_ = (FL_File*)ropt.value;
 
-    rf_bool ok = rf_file_seek_end(rf_, 0);
-    assert(ok == rf_true);
-    assert(rf_file_position(rf_) == 5);
+    fl_bool ok = fl_file_seek_end(fl_, 0);
+    assert(ok == fl_true);
+    assert(fl_file_position(fl_) == 5);
 
-    rf_file_close(rf_);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(data);
+    fl_string_release(path);
+    fl_string_release(data);
     PASS();
 }
 
@@ -381,25 +381,25 @@ static void test_file_seek_end(void) {
 static void test_file_size(void) {
     TEST(file_size);
 
-    const char* tmp_path = "/tmp/rf_test_file_size.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* data = rf_string_from_cstr("Hello World!");
+    const char* tmp_path = "/tmp/fl_test_file_size.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* data = fl_string_from_cstr("Hello World!");
 
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_file_write_string(wf, data);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_file_write_string(wf, data);
+    fl_file_close(wf);
 
-    RF_Option_ptr ropt = rf_file_open_read(path);
+    FL_Option_ptr ropt = fl_file_open_read(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
-    assert(rf_file_size(rf_) == 12);  /* "Hello World!" is 12 bytes */
+    FL_File* fl_ = (FL_File*)ropt.value;
+    assert(fl_file_size(fl_) == 12);  /* "Hello World!" is 12 bytes */
 
-    rf_file_close(rf_);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(data);
+    fl_string_release(path);
+    fl_string_release(data);
     PASS();
 }
 
@@ -410,32 +410,32 @@ static void test_file_size(void) {
 static void test_file_flush(void) {
     TEST(file_flush);
 
-    const char* tmp_path = "/tmp/rf_test_file_flush.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* data = rf_string_from_cstr("flush me");
+    const char* tmp_path = "/tmp/fl_test_file_flush.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* data = fl_string_from_cstr("flush me");
 
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_file_write_string(wf, data);
-    rf_bool ok = rf_file_flush(wf);
-    assert(ok == rf_true);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_file_write_string(wf, data);
+    fl_bool ok = fl_file_flush(wf);
+    assert(ok == fl_true);
 
     /* Verify data is written by reading from another handle */
-    RF_Option_ptr ropt = rf_file_open_read(path);
+    FL_Option_ptr ropt = fl_file_open_read(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
-    RF_Option_ptr content_opt = rf_file_read_all(rf_);
+    FL_File* fl_ = (FL_File*)ropt.value;
+    FL_Option_ptr content_opt = fl_file_read_all(fl_);
     assert(content_opt.tag == 1);
-    RF_String* content = (RF_String*)content_opt.value;
-    assert(rf_string_eq(content, data) == rf_true);
+    FL_String* content = (FL_String*)content_opt.value;
+    assert(fl_string_eq(content, data) == fl_true);
 
-    rf_string_release(content);
-    rf_file_close(rf_);
-    rf_file_close(wf);
+    fl_string_release(content);
+    fl_file_close(fl_);
+    fl_file_close(wf);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(data);
+    fl_string_release(path);
+    fl_string_release(data);
     PASS();
 }
 
@@ -447,7 +447,7 @@ static void test_file_close_null_safe(void) {
     TEST(file_close_null_safe);
 
     /* Close a NULL file pointer -- should not crash */
-    rf_file_close(NULL);
+    fl_file_close(NULL);
 
     PASS();
 }
@@ -459,11 +459,11 @@ static void test_file_close_null_safe(void) {
 static void test_open_nonexistent_returns_none(void) {
     TEST(open_nonexistent_returns_none);
 
-    RF_String* path = rf_string_from_cstr("/tmp/rf_test_file_nonexistent_99999.tmp");
-    RF_Option_ptr opt = rf_file_open_read(path);
+    FL_String* path = fl_string_from_cstr("/tmp/fl_test_file_nonexistent_99999.tmp");
+    FL_Option_ptr opt = fl_file_open_read(path);
     assert(opt.tag == 0);
 
-    rf_string_release(path);
+    fl_string_release(path);
     PASS();
 }
 
@@ -474,45 +474,45 @@ static void test_open_nonexistent_returns_none(void) {
 static void test_file_lines_stream(void) {
     TEST(file_lines_stream);
 
-    const char* tmp_path = "/tmp/rf_test_file_lines.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
-    RF_String* data = rf_string_from_cstr("line1\nline2\nline3\n");
+    const char* tmp_path = "/tmp/fl_test_file_lines.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
+    FL_String* data = fl_string_from_cstr("line1\nline2\nline3\n");
 
-    RF_Option_ptr wopt = rf_file_open_write(path);
+    FL_Option_ptr wopt = fl_file_open_write(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    rf_file_write_string(wf, data);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    fl_file_write_string(wf, data);
+    fl_file_close(wf);
 
-    RF_Option_ptr ropt = rf_file_open_read(path);
+    FL_Option_ptr ropt = fl_file_open_read(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
-    RF_Stream* lines = rf_file_lines(rf_);
+    FL_File* fl_ = (FL_File*)ropt.value;
+    FL_Stream* lines = fl_file_lines(fl_);
 
     int count = 0;
-    RF_Option_ptr item;
-    while ((item = rf_stream_next(lines)).tag == 1) {
-        RF_String* line = (RF_String*)item.value;
+    FL_Option_ptr item;
+    while ((item = fl_stream_next(lines)).tag == 1) {
+        FL_String* line = (FL_String*)item.value;
         count++;
         if (count == 1) {
-            RF_String* exp = rf_string_from_cstr("line1");
-            assert(rf_string_eq(line, exp) == rf_true);
-            rf_string_release(exp);
+            FL_String* exp = fl_string_from_cstr("line1");
+            assert(fl_string_eq(line, exp) == fl_true);
+            fl_string_release(exp);
         }
         if (count == 3) {
-            RF_String* exp = rf_string_from_cstr("line3");
-            assert(rf_string_eq(line, exp) == rf_true);
-            rf_string_release(exp);
+            FL_String* exp = fl_string_from_cstr("line3");
+            assert(fl_string_eq(line, exp) == fl_true);
+            fl_string_release(exp);
         }
-        rf_string_release(line);
+        fl_string_release(line);
     }
     assert(count == 3);
 
-    rf_stream_release(lines);
-    rf_file_close(rf_);
+    fl_stream_release(lines);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
-    rf_string_release(data);
+    fl_string_release(path);
+    fl_string_release(data);
     PASS();
 }
 
@@ -523,42 +523,42 @@ static void test_file_lines_stream(void) {
 static void test_file_byte_stream(void) {
     TEST(file_byte_stream);
 
-    const char* tmp_path = "/tmp/rf_test_file_bytestream.tmp";
-    RF_String* path = rf_string_from_cstr(tmp_path);
+    const char* tmp_path = "/tmp/fl_test_file_bytestream.tmp";
+    FL_String* path = fl_string_from_cstr(tmp_path);
 
-    rf_byte known[] = {0xAA, 0xBB, 0xCC};
-    RF_Option_ptr wopt = rf_file_open_write_bytes(path);
+    fl_byte known[] = {0xAA, 0xBB, 0xCC};
+    FL_Option_ptr wopt = fl_file_open_write_bytes(path);
     assert(wopt.tag == 1);
-    RF_File* wf = (RF_File*)wopt.value;
-    RF_Array* warr = rf_array_new(3, sizeof(rf_byte), known);
-    rf_file_write_bytes(wf, warr);
-    rf_file_close(wf);
+    FL_File* wf = (FL_File*)wopt.value;
+    FL_Array* warr = fl_array_new(3, sizeof(fl_byte), known);
+    fl_file_write_bytes(wf, warr);
+    fl_file_close(wf);
 
-    RF_Option_ptr ropt = rf_file_open_read_bytes(path);
+    FL_Option_ptr ropt = fl_file_open_read_bytes(path);
     assert(ropt.tag == 1);
-    RF_File* rf_ = (RF_File*)ropt.value;
-    RF_Stream* bs = rf_file_byte_stream(rf_);
+    FL_File* fl_ = (FL_File*)ropt.value;
+    FL_Stream* bs = fl_file_byte_stream(fl_);
 
-    RF_Option_ptr b1 = rf_stream_next(bs);
+    FL_Option_ptr b1 = fl_stream_next(bs);
     assert(b1.tag == 1);
-    assert((rf_byte)(uintptr_t)b1.value == 0xAA);
+    assert((fl_byte)(uintptr_t)b1.value == 0xAA);
 
-    RF_Option_ptr b2 = rf_stream_next(bs);
+    FL_Option_ptr b2 = fl_stream_next(bs);
     assert(b2.tag == 1);
-    assert((rf_byte)(uintptr_t)b2.value == 0xBB);
+    assert((fl_byte)(uintptr_t)b2.value == 0xBB);
 
-    RF_Option_ptr b3 = rf_stream_next(bs);
+    FL_Option_ptr b3 = fl_stream_next(bs);
     assert(b3.tag == 1);
-    assert((rf_byte)(uintptr_t)b3.value == 0xCC);
+    assert((fl_byte)(uintptr_t)b3.value == 0xCC);
 
-    RF_Option_ptr b4 = rf_stream_next(bs);
+    FL_Option_ptr b4 = fl_stream_next(bs);
     assert(b4.tag == 0);  /* EOF */
 
-    rf_stream_release(bs);
-    rf_array_release(warr);
-    rf_file_close(rf_);
+    fl_stream_release(bs);
+    fl_array_release(warr);
+    fl_file_close(fl_);
     remove(tmp_path);
-    rf_string_release(path);
+    fl_string_release(path);
     PASS();
 }
 
@@ -567,7 +567,7 @@ static void test_file_byte_stream(void) {
  * ======================================================================== */
 
 int main(void) {
-    printf("RF_File handle I/O tests (stdlib/file)\n");
+    printf("FL_File handle I/O tests (stdlib/file)\n");
     printf("========================================\n");
 
     test_open_read_and_read_all();

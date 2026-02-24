@@ -1,5 +1,5 @@
-{"name":"ReFlow","version":42}
-ReFlow
+{"name":"Flow","version":42}
+Flow
 42
 true
 true

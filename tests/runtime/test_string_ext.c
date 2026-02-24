@@ -1,11 +1,11 @@
 /*
- * C-level tests for rf_string_to_bytes and rf_string_from_bytes.
+ * C-level tests for fl_string_to_bytes and fl_string_from_bytes.
  *
  * Compile and run via: make test-runtime
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,42 +20,42 @@ static int tests_passed = 0;
     do { tests_passed++; printf("PASS\n"); } while(0)
 
 /* ========================================================================
- * Test 1: rf_string_to_bytes on "hello"
+ * Test 1: fl_string_to_bytes on "hello"
  * ======================================================================== */
 
 static void test_to_bytes_hello(void) {
     TEST(to_bytes_hello);
 
-    RF_String* s = rf_string_from_cstr("hello");
-    RF_Array* arr = rf_string_to_bytes(s);
+    FL_String* s = fl_string_from_cstr("hello");
+    FL_Array* arr = fl_string_to_bytes(s);
 
-    assert(rf_array_len(arr) == 5);
+    assert(fl_array_len(arr) == 5);
 
-    rf_byte expected[] = {'h', 'e', 'l', 'l', 'o'};
-    for (rf_int64 i = 0; i < 5; i++) {
-        rf_byte* bp = (rf_byte*)rf_array_get_ptr(arr, i);
+    fl_byte expected[] = {'h', 'e', 'l', 'l', 'o'};
+    for (fl_int64 i = 0; i < 5; i++) {
+        fl_byte* bp = (fl_byte*)fl_array_get_ptr(arr, i);
         assert(*bp == expected[i]);
     }
 
-    rf_array_release(arr);
-    rf_string_release(s);
+    fl_array_release(arr);
+    fl_string_release(s);
     PASS();
 }
 
 /* ========================================================================
- * Test 2: rf_string_to_bytes on empty string
+ * Test 2: fl_string_to_bytes on empty string
  * ======================================================================== */
 
 static void test_to_bytes_empty(void) {
     TEST(to_bytes_empty);
 
-    RF_String* s = rf_string_from_cstr("");
-    RF_Array* arr = rf_string_to_bytes(s);
+    FL_String* s = fl_string_from_cstr("");
+    FL_Array* arr = fl_string_to_bytes(s);
 
-    assert(rf_array_len(arr) == 0);
+    assert(fl_array_len(arr) == 0);
 
-    rf_array_release(arr);
-    rf_string_release(s);
+    fl_array_release(arr);
+    fl_string_release(s);
     PASS();
 }
 
@@ -66,35 +66,35 @@ static void test_to_bytes_empty(void) {
 static void test_round_trip(void) {
     TEST(round_trip_to_bytes_from_bytes);
 
-    RF_String* original = rf_string_from_cstr("Hello, ReFlow!");
-    RF_Array* bytes = rf_string_to_bytes(original);
-    RF_String* restored = rf_string_from_bytes(bytes);
+    FL_String* original = fl_string_from_cstr("Hello, Flow!");
+    FL_Array* bytes = fl_string_to_bytes(original);
+    FL_String* restored = fl_string_from_bytes(bytes);
 
-    assert(rf_string_eq(original, restored));
+    assert(fl_string_eq(original, restored));
 
-    rf_string_release(restored);
-    rf_array_release(bytes);
-    rf_string_release(original);
+    fl_string_release(restored);
+    fl_array_release(bytes);
+    fl_string_release(original);
     PASS();
 }
 
 /* ========================================================================
- * Test 4: rf_string_from_bytes on known byte values
+ * Test 4: fl_string_from_bytes on known byte values
  * ======================================================================== */
 
 static void test_from_bytes_known(void) {
     TEST(from_bytes_known_values);
 
-    rf_byte data[] = {'R', 'e', 'F', 'l', 'o', 'w'};
-    RF_Array* arr = rf_array_new(6, sizeof(rf_byte), data);
-    RF_String* s = rf_string_from_bytes(arr);
+    fl_byte data[] = {'R', 'e', 'F', 'l', 'o', 'w'};
+    FL_Array* arr = fl_array_new(6, sizeof(fl_byte), data);
+    FL_String* s = fl_string_from_bytes(arr);
 
-    RF_String* expected = rf_string_from_cstr("ReFlow");
-    assert(rf_string_eq(s, expected));
+    FL_String* expected = fl_string_from_cstr("Flow");
+    assert(fl_string_eq(s, expected));
 
-    rf_string_release(expected);
-    rf_string_release(s);
-    rf_array_release(arr);
+    fl_string_release(expected);
+    fl_string_release(s);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -105,8 +105,8 @@ static void test_from_bytes_known(void) {
 static void test_to_bytes_independent_copy(void) {
     TEST(to_bytes_independent_copy);
 
-    RF_String* s = rf_string_from_cstr("test");
-    RF_Array* arr = rf_string_to_bytes(s);
+    FL_String* s = fl_string_from_cstr("test");
+    FL_Array* arr = fl_string_to_bytes(s);
 
     /* Verify the data pointer is different (independent copy) */
     assert(arr->data != (void*)s->data);
@@ -114,8 +114,8 @@ static void test_to_bytes_independent_copy(void) {
     /* Verify the content is the same */
     assert(memcmp(arr->data, s->data, 4) == 0);
 
-    rf_array_release(arr);
-    rf_string_release(s);
+    fl_array_release(arr);
+    fl_string_release(s);
     PASS();
 }
 
@@ -124,7 +124,7 @@ static void test_to_bytes_independent_copy(void) {
  * ======================================================================== */
 
 int main(void) {
-    printf("rf_string_to_bytes / rf_string_from_bytes tests\n");
+    printf("fl_string_to_bytes / fl_string_from_bytes tests\n");
     printf("================================================\n");
 
     test_to_bytes_hello();

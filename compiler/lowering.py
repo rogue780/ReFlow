@@ -358,16 +358,16 @@ def _ltype_c_name(lt: LType) -> str:
     """Return a short C-friendly name fragment for an LType, used in registry keys."""
     match lt:
         case LInt(width=w, signed=s):
-            prefix = "rf_int" if s else "rf_uint"
+            prefix = "fl_int" if s else "fl_uint"
             return prefix if w == 32 else f"{prefix}{w}"
         case LFloat(width=w):
-            return "rf_float" if w == 64 else f"rf_float{w}"
+            return "fl_float" if w == 64 else f"fl_float{w}"
         case LBool():
-            return "rf_bool"
+            return "fl_bool"
         case LChar():
-            return "rf_char"
+            return "fl_char"
         case LByte():
-            return "rf_byte"
+            return "fl_byte"
         case LVoid():
             return "void"
         case LPtr(inner=LStruct(c_name=name)):
@@ -385,12 +385,12 @@ def _ltype_c_name(lt: LType) -> str:
 # ---------------------------------------------------------------------------
 
 _OPAQUE_TYPE_MAP: dict[str, str] = {
-    "Socket": "RF_Socket",
-    "file": "RF_File",
-    "JsonValue": "RF_JsonValue",
-    "StringBuilder": "RF_StringBuilder",
-    "DateTime": "RF_DateTime",
-    "Instant": "RF_Instant",
+    "Socket": "FL_Socket",
+    "file": "FL_File",
+    "JsonValue": "FL_JsonValue",
+    "StringBuilder": "FL_StringBuilder",
+    "DateTime": "FL_DateTime",
+    "Instant": "FL_Instant",
 }
 
 # ---------------------------------------------------------------------------
@@ -398,20 +398,20 @@ _OPAQUE_TYPE_MAP: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 _BUILTIN_OPTION_MAP: dict[str, str] = {
-    "rf_int": "RF_Option_int",
-    "rf_int16": "RF_Option_int16",
-    "rf_int32": "RF_Option_int32",
-    "rf_int64": "RF_Option_int64",
-    "rf_uint": "RF_Option_uint",
-    "rf_uint16": "RF_Option_uint16",
-    "rf_uint32": "RF_Option_uint32",
-    "rf_uint64": "RF_Option_uint64",
-    "rf_float": "RF_Option_float",
-    "rf_float32": "RF_Option_float32",
-    "rf_float64": "RF_Option_float64",
-    "rf_bool": "RF_Option_bool",
-    "rf_byte": "RF_Option_byte",
-    "rf_char": "RF_Option_char",
+    "fl_int": "FL_Option_int",
+    "fl_int16": "FL_Option_int16",
+    "fl_int32": "FL_Option_int32",
+    "fl_int64": "FL_Option_int64",
+    "fl_uint": "FL_Option_uint",
+    "fl_uint16": "FL_Option_uint16",
+    "fl_uint32": "FL_Option_uint32",
+    "fl_uint64": "FL_Option_uint64",
+    "fl_float": "FL_Option_float",
+    "fl_float32": "FL_Option_float32",
+    "fl_float64": "FL_Option_float64",
+    "fl_bool": "FL_Option_bool",
+    "fl_byte": "FL_Option_byte",
+    "fl_char": "FL_Option_char",
 }
 
 
@@ -456,7 +456,7 @@ _BUILTIN_TYPE_ANNS: dict[str, Type] = {
 #    the actual argument types at that call site.  Each unique
 #    (src_module, fn_name, type_args) triple is recorded exactly once in
 #    `_mono_sites` and assigned a mangled C name via `mangle_monomorphized`
-#    (e.g. `rf_math_min__int`).  The call site emits a direct call to that
+#    (e.g. `fl_math_min__int`).  The call site emits a direct call to that
 #    mangled name.
 #
 # 2. EMISSION PHASE — after all declarations have been lowered, `lower()`
@@ -478,11 +478,11 @@ _BUILTIN_TYPE_ANNS: dict[str, Type] = {
 #    interface methods (e.g. `a.compare(b)`) are handled by `_lower_method_call`
 #    consulting `BUILTIN_METHOD_OPS`.  Each (concrete_type_name, method_name)
 #    pair maps to a `BuiltinMethodOp` describing the C operator or macro to
-#    emit (e.g. `_rf_compare` for numeric `compare`, `RF_CHECKED_ADD` for
+#    emit (e.g. `_fl_compare` for numeric `compare`, `FL_CHECKED_ADD` for
 #    `Numeric.add`).  This avoids virtual dispatch for all built-in types.
 #
 # 5. CROSS-MODULE GENERICS — when a generic function lives in an imported
-#    module (e.g. `stdlib/math.reflow`), its `FnDecl` is retrieved via the
+#    module (e.g. `stdlib/math.flow`), its `FnDecl` is retrieved via the
 #    resolver and its body is lowered with the source module's TypedModule
 #    (looked up in `all_typed`).  If the source module's TypedModule is absent
 #    (e.g. stdlib modules compiled without debug info), `_ltype_to_type_name`
@@ -494,7 +494,7 @@ class MonoSite:
     """A single monomorphization request: one generic function + concrete types."""
     fn_decl: FnDecl
     type_env: dict[str, Type]   # e.g. {"T": TInt(32, True)}
-    mangled_name: str            # e.g. "rf_math_min__int"
+    mangled_name: str            # e.g. "fl_math_min__int"
     src_module: str              # e.g. "math"
 
 
@@ -509,14 +509,14 @@ class BuiltinMethodOp:
 # Used when lowering interface method calls on built-in types (SG-3-5-1).
 BUILTIN_METHOD_OPS: dict[tuple[str, str], BuiltinMethodOp] = {
     # --- Comparable.compare ---
-    # Numeric/char/byte: _rf_compare macro (ternary, no overflow concern)
+    # Numeric/char/byte: _fl_compare macro (ternary, no overflow concern)
     ("int",    "compare"):    BuiltinMethodOp("compare", ""),
     ("int64",  "compare"):    BuiltinMethodOp("compare", ""),
     ("float",  "compare"):    BuiltinMethodOp("compare", ""),
     ("char",   "compare"):    BuiltinMethodOp("compare", ""),
     ("byte",   "compare"):    BuiltinMethodOp("compare", ""),
     # String: runtime function
-    ("string", "compare"):    BuiltinMethodOp("call", "rf_string_cmp"),
+    ("string", "compare"):    BuiltinMethodOp("call", "fl_string_cmp"),
 
     # --- Numeric.add ---  CHECKED for integers (overflow → panic), plain for float
     ("int",   "add"):         BuiltinMethodOp("checked_binop", "+"),
@@ -545,16 +545,16 @@ BUILTIN_METHOD_OPS: dict[tuple[str, str], BuiltinMethodOp] = {
     ("bool",   "equals"):     BuiltinMethodOp("binop", "=="),
     ("char",   "equals"):     BuiltinMethodOp("binop", "=="),
     ("byte",   "equals"):     BuiltinMethodOp("binop", "=="),
-    ("string", "equals"):     BuiltinMethodOp("call", "rf_string_eq"),
+    ("string", "equals"):     BuiltinMethodOp("call", "fl_string_eq"),
 
     # --- Showable.to_string ---
-    ("int",    "to_string"):  BuiltinMethodOp("call", "rf_int_to_string"),
-    ("int64",  "to_string"):  BuiltinMethodOp("call", "rf_int64_to_string"),
-    ("float",  "to_string"):  BuiltinMethodOp("call", "rf_float_to_string"),
-    ("bool",   "to_string"):  BuiltinMethodOp("call", "rf_bool_to_string"),
-    ("string", "to_string"):  BuiltinMethodOp("call", "_rf_identity_string"),
-    ("char",   "to_string"):  BuiltinMethodOp("call", "rf_char_to_string"),
-    ("byte",   "to_string"):  BuiltinMethodOp("call", "rf_byte_to_string"),
+    ("int",    "to_string"):  BuiltinMethodOp("call", "fl_int_to_string"),
+    ("int64",  "to_string"):  BuiltinMethodOp("call", "fl_int64_to_string"),
+    ("float",  "to_string"):  BuiltinMethodOp("call", "fl_float_to_string"),
+    ("bool",   "to_string"):  BuiltinMethodOp("call", "fl_bool_to_string"),
+    ("string", "to_string"):  BuiltinMethodOp("call", "_fl_identity_string"),
+    ("char",   "to_string"):  BuiltinMethodOp("call", "fl_char_to_string"),
+    ("byte",   "to_string"):  BuiltinMethodOp("call", "fl_byte_to_string"),
 }
 
 
@@ -680,21 +680,21 @@ class Lowerer:
             case TByte():
                 return LByte()
             case TString():
-                return LPtr(LStruct("RF_String"))
+                return LPtr(LStruct("FL_String"))
             case TNone():
                 return LVoid()
             case TArray():
-                return LPtr(LStruct("RF_Array"))
+                return LPtr(LStruct("FL_Array"))
             case TStream():
-                return LPtr(LStruct("RF_Stream"))
+                return LPtr(LStruct("FL_Stream"))
             case TCoroutine():
-                return LPtr(LStruct("RF_Coroutine"))
+                return LPtr(LStruct("FL_Coroutine"))
             case TBuffer():
-                return LPtr(LStruct("RF_Buffer"))
+                return LPtr(LStruct("FL_Buffer"))
             case TMap():
-                return LPtr(LStruct("RF_Map"))
+                return LPtr(LStruct("FL_Map"))
             case TSet():
-                return LPtr(LStruct("RF_Set"))
+                return LPtr(LStruct("FL_Set"))
             case TOption(inner=inner):
                 return self._lower_option_type(inner)
             case TResult(ok_type=ok_t, err_type=err_t):
@@ -710,14 +710,14 @@ class Lowerer:
                 return LStruct(c_name)
             case TFn():
                 # Function types lower to closure struct pointers
-                return LPtr(LStruct("RF_Closure"))
+                return LPtr(LStruct("FL_Closure"))
             case TSum(name=name):
                 c_name = mangle(self._module_path, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
             case TRecord(fields=fields):
                 # Anonymous records — generate a struct
-                return LStruct("rf_record")
+                return LStruct("fl_record")
             case TAlias(underlying=underlying):
                 return self._lower_type(underlying)
             case TTypeVar():
@@ -738,16 +738,16 @@ class Lowerer:
         if inner_key in _BUILTIN_OPTION_MAP:
             return LStruct(_BUILTIN_OPTION_MAP[inner_key])
 
-        # Heap types use RF_Option_ptr
+        # Heap types use FL_Option_ptr
         if isinstance(inner_lt, LPtr):
-            return LStruct("RF_Option_ptr")
+            return LStruct("FL_Option_ptr")
 
         # Check registry for already-emitted option types
         if inner_key in self._option_registry:
             return LStruct(self._option_registry[inner_key])
 
         # Generate a new option typedef
-        c_name = f"RF_Option_{inner_key}"
+        c_name = f"FL_Option_{inner_key}"
         self._option_registry[inner_key] = c_name
         self._type_defs.append(LTypeDef(
             c_name=c_name,
@@ -764,7 +764,7 @@ class Lowerer:
         if key in self._result_registry:
             return LStruct(self._result_registry[key])
 
-        c_name = f"RF_Result_{key}"
+        c_name = f"FL_Result_{key}"
         self._result_registry[key] = c_name
         self._type_defs.append(LTypeDef(
             c_name=c_name,
@@ -780,7 +780,7 @@ class Lowerer:
         if key in self._tuple_registry:
             return LStruct(self._tuple_registry[key])
 
-        c_name = f"RF_Tuple_{key}"
+        c_name = f"FL_Tuple_{key}"
         self._tuple_registry[key] = c_name
         fields: list[tuple[str, LType]] = []
         for i, lt in enumerate(lowered):
@@ -1187,30 +1187,30 @@ class Lowerer:
         idx_name = self._fresh_temp()
         elem_lt = self._lower_type(elem_t)
 
-        # int64_t _rf_idx = 0;
+        # int64_t _fl_idx = 0;
         idx_decl = LVarDecl(
             c_name=idx_name,
             c_type=LInt(64, True),
             init=LLit("0", LInt(64, True)),
         )
 
-        # _rf_idx < rf_array_len(arr)
+        # _fl_idx < fl_array_len(arr)
         cond = LBinOp(
             op="<",
             left=LVar(idx_name, LInt(64, True)),
-            right=LCall("rf_array_len", [arr_expr], LInt(64, True)),
+            right=LCall("fl_array_len", [arr_expr], LInt(64, True)),
             c_type=LBool(),
         )
 
-        # ElementType item = *(ElementType*)rf_array_get_ptr(arr, _rf_idx);
-        get_ptr = LCall("rf_array_get_ptr",
+        # ElementType item = *(ElementType*)fl_array_get_ptr(arr, _fl_idx);
+        get_ptr = LCall("fl_array_get_ptr",
                          [arr_expr, LVar(idx_name, LInt(64, True))],
                          LPtr(LVoid()))
         cast_ptr = LCast(get_ptr, LPtr(elem_lt))
         deref = LDeref(cast_ptr, elem_lt)
         item_decl = LVarDecl(c_name=stmt.var, c_type=elem_lt, init=deref)
 
-        # _rf_idx = _rf_idx + 1;
+        # _fl_idx = _fl_idx + 1;
         increment = LAssign(
             target=LVar(idx_name, LInt(64, True)),
             value=LBinOp(
@@ -1230,9 +1230,9 @@ class Lowerer:
         return result
 
     def _lower_for_stream(self, stmt: ForStmt, elem_t: Type) -> list[LStmt]:
-        """Lower for-over-stream to while loop with rf_stream_next. RT-7-4-3."""
+        """Lower for-over-stream to while loop with fl_stream_next. RT-7-4-3."""
         stream_expr = self._lower_expr(stmt.iterable)
-        stream_lt = LPtr(LStruct("RF_Stream"))
+        stream_lt = LPtr(LStruct("FL_Stream"))
         elem_lt = self._lower_type(elem_t)
         next_name = self._fresh_temp()
 
@@ -1244,19 +1244,19 @@ class Lowerer:
         # while (1) { ... }
         cond = LLit("1", LBool())
 
-        # RF_Option_ptr _rf_next = rf_stream_next(stream);
+        # FL_Option_ptr _fl_next = fl_stream_next(stream);
         next_decl = LVarDecl(
             c_name=next_name,
-            c_type=LStruct("RF_Option_ptr"),
-            init=LCall("rf_stream_next", [stream_var], LStruct("RF_Option_ptr")),
+            c_type=LStruct("FL_Option_ptr"),
+            init=LCall("fl_stream_next", [stream_var], LStruct("FL_Option_ptr")),
         )
 
-        # if (_rf_next.tag == 0) break;
+        # if (_fl_next.tag == 0) break;
         tag_check = LIf(
             cond=LBinOp(
                 op="==",
                 left=LFieldAccess(
-                    LVar(next_name, LStruct("RF_Option_ptr")),
+                    LVar(next_name, LStruct("FL_Option_ptr")),
                     "tag", LByte()),
                 right=LLit("0", LByte()),
                 c_type=LBool(),
@@ -1265,10 +1265,10 @@ class Lowerer:
             else_=[],
         )
 
-        # T item = (T)(uintptr_t)_rf_next.value;  (for value types)
-        # T item = (T)_rf_next.value;              (for pointer types)
+        # T item = (T)(uintptr_t)_fl_next.value;  (for value types)
+        # T item = (T)_fl_next.value;              (for pointer types)
         value_access = LFieldAccess(
-            LVar(next_name, LStruct("RF_Option_ptr")),
+            LVar(next_name, LStruct("FL_Option_ptr")),
             "value", LPtr(LVoid()))
         item_init: LExpr
         if isinstance(elem_lt, LPtr):
@@ -1333,27 +1333,27 @@ class Lowerer:
         exception was handled by a catch/retry block.
 
         Generated pattern (with finally):
-            RF_ExceptionFrame _rf_ef_N;
-            rf_bool _rf_ef_N_caught = rf_true;  // assume success
-            _rf_exception_push(&_rf_ef_N);
-            if (setjmp(_rf_ef_N.jmp) == 0) {
+            FL_ExceptionFrame _fl_ef_N;
+            fl_bool _fl_ef_N_caught = fl_true;  // assume success
+            _fl_exception_push(&_fl_ef_N);
+            if (setjmp(_fl_ef_N.jmp) == 0) {
                 // try body
-                _rf_exception_pop();
+                _fl_exception_pop();
             } else {
-                _rf_exception_pop();
-                _rf_ef_N_caught = rf_false;  // exception occurred
-                // catch dispatch (sets _caught back to rf_true if handled)
+                _fl_exception_pop();
+                _fl_ef_N_caught = fl_false;  // exception occurred
+                // catch dispatch (sets _caught back to fl_true if handled)
             }
             // finally body
-            if (!_rf_ef_N_caught) {
-                _rf_throw(_rf_ef_N.exception, _rf_ef_N.exception_tag);
+            if (!_fl_ef_N_caught) {
+                _fl_throw(_fl_ef_N.exception, _fl_ef_N.exception_tag);
             }
         """
         result: list[LStmt] = []
         frame_idx = self._exception_frame_counter
         self._exception_frame_counter += 1
         frame_name = mangle_exception_frame(frame_idx)
-        frame_type = LStruct("RF_ExceptionFrame")
+        frame_type = LStruct("FL_ExceptionFrame")
         has_finally = stmt.finally_block is not None
         caught_var = f"{frame_name}_caught"
 
@@ -1369,12 +1369,12 @@ class Lowerer:
             result.append(LVarDecl(
                 c_name=caught_var,
                 c_type=LBool(),
-                init=LLit("rf_true", LBool()),
+                init=LLit("fl_true", LBool()),
             ))
 
         # Push frame
         result.append(LExprStmt(LCall(
-            "_rf_exception_push",
+            "_fl_exception_push",
             [LAddrOf(LVar(frame_name, frame_type), LPtr(frame_type))],
             LVoid(),
         )))
@@ -1383,27 +1383,27 @@ class Lowerer:
         try_stmts: list[LStmt] = []
         try_stmts.extend(self._lower_block(stmt.body))
         try_stmts.append(LExprStmt(LCall(
-            "_rf_exception_pop", [], LVoid(),
+            "_fl_exception_pop", [], LVoid(),
         )))
 
         # Build the catch/retry branch (the "else" branch of setjmp != 0)
         catch_stmts: list[LStmt] = []
         catch_stmts.append(LExprStmt(LCall(
-            "_rf_exception_pop", [], LVoid(),
+            "_fl_exception_pop", [], LVoid(),
         )))
 
         if has_finally:
             # Mark exception as not-yet-handled
             catch_stmts.append(LAssign(
                 target=LVar(caught_var, LBool()),
-                value=LLit("rf_false", LBool()),
+                value=LLit("fl_false", LBool()),
             ))
 
         # Build catch/retry dispatch chain
         catch_stmts.extend(self._build_catch_dispatch(
             stmt, frame_name, frame_type, has_finally, caught_var))
 
-        # setjmp condition: setjmp(_rf_ef_N.jmp) == 0
+        # setjmp condition: setjmp(_fl_ef_N.jmp) == 0
         setjmp_call = LCall(
             "setjmp",
             [LFieldAccess(
@@ -1430,7 +1430,7 @@ class Lowerer:
             result.append(LIf(
                 cond=LUnary("!", LVar(caught_var, LBool()), LBool()),
                 then=[LExprStmt(LCall(
-                    "_rf_throw",
+                    "_fl_throw",
                     [LFieldAccess(LVar(frame_name, frame_type), "exception",
                                   LPtr(LVoid())),
                      LFieldAccess(LVar(frame_name, frame_type),
@@ -1458,7 +1458,7 @@ class Lowerer:
         for the exhausted-retries case.
 
         When has_finally is True, catch/retry handlers set caught_var to
-        rf_true instead of rethrowing, so finally can run before rethrow.
+        fl_true instead of rethrowing, so finally can run before rethrow.
         """
         dispatch_entries: list[tuple[int, list[LStmt]]] = []
 
@@ -1473,7 +1473,7 @@ class Lowerer:
             if has_finally:
                 retry_stmts.append(LAssign(
                     target=LVar(caught_var, LBool()),
-                    value=LLit("rf_true", LBool()),
+                    value=LLit("fl_true", LBool()),
                 ))
             dispatch_entries.append((tag, retry_stmts))
 
@@ -1487,19 +1487,19 @@ class Lowerer:
             if has_finally:
                 catch_stmts.append(LAssign(
                     target=LVar(caught_var, LBool()),
-                    value=LLit("rf_true", LBool()),
+                    value=LLit("fl_true", LBool()),
                 ))
             dispatch_entries.append((tag, catch_stmts))
 
         if not dispatch_entries:
             if has_finally:
                 # No catch/retry blocks — don't rethrow yet, let finally run
-                # The _caught flag is already rf_false, so post-finally rethrow will fire
+                # The _caught flag is already fl_false, so post-finally rethrow will fire
                 return []
             else:
                 # No catch or retry blocks, no finally — rethrow unconditionally
                 return [LExprStmt(LCall(
-                    "_rf_throw",
+                    "_fl_throw",
                     [LFieldAccess(LVar(frame_name, frame_type), "exception",
                                   LPtr(LVoid())),
                      LFieldAccess(LVar(frame_name, frame_type), "exception_tag",
@@ -1532,7 +1532,7 @@ class Lowerer:
         else:
             # Default: rethrow immediately
             default_else = [LExprStmt(LCall(
-                "_rf_throw",
+                "_fl_throw",
                 [LFieldAccess(LVar(frame_name, frame_type), "exception",
                               LPtr(LVoid())),
                  LFieldAccess(LVar(frame_name, frame_type), "exception_tag",
@@ -1560,7 +1560,7 @@ class Lowerer:
         """Build the statements for a single catch block.
 
         Binds the exception variable from the frame's exception pointer.
-        For string exceptions (tag 0): bind as RF_String*.
+        For string exceptions (tag 0): bind as FL_String*.
         For typed exceptions: cast from void* to ExcType*.
         """
         stmts: list[LStmt] = []
@@ -1569,14 +1569,14 @@ class Lowerer:
         c_type = self._lower_type(exc_type)
 
         if isinstance(exc_type, TString):
-            # String exception: cast void* to RF_String*
+            # String exception: cast void* to FL_String*
             stmts.append(LVarDecl(
                 c_name=catch.exception_var,
-                c_type=LPtr(LStruct("RF_String")),
+                c_type=LPtr(LStruct("FL_String")),
                 init=LCast(
                     LFieldAccess(LVar(frame_name, frame_type), "exception",
                                  LPtr(LVoid())),
-                    LPtr(LStruct("RF_String")),
+                    LPtr(LStruct("FL_String")),
                 ),
             ))
         else:
@@ -1611,27 +1611,27 @@ class Lowerer:
         field is mutable, allowing the retry body to correct it before re-invocation.
 
         Generated pattern:
-            int _rf_attempts_N = 0;
-            ExcType* ex_ptr = (ExcType*)_rf_ef_N.exception;
+            int _fl_attempts_N = 0;
+            ExcType* ex_ptr = (ExcType*)_fl_ef_N.exception;
             ExcType ex = *ex_ptr;
-            while (_rf_attempts_N < max_attempts) {
-                _rf_attempts_N++;
+            while (_fl_attempts_N < max_attempts) {
+                _fl_attempts_N++;
                 // retry body (can modify ex.data fields)
                 // re-push frame, re-try the named function call
                 *ex_ptr = ex;  // write back modifications
-                _rf_exception_push(&_rf_ef_N);
-                if (setjmp(_rf_ef_N.jmp) == 0) {
+                _fl_exception_push(&_fl_ef_N);
+                if (setjmp(_fl_ef_N.jmp) == 0) {
                     // call target_fn again with corrected data
-                    _rf_exception_pop();
-                    goto _rf_retry_success_N;
+                    _fl_exception_pop();
+                    goto _fl_retry_success_N;
                 } else {
-                    _rf_exception_pop();
-                    ex_ptr = (ExcType*)_rf_ef_N.exception;
+                    _fl_exception_pop();
+                    ex_ptr = (ExcType*)_fl_ef_N.exception;
                     ex = *ex_ptr;
                 }
             }
             // retries exhausted — fall through to catch or rethrow
-            _rf_retry_success_N: ;
+            _fl_retry_success_N: ;
 
         For bootstrap simplification: the retry re-executes the entire try body
         rather than just the named function, since isolating a single function
@@ -1657,11 +1657,11 @@ class Lowerer:
             # String exception
             stmts.append(LVarDecl(
                 c_name=retry.exception_var,
-                c_type=LPtr(LStruct("RF_String")),
+                c_type=LPtr(LStruct("FL_String")),
                 init=LCast(
-                    LFieldAccess(LVar(frame_name, LStruct("RF_ExceptionFrame")),
+                    LFieldAccess(LVar(frame_name, LStruct("FL_ExceptionFrame")),
                                  "exception", LPtr(LVoid())),
-                    LPtr(LStruct("RF_String")),
+                    LPtr(LStruct("FL_String")),
                 ),
             ))
         else:
@@ -1671,7 +1671,7 @@ class Lowerer:
                 c_name=exc_ptr,
                 c_type=LPtr(c_type),
                 init=LCast(
-                    LFieldAccess(LVar(frame_name, LStruct("RF_ExceptionFrame")),
+                    LFieldAccess(LVar(frame_name, LStruct("FL_ExceptionFrame")),
                                  "exception", LPtr(LVoid())),
                     LPtr(c_type),
                 ),
@@ -1708,9 +1708,9 @@ class Lowerer:
             ))
 
         # Re-push exception frame for retry
-        frame_type_s = LStruct("RF_ExceptionFrame")
+        frame_type_s = LStruct("FL_ExceptionFrame")
         loop_body.append(LExprStmt(LCall(
-            "_rf_exception_push",
+            "_fl_exception_push",
             [LAddrOf(LVar(frame_name, frame_type_s), LPtr(frame_type_s))],
             LVoid(),
         )))
@@ -1728,19 +1728,19 @@ class Lowerer:
         # Inner try body: re-run try body and goto success on completion
         inner_try: list[LStmt] = []
         inner_try.extend(self._lower_block(try_stmt.body))
-        inner_try.append(LExprStmt(LCall("_rf_exception_pop", [], LVoid())))
+        inner_try.append(LExprStmt(LCall("_fl_exception_pop", [], LVoid())))
         inner_try.append(LGoto(success_label))
 
         # Inner catch: pop, re-bind exception, continue loop
         inner_catch: list[LStmt] = []
-        inner_catch.append(LExprStmt(LCall("_rf_exception_pop", [], LVoid())))
+        inner_catch.append(LExprStmt(LCall("_fl_exception_pop", [], LVoid())))
         if isinstance(exc_type, TString):
             inner_catch.append(LAssign(
-                target=LVar(retry.exception_var, LPtr(LStruct("RF_String"))),
+                target=LVar(retry.exception_var, LPtr(LStruct("FL_String"))),
                 value=LCast(
                     LFieldAccess(LVar(frame_name, frame_type_s),
                                  "exception", LPtr(LVoid())),
-                    LPtr(LStruct("RF_String")),
+                    LPtr(LStruct("FL_String")),
                 ),
             ))
         else:
@@ -1787,10 +1787,10 @@ class Lowerer:
         else:
             # No matching catch — rethrow
             stmts.append(LExprStmt(LCall(
-                "_rf_throw",
-                [LFieldAccess(LVar(frame_name, LStruct("RF_ExceptionFrame")),
+                "_fl_throw",
+                [LFieldAccess(LVar(frame_name, LStruct("FL_ExceptionFrame")),
                               "exception", LPtr(LVoid())),
-                 LFieldAccess(LVar(frame_name, LStruct("RF_ExceptionFrame")),
+                 LFieldAccess(LVar(frame_name, LStruct("FL_ExceptionFrame")),
                               "exception_tag", LInt(32, True))],
                 LVoid(),
             )))
@@ -1834,7 +1834,7 @@ class Lowerer:
     def _lower_throw(self, stmt: ThrowStmt) -> list[LStmt]:
         """Lower throw statement.
 
-        For string exceptions: _rf_throw(rf_string_from_cstr("msg"), 0)
+        For string exceptions: _fl_throw(fl_string_from_cstr("msg"), 0)
           where tag 0 means untyped/string exception.
         For typed exceptions: heap-allocate the exception struct and pass pointer.
         """
@@ -1844,7 +1844,7 @@ class Lowerer:
         if isinstance(exc_type, TString):
             # String exceptions use tag 0
             return [LExprStmt(LCall(
-                "_rf_throw",
+                "_fl_throw",
                 [LCast(exc_expr, LPtr(LVoid())),
                  LLit("0", LInt(32, True))],
                 LVoid(),
@@ -1868,7 +1868,7 @@ class Lowerer:
             value=exc_expr,
         )
         throw = LExprStmt(LCall(
-            "_rf_throw",
+            "_fl_throw",
             [LCast(LVar(tmp, LPtr(c_type)), LPtr(LVoid())),
              LLit(str(tag), LInt(32, True))],
             LVoid(),
@@ -1904,27 +1904,27 @@ class Lowerer:
                 return LLit(repr(v), lt)
 
             case BoolLit(value=v):
-                return LLit("rf_true" if v else "rf_false", LBool())
+                return LLit("fl_true" if v else "fl_false", LBool())
 
             case StringLit(value=v):
                 escaped = v.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t").replace("\0", "\\0")
                 return LCall(
-                    "rf_string_from_cstr",
+                    "fl_string_from_cstr",
                     [LLit(f'"{escaped}"', LPtr(LVoid()))],
-                    LPtr(LStruct("RF_String")),
+                    LPtr(LStruct("FL_String")),
                 )
 
             case CharLit(value=v):
                 return LLit(str(v), LChar())
 
             case NoneLit():
-                # Lower to RF_NONE compound literal with concrete option type
+                # Lower to FL_NONE compound literal with concrete option type
                 t = self._type_of(expr)
                 # Prefer function return type for concrete option type
                 if isinstance(t, TOption) and isinstance(t.inner, TAny):
                     if isinstance(self._current_fn_return_type, TOption):
                         t = self._current_fn_return_type
-                lt = self._lower_type(t) if isinstance(t, TOption) else LStruct("RF_Option_ptr")
+                lt = self._lower_type(t) if isinstance(t, TOption) else LStruct("FL_Option_ptr")
                 return LCompound(
                     fields=[("tag", LLit("0", LByte()))],
                     c_type=lt,
@@ -2017,11 +2017,11 @@ class Lowerer:
                 lt = self._lower_type(t)
                 recv_type = self._type_of(receiver)
                 if isinstance(recv_type, TArray):
-                    # Array index returns option — use rf_array_get_safe
-                    return LCall("rf_array_get_safe",
+                    # Array index returns option — use fl_array_get_safe
+                    return LCall("fl_array_get_safe",
                                  [recv, idx], lt)
                 if isinstance(recv_type, TMap):
-                    return LCall("rf_map_get", [recv, idx], lt)
+                    return LCall("fl_map_get", [recv, idx], lt)
                 return LIndex(arr=recv, idx=idx, c_type=lt)
 
             # Lambda
@@ -2140,12 +2140,12 @@ class Lowerer:
                 t = self._type_of(inner)
                 type_name = self._type_name_str(t)
                 return LCall(
-                    "rf_string_from_cstr",
+                    "fl_string_from_cstr",
                     [LLit(f'"{type_name}"', LPtr(LVoid()))],
-                    LPtr(LStruct("RF_String")),
+                    LPtr(LStruct("FL_String")),
                 )
 
-            # Coroutine start — wrap stream in RF_Coroutine
+            # Coroutine start — wrap stream in FL_Coroutine
             case CoroutineStart(call=call):
                 coro_type = self._type_of(expr)
                 is_receivable = (isinstance(coro_type, TCoroutine)
@@ -2153,8 +2153,8 @@ class Lowerer:
                 if is_receivable:
                     return self._lower_receivable_coroutine_start(call, expr)
                 stream_expr = self._lower_expr(call)
-                return LCall("rf_coroutine_new", [stream_expr],
-                             LPtr(LStruct("RF_Coroutine")))
+                return LCall("fl_coroutine_new", [stream_expr],
+                             LPtr(LStruct("FL_Coroutine")))
 
             case _:
                 raise EmitError(
@@ -2179,23 +2179,23 @@ class Lowerer:
         if op == "+" and isinstance(t, TString):
             l_str = left_expr if isinstance(left_type, TString) else self._to_string_expr(left_expr, left_type)
             r_str = right_expr if isinstance(right_type, TString) else self._to_string_expr(right_expr, right_type)
-            return LCall("rf_string_concat", [l_str, r_str],
-                         LPtr(LStruct("RF_String")))
+            return LCall("fl_string_concat", [l_str, r_str],
+                         LPtr(LStruct("FL_String")))
 
         # String equality
         if op == "==" and isinstance(left_type, TString):
-            return LCall("rf_string_eq", [left_expr, right_expr], LBool())
+            return LCall("fl_string_eq", [left_expr, right_expr], LBool())
         if op == "!=" and isinstance(left_type, TString):
-            return LUnary("!", LCall("rf_string_eq", [left_expr, right_expr], LBool()),
+            return LUnary("!", LCall("fl_string_eq", [left_expr, right_expr], LBool()),
                           LBool())
 
         # Congruence operator — compile-time structural type comparison
         if op == "===":
             right_type = self._type_of(right)
             if self._is_congruent(left_type, right_type):
-                return LLit("rf_true", LBool())
+                return LLit("fl_true", LBool())
             else:
-                return LLit("rf_false", LBool())
+                return LLit("fl_false", LBool())
 
         # Integer checked arithmetic (RT-7-3-2)
         if isinstance(left_type, TInt) and isinstance(right_type, TInt) and op in ("+", "-", "*", "/", "%"):
@@ -2222,21 +2222,21 @@ class Lowerer:
         t = self._type_of(expr)
         lt = self._lower_type(t)
 
-        # Special case: rf_sort_array_by wraps the comparator closure so that
-        # it bridges qsort's element-pointer convention with ReFlow's typed closures.
+        # Special case: fl_sort_array_by wraps the comparator closure so that
+        # it bridges qsort's element-pointer convention with Flow's typed closures.
         # Must be intercepted before lowering all args to avoid double-lowering.
         if isinstance(expr.callee, Ident) and len(expr.args) >= 2:
             sym = self._resolved.symbols.get(expr.callee)
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.IMPORT):
                 decl = sym.decl
-                if isinstance(decl, FnDecl) and decl.native_name == "rf_sort_array_by":
+                if isinstance(decl, FnDecl) and decl.native_name == "fl_sort_array_by":
                     arr_arg = self._lower_expr(expr.args[0])
                     arr_type = self._type_of(expr.args[0])
                     elem_type = (arr_type.element if isinstance(arr_type, TArray)
                                  else TAny())
                     wrapped_cmp = self._lower_sort_closure_wrapper(
                         expr.args[1], elem_type)
-                    return LCall("rf_sort_array_by", [arr_arg, wrapped_cmp], lt)
+                    return LCall("fl_sort_array_by", [arr_arg, wrapped_cmp], lt)
 
         lowered_args = [self._lower_expr(a) for a in expr.args]
 
@@ -2397,8 +2397,8 @@ class Lowerer:
         if builtin_op is not None:
             return self._emit_builtin_method_op(builtin_op, recv, lowered_args, lt)
 
-        # Fallthrough: plain built-in type method (rf_<type>_<method>)
-        method_c_name = f"rf_{type_name}_{expr.method}"
+        # Fallthrough: plain built-in type method (fl_<type>_<method>)
+        method_c_name = f"fl_{type_name}_{expr.method}"
         return LCall(method_c_name, [recv] + lowered_args, lt)
 
     def _lower_receivable_coroutine_start(
@@ -2409,15 +2409,15 @@ class Lowerer:
         prepends it to the function call args, creates a threaded coroutine,
         and wires up the input channel.
         """
-        coro_ptr = LPtr(LStruct("RF_Coroutine"))
-        ch_ptr = LPtr(LStruct("RF_Channel"))
-        stream_ptr = LPtr(LStruct("RF_Stream"))
+        coro_ptr = LPtr(LStruct("FL_Coroutine"))
+        ch_ptr = LPtr(LStruct("FL_Channel"))
+        stream_ptr = LPtr(LStruct("FL_Stream"))
 
-        # 1. Create the input channel: RF_Channel* _rf_tmp_N = rf_channel_new(64)
+        # 1. Create the input channel: FL_Channel* _fl_tmp_N = fl_channel_new(64)
         input_ch_tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(
             c_name=input_ch_tmp, c_type=ch_ptr,
-            init=LCall("rf_channel_new",
+            init=LCall("fl_channel_new",
                         [LLit("64", LInt(32, True))], ch_ptr)))
 
         # 2. Create inbox stream (non-blocking: try_recv so for-in drains
@@ -2425,7 +2425,7 @@ class Lowerer:
         inbox_tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(
             c_name=inbox_tmp, c_type=stream_ptr,
-            init=LCall("rf_stream_from_channel_nonblocking",
+            init=LCall("fl_stream_from_channel_nonblocking",
                         [LVar(input_ch_tmp, ch_ptr)], stream_ptr)))
 
         # 3. Lower the call args, prepending the inbox stream
@@ -2474,23 +2474,23 @@ class Lowerer:
 
         stream_call = LCall(fn_c_name, lowered_args, call_lt)
 
-        # 5. Store stream result: RF_Stream* _rf_tmp_P = fn(inbox, args...)
+        # 5. Store stream result: FL_Stream* _fl_tmp_P = fn(inbox, args...)
         stream_tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(
             c_name=stream_tmp, c_type=stream_ptr, init=stream_call))
 
-        # 6. Create threaded coroutine: rf_coroutine_new_threaded(stream, 64)
+        # 6. Create threaded coroutine: fl_coroutine_new_threaded(stream, 64)
         coro_tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(
             c_name=coro_tmp, c_type=coro_ptr,
-            init=LCall("rf_coroutine_new_threaded",
+            init=LCall("fl_coroutine_new_threaded",
                         [LVar(stream_tmp, stream_ptr),
                          LLit("64", LInt(32, True))],
                         coro_ptr)))
 
-        # 7. Wire up input channel: rf_coroutine_set_input(coro, input_ch)
+        # 7. Wire up input channel: fl_coroutine_set_input(coro, input_ch)
         self._pending_stmts.append(LExprStmt(
-            LCall("rf_coroutine_set_input",
+            LCall("fl_coroutine_set_input",
                   [LVar(coro_tmp, coro_ptr),
                    LVar(input_ch_tmp, ch_ptr)],
                   LVoid())))
@@ -2506,17 +2506,17 @@ class Lowerer:
         elif expr.method == "poll":
             return self._lower_coroutine_next(recv, recv_type, blocking=False)
         elif expr.method == "done":
-            return LCall("rf_coroutine_done", [recv], LBool())
+            return LCall("fl_coroutine_done", [recv], LBool())
         elif expr.method == "send":
             if not args:
                 raise EmitError(
                     message="coroutine .send() requires one argument",
                     file=self._file, line=expr.line, col=expr.col)
-            # Cast value to void* for rf_coroutine_send
+            # Cast value to void* for fl_coroutine_send
             send_val = args[0]
             send_type = recv_type.send_type
             cast_val = self._box_for_channel(send_val, send_type)
-            return LCall("rf_coroutine_send",
+            return LCall("fl_coroutine_send",
                          [recv, cast_val], LVoid())
         raise EmitError(
             message=f"unknown coroutine method: {expr.method}",
@@ -2527,28 +2527,28 @@ class Lowerer:
                               blocking: bool = True) -> LExpr:
         """Lower coroutine .next()/.poll() — returns option<yield_type>.
 
-        rf_coroutine_next (blocking) and rf_coroutine_try_next (non-blocking)
-        both return RF_Option_ptr. For pointer-type yields this is already
+        fl_coroutine_next (blocking) and fl_coroutine_try_next (non-blocking)
+        both return FL_Option_ptr. For pointer-type yields this is already
         correct. For value-type yields we convert to the typed option struct
-        (e.g. RF_Option_int).
+        (e.g. FL_Option_int).
         """
         yield_t = recv_type.yield_type
         option_t = TOption(yield_t)
         c_option_t = self._lower_type(option_t)
 
-        c_fn = "rf_coroutine_next" if blocking else "rf_coroutine_try_next"
-        # Call runtime function — returns RF_Option_ptr
+        c_fn = "fl_coroutine_next" if blocking else "fl_coroutine_try_next"
+        # Call runtime function — returns FL_Option_ptr
         raw_call = LCall(c_fn, [recv],
-                         LStruct("RF_Option_ptr"))
+                         LStruct("FL_Option_ptr"))
 
-        # For pointer types, RF_Option_ptr IS the option type
+        # For pointer types, FL_Option_ptr IS the option type
         if self._is_heap_type(yield_t):
             return raw_call
 
-        # For value types, convert RF_Option_ptr → RF_Option_<type>
+        # For value types, convert FL_Option_ptr → FL_Option_<type>
         raw_tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(
-            c_name=raw_tmp, c_type=LStruct("RF_Option_ptr"),
+            c_name=raw_tmp, c_type=LStruct("FL_Option_ptr"),
             init=raw_call))
 
         result_tmp = self._fresh_temp()
@@ -2559,21 +2559,21 @@ class Lowerer:
         self._pending_stmts.append(LAssign(
             target=LFieldAccess(LVar(result_tmp, c_option_t),
                                 "tag", LByte()),
-            value=LFieldAccess(LVar(raw_tmp, LStruct("RF_Option_ptr")),
+            value=LFieldAccess(LVar(raw_tmp, LStruct("FL_Option_ptr")),
                                "tag", LByte())))
 
         # if (raw.tag == 1) result.value = (YieldCType)(intptr_t)raw.value
         c_yield_t = self._lower_type(yield_t)
         cast_expr = LCast(
             LCast(
-                LFieldAccess(LVar(raw_tmp, LStruct("RF_Option_ptr")),
+                LFieldAccess(LVar(raw_tmp, LStruct("FL_Option_ptr")),
                              "value", LPtr(LVoid())),
                 LInt(64, True)),  # (intptr_t)raw.value
-            c_yield_t)           # (rf_int)(intptr_t)raw.value
+            c_yield_t)           # (fl_int)(intptr_t)raw.value
 
         self._pending_stmts.append(LIf(
             cond=LBinOp("==",
-                LFieldAccess(LVar(raw_tmp, LStruct("RF_Option_ptr")),
+                LFieldAccess(LVar(raw_tmp, LStruct("FL_Option_ptr")),
                              "tag", LByte()),
                 LLit("1", LByte()), LBool()),
             then=[LAssign(
@@ -2588,28 +2588,28 @@ class Lowerer:
                              recv_type: TStream,
                              args: list[LExpr]) -> LExpr:
         """Lower stream method calls (.take, .skip, .map, .filter, .reduce)."""
-        stream_lt = LPtr(LStruct("RF_Stream"))
+        stream_lt = LPtr(LStruct("FL_Stream"))
 
         if expr.method == "take":
-            return LCall("rf_stream_take", [recv, args[0]], stream_lt)
+            return LCall("fl_stream_take", [recv, args[0]], stream_lt)
 
         if expr.method == "skip":
-            return LCall("rf_stream_skip", [recv, args[0]], stream_lt)
+            return LCall("fl_stream_skip", [recv, args[0]], stream_lt)
 
         if expr.method == "map":
             wrapper = self._lower_stream_closure_wrapper(
                 expr.args[0], recv_type.element, "map")
-            return LCall("rf_stream_map", [recv, wrapper], stream_lt)
+            return LCall("fl_stream_map", [recv, wrapper], stream_lt)
 
         if expr.method == "filter":
             wrapper = self._lower_stream_closure_wrapper(
                 expr.args[0], recv_type.element, "filter")
-            return LCall("rf_stream_filter", [recv, wrapper], stream_lt)
+            return LCall("fl_stream_filter", [recv, wrapper], stream_lt)
 
         if expr.method == "reduce":
             wrapper = self._lower_stream_closure_wrapper(
                 expr.args[1], recv_type.element, "reduce")
-            return LCall("rf_stream_reduce",
+            return LCall("fl_stream_reduce",
                          [recv, args[0], wrapper], LPtr(LVoid()))
 
         raise EmitError(
@@ -2622,13 +2622,13 @@ class Lowerer:
         """Generate a void*-based closure wrapper for stream helper methods.
 
         The stream runtime helpers call closures with (void* env, void* arg)
-        signatures. User lambdas have typed signatures like (void* env, rf_int x).
+        signatures. User lambdas have typed signatures like (void* env, fl_int x).
         This method generates a thin wrapper that casts between the two calling
         conventions and wraps the original closure as the environment.
         """
         # Lower the original closure expression
         inner_closure = self._lower_expr(closure_ast)
-        closure_lt = LPtr(LStruct("RF_Closure"))
+        closure_lt = LPtr(LStruct("FL_Closure"))
 
         # Get the closure type from the typechecker
         fn_type = self._type_of(closure_ast)
@@ -2656,7 +2656,7 @@ class Lowerer:
             ]
             wrapper_body: list[LStmt] = []
 
-            # RF_Closure* _inner = (RF_Closure*)_env;
+            # FL_Closure* _inner = (FL_Closure*)_env;
             wrapper_body.append(LVarDecl(
                 c_name="_inner", c_type=closure_lt,
                 init=LCast(LVar("_env", LPtr(LVoid())), closure_lt)))
@@ -2705,7 +2705,7 @@ class Lowerer:
             ]
             wrapper_body = []
 
-            # RF_Closure* _inner = (RF_Closure*)_env;
+            # FL_Closure* _inner = (FL_Closure*)_env;
             wrapper_body.append(LVarDecl(
                 c_name="_inner", c_type=closure_lt,
                 init=LCast(LVar("_env", LPtr(LVoid())), closure_lt)))
@@ -2753,7 +2753,7 @@ class Lowerer:
             c_name=wrap_closure_tmp,
             c_type=closure_lt,
             init=LCast(
-                LCall("malloc", [LSizeOf(LStruct("RF_Closure"))],
+                LCall("malloc", [LSizeOf(LStruct("FL_Closure"))],
                       LPtr(LVoid())),
                 closure_lt),
         ))
@@ -2774,14 +2774,14 @@ class Lowerer:
 
     def _lower_sort_closure_wrapper(self, closure_ast: Expr,
                                     elem_type: Type) -> LExpr:
-        """Generate a sort comparator closure wrapper for rf_sort_array_by.
+        """Generate a sort comparator closure wrapper for fl_sort_array_by.
 
-        rf_sort_array_by expects a closure whose fn pointer has signature:
-            rf_int (*)(void* env, const void* a_ptr, const void* b_ptr)
+        fl_sort_array_by expects a closure whose fn pointer has signature:
+            fl_int (*)(void* env, const void* a_ptr, const void* b_ptr)
         where a_ptr and b_ptr are pointers into the array's element buffer.
 
-        ReFlow lambdas have typed signatures like:
-            rf_int (*)(void* env, rf_int a, rf_int b)
+        Flow lambdas have typed signatures like:
+            fl_int (*)(void* env, fl_int a, fl_int b)
 
         This generates a thin wrapper that:
           1. Receives (env=outer_env, a_ptr, b_ptr)
@@ -2790,7 +2790,7 @@ class Lowerer:
           4. Calls the inner closure with (inner->env, a_val, b_val)
         """
         inner_closure = self._lower_expr(closure_ast)
-        closure_lt = LPtr(LStruct("RF_Closure"))
+        closure_lt = LPtr(LStruct("FL_Closure"))
 
         fn_type = self._type_of(closure_ast)
         if not isinstance(fn_type, TFn):
@@ -2811,7 +2811,7 @@ class Lowerer:
         ]
         wrapper_body: list[LStmt] = []
 
-        # RF_Closure* _inner = (RF_Closure*)_env;
+        # FL_Closure* _inner = (FL_Closure*)_env;
         wrapper_body.append(LVarDecl(
             c_name="_inner", c_type=closure_lt,
             init=LCast(LVar("_env", LPtr(LVoid())), closure_lt)))
@@ -2826,8 +2826,8 @@ class Lowerer:
             c_name="b_val", c_type=elem_lt,
             init=LDeref(LCast(LVar("_b", LPtr(LVoid())), LPtr(elem_lt)), elem_lt)))
 
-        # Call inner: ((rf_int(*)(void*, T, T))_inner->fn)(_inner->env, a_val, b_val)
-        ret_lt = LInt(32, True)  # rf_int — comparator return type
+        # Call inner: ((fl_int(*)(void*, T, T))_inner->fn)(_inner->env, a_val, b_val)
+        ret_lt = LInt(32, True)  # fl_int — comparator return type
         fn_ptr_type = LFnPtr([LPtr(LVoid()), elem_lt, elem_lt], ret_lt)
         call_expr = LIndirectCall(
             LCast(LArrow(LVar("_inner", closure_lt), "fn", LPtr(LVoid())),
@@ -2854,7 +2854,7 @@ class Lowerer:
             c_name=wrap_closure_tmp,
             c_type=closure_lt,
             init=LCast(
-                LCall("malloc", [LSizeOf(LStruct("RF_Closure"))],
+                LCall("malloc", [LSizeOf(LStruct("FL_Closure"))],
                       LPtr(LVoid())),
                 closure_lt),
         ))
@@ -2936,7 +2936,7 @@ class Lowerer:
         if direct_name is not None:
             call_expr = LCall(direct_name, [typed_input], result_lt)
         else:
-            # Closure: _arg carries a struct {void* input, RF_Closure* fn}
+            # Closure: _arg carries a struct {void* input, FL_Closure* fn}
             # For simplicity, only support direct function names in fan-out
             call_expr = LCall(direct_name or "NULL", [typed_input], result_lt)
 
@@ -2978,7 +2978,7 @@ class Lowerer:
                                         input_lt: LType) -> list[LExpr]:
         """Lower a parallel fan-out in a chain context.
 
-        Generates wrapper functions, RF_FanoutBranch array, rf_fanout_run call,
+        Generates wrapper functions, FL_FanoutBranch array, fl_fanout_run call,
         and result extraction. Returns list of result LExprs to push on stack.
         """
         branches = fanout.branches
@@ -2986,10 +2986,10 @@ class Lowerer:
         fanout_id = self._fanout_counter
         self._fanout_counter += 1
 
-        branch_type = LStruct("RF_FanoutBranch")
+        branch_type = LStruct("FL_FanoutBranch")
         tasks_name = self._fresh_temp()
 
-        # Declare RF_FanoutBranch array
+        # Declare FL_FanoutBranch array
         self._pending_stmts.append(
             LArrayDecl(c_name=tasks_name, elem_type=branch_type, count=n))
 
@@ -3038,9 +3038,9 @@ class Lowerer:
                 value=input_as_void,
             ))
 
-        # Call rf_fanout_run(tasks, n)
+        # Call fl_fanout_run(tasks, n)
         self._pending_stmts.append(LExprStmt(
-            LCall("rf_fanout_run",
+            LCall("fl_fanout_run",
                   [LVar(tasks_name, branch_type),
                    LLit(str(n), LInt(32, True))],
                   LVoid())))
@@ -3104,7 +3104,7 @@ class Lowerer:
                         LVarDecl(c_name=tmp, c_type=input_type,
                                  init=input_val))
 
-                    # Parallel fan-out: use rf_fanout_run
+                    # Parallel fan-out: use fl_fanout_run
                     if (elem_expr.parallel
                             and len(elem_expr.branches) > 1):
                         par_results = self._lower_parallel_fanout_in_chain(
@@ -3175,9 +3175,9 @@ class Lowerer:
         """
         t = self._type_of(expr)
         if not isinstance(t, TFn):
-            return LLit("NULL", LPtr(LStruct("RF_Closure")))
+            return LLit("NULL", LPtr(LStruct("FL_Closure")))
 
-        closure_lt = LPtr(LStruct("RF_Closure"))
+        closure_lt = LPtr(LStruct("FL_Closure"))
         module = self._module_path
         fn_name = self._current_fn_name or "anon"
         lambda_id = self._lambda_counter
@@ -3298,7 +3298,7 @@ class Lowerer:
             c_name=closure_tmp,
             c_type=closure_lt,
             init=LCast(
-                LCall("malloc", [LSizeOf(LStruct("RF_Closure"))],
+                LCall("malloc", [LSizeOf(LStruct("FL_Closure"))],
                       LPtr(LVoid())),
                 closure_lt),
         ))
@@ -3323,7 +3323,7 @@ class Lowerer:
         call with env as first arg."""
         # Store callee in temp to avoid multiple evaluation
         cl_tmp = self._fresh_temp()
-        closure_lt = LPtr(LStruct("RF_Closure"))
+        closure_lt = LPtr(LStruct("FL_Closure"))
         self._pending_stmts.append(LVarDecl(
             c_name=cl_tmp, c_type=closure_lt, init=callee_expr))
         cl_var = LVar(cl_tmp, closure_lt)
@@ -3387,13 +3387,13 @@ class Lowerer:
             ))
 
         # Create closure with wrapper fn and NULL env
-        closure_lt = LPtr(LStruct("RF_Closure"))
+        closure_lt = LPtr(LStruct("FL_Closure"))
         closure_tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(
             c_name=closure_tmp,
             c_type=closure_lt,
             init=LCast(
-                LCall("malloc", [LSizeOf(LStruct("RF_Closure"))],
+                LCall("malloc", [LSizeOf(LStruct("FL_Closure"))],
                       LPtr(LVoid())),
                 closure_lt),
         ))
@@ -3410,8 +3410,8 @@ class Lowerer:
         return LVar(closure_tmp, closure_lt)
 
     def _lower_fstring(self, expr: FStringExpr) -> LExpr:
-        """Lower f-string to chain of rf_string_concat calls. RT-7-3-4."""
-        string_type = LPtr(LStruct("RF_String"))
+        """Lower f-string to chain of fl_string_concat calls. RT-7-3-4."""
+        string_type = LPtr(LStruct("FL_String"))
 
         parts: list[LExpr] = []
         for part in expr.parts:
@@ -3419,7 +3419,7 @@ class Lowerer:
                 if part:
                     escaped = part.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t").replace("\0", "\\0")
                     parts.append(LCall(
-                        "rf_string_from_cstr",
+                        "fl_string_from_cstr",
                         [LLit(f'"{escaped}"', LPtr(LVoid()))],
                         string_type,
                     ))
@@ -3430,7 +3430,7 @@ class Lowerer:
                 parts.append(self._to_string_expr(inner, inner_type))
 
         if not parts:
-            return LCall("rf_string_from_cstr",
+            return LCall("fl_string_from_cstr",
                          [LLit('""', LPtr(LVoid()))], string_type)
 
         # Chain concat calls
@@ -3439,34 +3439,34 @@ class Lowerer:
             tmp = self._fresh_temp()
             self._pending_stmts.append(
                 LVarDecl(c_name=tmp, c_type=string_type, init=result))
-            result = LCall("rf_string_concat",
+            result = LCall("fl_string_concat",
                            [LVar(tmp, string_type), p], string_type)
 
         return result
 
     def _to_string_expr(self, expr: LExpr, t: Type) -> LExpr:
         """Convert an expression to a string expression for f-string interpolation."""
-        string_type = LPtr(LStruct("RF_String"))
+        string_type = LPtr(LStruct("FL_String"))
         match t:
             case TString():
                 return expr
             case TInt(width=32, signed=True):
-                return LCall("rf_int_to_string", [expr], string_type)
+                return LCall("fl_int_to_string", [expr], string_type)
             case TInt(width=64, signed=True):
-                return LCall("rf_int64_to_string", [expr], string_type)
+                return LCall("fl_int64_to_string", [expr], string_type)
             case TFloat():
-                return LCall("rf_float_to_string", [expr], string_type)
+                return LCall("fl_float_to_string", [expr], string_type)
             case TBool():
-                return LCall("rf_bool_to_string", [expr], string_type)
+                return LCall("fl_bool_to_string", [expr], string_type)
             case TChar():
-                return LCall("rf_char_to_string", [expr], string_type)
+                return LCall("fl_char_to_string", [expr], string_type)
             case TInt():
                 # Other int widths — cast to int32 first
-                return LCall("rf_int_to_string",
+                return LCall("fl_int_to_string",
                              [LCast(expr, LInt(32, True))], string_type)
             case _:
                 # Fallback — cast to int and convert
-                return LCall("rf_int_to_string",
+                return LCall("fl_int_to_string",
                              [LCast(expr, LInt(32, True))], string_type)
 
     def _lower_match_expr(self, expr: MatchExpr) -> LExpr:
@@ -3537,7 +3537,7 @@ class Lowerer:
         self._pending_stmts.append(
             LVarDecl(c_name=tmp, c_type=result_lt, init=inner))
 
-        # if (rf_result_is_err(tmp)) { return tmp; }
+        # if (fl_result_is_err(tmp)) { return tmp; }
         tmp_var = LVar(tmp, result_lt)
         err_check = LIf(
             cond=LBinOp(
@@ -3613,15 +3613,15 @@ class Lowerer:
         match inner_type:
             case TString():
                 self._pending_stmts.append(
-                    LExprStmt(LCall("rf_string_retain", [inner], LVoid())))
+                    LExprStmt(LCall("fl_string_retain", [inner], LVoid())))
                 return inner
             case TArray():
                 self._pending_stmts.append(
-                    LExprStmt(LCall("rf_array_retain", [inner], LVoid())))
+                    LExprStmt(LCall("fl_array_retain", [inner], LVoid())))
                 return inner
             case TStream():
                 self._pending_stmts.append(
-                    LExprStmt(LCall("rf_stream_retain", [inner], LVoid())))
+                    LExprStmt(LCall("fl_stream_retain", [inner], LVoid())))
                 return inner
             case _:
                 return inner
@@ -3747,7 +3747,7 @@ class Lowerer:
         t = self._type_of(expr)
         lt = self._lower_type(t)
         if not expr.elements:
-            return LCall("rf_array_new",
+            return LCall("fl_array_new",
                          [LLit("0", LInt(64, True)),
                           LLit("0", LInt(64, True)),
                           LLit("NULL", LPtr(LVoid()))],
@@ -3761,13 +3761,13 @@ class Lowerer:
         lowered_elems = [self._lower_expr(e) for e in expr.elements]
         count = len(lowered_elems)
 
-        # Create a compound literal array and pass its address to rf_array_new
+        # Create a compound literal array and pass its address to fl_array_new
         data_expr = LArrayData(
             elements=lowered_elems,
             elem_type=elem_lt,
             c_type=LPtr(elem_lt),
         )
-        return LCall("rf_array_new",
+        return LCall("fl_array_new",
                      [LLit(str(count), LInt(64, True)),
                       LSizeOf(elem_lt),
                       data_expr],
@@ -4326,7 +4326,7 @@ class Lowerer:
         """Create an equality comparison for pattern matching."""
         val_expr = self._lower_expr(val)
         if isinstance(subj_type, TString):
-            return LCall("rf_string_eq", [subj, val_expr], LBool())
+            return LCall("fl_string_eq", [subj, val_expr], LBool())
         return LBinOp(op="==", left=subj, right=val_expr, c_type=LBool())
 
     # ------------------------------------------------------------------
@@ -4375,7 +4375,7 @@ class Lowerer:
 
         # 3. Build next function
         frame_ptr_type = LPtr(LStruct(frame_c_name))
-        option_ptr_type = LStruct("RF_Option_ptr")
+        option_ptr_type = LStruct("FL_Option_ptr")
 
         # next function body: cast self->state to frame, switch on _state
         next_body: list[LStmt] = []
@@ -4386,7 +4386,7 @@ class Lowerer:
             c_name=frame_var_name,
             c_type=frame_ptr_type,
             init=LCast(
-                LArrow(LVar("self", LPtr(LStruct("RF_Stream"))),
+                LArrow(LVar("self", LPtr(LStruct("FL_Stream"))),
                        "state", LPtr(LVoid())),
                 frame_ptr_type),
         ))
@@ -4406,7 +4406,7 @@ class Lowerer:
 
         self._fn_defs.append(LFnDef(
             c_name=next_c_name,
-            params=[("self", LPtr(LStruct("RF_Stream")))],
+            params=[("self", LPtr(LStruct("FL_Stream")))],
             ret=option_ptr_type,
             body=next_body,
             is_pure=False,
@@ -4419,7 +4419,7 @@ class Lowerer:
             c_name=frame_var_name,
             c_type=frame_ptr_type,
             init=LCast(
-                LArrow(LVar("self", LPtr(LStruct("RF_Stream"))),
+                LArrow(LVar("self", LPtr(LStruct("FL_Stream"))),
                        "state", LPtr(LVoid())),
                 frame_ptr_type),
         ))
@@ -4430,7 +4430,7 @@ class Lowerer:
 
         self._fn_defs.append(LFnDef(
             c_name=free_c_name,
-            params=[("self", LPtr(LStruct("RF_Stream")))],
+            params=[("self", LPtr(LStruct("FL_Stream")))],
             ret=LVoid(),
             body=free_body,
             is_pure=False,
@@ -4466,13 +4466,13 @@ class Lowerer:
                 value=LVar(p.name, self._lower_type(p_type)),
             ))
 
-        # return rf_stream_new(next, free, frame)
+        # return fl_stream_new(next, free, frame)
         factory_body.append(LReturn(
-            LCall("rf_stream_new",
+            LCall("fl_stream_new",
                   [LVar(next_c_name, LPtr(LVoid())),
                    LVar(free_c_name, LPtr(LVoid())),
                    LCast(LVar(frame_var_name, frame_ptr_type), LPtr(LVoid()))],
-                  LPtr(LStruct("RF_Stream"))),
+                  LPtr(LStruct("FL_Stream"))),
         ))
 
         factory_params: list[tuple[str, LType]] = []
@@ -4483,7 +4483,7 @@ class Lowerer:
         self._fn_defs.append(LFnDef(
             c_name=factory_c_name,
             params=factory_params,
-            ret=LPtr(LStruct("RF_Stream")),
+            ret=LPtr(LStruct("FL_Stream")),
             body=factory_body,
             is_pure=False,
             source_name=f"{module}.{fn_name}",
@@ -4618,7 +4618,7 @@ class Lowerer:
         if body is None or not isinstance(body, Block):
             return []
 
-        option_ptr_type = LStruct("RF_Option_ptr")
+        option_ptr_type = LStruct("FL_Option_ptr")
         num_yields = len(yield_stmts)
 
         # Lower body with yields converted to state transitions + gotos
@@ -4630,8 +4630,8 @@ class Lowerer:
         body_stmts = self._rewrite_frame_access(
             body_stmts, frame_var, frame_c_name, frame_names)
 
-        # Terminal: return RF_NONE
-        done_label = "_rf_stream_done"
+        # Terminal: return FL_NONE
+        done_label = "_fl_stream_done"
         body_stmts.append(LLabel(done_label))
         frame_ptr_type = LPtr(LStruct(frame_c_name))
         body_stmts.append(LAssign(
@@ -4646,7 +4646,7 @@ class Lowerer:
         # Build switch dispatch: case 0 → _state_0, case 1 → _state_1, ...
         switch_cases: list[tuple[int, list[LStmt]]] = []
         for i in range(num_yields + 1):
-            switch_cases.append((i, [LGoto(f"_rf_state_{i}")]))
+            switch_cases.append((i, [LGoto(f"_fl_state_{i}")]))
         switch_default = [LGoto(done_label)]
 
         frame_state = LArrow(
@@ -4657,7 +4657,7 @@ class Lowerer:
         result.append(LSwitch(value=frame_state, cases=switch_cases,
                                default=switch_default))
         # State 0 label — initial entry
-        result.append(LLabel("_rf_state_0"))
+        result.append(LLabel("_fl_state_0"))
         result.extend(body_stmts)
 
         return result
@@ -4668,7 +4668,7 @@ class Lowerer:
         """Lower a list of statements for stream body, handling yields
         at any nesting level."""
         result: list[LStmt] = []
-        option_ptr_type = LStruct("RF_Option_ptr")
+        option_ptr_type = LStruct("FL_Option_ptr")
 
         for stmt in stmts:
             if isinstance(stmt, YieldStmt):
@@ -4690,7 +4690,7 @@ class Lowerer:
                     value=LLit(str(state_num), LInt(32, True)),
                 ))
 
-                # Return RF_SOME(value) — cast through uintptr_t for value types
+                # Return FL_SOME(value) — cast through uintptr_t for value types
                 void_value = LCast(LCast(value, LInt(64, False)), LPtr(LVoid()))
                 result.append(LReturn(LCompound(
                     fields=[("tag", LLit("1", LByte())),
@@ -4698,10 +4698,10 @@ class Lowerer:
                     c_type=option_ptr_type)))
 
                 # Resume label for this yield point
-                result.append(LLabel(f"_rf_state_{state_num}"))
+                result.append(LLabel(f"_fl_state_{state_num}"))
 
             elif isinstance(stmt, ReturnStmt):
-                result.append(LGoto("_rf_stream_done"))
+                result.append(LGoto("_fl_stream_done"))
 
             elif isinstance(stmt, WhileStmt):
                 # Lower while loop, recursing into body for yields
@@ -4747,7 +4747,7 @@ class Lowerer:
                 iter_t = self._type_of(stmt.iterable)
                 if isinstance(iter_t, TStream):
                     stream_expr = self._lower_expr(stmt.iterable)
-                    stream_lt = LPtr(LStruct("RF_Stream"))
+                    stream_lt = LPtr(LStruct("FL_Stream"))
                     stream_elem_t = iter_t.element
                     elem_lt = self._lower_type(stream_elem_t)
                     next_name = self._fresh_temp()
@@ -4755,20 +4755,20 @@ class Lowerer:
                     # so it survives yield resume via frame rewriting.
                     next_decl = LVarDecl(
                         c_name=next_name,
-                        c_type=LStruct("RF_Option_ptr"),
-                        init=LCall("rf_stream_next", [stream_expr],
-                                   LStruct("RF_Option_ptr")))
+                        c_type=LStruct("FL_Option_ptr"),
+                        init=LCall("fl_stream_next", [stream_expr],
+                                   LStruct("FL_Option_ptr")))
                     tag_check = LIf(
                         cond=LBinOp(
                             op="==",
                             left=LFieldAccess(
-                                LVar(next_name, LStruct("RF_Option_ptr")),
+                                LVar(next_name, LStruct("FL_Option_ptr")),
                                 "tag", LByte()),
                             right=LLit("0", LByte()),
                             c_type=LBool()),
                         then=[LBreak()], else_=[])
                     value_access = LFieldAccess(
-                        LVar(next_name, LStruct("RF_Option_ptr")),
+                        LVar(next_name, LStruct("FL_Option_ptr")),
                         "value", LPtr(LVoid()))
                     if isinstance(elem_lt, LPtr):
                         item_init = LCast(value_access, elem_lt)
@@ -4914,7 +4914,7 @@ class Lowerer:
 
     def _fresh_temp(self) -> str:
         """Generate a fresh temporary variable name."""
-        name = f"_rf_tmp_{self._tmp_counter}"
+        name = f"_fl_tmp_{self._tmp_counter}"
         self._tmp_counter += 1
         return name
 
@@ -5071,7 +5071,7 @@ class Lowerer:
                 return TChar()
             case LByte():
                 return TByte()
-            case LPtr(inner=LStruct(c_name="RF_String")):
+            case LPtr(inner=LStruct(c_name="FL_String")):
                 return TString()
             case _:
                 return None
@@ -5100,7 +5100,7 @@ class Lowerer:
                 return "char"
             case LByte():
                 return "byte"
-            case LPtr(inner=LStruct(c_name="RF_String")):
+            case LPtr(inner=LStruct(c_name="FL_String")):
                 return "string"
             case _:
                 return None
@@ -5426,12 +5426,12 @@ class Lowerer:
         """Emit the C expression for a built-in interface method call (SG-3-5-1)."""
         match op.kind:
             case "compare":
-                # _rf_compare(a, b) → ((a) < (b) ? -1 : ((a) > (b) ? 1 : 0))
-                return LCall("_rf_compare", [recv, args[0]], LInt(32, True))
+                # _fl_compare(a, b) → ((a) < (b) ? -1 : ((a) > (b) ? 1 : 0))
+                return LCall("_fl_compare", [recv, args[0]], LInt(32, True))
             case "binop":
                 return LBinOp(op.op, recv, args[0], lt)
             case "checked_binop":
-                # Integer arithmetic — uses RF_CHECKED_ADD/SUB/MUL (overflow → panic)
+                # Integer arithmetic — uses FL_CHECKED_ADD/SUB/MUL (overflow → panic)
                 return LCheckedArith(op=op.op, left=recv, right=args[0], c_type=lt)
             case "unary":
                 return LUnary(op.op, recv, lt)

@@ -7,7 +7,7 @@ processing sinks via fan-out, and filters alerts by severity.
 ## Run it
 
 ```bash
-python main.py build examples/log_pipeline.reflow -o /tmp/log_pipeline && /tmp/log_pipeline
+python main.py build examples/log_pipeline.flow -o /tmp/log_pipeline && /tmp/log_pipeline
 ```
 
 ## What it does
@@ -26,7 +26,7 @@ For each line it:
 2. **Parses** it into a `LogEntry` with timestamp, severity, source, and message.
 3. **Validates** that timestamp and source are non-empty (corrupt lines are
    caught and skipped).
-4. **Fan-out** — sends the entry to two sinks simultaneously using ReFlow's
+4. **Fan-out** — sends the entry to two sinks simultaneously using Flow's
    sequential fan-out syntax:
    ```
    entry -> (write_archive | update_stats) -> combine_output

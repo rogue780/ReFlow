@@ -22,8 +22,8 @@ from compiler.errors import LexError
 # ---------------------------------------------------------------------------
 
 def lex(source: str) -> list[Token]:
-    """Lex *source* using the filename 'test.reflow'."""
-    return Lexer(source, "test.reflow").tokenize()
+    """Lex *source* using the filename 'test.flow'."""
+    return Lexer(source, "test.flow").tokenize()
 
 
 def types(source: str) -> list[TokenType]:
@@ -1045,7 +1045,7 @@ class TestIdentifiers(unittest.TestCase):
 
     def test_ident_filename_field(self) -> None:
         toks = non_eof("foo")
-        self.assertEqual(toks[0].file, "test.reflow")
+        self.assertEqual(toks[0].file, "test.flow")
 
 
 # ---------------------------------------------------------------------------
@@ -1201,7 +1201,7 @@ class TestLexErrors(unittest.TestCase):
     def test_unterminated_string_has_file(self) -> None:
         with self.assertRaises(LexError) as ctx:
             lex('"hello')
-        self.assertEqual(ctx.exception.file, "test.reflow")
+        self.assertEqual(ctx.exception.file, "test.flow")
 
     def test_unterminated_string_has_line(self) -> None:
         with self.assertRaises(LexError) as ctx:
@@ -1233,7 +1233,7 @@ class TestLexErrors(unittest.TestCase):
     def test_unrecognized_character_has_file(self) -> None:
         with self.assertRaises(LexError) as ctx:
             lex("`")
-        self.assertEqual(ctx.exception.file, "test.reflow")
+        self.assertEqual(ctx.exception.file, "test.flow")
 
     def test_unrecognized_character_has_position(self) -> None:
         with self.assertRaises(LexError) as ctx:
@@ -1246,7 +1246,7 @@ class TestLexErrors(unittest.TestCase):
             lex("$x")
 
     def test_unrecognized_character_hash(self) -> None:
-        # '#' is not a valid ReFlow token start
+        # '#' is not a valid Flow token start
         with self.assertRaises(LexError):
             lex("#define")
 
@@ -1311,7 +1311,7 @@ class TestTokenDataclass(unittest.TestCase):
     def test_token_has_file_field(self) -> None:
         tok = non_eof("let")[0]
         self.assertIsInstance(tok.file, str)
-        self.assertEqual(tok.file, "test.reflow")
+        self.assertEqual(tok.file, "test.flow")
 
     def test_keyword_value_matches_source(self) -> None:
         tok = non_eof("module")[0]
@@ -1389,9 +1389,9 @@ class TestEdgeCases(unittest.TestCase):
         self.assertEqual(toks[2].type, TokenType.IDENT)
 
     def test_lexer_filename_stored_on_tokens(self) -> None:
-        toks = Lexer("let x", "myfile.reflow").tokenize()
+        toks = Lexer("let x", "myfile.flow").tokenize()
         for t in toks:
-            self.assertEqual(t.file, "myfile.reflow")
+            self.assertEqual(t.file, "myfile.flow")
 
     def test_integer_immediately_after_keyword(self) -> None:
         # fn42 is an IDENT, not FN followed by INT_LIT

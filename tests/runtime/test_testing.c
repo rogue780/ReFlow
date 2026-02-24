@@ -1,15 +1,15 @@
 /*
  * C-level tests for stdlib/testing assertions and runner.
  *
- * Note: rf_test_assert_eq_int, rf_test_assert_eq_string, rf_test_assert_eq_bool
- * were removed in SG-4-3-2 (those behaviors are now in monomorphized ReFlow code).
+ * Note: fl_test_assert_eq_int, fl_test_assert_eq_string, fl_test_assert_eq_bool
+ * were removed in SG-4-3-2 (those behaviors are now in monomorphized Flow code).
  * This file tests the remaining runtime testing functions.
  *
  * Compile and run via: make test-runtime
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,9 +30,9 @@ static int tests_passed = 0;
 static void test_assert_true_passes(void) {
     TEST(assert_true_passes);
 
-    RF_String* msg = rf_string_from_cstr("should not fail");
-    rf_test_assert_true(rf_true, msg);
-    rf_string_release(msg);
+    FL_String* msg = fl_string_from_cstr("should not fail");
+    fl_test_assert_true(fl_true, msg);
+    fl_string_release(msg);
 
     PASS();
 }
@@ -44,23 +44,23 @@ static void test_assert_true_passes(void) {
 static void test_assert_true_fails(void) {
     TEST(assert_true_fails);
 
-    RF_ExceptionFrame ef;
-    _rf_exception_push(&ef);
-    rf_bool caught = rf_false;
+    FL_ExceptionFrame ef;
+    _fl_exception_push(&ef);
+    fl_bool caught = fl_false;
     if (setjmp(ef.jmp) == 0) {
-        RF_String* msg = rf_string_from_cstr("test msg");
-        rf_test_assert_true(rf_false, msg);
+        FL_String* msg = fl_string_from_cstr("test msg");
+        fl_test_assert_true(fl_false, msg);
         assert(0 && "should have thrown");
     } else {
-        caught = rf_true;
-        assert(ef.exception_tag == RF_TEST_FAILURE_TAG);
-        RF_String* err = (RF_String*)ef.exception;
+        caught = fl_true;
+        assert(ef.exception_tag == FL_TEST_FAILURE_TAG);
+        FL_String* err = (FL_String*)ef.exception;
         assert(err != NULL);
         /* Verify message contains expected prefix */
         assert(strstr(err->data, "expected true") != NULL);
     }
-    _rf_exception_pop();
-    assert(caught == rf_true);
+    _fl_exception_pop();
+    assert(caught == fl_true);
 
     PASS();
 }
@@ -72,9 +72,9 @@ static void test_assert_true_fails(void) {
 static void test_assert_false_passes(void) {
     TEST(assert_false_passes);
 
-    RF_String* msg = rf_string_from_cstr("should not fail");
-    rf_test_assert_false(rf_false, msg);
-    rf_string_release(msg);
+    FL_String* msg = fl_string_from_cstr("should not fail");
+    fl_test_assert_false(fl_false, msg);
+    fl_string_release(msg);
 
     PASS();
 }
@@ -86,21 +86,21 @@ static void test_assert_false_passes(void) {
 static void test_assert_false_fails(void) {
     TEST(assert_false_fails);
 
-    RF_ExceptionFrame ef;
-    _rf_exception_push(&ef);
-    rf_bool caught = rf_false;
+    FL_ExceptionFrame ef;
+    _fl_exception_push(&ef);
+    fl_bool caught = fl_false;
     if (setjmp(ef.jmp) == 0) {
-        RF_String* msg = rf_string_from_cstr("test msg");
-        rf_test_assert_false(rf_true, msg);
+        FL_String* msg = fl_string_from_cstr("test msg");
+        fl_test_assert_false(fl_true, msg);
         assert(0 && "should have thrown");
     } else {
-        caught = rf_true;
-        assert(ef.exception_tag == RF_TEST_FAILURE_TAG);
-        RF_String* err = (RF_String*)ef.exception;
+        caught = fl_true;
+        assert(ef.exception_tag == FL_TEST_FAILURE_TAG);
+        FL_String* err = (FL_String*)ef.exception;
         assert(strstr(err->data, "expected false") != NULL);
     }
-    _rf_exception_pop();
-    assert(caught == rf_true);
+    _fl_exception_pop();
+    assert(caught == fl_true);
 
     PASS();
 }
@@ -112,10 +112,10 @@ static void test_assert_false_fails(void) {
 static void test_assert_eq_float_passes(void) {
     TEST(assert_eq_float_passes);
 
-    RF_String* msg = rf_string_from_cstr("float check");
-    rf_test_assert_eq_float(3.14, 3.14, 0.001, msg);
-    rf_test_assert_eq_float(1.0, 1.0001, 0.001, msg);
-    rf_string_release(msg);
+    FL_String* msg = fl_string_from_cstr("float check");
+    fl_test_assert_eq_float(3.14, 3.14, 0.001, msg);
+    fl_test_assert_eq_float(1.0, 1.0001, 0.001, msg);
+    fl_string_release(msg);
 
     PASS();
 }
@@ -127,22 +127,22 @@ static void test_assert_eq_float_passes(void) {
 static void test_assert_eq_float_fails(void) {
     TEST(assert_eq_float_fails);
 
-    RF_ExceptionFrame ef;
-    _rf_exception_push(&ef);
-    rf_bool caught = rf_false;
+    FL_ExceptionFrame ef;
+    _fl_exception_push(&ef);
+    fl_bool caught = fl_false;
     if (setjmp(ef.jmp) == 0) {
-        RF_String* msg = rf_string_from_cstr("float check");
-        rf_test_assert_eq_float(1.0, 2.0, 0.001, msg);
+        FL_String* msg = fl_string_from_cstr("float check");
+        fl_test_assert_eq_float(1.0, 2.0, 0.001, msg);
         assert(0 && "should have thrown");
     } else {
-        caught = rf_true;
-        assert(ef.exception_tag == RF_TEST_FAILURE_TAG);
-        RF_String* err = (RF_String*)ef.exception;
+        caught = fl_true;
+        assert(ef.exception_tag == FL_TEST_FAILURE_TAG);
+        FL_String* err = (FL_String*)ef.exception;
         assert(strstr(err->data, "expected") != NULL);
         assert(strstr(err->data, "epsilon") != NULL);
     }
-    _rf_exception_pop();
-    assert(caught == rf_true);
+    _fl_exception_pop();
+    assert(caught == fl_true);
 
     PASS();
 }
@@ -155,11 +155,11 @@ static void test_assert_some_passes(void) {
     TEST(assert_some_passes);
 
     int val = 42;
-    RF_Option_ptr opt = RF_SOME_PTR((void*)(intptr_t)val);
-    RF_String* msg = rf_string_from_cstr("should be some");
-    void* result = rf_test_assert_some(opt, msg);
+    FL_Option_ptr opt = FL_SOME_PTR((void*)(intptr_t)val);
+    FL_String* msg = fl_string_from_cstr("should be some");
+    void* result = fl_test_assert_some(opt, msg);
     assert((intptr_t)result == 42);
-    rf_string_release(msg);
+    fl_string_release(msg);
 
     PASS();
 }
@@ -171,22 +171,22 @@ static void test_assert_some_passes(void) {
 static void test_assert_some_fails(void) {
     TEST(assert_some_fails);
 
-    RF_ExceptionFrame ef;
-    _rf_exception_push(&ef);
-    rf_bool caught = rf_false;
+    FL_ExceptionFrame ef;
+    _fl_exception_push(&ef);
+    fl_bool caught = fl_false;
     if (setjmp(ef.jmp) == 0) {
-        RF_Option_ptr opt = RF_NONE_PTR;
-        RF_String* msg = rf_string_from_cstr("some check");
-        rf_test_assert_some(opt, msg);
+        FL_Option_ptr opt = FL_NONE_PTR;
+        FL_String* msg = fl_string_from_cstr("some check");
+        fl_test_assert_some(opt, msg);
         assert(0 && "should have thrown");
     } else {
-        caught = rf_true;
-        assert(ef.exception_tag == RF_TEST_FAILURE_TAG);
-        RF_String* err = (RF_String*)ef.exception;
+        caught = fl_true;
+        assert(ef.exception_tag == FL_TEST_FAILURE_TAG);
+        FL_String* err = (FL_String*)ef.exception;
         assert(strstr(err->data, "expected Some, got None") != NULL);
     }
-    _rf_exception_pop();
-    assert(caught == rf_true);
+    _fl_exception_pop();
+    assert(caught == fl_true);
 
     PASS();
 }
@@ -198,10 +198,10 @@ static void test_assert_some_fails(void) {
 static void test_assert_none_passes(void) {
     TEST(assert_none_passes);
 
-    RF_Option_ptr opt = RF_NONE_PTR;
-    RF_String* msg = rf_string_from_cstr("should be none");
-    rf_test_assert_none(opt, msg);
-    rf_string_release(msg);
+    FL_Option_ptr opt = FL_NONE_PTR;
+    FL_String* msg = fl_string_from_cstr("should be none");
+    fl_test_assert_none(opt, msg);
+    fl_string_release(msg);
 
     PASS();
 }
@@ -213,22 +213,22 @@ static void test_assert_none_passes(void) {
 static void test_assert_none_fails(void) {
     TEST(assert_none_fails);
 
-    RF_ExceptionFrame ef;
-    _rf_exception_push(&ef);
-    rf_bool caught = rf_false;
+    FL_ExceptionFrame ef;
+    _fl_exception_push(&ef);
+    fl_bool caught = fl_false;
     if (setjmp(ef.jmp) == 0) {
-        RF_Option_ptr opt = RF_SOME_PTR((void*)(intptr_t)1);
-        RF_String* msg = rf_string_from_cstr("none check");
-        rf_test_assert_none(opt, msg);
+        FL_Option_ptr opt = FL_SOME_PTR((void*)(intptr_t)1);
+        FL_String* msg = fl_string_from_cstr("none check");
+        fl_test_assert_none(opt, msg);
         assert(0 && "should have thrown");
     } else {
-        caught = rf_true;
-        assert(ef.exception_tag == RF_TEST_FAILURE_TAG);
-        RF_String* err = (RF_String*)ef.exception;
+        caught = fl_true;
+        assert(ef.exception_tag == FL_TEST_FAILURE_TAG);
+        FL_String* err = (FL_String*)ef.exception;
         assert(strstr(err->data, "expected None, got Some") != NULL);
     }
-    _rf_exception_pop();
-    assert(caught == rf_true);
+    _fl_exception_pop();
+    assert(caught == fl_true);
 
     PASS();
 }
@@ -240,27 +240,27 @@ static void test_assert_none_fails(void) {
 static void test_fail(void) {
     TEST(test_fail);
 
-    RF_ExceptionFrame ef;
-    _rf_exception_push(&ef);
-    rf_bool caught = rf_false;
+    FL_ExceptionFrame ef;
+    _fl_exception_push(&ef);
+    fl_bool caught = fl_false;
     if (setjmp(ef.jmp) == 0) {
-        RF_String* msg = rf_string_from_cstr("intentional failure");
-        rf_test_fail(msg);
+        FL_String* msg = fl_string_from_cstr("intentional failure");
+        fl_test_fail(msg);
         assert(0 && "should have thrown");
     } else {
-        caught = rf_true;
-        assert(ef.exception_tag == RF_TEST_FAILURE_TAG);
-        RF_String* err = (RF_String*)ef.exception;
-        assert(rf_string_eq(err, rf_string_from_cstr("intentional failure")));
+        caught = fl_true;
+        assert(ef.exception_tag == FL_TEST_FAILURE_TAG);
+        FL_String* err = (FL_String*)ef.exception;
+        assert(fl_string_eq(err, fl_string_from_cstr("intentional failure")));
     }
-    _rf_exception_pop();
-    assert(caught == rf_true);
+    _fl_exception_pop();
+    assert(caught == fl_true);
 
     PASS();
 }
 
 /* ========================================================================
- * Test 12: rf_test_run with passing closure
+ * Test 12: fl_test_run with passing closure
  * ======================================================================== */
 
 static void _passing_test(void* env) {
@@ -271,45 +271,45 @@ static void _passing_test(void* env) {
 static void test_run_passing(void) {
     TEST(test_run_passing);
 
-    RF_Closure closure;
+    FL_Closure closure;
     closure.fn = (void*)_passing_test;
     closure.env = NULL;
 
-    RF_String* name = rf_string_from_cstr("my passing test");
-    RF_TestResult result = rf_test_run(name, &closure);
+    FL_String* name = fl_string_from_cstr("my passing test");
+    FL_TestResult result = fl_test_run(name, &closure);
 
     assert(result.passed == 1);
     assert(result.failure_msg == NULL);
-    assert(rf_string_eq(result.name, name));
+    assert(fl_string_eq(result.name, name));
 
-    rf_string_release(name);
+    fl_string_release(name);
     PASS();
 }
 
 /* ========================================================================
- * Test 13: rf_test_run with failing closure
+ * Test 13: fl_test_run with failing closure
  * ======================================================================== */
 
 static void _failing_test(void* env) {
     (void)env;
-    rf_test_fail(rf_string_from_cstr("intentional failure"));
+    fl_test_fail(fl_string_from_cstr("intentional failure"));
 }
 
 static void test_run_failing(void) {
     TEST(test_run_failing);
 
-    RF_Closure closure;
+    FL_Closure closure;
     closure.fn = (void*)_failing_test;
     closure.env = NULL;
 
-    RF_String* name = rf_string_from_cstr("my failing test");
-    RF_TestResult result = rf_test_run(name, &closure);
+    FL_String* name = fl_string_from_cstr("my failing test");
+    FL_TestResult result = fl_test_run(name, &closure);
 
     assert(result.passed == 0);
     assert(result.failure_msg != NULL);
-    assert(rf_string_eq(result.failure_msg, rf_string_from_cstr("intentional failure")));
+    assert(fl_string_eq(result.failure_msg, fl_string_from_cstr("intentional failure")));
 
-    rf_string_release(name);
+    fl_string_release(name);
     PASS();
 }
 

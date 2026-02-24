@@ -1,11 +1,11 @@
 /*
- * C-level tests for rf_bytes_* functions (stdlib/bytes).
+ * C-level tests for fl_bytes_* functions (stdlib/bytes).
  *
  * Compile and run via: make test-runtime
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,8 +23,8 @@ static int tests_passed = 0;
  * Helper: create a byte array from a C array
  * ======================================================================== */
 
-static RF_Array* make_bytes(rf_byte* data, rf_int64 len) {
-    return rf_array_new(len, 1, data);
+static FL_Array* make_bytes(fl_byte* data, fl_int64 len) {
+    return fl_array_new(len, 1, data);
 }
 
 /* ========================================================================
@@ -34,18 +34,18 @@ static RF_Array* make_bytes(rf_byte* data, rf_int64 len) {
 static void test_slice_middle(void) {
     TEST(slice_middle);
 
-    rf_byte data[] = {0, 1, 2, 3, 4};
-    RF_Array* arr = make_bytes(data, 5);
-    RF_Array* result = rf_bytes_slice(arr, 1, 4);
+    fl_byte data[] = {0, 1, 2, 3, 4};
+    FL_Array* arr = make_bytes(data, 5);
+    FL_Array* result = fl_bytes_slice(arr, 1, 4);
 
-    assert(rf_array_len(result) == 3);
-    rf_byte* out = (rf_byte*)result->data;
+    assert(fl_array_len(result) == 3);
+    fl_byte* out = (fl_byte*)result->data;
     assert(out[0] == 1);
     assert(out[1] == 2);
     assert(out[2] == 3);
 
-    rf_array_release(result);
-    rf_array_release(arr);
+    fl_array_release(result);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -56,18 +56,18 @@ static void test_slice_middle(void) {
 static void test_slice_full(void) {
     TEST(slice_full);
 
-    rf_byte data[] = {10, 20, 30};
-    RF_Array* arr = make_bytes(data, 3);
-    RF_Array* result = rf_bytes_slice(arr, 0, 3);
+    fl_byte data[] = {10, 20, 30};
+    FL_Array* arr = make_bytes(data, 3);
+    FL_Array* result = fl_bytes_slice(arr, 0, 3);
 
-    assert(rf_array_len(result) == 3);
-    rf_byte* out = (rf_byte*)result->data;
+    assert(fl_array_len(result) == 3);
+    fl_byte* out = (fl_byte*)result->data;
     assert(out[0] == 10);
     assert(out[1] == 20);
     assert(out[2] == 30);
 
-    rf_array_release(result);
-    rf_array_release(arr);
+    fl_array_release(result);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -78,14 +78,14 @@ static void test_slice_full(void) {
 static void test_slice_empty(void) {
     TEST(slice_empty);
 
-    rf_byte data[] = {1, 2, 3};
-    RF_Array* arr = make_bytes(data, 3);
-    RF_Array* result = rf_bytes_slice(arr, 2, 2);
+    fl_byte data[] = {1, 2, 3};
+    FL_Array* arr = make_bytes(data, 3);
+    FL_Array* result = fl_bytes_slice(arr, 2, 2);
 
-    assert(rf_array_len(result) == 0);
+    assert(fl_array_len(result) == 0);
 
-    rf_array_release(result);
-    rf_array_release(arr);
+    fl_array_release(result);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -96,22 +96,22 @@ static void test_slice_empty(void) {
 static void test_slice_clamped(void) {
     TEST(slice_clamped);
 
-    rf_byte data[] = {1, 2, 3, 4, 5};
-    RF_Array* arr = make_bytes(data, 5);
+    fl_byte data[] = {1, 2, 3, 4, 5};
+    FL_Array* arr = make_bytes(data, 5);
 
     /* start before 0, end beyond len */
-    RF_Array* r1 = rf_bytes_slice(arr, -10, 100);
-    assert(rf_array_len(r1) == 5);
-    rf_byte* out1 = (rf_byte*)r1->data;
+    FL_Array* r1 = fl_bytes_slice(arr, -10, 100);
+    assert(fl_array_len(r1) == 5);
+    fl_byte* out1 = (fl_byte*)r1->data;
     assert(out1[0] == 1 && out1[4] == 5);
 
     /* start > end -> clamped to empty */
-    RF_Array* r2 = rf_bytes_slice(arr, 3, 1);
-    assert(rf_array_len(r2) == 0);
+    FL_Array* r2 = fl_bytes_slice(arr, 3, 1);
+    assert(fl_array_len(r2) == 0);
 
-    rf_array_release(r1);
-    rf_array_release(r2);
-    rf_array_release(arr);
+    fl_array_release(r1);
+    fl_array_release(r2);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -122,22 +122,22 @@ static void test_slice_clamped(void) {
 static void test_concat_basic(void) {
     TEST(concat_basic);
 
-    rf_byte a_data[] = {1, 2};
-    rf_byte b_data[] = {3, 4};
-    RF_Array* a = make_bytes(a_data, 2);
-    RF_Array* b = make_bytes(b_data, 2);
-    RF_Array* result = rf_bytes_concat(a, b);
+    fl_byte a_data[] = {1, 2};
+    fl_byte b_data[] = {3, 4};
+    FL_Array* a = make_bytes(a_data, 2);
+    FL_Array* b = make_bytes(b_data, 2);
+    FL_Array* result = fl_bytes_concat(a, b);
 
-    assert(rf_array_len(result) == 4);
-    rf_byte* out = (rf_byte*)result->data;
+    assert(fl_array_len(result) == 4);
+    fl_byte* out = (fl_byte*)result->data;
     assert(out[0] == 1);
     assert(out[1] == 2);
     assert(out[2] == 3);
     assert(out[3] == 4);
 
-    rf_array_release(result);
-    rf_array_release(a);
-    rf_array_release(b);
+    fl_array_release(result);
+    fl_array_release(a);
+    fl_array_release(b);
     PASS();
 }
 
@@ -148,19 +148,19 @@ static void test_concat_basic(void) {
 static void test_concat_empty_left(void) {
     TEST(concat_empty_left);
 
-    RF_Array* a = rf_array_new(0, 1, NULL);
-    rf_byte b_data[] = {1, 2};
-    RF_Array* b = make_bytes(b_data, 2);
-    RF_Array* result = rf_bytes_concat(a, b);
+    FL_Array* a = fl_array_new(0, 1, NULL);
+    fl_byte b_data[] = {1, 2};
+    FL_Array* b = make_bytes(b_data, 2);
+    FL_Array* result = fl_bytes_concat(a, b);
 
-    assert(rf_array_len(result) == 2);
-    rf_byte* out = (rf_byte*)result->data;
+    assert(fl_array_len(result) == 2);
+    fl_byte* out = (fl_byte*)result->data;
     assert(out[0] == 1);
     assert(out[1] == 2);
 
-    rf_array_release(result);
-    rf_array_release(a);
-    rf_array_release(b);
+    fl_array_release(result);
+    fl_array_release(a);
+    fl_array_release(b);
     PASS();
 }
 
@@ -171,19 +171,19 @@ static void test_concat_empty_left(void) {
 static void test_concat_empty_right(void) {
     TEST(concat_empty_right);
 
-    rf_byte a_data[] = {1, 2};
-    RF_Array* a = make_bytes(a_data, 2);
-    RF_Array* b = rf_array_new(0, 1, NULL);
-    RF_Array* result = rf_bytes_concat(a, b);
+    fl_byte a_data[] = {1, 2};
+    FL_Array* a = make_bytes(a_data, 2);
+    FL_Array* b = fl_array_new(0, 1, NULL);
+    FL_Array* result = fl_bytes_concat(a, b);
 
-    assert(rf_array_len(result) == 2);
-    rf_byte* out = (rf_byte*)result->data;
+    assert(fl_array_len(result) == 2);
+    fl_byte* out = (fl_byte*)result->data;
     assert(out[0] == 1);
     assert(out[1] == 2);
 
-    rf_array_release(result);
-    rf_array_release(a);
-    rf_array_release(b);
+    fl_array_release(result);
+    fl_array_release(a);
+    fl_array_release(b);
     PASS();
 }
 
@@ -194,14 +194,14 @@ static void test_concat_empty_right(void) {
 static void test_index_of_found(void) {
     TEST(index_of_found);
 
-    rf_byte data[] = {1, 2, 3, 4, 5};
-    RF_Array* arr = make_bytes(data, 5);
-    RF_Option_ptr result = rf_bytes_index_of(arr, 3);
+    fl_byte data[] = {1, 2, 3, 4, 5};
+    FL_Array* arr = make_bytes(data, 5);
+    FL_Option_ptr result = fl_bytes_index_of(arr, 3);
 
     assert(result.tag == 1);
     assert((intptr_t)result.value == 2);
 
-    rf_array_release(arr);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -212,13 +212,13 @@ static void test_index_of_found(void) {
 static void test_index_of_not_found(void) {
     TEST(index_of_not_found);
 
-    rf_byte data[] = {1, 2, 3};
-    RF_Array* arr = make_bytes(data, 3);
-    RF_Option_ptr result = rf_bytes_index_of(arr, 9);
+    fl_byte data[] = {1, 2, 3};
+    FL_Array* arr = make_bytes(data, 3);
+    FL_Option_ptr result = fl_bytes_index_of(arr, 9);
 
     assert(result.tag == 0);
 
-    rf_array_release(arr);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -229,14 +229,14 @@ static void test_index_of_not_found(void) {
 static void test_index_of_first_occurrence(void) {
     TEST(index_of_first_occurrence);
 
-    rf_byte data[] = {2, 1, 2, 3};
-    RF_Array* arr = make_bytes(data, 4);
-    RF_Option_ptr result = rf_bytes_index_of(arr, 2);
+    fl_byte data[] = {2, 1, 2, 3};
+    FL_Array* arr = make_bytes(data, 4);
+    FL_Option_ptr result = fl_bytes_index_of(arr, 2);
 
     assert(result.tag == 1);
     assert((intptr_t)result.value == 0);
 
-    rf_array_release(arr);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -247,12 +247,12 @@ static void test_index_of_first_occurrence(void) {
 static void test_len_basic(void) {
     TEST(len_basic);
 
-    rf_byte data[] = {10, 20, 30, 40, 50};
-    RF_Array* arr = make_bytes(data, 5);
+    fl_byte data[] = {10, 20, 30, 40, 50};
+    FL_Array* arr = make_bytes(data, 5);
 
-    assert(rf_bytes_len(arr) == 5);
+    assert(fl_bytes_len(arr) == 5);
 
-    rf_array_release(arr);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -263,11 +263,11 @@ static void test_len_basic(void) {
 static void test_len_empty(void) {
     TEST(len_empty);
 
-    RF_Array* arr = rf_array_new(0, 1, NULL);
+    FL_Array* arr = fl_array_new(0, 1, NULL);
 
-    assert(rf_bytes_len(arr) == 0);
+    assert(fl_bytes_len(arr) == 0);
 
-    rf_array_release(arr);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -278,23 +278,23 @@ static void test_len_empty(void) {
 static void test_string_roundtrip(void) {
     TEST(string_roundtrip);
 
-    RF_String* original = rf_string_from_cstr("hello");
-    RF_Array* bytes = rf_string_to_bytes(original);
+    FL_String* original = fl_string_from_cstr("hello");
+    FL_Array* bytes = fl_string_to_bytes(original);
 
-    assert(rf_array_len(bytes) == 5);
-    rf_byte* data = (rf_byte*)bytes->data;
+    assert(fl_array_len(bytes) == 5);
+    fl_byte* data = (fl_byte*)bytes->data;
     assert(data[0] == 'h');
     assert(data[1] == 'e');
     assert(data[2] == 'l');
     assert(data[3] == 'l');
     assert(data[4] == 'o');
 
-    RF_String* recovered = rf_string_from_bytes(bytes);
-    assert(rf_string_eq(original, recovered));
+    FL_String* recovered = fl_string_from_bytes(bytes);
+    assert(fl_string_eq(original, recovered));
 
-    rf_string_release(recovered);
-    rf_array_release(bytes);
-    rf_string_release(original);
+    fl_string_release(recovered);
+    fl_array_release(bytes);
+    fl_string_release(original);
     PASS();
 }
 
@@ -305,15 +305,15 @@ static void test_string_roundtrip(void) {
 static void test_concat_both_empty(void) {
     TEST(concat_both_empty);
 
-    RF_Array* a = rf_array_new(0, 1, NULL);
-    RF_Array* b = rf_array_new(0, 1, NULL);
-    RF_Array* result = rf_bytes_concat(a, b);
+    FL_Array* a = fl_array_new(0, 1, NULL);
+    FL_Array* b = fl_array_new(0, 1, NULL);
+    FL_Array* result = fl_bytes_concat(a, b);
 
-    assert(rf_array_len(result) == 0);
+    assert(fl_array_len(result) == 0);
 
-    rf_array_release(result);
-    rf_array_release(a);
-    rf_array_release(b);
+    fl_array_release(result);
+    fl_array_release(a);
+    fl_array_release(b);
     PASS();
 }
 
@@ -324,23 +324,23 @@ static void test_concat_both_empty(void) {
 static void test_slice_then_concat(void) {
     TEST(slice_then_concat);
 
-    rf_byte data[] = {1, 2, 3, 4, 5};
-    RF_Array* arr = make_bytes(data, 5);
+    fl_byte data[] = {1, 2, 3, 4, 5};
+    FL_Array* arr = make_bytes(data, 5);
 
-    RF_Array* left = rf_bytes_slice(arr, 0, 2);   /* [1, 2] */
-    RF_Array* right = rf_bytes_slice(arr, 2, 5);   /* [3, 4, 5] */
-    RF_Array* joined = rf_bytes_concat(left, right);
+    FL_Array* left = fl_bytes_slice(arr, 0, 2);   /* [1, 2] */
+    FL_Array* right = fl_bytes_slice(arr, 2, 5);   /* [3, 4, 5] */
+    FL_Array* joined = fl_bytes_concat(left, right);
 
-    assert(rf_array_len(joined) == 5);
-    rf_byte* out = (rf_byte*)joined->data;
+    assert(fl_array_len(joined) == 5);
+    fl_byte* out = (fl_byte*)joined->data;
     for (int i = 0; i < 5; i++) {
         assert(out[i] == data[i]);
     }
 
-    rf_array_release(joined);
-    rf_array_release(right);
-    rf_array_release(left);
-    rf_array_release(arr);
+    fl_array_release(joined);
+    fl_array_release(right);
+    fl_array_release(left);
+    fl_array_release(arr);
     PASS();
 }
 
@@ -349,7 +349,7 @@ static void test_slice_then_concat(void) {
  * ======================================================================== */
 
 int main(void) {
-    printf("rf_bytes_* tests\n");
+    printf("fl_bytes_* tests\n");
     printf("========================================\n");
 
     test_slice_middle();

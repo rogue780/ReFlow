@@ -30,8 +30,8 @@ from compiler.lowering import (
 
 def lower(source: str) -> LModule:
     """Lex, parse, resolve, type-check, and lower *source*."""
-    tokens = Lexer(source, "test.reflow").tokenize()
-    mod = Parser(tokens, "test.reflow").parse()
+    tokens = Lexer(source, "test.flow").tokenize()
+    mod = Parser(tokens, "test.flow").parse()
     resolved = Resolver(mod).resolve()
     typed = TypeChecker(resolved).check()
     return Lowerer(typed).lower()
@@ -105,31 +105,31 @@ class TestLIRNodeDefinitions(unittest.TestCase):
         self.assertEqual(m.static_defs, [])
 
     def test_ltypedef_fields(self):
-        td = LTypeDef(c_name="rf_main_Foo", fields=[("x", LInt(32, True))])
-        self.assertEqual(td.c_name, "rf_main_Foo")
+        td = LTypeDef(c_name="fl_main_Foo", fields=[("x", LInt(32, True))])
+        self.assertEqual(td.c_name, "fl_main_Foo")
         self.assertEqual(len(td.fields), 1)
         self.assertEqual(td.fields[0], ("x", LInt(32, True)))
 
     def test_lfndef_fields(self):
         fn = LFnDef(
-            c_name="rf_main_add",
+            c_name="fl_main_add",
             params=[("a", LInt(32, True)), ("b", LInt(32, True))],
             ret=LInt(32, True),
             body=[LReturn(LLit("0", LInt(32, True)))],
             is_pure=True,
         )
-        self.assertEqual(fn.c_name, "rf_main_add")
+        self.assertEqual(fn.c_name, "fl_main_add")
         self.assertEqual(len(fn.params), 2)
         self.assertTrue(fn.is_pure)
 
     def test_lstaticdef_fields(self):
         sd = LStaticDef(
-            c_name="rf_main_Foo_count",
+            c_name="fl_main_Foo_count",
             c_type=LInt(32, True),
             init=LLit("0", LInt(32, True)),
             is_mut=True,
         )
-        self.assertEqual(sd.c_name, "rf_main_Foo_count")
+        self.assertEqual(sd.c_name, "fl_main_Foo_count")
         self.assertTrue(sd.is_mut)
 
     def test_ltype_hierarchy(self):
@@ -139,7 +139,7 @@ class TestLIRNodeDefinitions(unittest.TestCase):
         self.assertIsInstance(LChar(), LType)
         self.assertIsInstance(LByte(), LType)
         self.assertIsInstance(LPtr(LVoid()), LType)
-        self.assertIsInstance(LStruct("RF_String"), LType)
+        self.assertIsInstance(LStruct("FL_String"), LType)
         self.assertIsInstance(LVoid(), LType)
         self.assertIsInstance(LFnPtr([LInt(32, True)], LBool()), LType)
 
@@ -165,7 +165,7 @@ class TestLIRNodeDefinitions(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class TestTypeLowering(unittest.TestCase):
-    """RT-7-2-1: _lower_type maps ReFlow types to LTypes."""
+    """RT-7-2-1: _lower_type maps Flow types to LTypes."""
 
     def test_int_lowers_to_lint(self):
         m = lower("fn do_stuff(): int { return 0 }")
@@ -188,13 +188,13 @@ class TestTypeLowering(unittest.TestCase):
         self.assertIsNotNone(fn)
         self.assertIsInstance(fn.ret, LBool)
 
-    def test_string_lowers_to_lptr_rf_string(self):
+    def test_string_lowers_to_lptr_fl_string(self):
         m = lower('fn do_stuff(): string { return "hi" }')
         fn = find_fn(m, "do_stuff")
         self.assertIsNotNone(fn)
         self.assertIsInstance(fn.ret, LPtr)
         self.assertIsInstance(fn.ret.inner, LStruct)
-        self.assertEqual(fn.ret.inner.c_name, "RF_String")
+        self.assertEqual(fn.ret.inner.c_name, "FL_String")
 
     def test_none_lowers_to_lvoid(self):
         m = lower("fn do_stuff(): none { }")
@@ -266,7 +266,7 @@ class TestOptionResultTupleLowering(unittest.TestCase):
         fn = find_fn(m, "maybe")
         self.assertIsNotNone(fn)
         self.assertIsInstance(fn.ret, LStruct)
-        self.assertEqual(fn.ret.c_name, "RF_Option_int")
+        self.assertEqual(fn.ret.c_name, "FL_Option_int")
 
 
 # ---------------------------------------------------------------------------
@@ -298,7 +298,7 @@ class TestLiteralLowering(unittest.TestCase):
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LLit)
-        self.assertEqual(ret.value.value, "rf_true")
+        self.assertEqual(ret.value.value, "fl_true")
 
     def test_bool_literal_false(self):
         m = lower("fn do_stuff(): bool { return false }")
@@ -306,7 +306,7 @@ class TestLiteralLowering(unittest.TestCase):
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LLit)
-        self.assertEqual(ret.value.value, "rf_false")
+        self.assertEqual(ret.value.value, "fl_false")
 
     def test_string_literal(self):
         m = lower('fn do_stuff(): string { return "hello" }')
@@ -314,7 +314,7 @@ class TestLiteralLowering(unittest.TestCase):
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LCall)
-        self.assertEqual(ret.value.fn_name, "rf_string_from_cstr")
+        self.assertEqual(ret.value.fn_name, "fl_string_from_cstr")
 
 
 class TestArithmeticLowering(unittest.TestCase):
@@ -369,7 +369,7 @@ class TestArithmeticLowering(unittest.TestCase):
         fn = find_fn(m, "do_stuff")
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsInstance(ret.value, LCall)
-        self.assertEqual(ret.value.fn_name, "rf_string_concat")
+        self.assertEqual(ret.value.fn_name, "fl_string_concat")
 
 
 class TestChainLowering(unittest.TestCase):
@@ -390,7 +390,7 @@ class TestChainLowering(unittest.TestCase):
 
 
 class TestFStringLowering(unittest.TestCase):
-    """RT-7-3-4: F-strings lower to rf_string_concat chains."""
+    """RT-7-3-4: F-strings lower to fl_string_concat chains."""
 
     def test_fstring_with_int_interpolation(self):
         m = lower("""
@@ -414,7 +414,7 @@ class TestFStringLowering(unittest.TestCase):
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LCall)
-        self.assertEqual(ret.value.fn_name, "rf_string_from_cstr")
+        self.assertEqual(ret.value.fn_name, "fl_string_from_cstr")
 
 
 class TestMatchLowering(unittest.TestCase):
@@ -501,7 +501,7 @@ class TestCopyLowering(unittest.TestCase):
         has_retain = False
         for s in fn.body:
             if isinstance(s, LExprStmt) and isinstance(s.expr, LCall):
-                if s.expr.fn_name == "rf_string_retain":
+                if s.expr.fn_name == "fl_string_retain":
                     has_retain = True
         self.assertTrue(has_retain)
 
@@ -697,7 +697,7 @@ class TestForStmtLowering(unittest.TestCase):
         has_while = any(isinstance(s, LWhile) for s in fn.body)
         self.assertTrue(has_while)
         has_idx_decl = any(
-            isinstance(s, LVarDecl) and s.c_name.startswith("_rf_tmp")
+            isinstance(s, LVarDecl) and s.c_name.startswith("_fl_tmp")
             for s in fn.body)
         self.assertTrue(has_idx_decl)
 
@@ -755,19 +755,19 @@ class TestStreamFunctionLowering(unittest.TestCase):
                 }
             }
         """)
-        frame = find_type_containing(m, "_rf_frame")
+        frame = find_type_containing(m, "_fl_frame")
         self.assertIsNotNone(frame, "Stream frame struct should be generated")
 
-        next_fn = find_fn_containing(m, "_rf_next")
+        next_fn = find_fn_containing(m, "_fl_next")
         self.assertIsNotNone(next_fn, "Stream next function should be generated")
 
-        free_fn = find_fn_containing(m, "_rf_free")
+        free_fn = find_fn_containing(m, "_fl_free")
         self.assertIsNotNone(free_fn, "Stream free function should be generated")
 
-        # Factory starts with rf_ (not _rf_next_ or _rf_free_)
+        # Factory starts with fl_ (not _fl_next_ or _fl_free_)
         factory = None
         for fn in m.fn_defs:
-            if fn.c_name.endswith("_count") and not fn.c_name.startswith("_rf_"):
+            if fn.c_name.endswith("_count") and not fn.c_name.startswith("_fl_"):
                 factory = fn
                 break
         self.assertIsNotNone(factory, "Stream factory function should be generated")
@@ -782,28 +782,28 @@ class TestStreamFunctionLowering(unittest.TestCase):
                 }
             }
         """)
-        frame = find_type_containing(m, "_rf_frame")
+        frame = find_type_containing(m, "_fl_frame")
         self.assertIsNotNone(frame)
         field_names = [f[0] for f in frame.fields]
         self.assertIn("_state", field_names)
         self.assertIn("n", field_names)
 
-    def test_stream_factory_returns_rf_stream(self):
+    def test_stream_factory_returns_fl_stream(self):
         m = lower("""
             fn count(n: int): stream<int> {
                 yield 1
             }
         """)
-        # Factory is the one starting with rf_ (not _rf_next_ or _rf_free_)
+        # Factory is the one starting with fl_ (not _fl_next_ or _fl_free_)
         factory = None
         for fn in m.fn_defs:
-            if fn.c_name.endswith("_count") and not fn.c_name.startswith("_rf_"):
+            if fn.c_name.endswith("_count") and not fn.c_name.startswith("_fl_"):
                 factory = fn
                 break
         self.assertIsNotNone(factory)
         self.assertIsInstance(factory.ret, LPtr)
         self.assertIsInstance(factory.ret.inner, LStruct)
-        self.assertEqual(factory.ret.inner.c_name, "RF_Stream")
+        self.assertEqual(factory.ret.inner.c_name, "FL_Stream")
 
     def test_stream_next_returns_option_ptr(self):
         m = lower("""
@@ -811,10 +811,10 @@ class TestStreamFunctionLowering(unittest.TestCase):
                 yield 1
             }
         """)
-        next_fn = find_fn_containing(m, "_rf_next")
+        next_fn = find_fn_containing(m, "_fl_next")
         self.assertIsNotNone(next_fn)
         self.assertIsInstance(next_fn.ret, LStruct)
-        self.assertEqual(next_fn.ret.c_name, "RF_Option_ptr")
+        self.assertEqual(next_fn.ret.c_name, "FL_Option_ptr")
 
 
 # ---------------------------------------------------------------------------
@@ -828,7 +828,7 @@ class TestNameMangling(unittest.TestCase):
         m = lower("fn greet(): none { }")
         fn = find_fn(m, "greet")
         self.assertIsNotNone(fn)
-        self.assertTrue(fn.c_name.startswith("rf_"))
+        self.assertTrue(fn.c_name.startswith("fl_"))
         self.assertIn("greet", fn.c_name)
 
     def test_type_name_mangled(self):
@@ -841,7 +841,7 @@ class TestNameMangling(unittest.TestCase):
         """)
         td = find_type(m, "Point")
         self.assertIsNotNone(td)
-        self.assertTrue(td.c_name.startswith("rf_"))
+        self.assertTrue(td.c_name.startswith("fl_"))
         self.assertIn("Point", td.c_name)
 
     def test_method_name_mangled(self):
@@ -876,7 +876,7 @@ class TestCallLowering(unittest.TestCase):
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LCall)
         self.assertIn("add", ret.value.fn_name)
-        self.assertTrue(ret.value.fn_name.startswith("rf_"))
+        self.assertTrue(ret.value.fn_name.startswith("fl_"))
 
     def test_call_args_lowered(self):
         m = lower("""
@@ -992,7 +992,7 @@ class TestStreamMethodLowering(unittest.TestCase):
     """Stream helper method lowering."""
 
     def test_stream_take_lowers_to_runtime_call(self):
-        """take on stream lowers to rf_stream_take call."""
+        """take on stream lowers to fl_stream_take call."""
         m = lower("""
             fn range(n: int): stream<int> {
                 let i: int:mut = 0
@@ -1007,17 +1007,17 @@ class TestStreamMethodLowering(unittest.TestCase):
         """)
         fn = find_fn(m, "do_stuff")
         self.assertIsNotNone(fn)
-        # Should have a call to rf_stream_take somewhere in the lowered body
+        # Should have a call to fl_stream_take somewhere in the lowered body
         found_take = False
         for s in fn.body:
             if isinstance(s, LVarDecl) and isinstance(s.init, LCall):
-                if s.init.fn_name == "rf_stream_take":
+                if s.init.fn_name == "fl_stream_take":
                     found_take = True
         self.assertTrue(found_take,
-                        "Expected rf_stream_take call in lowered body")
+                        "Expected fl_stream_take call in lowered body")
 
     def test_stream_skip_lowers_to_runtime_call(self):
-        """skip on stream lowers to rf_stream_skip call."""
+        """skip on stream lowers to fl_stream_skip call."""
         m = lower("""
             fn range(n: int): stream<int> {
                 let i: int:mut = 0
@@ -1035,10 +1035,10 @@ class TestStreamMethodLowering(unittest.TestCase):
         found_skip = False
         for s in fn.body:
             if isinstance(s, LVarDecl) and isinstance(s.init, LCall):
-                if s.init.fn_name == "rf_stream_skip":
+                if s.init.fn_name == "fl_stream_skip":
                     found_skip = True
         self.assertTrue(found_skip,
-                        "Expected rf_stream_skip call in lowered body")
+                        "Expected fl_stream_skip call in lowered body")
 
     def test_stream_map_lowers_with_wrapper(self):
         """map on stream generates a wrapper function."""
@@ -1055,7 +1055,7 @@ class TestStreamMethodLowering(unittest.TestCase):
             }
         """)
         # Should have generated a stream wrapper function
-        wrapper = find_fn_containing(m, "_rf_swrap")
+        wrapper = find_fn_containing(m, "_fl_swrap")
         self.assertIsNotNone(wrapper,
                              "Expected stream map wrapper function")
 
@@ -1064,7 +1064,7 @@ class TestCongruenceLowering(unittest.TestCase):
     """Tests for === congruence operator lowering."""
 
     def test_congruence_same_type_lowers_to_true(self):
-        """=== on two values of the same struct type lowers to rf_true."""
+        """=== on two values of the same struct type lowers to fl_true."""
         m = lower("""
             type Point {
                 x: int
@@ -1079,10 +1079,10 @@ class TestCongruenceLowering(unittest.TestCase):
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LLit)
-        self.assertEqual(ret.value.value, "rf_true")
+        self.assertEqual(ret.value.value, "fl_true")
 
     def test_congruence_different_fields_lowers_to_false(self):
-        """=== on two non-congruent types lowers to rf_false."""
+        """=== on two non-congruent types lowers to fl_false."""
         m = lower("""
             type A {
                 x: int
@@ -1101,10 +1101,10 @@ class TestCongruenceLowering(unittest.TestCase):
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LLit)
-        self.assertEqual(ret.value.value, "rf_false")
+        self.assertEqual(ret.value.value, "fl_false")
 
     def test_congruence_congruent_different_names_lowers_to_true(self):
-        """=== on congruent types with different names lowers to rf_true."""
+        """=== on congruent types with different names lowers to fl_true."""
         m = lower("""
             type LogEntry {
                 timestamp: int
@@ -1123,14 +1123,14 @@ class TestCongruenceLowering(unittest.TestCase):
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LLit)
-        self.assertEqual(ret.value.value, "rf_true")
+        self.assertEqual(ret.value.value, "fl_true")
 
 
 class TestParallelFanout(unittest.TestCase):
     """Gap #10: parallel fan-out lowering."""
 
     def test_parallel_fanout_generates_fanout_run(self):
-        """Parallel fan-out in chain generates rf_fanout_run call."""
+        """Parallel fan-out in chain generates fl_fanout_run call."""
         m = lower("""fn:pure dbl(x: int): int = x * 2
 fn:pure sqr(x: int): int = x * x
 fn:pure add(a: int, b: int): int = a + b
@@ -1139,17 +1139,17 @@ fn main() {
 }""")
         fn = find_fn(m, "main")
         self.assertIsNotNone(fn)
-        # Look for rf_fanout_run call in statements
+        # Look for fl_fanout_run call in statements
         found_fanout_run = False
         for stmt in fn.body:
             if isinstance(stmt, LExprStmt) and isinstance(stmt.expr, LCall):
-                if stmt.expr.fn_name == "rf_fanout_run":
+                if stmt.expr.fn_name == "fl_fanout_run":
                     found_fanout_run = True
         self.assertTrue(found_fanout_run,
-                        "expected rf_fanout_run call in parallel fan-out")
+                        "expected fl_fanout_run call in parallel fan-out")
 
     def test_sequential_fanout_no_fanout_run(self):
-        """Sequential fan-out does not generate rf_fanout_run."""
+        """Sequential fan-out does not generate fl_fanout_run."""
         m = lower("""fn:pure dbl(x: int): int = x * 2
 fn:pure sqr(x: int): int = x * x
 fn:pure add(a: int, b: int): int = a + b
@@ -1160,8 +1160,8 @@ fn main() {
         self.assertIsNotNone(fn)
         for stmt in fn.body:
             if isinstance(stmt, LExprStmt) and isinstance(stmt.expr, LCall):
-                self.assertNotEqual(stmt.expr.fn_name, "rf_fanout_run",
-                                    "sequential fan-out should not use rf_fanout_run")
+                self.assertNotEqual(stmt.expr.fn_name, "fl_fanout_run",
+                                    "sequential fan-out should not use fl_fanout_run")
 
     def test_parallel_fanout_generates_wrapper_functions(self):
         """Parallel fan-out generates wrapper functions."""
@@ -1172,7 +1172,7 @@ fn main() {
     let r = 5 -> <:(dbl | sqr) -> add
 }""")
         wrapper_fns = [fn for fn in m.fn_defs
-                       if "_rf_fanout_" in fn.c_name]
+                       if "_fl_fanout_" in fn.c_name]
         self.assertEqual(len(wrapper_fns), 2,
                          "expected 2 wrapper functions for 2 branches")
 

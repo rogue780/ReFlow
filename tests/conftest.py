@@ -28,17 +28,17 @@ def _emit_c(source_path: Path) -> tuple[int, str, str]:
 
 
 def _collect_golden() -> list[Path]:
-    return sorted(PROGRAMS_DIR.glob("*.reflow"))
+    return sorted(PROGRAMS_DIR.glob("*.flow"))
 
 
 def _collect_negative() -> list[Path]:
-    return sorted(ERRORS_DIR.glob("*.reflow"))
+    return sorted(ERRORS_DIR.glob("*.flow"))
 
 
 def pytest_collect_file(parent: pytest.Collector, file_path: Path) -> pytest.Collector | None:
-    if file_path.suffix == ".reflow" and file_path.parent == PROGRAMS_DIR:
+    if file_path.suffix == ".flow" and file_path.parent == PROGRAMS_DIR:
         return GoldenTestFile.from_parent(parent, path=file_path)
-    if file_path.suffix == ".reflow" and file_path.parent == ERRORS_DIR:
+    if file_path.suffix == ".flow" and file_path.parent == ERRORS_DIR:
         return NegativeTestFile.from_parent(parent, path=file_path)
     return None
 
@@ -50,7 +50,7 @@ class GoldenTestFile(pytest.File):
 
 class GoldenTestItem(pytest.Item):
     def runtest(self) -> None:
-        source = PROGRAMS_DIR / f"{self.name}.reflow"
+        source = PROGRAMS_DIR / f"{self.name}.flow"
         expected_path = EXPECTED_DIR / f"{self.name}.c"
 
         exit_code, stdout, stderr = _emit_c(source)
@@ -81,7 +81,7 @@ class NegativeTestFile(pytest.File):
 
 class NegativeTestItem(pytest.Item):
     def runtest(self) -> None:
-        source = ERRORS_DIR / f"{self.name}.reflow"
+        source = ERRORS_DIR / f"{self.name}.flow"
         expected_path = EXPECTED_ERRORS_DIR / f"{self.name}.txt"
 
         if not expected_path.exists():

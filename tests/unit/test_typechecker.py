@@ -8,7 +8,7 @@ import unittest
 from compiler.lexer import Lexer
 from compiler.parser import Parser
 from compiler.resolver import Resolver
-from compiler.errors import TypeError as ReFlowTypeError
+from compiler.errors import TypeError as FlowTypeError
 from compiler.typechecker import (
     TypeChecker, TypedModule,
     TInt, TFloat, TBool, TChar, TByte, TString, TNone,
@@ -27,8 +27,8 @@ from compiler.ast_nodes import (
 
 def check(source: str) -> TypedModule:
     """Lex, parse, resolve, and type-check *source*."""
-    tokens = Lexer(source, "test.reflow").tokenize()
-    mod = Parser(tokens, "test.reflow").parse()
+    tokens = Lexer(source, "test.flow").tokenize()
+    mod = Parser(tokens, "test.flow").parse()
     resolved = Resolver(mod).resolve()
     return TypeChecker(resolved).check()
 
@@ -183,7 +183,7 @@ class TestBinOpInference(unittest.TestCase):
 
     def test_mixed_signedness_arithmetic_error(self):
         """Mixed signedness still produces an error."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn bad(x: int, y: uint): int {
     return x + y
 }""")
@@ -199,7 +199,7 @@ class TestBinOpInference(unittest.TestCase):
         self.assertTrue(any(isinstance(t, TString) for t in binop_types))
 
     def test_non_numeric_non_string_arithmetic_error(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn bad(x: bool, y: bool): bool {
     return x + y
 }""")
@@ -219,7 +219,7 @@ fn main(): none {
         self.assertIsNotNone(result)
 
     def test_wrong_arg_count(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn add(x: int, y: int): int {
     return x + y
 }
@@ -237,7 +237,7 @@ class TestLetInference(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_let_type_mismatch(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn main(): none { let x: string = 5 }""")
         self.assertIn("type mismatch", ctx.exception.message)
 
@@ -261,7 +261,7 @@ class TestIfExprInference(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_if_non_bool_condition(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn bad(): none {
     if 42 { let x = 1 }
 }""")
@@ -333,7 +333,7 @@ fn area(s: Shape): float {
 
     def test_sum_type_missing_variant(self):
         """RT-6-8-2: match missing variant."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""type Shape = | Circle(radius: float) | Rect(w: float, h: float)
 fn area(s: Shape): float {
     return match s {
@@ -364,7 +364,7 @@ fn area(s: Shape): float {
         self.assertIsNotNone(result)
 
     def test_option_missing_none(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn test(x: int?): int {
     return match x {
         some(v) : v
@@ -383,7 +383,7 @@ fn area(s: Shape): float {
         self.assertIsNotNone(result)
 
     def test_result_missing_err(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn handle(r: result<int, string>): int {
     return match r {
         ok(v) : v
@@ -427,7 +427,7 @@ class TestMutabilityChecking(unittest.TestCase):
     """RT-6-5-1, RT-6-5-2."""
 
     def test_immutable_field_assign_error(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""type Point {
     x: int
     y: int
@@ -467,7 +467,7 @@ class TestStreamSingleConsumer(unittest.TestCase):
 
     def test_stream_consumed_twice(self):
         """RT-6-8-4: consuming same stream twice."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn process(s: stream<int>): none {
     let a = s
     let b = s
@@ -490,7 +490,7 @@ class TestPurityChecking(unittest.TestCase):
 
     def test_pure_fn_calling_non_pure(self):
         """RT-6-8-3: fn:pure calling non-pure."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn impure(): none { }
 fn:pure bad(): none {
     impure()
@@ -508,7 +508,7 @@ fn:pure double_square(x: int): int {
         self.assertIsNotNone(result)
 
     def test_pure_fn_with_mut_param_error(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn:pure bad(x: int:mut): none {
     x += 1
 }""")
@@ -533,7 +533,7 @@ class TestCongruenceChecking(unittest.TestCase):
 
     def test_congruence_on_primitive_error(self):
         """RT-6-8-5 (partial): === on primitives is an error."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn test(a: int, b: int): bool {
     return a === b
 }""")
@@ -541,7 +541,7 @@ class TestCongruenceChecking(unittest.TestCase):
 
     def test_coerce_non_congruent_error(self):
         """RT-6-8-5: coerce on non-congruent types."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""type A {
     x: int
 }
@@ -586,7 +586,7 @@ class TestTypeChecker_Integration(unittest.TestCase):
     def test_typed_module_has_module(self):
         result = check("fn main(): none { }")
         self.assertIsNotNone(result.module)
-        self.assertEqual(result.module.filename, "test.reflow")
+        self.assertEqual(result.module.filename, "test.flow")
 
     def test_static_member_type(self):
         result = check("""type Config {
@@ -692,7 +692,7 @@ fn main(): result<int, string> {
         self.assertIsNotNone(result)
 
     def test_propagate_on_non_result_error(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn main(): none {
     let x = 5?
 }""")
@@ -709,7 +709,7 @@ fn main(): int? {
         self.assertIsNotNone(result)
 
     def test_propagate_on_option_wrong_return(self):
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn get(): int? {
     return some(42)
 }
@@ -754,7 +754,7 @@ type Widget fulfills Printable {
 
     def test_fulfills_missing_method_error(self):
         """A type missing a required method raises TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 interface Printable {
     fn to_string(self): string
@@ -766,7 +766,7 @@ type Widget fulfills Printable {
 
     def test_fulfills_wrong_return_type_error(self):
         """A method with wrong return type raises TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 interface Printable {
     fn to_string(self): string
@@ -801,7 +801,7 @@ type AppError fulfills Exception<string> {
 
     def test_fulfills_exception_missing_method(self):
         """Exception type missing 'original' raises TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 type AppError fulfills Exception<string> {
     msg: string
@@ -817,7 +817,7 @@ type AppError fulfills Exception<string> {
 
     def test_fulfills_unknown_interface_error(self):
         """Referencing an unknown interface raises TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 type Widget fulfills NonExistent {
     name: string
@@ -826,7 +826,7 @@ type Widget fulfills NonExistent {
 
     def test_fulfills_pure_constraint(self):
         """Interface pure method not matched by non-pure raises TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 interface Hashable {
     fn:pure hash(self): int
@@ -842,7 +842,7 @@ type Widget fulfills Hashable {
 
     def test_fulfills_wrong_param_count_error(self):
         """A method with wrong parameter count raises TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 interface Printable {
     fn to_string(self): string
@@ -922,7 +922,7 @@ fn main(): none {
 
     def test_stream_unknown_method_error(self):
         """Unknown method on stream raises TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn range(n: int): stream<int> {
     yield 1
 }
@@ -933,7 +933,7 @@ fn main(): none {
 
     def test_stream_zip_not_implemented_error(self):
         """Tier 3 method zip raises clear error."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn range(n: int): stream<int> {
     yield 1
 }
@@ -958,7 +958,7 @@ fn main(): none {
 
     def test_pure_fn_with_snapshot_error(self):
         """snapshot in fn:pure raises TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""type Config {
     static counter: int = 0
 }
@@ -1023,7 +1023,7 @@ fn main() {
 
     def test_parallel_fanout_mut_param_error(self):
         """Non-pure branch with :mut param is rejected in parallel fan-out."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""fn mutate(x: int:mut): int = x
 fn:pure sqr(x: int): int = x * x
 fn main() {
@@ -1068,7 +1068,7 @@ fn main() {
 
     def test_bounded_call_unsatisfying_type(self):
         """Type does not fulfill the bound — TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 interface Printable {
     fn to_str(self): string
@@ -1126,7 +1126,7 @@ fn main() {
 
     def test_multi_bound_partial_failure(self):
         """Type fulfills only one of two bounds — TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 interface Printable {
     fn to_str(self): string
@@ -1184,7 +1184,7 @@ fn main() {
 
     def test_unknown_interface_in_bound(self):
         """Bound references nonexistent interface — TypeError."""
-        with self.assertRaises(ReFlowTypeError) as ctx:
+        with self.assertRaises(FlowTypeError) as ctx:
             check("""
 type Foo { x: int }
 

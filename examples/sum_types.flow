@@ -1,0 +1,78 @@
+; sum_types.flow — Sum types, pattern matching, exhaustiveness
+module examples.sum_types
+
+import io (println)
+
+; Sum type with data-carrying and unit variants
+type Shape =
+    | Circle(radius: float)
+    | Rectangle(width: float, height: float)
+    | Square(side: float)
+
+fn area(s: Shape): float {
+    match s {
+        Circle(r): {
+            return 3.14159 * r * r
+        }
+        Rectangle(w, h): {
+            return w * h
+        }
+        Square(sd): {
+            return sd * sd
+        }
+    }
+}
+
+fn describe(s: Shape): string {
+    match s {
+        Circle(r): {
+            return f"Circle with radius {r}"
+        }
+        Rectangle(w, h): {
+            return f"Rectangle {w}x{h}"
+        }
+        Square(sd): {
+            return f"Square with side {sd}"
+        }
+    }
+}
+
+; Sum type with unit variants (enum-like)
+type Direction =
+    | North
+    | South
+    | East
+    | West
+
+fn opposite(d: Direction): Direction {
+    match d {
+        North: { return South }
+        South: { return North }
+        East: { return West }
+        West: { return East }
+    }
+}
+
+fn direction_name(d: Direction): string {
+    match d {
+        North: { return "North" }
+        South: { return "South" }
+        East: { return "East" }
+        West: { return "West" }
+    }
+}
+
+fn main() {
+    let c = Circle(5.0)
+    let r = Rectangle(4.0, 6.0)
+    let sq = Square(3.0)
+
+    println(f"{describe(c)}: area = {area(c)}")
+    println(f"{describe(r)}: area = {area(r)}")
+    println(f"{describe(sq)}: area = {area(sq)}")
+
+    ; Unit variants
+    let dir = North
+    let opp = opposite(dir)
+    println(f"opposite of {direction_name(dir)} is {direction_name(opp)}")
+}

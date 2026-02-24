@@ -1,0 +1,13 @@
+module net
+
+export fn listen(host: string, port: int): Socket? = native "fl_net_listen"
+export fn accept(sock: Socket): Socket? = native "fl_net_accept"
+export fn connect(host: string, port: int): Socket? = native "fl_net_connect"
+export fn read(sock: Socket, max_bytes: int): array<byte>? = native "fl_net_read"
+export fn write(sock: Socket, data: array<byte>): bool = native "fl_net_write"
+export fn write_string(sock: Socket, s: string): bool = native "fl_net_write_string"
+export fn close(sock: Socket): none = native "fl_net_close"
+export fn set_timeout(sock: Socket, ms: int): bool = native "fl_net_set_timeout"
+export fn remote_addr(sock: Socket): string? = native "fl_net_remote_addr"
+export fn fd(sock: Socket): int = native "fl_net_fd"
+export fn write_to_fd(fd: int, msg: string): bool = native "fl_net_write_string_fd"

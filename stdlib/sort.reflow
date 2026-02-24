@@ -1,8 +1,0 @@
-module sort
-
-export fn:pure sort<T fulfills Comparable>(arr: array<T>): array<T> {
-    return sort_by(arr, \(a: T, b: T => a.compare(b)))
-}
-
-export fn:pure sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T> = native "rf_sort_array_by"
-export fn:pure reverse<T>(arr: array<T>): array<T> = native "rf_array_reverse"

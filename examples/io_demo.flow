@@ -1,0 +1,29 @@
+; io_demo.flow — Demonstrates the io module
+module examples.io_demo
+
+import io (println, print, read_file, write_file, append_file, tmpfile_create, tmpfile_remove)
+
+fn main() {
+    ; Basic output
+    print("Hello ")
+    println("World!")
+
+    ; Write and read a file
+    let path: string = tmpfile_create(".txt", "Hello from Flow!")
+    match read_file(path) {
+        some(contents) -> println(f"Read back: {contents}")
+        none -> println("Failed to read file")
+    }
+
+    ; Append to file
+    let ok: bool = append_file(path, " Appended!")
+    println(f"Append succeeded: {ok}")
+    match read_file(path) {
+        some(contents) -> println(f"After append: {contents}")
+        none -> println("Failed to read file")
+    }
+
+    ; Clean up
+    tmpfile_remove(path)
+    println("Done!")
+}

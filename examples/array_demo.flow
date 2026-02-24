@@ -1,0 +1,49 @@
+; array_demo.flow — Array access, length, and concatenation
+module examples.array_demo
+
+import io (println)
+import array (get_int, get_float, get, len, concat_int)
+
+fn main() {
+    ; Array creation
+    let nums = [10, 20, 30, 40, 50]
+    let names = ["Alice", "Bob", "Charlie"]
+
+    ; Safe access with option type
+    match get_int(nums, 0) {
+        some(v): { println(f"nums[0] = {v}") }
+        none: { println("not found") }
+    }
+
+    match get_int(nums, 10) {
+        some(v): { println(f"nums[10] = {v}") }
+        none: { println("nums[10] is out of bounds") }
+    }
+
+    ; String array access
+    match get(names, 1) {
+        some(name): { println(f"names[1] = {name}") }
+        none: { println("not found") }
+    }
+
+    ; Array length
+    println(f"nums has {len(nums)} elements")
+
+    ; Array concatenation
+    let a = [1, 2, 3]
+    let b = [4, 5, 6]
+    let combined = concat_int(a, b)
+    println(f"combined has {len(combined)} elements")
+
+    ; Iterate over combined array
+    for (n: int in combined) {
+        println(f"  {n}")
+    }
+
+    ; Float array
+    let temps = [72.5, 68.3, 75.1]
+    match get_float(temps, 2) {
+        some(t): { println(f"temps[2] = {t}") }
+        none: { println("not found") }
+    }
+}

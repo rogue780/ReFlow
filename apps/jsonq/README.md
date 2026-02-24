@@ -8,16 +8,16 @@ Pipe-friendly, composable, zero-config.
 
 ```bash
 # Extract a field
-python main.py run apps/jsonq/jsonq.reflow -- data.json "name"
+python main.py run apps/jsonq/jsonq.flow -- data.json "name"
 
 # Read from stdin
-cat data.json | python main.py run apps/jsonq/jsonq.reflow -- - "name"
+cat data.json | python main.py run apps/jsonq/jsonq.flow -- - "name"
 
 # Multiple queries
-python main.py run apps/jsonq/jsonq.reflow -- data.json "name" "age" "city"
+python main.py run apps/jsonq/jsonq.flow -- data.json "name" "age" "city"
 
 # Pretty-print objects/arrays
-python main.py run apps/jsonq/jsonq.reflow -- data.json "config" --pretty
+python main.py run apps/jsonq/jsonq.flow -- data.json "config" --pretty
 ```
 
 ## Query Syntax

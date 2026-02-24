@@ -9,7 +9,7 @@ from compiler.errors import LexError
 
 
 class TokenType(Enum):
-    """All token types for the ReFlow language."""
+    """All token types for the Flow language."""
 
     # --- Keywords ---
     MODULE = auto()
@@ -179,7 +179,7 @@ _KEYWORDS: dict[str, TokenType] = {
 
 
 class Lexer:
-    """Single-pass scanner that converts a ReFlow source string into tokens."""
+    """Single-pass scanner that converts a Flow source string into tokens."""
 
     def __init__(self, source: str, filename: str) -> None:
         self._source = source

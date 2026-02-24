@@ -5,7 +5,7 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -28,7 +28,7 @@ static void test_int_range_bounds(void) {
     TEST(int_range_bounds);
 
     for (int i = 0; i < 1000; i++) {
-        rf_int val = rf_random_int_range(10, 20);
+        fl_int val = fl_random_int_range(10, 20);
         assert(val >= 10 && val <= 20);
     }
 
@@ -43,7 +43,7 @@ static void test_int_range_single(void) {
     TEST(int_range_single);
 
     for (int i = 0; i < 100; i++) {
-        rf_int val = rf_random_int_range(42, 42);
+        fl_int val = fl_random_int_range(42, 42);
         assert(val == 42);
     }
 
@@ -58,7 +58,7 @@ static void test_int64_range_bounds(void) {
     TEST(int64_range_bounds);
 
     for (int i = 0; i < 100; i++) {
-        rf_int64 val = rf_random_int64_range(100, 200);
+        fl_int64 val = fl_random_int64_range(100, 200);
         assert(val >= 100 && val <= 200);
     }
 
@@ -73,7 +73,7 @@ static void test_float_unit_bounds(void) {
     TEST(float_unit_bounds);
 
     for (int i = 0; i < 1000; i++) {
-        rf_float val = rf_random_float_unit();
+        fl_float val = fl_random_float_unit();
         assert(val >= 0.0 && val < 1.0);
     }
 
@@ -90,8 +90,8 @@ static void test_random_bool_both_values(void) {
     int true_count = 0;
     int false_count = 0;
     for (int i = 0; i < 1000; i++) {
-        rf_bool val = rf_random_bool();
-        if (val == rf_true) true_count++;
+        fl_bool val = fl_random_bool();
+        if (val == fl_true) true_count++;
         else false_count++;
     }
 
@@ -108,9 +108,9 @@ static void test_random_bool_both_values(void) {
 static void test_random_bytes_length(void) {
     TEST(random_bytes_length);
 
-    RF_Array* arr = rf_random_bytes(32);
-    assert(rf_array_len(arr) == 32);
-    rf_array_release(arr);
+    FL_Array* arr = fl_random_bytes(32);
+    assert(fl_array_len(arr) == 32);
+    fl_array_release(arr);
 
     PASS();
 }
@@ -122,9 +122,9 @@ static void test_random_bytes_length(void) {
 static void test_random_bytes_zero(void) {
     TEST(random_bytes_zero);
 
-    RF_Array* arr = rf_random_bytes(0);
-    assert(rf_array_len(arr) == 0);
-    rf_array_release(arr);
+    FL_Array* arr = fl_random_bytes(0);
+    assert(fl_array_len(arr) == 0);
+    fl_array_release(arr);
 
     PASS();
 }
@@ -136,22 +136,22 @@ static void test_random_bytes_zero(void) {
 static void test_shuffle_preserves_elements(void) {
     TEST(shuffle_preserves_elements);
 
-    rf_int data[] = {1, 2, 3, 4, 5};
-    RF_Array* arr = rf_array_new(5, sizeof(rf_int), data);
-    RF_Array* shuffled = rf_random_shuffle(arr);
+    fl_int data[] = {1, 2, 3, 4, 5};
+    FL_Array* arr = fl_array_new(5, sizeof(fl_int), data);
+    FL_Array* shuffled = fl_random_shuffle(arr);
 
-    assert(rf_array_len(shuffled) == 5);
+    assert(fl_array_len(shuffled) == 5);
 
     /* Check same sum (15) */
-    rf_int sum = 0;
-    for (rf_int64 i = 0; i < 5; i++) {
-        rf_int* ptr = (rf_int*)rf_array_get_ptr(shuffled, i);
+    fl_int sum = 0;
+    for (fl_int64 i = 0; i < 5; i++) {
+        fl_int* ptr = (fl_int*)fl_array_get_ptr(shuffled, i);
         sum += *ptr;
     }
     assert(sum == 15);
 
-    rf_array_release(arr);
-    rf_array_release(shuffled);
+    fl_array_release(arr);
+    fl_array_release(shuffled);
 
     PASS();
 }
@@ -163,16 +163,16 @@ static void test_shuffle_preserves_elements(void) {
 static void test_shuffle_single(void) {
     TEST(shuffle_single);
 
-    rf_int data[] = {99};
-    RF_Array* arr = rf_array_new(1, sizeof(rf_int), data);
-    RF_Array* shuffled = rf_random_shuffle(arr);
+    fl_int data[] = {99};
+    FL_Array* arr = fl_array_new(1, sizeof(fl_int), data);
+    FL_Array* shuffled = fl_random_shuffle(arr);
 
-    assert(rf_array_len(shuffled) == 1);
-    rf_int* ptr = (rf_int*)rf_array_get_ptr(shuffled, 0);
+    assert(fl_array_len(shuffled) == 1);
+    fl_int* ptr = (fl_int*)fl_array_get_ptr(shuffled, 0);
     assert(*ptr == 99);
 
-    rf_array_release(arr);
-    rf_array_release(shuffled);
+    fl_array_release(arr);
+    fl_array_release(shuffled);
 
     PASS();
 }
@@ -184,18 +184,18 @@ static void test_shuffle_single(void) {
 static void test_choice_nonempty(void) {
     TEST(choice_nonempty);
 
-    rf_int data[] = {10, 20, 30};
-    RF_Array* arr = rf_array_new(3, sizeof(rf_int), data);
+    fl_int data[] = {10, 20, 30};
+    FL_Array* arr = fl_array_new(3, sizeof(fl_int), data);
 
     for (int i = 0; i < 100; i++) {
-        RF_Option_ptr opt = rf_random_choice(arr);
+        FL_Option_ptr opt = fl_random_choice(arr);
         assert(opt.tag == 1);
         /* For value types smaller than pointer, opt.value is a pointer into array data */
-        rf_int val = *(rf_int*)opt.value;
+        fl_int val = *(fl_int*)opt.value;
         assert(val == 10 || val == 20 || val == 30);
     }
 
-    rf_array_release(arr);
+    fl_array_release(arr);
 
     PASS();
 }
@@ -207,10 +207,10 @@ static void test_choice_nonempty(void) {
 static void test_choice_empty(void) {
     TEST(choice_empty);
 
-    RF_Array* arr = rf_array_new(0, sizeof(rf_int), NULL);
-    RF_Option_ptr opt = rf_random_choice(arr);
+    FL_Array* arr = fl_array_new(0, sizeof(fl_int), NULL);
+    FL_Option_ptr opt = fl_random_choice(arr);
     assert(opt.tag == 0);
-    rf_array_release(arr);
+    fl_array_release(arr);
 
     PASS();
 }
@@ -225,7 +225,7 @@ static void test_int_range_distribution(void) {
     /* Call 10000 times with range [0, 9], verify all 10 values appear */
     int seen[10] = {0};
     for (int i = 0; i < 10000; i++) {
-        rf_int val = rf_random_int_range(0, 9);
+        fl_int val = fl_random_int_range(0, 9);
         assert(val >= 0 && val <= 9);
         seen[val] = 1;
     }
@@ -243,14 +243,14 @@ static void test_int_range_distribution(void) {
 static void test_random_bytes_nonzero(void) {
     TEST(random_bytes_nonzero);
 
-    RF_Array* arr = rf_random_bytes(32);
+    FL_Array* arr = fl_random_bytes(32);
     int has_nonzero = 0;
-    for (rf_int64 i = 0; i < 32; i++) {
-        rf_byte* ptr = (rf_byte*)rf_array_get_ptr(arr, i);
+    for (fl_int64 i = 0; i < 32; i++) {
+        fl_byte* ptr = (fl_byte*)fl_array_get_ptr(arr, i);
         if (*ptr != 0) { has_nonzero = 1; break; }
     }
     assert(has_nonzero);
-    rf_array_release(arr);
+    fl_array_release(arr);
 
     PASS();
 }

@@ -7,7 +7,7 @@ before being skipped.
 ## Run it
 
 ```bash
-python main.py build examples/csv_to_json.reflow -o /tmp/csv_to_json && /tmp/csv_to_json
+python main.py build examples/csv_to_json.flow -o /tmp/csv_to_json && /tmp/csv_to_json
 ```
 
 ## What it does

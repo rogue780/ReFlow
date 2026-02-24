@@ -1,13 +1,13 @@
 # Parallel Data Enrichment
 
 A data enrichment pipeline that runs three independent computations on each
-input value **concurrently** using ReFlow's parallel fan-out operator `<:()`,
+input value **concurrently** using Flow's parallel fan-out operator `<:()`,
 then combines the results. Also demonstrates coroutine-based stream production.
 
 ## Run it
 
 ```bash
-python main.py build examples/parallel_enrich.reflow -o /tmp/parallel_enrich && /tmp/parallel_enrich
+python main.py build examples/parallel_enrich.flow -o /tmp/parallel_enrich && /tmp/parallel_enrich
 ```
 
 ## What it does
@@ -25,7 +25,7 @@ The program runs this two ways:
 
 ### Part 1 — Parallel fan-out
 
-```reflow
+```flow
 let output = v -> <:(compute_score | categorize | compute_hash) -> format_result
 ```
 
@@ -38,7 +38,7 @@ fan-out (ensures thread safety).
 
 ### Part 2 — Coroutine stream
 
-```reflow
+```flow
 let source :< produce_values()
 ```
 

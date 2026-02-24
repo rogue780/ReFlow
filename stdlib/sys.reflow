@@ -1,8 +1,0 @@
-module sys
-
-export fn exit(code: int): none = native "rf_sys_exit"
-export fn args(): array<string> = native "rf_sys_args"
-export fn run_process(command: string, args: array<string>): int = native "rf_run_process"
-export fn run_process_capture(command: string, args: array<string>): string? = native "rf_run_process_capture"
-export fn env_get(name: string): string? = native "rf_env_get"
-export fn clock_ms(): int64 = native "rf_clock_ms"

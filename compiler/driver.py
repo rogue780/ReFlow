@@ -56,7 +56,7 @@ def _infer_project_root(source_path: Path, module_path: list[str]) -> Path:
     """Infer the project root from a source file and its module declaration.
 
     If the module declares ``module a.b.c`` and the file is at
-    ``/proj/a/b/c.reflow``, the project root is ``/proj``.
+    ``/proj/a/b/c.flow``, the project root is ``/proj``.
     If there is no module path (empty list), the root is the file's parent.
     """
     parent = source_path.resolve().parent
@@ -79,9 +79,9 @@ def _infer_project_root(source_path: Path, module_path: list[str]) -> Path:
 def _resolve_import_path(project_root: Path, import_path: list[str]) -> Path:
     """Map an import path to a filesystem path relative to the project root.
 
-    ``import a.b.c`` → ``<project_root>/a/b/c.reflow``
+    ``import a.b.c`` → ``<project_root>/a/b/c.flow``
     """
-    return project_root / Path(*import_path).with_suffix(".reflow")
+    return project_root / Path(*import_path).with_suffix(".flow")
 
 
 # ---------------------------------------------------------------------------
@@ -104,9 +104,9 @@ def _get_stdlib_typed(module_name: str) -> object:
     dict, enabling correct cross-module monomorphization.
     """
     if module_name not in _stdlib_typed_cache:
-        stdlib_path = _stdlib_dir() / f"{module_name}.reflow"
+        stdlib_path = _stdlib_dir() / f"{module_name}.flow"
         source = stdlib_path.read_text()
-        display = f"stdlib/{module_name}.reflow"
+        display = f"stdlib/{module_name}.flow"
         tokens = Lexer(source, display).tokenize()
         module = Parser(tokens, display).parse()
         resolved = Resolver(module).resolve()
@@ -154,7 +154,7 @@ def _user_imports(module: Module) -> list[ImportDecl]:
 
 
 def _parse_file(source_path: Path) -> _ParsedModule:
-    """Parse a single .reflow file into a _ParsedModule."""
+    """Parse a single .flow file into a _ParsedModule."""
     source = source_path.read_text()
     display = _display_path(source_path)
     tokens = Lexer(source, display).tokenize()
@@ -459,7 +459,7 @@ def compile_source(source_path: str, *, output: str | None = None,
 
     # Locate runtime files relative to this module.
     compiler_root = Path(__file__).resolve().parent.parent
-    runtime_c = compiler_root / "runtime" / "reflow_runtime.c"
+    runtime_c = compiler_root / "runtime" / "flow_runtime.c"
     runtime_include = compiler_root / "runtime"
 
     # Write C source to a temp file and invoke clang.
@@ -497,7 +497,7 @@ def compile_source(source_path: str, *, output: str | None = None,
 def run_source(source_path: str, *, verbose: bool = False,
                args: list[str] | None = None) -> int:
     """Compile to a temp binary, run it, clean up."""
-    tmp_fd, tmp_bin = tempfile.mkstemp(prefix="rf_run_")
+    tmp_fd, tmp_bin = tempfile.mkstemp(prefix="fl_run_")
     os.close(tmp_fd)
     try:
         rc = compile_source(source_path, output=tmp_bin, verbose=verbose)

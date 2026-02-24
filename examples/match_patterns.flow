@@ -1,0 +1,39 @@
+; match_patterns.flow — Pattern matching on primitives and booleans
+module examples.match_patterns
+
+import io (println)
+
+fn describe_number(n: int): string {
+    match n {
+        0: { return "zero" }
+        1: { return "one" }
+        2: { return "two" }
+        _: { return "other" }
+    }
+}
+
+fn bool_to_word(b: bool): string {
+    match b {
+        true: { return "yes" }
+        false: { return "no" }
+    }
+}
+
+fn main() {
+    ; Match on integer with literal and wildcard patterns
+    println(f"0 is {describe_number(0)}")
+    println(f"1 is {describe_number(1)}")
+    println(f"2 is {describe_number(2)}")
+    println(f"42 is {describe_number(42)}")
+
+    ; Match on bool
+    println(f"true is {bool_to_word(true)}")
+    println(f"false is {bool_to_word(false)}")
+
+    ; Match as statement with function calls in arms
+    match 7 {
+        0: println("zero")
+        1: println("one")
+        _: println("other number")
+    }
+}

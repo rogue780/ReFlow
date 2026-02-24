@@ -1,8 +1,8 @@
-# ReFlow Stdlib Generics: Streamline Plan
+# Flow Stdlib Generics: Streamline Plan
 
 ## Overview
 
-ReFlow's stdlib has ~35 type-suffixed duplicate functions across five modules:
+Flow's stdlib has ~35 type-suffixed duplicate functions across five modules:
 `abs_int`/`abs_float`, `min_int`/`min_float`, `sort_ints`/`sort_strings`/
 `sort_floats`, `assert_eq_int`/`assert_eq_string`/`assert_eq_bool`, and
 `int_to_string`/`float_to_string`/`bool_to_string`. Users must remember
@@ -67,7 +67,7 @@ Spec changes come first. Every implementation ticket references a spec section.
 ## Story 0-1: Core Interfaces
 
 **SG-0-1-1** `[BLOCKER]`
-Add four core interfaces to `reflow_spec.md`, in the Interfaces section
+Add four core interfaces to `flow_spec.md`, in the Interfaces section
 after "Generic Interfaces" (line 990).
 
 These are language-level built-in interfaces — they exist without an
@@ -134,7 +134,7 @@ Document the operator mappings:
 - `int.negate()` → `-self`
 - `int.add(other)` → `self + other`
 - `int.equals(other)` → `self == other`
-- `int.to_string()` → calls `rf_int_to_string`
+- `int.to_string()` → calls `fl_int_to_string`
 - (Analogous for float, string, etc.)
 
 ## Story 0-2: Stdlib Spec Update
@@ -573,9 +573,9 @@ def mangle_monomorphized(module: str, fn_name: str,
                          type_args: list[str]) -> str:
     """Mangle a monomorphized function name.
 
-    Example: math, min, ["int"] → rf_math_min__int
-    Example: math, min, ["float"] → rf_math_min__float
-    Example: testing, assert_eq, ["int"] → rf_testing_assert_eq__int
+    Example: math, min, ["int"] → fl_math_min__int
+    Example: math, min, ["float"] → fl_math_min__float
+    Example: testing, assert_eq, ["int"] → fl_testing_assert_eq__int
 
     The double underscore separates the function name from the type
     specialization suffix.
@@ -682,7 +682,7 @@ the concrete type arguments at each call site. Build a map:
 class MonoSite:
     fn_decl: FnDecl
     type_env: dict[str, Type]  # e.g., {"T": TInt(32, True)}
-    mangled_name: str          # e.g., "rf_math_min__int"
+    mangled_name: str          # e.g., "fl_math_min__int"
 
 # key: (module, fn_name, tuple(concrete_type_names))
 # value: MonoSite
@@ -708,8 +708,8 @@ concrete types in the same module.
 For example, if a program calls both `math.min(3, 7)` and
 `math.min(1.5, 0.5)`, the pre-pass must collect two `MonoSite` entries:
 
-- `("math", "min", ("int",))` → `rf_math_min__int`
-- `("math", "min", ("float",))` → `rf_math_min__float`
+- `("math", "min", ("int",))` → `fl_math_min__int`
+- `("math", "min", ("float",))` → `fl_math_min__float`
 
 Both specialized functions are emitted as separate `LFunction` nodes.
 Duplicate call sites with the same concrete types are deduplicated by the
@@ -791,8 +791,8 @@ concrete type arguments in `_mono_sites` and emit `LCall` with the
 monomorphized mangled name:
 
 ```python
-# Instead of: LCall("rf_math_min", [a, b])
-# Emit:       LCall("rf_math_min__int", [a, b])
+# Instead of: LCall("fl_math_min", [a, b])
+# Emit:       LCall("fl_math_min__int", [a, b])
 ```
 
 The lookup key is `(module, fn_name, tuple(type_names))`, derived from
@@ -836,21 +836,21 @@ BUILTIN_METHOD_OPS: dict[tuple[str, str], BuiltinMethodOp] = {
     ("char", "compare"):    BuiltinMethodOp("compare", "<"),
     ("byte", "compare"):    BuiltinMethodOp("compare", "<"),
     # String: runtime function
-    ("string", "compare"):  BuiltinMethodOp("call", "rf_string_cmp"),
+    ("string", "compare"):  BuiltinMethodOp("call", "fl_string_cmp"),
 
     # --- Numeric.add --- CHECKED for integers, plain for float
-    ("int", "add"):         BuiltinMethodOp("checked_binop", "RF_CHECKED_ADD"),
-    ("int64", "add"):       BuiltinMethodOp("checked_binop", "RF_CHECKED_ADD"),
+    ("int", "add"):         BuiltinMethodOp("checked_binop", "FL_CHECKED_ADD"),
+    ("int64", "add"):       BuiltinMethodOp("checked_binop", "FL_CHECKED_ADD"),
     ("float", "add"):       BuiltinMethodOp("binop", "+"),
 
     # --- Numeric.sub --- CHECKED for integers, plain for float
-    ("int", "sub"):         BuiltinMethodOp("checked_binop", "RF_CHECKED_SUB"),
-    ("int64", "sub"):       BuiltinMethodOp("checked_binop", "RF_CHECKED_SUB"),
+    ("int", "sub"):         BuiltinMethodOp("checked_binop", "FL_CHECKED_SUB"),
+    ("int64", "sub"):       BuiltinMethodOp("checked_binop", "FL_CHECKED_SUB"),
     ("float", "sub"):       BuiltinMethodOp("binop", "-"),
 
     # --- Numeric.mul --- CHECKED for integers, plain for float
-    ("int", "mul"):         BuiltinMethodOp("checked_binop", "RF_CHECKED_MUL"),
-    ("int64", "mul"):       BuiltinMethodOp("checked_binop", "RF_CHECKED_MUL"),
+    ("int", "mul"):         BuiltinMethodOp("checked_binop", "FL_CHECKED_MUL"),
+    ("int64", "mul"):       BuiltinMethodOp("checked_binop", "FL_CHECKED_MUL"),
     ("float", "mul"):       BuiltinMethodOp("binop", "*"),
 
     # --- Numeric.negate ---
@@ -865,25 +865,25 @@ BUILTIN_METHOD_OPS: dict[tuple[str, str], BuiltinMethodOp] = {
     ("bool", "equals"):     BuiltinMethodOp("binop", "=="),
     ("char", "equals"):     BuiltinMethodOp("binop", "=="),
     ("byte", "equals"):     BuiltinMethodOp("binop", "=="),
-    ("string", "equals"):   BuiltinMethodOp("call", "rf_string_eq"),
+    ("string", "equals"):   BuiltinMethodOp("call", "fl_string_eq"),
 
     # --- Showable.to_string ---
-    ("int", "to_string"):     BuiltinMethodOp("call", "rf_int_to_string"),
-    ("int64", "to_string"):   BuiltinMethodOp("call", "rf_int64_to_string"),
-    ("float", "to_string"):   BuiltinMethodOp("call", "rf_float_to_string"),
-    ("bool", "to_string"):    BuiltinMethodOp("call", "rf_bool_to_string"),
-    ("string", "to_string"):  BuiltinMethodOp("call", "_rf_identity_string"),
-    ("char", "to_string"):    BuiltinMethodOp("call", "rf_char_to_string"),
-    ("byte", "to_string"):    BuiltinMethodOp("call", "rf_byte_to_string"),
+    ("int", "to_string"):     BuiltinMethodOp("call", "fl_int_to_string"),
+    ("int64", "to_string"):   BuiltinMethodOp("call", "fl_int64_to_string"),
+    ("float", "to_string"):   BuiltinMethodOp("call", "fl_float_to_string"),
+    ("bool", "to_string"):    BuiltinMethodOp("call", "fl_bool_to_string"),
+    ("string", "to_string"):  BuiltinMethodOp("call", "_fl_identity_string"),
+    ("char", "to_string"):    BuiltinMethodOp("call", "fl_char_to_string"),
+    ("byte", "to_string"):    BuiltinMethodOp("call", "fl_byte_to_string"),
 }
 ```
 
 Lowering logic by `kind`:
 
-- `"checked_binop"`: emit the `RF_CHECKED_*` macro pattern — declare a
+- `"checked_binop"`: emit the `FL_CHECKED_*` macro pattern — declare a
   temp variable, call the macro, use the temp. This is the same pattern
   already used for regular `+`/`-`/`*` on integers throughout the lowering.
-  Example: `a.add(b)` on `int` → `RF_CHECKED_ADD(a, b, &_rf_tmp_1)`.
+  Example: `a.add(b)` on `int` → `FL_CHECKED_ADD(a, b, &_fl_tmp_1)`.
 - `"binop"`: emit `((a) op (b))` directly. Used for float arithmetic and
   all equality comparisons.
 - `"unary"`: emit `(-(a))`. Used for `negate` on all numeric types.
@@ -891,30 +891,30 @@ Lowering logic by `kind`:
 - `"call"`: emit `LCall(fn_name, [args])`.
 
 **SG-3-5-2**
-Add `_rf_compare` macro and `_rf_identity_string` to the runtime.
+Add `_fl_compare` macro and `_fl_identity_string` to the runtime.
 
 ```c
 /* Comparable.compare for numeric/char/byte types */
-#define _rf_compare(a, b) ((a) < (b) ? -1 : ((a) > (b) ? 1 : 0))
+#define _fl_compare(a, b) ((a) < (b) ? -1 : ((a) > (b) ? 1 : 0))
 
 /* Showable.to_string for string (identity — retains and returns self) */
-static inline RF_String* _rf_identity_string(RF_String* s) {
-    rf_string_retain(s);
+static inline FL_String* _fl_identity_string(FL_String* s) {
+    fl_string_retain(s);
     return s;
 }
 ```
 
-; NOTE: The self-hosted compiler could optimize away _rf_identity_string
+; NOTE: The self-hosted compiler could optimize away _fl_identity_string
 ; by detecting that string.to_string() is identity and eliding the call.
 ; For the reference compiler, the extra retain/return is correct and the
 ; overhead is negligible.
 
-No `_rf_add`/`_rf_sub`/`_rf_mul` macros are needed — integer arithmetic
-goes through the existing `RF_CHECKED_ADD`/`SUB`/`MUL` macros, and float
+No `_fl_add`/`_fl_sub`/`_fl_mul` macros are needed — integer arithmetic
+goes through the existing `FL_CHECKED_ADD`/`SUB`/`MUL` macros, and float
 arithmetic uses plain C operators emitted directly by the lowering.
 
 **SG-3-5-3**
-Add `rf_char_to_string` and `rf_byte_to_string` to the runtime if not
+Add `fl_char_to_string` and `fl_byte_to_string` to the runtime if not
 already present. These are needed for the `Showable` fulfillment on `char`
 and `byte`.
 
@@ -923,7 +923,7 @@ and `byte`.
 **SG-3-6-1**
 Add a golden file test for a monomorphized function.
 
-`tests/programs/mono_min.reflow`:
+`tests/programs/mono_min.flow`:
 ```
 module mono_min
 
@@ -946,13 +946,13 @@ fn main(): void {
 ```
 
 Verify in the generated C (`tests/expected/mono_min.c`) that two
-specialized functions exist: one operating on `rf_int` (using the
-`_rf_compare` ternary), one on `rf_float`.
+specialized functions exist: one operating on `fl_int` (using the
+`_fl_compare` ternary), one on `fl_float`.
 
 **SG-3-6-2**
 Add a golden file test for monomorphized `assert_eq`.
 
-`tests/programs/mono_assert.reflow`:
+`tests/programs/mono_assert.flow`:
 ```
 module mono_assert
 
@@ -979,7 +979,7 @@ all passed
 Add a golden file test that verifies checked arithmetic in monomorphized
 code.
 
-`tests/programs/mono_checked_add.reflow`:
+`tests/programs/mono_checked_add.flow`:
 ```
 module mono_checked_add
 
@@ -1002,13 +1002,13 @@ fn main(): void {
 ```
 
 Verify in the generated C that the `int` specialization uses
-`RF_CHECKED_ADD` (not plain `+`), while the `float` specialization uses
+`FL_CHECKED_ADD` (not plain `+`), while the `float` specialization uses
 plain `+`.
 
 **SG-3-6-4**
 Add a negative compile test: method call on unbounded type variable.
 
-`tests/programs/errors/unbounded_method_call.reflow`:
+`tests/programs/errors/unbounded_method_call.flow`:
 ```
 module unbounded_method_call
 
@@ -1036,25 +1036,25 @@ order.
 ## Story 4-1: math Module
 
 **SG-4-1-1** `[BLOCKER]`
-Rewrite `stdlib/math.reflow` with generic functions.
+Rewrite `stdlib/math.flow` with generic functions.
 
 **Before** (current file):
 ```
 module math
 
-export fn:pure abs_int(n: int): int = native "rf_math_abs_int"
-export fn:pure abs_float(f: float): float = native "rf_math_abs_float"
-export fn:pure min_int(a: int, b: int): int = native "rf_math_min_int"
-export fn:pure max_int(a: int, b: int): int = native "rf_math_max_int"
-export fn:pure min_float(a: float, b: float): float = native "rf_math_min_float"
-export fn:pure max_float(a: float, b: float): float = native "rf_math_max_float"
-export fn:pure clamp_int(val: int, lo: int, hi: int): int = native "rf_math_clamp_int"
-export fn:pure floor(f: float): float = native "rf_math_floor"
-export fn:pure ceil(f: float): float = native "rf_math_ceil"
-export fn:pure round(f: float): float = native "rf_math_round"
-export fn:pure pow(base: float, exp: float): float = native "rf_math_pow"
-export fn:pure sqrt(f: float): float = native "rf_math_sqrt"
-export fn:pure log(f: float): float = native "rf_math_log"
+export fn:pure abs_int(n: int): int = native "fl_math_abs_int"
+export fn:pure abs_float(f: float): float = native "fl_math_abs_float"
+export fn:pure min_int(a: int, b: int): int = native "fl_math_min_int"
+export fn:pure max_int(a: int, b: int): int = native "fl_math_max_int"
+export fn:pure min_float(a: float, b: float): float = native "fl_math_min_float"
+export fn:pure max_float(a: float, b: float): float = native "fl_math_max_float"
+export fn:pure clamp_int(val: int, lo: int, hi: int): int = native "fl_math_clamp_int"
+export fn:pure floor(f: float): float = native "fl_math_floor"
+export fn:pure ceil(f: float): float = native "fl_math_ceil"
+export fn:pure round(f: float): float = native "fl_math_round"
+export fn:pure pow(base: float, exp: float): float = native "fl_math_pow"
+export fn:pure sqrt(f: float): float = native "fl_math_sqrt"
+export fn:pure log(f: float): float = native "fl_math_log"
 ```
 
 **After:**
@@ -1079,12 +1079,12 @@ export fn:pure clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T {
 }
 
 ; Float-specific (inherently float operations)
-export fn:pure floor(f: float): float = native "rf_math_floor"
-export fn:pure ceil(f: float): float = native "rf_math_ceil"
-export fn:pure round(f: float): float = native "rf_math_round"
-export fn:pure pow(base: float, exp: float): float = native "rf_math_pow"
-export fn:pure sqrt(f: float): float = native "rf_math_sqrt"
-export fn:pure log(f: float): float = native "rf_math_log"
+export fn:pure floor(f: float): float = native "fl_math_floor"
+export fn:pure ceil(f: float): float = native "fl_math_ceil"
+export fn:pure round(f: float): float = native "fl_math_round"
+export fn:pure pow(base: float, exp: float): float = native "fl_math_pow"
+export fn:pure sqrt(f: float): float = native "fl_math_sqrt"
+export fn:pure log(f: float): float = native "fl_math_log"
 ```
 
 Note: `abs` uses `n.compare(n.negate())` instead of `n.compare(zero)`,
@@ -1093,47 +1093,47 @@ avoiding the need for a static `zero()` method. For `n = 3`:
 `(-3).compare(3) = -1 < 0 → return 3`. Correct.
 
 ; NOTE: abs(INT_MIN) overflows on negate because -(-2147483648) has no
-; int32 representation. The existing rf_math_abs_int has the same UB via
+; int32 representation. The existing fl_math_abs_int has the same UB via
 ; C's abs(). This is a known edge case — not introduced by this change.
 ; The self-hosted compiler could add a dedicated INT_MIN check if desired.
 
 **SG-4-1-2**
-Remove the now-unused C runtime functions from `runtime/reflow_runtime.c`
-and `runtime/reflow_runtime.h`:
+Remove the now-unused C runtime functions from `runtime/flow_runtime.c`
+and `runtime/flow_runtime.h`:
 
-- `rf_math_abs_int`
-- `rf_math_abs_float`
-- `rf_math_min_int`
-- `rf_math_max_int`
-- `rf_math_min_float`
-- `rf_math_max_float`
-- `rf_math_clamp_int`
+- `fl_math_abs_int`
+- `fl_math_abs_float`
+- `fl_math_min_int`
+- `fl_math_max_int`
+- `fl_math_min_float`
+- `fl_math_max_float`
+- `fl_math_clamp_int`
 
-Also remove their declarations from `runtime/reflow_runtime.h`.
+Also remove their declarations from `runtime/flow_runtime.h`.
 
-The monomorphized versions are generated by the compiler from the ReFlow
-bodies and use the `_rf_compare` / `_rf_negate` macros directly.
+The monomorphized versions are generated by the compiler from the Flow
+bodies and use the `_fl_compare` / `_fl_negate` macros directly.
 
 **SG-4-1-3**
 Update all call sites in test programs and examples.
 
-Search for `math.abs_int`, `math.min_int`, etc., across all `.reflow` files
+Search for `math.abs_int`, `math.min_int`, etc., across all `.flow` files
 and update to `math.abs`, `math.min`, etc. The call site syntax changes but
 the behavior is identical — the compiler monomorphizes to the same operations.
 
 ## Story 4-2: sort Module
 
 **SG-4-2-1**
-Rewrite `stdlib/sort.reflow` with a generic `sort` function.
+Rewrite `stdlib/sort.flow` with a generic `sort` function.
 
 **Before:**
 ```
 module sort
 
-export fn:pure sort_ints(arr: array<int>): array<int> = native "rf_sort_ints"
-export fn:pure sort_strings(arr: array<string>): array<string> = native "rf_sort_strings"
-export fn:pure sort_floats(arr: array<float>): array<float> = native "rf_sort_floats"
-export fn:pure reverse(arr: array<int>): array<int> = native "rf_array_reverse"
+export fn:pure sort_ints(arr: array<int>): array<int> = native "fl_sort_ints"
+export fn:pure sort_strings(arr: array<string>): array<string> = native "fl_sort_strings"
+export fn:pure sort_floats(arr: array<float>): array<float> = native "fl_sort_floats"
+export fn:pure reverse(arr: array<int>): array<int> = native "fl_array_reverse"
 ```
 
 **After:**
@@ -1144,8 +1144,8 @@ export fn:pure sort<T fulfills Comparable>(arr: array<T>): array<T> {
     return sort_by(arr, fn(a: T, b: T): int { a.compare(b) })
 }
 
-export fn:pure sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T> = native "rf_sort_array_by"
-export fn:pure reverse<T>(arr: array<T>): array<T> = native "rf_array_reverse"
+export fn:pure sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T> = native "fl_sort_array_by"
+export fn:pure reverse<T>(arr: array<T>): array<T> = native "fl_array_reverse"
 ```
 
 Note: `sort_by` and `reverse` remain `native` because they are type-erased
@@ -1163,13 +1163,13 @@ path (SG-3-5-1). See SG-3-4-1 for the full explanation.
 
 **SG-4-2-2**
 Remove the now-unused C runtime functions from both
-`runtime/reflow_runtime.c` and `runtime/reflow_runtime.h`:
+`runtime/flow_runtime.c` and `runtime/flow_runtime.h`:
 
-- `rf_sort_ints`
-- `rf_sort_strings`
-- `rf_sort_floats`
+- `fl_sort_ints`
+- `fl_sort_strings`
+- `fl_sort_floats`
 
-Ensure `rf_sort_array_by` and `rf_array_reverse` remain (they are the
+Ensure `fl_sort_array_by` and `fl_array_reverse` remain (they are the
 generic implementations that take a comparator closure or operate on
 raw element data).
 
@@ -1179,27 +1179,27 @@ Update all call sites: `sort.sort_ints(arr)` → `sort.sort(arr)`, etc.
 ## Story 4-3: testing Module
 
 **SG-4-3-1**
-Rewrite `stdlib/testing.reflow` with a generic `assert_eq`.
+Rewrite `stdlib/testing.flow` with a generic `assert_eq`.
 
 **Before:**
 ```
 module testing
 
-export fn assert_true(val: bool, msg: string): void = native "rf_test_assert_true"
-export fn assert_false(val: bool, msg: string): void = native "rf_test_assert_false"
-export fn assert_eq_int(expected: int, actual: int, msg: string): void = native "rf_test_assert_eq_int"
-export fn assert_eq_int64(expected: int64, actual: int64, msg: string): void = native "rf_test_assert_eq_int64"
-export fn assert_eq_string(expected: string, actual: string, msg: string): void = native "rf_test_assert_eq_string"
-export fn assert_eq_bool(expected: bool, actual: bool, msg: string): void = native "rf_test_assert_eq_bool"
-export fn fail(msg: string): void = native "rf_test_fail"
+export fn assert_true(val: bool, msg: string): void = native "fl_test_assert_true"
+export fn assert_false(val: bool, msg: string): void = native "fl_test_assert_false"
+export fn assert_eq_int(expected: int, actual: int, msg: string): void = native "fl_test_assert_eq_int"
+export fn assert_eq_int64(expected: int64, actual: int64, msg: string): void = native "fl_test_assert_eq_int64"
+export fn assert_eq_string(expected: string, actual: string, msg: string): void = native "fl_test_assert_eq_string"
+export fn assert_eq_bool(expected: bool, actual: bool, msg: string): void = native "fl_test_assert_eq_bool"
+export fn fail(msg: string): void = native "fl_test_fail"
 ```
 
 **After:**
 ```
 module testing
 
-export fn assert_true(val: bool, msg: string): void = native "rf_test_assert_true"
-export fn assert_false(val: bool, msg: string): void = native "rf_test_assert_false"
+export fn assert_true(val: bool, msg: string): void = native "fl_test_assert_true"
+export fn assert_false(val: bool, msg: string): void = native "fl_test_assert_false"
 
 export fn assert_eq<T fulfills (Equatable, Showable)>(expected: T, actual: T, msg: string): void {
     if !expected.equals(actual) {
@@ -1215,19 +1215,19 @@ export fn assert_approx(expected: float, actual: float, epsilon: float, msg: str
     }
 }
 
-export fn fail(msg: string): void = native "rf_test_fail"
+export fn fail(msg: string): void = native "fl_test_fail"
 ```
 
 **SG-4-3-2**
 Remove the now-unused C runtime functions from both
-`runtime/reflow_runtime.c` and `runtime/reflow_runtime.h`:
+`runtime/flow_runtime.c` and `runtime/flow_runtime.h`:
 
-- `rf_test_assert_eq_int`
-- `rf_test_assert_eq_int64`
-- `rf_test_assert_eq_string`
-- `rf_test_assert_eq_bool`
+- `fl_test_assert_eq_int`
+- `fl_test_assert_eq_int64`
+- `fl_test_assert_eq_string`
+- `fl_test_assert_eq_bool`
 
-Keep `rf_test_assert_true`, `rf_test_assert_false`, and `rf_test_fail`.
+Keep `fl_test_assert_true`, `fl_test_assert_false`, and `fl_test_fail`.
 
 **SG-4-3-3**
 Update all call sites: `testing.assert_eq_int(a, b, msg)` →
@@ -1236,20 +1236,20 @@ Update all call sites: `testing.assert_eq_int(a, b, msg)` →
 ## Story 4-4: conv Module
 
 **SG-4-4-1**
-Rewrite `stdlib/conv.reflow` with a generic `to_string`.
+Rewrite `stdlib/conv.flow` with a generic `to_string`.
 
 **Before:**
 ```
 module conv
 
-export fn:pure int_to_string(n: int): string = native "rf_int_to_string"
-export fn:pure int64_to_string(n: int64): string = native "rf_int64_to_string"
-export fn:pure float_to_string(f: float): string = native "rf_float_to_string"
-export fn:pure bool_to_string(b: bool): string = native "rf_bool_to_string"
+export fn:pure int_to_string(n: int): string = native "fl_int_to_string"
+export fn:pure int64_to_string(n: int64): string = native "fl_int64_to_string"
+export fn:pure float_to_string(f: float): string = native "fl_float_to_string"
+export fn:pure bool_to_string(b: bool): string = native "fl_bool_to_string"
 
-export fn:pure string_to_int(s: string): int? = native "rf_string_to_int_opt"
-export fn:pure string_to_int64(s: string): int64? = native "rf_string_to_int64_opt"
-export fn:pure string_to_float(s: string): float? = native "rf_string_to_float_opt"
+export fn:pure string_to_int(s: string): int? = native "fl_string_to_int_opt"
+export fn:pure string_to_int64(s: string): int64? = native "fl_string_to_int64_opt"
+export fn:pure string_to_float(s: string): float? = native "fl_string_to_float_opt"
 ```
 
 **After:**
@@ -1261,9 +1261,9 @@ export fn:pure to_string<T fulfills Showable>(val: T): string {
 }
 
 ; Parsing remains type-specific (different rules per type)
-export fn:pure string_to_int(s: string): int? = native "rf_string_to_int_opt"
-export fn:pure string_to_int64(s: string): int64? = native "rf_string_to_int64_opt"
-export fn:pure string_to_float(s: string): float? = native "rf_string_to_float_opt"
+export fn:pure string_to_int(s: string): int? = native "fl_string_to_int_opt"
+export fn:pure string_to_int64(s: string): int64? = native "fl_string_to_int64_opt"
+export fn:pure string_to_float(s: string): float? = native "fl_string_to_float_opt"
 ```
 
 The `to_string` generic function is trivial — it just delegates to the
@@ -1271,14 +1271,14 @@ interface method. Its value is providing a uniform calling convention:
 `conv.to_string(val)` instead of knowing which `*_to_string` to call.
 
 ; NOTE: The monomorphized version of to_string<int> generates a function
-; whose body immediately calls rf_int_to_string — one extra indirection.
+; whose body immediately calls fl_int_to_string — one extra indirection.
 ; The self-hosted compiler could inline this trivial wrapper. For the
 ; reference compiler, the indirection is correct and the overhead is
 ; negligible (one function call, no allocation).
 
-Note: the underlying C functions (`rf_int_to_string`, etc.) remain in the
+Note: the underlying C functions (`fl_int_to_string`, etc.) remain in the
 runtime — they are called by the `Showable.to_string` synthetic method
-lowering (SG-3-3-1). They are no longer directly referenced from ReFlow
+lowering (SG-3-3-1). They are no longer directly referenced from Flow
 source, but the compiler still emits calls to them in monomorphized code.
 
 **SG-4-4-2**
@@ -1301,7 +1301,7 @@ fn sum<T fulfills Numeric>(src: stream<T>, zero: T): T {
 ```
 
 This is deferred from implementation until the stream stdlib module
-(`stdlib/stream.reflow`) is created. Document the planned signature in
+(`stdlib/stream.flow`) is created. Document the planned signature in
 the spec only.
 
 ---
@@ -1322,7 +1322,7 @@ Verify:
 **SG-5-1-2**
 Add end-to-end integration tests that exercise the full rewritten stdlib.
 
-`tests/programs/stdlib_generic_math.reflow`:
+`tests/programs/stdlib_generic_math.flow`:
 ```
 module stdlib_generic_math
 
@@ -1345,7 +1345,7 @@ fn main(): void {
 10
 ```
 
-`tests/programs/stdlib_generic_sort.reflow`:
+`tests/programs/stdlib_generic_sort.flow`:
 ```
 module stdlib_generic_sort
 
@@ -1366,22 +1366,22 @@ removing its module's dead functions at rewrite time. This ticket is a
 final verification pass — grep the runtime for the full list of functions
 that should no longer exist and confirm they are gone:
 
-- `rf_math_abs_int`, `rf_math_abs_float`
-- `rf_math_min_int`, `rf_math_max_int`, `rf_math_min_float`, `rf_math_max_float`
-- `rf_math_clamp_int`
-- `rf_sort_ints`, `rf_sort_strings`, `rf_sort_floats`
-- `rf_test_assert_eq_int`, `rf_test_assert_eq_int64`,
-  `rf_test_assert_eq_string`, `rf_test_assert_eq_bool`
+- `fl_math_abs_int`, `fl_math_abs_float`
+- `fl_math_min_int`, `fl_math_max_int`, `fl_math_min_float`, `fl_math_max_float`
+- `fl_math_clamp_int`
+- `fl_sort_ints`, `fl_sort_strings`, `fl_sort_floats`
+- `fl_test_assert_eq_int`, `fl_test_assert_eq_int64`,
+  `fl_test_assert_eq_string`, `fl_test_assert_eq_bool`
 
 If any remain (e.g., a ticket was missed), remove them here.
 
 Confirm that all underlying utility functions the monomorphized code calls
-are still present: `rf_int_to_string`, `rf_string_cmp`, `rf_string_eq`,
-`rf_float_to_string`, `rf_bool_to_string`, `rf_int64_to_string`, etc.
+are still present: `fl_int_to_string`, `fl_string_cmp`, `fl_string_eq`,
+`fl_float_to_string`, `fl_bool_to_string`, `fl_int64_to_string`, etc.
 
 **SG-5-2-2**
 Verify the bootstrap constraint: every construct used in the rewritten
-stdlib has a ReFlow-language equivalent. The monomorphization strategy
+stdlib has a Flow-language equivalent. The monomorphization strategy
 must be replicable in the self-hosted compiler (Epic 11). Document the
 monomorphization algorithm in a comment at the top of the lowering
 monomorphization code.
@@ -1392,17 +1392,17 @@ monomorphization code.
 
 | File | Change |
 |------|--------|
-| `reflow_spec.md` | Add 4 core interface definitions, built-in fulfillment table, `self`-as-type-annotation semantics |
+| `flow_spec.md` | Add 4 core interface definitions, built-in fulfillment table, `self`-as-type-annotation semantics |
 | `stdlib_spec.md` | Replace type-specific function signatures with generic equivalents |
 | `compiler/typechecker.py` | Add `TSelf` type; register 4 interfaces and built-in fulfillments; add `_resolve_method_on_typevar`, `_find_type_param`, `_substitute_self`; wire body-level resolution into `MethodCall` handler |
 | `compiler/mangler.py` | Add `mangle_monomorphized` |
 | `compiler/lowering.py` | Add `_deep_substitute`, `_build_substituted_type_map`, monomorphization pre-pass (`_mono_sites`), `_lower_monomorphized_fn`, call-site rewriting, synthetic built-in method lowering (`BUILTIN_METHOD_OPS`) |
-| `runtime/reflow_runtime.h` | Add `_rf_compare` macro, `_rf_identity_string` inline, `rf_char_to_string`/`rf_byte_to_string` if missing; remove 14 dead function declarations |
-| `runtime/reflow_runtime.c` | Add `rf_char_to_string`/`rf_byte_to_string` if missing; remove 14 dead function implementations |
-| `stdlib/math.reflow` | Rewrite: 13 functions → 10 (4 generic + 6 float-specific) |
-| `stdlib/sort.reflow` | Rewrite: 4 functions → 3 (1 generic + 2 native generic) |
-| `stdlib/testing.reflow` | Rewrite: 7 functions → 5 (1 generic + 1 float-specific + 3 native) |
-| `stdlib/conv.reflow` | Rewrite: 7 functions → 4 (1 generic + 3 native parse) |
+| `runtime/flow_runtime.h` | Add `_fl_compare` macro, `_fl_identity_string` inline, `fl_char_to_string`/`fl_byte_to_string` if missing; remove 14 dead function declarations |
+| `runtime/flow_runtime.c` | Add `fl_char_to_string`/`fl_byte_to_string` if missing; remove 14 dead function implementations |
+| `stdlib/math.flow` | Rewrite: 13 functions → 10 (4 generic + 6 float-specific) |
+| `stdlib/sort.flow` | Rewrite: 4 functions → 3 (1 generic + 2 native generic) |
+| `stdlib/testing.flow` | Rewrite: 7 functions → 5 (1 generic + 1 float-specific + 3 native) |
+| `stdlib/conv.flow` | Rewrite: 7 functions → 4 (1 generic + 3 native parse) |
 | `tests/unit/test_typechecker.py` | Add ~18 new tests (interface registration, fulfillments, body-level resolution) |
 | `tests/programs/` | Add 4+ new test programs (mono_min, mono_assert, mono_checked_add, stdlib_generic_*); update all existing programs that call renamed functions |
 | `tests/expected_stdout/` | Add expected output for new test programs |
@@ -1513,4 +1513,4 @@ Verify manually:
 - `sort.sort(["b", "a"])` compiles and returns `["a", "b"]`
 - `testing.assert_eq(42, 42, "ok")` compiles without error
 - `testing.assert_eq("a", "b", "fail")` compiles and fails at runtime with message
-- Generated C contains separate functions `rf_math_min__int` and `rf_math_min__float`
+- Generated C contains separate functions `fl_math_min__int` and `fl_math_min__float`

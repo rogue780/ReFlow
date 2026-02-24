@@ -5,7 +5,7 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,15 +21,15 @@ static int tests_passed = 0;
     do { tests_passed++; printf("PASS\n"); } while(0)
 
 /* ========================================================================
- * Test 1: rf_time_now returns non-NULL
+ * Test 1: fl_time_now returns non-NULL
  * ======================================================================== */
 
 static void test_now_returns_instant(void) {
     TEST(now_returns_instant);
 
-    RF_Instant* inst = rf_time_now();
+    FL_Instant* inst = fl_time_now();
     assert(inst != NULL);
-    rf_instant_release(inst);
+    fl_instant_release(inst);
     PASS();
 }
 
@@ -40,11 +40,11 @@ static void test_now_returns_instant(void) {
 static void test_elapsed_ms_positive(void) {
     TEST(elapsed_ms_positive);
 
-    RF_Instant* start = rf_time_now();
+    FL_Instant* start = fl_time_now();
     usleep(10000); /* 10ms */
-    rf_int64 ms = rf_time_elapsed_ms(start);
+    fl_int64 ms = fl_time_elapsed_ms(start);
     assert(ms > 0);
-    rf_instant_release(start);
+    fl_instant_release(start);
     PASS();
 }
 
@@ -55,11 +55,11 @@ static void test_elapsed_ms_positive(void) {
 static void test_elapsed_us_positive(void) {
     TEST(elapsed_us_positive);
 
-    RF_Instant* start = rf_time_now();
+    FL_Instant* start = fl_time_now();
     usleep(1000); /* 1ms */
-    rf_int64 us = rf_time_elapsed_us(start);
+    fl_int64 us = fl_time_elapsed_us(start);
     assert(us > 0);
-    rf_instant_release(start);
+    fl_instant_release(start);
     PASS();
 }
 
@@ -70,13 +70,13 @@ static void test_elapsed_us_positive(void) {
 static void test_diff_ms_basic(void) {
     TEST(diff_ms_basic);
 
-    RF_Instant* start = rf_time_now();
+    FL_Instant* start = fl_time_now();
     usleep(20000); /* 20ms */
-    RF_Instant* end = rf_time_now();
-    rf_int64 diff = rf_time_diff_ms(start, end);
+    FL_Instant* end = fl_time_now();
+    fl_int64 diff = fl_time_diff_ms(start, end);
     assert(diff > 0);
-    rf_instant_release(start);
-    rf_instant_release(end);
+    fl_instant_release(start);
+    fl_instant_release(end);
     PASS();
 }
 
@@ -87,17 +87,17 @@ static void test_diff_ms_basic(void) {
 static void test_datetime_now_valid(void) {
     TEST(datetime_now_valid);
 
-    RF_DateTime* dt = rf_time_datetime_now();
+    FL_DateTime* dt = fl_time_datetime_now();
     assert(dt != NULL);
-    rf_int year = rf_time_year(dt);
-    rf_int month = rf_time_month(dt);
-    rf_int day = rf_time_day(dt);
+    fl_int year = fl_time_year(dt);
+    fl_int month = fl_time_month(dt);
+    fl_int day = fl_time_day(dt);
 
     assert(year >= 2026);
     assert(month >= 1 && month <= 12);
     assert(day >= 1 && day <= 31);
 
-    rf_datetime_release(dt);
+    fl_datetime_release(dt);
     PASS();
 }
 
@@ -108,17 +108,17 @@ static void test_datetime_now_valid(void) {
 static void test_datetime_utc_valid(void) {
     TEST(datetime_utc_valid);
 
-    RF_DateTime* dt = rf_time_datetime_utc();
+    FL_DateTime* dt = fl_time_datetime_utc();
     assert(dt != NULL);
-    rf_int year = rf_time_year(dt);
-    rf_int month = rf_time_month(dt);
-    rf_int day = rf_time_day(dt);
+    fl_int year = fl_time_year(dt);
+    fl_int month = fl_time_month(dt);
+    fl_int day = fl_time_day(dt);
 
     assert(year >= 2026);
     assert(month >= 1 && month <= 12);
     assert(day >= 1 && day <= 31);
 
-    rf_datetime_release(dt);
+    fl_datetime_release(dt);
     PASS();
 }
 
@@ -129,7 +129,7 @@ static void test_datetime_utc_valid(void) {
 static void test_unix_timestamp_positive(void) {
     TEST(unix_timestamp_positive);
 
-    rf_int64 ts = rf_time_unix_timestamp();
+    fl_int64 ts = fl_time_unix_timestamp();
     /* Must be after Nov 2023 */
     assert(ts > 1700000000);
     PASS();
@@ -142,7 +142,7 @@ static void test_unix_timestamp_positive(void) {
 static void test_unix_timestamp_ms_positive(void) {
     TEST(unix_timestamp_ms_positive);
 
-    rf_int64 ts_ms = rf_time_unix_timestamp_ms();
+    fl_int64 ts_ms = fl_time_unix_timestamp_ms();
     /* Must be after Nov 2023 in milliseconds */
     assert(ts_ms > 1700000000000LL);
     PASS();
@@ -155,27 +155,27 @@ static void test_unix_timestamp_ms_positive(void) {
 static void test_format_iso8601(void) {
     TEST(format_iso8601);
 
-    RF_DateTime* dt = rf_time_datetime_utc();
-    RF_String* s = rf_time_format_iso8601(dt);
+    FL_DateTime* dt = fl_time_datetime_utc();
+    FL_String* s = fl_time_format_iso8601(dt);
     assert(s != NULL);
     assert(s->len >= 25); /* e.g. 2026-02-22T14:30:45+00:00 */
 
     /* Must contain 'T' separator */
-    rf_bool has_t = rf_false;
-    for (rf_int64 i = 0; i < s->len; i++) {
-        if (s->data[i] == 'T') { has_t = rf_true; break; }
+    fl_bool has_t = fl_false;
+    for (fl_int64 i = 0; i < s->len; i++) {
+        if (s->data[i] == 'T') { has_t = fl_true; break; }
     }
-    assert(has_t == rf_true);
+    assert(has_t == fl_true);
 
     /* Must contain '+' or '-' for timezone */
-    rf_bool has_tz = rf_false;
-    for (rf_int64 i = 10; i < s->len; i++) {
-        if (s->data[i] == '+' || s->data[i] == '-') { has_tz = rf_true; break; }
+    fl_bool has_tz = fl_false;
+    for (fl_int64 i = 10; i < s->len; i++) {
+        if (s->data[i] == '+' || s->data[i] == '-') { has_tz = fl_true; break; }
     }
-    assert(has_tz == rf_true);
+    assert(has_tz == fl_true);
 
-    rf_string_release(s);
-    rf_datetime_release(dt);
+    fl_string_release(s);
+    fl_datetime_release(dt);
     PASS();
 }
 
@@ -186,26 +186,26 @@ static void test_format_iso8601(void) {
 static void test_format_rfc2822(void) {
     TEST(format_rfc2822);
 
-    RF_DateTime* dt = rf_time_datetime_utc();
-    RF_String* s = rf_time_format_rfc2822(dt);
+    FL_DateTime* dt = fl_time_datetime_utc();
+    FL_String* s = fl_time_format_rfc2822(dt);
     assert(s != NULL);
 
     /* Should contain a comma (day abbreviation) */
-    rf_bool has_comma = rf_false;
-    for (rf_int64 i = 0; i < s->len; i++) {
-        if (s->data[i] == ',') { has_comma = rf_true; break; }
+    fl_bool has_comma = fl_false;
+    for (fl_int64 i = 0; i < s->len; i++) {
+        if (s->data[i] == ',') { has_comma = fl_true; break; }
     }
-    assert(has_comma == rf_true);
+    assert(has_comma == fl_true);
 
     /* Should contain '+' or '-' for timezone offset */
-    rf_bool has_tz = rf_false;
-    for (rf_int64 i = 10; i < s->len; i++) {
-        if (s->data[i] == '+' || s->data[i] == '-') { has_tz = rf_true; break; }
+    fl_bool has_tz = fl_false;
+    for (fl_int64 i = 10; i < s->len; i++) {
+        if (s->data[i] == '+' || s->data[i] == '-') { has_tz = fl_true; break; }
     }
-    assert(has_tz == rf_true);
+    assert(has_tz == fl_true);
 
-    rf_string_release(s);
-    rf_datetime_release(dt);
+    fl_string_release(s);
+    fl_datetime_release(dt);
     PASS();
 }
 
@@ -216,8 +216,8 @@ static void test_format_rfc2822(void) {
 static void test_format_http_gmt(void) {
     TEST(format_http_gmt);
 
-    RF_DateTime* dt = rf_time_datetime_now();
-    RF_String* s = rf_time_format_http(dt);
+    FL_DateTime* dt = fl_time_datetime_now();
+    FL_String* s = fl_time_format_http(dt);
     assert(s != NULL);
     assert(s->len >= 3);
 
@@ -226,8 +226,8 @@ static void test_format_http_gmt(void) {
     assert(s->data[s->len - 2] == 'M');
     assert(s->data[s->len - 1] == 'T');
 
-    rf_string_release(s);
-    rf_datetime_release(dt);
+    fl_string_release(s);
+    fl_datetime_release(dt);
     PASS();
 }
 
@@ -238,13 +238,13 @@ static void test_format_http_gmt(void) {
 static void test_component_consistency(void) {
     TEST(component_consistency);
 
-    RF_DateTime* dt = rf_time_datetime_now();
-    rf_int year = rf_time_year(dt);
-    rf_int month = rf_time_month(dt);
-    rf_int day = rf_time_day(dt);
-    rf_int hour = rf_time_hour(dt);
-    rf_int minute = rf_time_minute(dt);
-    rf_int second = rf_time_second(dt);
+    FL_DateTime* dt = fl_time_datetime_now();
+    fl_int year = fl_time_year(dt);
+    fl_int month = fl_time_month(dt);
+    fl_int day = fl_time_day(dt);
+    fl_int hour = fl_time_hour(dt);
+    fl_int minute = fl_time_minute(dt);
+    fl_int second = fl_time_second(dt);
 
     assert(year >= 2024 && year <= 2100);
     assert(month >= 1 && month <= 12);
@@ -253,7 +253,7 @@ static void test_component_consistency(void) {
     assert(minute >= 0 && minute <= 59);
     assert(second >= 0 && second <= 60); /* 60 for leap second */
 
-    rf_datetime_release(dt);
+    fl_datetime_release(dt);
     PASS();
 }
 
@@ -264,8 +264,8 @@ static void test_component_consistency(void) {
 static void test_instant_release_no_crash(void) {
     TEST(instant_release_no_crash);
 
-    RF_Instant* inst = rf_time_now();
-    rf_instant_release(inst);
+    FL_Instant* inst = fl_time_now();
+    fl_instant_release(inst);
     /* If we got here, no crash */
     PASS();
 }
@@ -277,12 +277,12 @@ static void test_instant_release_no_crash(void) {
 static void test_datetime_release_no_crash(void) {
     TEST(datetime_release_no_crash);
 
-    RF_DateTime* dt = rf_time_datetime_now();
-    rf_datetime_release(dt);
+    FL_DateTime* dt = fl_time_datetime_now();
+    fl_datetime_release(dt);
     /* If we got here, no crash */
 
-    dt = rf_time_datetime_utc();
-    rf_datetime_release(dt);
+    dt = fl_time_datetime_utc();
+    fl_datetime_release(dt);
     /* If we got here, no crash */
     PASS();
 }

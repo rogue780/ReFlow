@@ -26,7 +26,7 @@ from compiler.errors import EmitError
 # ---------------------------------------------------------------------------
 
 def make_emitter(module: LModule | None = None,
-                 source_file: str = "test.reflow") -> Emitter:
+                 source_file: str = "test.flow") -> Emitter:
     """Create an Emitter with a default or custom module."""
     if module is None:
         module = LModule(type_defs=[], fn_defs=[], static_defs=[])
@@ -59,53 +59,53 @@ class TestEmitLType(unittest.TestCase):
     """Tests for _emit_ltype covering all LType variants."""
 
     def test_int32_signed(self) -> None:
-        self.assertEqual(emit_ltype(LInt(32, True)), "rf_int")
+        self.assertEqual(emit_ltype(LInt(32, True)), "fl_int")
 
     def test_int32_unsigned(self) -> None:
-        self.assertEqual(emit_ltype(LInt(32, False)), "rf_uint")
+        self.assertEqual(emit_ltype(LInt(32, False)), "fl_uint")
 
     def test_int16_signed(self) -> None:
-        self.assertEqual(emit_ltype(LInt(16, True)), "rf_int16")
+        self.assertEqual(emit_ltype(LInt(16, True)), "fl_int16")
 
     def test_int16_unsigned(self) -> None:
-        self.assertEqual(emit_ltype(LInt(16, False)), "rf_uint16")
+        self.assertEqual(emit_ltype(LInt(16, False)), "fl_uint16")
 
     def test_int64_signed(self) -> None:
-        self.assertEqual(emit_ltype(LInt(64, True)), "rf_int64")
+        self.assertEqual(emit_ltype(LInt(64, True)), "fl_int64")
 
     def test_int64_unsigned(self) -> None:
-        self.assertEqual(emit_ltype(LInt(64, False)), "rf_uint64")
+        self.assertEqual(emit_ltype(LInt(64, False)), "fl_uint64")
 
     def test_float64(self) -> None:
-        self.assertEqual(emit_ltype(LFloat(64)), "rf_float")
+        self.assertEqual(emit_ltype(LFloat(64)), "fl_float")
 
     def test_float32(self) -> None:
-        self.assertEqual(emit_ltype(LFloat(32)), "rf_float32")
+        self.assertEqual(emit_ltype(LFloat(32)), "fl_float32")
 
     def test_bool(self) -> None:
-        self.assertEqual(emit_ltype(LBool()), "rf_bool")
+        self.assertEqual(emit_ltype(LBool()), "fl_bool")
 
     def test_char(self) -> None:
-        self.assertEqual(emit_ltype(LChar()), "rf_char")
+        self.assertEqual(emit_ltype(LChar()), "fl_char")
 
     def test_byte(self) -> None:
-        self.assertEqual(emit_ltype(LByte()), "rf_byte")
+        self.assertEqual(emit_ltype(LByte()), "fl_byte")
 
     def test_void(self) -> None:
         self.assertEqual(emit_ltype(LVoid()), "void")
 
     def test_ptr_int(self) -> None:
-        self.assertEqual(emit_ltype(LPtr(LInt(32, True))), "rf_int*")
+        self.assertEqual(emit_ltype(LPtr(LInt(32, True))), "fl_int*")
 
     def test_ptr_struct(self) -> None:
-        self.assertEqual(emit_ltype(LPtr(LStruct("RF_String"))), "RF_String*")
+        self.assertEqual(emit_ltype(LPtr(LStruct("FL_String"))), "FL_String*")
 
     def test_struct(self) -> None:
-        self.assertEqual(emit_ltype(LStruct("rf_mod_MyType")), "rf_mod_MyType")
+        self.assertEqual(emit_ltype(LStruct("fl_mod_MyType")), "fl_mod_MyType")
 
     def test_fn_ptr(self) -> None:
         result = emit_ltype(LFnPtr([LInt(32, True), LInt(32, True)], LBool()))
-        self.assertEqual(result, "rf_bool (*)(rf_int, rf_int)")
+        self.assertEqual(result, "fl_bool (*)(fl_int, fl_int)")
 
     def test_fn_ptr_no_params(self) -> None:
         result = emit_ltype(LFnPtr([], LVoid()))
@@ -124,7 +124,7 @@ class TestEmitExpr(unittest.TestCase):
 
     def test_lit_string(self) -> None:
         self.assertEqual(
-            emit_expr(LLit('"hello"', LPtr(LStruct("RF_String")))),
+            emit_expr(LLit('"hello"', LPtr(LStruct("FL_String")))),
             '"hello"')
 
     def test_var(self) -> None:
@@ -132,15 +132,15 @@ class TestEmitExpr(unittest.TestCase):
 
     def test_call_no_args(self) -> None:
         self.assertEqual(
-            emit_expr(LCall("rf_mod_foo", [], LVoid())),
-            "rf_mod_foo()")
+            emit_expr(LCall("fl_mod_foo", [], LVoid())),
+            "fl_mod_foo()")
 
     def test_call_with_args(self) -> None:
-        result = emit_expr(LCall("rf_mod_add",
+        result = emit_expr(LCall("fl_mod_add",
                                  [LVar("x", LInt(32, True)),
                                   LVar("y", LInt(32, True))],
                                  LInt(32, True)))
-        self.assertEqual(result, "rf_mod_add(x, y)")
+        self.assertEqual(result, "fl_mod_add(x, y)")
 
     def test_indirect_call(self) -> None:
         fn_ptr = LVar("callback", LFnPtr([LInt(32, True)], LVoid()))
@@ -173,12 +173,12 @@ class TestEmitExpr(unittest.TestCase):
         self.assertEqual(result, "(!flag)")
 
     def test_field_access(self) -> None:
-        obj = LVar("point", LStruct("rf_mod_Point"))
+        obj = LVar("point", LStruct("fl_mod_Point"))
         result = emit_expr(LFieldAccess(obj, "x", LFloat(64)))
         self.assertEqual(result, "point.x")
 
     def test_arrow(self) -> None:
-        ptr = LVar("self", LPtr(LStruct("rf_mod_Point")))
+        ptr = LVar("self", LPtr(LStruct("fl_mod_Point")))
         result = emit_expr(LArrow(ptr, "x", LFloat(64)))
         self.assertEqual(result, "self->x")
 
@@ -191,7 +191,7 @@ class TestEmitExpr(unittest.TestCase):
     def test_cast(self) -> None:
         inner = LVar("x", LInt(32, True))
         result = emit_expr(LCast(inner, LFloat(64)))
-        self.assertEqual(result, "((rf_float)x)")
+        self.assertEqual(result, "((fl_float)x)")
 
     def test_addr_of(self) -> None:
         result = emit_expr(LAddrOf(LVar("x", LInt(32, True)),
@@ -204,8 +204,8 @@ class TestEmitExpr(unittest.TestCase):
         self.assertEqual(result, "(*p)")
 
     def test_sizeof(self) -> None:
-        result = emit_expr(LSizeOf(LStruct("rf_mod_Point")))
-        self.assertEqual(result, "sizeof(rf_mod_Point)")
+        result = emit_expr(LSizeOf(LStruct("fl_mod_Point")))
+        self.assertEqual(result, "sizeof(fl_mod_Point)")
 
     def test_ternary(self) -> None:
         result = emit_expr(LTernary(
@@ -219,9 +219,9 @@ class TestEmitExpr(unittest.TestCase):
         result = emit_expr(LCompound(
             [("x", LLit("1", LInt(32, True))),
              ("y", LLit("2", LInt(32, True)))],
-            LStruct("rf_mod_Point")))
+            LStruct("fl_mod_Point")))
         self.assertEqual(result,
-                         "(rf_mod_Point){.x = 1, .y = 2}")
+                         "(fl_mod_Point){.x = 1, .y = 2}")
 
     def test_checked_arith_add(self) -> None:
         """LCheckedArith emits hoisted temp + macro, returns temp name."""
@@ -232,11 +232,11 @@ class TestEmitExpr(unittest.TestCase):
             LVar("b", LInt(32, True)),
             LInt(32, True)))
         # The expression value is the temp name
-        self.assertEqual(result, "_rf_e_1")
+        self.assertEqual(result, "_fl_e_1")
         # pre_stmts should contain declaration and macro call
         self.assertEqual(len(e._pre_stmts), 2)
-        self.assertEqual(e._pre_stmts[0], "rf_int _rf_e_1;")
-        self.assertEqual(e._pre_stmts[1], "RF_CHECKED_ADD(a, b, &_rf_e_1);")
+        self.assertEqual(e._pre_stmts[0], "fl_int _fl_e_1;")
+        self.assertEqual(e._pre_stmts[1], "FL_CHECKED_ADD(a, b, &_fl_e_1);")
 
     def test_checked_arith_sub(self) -> None:
         e = make_emitter()
@@ -245,9 +245,9 @@ class TestEmitExpr(unittest.TestCase):
             LVar("x", LInt(64, True)),
             LVar("y", LInt(64, True)),
             LInt(64, True)))
-        self.assertEqual(result, "_rf_e_1")
-        self.assertIn("RF_CHECKED_SUB", e._pre_stmts[1])
-        self.assertIn("rf_int64", e._pre_stmts[0])
+        self.assertEqual(result, "_fl_e_1")
+        self.assertIn("FL_CHECKED_SUB", e._pre_stmts[1])
+        self.assertIn("fl_int64", e._pre_stmts[0])
 
     def test_checked_arith_mul(self) -> None:
         e = make_emitter()
@@ -256,8 +256,8 @@ class TestEmitExpr(unittest.TestCase):
             LVar("a", LInt(32, True)),
             LLit("2", LInt(32, True)),
             LInt(32, True)))
-        self.assertEqual(result, "_rf_e_1")
-        self.assertIn("RF_CHECKED_MUL", e._pre_stmts[1])
+        self.assertEqual(result, "_fl_e_1")
+        self.assertIn("FL_CHECKED_MUL", e._pre_stmts[1])
 
     def test_checked_arith_invalid_op(self) -> None:
         e = make_emitter()
@@ -279,8 +279,8 @@ class TestEmitExpr(unittest.TestCase):
                                          LVar("c", LInt(32, True)),
                                          LVar("d", LInt(32, True)),
                                          LInt(32, True)))
-        self.assertEqual(r1, "_rf_e_1")
-        self.assertEqual(r2, "_rf_e_2")
+        self.assertEqual(r1, "_fl_e_1")
+        self.assertEqual(r2, "_fl_e_2")
 
 
 # ---------------------------------------------------------------------------
@@ -293,16 +293,16 @@ class TestEmitStmt(unittest.TestCase):
     def test_var_decl_with_init(self) -> None:
         result = emit_stmt(LVarDecl("x", LInt(32, True),
                                     LLit("42", LInt(32, True))))
-        self.assertEqual(result, "rf_int x = 42;\n")
+        self.assertEqual(result, "fl_int x = 42;\n")
 
     def test_var_decl_no_init(self) -> None:
         result = emit_stmt(LVarDecl("x", LInt(32, True), None))
-        self.assertEqual(result, "rf_int x;\n")
+        self.assertEqual(result, "fl_int x;\n")
 
     def test_var_decl_ptr_type(self) -> None:
-        result = emit_stmt(LVarDecl("p", LPtr(LStruct("RF_String")),
-                                    LLit("NULL", LPtr(LStruct("RF_String")))))
-        self.assertEqual(result, "RF_String* p = NULL;\n")
+        result = emit_stmt(LVarDecl("p", LPtr(LStruct("FL_String")),
+                                    LLit("NULL", LPtr(LStruct("FL_String")))))
+        self.assertEqual(result, "FL_String* p = NULL;\n")
 
     def test_assign(self) -> None:
         result = emit_stmt(LAssign(
@@ -312,7 +312,7 @@ class TestEmitStmt(unittest.TestCase):
 
     def test_assign_field(self) -> None:
         result = emit_stmt(LAssign(
-            LFieldAccess(LVar("point", LStruct("rf_P")), "x", LFloat(64)),
+            LFieldAccess(LVar("point", LStruct("fl_P")), "x", LFloat(64)),
             LLit("3.14", LFloat(64))))
         self.assertEqual(result, "point.x = 3.14;\n")
 
@@ -326,9 +326,9 @@ class TestEmitStmt(unittest.TestCase):
 
     def test_expr_stmt(self) -> None:
         result = emit_stmt(LExprStmt(
-            LCall("rf_println", [LVar("s", LPtr(LStruct("RF_String")))],
+            LCall("fl_println", [LVar("s", LPtr(LStruct("FL_String")))],
                   LVoid())))
-        self.assertEqual(result, "rf_println(s);\n")
+        self.assertEqual(result, "fl_println(s);\n")
 
     def test_if_no_else(self) -> None:
         result = emit_stmt(LIf(
@@ -362,7 +362,7 @@ class TestEmitStmt(unittest.TestCase):
             LVarDecl("tmp", LInt(32, True), LLit("0", LInt(32, True))),
         ]))
         self.assertIn("{", result)
-        self.assertIn("rf_int tmp = 0;", result)
+        self.assertIn("fl_int tmp = 0;", result)
         self.assertIn("}", result)
 
     def test_switch(self) -> None:
@@ -397,9 +397,9 @@ class TestEmitStmt(unittest.TestCase):
                           LVar("b", LInt(32, True)),
                           LInt(32, True))))
         # Should contain the hoisted temp declaration, macro call, then assignment
-        self.assertIn("rf_int _rf_e_1;", result)
-        self.assertIn("RF_CHECKED_ADD(a, b, &_rf_e_1);", result)
-        self.assertIn("rf_int sum = _rf_e_1;", result)
+        self.assertIn("fl_int _fl_e_1;", result)
+        self.assertIn("FL_CHECKED_ADD(a, b, &_fl_e_1);", result)
+        self.assertIn("fl_int sum = _fl_e_1;", result)
 
     def test_return_with_checked_arith(self) -> None:
         """Return with LCheckedArith flushes pre_stmts before the return."""
@@ -408,9 +408,9 @@ class TestEmitStmt(unittest.TestCase):
                           LVar("x", LInt(32, True)),
                           LVar("y", LInt(32, True)),
                           LInt(32, True))))
-        self.assertIn("rf_int _rf_e_1;", result)
-        self.assertIn("RF_CHECKED_ADD(x, y, &_rf_e_1);", result)
-        self.assertIn("return _rf_e_1;", result)
+        self.assertIn("fl_int _fl_e_1;", result)
+        self.assertIn("FL_CHECKED_ADD(x, y, &_fl_e_1);", result)
+        self.assertIn("return _fl_e_1;", result)
 
 
 # ---------------------------------------------------------------------------
@@ -421,21 +421,21 @@ class TestEmitTypeDef(unittest.TestCase):
     """Tests for _emit_type_def."""
 
     def test_simple_struct(self) -> None:
-        td = LTypeDef("rf_mod_Point", [
+        td = LTypeDef("fl_mod_Point", [
             ("x", LFloat(64)),
             ("y", LFloat(64)),
         ])
         e = make_emitter()
         e._emit_type_def(td)
         result = e._get_output()
-        self.assertIn("struct rf_mod_Point {", result)
-        self.assertIn("rf_float x;", result)
-        self.assertIn("rf_float y;", result)
+        self.assertIn("struct fl_mod_Point {", result)
+        self.assertIn("fl_float x;", result)
+        self.assertIn("fl_float y;", result)
         self.assertIn("};", result)
 
     def test_tagged_union_struct(self) -> None:
         """Sum types are lowered as structs with tag + payload fields."""
-        td = LTypeDef("rf_mod_Shape", [
+        td = LTypeDef("fl_mod_Shape", [
             ("tag", LByte()),
             ("circle_radius", LFloat(64)),
             ("rect_width", LFloat(64)),
@@ -444,20 +444,20 @@ class TestEmitTypeDef(unittest.TestCase):
         e = make_emitter()
         e._emit_type_def(td)
         result = e._get_output()
-        self.assertIn("struct rf_mod_Shape {", result)
-        self.assertIn("rf_byte tag;", result)
-        self.assertIn("rf_float circle_radius;", result)
+        self.assertIn("struct fl_mod_Shape {", result)
+        self.assertIn("fl_byte tag;", result)
+        self.assertIn("fl_float circle_radius;", result)
 
     def test_struct_with_ptr_field(self) -> None:
-        td = LTypeDef("rf_mod_Node", [
+        td = LTypeDef("fl_mod_Node", [
             ("value", LInt(32, True)),
-            ("next", LPtr(LStruct("rf_mod_Node"))),
+            ("next", LPtr(LStruct("fl_mod_Node"))),
         ])
         e = make_emitter()
         e._emit_type_def(td)
         result = e._get_output()
-        self.assertIn("rf_int value;", result)
-        self.assertIn("rf_mod_Node* next;", result)
+        self.assertIn("fl_int value;", result)
+        self.assertIn("fl_mod_Node* next;", result)
 
 
 # ---------------------------------------------------------------------------
@@ -469,7 +469,7 @@ class TestEmitFnDef(unittest.TestCase):
 
     def test_simple_function(self) -> None:
         fn = LFnDef(
-            c_name="rf_test_identity",
+            c_name="fl_test_identity",
             params=[("x", LInt(32, True))],
             ret=LInt(32, True),
             body=[LReturn(LVar("x", LInt(32, True)))],
@@ -479,14 +479,14 @@ class TestEmitFnDef(unittest.TestCase):
         e = make_emitter()
         e._emit_fn_def(fn)
         result = e._get_output()
-        self.assertIn("/* ReFlow: test.identity */", result)
-        self.assertIn("rf_int rf_test_identity(rf_int x) {", result)
+        self.assertIn("/* Flow: test.identity */", result)
+        self.assertIn("fl_int fl_test_identity(fl_int x) {", result)
         self.assertIn("return x;", result)
         self.assertIn("}", result)
 
     def test_void_no_params(self) -> None:
         fn = LFnDef(
-            c_name="rf_test_noop",
+            c_name="fl_test_noop",
             params=[],
             ret=LVoid(),
             body=[LReturn(None)],
@@ -496,10 +496,10 @@ class TestEmitFnDef(unittest.TestCase):
         e = make_emitter()
         e._emit_fn_def(fn)
         result = e._get_output()
-        self.assertIn("void rf_test_noop(void) {", result)
+        self.assertIn("void fl_test_noop(void) {", result)
 
     def test_no_source_name(self) -> None:
-        """Function without source_name should not emit ReFlow comment."""
+        """Function without source_name should not emit Flow comment."""
         fn = LFnDef(
             c_name="helper",
             params=[],
@@ -510,12 +510,12 @@ class TestEmitFnDef(unittest.TestCase):
         e = make_emitter()
         e._emit_fn_def(fn)
         result = e._get_output()
-        self.assertNotIn("/* ReFlow:", result)
+        self.assertNotIn("/* Flow:", result)
 
     def test_temp_counter_resets_per_function(self) -> None:
         """Temp counter resets for each function."""
         fn1 = LFnDef(
-            c_name="rf_test_fn1",
+            c_name="fl_test_fn1",
             params=[],
             ret=LInt(32, True),
             body=[LReturn(LCheckedArith("+",
@@ -526,7 +526,7 @@ class TestEmitFnDef(unittest.TestCase):
             source_name="test.fn1",
         )
         fn2 = LFnDef(
-            c_name="rf_test_fn2",
+            c_name="fl_test_fn2",
             params=[],
             ret=LInt(32, True),
             body=[LReturn(LCheckedArith("+",
@@ -537,10 +537,10 @@ class TestEmitFnDef(unittest.TestCase):
             source_name="test.fn2",
         )
         mod = LModule(type_defs=[], fn_defs=[fn1, fn2], static_defs=[])
-        e = Emitter(mod, "test.reflow")
+        e = Emitter(mod, "test.flow")
         result = e.emit()
-        # Both functions should use _rf_e_1 (counter resets)
-        self.assertEqual(result.count("_rf_e_1"), 6)  # 3 per function (decl, macro, return)
+        # Both functions should use _fl_e_1 (counter resets)
+        self.assertEqual(result.count("_fl_e_1"), 6)  # 3 per function (decl, macro, return)
 
 
 # ---------------------------------------------------------------------------
@@ -551,34 +551,34 @@ class TestEmitStaticDef(unittest.TestCase):
     """Tests for _emit_static_def."""
 
     def test_mutable_with_init(self) -> None:
-        sd = LStaticDef("rf_test_counter", LInt(32, True),
+        sd = LStaticDef("fl_test_counter", LInt(32, True),
                          LLit("0", LInt(32, True)), is_mut=True)
         e = make_emitter()
         e._emit_static_def(sd)
         result = e._get_output()
-        self.assertEqual(result, "rf_int rf_test_counter = 0;\n")
+        self.assertEqual(result, "fl_int fl_test_counter = 0;\n")
 
     def test_mutable_no_init(self) -> None:
-        sd = LStaticDef("rf_test_counter", LInt(32, True), None, is_mut=True)
+        sd = LStaticDef("fl_test_counter", LInt(32, True), None, is_mut=True)
         e = make_emitter()
         e._emit_static_def(sd)
         result = e._get_output()
-        self.assertEqual(result, "rf_int rf_test_counter;\n")
+        self.assertEqual(result, "fl_int fl_test_counter;\n")
 
     def test_immutable_with_init(self) -> None:
-        sd = LStaticDef("rf_test_PI", LFloat(64),
+        sd = LStaticDef("fl_test_PI", LFloat(64),
                          LLit("3.14159", LFloat(64)), is_mut=False)
         e = make_emitter()
         e._emit_static_def(sd)
         result = e._get_output()
-        self.assertEqual(result, "static const rf_float rf_test_PI = 3.14159;\n")
+        self.assertEqual(result, "static const fl_float fl_test_PI = 3.14159;\n")
 
     def test_immutable_no_init(self) -> None:
-        sd = LStaticDef("rf_test_DEFAULT", LInt(32, True), None, is_mut=False)
+        sd = LStaticDef("fl_test_DEFAULT", LInt(32, True), None, is_mut=False)
         e = make_emitter()
         e._emit_static_def(sd)
         result = e._get_output()
-        self.assertEqual(result, "static const rf_int rf_test_DEFAULT;\n")
+        self.assertEqual(result, "static const fl_int fl_test_DEFAULT;\n")
 
 
 # ---------------------------------------------------------------------------
@@ -590,15 +590,15 @@ class TestEmitFull(unittest.TestCase):
 
     def test_empty_module(self) -> None:
         mod = LModule(type_defs=[], fn_defs=[], static_defs=[])
-        result = Emitter(mod, "empty.reflow").emit()
-        self.assertIn("/* Generated by reflowc - do not edit */", result)
-        self.assertIn("/* Source: empty.reflow */", result)
-        self.assertIn('#include "reflow_runtime.h"', result)
+        result = Emitter(mod, "empty.flow").emit()
+        self.assertIn("/* Generated by flowc - do not edit */", result)
+        self.assertIn("/* Source: empty.flow */", result)
+        self.assertIn('#include "flow_runtime.h"', result)
 
     def test_hello_world_structure(self) -> None:
         """A simple add function should produce the expected structure."""
         fn = LFnDef(
-            c_name="rf_tests_hello_add",
+            c_name="fl_tests_hello_add",
             params=[("x", LInt(32, True)), ("y", LInt(32, True))],
             ret=LInt(32, True),
             body=[LReturn(LCheckedArith(
@@ -610,67 +610,67 @@ class TestEmitFull(unittest.TestCase):
             source_name="tests.hello.add",
         )
         mod = LModule(type_defs=[], fn_defs=[fn], static_defs=[])
-        result = Emitter(mod, "tests/programs/hello.reflow").emit()
+        result = Emitter(mod, "tests/programs/hello.flow").emit()
 
         expected = (
-            "/* Generated by reflowc - do not edit */\n"
-            "/* Source: tests/programs/hello.reflow */\n"
-            '#include "reflow_runtime.h"\n'
+            "/* Generated by flowc - do not edit */\n"
+            "/* Source: tests/programs/hello.flow */\n"
+            '#include "flow_runtime.h"\n'
             "\n"
-            "/* ReFlow: tests.hello.add */\n"
-            "rf_int rf_tests_hello_add(rf_int x, rf_int y) {\n"
-            "    rf_int _rf_e_1;\n"
-            "    RF_CHECKED_ADD(x, y, &_rf_e_1);\n"
-            "    return _rf_e_1;\n"
+            "/* Flow: tests.hello.add */\n"
+            "fl_int fl_tests_hello_add(fl_int x, fl_int y) {\n"
+            "    fl_int _fl_e_1;\n"
+            "    FL_CHECKED_ADD(x, y, &_fl_e_1);\n"
+            "    return _fl_e_1;\n"
             "}\n"
         )
         self.assertEqual(result, expected)
 
     def test_module_with_types_has_forward_decls(self) -> None:
         """Module with type defs emits forward declarations."""
-        td = LTypeDef("rf_mod_Point", [
+        td = LTypeDef("fl_mod_Point", [
             ("x", LFloat(64)),
             ("y", LFloat(64)),
         ])
         fn = LFnDef(
-            c_name="rf_mod_origin",
+            c_name="fl_mod_origin",
             params=[],
-            ret=LStruct("rf_mod_Point"),
+            ret=LStruct("fl_mod_Point"),
             body=[LReturn(LCompound(
                 [("x", LLit("0.0", LFloat(64))),
                  ("y", LLit("0.0", LFloat(64)))],
-                LStruct("rf_mod_Point")))],
+                LStruct("fl_mod_Point")))],
             is_pure=True,
             source_name="mod.origin",
         )
         mod = LModule(type_defs=[td], fn_defs=[fn], static_defs=[])
-        result = Emitter(mod, "test.reflow").emit()
+        result = Emitter(mod, "test.flow").emit()
         # Should have forward declarations
-        self.assertIn("typedef struct rf_mod_Point rf_mod_Point;", result)
+        self.assertIn("typedef struct fl_mod_Point fl_mod_Point;", result)
         # Function prototype forward declaration
-        self.assertIn("rf_mod_Point rf_mod_origin(void);", result)
+        self.assertIn("fl_mod_Point fl_mod_origin(void);", result)
         # Then the actual struct and function definitions
-        self.assertIn("struct rf_mod_Point {", result)
-        self.assertIn("rf_mod_Point rf_mod_origin(void) {", result)
+        self.assertIn("struct fl_mod_Point {", result)
+        self.assertIn("fl_mod_Point fl_mod_origin(void) {", result)
 
     def test_module_with_statics(self) -> None:
         """Module with static defs emits them between types and functions."""
-        sd = LStaticDef("rf_mod_MAX", LInt(32, True),
+        sd = LStaticDef("fl_mod_MAX", LInt(32, True),
                          LLit("100", LInt(32, True)), is_mut=False)
         fn = LFnDef(
-            c_name="rf_mod_get_max",
+            c_name="fl_mod_get_max",
             params=[],
             ret=LInt(32, True),
-            body=[LReturn(LVar("rf_mod_MAX", LInt(32, True)))],
+            body=[LReturn(LVar("fl_mod_MAX", LInt(32, True)))],
             is_pure=True,
             source_name="mod.get_max",
         )
         mod = LModule(type_defs=[], fn_defs=[fn], static_defs=[sd])
-        result = Emitter(mod, "test.reflow").emit()
-        self.assertIn("static const rf_int rf_mod_MAX = 100;", result)
+        result = Emitter(mod, "test.flow").emit()
+        self.assertIn("static const fl_int fl_mod_MAX = 100;", result)
         # Static should come before function
-        max_pos = result.index("rf_mod_MAX = 100")
-        fn_pos = result.index("rf_mod_get_max(void) {")
+        max_pos = result.index("fl_mod_MAX = 100")
+        fn_pos = result.index("fl_mod_get_max(void) {")
         self.assertLess(max_pos, fn_pos)
 
 
@@ -683,7 +683,7 @@ class TestFormatDecl(unittest.TestCase):
 
     def test_simple_decl(self) -> None:
         e = make_emitter()
-        self.assertEqual(e._format_decl(LInt(32, True), "x"), "rf_int x")
+        self.assertEqual(e._format_decl(LInt(32, True), "x"), "fl_int x")
 
     def test_ptr_decl(self) -> None:
         e = make_emitter()
@@ -693,7 +693,7 @@ class TestFormatDecl(unittest.TestCase):
         e = make_emitter()
         result = e._format_decl(
             LFnPtr([LInt(32, True)], LBool()), "callback")
-        self.assertEqual(result, "rf_bool (*callback)(rf_int)")
+        self.assertEqual(result, "fl_bool (*callback)(fl_int)")
 
 
 # ---------------------------------------------------------------------------

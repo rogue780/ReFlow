@@ -1,0 +1,81 @@
+; generic_collections.flow — Demonstrates generic array and map functions
+;
+; Shows how to use the generic stdlib functions for arrays and maps
+; with different value types including strings, ints, and coroutines.
+
+module examples.generic_collections
+
+import io (println)
+import array
+import map
+import conv
+
+fn main() {
+    ; --- Generic arrays ---
+
+    ; Push strings into an array using the generic push<T>
+    let names: array<string>:mut = []
+    names = array.push(names, "Alice")
+    names = array.push(names, "Bob")
+    names = array.push(names, "Carol")
+
+    println("Names:")
+    let i: int:mut = 0
+    while (i < array.size(names)) {
+        match array.get_any(names, i) {
+            some(name): { println(f"  {name}") }
+            none: {}
+        }
+        i = i + 1
+    }
+
+    ; Push ints using the type-specific push_int
+    let scores: array<int>:mut = []
+    scores = array.push_int(scores, 95)
+    scores = array.push_int(scores, 87)
+    scores = array.push_int(scores, 92)
+
+    println(f"\nScores ({array.size(scores)} entries):")
+    let j: int:mut = 0
+    while (j < array.size(scores)) {
+        match array.get_int(scores, j) {
+            some(s): { println(f"  {s}") }
+            none: {}
+        }
+        j = j + 1
+    }
+
+    ; Concatenate string arrays
+    let group_a: array<string>:mut = []
+    group_a = array.push(group_a, "X")
+    group_a = array.push(group_a, "Y")
+    let group_b: array<string>:mut = []
+    group_b = array.push(group_b, "Z")
+    let combined = array.concat(group_a, group_b)
+    println(f"\nCombined: {array.size(combined)} items")
+
+    ; --- Generic maps ---
+
+    ; Map with string values (generic V = string)
+    let config: map<string, string>:mut = map.new()
+    config = map.set(config, "host", "localhost")
+    config = map.set(config, "port", "8080")
+    config = map.set(config, "mode", "debug")
+
+    println("\nConfig:")
+    let keys = map.keys(config)
+    let k: int:mut = 0
+    while (k < array.len_string(keys)) {
+        match array.get(keys, k) {
+            some(key): {
+                let val = map.get(config, key) ?? "?"
+                println(f"  {key} = {val}")
+            }
+            none: {}
+        }
+        k = k + 1
+    }
+
+    println(f"has 'host': {map.has(config, "host")}")
+    println(f"has 'missing': {map.has(config, "missing")}")
+}

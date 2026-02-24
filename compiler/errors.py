@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class ReFlowError(Exception):
+class FlowError(Exception):
     """Base class for all compiler errors."""
     message: str
     file: str
@@ -18,30 +18,30 @@ class ReFlowError(Exception):
 
 
 @dataclass
-class LexError(ReFlowError):
+class LexError(FlowError):
     """Bad character, unterminated literal."""
     pass
 
 
 @dataclass
-class ParseError(ReFlowError):
+class ParseError(FlowError):
     """Syntax error."""
     pass
 
 
 @dataclass
-class ResolveError(ReFlowError):
+class ResolveError(FlowError):
     """Undefined name, scope violation."""
     pass
 
 
 @dataclass
-class TypeError(ReFlowError):
+class TypeError(FlowError):
     """Type mismatch, exhaustiveness, purity."""
     pass
 
 
 @dataclass
-class EmitError(ReFlowError):
+class EmitError(FlowError):
     """Malformed LIR."""
     pass

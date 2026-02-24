@@ -1,9 +1,0 @@
-module char
-
-export fn:pure is_digit(c: char): bool = native "rf_char_is_digit"
-export fn:pure is_alpha(c: char): bool = native "rf_char_is_alpha"
-export fn:pure is_alphanumeric(c: char): bool = native "rf_char_is_alphanumeric"
-export fn:pure is_whitespace(c: char): bool = native "rf_char_is_whitespace"
-export fn:pure to_code(c: char): int = native "rf_char_to_int"
-export fn:pure from_code(n: int): char = native "rf_int_to_char"
-export fn:pure to_string(c: char): string = native "rf_char_to_string"

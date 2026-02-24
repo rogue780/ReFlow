@@ -7,7 +7,7 @@ destination using a `map<string, string>` and printed in groups.
 ## Run it
 
 ```bash
-python main.py build examples/stream_mux.reflow -o /tmp/stream_mux && /tmp/stream_mux
+python main.py build examples/stream_mux.flow -o /tmp/stream_mux && /tmp/stream_mux
 ```
 
 ## What it does

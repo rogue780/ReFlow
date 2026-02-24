@@ -5,7 +5,7 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "../../runtime/reflow_runtime.h"
+#include "../../runtime/flow_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,25 +27,25 @@ static int tests_passed = 0;
 static void test_enumerate_indices(void) {
     TEST(enumerate_indices);
 
-    RF_Stream* src = rf_stream_range(10, 13);
-    RF_Stream* s = rf_stream_enumerate(src);
+    FL_Stream* src = fl_stream_range(10, 13);
+    FL_Stream* s = fl_stream_enumerate(src);
 
-    for (rf_int i = 0; i < 3; i++) {
-        RF_Option_ptr opt = rf_stream_next(s);
+    for (fl_int i = 0; i < 3; i++) {
+        FL_Option_ptr opt = fl_stream_next(s);
         assert(opt.tag == 1);
-        RF_Pair* pair = (RF_Pair*)opt.value;
-        rf_int64 idx = (rf_int64)(intptr_t)pair->first;
-        rf_int val = (rf_int)(intptr_t)pair->second;
+        FL_Pair* pair = (FL_Pair*)opt.value;
+        fl_int64 idx = (fl_int64)(intptr_t)pair->first;
+        fl_int val = (fl_int)(intptr_t)pair->second;
         assert(idx == i);
         assert(val == 10 + i);
         free(pair);
     }
 
-    RF_Option_ptr end = rf_stream_next(s);
+    FL_Option_ptr end = fl_stream_next(s);
     assert(end.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(src);
+    fl_stream_release(s);
+    fl_stream_release(src);
     PASS();
 }
 
@@ -56,14 +56,14 @@ static void test_enumerate_indices(void) {
 static void test_enumerate_empty(void) {
     TEST(enumerate_empty);
 
-    RF_Stream* src = rf_stream_empty();
-    RF_Stream* s = rf_stream_enumerate(src);
+    FL_Stream* src = fl_stream_empty();
+    FL_Stream* s = fl_stream_enumerate(src);
 
-    RF_Option_ptr opt = rf_stream_next(s);
+    FL_Option_ptr opt = fl_stream_next(s);
     assert(opt.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(src);
+    fl_stream_release(s);
+    fl_stream_release(src);
     PASS();
 }
 
@@ -74,27 +74,27 @@ static void test_enumerate_empty(void) {
 static void test_zip_same_length(void) {
     TEST(zip_same_length);
 
-    RF_Stream* a = rf_stream_range(0, 3);
-    RF_Stream* b = rf_stream_range(10, 13);
-    RF_Stream* s = rf_stream_zip(a, b);
+    FL_Stream* a = fl_stream_range(0, 3);
+    FL_Stream* b = fl_stream_range(10, 13);
+    FL_Stream* s = fl_stream_zip(a, b);
 
-    for (rf_int i = 0; i < 3; i++) {
-        RF_Option_ptr opt = rf_stream_next(s);
+    for (fl_int i = 0; i < 3; i++) {
+        FL_Option_ptr opt = fl_stream_next(s);
         assert(opt.tag == 1);
-        RF_Pair* pair = (RF_Pair*)opt.value;
-        rf_int first = (rf_int)(intptr_t)pair->first;
-        rf_int second = (rf_int)(intptr_t)pair->second;
+        FL_Pair* pair = (FL_Pair*)opt.value;
+        fl_int first = (fl_int)(intptr_t)pair->first;
+        fl_int second = (fl_int)(intptr_t)pair->second;
         assert(first == i);
         assert(second == 10 + i);
         free(pair);
     }
 
-    RF_Option_ptr end = rf_stream_next(s);
+    FL_Option_ptr end = fl_stream_next(s);
     assert(end.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(a);
-    rf_stream_release(b);
+    fl_stream_release(s);
+    fl_stream_release(a);
+    fl_stream_release(b);
     PASS();
 }
 
@@ -105,27 +105,27 @@ static void test_zip_same_length(void) {
 static void test_zip_different_length(void) {
     TEST(zip_different_length);
 
-    RF_Stream* a = rf_stream_range(0, 5);
-    RF_Stream* b = rf_stream_range(0, 2);
-    RF_Stream* s = rf_stream_zip(a, b);
+    FL_Stream* a = fl_stream_range(0, 5);
+    FL_Stream* b = fl_stream_range(0, 2);
+    FL_Stream* s = fl_stream_zip(a, b);
 
-    for (rf_int i = 0; i < 2; i++) {
-        RF_Option_ptr opt = rf_stream_next(s);
+    for (fl_int i = 0; i < 2; i++) {
+        FL_Option_ptr opt = fl_stream_next(s);
         assert(opt.tag == 1);
-        RF_Pair* pair = (RF_Pair*)opt.value;
-        rf_int first = (rf_int)(intptr_t)pair->first;
-        rf_int second = (rf_int)(intptr_t)pair->second;
+        FL_Pair* pair = (FL_Pair*)opt.value;
+        fl_int first = (fl_int)(intptr_t)pair->first;
+        fl_int second = (fl_int)(intptr_t)pair->second;
         assert(first == i);
         assert(second == i);
         free(pair);
     }
 
-    RF_Option_ptr end = rf_stream_next(s);
+    FL_Option_ptr end = fl_stream_next(s);
     assert(end.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(a);
-    rf_stream_release(b);
+    fl_stream_release(s);
+    fl_stream_release(a);
+    fl_stream_release(b);
     PASS();
 }
 
@@ -136,16 +136,16 @@ static void test_zip_different_length(void) {
 static void test_zip_one_empty(void) {
     TEST(zip_one_empty);
 
-    RF_Stream* a = rf_stream_empty();
-    RF_Stream* b = rf_stream_range(0, 3);
-    RF_Stream* s = rf_stream_zip(a, b);
+    FL_Stream* a = fl_stream_empty();
+    FL_Stream* b = fl_stream_range(0, 3);
+    FL_Stream* s = fl_stream_zip(a, b);
 
-    RF_Option_ptr opt = rf_stream_next(s);
+    FL_Option_ptr opt = fl_stream_next(s);
     assert(opt.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(a);
-    rf_stream_release(b);
+    fl_stream_release(s);
+    fl_stream_release(a);
+    fl_stream_release(b);
     PASS();
 }
 
@@ -156,24 +156,24 @@ static void test_zip_one_empty(void) {
 static void test_chain_basic(void) {
     TEST(chain_basic);
 
-    RF_Stream* a = rf_stream_range(0, 3);
-    RF_Stream* b = rf_stream_range(10, 12);
-    RF_Stream* s = rf_stream_chain(a, b);
+    FL_Stream* a = fl_stream_range(0, 3);
+    FL_Stream* b = fl_stream_range(10, 12);
+    FL_Stream* s = fl_stream_chain(a, b);
 
-    rf_int expected[] = {0, 1, 2, 10, 11};
+    fl_int expected[] = {0, 1, 2, 10, 11};
     for (int i = 0; i < 5; i++) {
-        RF_Option_ptr opt = rf_stream_next(s);
+        FL_Option_ptr opt = fl_stream_next(s);
         assert(opt.tag == 1);
-        rf_int val = (rf_int)(intptr_t)opt.value;
+        fl_int val = (fl_int)(intptr_t)opt.value;
         assert(val == expected[i]);
     }
 
-    RF_Option_ptr end = rf_stream_next(s);
+    FL_Option_ptr end = fl_stream_next(s);
     assert(end.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(a);
-    rf_stream_release(b);
+    fl_stream_release(s);
+    fl_stream_release(a);
+    fl_stream_release(b);
     PASS();
 }
 
@@ -184,23 +184,23 @@ static void test_chain_basic(void) {
 static void test_chain_first_empty(void) {
     TEST(chain_first_empty);
 
-    RF_Stream* a = rf_stream_empty();
-    RF_Stream* b = rf_stream_range(0, 3);
-    RF_Stream* s = rf_stream_chain(a, b);
+    FL_Stream* a = fl_stream_empty();
+    FL_Stream* b = fl_stream_range(0, 3);
+    FL_Stream* s = fl_stream_chain(a, b);
 
-    for (rf_int i = 0; i < 3; i++) {
-        RF_Option_ptr opt = rf_stream_next(s);
+    for (fl_int i = 0; i < 3; i++) {
+        FL_Option_ptr opt = fl_stream_next(s);
         assert(opt.tag == 1);
-        rf_int val = (rf_int)(intptr_t)opt.value;
+        fl_int val = (fl_int)(intptr_t)opt.value;
         assert(val == i);
     }
 
-    RF_Option_ptr end = rf_stream_next(s);
+    FL_Option_ptr end = fl_stream_next(s);
     assert(end.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(a);
-    rf_stream_release(b);
+    fl_stream_release(s);
+    fl_stream_release(a);
+    fl_stream_release(b);
     PASS();
 }
 
@@ -211,23 +211,23 @@ static void test_chain_first_empty(void) {
 static void test_chain_second_empty(void) {
     TEST(chain_second_empty);
 
-    RF_Stream* a = rf_stream_range(0, 3);
-    RF_Stream* b = rf_stream_empty();
-    RF_Stream* s = rf_stream_chain(a, b);
+    FL_Stream* a = fl_stream_range(0, 3);
+    FL_Stream* b = fl_stream_empty();
+    FL_Stream* s = fl_stream_chain(a, b);
 
-    for (rf_int i = 0; i < 3; i++) {
-        RF_Option_ptr opt = rf_stream_next(s);
+    for (fl_int i = 0; i < 3; i++) {
+        FL_Option_ptr opt = fl_stream_next(s);
         assert(opt.tag == 1);
-        rf_int val = (rf_int)(intptr_t)opt.value;
+        fl_int val = (fl_int)(intptr_t)opt.value;
         assert(val == i);
     }
 
-    RF_Option_ptr end = rf_stream_next(s);
+    FL_Option_ptr end = fl_stream_next(s);
     assert(end.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(a);
-    rf_stream_release(b);
+    fl_stream_release(s);
+    fl_stream_release(a);
+    fl_stream_release(b);
     PASS();
 }
 
@@ -235,10 +235,10 @@ static void test_chain_second_empty(void) {
  * flat_map helper: fn that returns range(0, n)
  * ======================================================================== */
 
-static RF_Stream* _test_flatmap_fn(void* item, void* env) {
+static FL_Stream* _test_flatmap_fn(void* item, void* env) {
     (void)env;
-    rf_int n = (rf_int)(intptr_t)item;
-    return rf_stream_range(0, n);
+    fl_int n = (fl_int)(intptr_t)item;
+    return fl_stream_range(0, n);
 }
 
 /* ========================================================================
@@ -248,24 +248,24 @@ static RF_Stream* _test_flatmap_fn(void* item, void* env) {
 static void test_flat_map_basic(void) {
     TEST(flat_map_basic);
 
-    RF_Stream* src = rf_stream_range(1, 4);
-    RF_Closure cls = { .fn = (void*)_test_flatmap_fn, .env = NULL };
-    RF_Stream* s = rf_stream_flat_map(src, &cls);
+    FL_Stream* src = fl_stream_range(1, 4);
+    FL_Closure cls = { .fn = (void*)_test_flatmap_fn, .env = NULL };
+    FL_Stream* s = fl_stream_flat_map(src, &cls);
 
     /* n=1 -> [0], n=2 -> [0,1], n=3 -> [0,1,2] */
-    rf_int expected[] = {0, 0, 1, 0, 1, 2};
+    fl_int expected[] = {0, 0, 1, 0, 1, 2};
     for (int i = 0; i < 6; i++) {
-        RF_Option_ptr opt = rf_stream_next(s);
+        FL_Option_ptr opt = fl_stream_next(s);
         assert(opt.tag == 1);
-        rf_int val = (rf_int)(intptr_t)opt.value;
+        fl_int val = (fl_int)(intptr_t)opt.value;
         assert(val == expected[i]);
     }
 
-    RF_Option_ptr end = rf_stream_next(s);
+    FL_Option_ptr end = fl_stream_next(s);
     assert(end.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(src);
+    fl_stream_release(s);
+    fl_stream_release(src);
     PASS();
 }
 
@@ -276,15 +276,15 @@ static void test_flat_map_basic(void) {
 static void test_flat_map_empty_source(void) {
     TEST(flat_map_empty_source);
 
-    RF_Stream* src = rf_stream_empty();
-    RF_Closure cls = { .fn = (void*)_test_flatmap_fn, .env = NULL };
-    RF_Stream* s = rf_stream_flat_map(src, &cls);
+    FL_Stream* src = fl_stream_empty();
+    FL_Closure cls = { .fn = (void*)_test_flatmap_fn, .env = NULL };
+    FL_Stream* s = fl_stream_flat_map(src, &cls);
 
-    RF_Option_ptr opt = rf_stream_next(s);
+    FL_Option_ptr opt = fl_stream_next(s);
     assert(opt.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(src);
+    fl_stream_release(s);
+    fl_stream_release(src);
     PASS();
 }
 
@@ -292,9 +292,9 @@ static void test_flat_map_empty_source(void) {
  * flat_map helper: fn that returns empty stream
  * ======================================================================== */
 
-static RF_Stream* _test_flatmap_empty_fn(void* item, void* env) {
+static FL_Stream* _test_flatmap_empty_fn(void* item, void* env) {
     (void)item; (void)env;
-    return rf_stream_empty();
+    return fl_stream_empty();
 }
 
 /* ========================================================================
@@ -304,15 +304,15 @@ static RF_Stream* _test_flatmap_empty_fn(void* item, void* env) {
 static void test_flat_map_empty_sub(void) {
     TEST(flat_map_empty_sub);
 
-    RF_Stream* src = rf_stream_range(0, 3);
-    RF_Closure cls = { .fn = (void*)_test_flatmap_empty_fn, .env = NULL };
-    RF_Stream* s = rf_stream_flat_map(src, &cls);
+    FL_Stream* src = fl_stream_range(0, 3);
+    FL_Closure cls = { .fn = (void*)_test_flatmap_empty_fn, .env = NULL };
+    FL_Stream* s = fl_stream_flat_map(src, &cls);
 
-    RF_Option_ptr opt = rf_stream_next(s);
+    FL_Option_ptr opt = fl_stream_next(s);
     assert(opt.tag == 0);
 
-    rf_stream_release(s);
-    rf_stream_release(src);
+    fl_stream_release(s);
+    fl_stream_release(src);
     PASS();
 }
 

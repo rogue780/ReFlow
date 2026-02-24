@@ -1,0 +1,379 @@
+module http.server
+
+; server.flow — HTTP/1.1 static file server
+;
+; Usage: server [port] [document_root]
+;   port          — TCP port to listen on (default: 8080)
+;   document_root — directory to serve files from (default: ".")
+;
+; Features:
+;   - Static file serving with Content-Type detection (~25 MIME types)
+;   - Auto-serves index.html for directories, or generates HTML listing
+;   - Path traversal protection + URL percent-decoding
+;   - RFC 7231 Date header on every response
+;   - GET-only (405 for other methods)
+;   - Connection: close (one request per connection)
+
+import net
+import io
+import sys
+import path
+import string
+import bytes
+import conv
+import time
+import sort
+import array
+import string_builder
+
+; ===========================================================================
+; Pure / stateless helpers
+; ===========================================================================
+
+fn mime_type(ext: string): string {
+    let lower = string.to_lower(ext)
+    match lower {
+        ".html": { return "text/html; charset=utf-8" }
+        ".htm":  { return "text/html; charset=utf-8" }
+        ".css":  { return "text/css; charset=utf-8" }
+        ".js":   { return "application/javascript; charset=utf-8" }
+        ".json": { return "application/json; charset=utf-8" }
+        ".xml":  { return "application/xml; charset=utf-8" }
+        ".txt":  { return "text/plain; charset=utf-8" }
+        ".csv":  { return "text/csv; charset=utf-8" }
+        ".md":   { return "text/markdown; charset=utf-8" }
+        ".png":  { return "image/png" }
+        ".jpg":  { return "image/jpeg" }
+        ".jpeg": { return "image/jpeg" }
+        ".gif":  { return "image/gif" }
+        ".svg":  { return "image/svg+xml" }
+        ".ico":  { return "image/x-icon" }
+        ".webp": { return "image/webp" }
+        ".woff": { return "font/woff" }
+        ".woff2":{ return "font/woff2" }
+        ".ttf":  { return "font/ttf" }
+        ".otf":  { return "font/otf" }
+        ".pdf":  { return "application/pdf" }
+        ".zip":  { return "application/zip" }
+        ".gz":   { return "application/gzip" }
+        ".tar":  { return "application/x-tar" }
+        ".wasm": { return "application/wasm" }
+        _:       { return "application/octet-stream" }
+    }
+}
+
+fn status_text(code: int): string {
+    match code {
+        200: { return "OK" }
+        301: { return "Moved Permanently" }
+        400: { return "Bad Request" }
+        403: { return "Forbidden" }
+        404: { return "Not Found" }
+        405: { return "Method Not Allowed" }
+        500: { return "Internal Server Error" }
+        _:   { return "Unknown" }
+    }
+}
+
+fn mime_for_path(fs_path: string): string {
+    if let some(ext) = path.extension(fs_path) {
+        return mime_type(ext)
+    }
+    return "application/octet-stream"
+}
+
+fn url_for_entry(dir_url: string, name: string): string {
+    if string.ends_with(dir_url, "/") { return dir_url + name }
+    return dir_url + "/" + name
+}
+
+fn resolve_fs_path(doc_root: string, url_path: string): string {
+    if string.starts_with(url_path, "/") && string.len(url_path) > 1 {
+        return path.join(doc_root, string.substring(url_path, 1, string.len(url_path)))
+    }
+    if string.starts_with(url_path, "/") { return doc_root }
+    return path.join(doc_root, url_path)
+}
+
+; Validate, URL-decode, and strip query/fragment from a raw URL path.
+; Returns none if the path is unsafe (traversal, null bytes, etc.).
+fn sanitize_path(raw: string): string? {
+    if string.len(raw) == 0        { return none }
+    if !string.starts_with(raw, "/") { return none }
+    if string.contains(raw, "%00")   { return none }
+
+    ; Decode so %2e%2e -> ".." is caught by the traversal check below
+    let decoded = string.url_decode(raw)
+    if string.contains(decoded, "..") { return none }
+
+    ; Strip query string then fragment
+    let clean: string:mut = decoded
+    if let some(idx) = string.index_of(decoded, "?") {
+        clean = string.substring(decoded, 0, idx)
+    }
+    if let some(idx) = string.index_of(clean, "#") {
+        clean = string.substring(clean, 0, idx)
+    }
+
+    if string.len(clean) == 0 { return none }
+    return some(clean)
+}
+
+; Extract (method, url_path) from the first line of a raw HTTP request.
+fn parse_request_line(raw: string): (string, string)? {
+    let first_line: string:mut = raw
+    if let some(idx) = string.index_of(raw, "\r\n") {
+        first_line = string.substring(raw, 0, idx)
+    } else {
+        first_line = string.trim(raw)
+    }
+    let parts = string.split(first_line, " ")
+    let method = array.get(parts, 0)?
+    let url_path = array.get(parts, 1)?
+    if string.len(method) == 0 { return none }
+    if string.len(url_path) == 0 { return none }
+    return some((method, url_path))
+}
+
+; ===========================================================================
+; Response builders
+; ===========================================================================
+
+fn build_response_header(status: int, content_type: string, content_length: int64): string {
+    let sb = string_builder.new()
+    string_builder.append(sb, "HTTP/1.1 " + conv.to_string(status) + " " + status_text(status) + "\r\n")
+    string_builder.append(sb, "Date: " + time.format_http(time.datetime_now()) + "\r\n")
+    string_builder.append(sb, "Content-Type: " + content_type + "\r\n")
+    string_builder.append(sb, "Content-Length: ")
+    string_builder.append_int64(sb, content_length)
+    string_builder.append(sb, "\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\nServer: Flow/0.1\r\n\r\n")
+    return string_builder.build(sb)
+}
+
+fn build_error_body(code: int, message: string): string {
+    let cs = conv.to_string(code)
+    let reason = status_text(code)
+    return "<html><head><title>" + cs + " " + reason + "</title></head>"
+         + "<body><h1>" + cs + " " + reason + "</h1>"
+         + "<p>" + message + "</p><hr><em>Flow/0.1</em></body></html>"
+}
+
+fn build_redirect(location: string): string {
+    let body = "<html><body>Moved to <a href=\"" + location + "\">" + location + "</a></body></html>"
+    let body_bytes = string.to_bytes(body)
+    let sb = string_builder.new()
+    string_builder.append(sb, "HTTP/1.1 301 " + status_text(301) + "\r\n")
+    string_builder.append(sb, "Location: " + location + "\r\n")
+    string_builder.append(sb, "Content-Type: text/html; charset=utf-8\r\nContent-Length: ")
+    string_builder.append_int64(sb, bytes.len(body_bytes))
+    string_builder.append(sb, "\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\nServer: Flow/0.1\r\n\r\n")
+    string_builder.append(sb, body)
+    return string_builder.build(sb)
+}
+
+; Generate an HTML directory listing; returns none if the dir can't be read.
+fn build_directory_html(url_path: string, fs_path: string): string? {
+    let entries = path.list_dir(fs_path)?
+    let sorted = sort.sort(entries)
+    let sb = string_builder.new()
+    string_builder.append(sb, "<html><head><title>Index of " + url_path + "</title>")
+    string_builder.append(sb, "<style>body{font-family:monospace;margin:2em;}")
+    string_builder.append(sb, "a{text-decoration:none;color:#0366d6;}")
+    string_builder.append(sb, "a:hover{text-decoration:underline;}")
+    string_builder.append(sb, "li{padding:.2em 0;}.dir{font-weight:bold;}</style></head><body>")
+    string_builder.append(sb, "<h1>Index of " + url_path + "</h1><ul>")
+
+    if url_path != "/" {
+        let parent: string:mut = path.parent(url_path)
+        if string.len(parent) == 0 { parent = "/" }
+        string_builder.append(sb, "<li><a href=\"" + parent + "\">../</a></li>")
+    }
+    for (entry: string in sorted) {
+        if path.is_dir(path.join(fs_path, entry)) {
+            let href = url_for_entry(url_path, entry)
+            string_builder.append(sb, "<li class=\"dir\"><a href=\"" + href + "/\">" + entry + "/</a></li>")
+        }
+    }
+    for (entry: string in sorted) {
+        if path.is_file(path.join(fs_path, entry)) {
+            let href = url_for_entry(url_path, entry)
+            string_builder.append(sb, "<li><a href=\"" + href + "\">" + entry + "</a></li>")
+        }
+    }
+    string_builder.append(sb, "</ul><hr><em>Flow/0.1</em></body></html>")
+    return some(string_builder.build(sb))
+}
+
+; ===========================================================================
+; Response senders — work with a live Socket
+; ===========================================================================
+
+; Send bytes with headers in one call; returns the status code for convenience.
+fn send_response(client: Socket, status: int, ct: string, body: array<byte>): int {
+    net.write_string(client, build_response_header(status, ct, bytes.len(body)))
+    net.write(client, body)
+    return status
+}
+
+fn send_error(client: Socket, code: int, message: string): none {
+    send_response(client, code, "text/html; charset=utf-8", string.to_bytes(build_error_body(code, message)))
+}
+
+fn serve_file(client: Socket, fs_path: string, ct: string): int {
+    if let some(data) = io.read_file_bytes(fs_path) {
+        return send_response(client, 200, ct, data)
+    }
+    send_error(client, 500, "Failed to read file.")
+    return 500
+}
+
+fn serve_directory(client: Socket, url_path: string, fs_path: string): int {
+    ; Redirect bare directory URL to trailing-slash form
+    if !string.ends_with(url_path, "/") {
+        net.write_string(client, build_redirect(url_path + "/"))
+        return 301
+    }
+
+    ; index.html takes priority over directory listing
+    let index_path = path.join(fs_path, "index.html")
+    if path.is_file(index_path) {
+        return serve_file(client, index_path, mime_for_path(index_path))
+    }
+
+    if let some(html) = build_directory_html(url_path, fs_path) {
+        return send_response(client, 200, "text/html; charset=utf-8", string.to_bytes(html))
+    }
+    send_error(client, 500, "Failed to list directory.")
+    return 500
+}
+
+; ===========================================================================
+; Request routing
+; ===========================================================================
+
+fn route_get(client: Socket, clean_path: string, resolved_root: string): int {
+    let fs_path = resolve_fs_path(resolved_root, clean_path)
+    if path.is_dir(fs_path)  { return serve_directory(client, clean_path, fs_path) }
+    if path.is_file(fs_path) { return serve_file(client, fs_path, mime_for_path(fs_path)) }
+    send_error(client, 404, "The requested URL " + clean_path + " was not found on this server.")
+    return 404
+}
+
+fn log_request(addr: string, method: string, url_path: string, status: int): none {
+    io.println("[" + time.format_http(time.datetime_now()) + "] "
+             + addr + " " + method + " " + url_path + " -> " + conv.to_string(status))
+}
+
+fn:pure request_wants_close(raw: string): bool {
+    return string.contains(string.to_lower(raw), "connection: close")
+}
+
+; Parse, validate, route, and log a single HTTP request.
+; All dispatch is at most 2 levels deep; response sending is delegated.
+fn handle_request(client: Socket, raw: string, resolved_root: string, addr: string): none {
+    if let some(parsed) = parse_request_line(raw) {
+        let method = parsed.0
+        let url_path = parsed.1
+        if method != "GET" {
+            send_error(client, 405, "Method " + method + " is not allowed. Use GET.")
+            log_request(addr, method, url_path, 405)
+        } else {
+            if let some(clean_path) = sanitize_path(url_path) {
+                let status = route_get(client, clean_path, resolved_root)
+                log_request(addr, method, clean_path, status)
+            } else {
+                send_error(client, 400, "Invalid request path.")
+                log_request(addr, method, url_path, 400)
+            }
+        }
+    } else {
+        send_error(client, 400, "Malformed request line.")
+        log_request(addr, "???", "/", 400)
+    }
+}
+
+; Serve requests on a persistent connection until the client closes or idles out.
+fn handle_connection(client: Socket, resolved_root: string, addr: string): none {
+    net.set_timeout(client, 5000)
+    let alive: bool:mut = true
+    while (alive) {
+        if let some(request_bytes) = net.read(client, 8192) {
+            let raw = string.from_bytes(request_bytes)
+            if request_wants_close(raw) { alive = false }
+            handle_request(client, raw, resolved_root, addr)
+        } else {
+            alive = false
+        }
+    }
+    net.close(client)
+}
+
+; ===========================================================================
+; Accept pool — concurrent connection handling
+; ===========================================================================
+
+; Accept and handle connections in a loop until the listener is closed.
+fn accept_loop(listener: Socket, root: string): none {
+    while (true) {
+        if let some(client) = net.accept(listener) {
+            handle_connection(client, root, net.remote_addr(client) ?? "unknown")
+        } else {
+            break
+        }
+    }
+}
+
+; Streaming wrapper so accept_loop can be spawned as a coroutine with :<.
+; Each worker runs accept_loop on its own thread; the OS distributes
+; incoming connections across all workers.
+fn worker(listener: Socket, root: string): stream<int> {
+    accept_loop(listener, root)
+}
+
+; ===========================================================================
+; Entry point
+; ===========================================================================
+
+fn main(): none {
+    let argv = sys.args()
+    let port: int:mut = 8080
+    let doc_root: string:mut = "."
+
+    if let some(port_str) = array.get(argv, 1) {
+        if let some(p) = conv.string_to_int(port_str) {
+            port = p
+        } else {
+            io.eprintln("Invalid port: " + port_str)
+            sys.exit(1)
+        }
+    }
+    if let some(root) = array.get(argv, 2) {
+        doc_root = root
+    }
+
+    let resolved_root = path.resolve(doc_root)
+    if !path.exists(resolved_root) {
+        io.eprintln("Document root does not exist: " + resolved_root)
+        sys.exit(1)
+    }
+    if !path.is_dir(resolved_root) {
+        io.eprintln("Document root is not a directory: " + resolved_root)
+        sys.exit(1)
+    }
+
+    io.println("Flow HTTP Server v0.1")
+    io.println("Serving " + resolved_root + " on port " + conv.to_string(port))
+
+    if let some(listener) = net.listen("0.0.0.0", port) {
+        io.println("Listening on http://0.0.0.0:" + conv.to_string(port) + "/")
+        let w1 :< worker(listener, resolved_root)
+        let w2 :< worker(listener, resolved_root)
+        let w3 :< worker(listener, resolved_root)
+        accept_loop(listener, resolved_root)
+        net.close(listener)
+    } else {
+        io.eprintln("Failed to listen on 0.0.0.0:" + conv.to_string(port))
+        io.eprintln("Is the port already in use?")
+        sys.exit(1)
+    }
+}

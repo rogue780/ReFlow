@@ -1,0 +1,13 @@
+; time_demo.flow — Demonstrates the time stdlib module
+module examples.time_demo
+
+import io (println)
+import time (now, now_ms)
+
+fn main() {
+    let ts = now()
+    println(f"Unix timestamp (seconds): {ts}")
+
+    let ts_ms = now_ms()
+    println(f"Unix timestamp (milliseconds): {ts_ms}")
+}

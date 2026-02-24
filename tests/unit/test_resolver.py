@@ -27,8 +27,8 @@ from compiler.ast_nodes import (
 def resolve(source: str,
             imported: dict[str, ModuleScope] | None = None) -> ResolvedModule:
     """Lex, parse, and resolve *source*."""
-    tokens = Lexer(source, "test.reflow").tokenize()
-    mod = Parser(tokens, "test.reflow").parse()
+    tokens = Lexer(source, "test.flow").tokenize()
+    mod = Parser(tokens, "test.flow").parse()
     return Resolver(mod, imported).resolve()
 
 
@@ -227,7 +227,7 @@ class TestUndefinedNames(unittest.TestCase):
         with self.assertRaises(ResolveError) as ctx:
             resolve(src)
         self.assertIn("undefined name 'y'", ctx.exception.message)
-        self.assertEqual(ctx.exception.file, "test.reflow")
+        self.assertEqual(ctx.exception.file, "test.flow")
         self.assertGreater(ctx.exception.line, 0)
         self.assertGreater(ctx.exception.col, 0)
 
@@ -933,7 +933,7 @@ class TestEdgeCases(unittest.TestCase):
         src = """fn main(): none { }"""
         result = resolve(src)
         self.assertIsNotNone(result.module)
-        self.assertEqual(result.module.filename, "test.reflow")
+        self.assertEqual(result.module.filename, "test.flow")
 
 
 if __name__ == "__main__":

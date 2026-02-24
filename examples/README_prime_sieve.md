@@ -1,12 +1,12 @@
 # Prime Sieve (Coroutines)
 
 Finds all prime numbers up to 50 using three different approaches, each
-demonstrating ReFlow's coroutine and stream capabilities.
+demonstrating Flow's coroutine and stream capabilities.
 
 ## Run it
 
 ```bash
-python main.py build examples/prime_sieve.reflow -o /tmp/prime_sieve && /tmp/prime_sieve
+python main.py build examples/prime_sieve.flow -o /tmp/prime_sieve && /tmp/prime_sieve
 ```
 
 ## What it does
@@ -15,7 +15,7 @@ The program finds primes up to 50 three ways:
 
 ### Approach 1 — Coroutine producer with inline filtering
 
-```reflow
+```flow
 let candidates :< integers_from(2, 50)
 ```
 
@@ -24,7 +24,7 @@ thread pulls each candidate with `.next()` and checks `is_prime(n)` inline.
 
 ### Approach 2 — Filtered stream function
 
-```reflow
+```flow
 let primes :< filter_primes(2, 50)
 ```
 
@@ -34,7 +34,7 @@ values that pass `is_prime`. The consumer just prints whatever comes out.
 
 ### Approach 3 — Concurrent coroutines on disjoint ranges
 
-```reflow
+```flow
 let low  :< filter_primes(2, 25)
 let high :< filter_primes(26, 50)
 ```

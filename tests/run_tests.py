@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ReFlow test runner for golden file, E2E, and negative tests.
+"""Flow test runner for golden file, E2E, and negative tests.
 
 Usage:
     python tests/run_tests.py              # run all test types
@@ -8,16 +8,16 @@ Usage:
     python tests/run_tests.py --negative   # negative compile tests only
 
 Golden file tests:
-    For each .reflow in tests/programs/ (not in errors/), compile with emit-c
+    For each .flow in tests/programs/ (not in errors/), compile with emit-c
     and diff against tests/expected/<name>.c. If no expected file exists, write
     the generated output as the new golden file and mark as "new".
 
 E2E tests:
-    For each .reflow in tests/programs/ that has a corresponding
+    For each .flow in tests/programs/ that has a corresponding
     tests/expected_stdout/<name>.txt, compile, run, and diff stdout.
 
 Negative tests:
-    For each .reflow in tests/programs/errors/, compile and verify the compiler
+    For each .flow in tests/programs/errors/, compile and verify the compiler
     exits with an error whose type and message prefix match
     tests/expected_errors/<name>.txt.
 """
@@ -87,7 +87,7 @@ def build_and_run(source_path: Path) -> tuple[int, str, str]:
     """Compile and run a program. Returns (exit_code, stdout, stderr)."""
     result = subprocess.run(
         [PYTHON, str(PROJECT_ROOT / "main.py"), "build", str(source_path),
-         "-o", "/tmp/rf_test_binary"],
+         "-o", "/tmp/fl_test_binary"],
         capture_output=True,
         text=True,
         cwd=str(PROJECT_ROOT),
@@ -96,7 +96,7 @@ def build_and_run(source_path: Path) -> tuple[int, str, str]:
         return result.returncode, result.stdout, result.stderr
 
     run_result = subprocess.run(
-        ["/tmp/rf_test_binary"],
+        ["/tmp/fl_test_binary"],
         capture_output=True,
         text=True,
     )
@@ -106,7 +106,7 @@ def build_and_run(source_path: Path) -> tuple[int, str, str]:
 def run_golden_tests(result: TestResult) -> None:
     """Run golden file tests: emit-c and diff against expected C output."""
     print("Golden file tests:")
-    sources = sorted(PROGRAMS_DIR.glob("*.reflow"))
+    sources = sorted(PROGRAMS_DIR.glob("*.flow"))
     if not sources:
         print("  (no test programs found)")
         return
@@ -153,7 +153,7 @@ def run_e2e_tests(result: TestResult) -> None:
 
     for expected_path in expected_files:
         name = expected_path.stem
-        source = PROGRAMS_DIR / f"{name}.reflow"
+        source = PROGRAMS_DIR / f"{name}.flow"
 
         if not source.exists():
             result.skipped.append(name)
@@ -185,7 +185,7 @@ def run_e2e_tests(result: TestResult) -> None:
 def run_negative_tests(result: TestResult) -> None:
     """Run negative tests: programs that should fail to compile."""
     print("Negative tests:")
-    sources = sorted(ERRORS_DIR.glob("*.reflow"))
+    sources = sorted(ERRORS_DIR.glob("*.flow"))
     if not sources:
         print("  (no negative tests found)")
         return
@@ -233,7 +233,7 @@ def run_negative_tests(result: TestResult) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="ReFlow test runner")
+    parser = argparse.ArgumentParser(description="Flow test runner")
     parser.add_argument("--golden", action="store_true", help="Run golden file tests only")
     parser.add_argument("--e2e", action="store_true", help="Run E2E tests only")
     parser.add_argument("--negative", action="store_true", help="Run negative tests only")

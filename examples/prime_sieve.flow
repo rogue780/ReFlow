@@ -1,0 +1,88 @@
+; app_prime_sieve.flow — Prime sieve using coroutines
+; Exercises: dynamic coroutine creation with :< operator,
+; .next()/.done() on coroutine handles, stream functions
+; with yield, multiple coroutines
+module tests.app_prime_sieve
+
+import io (println)
+import conv
+
+; Generate integers from start up to limit
+fn integers_from(start: int, limit: int): stream<int> {
+    let i: int:mut = start
+    while (i <= limit) {
+        yield i
+        i = i + 1
+    }
+}
+
+; Check if n is prime using trial division
+fn:pure is_prime(n: int): bool {
+    if n < 2 { return false }
+    if n < 4 { return true }
+    if n % 2 == 0 { return false }
+    let d: int:mut = 3
+    while (d * d <= n) {
+        if n % d == 0 { return false }
+        d = d + 2
+    }
+    return true
+}
+
+; Stream function: yield only primes from source
+fn filter_primes(start: int, limit: int): stream<int> {
+    let i: int:mut = start
+    while (i <= limit) {
+        if is_prime(i) {
+            yield i
+        }
+        i = i + 1
+    }
+}
+
+fn main() {
+    println("=== Coroutine sieve ===")
+    ; Use a coroutine to produce candidates, filter in-line
+    let candidates :< integers_from(2, 5000)
+    while (!candidates.done()) {
+        match candidates.next() {
+            some(n): {
+                if is_prime(n) {
+                    println(conv.to_string(n))
+                }
+            }
+            none: {}
+        }
+    }
+
+    println("=== Filtered stream ===")
+    ; Second approach: stream function that yields only primes
+    let primes :< filter_primes(2, 5000)
+    while (!primes.done()) {
+        match primes.next() {
+            some(p): {
+                println(conv.to_string(p))
+            }
+            none: {}
+        }
+    }
+
+    println("=== Concurrent coroutines ===")
+    ; Two coroutines running concurrently producing different ranges
+    let low :< filter_primes(2, 25)
+    let high :< filter_primes(26, 5000)
+    println("Low primes:")
+    while (!low.done()) {
+        match low.next() {
+            some(p): { println("  " + conv.to_string(p)) }
+            none: {}
+        }
+    }
+    println("High primes:")
+    while (!high.done()) {
+        match high.next() {
+            some(p): { println("  " + conv.to_string(p)) }
+            none: {}
+        }
+    }
+}
