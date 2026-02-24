@@ -1,0 +1,289 @@
+module tests.app_json_query
+
+; Self-test for the JSON query engine.
+; Writes test JSON to a temp file, runs queries via the engine functions
+; directly, and prints results for golden file comparison.
+
+import io
+import string
+import array
+import json
+import conv
+
+; ===========================================================================
+; Duplicated query engine (self-contained test)
+; ===========================================================================
+
+fn:pure parse_path(query: string): (array<string>, string) {
+    if string.len(query) == 0 {
+        return ([], "")
+    }
+    if string.starts_with(query, ".") {
+        return ([], "leading dot in path")
+    }
+    if string.ends_with(query, ".") {
+        return ([], "trailing dot in path")
+    }
+
+    let q: string:mut = query
+    let has_type_suffix: bool:mut = false
+    if string.ends_with(q, "?type") {
+        let prefix_len = string.len(q) - 5
+        q = if prefix_len > 0 { string.substring(q, 0, prefix_len) } else { "" }
+        has_type_suffix = true
+    }
+
+    let segments: array<string>:mut = []
+    if string.len(q) > 0 {
+        let parts = string.split(q, ".")
+        let i: int:mut = 0
+        while (i < array.len_string(parts)) {
+            if let some(part) = array.get(parts, i) {
+                if string.len(part) == 0 {
+                    return ([], "empty segment (double dot)")
+                }
+                segments = array.push(segments, part)
+            }
+            i = i + 1
+        }
+    }
+
+    if has_type_suffix {
+        segments = array.push(segments, "?type")
+    }
+    return (segments, "")
+}
+
+fn:pure is_array_index(segment: string): bool {
+    if string.len(segment) == 0 { return false }
+    match conv.string_to_int64(segment) {
+        some(n): { return n >= 0 }
+        none: { return false }
+    }
+}
+
+fn:pure type_name(val: JsonValue): string {
+    let tag = json.type_tag(val)
+    if tag == 0 { return "null" }
+    if tag == 1 { return "boolean" }
+    if tag == 2 { return "number" }
+    if tag == 3 { return "number" }
+    if tag == 4 { return "string" }
+    if tag == 5 { return "array" }
+    if tag == 6 { return "object" }
+    return "unknown"
+}
+
+fn:pure value_length(val: JsonValue): JsonValue? {
+    let tag = json.type_tag(val)
+    if tag == 5 {
+        match json.as_array(val) {
+            some(arr): { return some(json.int_val(array.size(arr))) }
+            none: { return some(json.int_val(0)) }
+        }
+    }
+    if tag == 6 {
+        match json.keys(val) {
+            some(keys): { return some(json.int_val(array.len_string(keys))) }
+            none: { return some(json.int_val(0)) }
+        }
+    }
+    if tag == 4 {
+        match json.as_string(val) {
+            some(s): { return some(json.int_val(string.len(s))) }
+            none: { return some(json.int_val(0)) }
+        }
+    }
+    return none
+}
+
+fn resolve_segment(val: JsonValue, segment: string): array<JsonValue> {
+    if segment == "#" {
+        match value_length(val) {
+            some(v): { return [v] }
+            none: { return [] }
+        }
+    }
+    if segment == "?type" {
+        return [json.string_val(type_name(val))]
+    }
+    if segment == "*" {
+        match json.as_array(val) {
+            some(arr): { return arr }
+            none: { return [] }
+        }
+    }
+    if is_array_index(segment) {
+        if let some(idx) = conv.string_to_int64(segment) {
+            match json.get_index(val, idx) {
+                some(v): { return [v] }
+                none: { return [] }
+            }
+        }
+        return []
+    }
+    match json.get(val, segment) {
+        some(v): { return [v] }
+        none: { return [] }
+    }
+}
+
+fn resolve(root: JsonValue, segments: array<string>): array<JsonValue> {
+    let current: array<JsonValue>:mut = [root]
+    let i: int:mut = 0
+    while (i < array.len_string(segments)) {
+        if let some(segment) = array.get(segments, i) {
+            let next: array<JsonValue>:mut = []
+            let j: int:mut = 0
+            while (j < array.size(current)) {
+                if let some(val) = array.get_any(current, j) {
+                    next = array.concat(next, resolve_segment(val, segment))
+                }
+                j = j + 1
+            }
+            current = next
+        }
+        i = i + 1
+    }
+    return current
+}
+
+fn:pure format_value(val: JsonValue, pretty: bool): string {
+    let tag = json.type_tag(val)
+    if tag == 4 {
+        return json.as_string(val) ?? ""
+    }
+    if (tag == 5 || tag == 6) && pretty {
+        return json.to_string_pretty(val, 2)
+    }
+    return json.to_string(val)
+}
+
+; ===========================================================================
+; Test helpers
+; ===========================================================================
+
+; Run a query and print the result(s), one per line.
+fn run_query(root: JsonValue, query: string, pretty: bool): none {
+    let parsed = parse_path(query)
+    let segments = parsed.0
+    let parse_err = parsed.1
+    if string.len(parse_err) > 0 {
+        io.println("ERROR: " + parse_err)
+        return
+    }
+
+    let results = resolve(root, segments)
+    if array.size(results) == 0 {
+        io.println("(not found)")
+        return
+    }
+
+    let i: int:mut = 0
+    while (i < array.size(results)) {
+        if let some(val) = array.get_any(results, i) {
+            io.println(format_value(val, pretty))
+        }
+        i = i + 1
+    }
+}
+
+; ===========================================================================
+; Main — run all tests
+; ===========================================================================
+
+fn main(): none {
+    let test_json = "{\"name\":\"Alice\",\"age\":30,\"active\":true,\"nothing\":null,\"address\":{\"city\":\"New York\",\"zip\":\"10001\"},\"scores\":[95,87,92],\"users\":[{\"name\":\"Alice\",\"email\":\"alice@example.com\"},{\"name\":\"Bob\",\"email\":\"bob@example.com\"},{\"name\":\"Charlie\",\"email\":\"charlie@example.com\"}]}"
+
+    match json.parse(test_json) {
+        none: {
+            io.println("FAIL: could not parse test JSON")
+            return
+        }
+        some(root): {
+            run_tests(root)
+        }
+    }
+}
+
+fn run_tests(root: JsonValue): none {
+    io.println("=== parse_path tests ===")
+    let p1 = parse_path("name")
+    io.println("'name' -> " + conv.to_string(array.len_string(p1.0)) + " segments")
+
+    let p2 = parse_path("users.0.email")
+    io.println("'users.0.email' -> " + conv.to_string(array.len_string(p2.0)) + " segments")
+
+    let p3 = parse_path("")
+    io.println("'' -> " + conv.to_string(array.len_string(p3.0)) + " segments")
+
+    let p4 = parse_path("foo..bar")
+    io.println("'foo..bar' -> error: " + p4.1)
+
+    let p5 = parse_path(".leading")
+    io.println("'.leading' -> error: " + p5.1)
+
+    let p6 = parse_path("trailing.")
+    io.println("'trailing.' -> error: " + p6.1)
+
+    let p7 = parse_path("name?type")
+    io.println("'name?type' -> " + conv.to_string(array.len_string(p7.0)) + " segments")
+
+    io.println("")
+    io.println("=== Basic access ===")
+    run_query(root, "name", false)
+    run_query(root, "age", false)
+    run_query(root, "active", false)
+    run_query(root, "nothing", false)
+
+    io.println("")
+    io.println("=== Nested access ===")
+    run_query(root, "address.city", false)
+    run_query(root, "address.zip", false)
+
+    io.println("")
+    io.println("=== Array index ===")
+    run_query(root, "scores.0", false)
+    run_query(root, "scores.2", false)
+    run_query(root, "users.0.email", false)
+    run_query(root, "users.1.name", false)
+
+    io.println("")
+    io.println("=== Length operator ===")
+    run_query(root, "users.#", false)
+    run_query(root, "scores.#", false)
+    run_query(root, "name.#", false)
+    run_query(root, "address.#", false)
+
+    io.println("")
+    io.println("=== Wildcard ===")
+    run_query(root, "users.*.name", false)
+    run_query(root, "users.*.email", false)
+
+    io.println("")
+    io.println("=== Type queries ===")
+    run_query(root, "name?type", false)
+    run_query(root, "age?type", false)
+    run_query(root, "active?type", false)
+    run_query(root, "nothing?type", false)
+    run_query(root, "users?type", false)
+    run_query(root, "address?type", false)
+    run_query(root, "?type", false)
+
+    io.println("")
+    io.println("=== Pretty print ===")
+    run_query(root, "address", true)
+
+    io.println("")
+    io.println("=== Not found ===")
+    run_query(root, "nonexistent", false)
+    run_query(root, "users.99", false)
+    run_query(root, "users.0.phone", false)
+
+    io.println("")
+    io.println("=== Root query ===")
+    run_query(root, "?type", false)
+
+    io.println("")
+    io.println("done")
+}

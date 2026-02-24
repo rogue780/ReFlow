@@ -421,6 +421,7 @@ void          rf_eprintln(RF_String* s);
 RF_Stream*    rf_stdin_stream(void);
 RF_Option_ptr rf_read_line(void);
 RF_Option_ptr rf_read_byte(void);
+RF_Option_ptr rf_read_stdin(void);
 
 /* ========================================================================
  * System Functions (stdlib/sys)

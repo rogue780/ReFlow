@@ -1,0 +1,51 @@
+{
+  "company": "Acme Corp",
+  "founded": 2015,
+  "public": false,
+  "headquarters": {
+    "city": "Portland",
+    "state": "OR",
+    "coordinates": {
+      "lat": 45.5152,
+      "lng": -122.6784
+    }
+  },
+  "employees": [
+    {
+      "name": "Alice Chen",
+      "role": "CEO",
+      "age": 42,
+      "skills": ["leadership", "strategy", "finance"],
+      "contact": {
+        "email": "alice@acme.com",
+        "phone": null
+      }
+    },
+    {
+      "name": "Bob Martinez",
+      "role": "CTO",
+      "age": 38,
+      "skills": ["rust", "systems", "architecture"],
+      "contact": {
+        "email": "bob@acme.com",
+        "phone": "503-555-0102"
+      }
+    },
+    {
+      "name": "Charlie Park",
+      "role": "Designer",
+      "age": 29,
+      "skills": ["figma", "css", "typography"],
+      "contact": {
+        "email": "charlie@acme.com",
+        "phone": "503-555-0103"
+      }
+    }
+  ],
+  "products": [
+    {"name": "Widget", "price": 9.99, "in_stock": true},
+    {"name": "Gadget", "price": 24.50, "in_stock": true},
+    {"name": "Doohickey", "price": 149.00, "in_stock": false}
+  ],
+  "metadata": null
+}

@@ -1756,6 +1756,33 @@ RF_Option_ptr rf_read_byte(void) {
     return (RF_Option_ptr){.tag = 1, .value = (void*)(uintptr_t)(rf_byte)c};
 }
 
+RF_Option_ptr rf_read_stdin(void) {
+    rf_int64 cap = 4096;
+    rf_int64 len = 0;
+    char* buf = (char*)malloc((size_t)cap);
+    if (!buf) rf_panic("rf_read_stdin: out of memory");
+
+    int c;
+    while ((c = fgetc(stdin)) != EOF) {
+        if (len + 1 >= cap) {
+            cap *= 2;
+            char* nb = (char*)realloc(buf, (size_t)cap);
+            if (!nb) { free(buf); rf_panic("rf_read_stdin: out of memory"); }
+            buf = nb;
+        }
+        buf[len++] = (char)c;
+    }
+
+    if (len == 0) {
+        free(buf);
+        return RF_NONE_PTR;
+    }
+
+    RF_String* s = rf_string_new(buf, len);
+    free(buf);
+    return RF_SOME_PTR(s);
+}
+
 /* ========================================================================
  * String Operations (stdlib/string — RB-1-1)
  * ======================================================================== */
@@ -4168,6 +4195,9 @@ RF_Array* rf_array_concat(RF_Array* a, RF_Array* b) {
     if (!a && !b) return rf_array_new(0, sizeof(void*), NULL);
     if (!a) { rf_array_retain(b); return b; }
     if (!b) { rf_array_retain(a); return a; }
+    /* Empty arrays (from [] literals) have element_size 0; treat as compatible */
+    if (a->len == 0) { rf_array_retain(b); return b; }
+    if (b->len == 0) { rf_array_retain(a); return a; }
     if (a->element_size != b->element_size)
         rf_panic("rf_array_concat: element size mismatch");
     rf_int64 total = a->len + b->len;

@@ -1,0 +1,63 @@
+=== parse_path tests ===
+'name' -> 1 segments
+'users.0.email' -> 3 segments
+'' -> 0 segments
+'foo..bar' -> error: empty segment (double dot)
+'.leading' -> error: leading dot in path
+'trailing.' -> error: trailing dot in path
+'name?type' -> 2 segments
+
+=== Basic access ===
+Alice
+30
+true
+null
+
+=== Nested access ===
+New York
+10001
+
+=== Array index ===
+95
+92
+alice@example.com
+Bob
+
+=== Length operator ===
+3
+3
+5
+2
+
+=== Wildcard ===
+Alice
+Bob
+Charlie
+alice@example.com
+bob@example.com
+charlie@example.com
+
+=== Type queries ===
+string
+number
+boolean
+null
+array
+object
+object
+
+=== Pretty print ===
+{
+  "city": "New York",
+  "zip": "10001"
+}
+
+=== Not found ===
+(not found)
+(not found)
+(not found)
+
+=== Root query ===
+object
+
+done

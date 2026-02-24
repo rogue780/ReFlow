@@ -16,6 +16,7 @@ export fn:pure as_float(val: JsonValue): float? = native "rf_json_as_float"
 export fn:pure as_bool(val: JsonValue): bool? = native "rf_json_as_bool"
 export fn:pure as_array(val: JsonValue): array<JsonValue>? = native "rf_json_as_array"
 export fn:pure is_null(val: JsonValue): bool = native "rf_json_is_null"
+export fn:pure type_tag(val: JsonValue): byte = native "rf_json_type_tag"
 export fn:pure keys(val: JsonValue): array<string>? = native "rf_json_keys"
 
 ; Builders
