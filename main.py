@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from compiler.driver import compile_source, emit_only, check_only
+from compiler.driver import compile_source, emit_only, check_only, run_source
 from compiler.errors import ReFlowError
 
 
@@ -23,6 +23,13 @@ def main() -> int:
         description="ReFlow compiler",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # reflow run <file>
+    run_parser = subparsers.add_parser("run", help="Compile and run immediately")
+    run_parser.add_argument("file", help="Path to .reflow source file")
+    run_parser.add_argument("--verbose", "-v", action="store_true",
+                            help="Print generated C before compiling")
+    run_parser.add_argument("args", nargs="*", help="Arguments passed to the program")
 
     # reflow build <file>
     build_parser = subparsers.add_parser("build", help="Compile to binary via clang")
@@ -50,6 +57,9 @@ def main() -> int:
 
     try:
         match args.command:
+            case "run":
+                return run_source(args.file, verbose=args.verbose,
+                                  args=args.args)
             case "build":
                 return compile_source(args.file, output=args.output,
                                       verbose=args.verbose)

@@ -494,6 +494,24 @@ def compile_source(source_path: str, *, output: str | None = None,
             pass
 
 
+def run_source(source_path: str, *, verbose: bool = False,
+               args: list[str] | None = None) -> int:
+    """Compile to a temp binary, run it, clean up."""
+    tmp_fd, tmp_bin = tempfile.mkstemp(prefix="rf_run_")
+    os.close(tmp_fd)
+    try:
+        rc = compile_source(source_path, output=tmp_bin, verbose=verbose)
+        if rc != 0:
+            return rc
+        result = subprocess.run([tmp_bin] + (args or []))
+        return result.returncode
+    finally:
+        try:
+            os.unlink(tmp_bin)
+        except OSError:
+            pass
+
+
 def emit_only(source_path: str, *, output: str | None = None,
               verbose: bool = False) -> int:
     """Run pipeline through emit, output C source."""
