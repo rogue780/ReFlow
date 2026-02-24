@@ -621,6 +621,12 @@ class Lowerer:
         # from _lower_let so _lower_ident can use it as a fallback.
         self._let_var_ltypes: dict[str, LType] = {}
 
+        # Stream body context: when set, match/block lowering recurses via
+        # _lower_stream_stmts so yields inside match arms get proper state
+        # machine resume labels. Set to (frame_var, elem_type, yield_counter)
+        # while inside _lower_stream_stmts, None otherwise.
+        self._stream_body_ctx: tuple[str, Type, list[int]] | None = None
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
@@ -984,7 +990,16 @@ class Lowerer:
     # ------------------------------------------------------------------
 
     def _lower_block(self, block: Block) -> list[LStmt]:
-        """Lower a block of statements."""
+        """Lower a block of statements.
+
+        When inside a stream body context (_stream_body_ctx is set),
+        delegates to _lower_stream_stmts so yields inside match arms
+        and other nested constructs get proper state machine handling.
+        """
+        if self._stream_body_ctx is not None:
+            frame_var, elem_type, yield_counter = self._stream_body_ctx
+            return self._lower_stream_stmts(
+                block.stmts, frame_var, elem_type, yield_counter)
         result: list[LStmt] = []
         for stmt in block.stmts:
             saved = self._pending_stmts
@@ -4460,6 +4475,11 @@ class Lowerer:
             case ForStmt(body=b):
                 for s in b.stmts:
                     yields.extend(self._collect_yields_stmt(s))
+            case MatchStmt(arms=arms):
+                for arm in arms:
+                    if isinstance(arm.body, Block):
+                        for s in arm.body.stmts:
+                            yields.extend(self._collect_yields_stmt(s))
             case _:
                 pass
         return yields
@@ -4505,6 +4525,27 @@ class Lowerer:
                     locals_.append((var, elem_type))
                 for s in b.stmts:
                     self._collect_locals_stmt(s, locals_)
+            case MatchStmt(arms=arms):
+                for arm in arms:
+                    # Collect bindings from match arm patterns
+                    match arm.pattern:
+                        case SomePattern(inner_var=var):
+                            if var and var not in existing_names:
+                                subj_type = self._type_of(stmt.subject)
+                                if isinstance(subj_type, TOption):
+                                    locals_.append((var, subj_type.inner))
+                                else:
+                                    locals_.append((var, TAny()))
+                                existing_names = {n for n, _ in locals_}
+                        case BindPattern(name=name):
+                            if name not in existing_names:
+                                locals_.append((name, self._type_of(stmt.subject)))
+                                existing_names = {n for n, _ in locals_}
+                        case _:
+                            pass
+                    if isinstance(arm.body, Block):
+                        for s in arm.body.stmts:
+                            self._collect_locals_stmt(s, locals_)
             case _:
                 pass
 
@@ -4631,6 +4672,19 @@ class Lowerer:
                             elem_type, yield_counter)
                 result.append(LIf(cond=cond, then=then_body, else_=else_body))
 
+            elif isinstance(stmt, MatchStmt):
+                # Set stream context so _lower_block inside match arm
+                # lowering delegates to _lower_stream_stmts.
+                saved_ctx = self._stream_body_ctx
+                self._stream_body_ctx = (frame_var, elem_type, yield_counter)
+                saved = self._pending_stmts
+                self._pending_stmts = []
+                lowered = self._lower_match_stmt(stmt)
+                result.extend(self._pending_stmts)
+                result.extend(lowered)
+                self._pending_stmts = saved
+                self._stream_body_ctx = saved_ctx
+
             elif isinstance(stmt, ForStmt):
                 # Lower for-over-stream with yield-aware body lowering.
                 # We reconstruct the while loop structure from _lower_for_stream
@@ -4685,12 +4739,17 @@ class Lowerer:
                     result.extend(for_stmts)
 
             else:
+                # Temporarily clear stream context so _lower_stmt doesn't
+                # accidentally re-enter stream-aware lowering for leaf stmts.
+                saved_ctx = self._stream_body_ctx
+                self._stream_body_ctx = None
                 saved = self._pending_stmts
                 self._pending_stmts = []
                 lowered = self._lower_stmt(stmt)
                 result.extend(self._pending_stmts)
                 result.extend(lowered)
                 self._pending_stmts = saved
+                self._stream_body_ctx = saved_ctx
 
         return result
 
