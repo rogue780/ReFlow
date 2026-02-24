@@ -1,0 +1,4 @@
+{"name":"Alice","age":"30","city":"NYC"}
+{"name":"Bob","age":null,"city":"London"}
+SKIP row 3: missing required field 'name' at row 3
+{"name":"Charlie","age":"25","city":"Paris"}

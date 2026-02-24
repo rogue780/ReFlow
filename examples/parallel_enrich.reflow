@@ -1,0 +1,82 @@
+; app_parallel_enrich.reflow — Parallel data enrichment pipeline
+; Exercises: parallel fan-out <:(a|b|c), fn:pure enrichment,
+; coroutines (:< operator), streams, composition chains
+module tests.app_parallel_enrich
+
+import io (println)
+import string
+import array
+import conv
+
+; --- Types ---
+
+type Record {
+    id: int
+    name: string
+    value: int
+}
+
+; --- Pure enrichment functions (safe for parallel fan-out) ---
+
+fn:pure compute_score(value: int): int {
+    return value * 3 + 1
+}
+
+fn:pure categorize(value: int): string {
+    if value > 80 { return "high" }
+    if value > 40 { return "medium" }
+    return "low"
+}
+
+fn:pure compute_hash(value: int): int {
+    return value * 31 + 17
+}
+
+fn:pure format_result(score: int, category: string, hash: int): string {
+    return "score=" + conv.to_string(score) + " cat=" + category + " hash=" + conv.to_string(hash)
+}
+
+; --- Stream producer using ints ---
+
+fn produce_values(): stream<int> {
+    yield 90
+    yield 45
+    yield 20
+    yield 75
+}
+
+; --- Main ---
+
+fn main() {
+    let names = ["alpha", "beta", "gamma", "delta"]
+    let values = [90, 45, 20, 75]
+
+    ; Part 1: Parallel fan-out with <:() on integer values
+    println("=== Parallel Enrichment ===")
+    let idx: int:mut = 0
+    for (v: int in values) {
+        ; Parallel fan-out: three enrichments run concurrently
+        let output = v -> <:(compute_score | categorize | compute_hash) -> format_result
+        let name = array.get(names, idx) ?? ""
+        println(name + ": " + output)
+        idx = idx + 1
+    }
+
+    ; Part 2: Coroutine producer with stream consumption
+    println("=== Coroutine Stream ===")
+    let source :< produce_values()
+    let j: int:mut = 0
+    while (!source.done()) {
+        match source.next() {
+            some(v): {
+                let name = array.get(names, j) ?? ""
+                let score = compute_score(v)
+                let cat = categorize(v)
+                let hash = compute_hash(v)
+                println(name + ": score=" + conv.to_string(score) + " cat=" + cat + " hash=" + conv.to_string(hash))
+                j = j + 1
+            }
+            none: {}
+        }
+    }
+}

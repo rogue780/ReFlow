@@ -1,0 +1,12 @@
+ARCHIVE: [2024-01-01] api timeout
+STATS: severity=ERROR source=api
+ALERT: ERROR from api: timeout
+ARCHIVE: [2024-01-01] db connected
+STATS: severity=INFO source=db
+ARCHIVE: [2024-01-01] web slow_query
+STATS: severity=WARN source=web
+ALERT: WARN from web: slow_query
+SKIP: empty source
+ARCHIVE: [2024-01-02] api retry
+STATS: severity=WARN source=api
+ALERT: WARN from api: retry

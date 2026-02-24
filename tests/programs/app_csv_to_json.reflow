@@ -1,0 +1,121 @@
+; app_csv_to_json.reflow — CSV-to-JSON transformer
+; Exercises: records, option<T>, exception handling with retry,
+; composition chains, string manipulation
+module tests.app_csv_to_json
+
+import io (println)
+import string
+import array
+import conv
+import string_builder as sb
+
+; --- Types ---
+
+type Schema {
+    columns: array<string>
+    required: array<string>
+}
+
+type CsvRow {
+    index: int
+    fields: array<string>
+}
+
+; --- Pure functions ---
+
+fn:pure parse_row(idx: int, line: string): CsvRow {
+    let fields = string.split(line, ",")
+    return CsvRow { index: idx, fields: fields }
+}
+
+fn:pure is_required(name: string, required: array<string>): bool {
+    for (r: string in required) {
+        if r == name { return true }
+    }
+    return false
+}
+
+fn:pure validate(row: CsvRow, schema: Schema): CsvRow {
+    ; Check that required fields are non-empty
+    let cols = schema.columns
+    let i: int:mut = 0
+    while (i < array.len_string(cols)) {
+        let col_name = array.get(cols, i) ?? ""
+        if is_required(col_name, schema.required) {
+            let field_val = array.get(row.fields, i) ?? ""
+            if string.len(field_val) == 0 {
+                throw "missing required field '" + col_name + "' at row " + conv.to_string(row.index)
+            }
+        }
+        i = i + 1
+    }
+    return row
+}
+
+fn:pure escape_json(s: string): string {
+    let r1 = string.replace(s, "\\", "\\\\")
+    let r2 = string.replace(r1, "\"", "\\\"")
+    return r2
+}
+
+fn:pure to_json(row: CsvRow, schema: Schema): string {
+    let cols = schema.columns
+    let b = sb.new()
+    sb.append(b, "{")
+    let i: int:mut = 0
+    while (i < array.len_string(cols)) {
+        if i > 0 { sb.append(b, ",") }
+        let col_name = array.get(cols, i) ?? ""
+        let field_val = array.get(row.fields, i) ?? ""
+        sb.append(b, "\"")
+        sb.append(b, escape_json(col_name))
+        sb.append(b, "\":")
+        if string.len(field_val) > 0 {
+            sb.append(b, "\"")
+            sb.append(b, escape_json(field_val))
+            sb.append(b, "\"")
+        } else {
+            sb.append(b, "null")
+        }
+        i = i + 1
+    }
+    sb.append(b, "}")
+    return sb.build(b)
+}
+
+fn:pure sanitize(line: string): string {
+    ; Remove stray quotes and trim whitespace
+    let cleaned = string.replace(line, "\"", "")
+    return string.trim(cleaned)
+}
+
+; --- Main ---
+
+fn main() {
+    let lines = ["name,age,city", "Alice,30,NYC", "Bob,,London", ",bad,data", "Charlie,25,Paris"]
+    let schema = Schema { columns: ["name", "age", "city"], required: ["name"] }
+
+    ; Skip header (index 0), process data rows
+    let i: int:mut = 1
+    while (i < array.len_string(lines)) {
+        let line = array.get(lines, i) ?? ""
+        try {
+            let row = parse_row(i, line)
+            let validated = validate(row, schema)
+            let json_str = to_json(validated, schema)
+            println(json_str)
+        } catch (e: string) {
+            ; Retry once after sanitizing
+            try {
+                let fixed = sanitize(line)
+                let row = parse_row(i, fixed)
+                let validated = validate(row, schema)
+                let json_str = to_json(validated, schema)
+                println(json_str)
+            } catch (e2: string) {
+                println("SKIP row " + conv.to_string(i) + ": " + e2)
+            }
+        }
+        i = i + 1
+    }
+}

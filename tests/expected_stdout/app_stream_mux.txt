@@ -1,0 +1,14 @@
+=== archive ===
+[audit/2] user login
+
+=== metrics ===
+[metric/3] cpu=72%
+[metric/3] mem=85%
+
+=== alerts ===
+[error/1] disk full
+[error/1] OOM
+
+=== default ===
+[info/4] startup complete
+
