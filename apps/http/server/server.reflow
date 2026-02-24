@@ -76,10 +76,10 @@ fn status_text(code: int): string {
 }
 
 fn mime_for_path(fs_path: string): string {
-    match path.extension(fs_path) {
-        some(ext): { return mime_type(ext) }
-        none:      { return "application/octet-stream" }
+    if let some(ext) = path.extension(fs_path) {
+        return mime_type(ext)
     }
+    return "application/octet-stream"
 }
 
 fn url_for_entry(dir_url: string, name: string): string {
@@ -108,13 +108,11 @@ fn sanitize_path(raw: string): string? {
 
     ; Strip query string then fragment
     let clean: string:mut = decoded
-    match string.index_of(decoded, "?") {
-        some(idx): { clean = string.substring(decoded, 0, idx) }
-        none: {}
+    if let some(idx) = string.index_of(decoded, "?") {
+        clean = string.substring(decoded, 0, idx)
     }
-    match string.index_of(clean, "#") {
-        some(idx): { clean = string.substring(clean, 0, idx) }
-        none: {}
+    if let some(idx) = string.index_of(clean, "#") {
+        clean = string.substring(clean, 0, idx)
     }
 
     if string.len(clean) == 0 { return none }
@@ -124,24 +122,17 @@ fn sanitize_path(raw: string): string? {
 ; Extract (method, url_path) from the first line of a raw HTTP request.
 fn parse_request_line(raw: string): (string, string)? {
     let first_line: string:mut = raw
-    match string.index_of(raw, "\r\n") {
-        some(idx): { first_line = string.substring(raw, 0, idx) }
-        none:      { first_line = string.trim(raw) }
+    if let some(idx) = string.index_of(raw, "\r\n") {
+        first_line = string.substring(raw, 0, idx)
+    } else {
+        first_line = string.trim(raw)
     }
     let parts = string.split(first_line, " ")
-    match array.get(parts, 0) {
-        some(method): {
-            match array.get(parts, 1) {
-                some(url_path): {
-                    if string.len(method) == 0 { return none }
-                    if string.len(url_path) == 0 { return none }
-                    return some((method, url_path))
-                }
-                none: { return none }
-            }
-        }
-        none: { return none }
-    }
+    let method = array.get(parts, 0)?
+    let url_path = array.get(parts, 1)?
+    if string.len(method) == 0 { return none }
+    if string.len(url_path) == 0 { return none }
+    return some((method, url_path))
 }
 
 ; ===========================================================================
@@ -182,39 +173,35 @@ fn build_redirect(location: string): string {
 
 ; Generate an HTML directory listing; returns none if the dir can't be read.
 fn build_directory_html(url_path: string, fs_path: string): string? {
-    match path.list_dir(fs_path) {
-        some(entries): {
-            let sorted = sort.sort(entries)
-            let sb = string_builder.new()
-            string_builder.append(sb, "<html><head><title>Index of " + url_path + "</title>")
-            string_builder.append(sb, "<style>body{font-family:monospace;margin:2em;}")
-            string_builder.append(sb, "a{text-decoration:none;color:#0366d6;}")
-            string_builder.append(sb, "a:hover{text-decoration:underline;}")
-            string_builder.append(sb, "li{padding:.2em 0;}.dir{font-weight:bold;}</style></head><body>")
-            string_builder.append(sb, "<h1>Index of " + url_path + "</h1><ul>")
+    let entries = path.list_dir(fs_path)?
+    let sorted = sort.sort(entries)
+    let sb = string_builder.new()
+    string_builder.append(sb, "<html><head><title>Index of " + url_path + "</title>")
+    string_builder.append(sb, "<style>body{font-family:monospace;margin:2em;}")
+    string_builder.append(sb, "a{text-decoration:none;color:#0366d6;}")
+    string_builder.append(sb, "a:hover{text-decoration:underline;}")
+    string_builder.append(sb, "li{padding:.2em 0;}.dir{font-weight:bold;}</style></head><body>")
+    string_builder.append(sb, "<h1>Index of " + url_path + "</h1><ul>")
 
-            if url_path != "/" {
-                let parent: string:mut = path.parent(url_path)
-                if string.len(parent) == 0 { parent = "/" }
-                string_builder.append(sb, "<li><a href=\"" + parent + "\">../</a></li>")
-            }
-            for (entry: string in sorted) {
-                if path.is_dir(path.join(fs_path, entry)) {
-                    let href = url_for_entry(url_path, entry)
-                    string_builder.append(sb, "<li class=\"dir\"><a href=\"" + href + "/\">" + entry + "/</a></li>")
-                }
-            }
-            for (entry: string in sorted) {
-                if path.is_file(path.join(fs_path, entry)) {
-                    let href = url_for_entry(url_path, entry)
-                    string_builder.append(sb, "<li><a href=\"" + href + "\">" + entry + "</a></li>")
-                }
-            }
-            string_builder.append(sb, "</ul><hr><em>ReFlow/0.1</em></body></html>")
-            return some(string_builder.build(sb))
-        }
-        none: { return none }
+    if url_path != "/" {
+        let parent: string:mut = path.parent(url_path)
+        if string.len(parent) == 0 { parent = "/" }
+        string_builder.append(sb, "<li><a href=\"" + parent + "\">../</a></li>")
     }
+    for (entry: string in sorted) {
+        if path.is_dir(path.join(fs_path, entry)) {
+            let href = url_for_entry(url_path, entry)
+            string_builder.append(sb, "<li class=\"dir\"><a href=\"" + href + "/\">" + entry + "/</a></li>")
+        }
+    }
+    for (entry: string in sorted) {
+        if path.is_file(path.join(fs_path, entry)) {
+            let href = url_for_entry(url_path, entry)
+            string_builder.append(sb, "<li><a href=\"" + href + "\">" + entry + "</a></li>")
+        }
+    }
+    string_builder.append(sb, "</ul><hr><em>ReFlow/0.1</em></body></html>")
+    return some(string_builder.build(sb))
 }
 
 ; ===========================================================================
@@ -233,13 +220,11 @@ fn send_error(client: Socket, code: int, message: string): none {
 }
 
 fn serve_file(client: Socket, fs_path: string, ct: string): int {
-    match io.read_file_bytes(fs_path) {
-        some(data): { return send_response(client, 200, ct, data) }
-        none: {
-            send_error(client, 500, "Failed to read file.")
-            return 500
-        }
+    if let some(data) = io.read_file_bytes(fs_path) {
+        return send_response(client, 200, ct, data)
     }
+    send_error(client, 500, "Failed to read file.")
+    return 500
 }
 
 fn serve_directory(client: Socket, url_path: string, fs_path: string): int {
@@ -255,13 +240,11 @@ fn serve_directory(client: Socket, url_path: string, fs_path: string): int {
         return serve_file(client, index_path, mime_for_path(index_path))
     }
 
-    match build_directory_html(url_path, fs_path) {
-        some(html): { return send_response(client, 200, "text/html; charset=utf-8", string.to_bytes(html)) }
-        none: {
-            send_error(client, 500, "Failed to list directory.")
-            return 500
-        }
+    if let some(html) = build_directory_html(url_path, fs_path) {
+        return send_response(client, 200, "text/html; charset=utf-8", string.to_bytes(html))
     }
+    send_error(client, 500, "Failed to list directory.")
+    return 500
 }
 
 ; ===========================================================================
@@ -288,30 +271,24 @@ fn:pure request_wants_close(raw: string): bool {
 ; Parse, validate, route, and log a single HTTP request.
 ; All dispatch is at most 2 levels deep; response sending is delegated.
 fn handle_request(client: Socket, raw: string, resolved_root: string, addr: string): none {
-    match parse_request_line(raw) {
-        some(parsed): {
-            let method = parsed.0
-            let url_path = parsed.1
-            if method != "GET" {
-                send_error(client, 405, "Method " + method + " is not allowed. Use GET.")
-                log_request(addr, method, url_path, 405)
+    if let some(parsed) = parse_request_line(raw) {
+        let method = parsed.0
+        let url_path = parsed.1
+        if method != "GET" {
+            send_error(client, 405, "Method " + method + " is not allowed. Use GET.")
+            log_request(addr, method, url_path, 405)
+        } else {
+            if let some(clean_path) = sanitize_path(url_path) {
+                let status = route_get(client, clean_path, resolved_root)
+                log_request(addr, method, clean_path, status)
             } else {
-                match sanitize_path(url_path) {
-                    some(clean_path): {
-                        let status = route_get(client, clean_path, resolved_root)
-                        log_request(addr, method, clean_path, status)
-                    }
-                    none: {
-                        send_error(client, 400, "Invalid request path.")
-                        log_request(addr, method, url_path, 400)
-                    }
-                }
+                send_error(client, 400, "Invalid request path.")
+                log_request(addr, method, url_path, 400)
             }
         }
-        none: {
-            send_error(client, 400, "Malformed request line.")
-            log_request(addr, "???", "/", 400)
-        }
+    } else {
+        send_error(client, 400, "Malformed request line.")
+        log_request(addr, "???", "/", 400)
     }
 }
 
@@ -320,13 +297,12 @@ fn handle_connection(client: Socket, resolved_root: string, addr: string): none 
     net.set_timeout(client, 5000)
     let alive: bool:mut = true
     while (alive) {
-        match net.read(client, 8192) {
-            some(request_bytes): {
-                let raw = string.from_bytes(request_bytes)
-                if request_wants_close(raw) { alive = false }
-                handle_request(client, raw, resolved_root, addr)
-            }
-            none: { alive = false }
+        if let some(request_bytes) = net.read(client, 8192) {
+            let raw = string.from_bytes(request_bytes)
+            if request_wants_close(raw) { alive = false }
+            handle_request(client, raw, resolved_root, addr)
+        } else {
+            alive = false
         }
     }
     net.close(client)
@@ -339,11 +315,10 @@ fn handle_connection(client: Socket, resolved_root: string, addr: string): none 
 ; Accept and handle connections in a loop until the listener is closed.
 fn accept_loop(listener: Socket, root: string): none {
     while (true) {
-        match net.accept(listener) {
-            some(client): {
-                handle_connection(client, root, net.remote_addr(client) ?? "unknown")
-            }
-            none: { break }
+        if let some(client) = net.accept(listener) {
+            handle_connection(client, root, net.remote_addr(client) ?? "unknown")
+        } else {
+            break
         }
     }
 }
@@ -364,21 +339,16 @@ fn main(): none {
     let port: int:mut = 8080
     let doc_root: string:mut = "."
 
-    match array.get(argv, 1) {
-        some(port_str): {
-            match conv.string_to_int(port_str) {
-                some(p): { port = p }
-                none: {
-                    io.eprintln("Invalid port: " + port_str)
-                    sys.exit(1)
-                }
-            }
+    if let some(port_str) = array.get(argv, 1) {
+        if let some(p) = conv.string_to_int(port_str) {
+            port = p
+        } else {
+            io.eprintln("Invalid port: " + port_str)
+            sys.exit(1)
         }
-        none: {}
     }
-    match array.get(argv, 2) {
-        some(root): { doc_root = root }
-        none: {}
+    if let some(root) = array.get(argv, 2) {
+        doc_root = root
     }
 
     let resolved_root = path.resolve(doc_root)
@@ -394,19 +364,16 @@ fn main(): none {
     io.println("ReFlow HTTP Server v0.1")
     io.println("Serving " + resolved_root + " on port " + conv.to_string(port))
 
-    match net.listen("0.0.0.0", port) {
-        some(listener): {
-            io.println("Listening on http://0.0.0.0:" + conv.to_string(port) + "/")
-            let w1 :< worker(listener, resolved_root)
-            let w2 :< worker(listener, resolved_root)
-            let w3 :< worker(listener, resolved_root)
-            accept_loop(listener, resolved_root)
-            net.close(listener)
-        }
-        none: {
-            io.eprintln("Failed to listen on 0.0.0.0:" + conv.to_string(port))
-            io.eprintln("Is the port already in use?")
-            sys.exit(1)
-        }
+    if let some(listener) = net.listen("0.0.0.0", port) {
+        io.println("Listening on http://0.0.0.0:" + conv.to_string(port) + "/")
+        let w1 :< worker(listener, resolved_root)
+        let w2 :< worker(listener, resolved_root)
+        let w3 :< worker(listener, resolved_root)
+        accept_loop(listener, resolved_root)
+        net.close(listener)
+    } else {
+        io.eprintln("Failed to listen on 0.0.0.0:" + conv.to_string(port))
+        io.eprintln("Is the port already in use?")
+        sys.exit(1)
     }
 }

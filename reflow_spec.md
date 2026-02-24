@@ -198,7 +198,7 @@ All update operators are only valid on `:mut` bindings. Using them on an immutab
 |----------|-------------|
 | `?` | Nullable type modifier. `int?` is sugar for `option<int>`. |
 | `??` | Null coalescing. Returns the left side if non-none, otherwise the right side. |
-| `?` (postfix) | Error propagation. On a `result<T, E>` expression, unwraps `ok(v)` to `v` or short-circuits with `err(e)`. See [Result Type](#result-type). |
+| `?` (postfix) | Propagation. On `result<T, E>`, unwraps `ok(v)` or short-circuits with `err(e)`. On `option<T>`, unwraps `some(v)` or short-circuits with `none`. See [The `?` Propagation Operator](#the--propagation-operator). |
 
 ### Other
 
@@ -453,6 +453,43 @@ let value = match lookup(key) {
 }
 ```
 
+### `if let` — Conditional Pattern Matching
+
+`if let` is sugar for a `match` with two arms: one for the matching pattern, and a complement for the else branch. It avoids the boilerplate of exhaustive match when only one variant is interesting.
+
+```
+; Unwrap some — skip on none
+if let some(v) = find_user(id) {
+    println(f"found: {v}")
+}
+
+; Unwrap some with else
+if let some(v) = find_user(id) {
+    greet(v)
+} else {
+    println("user not found")
+}
+
+; Unwrap ok — else handles the error case
+if let ok(data) = read_file(path) {
+    process(data)
+} else {
+    println("read failed")
+}
+
+; Unwrap err
+if let err(e) = validate(input) {
+    log_error(e)
+}
+```
+
+The parser desugars `if let` into a `match` statement:
+- `if let some(x) = expr { body }` becomes `match expr { some(x): { body }, none: {} }`
+- `if let ok(x) = expr { body } else { alt }` becomes `match expr { ok(x): { body }, err(_): { alt } }`
+- `if let err(e) = expr { body }` becomes `match expr { err(e): { body }, ok(_): {} }`
+
+No changes to the resolver, type checker, lowering, or emitter are needed — the desugared `match` flows through the existing pipeline.
+
 ### Nullable with Mutability
 
 ```
@@ -496,7 +533,9 @@ match parse_int("42") {
 
 ### The `?` Propagation Operator
 
-Within a function that returns `result<T, E>`, appending `?` to a call that returns `result<T, E>` automatically propagates the error: if the call returns `err(e)`, the enclosing function returns `err(e)` immediately. If it returns `ok(v)`, execution continues with `v` unwrapped.
+The postfix `?` operator unwraps a `result` or `option` value, short-circuiting with early return if the value is an error or none.
+
+**On `result<T, E>`:** Within a function that returns `result<T, E>`, appending `?` to a `result<T, E>` expression unwraps `ok(v)` to `v` or returns `err(e)` immediately.
 
 ```
 fn load_and_process(path: string): result<record, string> {
@@ -508,6 +547,17 @@ fn load_and_process(path: string): result<record, string> {
 ```
 
 The `E` type in the propagated `err` must be compatible with the enclosing function's `E`. If they differ, a `cast` or explicit mapping is required.
+
+**On `option<T>`:** Within a function that returns `option<T>` (or `T?`), appending `?` to an `option<T>` expression unwraps `some(v)` to `v` or returns `none` immediately.
+
+```
+fn double_positive(x: int): int? {
+    let v = find_positive(x)?    ; if none, return none immediately
+    return some(v * 2)
+}
+```
+
+Using `?` on an option in a function that does not return an option type is a compile error.
 
 ### Result vs Exceptions
 

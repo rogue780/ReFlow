@@ -36,15 +36,12 @@ fn parse_message(raw: string): (string, string) {
         return ("/empty", "")
     }
     if string.starts_with(trimmed, "/") {
-        match string.index_of(trimmed, " ") {
-            some(idx): {
-                let cmd = string.substring(trimmed, 0, idx)
-                let arg = string.trim(string.substring(trimmed, idx + 1, string.len(trimmed)))
-                return (cmd, arg)
-            }
-            none: {
-                return (trimmed, "")
-            }
+        if let some(idx) = string.index_of(trimmed, " ") {
+            let cmd = string.substring(trimmed, 0, idx)
+            let arg = string.trim(string.substring(trimmed, idx + 1, string.len(trimmed)))
+            return (cmd, arg)
+        } else {
+            return (trimmed, "")
         }
     }
     return ("/say", trimmed)
@@ -63,11 +60,8 @@ fn is_nick_taken(nicks: map<string, string>, name: string): bool {
     let vals = map.values(nicks)
     let i: int:mut = 0
     while (i < array.len_string(vals)) {
-        match array.get(vals, i) {
-            some(v): {
-                if v == name { return true }
-            }
-            none: {}
+        if let some(v) = array.get(vals, i) {
+            if v == name { return true }
         }
         i = i + 1
     }
@@ -77,13 +71,11 @@ fn is_nick_taken(nicks: map<string, string>, name: string): bool {
 ; Generate a default nickname from a remote address.
 ; Uses the port portion (after last ":") as a suffix.
 fn generate_nickname(addr: string): string {
-    match string.index_of(addr, ":") {
-        some(idx): {
-            let suffix = string.substring(addr, idx + 1, string.len(addr))
-            return "user_" + suffix
-        }
-        none: { return "user_" + addr }
+    if let some(idx) = string.index_of(addr, ":") {
+        let suffix = string.substring(addr, idx + 1, string.len(addr))
+        return "user_" + suffix
     }
+    return "user_" + addr
 }
 
 ; Format a timestamp prefix for server console logging.
@@ -111,21 +103,14 @@ fn broadcast(client_fds: map<string, string>, exclude_addr: string, msg: string)
     let addrs = map.keys(client_fds)
     let k: int:mut = 0
     while (k < array.len_string(addrs)) {
-        match array.get(addrs, k) {
-            some(a): {
-                if a != exclude_addr {
-                    match map.get(client_fds, a) {
-                        some(fs): {
-                            match conv.string_to_int(fs) {
-                                some(f): { net.write_to_fd(f, msg) }
-                                none: {}
-                            }
-                        }
-                        none: {}
+        if let some(a) = array.get(addrs, k) {
+            if a != exclude_addr {
+                if let some(fs) = map.get(client_fds, a) {
+                    if let some(f) = conv.string_to_int(fs) {
+                        net.write_to_fd(f, msg)
                     }
                 }
             }
-            none: {}
         }
         k = k + 1
     }
@@ -133,14 +118,10 @@ fn broadcast(client_fds: map<string, string>, exclude_addr: string, msg: string)
 
 ; Send a message to a specific fd stored as string in client_fds
 fn send_to(client_fds: map<string, string>, addr: string, msg: string): none {
-    match map.get(client_fds, addr) {
-        some(fs): {
-            match conv.string_to_int(fs) {
-                some(f): { net.write_to_fd(f, msg) }
-                none: {}
-            }
+    if let some(fs) = map.get(client_fds, addr) {
+        if let some(f) = conv.string_to_int(fs) {
+            net.write_to_fd(f, msg)
         }
-        none: {}
     }
 }
 
@@ -217,20 +198,17 @@ fn dispatch_message(
             send_to(client_fds, sender_addr, help_text)
         }
         "/nick": {
-            match validate_nick(arg) {
-                some(reason): {
-                    send_to(client_fds, sender_addr, "Error: " + reason + "\r\n")
-                }
-                none: {
-                    if is_nick_taken(nicks, arg) {
-                        send_to(client_fds, sender_addr, "Nickname '" + arg + "' is already taken.\r\n")
-                    } else {
-                        let old_nick = sender_nick
-                        nicks = map.set(nicks, sender_addr, arg)
-                        send_to(client_fds, sender_addr, "You are now known as " + arg + "\r\n")
-                        broadcast(client_fds, sender_addr, "*** " + old_nick + " is now known as " + arg + " ***\r\n")
-                        log("[nick] " + old_nick + " -> " + arg)
-                    }
+            if let some(reason) = validate_nick(arg) {
+                send_to(client_fds, sender_addr, "Error: " + reason + "\r\n")
+            } else {
+                if is_nick_taken(nicks, arg) {
+                    send_to(client_fds, sender_addr, "Nickname '" + arg + "' is already taken.\r\n")
+                } else {
+                    let old_nick = sender_nick
+                    nicks = map.set(nicks, sender_addr, arg)
+                    send_to(client_fds, sender_addr, "You are now known as " + arg + "\r\n")
+                    broadcast(client_fds, sender_addr, "*** " + old_nick + " is now known as " + arg + " ***\r\n")
+                    log("[nick] " + old_nick + " -> " + arg)
                 }
             }
         }
@@ -240,13 +218,10 @@ fn dispatch_message(
             let list_msg: string:mut = "Online users (" + conv.to_string(n) + "):\r\n"
             let k: int:mut = 0
             while (k < n) {
-                match array.get(addrs, k) {
-                    some(a): {
-                        let n2 = map.get(nicks, a) ?? a
-                        let marker = if a == sender_addr { " (you)" } else { "" }
-                        list_msg = list_msg + "  " + n2 + marker + "\r\n"
-                    }
-                    none: {}
+                if let some(a) = array.get(addrs, k) {
+                    let n2 = map.get(nicks, a) ?? a
+                    let marker = if a == sender_addr { " (you)" } else { "" }
+                    list_msg = list_msg + "  " + n2 + marker + "\r\n"
                 }
                 k = k + 1
             }
@@ -274,128 +249,106 @@ fn main(): none {
     let argv = sys.args()
     let port: int:mut = 9000
 
-    match array.get(argv, 1) {
-        some(port_str): {
-            match conv.string_to_int(port_str) {
-                some(p): { port = p }
-                none: {
-                    io.eprintln("Invalid port: " + port_str)
-                    sys.exit(1)
-                }
-            }
+    if let some(port_str) = array.get(argv, 1) {
+        if let some(p) = conv.string_to_int(port_str) {
+            port = p
+        } else {
+            io.eprintln("Invalid port: " + port_str)
+            sys.exit(1)
         }
-        none: {}
     }
 
     io.println("ReFlow Chat Server v0.2 (multi-client)")
 
-    match net.listen("0.0.0.0", port) {
-        some(listener): {
-            io.println("Listening on port " + conv.to_string(port))
-            io.println("Connect with: nc localhost " + conv.to_string(port))
+    if let some(listener) = net.listen("0.0.0.0", port) {
+        io.println("Listening on port " + conv.to_string(port))
+        io.println("Connect with: nc localhost " + conv.to_string(port))
 
-            ; Set short timeout on listener for non-blocking accept
-            net.set_timeout(listener, 50)
+        ; Set short timeout on listener for non-blocking accept
+        net.set_timeout(listener, 50)
 
-            ; Client state maps
-            let nicknames: map<string, string>:mut = map.new()
-            let client_fds: map<string, string>:mut = map.new()
+        ; Client state maps
+        let nicknames: map<string, string>:mut = map.new()
+        let client_fds: map<string, string>:mut = map.new()
 
-            ; Client coroutine handles and their addresses
-            let handlers: array<Coroutine<string>>:mut = []
-            let handler_addrs: array<string>:mut = []
+        ; Client coroutine handles and their addresses
+        let handlers: array<Coroutine<string>>:mut = []
+        let handler_addrs: array<string>:mut = []
 
-            ; Main event loop
-            while (true) {
-                ; 1. Non-blocking accept (returns none on timeout)
-                match net.accept(listener) {
-                    some(client): {
-                        let addr = net.remote_addr(client) ?? "unknown"
-                        let nick = generate_nickname(addr)
-                        nicknames = map.set(nicknames, addr, nick)
+        ; Main event loop
+        while (true) {
+            ; 1. Non-blocking accept (returns none on timeout)
+            if let some(client) = net.accept(listener) {
+                let addr = net.remote_addr(client) ?? "unknown"
+                let nick = generate_nickname(addr)
+                nicknames = map.set(nicknames, addr, nick)
 
-                        ; Store the fd for broadcasting
-                        let fd = net.fd(client)
-                        client_fds = map.set(client_fds, addr, conv.to_string(fd))
+                ; Store the fd for broadcasting
+                let fd = net.fd(client)
+                client_fds = map.set(client_fds, addr, conv.to_string(fd))
 
-                        log("[connect] " + nick + " from " + addr)
+                log("[connect] " + nick + " from " + addr)
 
-                        ; Broadcast join notification
-                        broadcast(client_fds, addr, "*** " + nick + " has joined ***\r\n")
+                ; Broadcast join notification
+                broadcast(client_fds, addr, "*** " + nick + " has joined ***\r\n")
 
-                        ; Spawn client coroutine and track it
-                        let handler :< client_handler(client, addr)
-                        handlers = array.push(handlers, handler)
-                        handler_addrs = array.push(handler_addrs, addr)
-                    }
-                    none: {}
-                }
-
-                ; 2. Poll each client handler (non-blocking)
-                let i: int:mut = 0
-                while (i < array.size(handlers)) {
-                    match array.get_any(handlers, i) {
-                        some(handler): {
-                            match handler.poll() {
-                                some(raw_msg): {
-                                    ; Parse "addr|message" format
-                                    match string.index_of(raw_msg, "|") {
-                                        some(pipe_idx): {
-                                            let sender_addr = string.substring(raw_msg, 0, pipe_idx)
-                                            let line = string.substring(raw_msg, pipe_idx + 1, string.len(raw_msg))
-                                            let parsed = parse_message(line)
-                                            let cmd = parsed.0
-                                            let arg = parsed.1
-
-                                            let result = dispatch_message(sender_addr, cmd, arg, nicknames, client_fds)
-                                            nicknames = result.0
-                                            let alive = result.1
-
-                                            if !alive {
-                                                ; Client requested disconnect
-                                                let leaving_nick = map.get(nicknames, sender_addr) ?? sender_addr
-                                                nicknames = map.remove(nicknames, sender_addr)
-                                                client_fds = map.remove(client_fds, sender_addr)
-                                                broadcast(client_fds, "", "*** " + leaving_nick + " has left ***\r\n")
-                                                log("[disconnect] " + leaving_nick)
-                                            }
-                                        }
-                                        none: {}
-                                    }
-                                }
-                                none: {
-                                    ; Nothing ready from this client — check if done
-                                    if handler.done() {
-                                        ; Client disconnected
-                                        match array.get_any(handler_addrs, i) {
-                                            some(addr): {
-                                                let leaving_nick = map.get(nicknames, addr) ?? addr
-                                                nicknames = map.remove(nicknames, addr)
-                                                client_fds = map.remove(client_fds, addr)
-                                                broadcast(client_fds, "", "*** " + leaving_nick + " has left ***\r\n")
-                                                log("[disconnect] " + leaving_nick)
-                                            }
-                                            none: {}
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        none: {}
-                    }
-                    i = i + 1
-                }
-
-                ; 3. Small sleep to prevent busy-wait
-                time.sleep_ms(10)
+                ; Spawn client coroutine and track it
+                let handler :< client_handler(client, addr)
+                handlers = array.push(handlers, handler)
+                handler_addrs = array.push(handler_addrs, addr)
             }
 
-            net.close(listener)
+            ; 2. Poll each client handler (non-blocking)
+            let i: int:mut = 0
+            while (i < array.size(handlers)) {
+                if let some(handler) = array.get_any(handlers, i) {
+                    if let some(raw_msg) = handler.poll() {
+                        ; Parse "addr|message" format
+                        if let some(pipe_idx) = string.index_of(raw_msg, "|") {
+                            let sender_addr = string.substring(raw_msg, 0, pipe_idx)
+                            let line = string.substring(raw_msg, pipe_idx + 1, string.len(raw_msg))
+                            let parsed = parse_message(line)
+                            let cmd = parsed.0
+                            let arg = parsed.1
+
+                            let result = dispatch_message(sender_addr, cmd, arg, nicknames, client_fds)
+                            nicknames = result.0
+                            let alive = result.1
+
+                            if !alive {
+                                ; Client requested disconnect
+                                let leaving_nick = map.get(nicknames, sender_addr) ?? sender_addr
+                                nicknames = map.remove(nicknames, sender_addr)
+                                client_fds = map.remove(client_fds, sender_addr)
+                                broadcast(client_fds, "", "*** " + leaving_nick + " has left ***\r\n")
+                                log("[disconnect] " + leaving_nick)
+                            }
+                        }
+                    } else {
+                        ; Nothing ready from this client — check if done
+                        if handler.done() {
+                            ; Client disconnected
+                            if let some(addr) = array.get_any(handler_addrs, i) {
+                                let leaving_nick = map.get(nicknames, addr) ?? addr
+                                nicknames = map.remove(nicknames, addr)
+                                client_fds = map.remove(client_fds, addr)
+                                broadcast(client_fds, "", "*** " + leaving_nick + " has left ***\r\n")
+                                log("[disconnect] " + leaving_nick)
+                            }
+                        }
+                    }
+                }
+                i = i + 1
+            }
+
+            ; 3. Small sleep to prevent busy-wait
+            time.sleep_ms(10)
         }
-        none: {
-            io.eprintln("Failed to listen on 0.0.0.0:" + conv.to_string(port))
-            io.eprintln("Is the port already in use?")
-            sys.exit(1)
-        }
+
+        net.close(listener)
+    } else {
+        io.eprintln("Failed to listen on 0.0.0.0:" + conv.to_string(port))
+        io.eprintln("Is the port already in use?")
+        sys.exit(1)
     }
 }

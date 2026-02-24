@@ -1,0 +1,27 @@
+module tests.option_propagate_test
+
+import io (println)
+
+fn find_positive(x: int): int? {
+    if x > 0 {
+        return some(x)
+    }
+    return none
+}
+
+fn double_positive(x: int): int? {
+    let v = find_positive(x)?
+    return some(v * 2)
+}
+
+fn main() {
+    match double_positive(5) {
+        some(v): { println(f"result: {v}") }
+        none: { println("none") }
+    }
+
+    match double_positive(-3) {
+        some(v): { println(f"result: {v}") }
+        none: { println("none") }
+    }
+}

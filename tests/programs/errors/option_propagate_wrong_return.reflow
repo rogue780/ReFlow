@@ -1,0 +1,9 @@
+module tests.errors.option_propagate_wrong_return
+
+fn get(): int? {
+    return some(42)
+}
+
+fn main(): none {
+    let v = get()?
+}

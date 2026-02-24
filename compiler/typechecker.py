@@ -1772,8 +1772,17 @@ class TypeChecker:
                 inner_t = self._infer_expr(inner, scope)
                 if isinstance(inner_t, TResult):
                     return inner_t.ok_type
+                if isinstance(inner_t, TOption):
+                    # Enclosing function must return option
+                    if (self._current_return_type is not None
+                            and not isinstance(self._current_return_type, TOption)):
+                        raise self._error(
+                            "'?' on option requires enclosing function to return "
+                            f"option type, got {self._type_name(self._current_return_type)}",
+                            expr)
+                    return inner_t.inner
                 raise self._error(
-                    f"'?' propagation requires result type, got "
+                    f"'?' propagation requires result or option type, got "
                     f"{self._type_name(inner_t)}", expr)
 
             case NullCoalesce(left=left, right=right):

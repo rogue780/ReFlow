@@ -1,0 +1,5 @@
+found: 42
+not found
+divided: 5
+division failed
+error: division by zero

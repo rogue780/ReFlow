@@ -3515,12 +3515,20 @@ class Lowerer:
         inner = self._lower_expr(expr.inner)
         inner_type = self._type_of(expr.inner)
 
-        if not isinstance(inner_type, TResult):
-            raise EmitError(
-                message="propagate (?) requires a result type",
-                file=self._file, line=expr.line, col=expr.col,
-            )
+        if isinstance(inner_type, TResult):
+            return self._lower_propagate_result(expr, inner, inner_type)
 
+        if isinstance(inner_type, TOption):
+            return self._lower_propagate_option(expr, inner, inner_type)
+
+        raise EmitError(
+            message="propagate (?) requires a result or option type",
+            file=self._file, line=expr.line, col=expr.col,
+        )
+
+    def _lower_propagate_result(self, expr: PropagateExpr,
+                                inner: LExpr, inner_type: TResult) -> LExpr:
+        """Lower ? on result type."""
         result_lt = self._lower_type(inner_type)
         ok_lt = self._lower_type(inner_type.ok_type)
 
@@ -3550,6 +3558,47 @@ class Lowerer:
             LVarDecl(c_name=ok_tmp, c_type=ok_lt, init=ok_value))
 
         return LVar(ok_tmp, ok_lt)
+
+    def _lower_propagate_option(self, expr: PropagateExpr,
+                                inner: LExpr, inner_type: TOption) -> LExpr:
+        """Lower ? on option type."""
+        option_lt = self._lower_type(inner_type)
+        inner_lt = self._lower_type(inner_type.inner)
+
+        # Store option in temp
+        tmp = self._fresh_temp()
+        self._pending_stmts.append(
+            LVarDecl(c_name=tmp, c_type=option_lt, init=inner))
+        tmp_var = LVar(tmp, option_lt)
+
+        # Build none return value using the enclosing function's return type
+        ret_type = self._current_fn_return_type
+        if isinstance(ret_type, TOption):
+            none_lt = self._lower_type(ret_type)
+        else:
+            none_lt = option_lt
+        none_val = LCompound(
+            fields=[("tag", LLit("0", LByte()))], c_type=none_lt)
+
+        # if (tmp.tag == 0) { return none; }
+        none_check = LIf(
+            cond=LBinOp(
+                op="==",
+                left=LFieldAccess(tmp_var, "tag", LByte()),
+                right=LLit("0", LByte()),
+                c_type=LBool(),
+            ),
+            then=[LReturn(none_val)],
+            else_=[],
+        )
+        self._pending_stmts.append(none_check)
+
+        # Extract some value
+        val_tmp = self._fresh_temp()
+        self._pending_stmts.append(
+            LVarDecl(c_name=val_tmp, c_type=inner_lt,
+                     init=LFieldAccess(tmp_var, "value", inner_lt)))
+        return LVar(val_tmp, inner_lt)
 
     def _lower_copy(self, expr: CopyExpr) -> LExpr:
         """Lower copy expression. RT-7-3-8."""

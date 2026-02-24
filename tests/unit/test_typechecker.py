@@ -696,7 +696,28 @@ fn main(): result<int, string> {
             check("""fn main(): none {
     let x = 5?
 }""")
-        self.assertIn("requires result type", ctx.exception.message)
+        self.assertIn("requires result or option type", ctx.exception.message)
+
+    def test_propagate_on_option(self):
+        result = check("""fn get(): int? {
+    return some(42)
+}
+fn main(): int? {
+    let v = get()?
+    return some(v)
+}""")
+        self.assertIsNotNone(result)
+
+    def test_propagate_on_option_wrong_return(self):
+        with self.assertRaises(ReFlowTypeError) as ctx:
+            check("""fn get(): int? {
+    return some(42)
+}
+fn main(): none {
+    let v = get()?
+}""")
+        self.assertIn("option requires enclosing function to return option type",
+                      ctx.exception.message)
 
     def test_empty_fn(self):
         result = check("fn noop(): none { }")

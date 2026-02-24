@@ -1,0 +1,48 @@
+module tests.if_let_test
+
+import io (println)
+
+fn find_positive(x: int): int? {
+    if x > 0 {
+        return some(x)
+    }
+    return none
+}
+
+fn safe_divide(a: int, b: int): result<int, string> {
+    if b == 0 {
+        return err("division by zero")
+    }
+    return ok(a / b)
+}
+
+fn main() {
+    ; if let some — match case
+    if let some(v) = find_positive(42) {
+        println(f"found: {v}")
+    }
+
+    ; if let some — none case
+    if let some(v) = find_positive(-5) {
+        println(f"found: {v}")
+    } else {
+        println("not found")
+    }
+
+    ; if let ok — match case
+    if let ok(v) = safe_divide(10, 2) {
+        println(f"divided: {v}")
+    }
+
+    ; if let ok — error case
+    if let ok(v) = safe_divide(10, 0) {
+        println(f"divided: {v}")
+    } else {
+        println("division failed")
+    }
+
+    ; if let err — match case
+    if let err(e) = safe_divide(10, 0) {
+        println(f"error: {e}")
+    }
+}

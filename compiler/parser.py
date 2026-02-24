@@ -1219,9 +1219,16 @@ class Parser:
             value=value,
         )
 
-    def parse_if_stmt(self) -> IfStmt:
-        """Parse: if expr { block } else if ... else { block }"""
+    def parse_if_stmt(self) -> IfStmt | MatchStmt:
+        """Parse: if expr { block } else if ... else { block }
+        Also: if let pattern = expr { block } [else { block }]
+        """
         tok = self.expect(TokenType.IF)
+
+        # if let — desugar to MatchStmt
+        if self.check(TokenType.LET):
+            return self._parse_if_let(tok)
+
         condition = self.parse_expr()
         then_branch = self.parse_block()
 
@@ -1240,6 +1247,54 @@ class Parser:
             then_branch=then_branch,
             else_branch=else_branch,
         )
+
+    def _parse_if_let(self, if_tok: Token) -> MatchStmt:
+        """Parse: if let pattern = expr { block } [else { block }]
+        Desugars to MatchStmt with two arms."""
+        self.advance()  # consume LET
+        pattern = self.parse_pattern()
+        self.expect(TokenType.ASSIGN)
+        subject = self.parse_expr()
+        then_block = self.parse_block()
+
+        else_block: Block | None = None
+        if self.check(TokenType.ELSE):
+            self.advance()
+            else_block = self.parse_block()
+
+        if else_block is None:
+            else_block = Block(line=if_tok.line, col=if_tok.col, stmts=[],
+                               finally_block=None)
+
+        # Build complement pattern for the else arm
+        complement = self._complement_pattern(pattern, if_tok)
+
+        return MatchStmt(
+            line=if_tok.line,
+            col=if_tok.col,
+            subject=subject,
+            arms=[
+                MatchArm(line=pattern.line, col=pattern.col,
+                         pattern=pattern, body=then_block),
+                MatchArm(line=complement.line, col=complement.col,
+                         pattern=complement, body=else_block),
+            ],
+        )
+
+    def _complement_pattern(self, pattern: Pattern, tok: Token) -> Pattern:
+        """Return the complement pattern for an if-let arm."""
+        match pattern:
+            case SomePattern():
+                return NonePattern(line=tok.line, col=tok.col)
+            case NonePattern():
+                return SomePattern(line=tok.line, col=tok.col, inner_var="_")
+            case OkPattern():
+                return ErrPattern(line=tok.line, col=tok.col, inner_var="_")
+            case ErrPattern():
+                return OkPattern(line=tok.line, col=tok.col, inner_var="_")
+            case _:
+                # For variant patterns or others, use wildcard as complement
+                return WildcardPattern(line=tok.line, col=tok.col)
 
     def parse_while_stmt(self) -> WhileStmt:
         """Parse: while (expr) { block } [finally { block }]"""
@@ -1693,24 +1748,20 @@ class Parser:
         """Determine whether the current QUESTION token is ternary (? expr : expr)
         or propagation (?).
 
-        We look ahead to see if after QUESTION there's an expression followed by COLON.
-        Simple heuristic: if the next token after ? can start an expression AND
-        we're not at a place where ? would just be postfix.
+        We speculatively parse past the ? to see if we find expr : expr.
+        If the speculative parse fails or no COLON follows, it's propagation.
         """
-        # Save position
         saved = self._pos
+        saved_errors = list(self._errors)
         try:
-            # Skip past the QUESTION token
             self.skip_comments()
             self._pos += 1  # skip ?
             self.skip_comments()
 
             next_tok = self._tokens[self._pos] if self._pos < len(self._tokens) else self._tokens[-1]
 
-            # If the next token can start an expression, it might be ternary.
-            # We need to actually try to find the matching ':'.
-            # Simple heuristic: if the token after ? is one that clearly starts
-            # an expression (ident, lit, lparen, minus, bang, etc.), assume ternary.
+            # Quick reject: if the next token clearly can't start an expression,
+            # it's definitely propagation.
             can_start_expr = next_tok.type in (
                 TokenType.IDENT,
                 TokenType.INT_LIT, TokenType.FLOAT_LIT, TokenType.BOOL_LIT,
@@ -1734,9 +1785,21 @@ class Parser:
                 TokenType.SNAPSHOT,
                 TokenType.SELF,
             )
-            return can_start_expr
+            if not can_start_expr:
+                return False
+
+            # Speculatively parse the then-expression and check for ':'
+            try:
+                self._parse_pratt(_PREC_TERNARY)
+                self.skip_comments()
+                if self._pos < len(self._tokens):
+                    return self._tokens[self._pos].type == TokenType.COLON
+                return False
+            except Exception:
+                return False
         finally:
             self._pos = saved
+            self._errors = saved_errors
 
     def _parse_ternary(self, condition: Expr) -> TernaryExpr:
         """Parse: condition ? then_expr : else_expr"""
