@@ -1,0 +1,8 @@
+has greeting=true
+has missing=false
+greeting=hello
+farewell=goodbye
+keys count=2
+values count=2
+after remove has greeting=false
+len=1

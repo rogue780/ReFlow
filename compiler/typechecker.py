@@ -1242,6 +1242,10 @@ class TypeChecker:
                         return TMap(k, v)
                     case NamedType(name="set"):
                         return TSet(resolved_args[0]) if resolved_args else TSet(TAny())
+                    case NamedType(name="Coroutine"):
+                        yt = resolved_args[0] if resolved_args else TAny()
+                        st = resolved_args[1] if len(resolved_args) > 1 else TAny()
+                        return TCoroutine(yt, st)
                     case NamedType(name=name):
                         return TNamed("", name, resolved_args)
                     case _:
@@ -1398,11 +1402,17 @@ class TypeChecker:
                     self._check_call_args(callee_t, arg_types, args, expr)
                     # BG-2-2-3: validate bounded generic call
                     resolved_sym = self._resolved.symbols.get(callee)
+                    ret_type = callee_t.ret
                     if resolved_sym is not None and isinstance(
                             resolved_sym.decl, FnDecl):
                         self._validate_generic_call_bounds(
                             resolved_sym.decl, arg_types, expr)
-                    return callee_t.ret
+                        # Substitute type variables in return type
+                        if resolved_sym.decl.type_params:
+                            env = self._infer_type_env_from_call(
+                                resolved_sym.decl, arg_types)
+                            ret_type = apply_env(ret_type, env)
+                    return ret_type
                 # Calling a non-function — might be a constructor or TAny
                 if isinstance(callee_t, TAny):
                     return TAny()
@@ -1424,7 +1434,13 @@ class TypeChecker:
                         # BG-2-2-4: validate bounded generic call
                         self._validate_generic_call_bounds(
                             fn_decl, arg_types, expr)
-                        return fn_type.ret
+                        # Substitute type variables in return type
+                        ret_type = fn_type.ret
+                        if fn_decl.type_params:
+                            env = self._infer_type_env_from_call(
+                                fn_decl, arg_types)
+                            ret_type = apply_env(ret_type, env)
+                        return ret_type
                     return TAny()
 
                 recv_t = self._infer_expr(receiver, scope)
@@ -1440,6 +1456,10 @@ class TypeChecker:
                         if args:
                             self._error("done() takes no arguments", expr)
                         return TBool()
+                    elif method_name == "poll":
+                        if args:
+                            self._error("poll() takes no arguments", expr)
+                        return TOption(recv_t.yield_type)
                     elif method_name == "send":
                         if isinstance(recv_t.send_type, TAny):
                             raise self._error(

@@ -1,0 +1,14 @@
+size=2
+strs[0]=hello
+strs[1]=world
+nums size=3
+nums[0]=10
+nums[2]=30
+floats size=2
+floats[0]=1.5
+concat size=2
+ab[0]=a
+ab[1]=b
+bools size=2
+bools[0]=true
+bools[1]=false

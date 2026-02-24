@@ -2,6 +2,7 @@ module time
 
 export fn now(): int64 = native "rf_time_unix_timestamp"
 export fn now_ms(): int64 = native "rf_time_unix_timestamp_ms"
+export fn sleep_ms(ms: int): none = native "rf_time_sleep_ms"
 
 ; DateTime construction
 export fn datetime_now(): DateTime = native "rf_time_datetime_now"

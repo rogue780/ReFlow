@@ -2500,9 +2500,11 @@ class Lowerer:
     def _lower_coroutine_method(self, expr: MethodCall, recv: LExpr,
                                 recv_type: TCoroutine,
                                 args: list[LExpr], lt: LType) -> LExpr:
-        """Lower coroutine method calls (.next, .done, .send)."""
+        """Lower coroutine method calls (.next, .done, .poll, .send)."""
         if expr.method == "next":
             return self._lower_coroutine_next(recv, recv_type)
+        elif expr.method == "poll":
+            return self._lower_coroutine_next(recv, recv_type, blocking=False)
         elif expr.method == "done":
             return LCall("rf_coroutine_done", [recv], LBool())
         elif expr.method == "send":
@@ -2521,19 +2523,22 @@ class Lowerer:
             file=self._file, line=expr.line, col=expr.col)
 
     def _lower_coroutine_next(self, recv: LExpr,
-                              recv_type: TCoroutine) -> LExpr:
-        """Lower coroutine .next() — returns option<yield_type>.
+                              recv_type: TCoroutine,
+                              blocking: bool = True) -> LExpr:
+        """Lower coroutine .next()/.poll() — returns option<yield_type>.
 
-        rf_coroutine_next returns RF_Option_ptr. For pointer-type yields
-        this is already correct. For value-type yields we convert to the
-        typed option struct (e.g. RF_Option_int).
+        rf_coroutine_next (blocking) and rf_coroutine_try_next (non-blocking)
+        both return RF_Option_ptr. For pointer-type yields this is already
+        correct. For value-type yields we convert to the typed option struct
+        (e.g. RF_Option_int).
         """
         yield_t = recv_type.yield_type
         option_t = TOption(yield_t)
         c_option_t = self._lower_type(option_t)
 
-        # Call rf_coroutine_next — returns RF_Option_ptr
-        raw_call = LCall("rf_coroutine_next", [recv],
+        c_fn = "rf_coroutine_next" if blocking else "rf_coroutine_try_next"
+        # Call runtime function — returns RF_Option_ptr
+        raw_call = LCall(c_fn, [recv],
                          LStruct("RF_Option_ptr"))
 
         # For pointer types, RF_Option_ptr IS the option type
@@ -5254,6 +5259,10 @@ class Lowerer:
                 if isinstance(actual, TResult):
                     self._match_type_vars(ok, actual.ok_type, tp_names, env)
                     self._match_type_vars(err, actual.err_type, tp_names, env)
+            case TMap(key=key, value=val):
+                if isinstance(actual, TMap):
+                    self._match_type_vars(key, actual.key, tp_names, env)
+                    self._match_type_vars(val, actual.value, tp_names, env)
             case _:
                 pass  # Leaf types — no type variables to match
 

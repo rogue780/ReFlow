@@ -286,6 +286,36 @@ Nested arrays:
 let matrix: array<array<int>> = [[1, 2], [3, 4], [5, 6]]
 ```
 
+#### Array Stdlib API
+
+The `array` module provides generic and type-specific functions. Generic functions work for pointer/heap types (string, Coroutine, etc.). Value types (int, float, bool, byte) use type-specific variants for push.
+
+```
+; Generic (pointer/heap types)
+array.push<T>(arr: array<T>, val: T): array<T>
+array.get_any<T>(arr: array<T>, idx: int): T?
+array.size<T>(arr: array<T>): int
+array.concat<T>(a: array<T>, b: array<T>): array<T>
+
+; Value-type push variants
+array.push_int(arr: array<int>, val: int): array<int>
+array.push_float(arr: array<float>, val: float): array<float>
+array.push_bool(arr: array<bool>, val: bool): array<bool>
+array.push_byte(arr: array<byte>, val: byte): array<byte>
+array.push_int64(arr: array<int64>, val: int64): array<int64>
+
+; Type-specific getters
+array.get_int(arr: array<int>, idx: int): int?
+array.get_float(arr: array<float>, idx: int): float?
+array.get_bool(arr: array<bool>, idx: int): bool?
+array.get(arr: array<string>, idx: int): string?
+
+; Type-specific lengths
+array.len(arr: array<int>): int
+array.len_string(arr: array<string>): int
+array.len_float(arr: array<float>): int
+```
+
 ---
 
 ## Numeric Sizing and Overflow
@@ -1133,19 +1163,21 @@ scores.remove("bob")
 
 #### Map API
 
+The stdlib `map` module provides generic functions where the value type `V` is inferred from the binding context. Keys are currently `string` in the stdlib implementation.
+
 ```
-map.new(): map<K, V>
+map.new<V>(): map<string, V>
 map.from_pairs(pairs: array<(K, V)>): map<K, V>
 
-m.get(key: K): option<V>
-m.set(key: K, val: V): map<K, V>         ; immutable: returns new map
+map.get<V>(m: map<string, V>, key: string): V?
+map.set<V>(m: map<string, V>, key: string, val: V): map<string, V>
 m.insert(key: K, val: V)                 ; :mut only: mutates in place
-m.remove(key: K)                         ; :mut only
-m.has(key: K): bool
-m.keys(): stream<K>
-m.values(): stream<V>
+map.remove<V>(m: map<string, V>, key: string): map<string, V>
+map.has<V>(m: map<string, V>, key: string): bool
+map.keys<V>(m: map<string, V>): array<string>
+map.values<V>(m: map<string, V>): array<V>
 m.entries(): stream<(K, V)>
-m.len(): int
+map.len<V>(m: map<string, V>): int64
 m.merge(other: map<K, V>): map<K, V>     ; right-biased on key collision
 ```
 
@@ -2030,11 +2062,14 @@ The coroutine handle exposes up to three methods, depending on whether the corou
 
 ```
 gen.next(): option<YieldType>       ; read next value from channel; blocks if empty; none when done
+gen.poll(): option<YieldType>       ; non-blocking: returns none immediately if nothing ready
 gen.send(val: SendType)             ; push a value into the producer's inbox stream (receivable only)
 gen.done(): bool                    ; true when producer has finished AND channel is drained
 ```
 
 `.next()` blocks the calling thread if the channel is empty and the producer is still running. It returns `none` only when the producer has finished (returned or fallen off the end of the function) and all buffered values have been consumed.
+
+`.poll()` is the non-blocking counterpart of `.next()`. For threaded coroutines, it checks the channel without blocking — returning `none` immediately if no value is available yet. For non-threaded coroutines, `.poll()` behaves identically to `.next()` (since the stream is evaluated synchronously). `.poll()` is useful for event loops that need to check multiple coroutines without blocking on any single one.
 
 `.done()` returns `true` only when both conditions hold: the producer thread has terminated and the internal channel has been fully drained. While buffered values remain, `.done()` returns `false` even if the producer has finished.
 

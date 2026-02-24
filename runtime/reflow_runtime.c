@@ -246,6 +246,36 @@ RF_Array* rf_array_push(RF_Array* arr, void* element) {
     return out;
 }
 
+RF_Array* rf_array_push_ptr(RF_Array* arr, void* element) {
+    if (arr->element_size == 0) arr->element_size = sizeof(void*);
+    return rf_array_push(arr, &element);
+}
+
+RF_Array* rf_array_push_int(RF_Array* arr, rf_int val) {
+    if (arr->element_size == 0) arr->element_size = sizeof(rf_int);
+    return rf_array_push(arr, &val);
+}
+
+RF_Array* rf_array_push_int64(RF_Array* arr, rf_int64 val) {
+    if (arr->element_size == 0) arr->element_size = sizeof(rf_int64);
+    return rf_array_push(arr, &val);
+}
+
+RF_Array* rf_array_push_float(RF_Array* arr, rf_float val) {
+    if (arr->element_size == 0) arr->element_size = sizeof(rf_float);
+    return rf_array_push(arr, &val);
+}
+
+RF_Array* rf_array_push_bool(RF_Array* arr, rf_bool val) {
+    if (arr->element_size == 0) arr->element_size = sizeof(rf_bool);
+    return rf_array_push(arr, &val);
+}
+
+RF_Array* rf_array_push_byte(RF_Array* arr, rf_byte val) {
+    if (arr->element_size == 0) arr->element_size = sizeof(rf_byte);
+    return rf_array_push(arr, &val);
+}
+
 /* ========================================================================
  * Stream (RT-1-5-1, RT-1-5-2)
  * ======================================================================== */
@@ -515,6 +545,19 @@ RF_Option_ptr rf_coroutine_next(RF_Coroutine* c) {
         result = rf_stream_next(c->stream);
     }
     if (result.tag == 0) c->done = rf_true;
+    return result;
+}
+
+RF_Option_ptr rf_coroutine_try_next(RF_Coroutine* c) {
+    if (c->done) return RF_NONE_PTR;
+    RF_Option_ptr result;
+    if (c->channel) {
+        result = rf_channel_try_recv(c->channel);
+        if (result.tag == 0 && c->channel->closed) c->done = rf_true;
+    } else {
+        result = rf_stream_next(c->stream);
+        if (result.tag == 0) c->done = rf_true;
+    }
     return result;
 }
 
@@ -2983,6 +3026,13 @@ rf_int64 rf_time_unix_timestamp_ms(void) {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     return (rf_int64)ts.tv_sec * 1000 + (rf_int64)ts.tv_nsec / 1000000;
+}
+
+void rf_time_sleep_ms(rf_int ms) {
+    struct timespec req;
+    req.tv_sec = ms / 1000;
+    req.tv_nsec = (ms % 1000) * 1000000L;
+    nanosleep(&req, NULL);
 }
 
 void rf_datetime_release(RF_DateTime* dt) {

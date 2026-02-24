@@ -195,6 +195,12 @@ void*         rf_array_get_ptr(RF_Array* arr, rf_int64 idx);
 RF_Option_ptr rf_array_get_safe(RF_Array* arr, rf_int64 idx);
 rf_int64      rf_array_len(RF_Array* arr);
 RF_Array*     rf_array_push(RF_Array* arr, void* element);
+RF_Array*     rf_array_push_ptr(RF_Array* arr, void* element);
+RF_Array*     rf_array_push_int(RF_Array* arr, rf_int val);
+RF_Array*     rf_array_push_int64(RF_Array* arr, rf_int64 val);
+RF_Array*     rf_array_push_float(RF_Array* arr, rf_float val);
+RF_Array*     rf_array_push_bool(RF_Array* arr, rf_bool val);
+RF_Array*     rf_array_push_byte(RF_Array* arr, rf_byte val);
 
 /* Array stdlib extensions */
 RF_Option_int   rf_array_get_int(RF_Array* arr, rf_int64 idx);
@@ -260,6 +266,7 @@ typedef struct RF_Coroutine {
 RF_Coroutine* rf_coroutine_new(RF_Stream* stream);
 RF_Coroutine* rf_coroutine_new_threaded(RF_Stream* stream, rf_int capacity);
 RF_Option_ptr rf_coroutine_next(RF_Coroutine* c);
+RF_Option_ptr rf_coroutine_try_next(RF_Coroutine* c);
 rf_bool       rf_coroutine_done(RF_Coroutine* c);
 void          rf_coroutine_release(RF_Coroutine* c);
 void          rf_coroutine_send(RF_Coroutine* c, void* val);
@@ -645,6 +652,7 @@ RF_DateTime* rf_time_datetime_now(void);
 RF_DateTime* rf_time_datetime_utc(void);
 rf_int64     rf_time_unix_timestamp(void);
 rf_int64     rf_time_unix_timestamp_ms(void);
+void         rf_time_sleep_ms(rf_int ms);
 void         rf_datetime_release(RF_DateTime* dt);
 
 /* Formatting */

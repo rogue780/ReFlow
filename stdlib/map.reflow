@@ -1,13 +1,13 @@
 module map
 
-; Map with string keys — the most common use case.
-; Values are stored as opaque pointers; use the typed get/set wrappers.
+; Generic map with string keys — value type V is inferred from usage.
+; Values are stored as opaque pointers internally.
 
-export fn new(): map<string, string> = native "rf_map_new"
-export fn set(m: map<string, string>, key: string, val: string): map<string, string> = native "rf_map_set_str"
-export fn get(m: map<string, string>, key: string): string? = native "rf_map_get_str"
-export fn has(m: map<string, string>, key: string): bool = native "rf_map_has_str"
-export fn remove(m: map<string, string>, key: string): map<string, string> = native "rf_map_remove_str"
-export fn len(m: map<string, string>): int64 = native "rf_map_len"
-export fn keys(m: map<string, string>): array<string> = native "rf_map_keys"
-export fn values(m: map<string, string>): array<string> = native "rf_map_values"
+export fn new<V>(): map<string, V> = native "rf_map_new"
+export fn set<V>(m: map<string, V>, key: string, val: V): map<string, V> = native "rf_map_set_str"
+export fn get<V>(m: map<string, V>, key: string): V? = native "rf_map_get_str"
+export fn has<V>(m: map<string, V>, key: string): bool = native "rf_map_has_str"
+export fn remove<V>(m: map<string, V>, key: string): map<string, V> = native "rf_map_remove_str"
+export fn len<V>(m: map<string, V>): int64 = native "rf_map_len"
+export fn keys<V>(m: map<string, V>): array<string> = native "rf_map_keys"
+export fn values<V>(m: map<string, V>): array<V> = native "rf_map_values"
