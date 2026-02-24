@@ -503,7 +503,10 @@ def run_source(source_path: str, *, verbose: bool = False,
         rc = compile_source(source_path, output=tmp_bin, verbose=verbose)
         if rc != 0:
             return rc
-        result = subprocess.run([tmp_bin] + (args or []))
+        try:
+            result = subprocess.run([tmp_bin] + (args or []))
+        except KeyboardInterrupt:
+            return 130
         return result.returncode
     finally:
         try:
