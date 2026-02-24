@@ -1,0 +1,34 @@
+=== KV Store Protocol Test ===
+parse 'SET foo bar' -> (SET, 2 args)
+parse '  ping  ' -> (PING, 0 args)
+parse '' -> (, 0 args)
+ok_response: +PONG
+err_response: -ERR key not found
+
+=== Dispatch Tests ===
+PING -> +PONG
+SET foo bar -> +OK
+SET greeting hello world -> +OK
+GET foo -> +bar
+GET greeting -> +hello world
+EXISTS foo -> +1
+COUNT -> +2
+DEL foo -> +1
+GET foo -> -ERR key not found
+EXISTS foo -> +0
+COUNT -> +1
+DEL nonexistent -> +0
+FLUSHALL -> +OK
+COUNT -> +0
+BADCMD -> -ERR unknown command 'BADCMD'
+GET (no args) -> -ERR GET requires a key
+SET (one arg) -> -ERR SET requires key and value
+
+=== Serialization Tests ===
+serialized ok
+deserialized 2 keys
+name=alice
+city=portland
+bad json rejected
+
+done

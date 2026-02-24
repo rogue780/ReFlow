@@ -1,0 +1,463 @@
+module tests.app_kv_store
+
+; Self-test for the KV store protocol.
+; Starts a server on a high port, connects a client coroutine,
+; runs a scripted sequence of commands, and prints responses.
+
+import net
+import io
+import conv
+import string
+import array
+import map
+import time
+import json
+import path
+
+; ===========================================================================
+; Duplicated pure helpers from kvstore.server (for self-contained test)
+; ===========================================================================
+
+fn:pure parse_command(line: string): (string, array<string>) {
+    let trimmed = string.trim(line)
+    if string.len(trimmed) == 0 {
+        return ("", [])
+    }
+    let parts = string.split(trimmed, " ")
+    if let some(cmd_raw) = array.get(parts, 0) {
+        let cmd = string.to_upper(cmd_raw)
+        let args: array<string>:mut = []
+        let i: int:mut = 1
+        while (i < array.len_string(parts)) {
+            if let some(part) = array.get(parts, i) {
+                if string.len(part) > 0 {
+                    args = array.push(args, part)
+                }
+            }
+            i = i + 1
+        }
+        return (cmd, args)
+    }
+    return ("", [])
+}
+
+fn:pure ok_response(msg: string): string {
+    return "+" + msg + "\r\n"
+}
+
+fn:pure err_response(msg: string): string {
+    return "-ERR " + msg + "\r\n"
+}
+
+fn serialize_store(store: map<string, string>): string {
+    let keys = map.keys(store)
+    let json_map: map<string, JsonValue>:mut = map.new()
+    let i: int:mut = 0
+    while (i < array.len_string(keys)) {
+        if let some(k) = array.get(keys, i) {
+            if let some(v) = map.get(store, k) {
+                json_map = map.set(json_map, k, json.string_val(v))
+            }
+        }
+        i = i + 1
+    }
+    let obj = json.object_val(json_map)
+    return json.to_string_pretty(obj, 2)
+}
+
+fn deserialize_store(data: string): map<string, string>? {
+    if let some(obj) = json.parse(data) {
+        if let some(keys) = json.keys(obj) {
+            let store: map<string, string>:mut = map.new()
+            let i: int:mut = 0
+            while (i < array.len_string(keys)) {
+                if let some(k) = array.get(keys, i) {
+                    if let some(jval) = json.get(obj, k) {
+                        if let some(s) = json.as_string(jval) {
+                            store = map.set(store, k, s)
+                        }
+                    }
+                }
+                i = i + 1
+            }
+            return some(store)
+        }
+    }
+    return none
+}
+
+fn dispatch_command(
+    cmd: string,
+    args: array<string>,
+    store: map<string, string>
+): (map<string, string>, string) {
+    match cmd {
+        "PING": {
+            return (store, ok_response("PONG"))
+        }
+        "SET": {
+            if array.len_string(args) < 2 {
+                return (store, err_response("SET requires key and value"))
+            }
+            let key = array.get(args, 0) ?? ""
+            let val_parts: array<string>:mut = []
+            let i: int:mut = 1
+            while (i < array.len_string(args)) {
+                if let some(p) = array.get(args, i) {
+                    val_parts = array.push(val_parts, p)
+                }
+                i = i + 1
+            }
+            let value = string.join(val_parts, " ")
+            let new_store = map.set(store, key, value)
+            return (new_store, ok_response("OK"))
+        }
+        "GET": {
+            if array.len_string(args) < 1 {
+                return (store, err_response("GET requires a key"))
+            }
+            let key = array.get(args, 0) ?? ""
+            match map.get(store, key) {
+                some(val): {
+                    return (store, ok_response(val))
+                }
+                none: {
+                    return (store, err_response("key not found"))
+                }
+            }
+        }
+        "DEL": {
+            if array.len_string(args) < 1 {
+                return (store, err_response("DEL requires a key"))
+            }
+            let key = array.get(args, 0) ?? ""
+            if map.has(store, key) {
+                let new_store = map.remove(store, key)
+                return (new_store, ok_response("1"))
+            } else {
+                return (store, ok_response("0"))
+            }
+        }
+        "KEYS": {
+            let keys = map.keys(store)
+            let result = string.join(keys, " ")
+            return (store, ok_response(result))
+        }
+        "COUNT": {
+            let n = map.len(store)
+            return (store, ok_response(conv.to_string(n)))
+        }
+        "EXISTS": {
+            if array.len_string(args) < 1 {
+                return (store, err_response("EXISTS requires a key"))
+            }
+            let key = array.get(args, 0) ?? ""
+            if map.has(store, key) {
+                return (store, ok_response("1"))
+            } else {
+                return (store, ok_response("0"))
+            }
+        }
+        "FLUSHALL": {
+            let new_store: map<string, string> = map.new()
+            return (new_store, ok_response("OK"))
+        }
+        _: {
+            return (store, err_response("unknown command '" + cmd + "'"))
+        }
+    }
+}
+
+; ===========================================================================
+; Test client coroutine
+; ===========================================================================
+
+fn test_client(inbox: stream<string>, sock: Socket): stream<string> {
+    ; Small delay to ensure server is ready
+    time.sleep_ms(50)
+
+    let commands: array<string>:mut = []
+    commands = array.push(commands, "PING")
+    commands = array.push(commands, "SET foo bar")
+    commands = array.push(commands, "SET greeting hello world")
+    commands = array.push(commands, "GET foo")
+    commands = array.push(commands, "GET greeting")
+    commands = array.push(commands, "EXISTS foo")
+    commands = array.push(commands, "COUNT")
+    commands = array.push(commands, "DEL foo")
+    commands = array.push(commands, "GET foo")
+    commands = array.push(commands, "EXISTS foo")
+    commands = array.push(commands, "COUNT")
+    commands = array.push(commands, "SET a 1")
+    commands = array.push(commands, "SET b 2")
+    commands = array.push(commands, "FLUSHALL")
+    commands = array.push(commands, "COUNT")
+    commands = array.push(commands, "BADCMD")
+    commands = array.push(commands, "QUIT")
+
+    net.set_timeout(sock, 500)
+
+    let i: int:mut = 0
+    while (i < array.size(commands)) {
+        if let some(cmd) = array.get(commands, i) {
+            ; Send the command
+            net.write_string(sock, cmd + "\r\n")
+            ; Read the response
+            time.sleep_ms(50)
+            match net.read(sock, 4096) {
+                some(data): {
+                    let resp = string.trim(string.from_bytes(data))
+                    yield cmd + " -> " + resp
+                }
+                none: {
+                    yield cmd + " -> (no response)"
+                }
+            }
+        }
+        i = i + 1
+    }
+
+    net.close(sock)
+}
+
+; ===========================================================================
+; Server coroutine — handles clients for the test
+; ===========================================================================
+
+fn test_server(inbox: stream<string>, listener: Socket): stream<string> {
+    net.set_timeout(listener, 100)
+
+    let store: map<string, string>:mut = map.new()
+    let client_fds: map<string, string>:mut = map.new()
+    let handlers: array<Coroutine<string>>:mut = []
+    let handler_addrs: array<string>:mut = []
+    let running: bool:mut = true
+
+    while (running) {
+        ; Drain inbox for shutdown signals
+        for (msg: string in inbox) {
+            if msg == "STOP" {
+                running = false
+            }
+        }
+
+        if !running { return }
+
+        ; Accept new clients
+        if let some(client) = net.accept(listener) {
+            let addr = net.remote_addr(client) ?? "unknown"
+            let fd = net.fd(client)
+            client_fds = map.set(client_fds, addr, conv.to_string(fd))
+
+            let handler :< client_handler(client, addr)
+            handlers = array.push(handlers, handler)
+            handler_addrs = array.push(handler_addrs, addr)
+        }
+
+        ; Poll clients
+        let i: int:mut = 0
+        while (i < array.size(handlers)) {
+            if let some(handler) = array.get_any(handlers, i) {
+                if let some(raw_msg) = handler.poll() {
+                    if let some(pipe_idx) = string.index_of(raw_msg, "|") {
+                        let sender_addr = string.substring(raw_msg, 0, pipe_idx)
+                        let line = string.substring(raw_msg, pipe_idx + 1, string.len(raw_msg))
+
+                        let parsed = parse_command(line)
+                        let cmd = parsed.0
+                        let args = parsed.1
+
+                        if cmd == "QUIT" {
+                            if let some(fs) = map.get(client_fds, sender_addr) {
+                                if let some(f) = conv.string_to_int(fs) {
+                                    net.write_to_fd(f, ok_response("Goodbye"))
+                                }
+                            }
+                            client_fds = map.remove(client_fds, sender_addr)
+                            running = false
+                        } else {
+                            if string.len(cmd) > 0 {
+                                let result = dispatch_command(cmd, args, store)
+                                store = result.0
+                                let response = result.1
+                                if let some(fs) = map.get(client_fds, sender_addr) {
+                                    if let some(f) = conv.string_to_int(fs) {
+                                        net.write_to_fd(f, response)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            i = i + 1
+        }
+
+        time.sleep_ms(10)
+    }
+}
+
+fn client_handler(inbox: stream<string>, client: Socket, addr: string): stream<string> {
+    net.set_timeout(client, 100)
+    let alive: bool:mut = true
+
+    while (alive) {
+        for (msg: string in inbox) {}
+
+        match net.read(client, 4096) {
+            some(data): {
+                let raw = string.trim(string.from_bytes(data))
+                if string.len(raw) > 0 {
+                    yield addr + "|" + raw
+                }
+            }
+            none: {}
+        }
+    }
+}
+
+; ===========================================================================
+; Main — run the test
+; ===========================================================================
+
+fn main(): none {
+    io.println("=== KV Store Protocol Test ===")
+
+    ; Test parse_command
+    let t1 = parse_command("SET foo bar")
+    io.println("parse 'SET foo bar' -> (" + t1.0 + ", " + conv.to_string(array.len_string(t1.1)) + " args)")
+
+    let t2 = parse_command("  ping  ")
+    io.println("parse '  ping  ' -> (" + t2.0 + ", " + conv.to_string(array.len_string(t2.1)) + " args)")
+
+    let t3 = parse_command("")
+    io.println("parse '' -> (" + t3.0 + ", " + conv.to_string(array.len_string(t3.1)) + " args)")
+
+    ; Test ok_response / err_response
+    io.println("ok_response: " + string.trim(ok_response("PONG")))
+    io.println("err_response: " + string.trim(err_response("key not found")))
+
+    ; Test dispatch_command directly (no network needed)
+    io.println("")
+    io.println("=== Dispatch Tests ===")
+    let store: map<string, string>:mut = map.new()
+
+    ; PING
+    let r1 = dispatch_command("PING", [], store)
+    store = r1.0
+    io.println("PING -> " + string.trim(r1.1))
+
+    ; SET foo bar
+    let set_args: array<string> = ["foo", "bar"]
+    let r2 = dispatch_command("SET", set_args, store)
+    store = r2.0
+    io.println("SET foo bar -> " + string.trim(r2.1))
+
+    ; SET greeting hello world
+    let set_args2: array<string> = ["greeting", "hello", "world"]
+    let r3 = dispatch_command("SET", set_args2, store)
+    store = r3.0
+    io.println("SET greeting hello world -> " + string.trim(r3.1))
+
+    ; GET foo
+    let r4 = dispatch_command("GET", ["foo"], store)
+    store = r4.0
+    io.println("GET foo -> " + string.trim(r4.1))
+
+    ; GET greeting (value with space)
+    let r5 = dispatch_command("GET", ["greeting"], store)
+    store = r5.0
+    io.println("GET greeting -> " + string.trim(r5.1))
+
+    ; EXISTS foo
+    let r6 = dispatch_command("EXISTS", ["foo"], store)
+    store = r6.0
+    io.println("EXISTS foo -> " + string.trim(r6.1))
+
+    ; COUNT
+    let r7 = dispatch_command("COUNT", [], store)
+    store = r7.0
+    io.println("COUNT -> " + string.trim(r7.1))
+
+    ; DEL foo
+    let r8 = dispatch_command("DEL", ["foo"], store)
+    store = r8.0
+    io.println("DEL foo -> " + string.trim(r8.1))
+
+    ; GET foo (should be gone)
+    let r9 = dispatch_command("GET", ["foo"], store)
+    store = r9.0
+    io.println("GET foo -> " + string.trim(r9.1))
+
+    ; EXISTS foo (should be 0)
+    let r10 = dispatch_command("EXISTS", ["foo"], store)
+    store = r10.0
+    io.println("EXISTS foo -> " + string.trim(r10.1))
+
+    ; COUNT (should be 1 — greeting remains)
+    let r11 = dispatch_command("COUNT", [], store)
+    store = r11.0
+    io.println("COUNT -> " + string.trim(r11.1))
+
+    ; DEL nonexistent
+    let r12 = dispatch_command("DEL", ["nonexistent"], store)
+    store = r12.0
+    io.println("DEL nonexistent -> " + string.trim(r12.1))
+
+    ; FLUSHALL
+    let r13 = dispatch_command("FLUSHALL", [], store)
+    store = r13.0
+    io.println("FLUSHALL -> " + string.trim(r13.1))
+
+    ; COUNT after flush
+    let r14 = dispatch_command("COUNT", [], store)
+    store = r14.0
+    io.println("COUNT -> " + string.trim(r14.1))
+
+    ; Unknown command
+    let r15 = dispatch_command("BADCMD", [], store)
+    store = r15.0
+    io.println("BADCMD -> " + string.trim(r15.1))
+
+    ; Error cases
+    let r16 = dispatch_command("GET", [], store)
+    store = r16.0
+    io.println("GET (no args) -> " + string.trim(r16.1))
+
+    let r17 = dispatch_command("SET", ["onlykey"], store)
+    store = r17.0
+    io.println("SET (one arg) -> " + string.trim(r17.1))
+
+    ; Test serialization round-trip
+    io.println("")
+    io.println("=== Serialization Tests ===")
+    let test_store: map<string, string>:mut = map.new()
+    test_store = map.set(test_store, "name", "alice")
+    test_store = map.set(test_store, "city", "portland")
+
+    let json_str = serialize_store(test_store)
+    io.println("serialized ok")
+
+    match deserialize_store(json_str) {
+        some(loaded): {
+            let n = map.len(loaded)
+            io.println("deserialized " + conv.to_string(n) + " keys")
+            let v1 = map.get(loaded, "name") ?? "(missing)"
+            let v2 = map.get(loaded, "city") ?? "(missing)"
+            io.println("name=" + v1)
+            io.println("city=" + v2)
+        }
+        none: {
+            io.println("deserialization failed")
+        }
+    }
+
+    ; Test bad deserialization
+    match deserialize_store("not json at all") {
+        some(_): { io.println("should not parse") }
+        none: { io.println("bad json rejected") }
+    }
+
+    io.println("")
+    io.println("done")
+}

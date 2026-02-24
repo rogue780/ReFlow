@@ -752,6 +752,7 @@ RF_Option_bool  rf_json_as_bool(RF_JsonValue* val);
 RF_Option_ptr rf_json_as_array(RF_JsonValue* val);
 rf_bool       rf_json_is_null(RF_JsonValue* val);
 rf_byte       rf_json_type_tag(RF_JsonValue* val);
+RF_Option_ptr rf_json_keys(RF_JsonValue* obj);
 
 void rf_json_release(RF_JsonValue* val);
 

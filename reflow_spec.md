@@ -210,6 +210,20 @@ All update operators are only valid on `:mut` bindings. Using them on an immutab
 
 ---
 
+## Naming Conventions
+
+| Element | Convention | Examples |
+|---------|-----------|----------|
+| Primitive types | lowercase single word | `int`, `int64`, `float`, `string`, `char`, `byte`, `bool` |
+| Complex types (structs, sum types) | PascalCase | `Point`, `LogEntry`, `JsonValue`, `Socket` |
+| Sum type variants (user-defined) | PascalCase | `Circle(r)`, `Rectangle(w, h)` |
+| Built-in variants | lowercase | `some(v)`, `none`, `ok(v)`, `err(e)` |
+| Functions | snake_case | `read_file`, `to_string`, `parse_command` |
+| Variables / bindings | snake_case | `sender_addr`, `client_fds`, `port_str` |
+| Modules | snake_case | `io`, `net`, `string_builder`, `json` |
+
+---
+
 ## Built-in Types
 
 | Type | Description |

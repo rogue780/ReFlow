@@ -3588,6 +3588,13 @@ rf_byte rf_json_type_tag(RF_JsonValue* val) {
     return val->tag;
 }
 
+RF_Option_ptr rf_json_keys(RF_JsonValue* obj) {
+    if (!obj || obj->tag != RF_JSON_OBJECT) return RF_NONE_PTR;
+    RF_Map* m = obj->data.object_val;
+    if (!m) return RF_NONE_PTR;
+    return RF_SOME_PTR(rf_map_keys(m));
+}
+
 /* --- Parser --- */
 
 typedef struct {
