@@ -1,0 +1,21 @@
+=== parse_message tests ===
+PASS: "hello" -> (/say, hello)
+PASS: "hello world" -> (/say, hello world)
+PASS: "/help" -> (/help, )
+PASS: "/quit" -> (/quit, )
+PASS: "/nick bob" -> (/nick, bob)
+PASS: "/nick  alice " -> (/nick, alice)
+PASS: "/say hi there" -> (/say, hi there)
+PASS: "" -> (/empty, )
+PASS: "  " -> (/empty, )
+PASS: "/" -> (/, )
+PASS: "/ " -> (/, )
+=== validate_nick tests ===
+PASS: validate_nick("alice") -> ok
+PASS: validate_nick("bob123") -> ok
+PASS: validate_nick("a") -> ok
+PASS: validate_nick("twelve_chars_ok!") -> ok
+PASS: validate_nick("") -> error: Nickname cannot be empty.
+PASS: validate_nick("has space") -> error: Nickname cannot contain spaces.
+PASS: validate_nick("this_name_is_way_too_long_for_a_nickname") -> error: Nickname too long (max 20 chars).
+done

@@ -1,0 +1,94 @@
+module tests.app_chat_parse
+import io (println)
+import string
+
+; Duplicate of parse_message from chat.server for testing.
+fn parse_message(raw: string): (string, string) {
+    let trimmed = string.trim(raw)
+    if string.len(trimmed) == 0 {
+        return ("/empty", "")
+    }
+    if string.starts_with(trimmed, "/") {
+        match string.index_of(trimmed, " ") {
+            some(idx): {
+                let cmd = string.substring(trimmed, 0, idx)
+                let arg = string.trim(string.substring(trimmed, idx + 1, string.len(trimmed)))
+                return (cmd, arg)
+            }
+            none: {
+                return (trimmed, "")
+            }
+        }
+    }
+    return ("/say", trimmed)
+}
+
+; Duplicate of validate_nick from chat.server for testing.
+fn validate_nick(name: string): string? {
+    if string.len(name) == 0 { return some("Nickname cannot be empty.") }
+    if string.len(name) > 20 { return some("Nickname too long (max 20 chars).") }
+    if string.contains(name, " ") { return some("Nickname cannot contain spaces.") }
+    return none
+}
+
+fn test_parse(input: string, expected_cmd: string, expected_arg: string): none {
+    let result = parse_message(input)
+    if result.0 == expected_cmd && result.1 == expected_arg {
+        println("PASS: \"" + input + "\" -> (" + result.0 + ", " + result.1 + ")")
+    } else {
+        println("FAIL: \"" + input + "\" expected (" + expected_cmd + ", " + expected_arg + ") got (" + result.0 + ", " + result.1 + ")")
+    }
+}
+
+fn test_nick(input: string, expect_ok: bool): none {
+    match validate_nick(input) {
+        some(reason): {
+            if !expect_ok {
+                println("PASS: validate_nick(\"" + input + "\") -> error: " + reason)
+            } else {
+                println("FAIL: validate_nick(\"" + input + "\") expected ok, got: " + reason)
+            }
+        }
+        none: {
+            if expect_ok {
+                println("PASS: validate_nick(\"" + input + "\") -> ok")
+            } else {
+                println("FAIL: validate_nick(\"" + input + "\") expected error, got ok")
+            }
+        }
+    }
+}
+
+fn main() {
+    println("=== parse_message tests ===")
+    ; Plain text -> /say
+    test_parse("hello", "/say", "hello")
+    test_parse("hello world", "/say", "hello world")
+
+    ; Commands
+    test_parse("/help", "/help", "")
+    test_parse("/quit", "/quit", "")
+    test_parse("/nick bob", "/nick", "bob")
+    test_parse("/nick  alice ", "/nick", "alice")
+    test_parse("/say hi there", "/say", "hi there")
+
+    ; Edge cases
+    test_parse("", "/empty", "")
+    test_parse("  ", "/empty", "")
+    test_parse("/", "/", "")
+    test_parse("/ ", "/", "")
+
+    println("=== validate_nick tests ===")
+    ; Valid nicks
+    test_nick("alice", true)
+    test_nick("bob123", true)
+    test_nick("a", true)
+    test_nick("twelve_chars_ok!", true)
+
+    ; Invalid nicks
+    test_nick("", false)
+    test_nick("has space", false)
+    test_nick("this_name_is_way_too_long_for_a_nickname", false)
+
+    println("done")
+}
