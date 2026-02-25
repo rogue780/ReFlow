@@ -1281,7 +1281,8 @@ class TestTryStmt(unittest.TestCase):
         )
         stmt = parse_stmt(src)
         retry = stmt.retry_blocks[0]
-        self.assertEqual(retry.attempts, 3)
+        self.assertIsInstance(retry.attempts, IntLit)
+        self.assertEqual(retry.attempts.value, 3)
 
     def test_try_no_retry_blocks_by_default(self) -> None:
         src = "try { return 1 } catch (ex: Error) { return 0 }"

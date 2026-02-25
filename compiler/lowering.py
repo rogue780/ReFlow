@@ -1694,7 +1694,11 @@ class Lowerer:
         exc_type = self._resolve_type_ann(retry.exception_type)
         c_type = self._lower_type(exc_type)
 
-        max_attempts = retry.attempts if retry.attempts is not None else 2147483647
+        # Lower the attempts expression (or use INT_MAX for unlimited)
+        if retry.attempts is not None:
+            max_attempts_expr = self._lower_expr(retry.attempts)
+        else:
+            max_attempts_expr = LLit("2147483647", LInt(32, True))
 
         # Attempts counter
         attempts_var = self._fresh_temp()
@@ -1815,7 +1819,7 @@ class Lowerer:
         loop_cond = LBinOp(
             "<",
             LVar(attempts_var, LInt(32, True)),
-            LLit(str(max_attempts), LInt(32, True)),
+            max_attempts_expr,
             LBool(),
         )
         stmts.append(LWhile(cond=loop_cond, body=loop_body))

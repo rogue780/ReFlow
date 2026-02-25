@@ -2334,10 +2334,11 @@ throw ValidationError.from_record("missing required field", row)
 ```
 try {
     ; code that may throw
-} retry function_name (ex: ExceptionType, attempts: n) {
+} retry function_name (ex: ExceptionType, attempts: <expr>) {
     ; ex.data is mutable here: correct it before the retry
     ; ex.original is always the original failing value, read-only
     ; the named function re-runs with the corrected ex.data
+    ; <expr> is any integer expression (literal, variable, or computation)
 } catch (ex: ExceptionType) {
     ; handle after retries are exhausted (or if no retry exists)
     ; ex.data holds the last corrected value; ex.original holds the first

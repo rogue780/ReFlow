@@ -408,7 +408,7 @@ class RetryBlock(ASTNode):
     target_fn: str
     exception_var: str
     exception_type: TypeExpr
-    attempts: int | None         # None means unlimited
+    attempts: 'Expr | None'      # None means unlimited; any int expression
     body: Block
 
 

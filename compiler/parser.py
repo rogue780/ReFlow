@@ -1454,14 +1454,13 @@ class Parser:
         self.expect(TokenType.COLON)
         ex_type = self.parse_type_expr()
 
-        attempts: int | None = None
+        attempts: Expr | None = None
         if self.check(TokenType.COMMA):
             self.advance()
-            # Parse "attempts: n"
+            # Parse "attempts: <expr>"
             self.expect(TokenType.IDENT)  # "attempts"
             self.expect(TokenType.COLON)
-            attempts_tok = self.expect(TokenType.INT_LIT)
-            attempts = int(attempts_tok.value)
+            attempts = self.parse_expr()
 
         self.expect(TokenType.RPAREN)
         body = self.parse_block()
