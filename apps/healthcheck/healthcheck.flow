@@ -1,5 +1,26 @@
-; healthcheck.flow — Concurrent health checker demonstrating coroutines,
-; try/retry/catch, result types, sum types, and receivable coroutines
+; healthcheck.flow — HTTP health checker
+;
+; Usage:
+;   healthcheck [options] <url>...
+;   healthcheck --demo
+;
+; Options:
+;   --demo             Run against a built-in mock server
+;   --timeout <ms>     Read timeout per request (default: 2000)
+;   --expected <code>  Default expected HTTP status (default: 200)
+;
+; URLs:
+;   http://host:port/path    Full URL (port defaults to 80)
+;   host:port/path           Shorthand without scheme
+;
+; Examples:
+;   healthcheck http://localhost:8080/health http://localhost:8080/api/users
+;   healthcheck --timeout 5000 http://10.0.0.1:3000/status
+;   healthcheck --expected 204 http://api.example.com/healthz
+;   healthcheck --demo
+;
+; Note: HTTP only. HTTPS is not supported.
+
 module healthcheck
 
 import io
@@ -8,6 +29,7 @@ import string
 import conv
 import array
 import time
+import sys
 
 ; ============================================================================
 ; Data Types
@@ -18,11 +40,154 @@ type CheckStatus =
     | Fail(msg: string)
     | Warn(code: int, reason: string)
 
+type Config {
+    urls: array<string>,
+    timeout_ms: int,
+    expected_status: int,
+    demo: bool
+}
+
+; ============================================================================
+; URL Parsing (pure)
+; ============================================================================
+
+; Parse host from URL: "http://host:port/path" → "host"
+fn:pure parse_host(url: string): string {
+    let after_proto: string:mut = url
+    if (let some(idx) = string.index_of(url, "://")) {
+        after_proto = string.substring(url, idx + 3, string.len(url))
+    }
+    if (let some(colon) = string.index_of(after_proto, ":")) {
+        return string.substring(after_proto, 0, colon)
+    }
+    if (let some(slash) = string.index_of(after_proto, "/")) {
+        return string.substring(after_proto, 0, slash)
+    }
+    return after_proto
+}
+
+; Parse port from URL: "http://host:port/path" → port (default 80)
+fn:pure parse_port(url: string): int {
+    let after_proto: string:mut = url
+    if (let some(idx) = string.index_of(url, "://")) {
+        after_proto = string.substring(url, idx + 3, string.len(url))
+    }
+    if (let some(colon) = string.index_of(after_proto, ":")) {
+        let after_colon = string.substring(after_proto, colon + 1, string.len(after_proto))
+        if (let some(slash) = string.index_of(after_colon, "/")) {
+            return conv.string_to_int(string.substring(after_colon, 0, slash)) ?? 80
+        }
+        return conv.string_to_int(after_colon) ?? 80
+    }
+    return 80
+}
+
+; Parse path from URL: "http://host:port/path" → "/path" (default "/")
+fn:pure parse_path(url: string): string {
+    let after_proto: string:mut = url
+    if (let some(idx) = string.index_of(url, "://")) {
+        after_proto = string.substring(url, idx + 3, string.len(url))
+    }
+    if (let some(slash) = string.index_of(after_proto, "/")) {
+        return string.substring(after_proto, slash, string.len(after_proto))
+    }
+    return "/"
+}
+
+; Parse HTTP status code from response: "HTTP/1.0 200 OK..." → 200
+fn:pure parse_http_status(response: string): int {
+    if (let some(sp1) = string.index_of(response, " ")) {
+        let after = string.substring(response, sp1 + 1, string.len(response))
+        if (let some(sp2) = string.index_of(after, " ")) {
+            return conv.string_to_int(string.substring(after, 0, sp2)) ?? 0
+        }
+        return conv.string_to_int(after) ?? 0
+    }
+    return 0
+}
+
+; ============================================================================
+; Argument Parsing
+; ============================================================================
+
+fn parse_args(): Config {
+    let args = sys.args()
+    let argc = array.len_string(args)
+
+    let timeout_ms: int:mut = 2000
+    let expected_status: int:mut = 200
+    let demo: bool:mut = false
+    let urls: array<string>:mut = []
+    let skip_next: bool:mut = false
+
+    let i: int:mut = 1
+    while (i < argc) {
+        let arg = array.get(args, i) ?? ""
+        if (skip_next) {
+            skip_next = false
+            i = i + 1
+        } else if (arg == "--demo") {
+            demo = true
+            i = i + 1
+        } else if (arg == "--timeout") {
+            if (i + 1 < argc) {
+                timeout_ms = conv.string_to_int(array.get(args, i + 1) ?? "2000") ?? 2000
+                skip_next = true
+            }
+            i = i + 1
+        } else if (arg == "--expected") {
+            if (i + 1 < argc) {
+                expected_status = conv.string_to_int(array.get(args, i + 1) ?? "200") ?? 200
+                skip_next = true
+            }
+            i = i + 1
+        } else if (arg == "--help" || arg == "-h") {
+            print_usage()
+            sys.exit(0)
+        } else if (string.starts_with(arg, "-")) {
+            io.eprintln("Unknown option: " + arg)
+            io.eprintln("Run with --help for usage.")
+            sys.exit(1)
+        } else {
+            urls = array.push(urls, arg)
+            i = i + 1
+        }
+    }
+
+    if (!demo && array.len_string(urls) == 0) {
+        io.eprintln("Error: no URLs provided. Use --demo or pass URLs.")
+        io.eprintln("Run with --help for usage.")
+        sys.exit(1)
+    }
+
+    return Config {
+        urls: urls,
+        timeout_ms: timeout_ms,
+        expected_status: expected_status,
+        demo: demo
+    }
+}
+
+fn print_usage(): none {
+    io.println("Usage: healthcheck [options] <url>...")
+    io.println("       healthcheck --demo")
+    io.println("")
+    io.println("Options:")
+    io.println("  --demo             Run against a built-in mock server")
+    io.println("  --timeout <ms>     Read timeout per request (default: 2000)")
+    io.println("  --expected <code>  Default expected HTTP status (default: 200)")
+    io.println("  -h, --help         Show this help")
+    io.println("")
+    io.println("Examples:")
+    io.println("  healthcheck http://localhost:8080/health")
+    io.println("  healthcheck --timeout 5000 http://10.0.0.1:3000/status")
+    io.println("  healthcheck --demo")
+    io.println("")
+    io.println("Note: HTTP only. HTTPS is not supported.")
+}
+
 ; ============================================================================
 ; Mock HTTP Server (receivable coroutine — runs on its own thread)
-; Accepts TCP connections and serves canned HTTP responses.
-; Yields "ready" once listening, then handles requests until "stop" arrives.
-; The inbox is used to receive a shutdown signal.
 ; ============================================================================
 
 fn mock_server(inbox: stream<string>, port: int): stream<string> {
@@ -32,7 +197,6 @@ fn mock_server(inbox: stream<string>, port: int): stream<string> {
             net.set_timeout(listener, 200)
             let running: bool:mut = true
             while (running) {
-                ; Check for stop signal
                 for (cmd: string in inbox) {
                     if (cmd == "stop") {
                         running = false
@@ -41,7 +205,6 @@ fn mock_server(inbox: stream<string>, port: int): stream<string> {
                 if (!running) {
                     break
                 }
-                ; Accept and handle one connection
                 if (let some(client) = net.accept(listener)) {
                     if (let some(data) = net.read(client, 4096)) {
                         let request = string.from_bytes(data)
@@ -62,22 +225,6 @@ fn mock_server(inbox: stream<string>, port: int): stream<string> {
             yield "failed"
         }
     }
-}
-
-; ============================================================================
-; HTTP Status Parser (pure)
-; ============================================================================
-
-fn:pure parse_http_status(response: string): int {
-    ; Parse "HTTP/1.0 200 OK..." → 200
-    if (let some(sp1) = string.index_of(response, " ")) {
-        let after = string.substring(response, sp1 + 1, string.len(response))
-        if (let some(sp2) = string.index_of(after, " ")) {
-            return conv.string_to_int(string.substring(after, 0, sp2)) ?? 0
-        }
-        return conv.string_to_int(after) ?? 0
-    }
-    return 0
 }
 
 ; ============================================================================
@@ -115,8 +262,6 @@ fn check_url(host: string, port: int, url_path: string, expected: int, timeout: 
 
 ; ============================================================================
 ; Result Aggregator (receivable coroutine)
-; Receives "pass"/"fail"/"warn" strings via .send(), polls inbox in a loop.
-; Yields a "passed:failed:warnings:total" report when "done" sentinel arrives.
 ; ============================================================================
 
 fn result_aggregator(inbox: stream<string>): stream<string> {
@@ -147,83 +292,63 @@ fn result_aggregator(inbox: stream<string>): stream<string> {
 }
 
 ; ============================================================================
-; Main
+; Display
 ; ============================================================================
 
-fn main(): none {
-    let port = 39876
-
-    ; Start mock server as a receivable coroutine (runs on its own thread)
-    let server :< mock_server(port)
-
-    ; Wait for server to be ready
-    match server.next() {
-        some(status): {
-            if (status != "ready") {
-                io.println("[HC] Server failed to start")
-                return
-            }
-        }
-        none: {
-            io.println("[HC] Server failed to start")
-            return
-        }
+fn display_url(url: string): string {
+    ; Strip scheme for cleaner display
+    if (let some(idx) = string.index_of(url, "://")) {
+        return string.substring(url, idx + 3, string.len(url))
     }
+    return url
+}
 
-    ; Give server thread a moment to reach accept loop
-    time.sleep_ms(50)
+; ============================================================================
+; Check loop — shared between demo and real mode
+; ============================================================================
 
-    io.println("[HC] Starting health check for 5 targets...")
+fn run_checks(urls: array<string>, config: Config): none {
+    let num_urls = array.len_string(urls)
+    io.println("[HC] Starting health check for " + conv.to_string(num_urls) + " targets...")
 
-    ; Start aggregator as a receivable coroutine
     let agg :< result_aggregator()
 
-    ; Define targets inline (producer coroutine is lazy/same-thread, works fine here)
-    let urls: array<string>:mut = []
-    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port) + "|/api/health|200")
-    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port) + "|/api/users|200")
-    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port) + "|/api/nothing|200")
-    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port) + "|/api/nothing|404")
-    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port + 1) + "|/fail|200")
-
     let idx: int:mut = 0
-    while (idx < 5) {
-        let target_str = array.get(urls, idx) ?? ""
-        let parts = string.split(target_str, "|")
-        let host = array.get(parts, 0) ?? "127.0.0.1"
-        let tport = conv.string_to_int(array.get(parts, 1) ?? "0") ?? 0
-        let url_path = array.get(parts, 2) ?? "/"
-        let expected = conv.string_to_int(array.get(parts, 3) ?? "200") ?? 200
+    while (idx < num_urls) {
+        let url = array.get(urls, idx) ?? ""
+        let host = parse_host(url)
+        let port = parse_port(url)
+        let url_path = parse_path(url)
+        let label = display_url(url)
 
-        io.println("[HC] Checking: " + url_path)
+        io.println("[HC] Checking: " + label)
 
         try {
-            let status = check_url(host, tport, url_path, expected, 2000)
+            let status = check_url(host, port, url_path, config.expected_status, config.timeout_ms)
             match status {
                 Pass(pass_code): {
-                    io.println("[HC] OK: " + url_path + " (" + conv.to_string(pass_code) + ")")
+                    io.println("[HC] OK: " + label + " (" + conv.to_string(pass_code) + ")")
                     agg.send("pass")
                 }
                 Warn(warn_code, reason): {
-                    io.println("[HC] WARN: " + url_path + " (" + conv.to_string(warn_code) + " - " + reason + ")")
+                    io.println("[HC] WARN: " + label + " (" + conv.to_string(warn_code) + " - " + reason + ")")
                     agg.send("warn")
                 }
                 Fail(fail_msg): {
-                    io.println("[HC] FAIL: " + url_path + " (" + fail_msg + ")")
+                    io.println("[HC] FAIL: " + label + " (" + fail_msg + ")")
                     agg.send("fail")
                 }
             }
-        } retry check_url (ex: string, attempts: 2) {
+        } retry check_url (ex: string, attempts: 3) {
             io.println("[HC] RETRY: " + ex + ", retrying...")
         } catch (ex: string) {
-            io.println("[HC] FAIL: " + url_path + " (" + ex + " after retries)")
+            io.println("[HC] FAIL: " + label + " (" + ex + " after retries)")
             agg.send("fail")
         }
 
         idx = idx + 1
     }
 
-    ; Signal aggregator to finish and read report
     agg.send("done")
 
     match agg.next() {
@@ -239,7 +364,48 @@ fn main(): none {
             io.println("[HC] No report available")
         }
     }
+}
 
-    ; Stop the mock server
-    server.send("stop")
+; ============================================================================
+; Main
+; ============================================================================
+
+fn main(): none {
+    let config = parse_args()
+
+    if (config.demo) {
+        ; Demo mode: start mock server and check built-in targets
+        let demo_port = 39876
+        let server :< mock_server(demo_port)
+
+        match server.next() {
+            some(status): {
+                if (status != "ready") {
+                    io.eprintln("[HC] Demo server failed to start")
+                    sys.exit(1)
+                }
+            }
+            none: {
+                io.eprintln("[HC] Demo server failed to start")
+                sys.exit(1)
+            }
+        }
+
+        time.sleep_ms(50)
+
+        let port_str = conv.to_string(demo_port)
+        let bad_port_str = conv.to_string(demo_port + 1)
+        let demo_urls: array<string>:mut = []
+        demo_urls = array.push(demo_urls, "http://127.0.0.1:" + port_str + "/api/health")
+        demo_urls = array.push(demo_urls, "http://127.0.0.1:" + port_str + "/api/users")
+        demo_urls = array.push(demo_urls, "http://127.0.0.1:" + port_str + "/api/nothing")
+        demo_urls = array.push(demo_urls, "http://127.0.0.1:" + bad_port_str + "/unreachable")
+
+        run_checks(demo_urls, config)
+
+        server.send("stop")
+    } else {
+        ; Real mode: check user-provided URLs
+        run_checks(config.urls, config)
+    }
 }
