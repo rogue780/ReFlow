@@ -2145,7 +2145,7 @@ gen.done(): bool                    ; true when producer has finished AND channe
 
 `.next()` blocks the calling thread if the channel is empty and the producer is still running. It returns `none` only when the producer has finished (returned or fallen off the end of the function) and all buffered values have been consumed.
 
-`.poll()` is the non-blocking counterpart of `.next()`. For threaded coroutines, it checks the channel without blocking — returning `none` immediately if no value is available yet. For non-threaded coroutines, `.poll()` behaves identically to `.next()` (since the stream is evaluated synchronously). `.poll()` is useful for event loops that need to check multiple coroutines without blocking on any single one.
+`.poll()` is the non-blocking counterpart of `.next()`. It checks the channel without blocking — returning `none` immediately if no value is available yet. `.poll()` is useful for event loops that need to check multiple coroutines without blocking on any single one.
 
 `.done()` returns `true` only when both conditions hold: the producer thread has terminated and the internal channel has been fully drained. While buffered values remain, `.done()` returns `false` even if the producer has finished.
 

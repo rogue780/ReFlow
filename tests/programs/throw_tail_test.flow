@@ -1,0 +1,40 @@
+module tests.throw_tail_test
+
+import io (println)
+
+; Function with non-void return where throw is the final statement
+fn always_throws(): int {
+    throw "always"
+}
+
+; Function with throw in one branch, normal return in other
+fn maybe_throws(fail: bool): int {
+    if (fail) {
+        throw "failed"
+    }
+    return 42
+}
+
+fn main() {
+    ; Test normal return path
+    let a = maybe_throws(false)
+    println(f"a={a}")
+
+    ; Test throw path caught by try
+    try {
+        let b = always_throws()
+        println(f"b={b}")
+    } catch (ex: string) {
+        println(f"caught: {ex}")
+    }
+
+    ; Test throw in branch caught by try
+    try {
+        let c = maybe_throws(true)
+        println(f"c={c}")
+    } catch (ex: string) {
+        println(f"caught: {ex}")
+    }
+
+    println("done")
+}

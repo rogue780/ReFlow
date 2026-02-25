@@ -48,19 +48,22 @@ struct fl_tests_sum_type_test_Direction {
 fl_float fl_tests_sum_type_test_area(fl_tests_sum_type_test_Shape s) {
     fl_tests_sum_type_test_Shape _fl_tmp_0 = s;
     switch (_fl_tmp_0.tag) {
-        case 0:
+        case 0: {
             fl_float r = _fl_tmp_0.Circle.radius;
             return ((3.14159 * r) * r);
             break;
-        case 1:
+        }
+        case 1: {
             fl_float w = _fl_tmp_0.Rectangle.width;
             fl_float h = _fl_tmp_0.Rectangle.height;
             return (w * h);
             break;
-        case 2:
+        }
+        case 2: {
             fl_float sd = _fl_tmp_0.Square.side;
             return (sd * sd);
             break;
+        }
     }
 }
 
@@ -68,18 +71,22 @@ fl_float fl_tests_sum_type_test_area(fl_tests_sum_type_test_Shape s) {
 fl_tests_sum_type_test_Direction fl_tests_sum_type_test_opposite(fl_tests_sum_type_test_Direction d) {
     fl_tests_sum_type_test_Direction _fl_tmp_1 = d;
     switch (_fl_tmp_1.tag) {
-        case 0:
+        case 0: {
             return (fl_tests_sum_type_test_Direction){.tag = 1};
             break;
-        case 1:
+        }
+        case 1: {
             return (fl_tests_sum_type_test_Direction){.tag = 0};
             break;
-        case 2:
+        }
+        case 2: {
             return (fl_tests_sum_type_test_Direction){.tag = 3};
             break;
-        case 3:
+        }
+        case 3: {
             return (fl_tests_sum_type_test_Direction){.tag = 2};
             break;
+        }
     }
 }
 
@@ -87,18 +94,22 @@ fl_tests_sum_type_test_Direction fl_tests_sum_type_test_opposite(fl_tests_sum_ty
 FL_String* fl_tests_sum_type_test_dir_name(fl_tests_sum_type_test_Direction d) {
     fl_tests_sum_type_test_Direction _fl_tmp_2 = d;
     switch (_fl_tmp_2.tag) {
-        case 0:
+        case 0: {
             return fl_string_from_cstr("North");
             break;
-        case 1:
+        }
+        case 1: {
             return fl_string_from_cstr("South");
             break;
-        case 2:
+        }
+        case 2: {
             return fl_string_from_cstr("East");
             break;
-        case 3:
+        }
+        case 3: {
             return fl_string_from_cstr("West");
             break;
+        }
     }
 }
 

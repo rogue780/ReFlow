@@ -22,15 +22,18 @@ struct _fl_frame_tests_coroutine_multi_test_naturals {
 FL_Option_ptr _fl_next_tests_coroutine_multi_test_naturals(FL_Stream* self) {
     _fl_frame_tests_coroutine_multi_test_naturals* frame = ((_fl_frame_tests_coroutine_multi_test_naturals*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     frame->i = frame->start;
@@ -63,68 +66,70 @@ FL_Stream* fl_tests_coroutine_multi_test_naturals(fl_int start) {
 
 /* Flow: tests.coroutine_multi_test.main */
 void fl_tests_coroutine_multi_test_main(void) {
-    FL_Coroutine* a = fl_coroutine_new(fl_tests_coroutine_multi_test_naturals(0));
-    FL_Coroutine* b = fl_coroutine_new(fl_tests_coroutine_multi_test_naturals(100));
-    FL_Option_ptr _fl_tmp_0 = fl_coroutine_next(a);
-    FL_Option_int _fl_tmp_1;
-    _fl_tmp_1.tag = _fl_tmp_0.tag;
-    if (_fl_tmp_0.tag == 1) {
-        _fl_tmp_1.value = ((fl_int)((fl_int64)_fl_tmp_0.value));
-    }
-    FL_Option_int _fl_tmp_2 = _fl_tmp_1;
+    FL_Stream* _fl_tmp_0 = fl_tests_coroutine_multi_test_naturals(0);
+    FL_Coroutine* a = fl_coroutine_new_threaded(_fl_tmp_0, 64);
+    FL_Stream* _fl_tmp_1 = fl_tests_coroutine_multi_test_naturals(100);
+    FL_Coroutine* b = fl_coroutine_new_threaded(_fl_tmp_1, 64);
+    FL_Option_ptr _fl_tmp_2 = fl_coroutine_next(a);
+    FL_Option_int _fl_tmp_3;
+    _fl_tmp_3.tag = _fl_tmp_2.tag;
     if (_fl_tmp_2.tag == 1) {
-        fl_int v = _fl_tmp_2.value;
-        FL_String* _fl_tmp_3 = fl_string_from_cstr("a=");
-        fl_println(fl_string_concat(_fl_tmp_3, fl_int_to_string(v)));
-    } else {
-        fl_println(fl_string_from_cstr("a=none"));
+        _fl_tmp_3.value = ((fl_int)((fl_int64)_fl_tmp_2.value));
     }
-    FL_Option_ptr _fl_tmp_4 = fl_coroutine_next(b);
-    FL_Option_int _fl_tmp_5;
-    _fl_tmp_5.tag = _fl_tmp_4.tag;
+    FL_Option_int _fl_tmp_4 = _fl_tmp_3;
     if (_fl_tmp_4.tag == 1) {
-        _fl_tmp_5.value = ((fl_int)((fl_int64)_fl_tmp_4.value));
-    }
-    FL_Option_int _fl_tmp_6 = _fl_tmp_5;
-    if (_fl_tmp_6.tag == 1) {
-        fl_int v = _fl_tmp_6.value;
-        FL_String* _fl_tmp_7 = fl_string_from_cstr("b=");
-        fl_println(fl_string_concat(_fl_tmp_7, fl_int_to_string(v)));
-    } else {
-        fl_println(fl_string_from_cstr("b=none"));
-    }
-    FL_Option_ptr _fl_tmp_8 = fl_coroutine_next(a);
-    FL_Option_int _fl_tmp_9;
-    _fl_tmp_9.tag = _fl_tmp_8.tag;
-    if (_fl_tmp_8.tag == 1) {
-        _fl_tmp_9.value = ((fl_int)((fl_int64)_fl_tmp_8.value));
-    }
-    FL_Option_int _fl_tmp_10 = _fl_tmp_9;
-    if (_fl_tmp_10.tag == 1) {
-        fl_int v = _fl_tmp_10.value;
-        FL_String* _fl_tmp_11 = fl_string_from_cstr("a=");
-        fl_println(fl_string_concat(_fl_tmp_11, fl_int_to_string(v)));
+        fl_int v = _fl_tmp_4.value;
+        FL_String* _fl_tmp_5 = fl_string_from_cstr("a=");
+        fl_println(fl_string_concat(_fl_tmp_5, fl_int_to_string(v)));
     } else {
         fl_println(fl_string_from_cstr("a=none"));
     }
-    FL_Option_ptr _fl_tmp_12 = fl_coroutine_next(b);
-    FL_Option_int _fl_tmp_13;
-    _fl_tmp_13.tag = _fl_tmp_12.tag;
-    if (_fl_tmp_12.tag == 1) {
-        _fl_tmp_13.value = ((fl_int)((fl_int64)_fl_tmp_12.value));
+    FL_Option_ptr _fl_tmp_6 = fl_coroutine_next(b);
+    FL_Option_int _fl_tmp_7;
+    _fl_tmp_7.tag = _fl_tmp_6.tag;
+    if (_fl_tmp_6.tag == 1) {
+        _fl_tmp_7.value = ((fl_int)((fl_int64)_fl_tmp_6.value));
     }
-    FL_Option_int _fl_tmp_14 = _fl_tmp_13;
-    if (_fl_tmp_14.tag == 1) {
-        fl_int v = _fl_tmp_14.value;
-        FL_String* _fl_tmp_15 = fl_string_from_cstr("b=");
-        fl_println(fl_string_concat(_fl_tmp_15, fl_int_to_string(v)));
+    FL_Option_int _fl_tmp_8 = _fl_tmp_7;
+    if (_fl_tmp_8.tag == 1) {
+        fl_int v = _fl_tmp_8.value;
+        FL_String* _fl_tmp_9 = fl_string_from_cstr("b=");
+        fl_println(fl_string_concat(_fl_tmp_9, fl_int_to_string(v)));
     } else {
         fl_println(fl_string_from_cstr("b=none"));
     }
-    FL_String* _fl_tmp_16 = fl_string_from_cstr("a_done=");
-    fl_println(fl_string_concat(_fl_tmp_16, fl_bool_to_string(fl_coroutine_done(a))));
-    FL_String* _fl_tmp_17 = fl_string_from_cstr("b_done=");
-    fl_println(fl_string_concat(_fl_tmp_17, fl_bool_to_string(fl_coroutine_done(b))));
+    FL_Option_ptr _fl_tmp_10 = fl_coroutine_next(a);
+    FL_Option_int _fl_tmp_11;
+    _fl_tmp_11.tag = _fl_tmp_10.tag;
+    if (_fl_tmp_10.tag == 1) {
+        _fl_tmp_11.value = ((fl_int)((fl_int64)_fl_tmp_10.value));
+    }
+    FL_Option_int _fl_tmp_12 = _fl_tmp_11;
+    if (_fl_tmp_12.tag == 1) {
+        fl_int v = _fl_tmp_12.value;
+        FL_String* _fl_tmp_13 = fl_string_from_cstr("a=");
+        fl_println(fl_string_concat(_fl_tmp_13, fl_int_to_string(v)));
+    } else {
+        fl_println(fl_string_from_cstr("a=none"));
+    }
+    FL_Option_ptr _fl_tmp_14 = fl_coroutine_next(b);
+    FL_Option_int _fl_tmp_15;
+    _fl_tmp_15.tag = _fl_tmp_14.tag;
+    if (_fl_tmp_14.tag == 1) {
+        _fl_tmp_15.value = ((fl_int)((fl_int64)_fl_tmp_14.value));
+    }
+    FL_Option_int _fl_tmp_16 = _fl_tmp_15;
+    if (_fl_tmp_16.tag == 1) {
+        fl_int v = _fl_tmp_16.value;
+        FL_String* _fl_tmp_17 = fl_string_from_cstr("b=");
+        fl_println(fl_string_concat(_fl_tmp_17, fl_int_to_string(v)));
+    } else {
+        fl_println(fl_string_from_cstr("b=none"));
+    }
+    FL_String* _fl_tmp_18 = fl_string_from_cstr("a_done=");
+    fl_println(fl_string_concat(_fl_tmp_18, fl_bool_to_string(fl_coroutine_done(a))));
+    FL_String* _fl_tmp_19 = fl_string_from_cstr("b_done=");
+    fl_println(fl_string_concat(_fl_tmp_19, fl_bool_to_string(fl_coroutine_done(b))));
 }
 
 /* Entry point */

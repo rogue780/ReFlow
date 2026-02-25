@@ -22,15 +22,18 @@ struct _fl_frame_tests_stream_test_range {
 FL_Option_ptr _fl_next_tests_stream_test_range(FL_Stream* self) {
     _fl_frame_tests_stream_test_range* frame = ((_fl_frame_tests_stream_test_range*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     frame->i = 0;

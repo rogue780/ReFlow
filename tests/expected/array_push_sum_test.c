@@ -52,15 +52,17 @@ FL_String* fl_conv_to_string__float(fl_float val) {
 fl_float fl_array_push_sum_test_area(fl_array_push_sum_test_Shape s) {
     fl_array_push_sum_test_Shape _fl_tmp_0 = s;
     switch (_fl_tmp_0.tag) {
-        case 0:
+        case 0: {
             fl_float radius = _fl_tmp_0.Circle.radius;
             return ((3.14159 * radius) * radius);
             break;
-        case 1:
+        }
+        case 1: {
             fl_float width = _fl_tmp_0.Rect.width;
             fl_float height = _fl_tmp_0.Rect.height;
             return (width * height);
             break;
+        }
     }
 }
 

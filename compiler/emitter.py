@@ -522,19 +522,21 @@ class Emitter:
         self._emitln(f"switch ({value_str}) {{")
         self._indent()
         for case_val, case_stmts in cases:
-            self._emitln(f"case {case_val}:")
+            self._emitln(f"case {case_val}: {{")
             self._indent()
             for s in case_stmts:
                 self._emit_stmt(s)
             self._emitln("break;")
             self._dedent()
+            self._emitln("}")
         if default:
-            self._emitln("default:")
+            self._emitln("default: {")
             self._indent()
             for s in default:
                 self._emit_stmt(s)
             self._emitln("break;")
             self._dedent()
+            self._emitln("}")
         self._dedent()
         self._emitln("}")
 

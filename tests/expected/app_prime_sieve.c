@@ -47,15 +47,18 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 FL_Option_ptr _fl_next_tests_app_prime_sieve_integers_from(FL_Stream* self) {
     _fl_frame_tests_app_prime_sieve_integers_from* frame = ((_fl_frame_tests_app_prime_sieve_integers_from*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     frame->i = frame->start;
@@ -121,15 +124,18 @@ fl_bool fl_tests_app_prime_sieve_is_prime(fl_int n) {
 FL_Option_ptr _fl_next_tests_app_prime_sieve_filter_primes(FL_Stream* self) {
     _fl_frame_tests_app_prime_sieve_filter_primes* frame = ((_fl_frame_tests_app_prime_sieve_filter_primes*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     frame->i = frame->start;
@@ -166,65 +172,69 @@ FL_Stream* fl_tests_app_prime_sieve_filter_primes(fl_int start, fl_int limit) {
 /* Flow: tests.app_prime_sieve.main */
 void fl_tests_app_prime_sieve_main(void) {
     fl_println(fl_string_from_cstr("=== Coroutine sieve ==="));
-    FL_Coroutine* candidates = fl_coroutine_new(fl_tests_app_prime_sieve_integers_from(2, 50));
+    FL_Stream* _fl_tmp_0 = fl_tests_app_prime_sieve_integers_from(2, 50);
+    FL_Coroutine* candidates = fl_coroutine_new_threaded(_fl_tmp_0, 64);
     while (!fl_coroutine_done(candidates)) {
-        FL_Option_ptr _fl_tmp_0 = fl_coroutine_next(candidates);
-        FL_Option_int _fl_tmp_1;
-        _fl_tmp_1.tag = _fl_tmp_0.tag;
-        if (_fl_tmp_0.tag == 1) {
-            _fl_tmp_1.value = ((fl_int)((fl_int64)_fl_tmp_0.value));
+        FL_Option_ptr _fl_tmp_1 = fl_coroutine_next(candidates);
+        FL_Option_int _fl_tmp_2;
+        _fl_tmp_2.tag = _fl_tmp_1.tag;
+        if (_fl_tmp_1.tag == 1) {
+            _fl_tmp_2.value = ((fl_int)((fl_int64)_fl_tmp_1.value));
         }
-        FL_Option_int _fl_tmp_2 = _fl_tmp_1;
-        if (_fl_tmp_2.tag == 1) {
-            fl_int n = _fl_tmp_2.value;
+        FL_Option_int _fl_tmp_3 = _fl_tmp_2;
+        if (_fl_tmp_3.tag == 1) {
+            fl_int n = _fl_tmp_3.value;
             if (fl_tests_app_prime_sieve_is_prime(n)) {
                 fl_println(fl_conv_to_string__int(n));
             }
         }
     }
     fl_println(fl_string_from_cstr("=== Filtered stream ==="));
-    FL_Coroutine* primes = fl_coroutine_new(fl_tests_app_prime_sieve_filter_primes(2, 50));
+    FL_Stream* _fl_tmp_4 = fl_tests_app_prime_sieve_filter_primes(2, 50);
+    FL_Coroutine* primes = fl_coroutine_new_threaded(_fl_tmp_4, 64);
     while (!fl_coroutine_done(primes)) {
-        FL_Option_ptr _fl_tmp_3 = fl_coroutine_next(primes);
-        FL_Option_int _fl_tmp_4;
-        _fl_tmp_4.tag = _fl_tmp_3.tag;
-        if (_fl_tmp_3.tag == 1) {
-            _fl_tmp_4.value = ((fl_int)((fl_int64)_fl_tmp_3.value));
-        }
-        FL_Option_int _fl_tmp_5 = _fl_tmp_4;
+        FL_Option_ptr _fl_tmp_5 = fl_coroutine_next(primes);
+        FL_Option_int _fl_tmp_6;
+        _fl_tmp_6.tag = _fl_tmp_5.tag;
         if (_fl_tmp_5.tag == 1) {
-            fl_int p = _fl_tmp_5.value;
+            _fl_tmp_6.value = ((fl_int)((fl_int64)_fl_tmp_5.value));
+        }
+        FL_Option_int _fl_tmp_7 = _fl_tmp_6;
+        if (_fl_tmp_7.tag == 1) {
+            fl_int p = _fl_tmp_7.value;
             fl_println(fl_conv_to_string__int(p));
         }
     }
     fl_println(fl_string_from_cstr("=== Concurrent coroutines ==="));
-    FL_Coroutine* low = fl_coroutine_new(fl_tests_app_prime_sieve_filter_primes(2, 25));
-    FL_Coroutine* high = fl_coroutine_new(fl_tests_app_prime_sieve_filter_primes(26, 50));
+    FL_Stream* _fl_tmp_8 = fl_tests_app_prime_sieve_filter_primes(2, 25);
+    FL_Coroutine* low = fl_coroutine_new_threaded(_fl_tmp_8, 64);
+    FL_Stream* _fl_tmp_9 = fl_tests_app_prime_sieve_filter_primes(26, 50);
+    FL_Coroutine* high = fl_coroutine_new_threaded(_fl_tmp_9, 64);
     fl_println(fl_string_from_cstr("Low primes:"));
     while (!fl_coroutine_done(low)) {
-        FL_Option_ptr _fl_tmp_6 = fl_coroutine_next(low);
-        FL_Option_int _fl_tmp_7;
-        _fl_tmp_7.tag = _fl_tmp_6.tag;
-        if (_fl_tmp_6.tag == 1) {
-            _fl_tmp_7.value = ((fl_int)((fl_int64)_fl_tmp_6.value));
+        FL_Option_ptr _fl_tmp_10 = fl_coroutine_next(low);
+        FL_Option_int _fl_tmp_11;
+        _fl_tmp_11.tag = _fl_tmp_10.tag;
+        if (_fl_tmp_10.tag == 1) {
+            _fl_tmp_11.value = ((fl_int)((fl_int64)_fl_tmp_10.value));
         }
-        FL_Option_int _fl_tmp_8 = _fl_tmp_7;
-        if (_fl_tmp_8.tag == 1) {
-            fl_int p = _fl_tmp_8.value;
+        FL_Option_int _fl_tmp_12 = _fl_tmp_11;
+        if (_fl_tmp_12.tag == 1) {
+            fl_int p = _fl_tmp_12.value;
             fl_println(fl_string_concat(fl_string_from_cstr("  "), fl_conv_to_string__int(p)));
         }
     }
     fl_println(fl_string_from_cstr("High primes:"));
     while (!fl_coroutine_done(high)) {
-        FL_Option_ptr _fl_tmp_9 = fl_coroutine_next(high);
-        FL_Option_int _fl_tmp_10;
-        _fl_tmp_10.tag = _fl_tmp_9.tag;
-        if (_fl_tmp_9.tag == 1) {
-            _fl_tmp_10.value = ((fl_int)((fl_int64)_fl_tmp_9.value));
+        FL_Option_ptr _fl_tmp_13 = fl_coroutine_next(high);
+        FL_Option_int _fl_tmp_14;
+        _fl_tmp_14.tag = _fl_tmp_13.tag;
+        if (_fl_tmp_13.tag == 1) {
+            _fl_tmp_14.value = ((fl_int)((fl_int64)_fl_tmp_13.value));
         }
-        FL_Option_int _fl_tmp_11 = _fl_tmp_10;
-        if (_fl_tmp_11.tag == 1) {
-            fl_int p = _fl_tmp_11.value;
+        FL_Option_int _fl_tmp_15 = _fl_tmp_14;
+        if (_fl_tmp_15.tag == 1) {
+            fl_int p = _fl_tmp_15.value;
             fl_println(fl_string_concat(fl_string_from_cstr("  "), fl_conv_to_string__int(p)));
         }
     }

@@ -83,24 +83,30 @@ FL_String* fl_tests_app_parallel_enrich_format_result(fl_int score, FL_String* c
 FL_Option_ptr _fl_next_tests_app_parallel_enrich_produce_values(FL_Stream* self) {
     _fl_frame_tests_app_parallel_enrich_produce_values* frame = ((_fl_frame_tests_app_parallel_enrich_produce_values*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        case 2:
+        }
+        case 2: {
             goto _fl_state_2;
             break;
-        case 3:
+        }
+        case 3: {
             goto _fl_state_3;
             break;
-        case 4:
+        }
+        case 4: {
             goto _fl_state_4;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     frame->_state = 1;
@@ -182,20 +188,21 @@ void fl_tests_app_parallel_enrich_main(void) {
         _fl_tmp_0 = (_fl_tmp_0 + 1);
     }
     fl_println(fl_string_from_cstr("=== Coroutine Stream ==="));
-    FL_Coroutine* source = fl_coroutine_new(fl_tests_app_parallel_enrich_produce_values());
+    FL_Stream* _fl_tmp_10 = fl_tests_app_parallel_enrich_produce_values();
+    FL_Coroutine* source = fl_coroutine_new_threaded(_fl_tmp_10, 64);
     fl_int j = 0;
     while (!fl_coroutine_done(source)) {
-        FL_Option_ptr _fl_tmp_10 = fl_coroutine_next(source);
-        FL_Option_int _fl_tmp_11;
-        _fl_tmp_11.tag = _fl_tmp_10.tag;
-        if (_fl_tmp_10.tag == 1) {
-            _fl_tmp_11.value = ((fl_int)((fl_int64)_fl_tmp_10.value));
+        FL_Option_ptr _fl_tmp_11 = fl_coroutine_next(source);
+        FL_Option_int _fl_tmp_12;
+        _fl_tmp_12.tag = _fl_tmp_11.tag;
+        if (_fl_tmp_11.tag == 1) {
+            _fl_tmp_12.value = ((fl_int)((fl_int64)_fl_tmp_11.value));
         }
-        FL_Option_int _fl_tmp_12 = _fl_tmp_11;
-        if (_fl_tmp_12.tag == 1) {
-            fl_int v = _fl_tmp_12.value;
-            FL_Option_ptr _fl_tmp_13 = fl_array_get_safe(names, j);
-            FL_String* name = ((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : fl_string_from_cstr(""));
+        FL_Option_int _fl_tmp_13 = _fl_tmp_12;
+        if (_fl_tmp_13.tag == 1) {
+            fl_int v = _fl_tmp_13.value;
+            FL_Option_ptr _fl_tmp_14 = fl_array_get_safe(names, j);
+            FL_String* name = ((_fl_tmp_14.tag == 1) ? _fl_tmp_14.value : fl_string_from_cstr(""));
             fl_int score = fl_tests_app_parallel_enrich_compute_score(v);
             FL_String* cat = fl_tests_app_parallel_enrich_categorize(v);
             fl_int hash = fl_tests_app_parallel_enrich_compute_hash(v);

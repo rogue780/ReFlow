@@ -24,15 +24,18 @@ struct _fl_frame_tests_coroutine_send_test_echo_worker {
 FL_Option_ptr _fl_next_tests_coroutine_send_test_echo_worker(FL_Stream* self) {
     _fl_frame_tests_coroutine_send_test_echo_worker* frame = ((_fl_frame_tests_coroutine_send_test_echo_worker*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     frame->running = fl_true;

@@ -310,18 +310,22 @@ FL_Tuple_FL_Map_ptr_FL_String_ptr fl_tests_app_kv_store_dispatch_command(FL_Stri
 FL_Option_ptr _fl_next_tests_app_kv_store_test_client(FL_Stream* self) {
     _fl_frame_tests_app_kv_store_test_client* frame = ((_fl_frame_tests_app_kv_store_test_client*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        case 2:
+        }
+        case 2: {
             goto _fl_state_2;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     fl_time_sleep_ms(50);
@@ -393,12 +397,14 @@ FL_Stream* fl_tests_app_kv_store_test_client(FL_Stream* inbox, FL_Socket* sock) 
 FL_Option_ptr _fl_next_tests_app_kv_store_test_server(FL_Stream* self) {
     _fl_frame_tests_app_kv_store_test_server* frame = ((_fl_frame_tests_app_kv_store_test_server*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     fl_net_set_timeout(frame->listener, 100);
@@ -516,15 +522,18 @@ FL_Stream* fl_tests_app_kv_store_test_server(FL_Stream* inbox, FL_Socket* listen
 FL_Option_ptr _fl_next_tests_app_kv_store_client_handler(FL_Stream* self) {
     _fl_frame_tests_app_kv_store_client_handler* frame = ((_fl_frame_tests_app_kv_store_client_handler*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     fl_net_set_timeout(frame->client, 100);

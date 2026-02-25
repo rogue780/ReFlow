@@ -31,17 +31,19 @@ struct fl_tests_recursive_sum_Tree {
 fl_int fl_tests_recursive_sum_sum_tree(fl_tests_recursive_sum_Tree t) {
     fl_tests_recursive_sum_Tree _fl_tmp_0 = t;
     switch (_fl_tmp_0.tag) {
-        case 0:
+        case 0: {
             fl_int v = _fl_tmp_0.Leaf.value;
             return v;
             break;
-        case 1:
+        }
+        case 1: {
             fl_tests_recursive_sum_Tree l = (*_fl_tmp_0.Node.left);
             fl_tests_recursive_sum_Tree r = (*_fl_tmp_0.Node.right);
             fl_int _fl_e_1;
             FL_CHECKED_ADD(fl_tests_recursive_sum_sum_tree(l), fl_tests_recursive_sum_sum_tree(r), &_fl_e_1);
             return _fl_e_1;
             break;
+        }
     }
 }
 

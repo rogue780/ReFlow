@@ -1,0 +1,4 @@
+a=42
+caught: always
+caught: failed
+done

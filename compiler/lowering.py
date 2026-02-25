@@ -1071,6 +1071,11 @@ class Lowerer:
         if isinstance(last, LReturn):
             return  # already has a return
         if isinstance(last, LExprStmt):
+            # Don't wrap _Noreturn calls (like _fl_throw) in LReturn —
+            # they never return and `return _fl_throw(...)` is invalid C.
+            if (isinstance(last.expr, LCall)
+                    and last.expr.fn_name == "_fl_throw"):
+                return
             stmts[-1] = LReturn(last.expr)
         elif isinstance(last, LIf):
             self._inject_tail_returns(last.then)
@@ -2192,16 +2197,26 @@ class Lowerer:
                     LPtr(LStruct("FL_String")),
                 )
 
-            # Coroutine start — wrap stream in FL_Coroutine
+            # Coroutine start — wrap stream in FL_Coroutine (always threaded)
             case CoroutineStart(call=call):
                 coro_type = self._type_of(expr)
                 is_receivable = (isinstance(coro_type, TCoroutine)
                                  and not isinstance(coro_type.send_type, TAny))
                 if is_receivable:
                     return self._lower_receivable_coroutine_start(call, expr)
+                # Non-receivable: still threaded — spawn on a real thread
+                # with a channel, just without an input channel for .send().
+                coro_ptr = LPtr(LStruct("FL_Coroutine"))
+                stream_ptr = LPtr(LStruct("FL_Stream"))
                 stream_expr = self._lower_expr(call)
-                return LCall("fl_coroutine_new", [stream_expr],
-                             LPtr(LStruct("FL_Coroutine")))
+                stream_tmp = self._fresh_temp()
+                self._pending_stmts.append(LVarDecl(
+                    c_name=stream_tmp, c_type=stream_ptr,
+                    init=stream_expr))
+                return LCall("fl_coroutine_new_threaded",
+                             [LVar(stream_tmp, stream_ptr),
+                              LLit("64", LInt(32, True))],
+                             coro_ptr)
 
             case _:
                 raise EmitError(

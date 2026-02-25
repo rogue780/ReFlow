@@ -372,20 +372,23 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_expr(FL_String* i
 fl_float fl_tests_app_calc_eval(fl_tests_app_calc_Expr expr, FL_Map* env) {
     fl_tests_app_calc_Expr _fl_tmp_24 = expr;
     switch (_fl_tmp_24.tag) {
-        case 0:
+        case 0: {
             fl_float n = _fl_tmp_24.Literal.value;
             return n;
             break;
-        case 1:
+        }
+        case 1: {
             FL_String* name = _fl_tmp_24.Var.name;
             FL_Option_float _fl_tmp_25 = fl_opt_unbox_float(fl_map_get_str(env, name));
             return ((_fl_tmp_25.tag == 1) ? _fl_tmp_25.value : 0.0);
             break;
-        case 2:
+        }
+        case 2: {
             fl_tests_app_calc_Expr inner = (*_fl_tmp_24.Neg.inner);
             return (0.0 - fl_tests_app_calc_eval(inner, env));
             break;
-        case 3:
+        }
+        case 3: {
             FL_String* op = _fl_tmp_24.BinOp.op;
             fl_tests_app_calc_Expr left = (*_fl_tmp_24.BinOp.left);
             fl_tests_app_calc_Expr right = (*_fl_tmp_24.BinOp.right);
@@ -425,6 +428,7 @@ fl_float fl_tests_app_calc_eval(fl_tests_app_calc_Expr expr, FL_Map* env) {
                 }
             }
             break;
+        }
     }
 }
 

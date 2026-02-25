@@ -38,23 +38,26 @@ struct fl_tests_recursive_expr_Expr {
 fl_int fl_tests_recursive_expr_eval(fl_tests_recursive_expr_Expr e) {
     fl_tests_recursive_expr_Expr _fl_tmp_0 = e;
     switch (_fl_tmp_0.tag) {
-        case 0:
+        case 0: {
             fl_int v = _fl_tmp_0.Lit.value;
             return v;
             break;
-        case 1:
+        }
+        case 1: {
             fl_tests_recursive_expr_Expr l = (*_fl_tmp_0.Add.left);
             fl_tests_recursive_expr_Expr r = (*_fl_tmp_0.Add.right);
             fl_int _fl_e_1;
             FL_CHECKED_ADD(fl_tests_recursive_expr_eval(l), fl_tests_recursive_expr_eval(r), &_fl_e_1);
             return _fl_e_1;
             break;
-        case 2:
+        }
+        case 2: {
             fl_tests_recursive_expr_Expr x = (*_fl_tmp_0.Neg.inner);
             fl_int _fl_e_2;
             FL_CHECKED_SUB(0, fl_tests_recursive_expr_eval(x), &_fl_e_2);
             return _fl_e_2;
             break;
+        }
     }
 }
 

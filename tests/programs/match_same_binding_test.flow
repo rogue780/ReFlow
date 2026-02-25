@@ -1,0 +1,43 @@
+module tests.match_same_binding_test
+
+import io (println)
+import conv
+
+type Shape =
+    | Circle(radius: float)
+    | Square(side: float)
+    | Rect(width: float, height: float)
+
+; Same binding name "val" across all match arms
+fn:pure describe(s: Shape): string {
+    match s {
+        Circle(val): { return f"circle r={val}" }
+        Square(val): { return f"square s={val}" }
+        Rect(w, h): { return f"rect w={w} h={h}" }
+    }
+}
+
+; Same binding name "x" across all match arms
+fn:pure area(s: Shape): float {
+    match s {
+        Circle(x): { return 3.14 * x * x }
+        Square(x): { return x * x }
+        Rect(x, y): { return x * y }
+    }
+}
+
+fn main() {
+    let c = Circle(5.0)
+    let s = Square(3.0)
+    let r = Rect(4.0, 6.0)
+
+    println(describe(c))
+    println(describe(s))
+    println(describe(r))
+
+    println(f"area circle: {area(c)}")
+    println(f"area square: {area(s)}")
+    println(f"area rect: {area(r)}")
+
+    println("done")
+}

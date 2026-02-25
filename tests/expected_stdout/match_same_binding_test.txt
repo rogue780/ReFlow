@@ -1,0 +1,7 @@
+circle r=5
+square s=3
+rect w=4 h=6
+area circle: 78.5
+area square: 9
+area rect: 24
+done

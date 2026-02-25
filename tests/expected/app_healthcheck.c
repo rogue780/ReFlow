@@ -87,18 +87,22 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 FL_Option_ptr _fl_next_tests_app_healthcheck_mock_server(FL_Stream* self) {
     _fl_frame_tests_app_healthcheck_mock_server* frame = ((_fl_frame_tests_app_healthcheck_mock_server*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        case 2:
+        }
+        case 2: {
             goto _fl_state_2;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     FL_Option_ptr _fl_tmp_0 = fl_net_listen(fl_string_from_cstr("127.0.0.1"), frame->port);
@@ -225,15 +229,18 @@ fl_tests_app_healthcheck_CheckStatus fl_tests_app_healthcheck_check_url(FL_Strin
 FL_Option_ptr _fl_next_tests_app_healthcheck_result_aggregator(FL_Stream* self) {
     _fl_frame_tests_app_healthcheck_result_aggregator* frame = ((_fl_frame_tests_app_healthcheck_result_aggregator*)self->state);
     switch (frame->_state) {
-        case 0:
+        case 0: {
             goto _fl_state_0;
             break;
-        case 1:
+        }
+        case 1: {
             goto _fl_state_1;
             break;
-        default:
+        }
+        default: {
             goto _fl_stream_done;
             break;
+        }
     }
 _fl_state_0:;
     frame->p = 0;
@@ -358,22 +365,25 @@ void fl_tests_app_healthcheck_main(void) {
             fl_tests_app_healthcheck_CheckStatus status = fl_tests_app_healthcheck_check_url(host, tport, url_path, expected, 2000);
             fl_tests_app_healthcheck_CheckStatus _fl_tmp_27 = status;
             switch (_fl_tmp_27.tag) {
-                case 0:
+                case 0: {
                     fl_int pass_code = _fl_tmp_27.Pass.code;
                     fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] OK: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(pass_code)), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("pass")));
                     break;
-                case 2:
+                }
+                case 2: {
                     fl_int warn_code = _fl_tmp_27.Warn.code;
                     FL_String* reason = _fl_tmp_27.Warn.reason;
                     fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] WARN: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(warn_code)), fl_string_from_cstr(" - ")), reason), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("warn")));
                     break;
-                case 1:
+                }
+                case 1: {
                     FL_String* fail_msg = _fl_tmp_27.Fail.msg;
                     fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), fail_msg), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("fail")));
                     break;
+                }
             }
             _fl_exception_pop();
         } else {
@@ -389,22 +399,25 @@ void fl_tests_app_healthcheck_main(void) {
                         fl_tests_app_healthcheck_CheckStatus status = fl_tests_app_healthcheck_check_url(host, tport, url_path, expected, 2000);
                         fl_tests_app_healthcheck_CheckStatus _fl_tmp_30 = status;
                         switch (_fl_tmp_30.tag) {
-                            case 0:
+                            case 0: {
                                 fl_int pass_code = _fl_tmp_30.Pass.code;
                                 fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] OK: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(pass_code)), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("pass")));
                                 break;
-                            case 2:
+                            }
+                            case 2: {
                                 fl_int warn_code = _fl_tmp_30.Warn.code;
                                 FL_String* reason = _fl_tmp_30.Warn.reason;
                                 fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] WARN: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(warn_code)), fl_string_from_cstr(" - ")), reason), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("warn")));
                                 break;
-                            case 1:
+                            }
+                            case 1: {
                                 FL_String* fail_msg = _fl_tmp_30.Fail.msg;
                                 fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), fail_msg), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("fail")));
                                 break;
+                            }
                         }
                         _fl_exception_pop();
                         goto _fl_tmp_29;
