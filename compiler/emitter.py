@@ -13,7 +13,7 @@ from compiler.lowering import (
     # Expressions
     LExpr, LLit, LVar, LCall, LIndirectCall, LBinOp, LUnary,
     LFieldAccess, LArrow, LIndex, LCast, LAddrOf, LDeref,
-    LCompound, LCheckedArith, LSizeOf, LTernary, LArrayData,
+    LCompound, LCheckedArith, LSizeOf, LTernary, LArrayData, LOptDerefAs,
     # Statements
     LStmt, LVarDecl, LArrayDecl, LAssign, LReturn, LIf, LWhile, LBlock,
     LExprStmt, LGoto, LLabel, LSwitch, LBreak, LContinue,
@@ -578,6 +578,10 @@ class Emitter:
                 return (f"({self._emit_expr(cond)} ? "
                         f"{self._emit_expr(then_expr)} : "
                         f"{self._emit_expr(else_expr)})")
+            case LOptDerefAs(inner=inner, val_type=val_type, c_type=opt_type):
+                return (f"FL_OPT_DEREF_AS({self._emit_expr(inner)}, "
+                        f"{self._emit_ltype(val_type)}, "
+                        f"{self._emit_ltype(opt_type)})")
             case LCompound(fields=fields, c_type=ctype):
                 fields_str = ", ".join(
                     f".{name} = {self._emit_expr(val)}"
@@ -590,7 +594,11 @@ class Emitter:
             case LCheckedArith(op=op, left=left, right=right, c_type=ctype):
                 tmp = self._fresh_temp()
                 type_str = self._emit_ltype(ctype)
-                macro = _CHECKED_OP_MAP.get(op)
+                # Float modulo uses fmod via FL_CHECKED_FMOD
+                if op == "%" and isinstance(ctype, LFloat):
+                    macro = "FL_CHECKED_FMOD"
+                else:
+                    macro = _CHECKED_OP_MAP.get(op)
                 if macro is None:
                     raise EmitError(
                         message=f"no checked arithmetic macro for operator '{op}'",

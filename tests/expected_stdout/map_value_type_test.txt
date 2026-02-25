@@ -1,0 +1,6 @@
+3.1400000000000001
+none ok
+42
+100
+true ok
+All map value type tests passed

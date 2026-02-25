@@ -1,0 +1,48 @@
+module map_value_type_test
+import io
+import conv
+import map
+
+fn main(): none {
+    ; Test map<string, float>
+    let mf: map<string, float> = map.new()
+    let mf2 = map.set(mf, "pi", 3.14)
+    let mf3 = map.set(mf2, "e", 2.718)
+    match map.get(mf3, "pi") {
+        some(v): io.println(conv.to_string(v))
+        none: io.println("FAIL: pi not found")
+    }
+    match map.get(mf3, "missing") {
+        some(v): io.println("FAIL: should be none")
+        none: io.println("none ok")
+    }
+
+    ; Test map<string, int>
+    let mi: map<string, int> = map.new()
+    let mi2 = map.set(mi, "x", 42)
+    let mi3 = map.set(mi2, "y", 100)
+    match map.get(mi3, "x") {
+        some(v): io.println(conv.to_string(v))
+        none: io.println("FAIL: x not found")
+    }
+    match map.get(mi3, "y") {
+        some(v): io.println(conv.to_string(v))
+        none: io.println("FAIL: y not found")
+    }
+
+    ; Test map<string, bool>
+    let mb: map<string, bool> = map.new()
+    let mb2 = map.set(mb, "flag", true)
+    match map.get(mb2, "flag") {
+        some(v): {
+            if v {
+                io.println("true ok")
+            } else {
+                io.println("FAIL: expected true")
+            }
+        }
+        none: io.println("FAIL: flag not found")
+    }
+
+    io.println("All map value type tests passed")
+}

@@ -193,6 +193,29 @@ compiler (Epic 11) must replicate them exactly.
    `_current_fn_return_type` (the fully-resolved return type) instead, so the
    compound literal uses the correct concrete struct name.
 
+7. **Float modulo** — The `%` operator on float operands uses `FL_CHECKED_FMOD`
+   (which calls C's `fmod()`) instead of `FL_CHECKED_MOD` (which uses C's `%`
+   operator, invalid for doubles). Float modulo by zero panics with
+   `DivisionByZeroError`, unlike float division which follows IEEE 754.
+
+8. **Generic container value-type boxing** — When a generic native function
+   (like `map.set<V>`, `map.get<V>`) is instantiated with a value type (int,
+   float, bool, byte), the lowering automatically wraps arguments with
+   `fl_box_<type>()` and return values with `fl_opt_unbox_<type>()`. The
+   box/unbox functions use `memcpy`-based type punning to round-trip value
+   types through `void*` at zero cost. The relevant maps are
+   `_VALUE_TYPE_BOX_FN`, `_VALUE_TYPE_UNBOX_FN`, and
+   `_VALUE_TYPE_OPT_UNBOX_FN` in `lowering.py`.
+
+9. **Generic array.push for non-pointer types** — When `array.push<T>` is
+   called where T is a non-pointer type (sum type struct, etc.), the lowering
+   redirects from `fl_array_push_ptr(arr, val)` to
+   `fl_array_push_sized(arr, &val, sizeof(ValType))`. The `_sized` variant
+   sets `element_size` on the array if it was 0 (empty array case). For
+   `array.get_any<T>` with non-pointer T, the lowering wraps the result with
+   `FL_OPT_DEREF_AS(opt, ValType, OptType)` to cast and dereference the
+   `void*` pointer into the concrete value.
+
 ---
 
 ## Skills to Read

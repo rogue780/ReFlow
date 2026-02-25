@@ -39,6 +39,7 @@ Integer arithmetic that can overflow **must** use these macros. Never emit a pla
 FL_CHECKED_ADD(a, b, &result)    /* result = a + b, panics on overflow */
 FL_CHECKED_SUB(a, b, &result)    /* result = a - b, panics on underflow */
 FL_CHECKED_MUL(a, b, &result)    /* result = a * b, panics on overflow */
+FL_CHECKED_FMOD(a, b, &result)   /* result = fmod(a, b), panics on divzero */
 ```
 
 Usage pattern in generated C:
@@ -48,7 +49,9 @@ FL_CHECKED_ADD(x, y, &_fl_tmp_1);
 /* use _fl_tmp_1 */
 ```
 
-Float arithmetic uses plain C operators. Integer division by zero calls `fl_panic_divzero()` — emit an explicit zero check before integer division.
+Float arithmetic uses plain C operators for `+`, `-`, `*`, `/`. Integer division by zero calls `fl_panic_divzero()` — emit an explicit zero check before integer division.
+
+Float modulo (`%` on floats) uses `FL_CHECKED_FMOD` which calls `fmod()` from `<math.h>` and panics on division by zero (unlike float division which follows IEEE 754).
 
 ---
 
@@ -181,6 +184,7 @@ void*     fl_array_get_ptr(FL_Array* arr, fl_int64 idx);   /* panics on OOB */
 FL_Option_ptr fl_array_get_safe(FL_Array* arr, fl_int64 idx);
 fl_int64  fl_array_len(FL_Array* arr);
 FL_Array* fl_array_push(FL_Array* arr, void* element);    /* returns new array */
+FL_Array* fl_array_push_sized(FL_Array* arr, void* element, fl_int64 elem_size);
 ```
 
 **Array literal lowering:** `[1, 2, 3]` as `array<int>` lowers to:
@@ -188,6 +192,18 @@ FL_Array* fl_array_push(FL_Array* arr, void* element);    /* returns new array *
 fl_int _fl_arr_data[] = {1, 2, 3};
 FL_Array* _fl_tmp_1 = fl_array_new(3, sizeof(fl_int), _fl_arr_data);
 ```
+
+**Generic push for non-pointer types (sum types, structs):**
+When `array.push<T>` is called where T is a non-pointer type, the lowering
+emits `fl_array_push_sized(arr, &val, sizeof(ValType))` instead of
+`fl_array_push_ptr(arr, val)`. This ensures correct `element_size` even for
+empty arrays (where `element_size` starts at 0).
+
+**Generic get for non-pointer types:**
+When `array.get_any<T>` is called where T is a non-pointer type,
+`fl_array_get_safe` returns `FL_Option_ptr` where `.value` is a pointer to
+the element data. The lowering wraps this with `FL_OPT_DEREF_AS(opt, ValType,
+OptType)` to cast, dereference, and repack into the correct option struct.
 
 **For loop over array lowers to:**
 ```c
@@ -322,6 +338,14 @@ void    fl_set_release(FL_Set* s);
 ```
 
 String keys: pass `s->data` as key and `s->len` as key_len.
+
+**Value-type boxing for maps:** Maps store values as `void*`. When the value
+type `V` in `map<string, V>` is a value type (int, float, bool, byte), the
+lowering inserts `fl_box_<type>(val)` calls for `map.set` arguments and
+`fl_opt_unbox_<type>(result)` calls to repack `map.get` results from
+`FL_Option_ptr` to the correct typed option struct. The box/unbox helpers use
+`memcpy`-based type punning (well-defined in C99+) for zero-cost round-tripping
+through `void*`.
 
 ---
 

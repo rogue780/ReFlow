@@ -302,16 +302,16 @@ let matrix: array<array<int>> = [[1, 2], [3, 4], [5, 6]]
 
 #### Array Stdlib API
 
-The `array` module provides generic and type-specific functions. Generic functions work for pointer/heap types (string, Coroutine, etc.). Value types (int, float, bool, byte) use type-specific variants for push.
+The `array` module provides generic and type-specific functions. The generic `push<T>` and `get_any<T>` functions work for all element types, including pointer/heap types, value types, and user-defined sum types. The compiler automatically handles the necessary boxing and dereferencing for non-pointer element types. Type-specific variants are also available for common value types.
 
 ```
-; Generic (pointer/heap types)
+; Generic (works for all element types including sum types)
 array.push<T>(arr: array<T>, val: T): array<T>
 array.get_any<T>(arr: array<T>, idx: int): T?
 array.size<T>(arr: array<T>): int
 array.concat<T>(a: array<T>, b: array<T>): array<T>
 
-; Value-type push variants
+; Value-type push variants (also work via generic push<T>)
 array.push_int(arr: array<int>, val: int): array<int>
 array.push_float(arr: array<float>, val: float): array<float>
 array.push_bool(arr: array<bool>, val: bool): array<bool>
@@ -370,6 +370,18 @@ Float division by zero follows IEEE 754: dividing a non-zero float by zero produ
 let a: float = 1.0 / 0.0    ; float.infinity
 let b: float = -1.0 / 0.0   ; float.neg_infinity
 let c: float = 0.0 / 0.0    ; float.nan
+```
+
+### Float Modulo
+
+The `%` operator works on both integer and float operands. For integers, it computes the remainder after integer division. For floats, it computes the IEEE 754 remainder using C's `fmod()` function.
+
+Float modulo by zero throws `DivisionByZeroError` (unlike float division, which follows IEEE 754).
+
+```
+let a: float = 10.5 % 3.0   ; 1.5
+let b: float = -7.5 % 2.0   ; -1.5
+let c: float = 1.0 % 0.0    ; throws DivisionByZeroError
 ```
 
 ### Numeric Conversion
@@ -1227,7 +1239,7 @@ scores.remove("bob")
 
 #### Map API
 
-The stdlib `map` module provides generic functions where the value type `V` is inferred from the binding context. Keys are currently `string` in the stdlib implementation.
+The stdlib `map` module provides generic functions where the value type `V` is inferred from the binding context. `V` can be any type, including value types like `int` and `float` — the compiler automatically handles boxing/unboxing when storing value types in the map's `void*`-based storage. Keys are currently `string` in the stdlib implementation.
 
 ```
 map.new<V>(): map<string, V>

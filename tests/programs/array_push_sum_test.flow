@@ -1,0 +1,53 @@
+module array_push_sum_test
+import io
+import conv
+import array
+
+type Shape =
+    | Circle(radius: float)
+    | Rect(width: float, height: float)
+
+fn area(s: Shape): float {
+    match s {
+        Circle(radius): 3.14159 * radius * radius
+        Rect(width, height): width * height
+    }
+}
+
+fn main(): none {
+    ; Test array.push<T> with sum type elements
+    let shapes: array<Shape> = []
+    let shapes2 = array.push(shapes, Circle(5.0))
+    let shapes3 = array.push(shapes2, Rect(3.0, 4.0))
+    let shapes4 = array.push(shapes3, Circle(1.0))
+
+    io.println(conv.to_string(array.size(shapes4)))
+
+    ; Test array.get_any<T> with sum type elements
+    let s0 = array.get_any(shapes4, 0)
+    match s0 {
+        some(s): io.println(conv.to_string(area(s)))
+        none: io.println("FAIL: index 0")
+    }
+
+    let s1 = array.get_any(shapes4, 1)
+    match s1 {
+        some(s): io.println(conv.to_string(area(s)))
+        none: io.println("FAIL: index 1")
+    }
+
+    let s2 = array.get_any(shapes4, 2)
+    match s2 {
+        some(s): io.println(conv.to_string(area(s)))
+        none: io.println("FAIL: index 2")
+    }
+
+    ; Test out-of-bounds returns none
+    let s3 = array.get_any(shapes4, 5)
+    match s3 {
+        some(s): io.println("FAIL: index 5 should be none")
+        none: io.println("oob ok")
+    }
+
+    io.println("All array push sum tests passed")
+}

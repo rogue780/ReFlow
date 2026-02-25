@@ -247,6 +247,11 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
     return out;
 }
 
+FL_Array* fl_array_push_sized(FL_Array* arr, void* element, fl_int64 elem_size) {
+    if (arr->element_size == 0) arr->element_size = elem_size;
+    return fl_array_push(arr, element);
+}
+
 FL_Array* fl_array_push_ptr(FL_Array* arr, void* element) {
     if (arr->element_size == 0) arr->element_size = sizeof(void*);
     return fl_array_push(arr, &element);

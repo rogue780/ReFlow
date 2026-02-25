@@ -13,6 +13,7 @@
 #include <setjmp.h>
 #include <stdatomic.h>
 #include <pthread.h>
+#include <math.h>
 
 /* Boolean constants for use in generated code */
 #define fl_true  ((fl_bool)1)
@@ -65,6 +66,9 @@ void fl_panic_oob(void);
 #define FL_CHECKED_MOD(a, b, result) \
     do { if ((b) == 0) fl_panic_divzero(); *(result) = (a) % (b); } while(0)
 
+#define FL_CHECKED_FMOD(a, b, result) \
+    do { if ((b) == 0.0) fl_panic_divzero(); *(result) = fmod((a), (b)); } while(0)
+
 /* ========================================================================
  * Option Types (RT-1-3-1)
  *
@@ -101,6 +105,86 @@ typedef struct { fl_byte tag; void* value; } FL_Option_ptr;
 /* Option helpers (RT-1-3-3) */
 #define fl_option_unwrap_or(opt, default) \
     ((opt).tag == 1 ? (opt).value : (default))
+
+/* ========================================================================
+ * Value-type boxing/unboxing for generic containers (Gap-2)
+ *
+ * Maps and other generic containers store void*.  For value types (int,
+ * float, bool, ...) we need to round-trip through void* without heap
+ * allocation.  Since sizeof(void*) >= sizeof(double) on our 64-bit
+ * target, we use memcpy-based type punning (well-defined in C99+).
+ * ======================================================================== */
+
+static inline void* fl_box_int(fl_int v) {
+    void* p = NULL; memcpy(&p, &v, sizeof(v)); return p;
+}
+static inline fl_int fl_unbox_int(void* p) {
+    fl_int v = 0; memcpy(&v, &p, sizeof(v)); return v;
+}
+
+static inline void* fl_box_int64(fl_int64 v) {
+    void* p = NULL; memcpy(&p, &v, sizeof(v)); return p;
+}
+static inline fl_int64 fl_unbox_int64(void* p) {
+    fl_int64 v = 0; memcpy(&v, &p, sizeof(v)); return v;
+}
+
+static inline void* fl_box_float(fl_float v) {
+    void* p = NULL; memcpy(&p, &v, sizeof(v)); return p;
+}
+static inline fl_float fl_unbox_float(void* p) {
+    fl_float v = 0; memcpy(&v, &p, sizeof(v)); return v;
+}
+
+static inline void* fl_box_bool(fl_bool v) {
+    return (void*)(uintptr_t)v;
+}
+static inline fl_bool fl_unbox_bool(void* p) {
+    return (fl_bool)(uintptr_t)p;
+}
+
+static inline void* fl_box_byte(fl_byte v) {
+    return (void*)(uintptr_t)v;
+}
+static inline fl_byte fl_unbox_byte(void* p) {
+    return (fl_byte)(uintptr_t)p;
+}
+
+/* Repack FL_Option_ptr → FL_Option_<valuetype> */
+static inline FL_Option_int fl_opt_unbox_int(FL_Option_ptr o) {
+    FL_Option_int r = {.tag = o.tag};
+    if (o.tag) r.value = fl_unbox_int(o.value);
+    return r;
+}
+static inline FL_Option_int64 fl_opt_unbox_int64(FL_Option_ptr o) {
+    FL_Option_int64 r = {.tag = o.tag};
+    if (o.tag) r.value = fl_unbox_int64(o.value);
+    return r;
+}
+static inline FL_Option_float fl_opt_unbox_float(FL_Option_ptr o) {
+    FL_Option_float r = {.tag = o.tag};
+    if (o.tag) r.value = fl_unbox_float(o.value);
+    return r;
+}
+static inline FL_Option_bool fl_opt_unbox_bool(FL_Option_ptr o) {
+    FL_Option_bool r = {.tag = o.tag};
+    if (o.tag) r.value = fl_unbox_bool(o.value);
+    return r;
+}
+static inline FL_Option_byte fl_opt_unbox_byte(FL_Option_ptr o) {
+    FL_Option_byte r = {.tag = o.tag};
+    if (o.tag) r.value = fl_unbox_byte(o.value);
+    return r;
+}
+
+/* Generic option repack: FL_Option_ptr → FL_Option_<ValueType>
+ * Used when fl_array_get_safe returns FL_Option_ptr but the element type
+ * is a value type (struct, sum type, etc.) whose void* value is a pointer
+ * to the element data that needs to be dereferenced. */
+#define FL_OPT_DEREF_AS(opt_ptr, ValType, OptType) \
+    ((opt_ptr).tag \
+     ? (OptType){.tag = 1, .value = *(ValType*)(opt_ptr).value} \
+     : (OptType){.tag = 0})
 
 /* ========================================================================
  * String Type (RT-1-2-1)
@@ -195,6 +279,7 @@ void*         fl_array_get_ptr(FL_Array* arr, fl_int64 idx);
 FL_Option_ptr fl_array_get_safe(FL_Array* arr, fl_int64 idx);
 fl_int64      fl_array_len(FL_Array* arr);
 FL_Array*     fl_array_push(FL_Array* arr, void* element);
+FL_Array*     fl_array_push_sized(FL_Array* arr, void* element, fl_int64 elem_size);
 FL_Array*     fl_array_push_ptr(FL_Array* arr, void* element);
 FL_Array*     fl_array_push_int(FL_Array* arr, fl_int val);
 FL_Array*     fl_array_push_int64(FL_Array* arr, fl_int64 val);

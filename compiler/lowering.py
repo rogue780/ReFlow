@@ -229,6 +229,19 @@ class LTernary(LExpr):
     c_type: LType
 
 
+@dataclass
+class LOptDerefAs(LExpr):
+    """Repack FL_Option_ptr to FL_Option_<ValueType> by dereferencing void*.
+
+    Emits: FL_OPT_DEREF_AS(inner, val_type, opt_type)
+    Used when fl_array_get_safe returns FL_Option_ptr but the element is
+    a non-pointer type (struct, sum type, etc.).
+    """
+    inner: LExpr        # The FL_Option_ptr expression
+    val_type: LType     # The value type to dereference as
+    c_type: LType       # The target FL_Option_<T> type
+
+
 # ---------------------------------------------------------------------------
 # LStmt hierarchy (RT-7-1-1)
 # ---------------------------------------------------------------------------
@@ -412,6 +425,40 @@ _BUILTIN_OPTION_MAP: dict[str, str] = {
     "fl_bool": "FL_Option_bool",
     "fl_byte": "FL_Option_byte",
     "fl_char": "FL_Option_char",
+}
+
+
+# ---------------------------------------------------------------------------
+# Value-type box/unbox mapping for generic containers (Gap-2)
+#
+# When a generic native function (e.g. map.set<V>) is instantiated with a
+# value type (int, float, bool, etc.), arguments of that type must be boxed
+# to void* before passing, and return values of FL_Option_ptr must be
+# repacked into the concrete option struct (e.g. FL_Option_float).
+# ---------------------------------------------------------------------------
+
+_VALUE_TYPE_BOX_FN: dict[str, str] = {
+    "fl_int": "fl_box_int",
+    "fl_int64": "fl_box_int64",
+    "fl_float": "fl_box_float",
+    "fl_bool": "fl_box_bool",
+    "fl_byte": "fl_box_byte",
+}
+
+_VALUE_TYPE_UNBOX_FN: dict[str, str] = {
+    "fl_int": "fl_unbox_int",
+    "fl_int64": "fl_unbox_int64",
+    "fl_float": "fl_unbox_float",
+    "fl_bool": "fl_unbox_bool",
+    "fl_byte": "fl_unbox_byte",
+}
+
+_VALUE_TYPE_OPT_UNBOX_FN: dict[str, str] = {
+    "fl_int": "fl_opt_unbox_int",
+    "fl_int64": "fl_opt_unbox_int64",
+    "fl_float": "fl_opt_unbox_float",
+    "fl_bool": "fl_opt_unbox_bool",
+    "fl_byte": "fl_opt_unbox_byte",
 }
 
 
@@ -2209,6 +2256,10 @@ class Lowerer:
                     r = LCast(right_expr, self._lower_type(left_type))
             return LCheckedArith(op=op, left=l, right=r, c_type=lt)
 
+        # Float modulo — needs fmod(), use checked arith for div-by-zero guard
+        if isinstance(left_type, TFloat) and isinstance(right_type, TFloat) and op == "%":
+            return LCheckedArith(op=op, left=left_expr, right=right_expr, c_type=lt)
+
         # Logical operators
         if op == "&&":
             return LBinOp(op="&&", left=left_expr, right=right_expr, c_type=LBool())
@@ -2262,6 +2313,21 @@ class Lowerer:
                         return LCall(mono_name, lowered_args, concrete_lt)
                 # Same-module native function — use the native C name directly
                 if fn_decl_maybe and fn_decl_maybe.native_name is not None:
+                    # Gap-1: redirect array.push for non-pointer elements
+                    redirected = self._maybe_redirect_array_push(
+                        fn_decl_maybe, lowered_args, lt)
+                    if redirected is not None:
+                        return redirected
+                    # Gap-1: repack array.get_any for non-pointer elements
+                    repacked = self._maybe_repack_array_get(
+                        fn_decl_maybe, lowered_args, list(expr.args), t, lt)
+                    if repacked is not None:
+                        return repacked
+                    # Gap-2: box/unbox for generic native calls with value-type params
+                    wrapped = self._lower_native_generic_call(
+                        fn_decl_maybe, list(expr.args), lowered_args, t, lt)
+                    if wrapped is not None:
+                        return wrapped
                     return LCall(fn_decl_maybe.native_name, lowered_args, lt)
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
@@ -2270,6 +2336,18 @@ class Lowerer:
             if sym is not None and sym.kind == SymbolKind.IMPORT:
                 fn_decl = sym.decl
                 if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
+                    redirected = self._maybe_redirect_array_push(
+                        fn_decl, lowered_args, lt)
+                    if redirected is not None:
+                        return redirected
+                    repacked = self._maybe_repack_array_get(
+                        fn_decl, lowered_args, list(expr.args), t, lt)
+                    if repacked is not None:
+                        return repacked
+                    wrapped = self._lower_native_generic_call(
+                        fn_decl, list(expr.args), lowered_args, t, lt)
+                    if wrapped is not None:
+                        return wrapped
                     return LCall(fn_decl.native_name, lowered_args, lt)
             # Check if callee is a closure-typed variable (local var, param)
             callee_type = self._type_of(expr.callee)
@@ -2349,6 +2427,21 @@ class Lowerer:
             fn_decl = resolved_sym.decl
             lowered_args = [self._lower_expr(a) for a in expr.args]
             if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
+                # Gap-1: redirect array.push for non-pointer elements
+                redirected = self._maybe_redirect_array_push(
+                    fn_decl, lowered_args, lt)
+                if redirected is not None:
+                    return redirected
+                # Gap-1: repack array.get_any for non-pointer elements
+                repacked = self._maybe_repack_array_get(
+                    fn_decl, lowered_args, list(expr.args), t, lt)
+                if repacked is not None:
+                    return repacked
+                # Gap-2: box/unbox for generic native calls with value-type params
+                wrapped = self._lower_native_generic_call(
+                    fn_decl, list(expr.args), lowered_args, t, lt)
+                if wrapped is not None:
+                    return wrapped
                 # Native function — call the C name directly
                 return LCall(fn_decl.native_name, lowered_args, lt)
             # Non-native imported function — use mangled name from source module
@@ -3746,17 +3839,17 @@ class Lowerer:
         """Lower array literal."""
         t = self._type_of(expr)
         lt = self._lower_type(t)
+        elem_type = TAny()
+        if isinstance(t, TArray):
+            elem_type = t.element
+        elem_lt = self._lower_type(elem_type)
+
         if not expr.elements:
             return LCall("fl_array_new",
                          [LLit("0", LInt(64, True)),
                           LLit("0", LInt(64, True)),
                           LLit("NULL", LPtr(LVoid()))],
                          lt)
-
-        elem_type = TAny()
-        if isinstance(t, TArray):
-            elem_type = t.element
-        elem_lt = self._lower_type(elem_type)
 
         lowered_elems = [self._lower_expr(e) for e in expr.elements]
         count = len(lowered_elems)
@@ -5155,6 +5248,198 @@ class Lowerer:
                 return True
             case _:
                 return False
+
+    # ------------------------------------------------------------------
+    # array.push redirect for non-pointer element types (Gap-1)
+    # ------------------------------------------------------------------
+
+    def _maybe_repack_array_get(
+        self,
+        fn_decl: FnDecl,
+        lowered_args: list[LExpr],
+        arg_exprs: list[Expr],
+        result_type: Type,
+        result_lt: LType,
+    ) -> LExpr | None:
+        """Repack fl_array_get_safe result for non-pointer element types.
+
+        fl_array_get_safe returns FL_Option_ptr where .value is a pointer to
+        the element data in the array buffer.  For non-pointer element types
+        (structs, sum types), we need to dereference that pointer and wrap in
+        the correct option struct.
+        """
+        if fn_decl.native_name != "fl_array_get_safe":
+            return None
+        if not fn_decl.type_params:
+            return None
+        # Infer what T is
+        env = self._infer_type_env_from_call(fn_decl, arg_exprs, lowered_args)
+        if not env:
+            return None
+        for tp in fn_decl.type_params:
+            concrete = env.get(tp.name)
+            if concrete is None:
+                continue
+            concrete_lt = self._lower_type(concrete)
+            # Skip pointer types — FL_Option_ptr is already correct
+            if isinstance(concrete_lt, LPtr):
+                return None
+            # For value types already handled by Gap-2 opt_unbox (int, float, etc.)
+            c_name = _ltype_c_name(concrete_lt)
+            if c_name in _VALUE_TYPE_OPT_UNBOX_FN:
+                # Array get_safe returns a pointer to the element, not a boxed
+                # value.  Use FL_OPT_DEREF_AS to cast and dereference.
+                call = LCall(fn_decl.native_name, lowered_args,
+                             LStruct("FL_Option_ptr"))
+                return LOptDerefAs(call, concrete_lt, result_lt)
+            # Struct/sum types — use FL_OPT_DEREF_AS
+            if isinstance(concrete_lt, LStruct):
+                call = LCall(fn_decl.native_name, lowered_args,
+                             LStruct("FL_Option_ptr"))
+                return LOptDerefAs(call, concrete_lt, result_lt)
+        return None
+
+    def _maybe_redirect_array_push(
+        self,
+        fn_decl: FnDecl,
+        lowered_args: list[LExpr],
+        lt: LType,
+    ) -> LExpr | None:
+        """Redirect fl_array_push_ptr to fl_array_push(&val) for non-pointer elements.
+
+        fl_array_push_ptr hardcodes element_size = sizeof(void*), which is wrong
+        for value-type elements like sum type structs.  fl_array_push uses
+        arr->element_size and takes a void* pointer to the element data.
+        """
+        if fn_decl.native_name != "fl_array_push_ptr":
+            return None
+        if not fn_decl.type_params or len(lowered_args) < 2:
+            return None
+        # The second arg is the element value
+        elem_arg = lowered_args[1]
+        elem_lt = getattr(elem_arg, 'c_type', None)
+        # If the element is already a pointer type, fl_array_push_ptr is fine
+        if isinstance(elem_lt, LPtr):
+            return None
+        # Non-pointer element: use fl_array_push_sized(arr, &val, sizeof(ElemType))
+        # fl_array_push_sized sets element_size on the array if it was 0 (empty
+        # array case), then delegates to fl_array_push for the actual copy.
+        addr_of = LAddrOf(elem_arg, LPtr(elem_lt) if elem_lt else LPtr(LVoid()))
+        size_of = LSizeOf(elem_lt if elem_lt else LVoid())
+        return LCall("fl_array_push_sized",
+                     [lowered_args[0], addr_of, size_of], lt)
+
+    # ------------------------------------------------------------------
+    # Value-type boxing for generic native calls (Gap-2)
+    # ------------------------------------------------------------------
+
+    def _lower_native_generic_call(
+        self,
+        fn_decl: FnDecl,
+        arg_exprs: list[Expr],
+        lowered_args: list[LExpr],
+        result_type: Type,
+        result_lt: LType,
+    ) -> LExpr | None:
+        """Wrap a native generic call with box/unbox when T is a value type.
+
+        Returns an LExpr with the correct boxing/unboxing applied, or None
+        if no wrapping is needed (T is a pointer type).
+        """
+        if not fn_decl.type_params:
+            return None
+        env = self._infer_type_env_from_call(fn_decl, arg_exprs, lowered_args)
+        if not env:
+            return None
+
+        # Check if any type param resolved to a value type that needs boxing
+        needs_boxing = False
+        for tp in fn_decl.type_params:
+            concrete = env.get(tp.name)
+            if concrete is not None:
+                concrete_lt = self._lower_type(concrete)
+                c_name = _ltype_c_name(concrete_lt)
+                if c_name in _VALUE_TYPE_BOX_FN:
+                    needs_boxing = True
+                    break
+        if not needs_boxing:
+            return None
+
+        # Box value-type arguments: for each param whose declared type
+        # involves a type param that resolved to a value type, wrap with
+        # the box function.
+        boxed_args: list[LExpr] = []
+        for i, param in enumerate(fn_decl.params):
+            if i >= len(lowered_args):
+                break
+            arg = lowered_args[i]
+            if param.type_ann is not None:
+                declared = self._types.get(param.type_ann)
+                if declared is None:
+                    declared = self._resolve_type_ann(param.type_ann)
+                # Check if this param's type is (or involves) a type variable
+                # that resolved to a value type
+                tp_name = self._extract_type_var_name(declared, fn_decl)
+                if tp_name and tp_name in env:
+                    concrete = env[tp_name]
+                    concrete_lt = self._lower_type(concrete)
+                    c_name = _ltype_c_name(concrete_lt)
+                    box_fn = _VALUE_TYPE_BOX_FN.get(c_name)
+                    if box_fn:
+                        arg = LCall(box_fn, [arg], LPtr(LVoid()))
+            boxed_args.append(arg)
+
+        # Make the call with void*-based types
+        call = LCall(fn_decl.native_name, boxed_args, LStruct("FL_Option_ptr")
+                     if self._return_is_option_of_typevar(fn_decl, env)
+                     else result_lt)
+
+        # Unbox return value if it's an option<T> where T is a value type
+        if self._return_is_option_of_typevar(fn_decl, env):
+            for tp in fn_decl.type_params:
+                concrete = env.get(tp.name)
+                if concrete is not None:
+                    concrete_lt = self._lower_type(concrete)
+                    c_name = _ltype_c_name(concrete_lt)
+                    opt_unbox_fn = _VALUE_TYPE_OPT_UNBOX_FN.get(c_name)
+                    if opt_unbox_fn:
+                        return LCall(opt_unbox_fn, [call], result_lt)
+            # Unbox for plain value return (not option)
+            for tp in fn_decl.type_params:
+                concrete = env.get(tp.name)
+                if concrete is not None:
+                    concrete_lt = self._lower_type(concrete)
+                    c_name = _ltype_c_name(concrete_lt)
+                    unbox_fn = _VALUE_TYPE_UNBOX_FN.get(c_name)
+                    if unbox_fn:
+                        return LCall(unbox_fn, [call], result_lt)
+
+        return call
+
+    def _extract_type_var_name(self, declared: Type, fn_decl: FnDecl) -> str | None:
+        """If declared is a type variable matching one of fn_decl's type params, return its name."""
+        tp_names = {tp.name for tp in fn_decl.type_params}
+        match declared:
+            case TTypeVar(name=name) if name in tp_names:
+                return name
+            case TNamed(module="", name=name, type_args=()) if name in tp_names:
+                return name
+        return None
+
+    def _return_is_option_of_typevar(self, fn_decl: FnDecl, env: dict[str, Type]) -> bool:
+        """Check if the function's return type is option<T> where T is a type param."""
+        if fn_decl.return_type is None:
+            return False
+        ret_type = self._types.get(fn_decl.return_type)
+        if ret_type is None:
+            ret_type = self._resolve_type_ann(fn_decl.return_type)
+        tp_names = {tp.name for tp in fn_decl.type_params}
+        match ret_type:
+            case TOption(inner=TTypeVar(name=name)) if name in tp_names:
+                return True
+            case TOption(inner=TNamed(module="", name=name, type_args=())) if name in tp_names:
+                return True
+        return False
 
     # ------------------------------------------------------------------
     # Monomorphization helpers (SG-3-2-1 through SG-3-5-1)
