@@ -1,0 +1,120 @@
+module tests.app_grep
+
+import io
+import string
+import array
+import conv
+import file
+
+; --- Helpers (duplicated from grep app for self-contained testing) ---
+
+fn:pure matches_line(line: string, pattern: string, case_i: bool, invert: bool): bool {
+    let haystack: string:mut = line
+    let needle: string:mut = pattern
+    if (case_i) {
+        haystack = string.to_lower(line)
+        needle = string.to_lower(pattern)
+    }
+    let found = string.contains(haystack, needle)
+    if (invert) {
+        return !found
+    }
+    return found
+}
+
+fn:pure should_skip_file(filepath: string, ext_filter: string): bool {
+    if (string.len(ext_filter) == 0) {
+        return false
+    }
+    return !string.ends_with(filepath, ext_filter)
+}
+
+; Search a file and print matches as linenum:text format
+; Returns match count
+fn search_and_print(filepath: string, pattern: string, case_i: bool, invert: bool): int {
+    let f_opt = file.open_read(filepath)
+    match f_opt {
+        some(f): {
+            let line_num: int:mut = 0
+            let match_count: int:mut = 0
+            while (true) {
+                let line_opt = file.read_line(f)
+                match line_opt {
+                    some(line): {
+                        line_num = line_num + 1
+                        if (matches_line(line, pattern, case_i, invert)) {
+                            match_count = match_count + 1
+                            io.println(conv.to_string(line_num) + ":" + line)
+                        }
+                    }
+                    none: {
+                        break
+                    }
+                }
+            }
+            file.close(f)
+            return match_count
+        }
+        none: {
+            io.println("ERROR: cannot open file")
+            return 0
+        }
+    }
+}
+
+; --- Tests ---
+
+fn main(): none {
+    ; Create test files
+    let txt_file = io.tmpfile_create(".txt", "hello world\nfoo bar baz\nHELLO again\nnothing here\nfoo is great")
+    let log_file = io.tmpfile_create(".log", "error: disk full\nwarning: low memory\nerror: timeout\ninfo: all good")
+
+    ; === Basic Match ===
+    io.println("=== Basic Match ===")
+    let c1 = search_and_print(txt_file, "foo", false, false)
+    io.println("count: " + conv.to_string(c1))
+
+    ; === Case Insensitive ===
+    io.println("")
+    io.println("=== Case Insensitive ===")
+    let c2 = search_and_print(txt_file, "hello", true, false)
+    io.println("count: " + conv.to_string(c2))
+
+    ; === Case Sensitive ===
+    io.println("")
+    io.println("=== Case Sensitive ===")
+    let c3 = search_and_print(txt_file, "hello", false, false)
+    io.println("count: " + conv.to_string(c3))
+
+    ; === Invert Match ===
+    io.println("")
+    io.println("=== Invert Match ===")
+    let c4 = search_and_print(txt_file, "foo", false, true)
+    io.println("count: " + conv.to_string(c4))
+
+    ; === No Match ===
+    io.println("")
+    io.println("=== No Match ===")
+    let c5 = search_and_print(txt_file, "zzzzz", false, false)
+    io.println("count: " + conv.to_string(c5))
+
+    ; === Extension Filter ===
+    io.println("")
+    io.println("=== Extension Filter ===")
+    io.println("skip .txt for .log: " + conv.to_string(should_skip_file("data.txt", ".log")))
+    io.println("skip .log for .log: " + conv.to_string(should_skip_file("data.log", ".log")))
+    io.println("skip any for empty: " + conv.to_string(should_skip_file("data.txt", "")))
+
+    ; === Multi-file Search ===
+    io.println("")
+    io.println("=== Multi-file Search ===")
+    let c6 = search_and_print(log_file, "error", false, false)
+    io.println("count: " + conv.to_string(c6))
+
+    ; Cleanup
+    io.tmpfile_remove(txt_file)
+    io.tmpfile_remove(log_file)
+
+    io.println("")
+    io.println("done")
+}

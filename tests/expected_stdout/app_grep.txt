@@ -1,0 +1,34 @@
+=== Basic Match ===
+2:foo bar baz
+5:foo is great
+count: 2
+
+=== Case Insensitive ===
+1:hello world
+3:HELLO again
+count: 2
+
+=== Case Sensitive ===
+1:hello world
+count: 1
+
+=== Invert Match ===
+1:hello world
+3:HELLO again
+4:nothing here
+count: 3
+
+=== No Match ===
+count: 0
+
+=== Extension Filter ===
+skip .txt for .log: true
+skip .log for .log: false
+skip any for empty: false
+
+=== Multi-file Search ===
+1:error: disk full
+3:error: timeout
+count: 2
+
+done

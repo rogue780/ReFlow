@@ -1,0 +1,228 @@
+module grep
+
+import io
+import string
+import array
+import sys
+import conv
+import file
+import path
+
+; --- Configuration ---
+
+type SearchConfig {
+    pattern: string,
+    target_path: string,
+    case_insensitive: bool,
+    invert: bool,
+    files_only: bool,
+    count_only: bool,
+    show_line_nums: bool,
+    ext_filter: string
+}
+
+; --- Matching ---
+
+fn:pure matches_line(line: string, pattern: string, case_i: bool, invert: bool): bool {
+    let haystack: string:mut = line
+    let needle: string:mut = pattern
+    if (case_i) {
+        haystack = string.to_lower(line)
+        needle = string.to_lower(pattern)
+    }
+    let found = string.contains(haystack, needle)
+    if (invert) {
+        return !found
+    }
+    return found
+}
+
+fn:pure should_skip_file(filepath: string, ext_filter: string): bool {
+    if (string.len(ext_filter) == 0) {
+        return false
+    }
+    return !string.ends_with(filepath, ext_filter)
+}
+
+; --- File collection ---
+
+fn walk_dir(dir: string, ext_filter: string): array<string> {
+    let result: array<string>:mut = []
+    match path.list_dir(dir) {
+        some(entries): {
+            for (entry: string in entries) {
+                let full = path.join(dir, entry)
+                if (path.is_dir(full)) {
+                    let sub = walk_dir(full, ext_filter)
+                    result = array.concat(result, sub)
+                } else if (path.is_file(full)) {
+                    if (!should_skip_file(full, ext_filter)) {
+                        result = array.push(result, full)
+                    }
+                }
+            }
+        }
+        none: {
+            io.eprintln("grep: cannot list directory: " + dir)
+        }
+    }
+    return result
+}
+
+fn collect_files(target: string, ext_filter: string): array<string> {
+    if (path.is_file(target)) {
+        if (should_skip_file(target, ext_filter)) {
+            return []
+        }
+        let result: array<string>:mut = []
+        result = array.push(result, target)
+        return result
+    }
+    if (path.is_dir(target)) {
+        return walk_dir(target, ext_filter)
+    }
+    io.eprintln("grep: no such file or directory: " + target)
+    return []
+}
+
+; --- Search ---
+
+fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
+    let f_opt = file.open_read(filepath)
+    match f_opt {
+        some(f): {
+            let line_num: int:mut = 0
+            let match_count: int:mut = 0
+            while (true) {
+                let line_opt = file.read_line(f)
+                match line_opt {
+                    some(line): {
+                        line_num = line_num + 1
+                        if (matches_line(line, config.pattern, config.case_insensitive, config.invert)) {
+                            match_count = match_count + 1
+                            if (config.files_only) {
+                                io.println(filepath)
+                                file.close(f)
+                                return 1
+                            }
+                            if (!config.count_only) {
+                                let prefix: string:mut = ""
+                                if (multi_file) {
+                                    prefix = filepath + ":"
+                                }
+                                if (config.show_line_nums) {
+                                    prefix = prefix + conv.to_string(line_num) + ":"
+                                }
+                                io.println(prefix + line)
+                            }
+                        }
+                    }
+                    none: {
+                        break
+                    }
+                }
+            }
+            file.close(f)
+            if (config.count_only) {
+                if (multi_file) {
+                    io.println(filepath + ":" + conv.to_string(match_count))
+                } else {
+                    io.println(conv.to_string(match_count))
+                }
+            }
+            return match_count
+        }
+        none: {
+            io.eprintln("grep: cannot open file: " + filepath)
+            return 0
+        }
+    }
+}
+
+; --- Argument parsing ---
+
+fn parse_args(): SearchConfig {
+    let args = sys.args()
+    let argc = array.len_string(args)
+
+    let case_insensitive: bool:mut = false
+    let invert: bool:mut = false
+    let files_only: bool:mut = false
+    let count_only: bool:mut = false
+    let show_line_nums: bool:mut = true
+    let ext_filter: string:mut = ""
+    let pattern: string:mut = ""
+    let target_path: string:mut = "."
+    let positional_count: int:mut = 0
+    let skip_next: bool:mut = false
+
+    let i: int:mut = 1
+    while (i < argc) {
+        let arg = array.get(args, i) ?? ""
+        if (skip_next) {
+            skip_next = false
+            i = i + 1
+        } else if (arg == "-i") {
+            case_insensitive = true
+            i = i + 1
+        } else if (arg == "-v") {
+            invert = true
+            i = i + 1
+        } else if (arg == "-l") {
+            files_only = true
+            i = i + 1
+        } else if (arg == "-c") {
+            count_only = true
+            i = i + 1
+        } else if (arg == "-n") {
+            show_line_nums = true
+            i = i + 1
+        } else if (arg == "--ext") {
+            if (i + 1 < argc) {
+                ext_filter = array.get(args, i + 1) ?? ""
+                skip_next = true
+            }
+            i = i + 1
+        } else {
+            if (positional_count == 0) {
+                pattern = arg
+            } else if (positional_count == 1) {
+                target_path = arg
+            }
+            positional_count = positional_count + 1
+            i = i + 1
+        }
+    }
+
+    if (positional_count == 0) {
+        io.eprintln("Usage: grep [flags] <pattern> [path]")
+        io.eprintln("Flags: -i (case-insensitive) -v (invert) -l (files only) -c (count) -n (line numbers) --ext <.ext>")
+        sys.exit(1)
+    }
+
+    return SearchConfig {
+        pattern: pattern,
+        target_path: target_path,
+        case_insensitive: case_insensitive,
+        invert: invert,
+        files_only: files_only,
+        count_only: count_only,
+        show_line_nums: show_line_nums,
+        ext_filter: ext_filter
+    }
+}
+
+; --- Entry point ---
+
+fn main(): none {
+    let config = parse_args()
+    let files = collect_files(config.target_path, config.ext_filter)
+    let num_files = array.len_string(files)
+    let multi_file = num_files > 1
+
+    let total: int:mut = 0
+    for (filepath: string in files) {
+        let n = search_file(filepath, config, multi_file)
+        total = total + n
+    }
+}
