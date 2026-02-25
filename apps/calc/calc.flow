@@ -5,7 +5,7 @@ module calc
 ; Usage: python main.py run apps/calc/calc.flow
 ;
 ; Features:
-;   - Arithmetic: + - * / ^
+;   - Arithmetic: + - * / % ^
 ;   - Parentheses for grouping
 ;   - Unary negation: -5, -(2+3)
 ;   - Variable assignment: let x = 10
@@ -14,19 +14,7 @@ module calc
 ;
 ; Language features exercised:
 ;   Recursive sum type (Expr), recursive match, fn:pure, tuples,
-;   option<T>, map<string, string>, while loops with :mut
-;
-; GAP: array.push<T> with user-defined sum types fails — fl_array_push_ptr
-;   expects void* but sum types are structs. This prevents a tokenize→parse
-;   two-phase design. We use a single-pass parser that reads from the string
-;   directly instead.
-;
-; GAP: map<string, float> — map.get returns FL_Option_ptr, not FL_Option_float.
-;   Generic map doesn't monomorphize for non-pointer value types. We store
-;   float values as strings and convert at boundaries.
-;
-; GAP: % operator on floats — compiler emits C `%` for doubles, but C requires
-;   fmod(). We omit modulo for now.
+;   option<T>, map<string, float>, while loops with :mut
 
 import io
 import string
@@ -208,7 +196,7 @@ fn parse_power(input: string, pos: int): (Expr, int) {
     return (base.0, base.1)
 }
 
-; parse_multiplicative: * / (left-associative)
+; parse_multiplicative: * / % (left-associative)
 fn parse_multiplicative(input: string, pos: int): (Expr, int) {
     let first = parse_power(input, pos)
     let left: Expr:mut = first.0
@@ -228,6 +216,10 @@ fn parse_multiplicative(input: string, pos: int): (Expr, int) {
             } else if ch == "/" {
                 let rhs = parse_power(input, p + 1)
                 left = BinOp("/", left, rhs.0)
+                cur = rhs.1
+            } else if ch == "%" {
+                let rhs = parse_power(input, p + 1)
+                left = BinOp("%", left, rhs.0)
                 cur = rhs.1
             } else {
                 running = false
@@ -278,15 +270,13 @@ fn parse_expr(input: string, pos: int): (Expr, int) {
 ; ===========================================================================
 
 ; Evaluate an expression given a variable environment.
-; The env stores values as strings (see GAP note at top).
-fn eval(expr: Expr, env: map<string, string>): float {
+fn eval(expr: Expr, env: map<string, float>): float {
     match expr {
         Literal(n): {
             return n
         }
         Var(name): {
-            let str_val = map.get(env, name) ?? "0"
-            return conv.string_to_float(str_val) ?? 0.0
+            return map.get(env, name) ?? 0.0
         }
         Neg(inner): {
             return 0.0 - eval(inner, env)
@@ -306,6 +296,12 @@ fn eval(expr: Expr, env: map<string, string>): float {
                     return 0.0
                 }
                 return lv / rv
+            } else if op == "%" {
+                if rv == 0.0 {
+                    io.eprintln("Error: modulo by zero")
+                    return 0.0
+                }
+                return lv % rv
             } else if op == "^" {
                 return math.pow(lv, rv)
             } else {
@@ -335,13 +331,13 @@ fn format_result(value: float): string {
 
 fn print_help(): none {
     io.println("Flow Calculator")
-    io.println("  Operators: + - * / ^ ()")
+    io.println("  Operators: + - * / % ^ ()")
     io.println("  Variables: let x = 10")
     io.println("  Commands:  vars, clear, help, quit")
 }
 
 fn main(): none {
-    let env: map<string, string>:mut = map.new()
+    let env: map<string, float>:mut = map.new()
 
     io.println("Flow Calculator — type 'help' for usage, 'quit' to exit")
 
@@ -385,8 +381,8 @@ fn main(): none {
                         let i: int:mut = 0
                         while (i < array.len_string(keys)) {
                             if let some(k) = array.get(keys, i) {
-                                let v = map.get(env, k) ?? "0"
-                                io.println("  " + k + " = " + v)
+                                let v = map.get(env, k) ?? 0.0
+                                io.println("  " + k + " = " + format_result(v))
                             }
                             i = i + 1
                         }
@@ -415,9 +411,8 @@ fn main(): none {
 
                             let parsed = parse_expr(expr_str, 0)
                             let value = eval(parsed.0, env)
-                            let formatted = format_result(value)
-                            env = map.set(env, var_name, formatted)
-                            io.println(var_name + " = " + formatted)
+                            env = map.set(env, var_name, value)
+                            io.println(var_name + " = " + format_result(value))
                         }
                         none: {
                             io.eprintln("Error: expected '=' in assignment")
