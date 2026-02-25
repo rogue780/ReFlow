@@ -306,6 +306,18 @@ class CoroutineStart(Expr):      # let b :< a(x)
     call: Call
 
 
+@dataclass
+class PipelineStage(ASTNode):
+    """A single stage in a coroutine pipeline: call * pool_size."""
+    call: Call
+    pool_size: Expr | None       # None = single worker
+
+
+@dataclass
+class CoroutinePipeline(Expr):   # let x :< a() -> b() * 5 -> c()
+    stages: list[PipelineStage]
+
+
 # ---------------------------------------------------------------------------
 # Statement Nodes (RT-3-3-1)
 # ---------------------------------------------------------------------------

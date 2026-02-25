@@ -602,6 +602,10 @@ void fl_coroutine_set_input(FL_Coroutine* c, FL_Channel* input) {
     fl_channel_retain(input);  /* consumer-side ref */
 }
 
+FL_Channel* fl_coroutine_get_channel(FL_Coroutine* c) {
+    return c->channel;
+}
+
 /* --- Stream backed by a channel (for receivable coroutine inbox) --- */
 
 static FL_Option_ptr _fl_stream_from_channel_next(FL_Stream* self) {
@@ -632,6 +636,128 @@ FL_Stream* fl_stream_from_channel_nonblocking(FL_Channel* ch) {
     return fl_stream_new(_fl_stream_from_channel_try_next,
                          _fl_stream_from_channel_free,
                          (void*)ch);
+}
+
+/* ========================================================================
+ * Worker Pools
+ * ======================================================================== */
+
+struct FL_Pool {
+    FL_Channel*   input;           /* shared inbox for all workers */
+    FL_Channel*   output;          /* shared outbox for all workers */
+    fl_int        max_workers;
+    fl_int        num_workers;
+    pthread_t*    threads;
+    pthread_t     monitor;         /* joins workers then closes output */
+    void*       (*fn)(void*);      /* stream factory: fn(inbox_stream) -> FL_Stream* */
+};
+
+typedef struct {
+    void*       (*fn)(void*);
+    FL_Channel*   input;
+    FL_Channel*   output;
+} _FL_PoolWorkerArg;
+
+/* Each worker: read from shared input channel, pump through fn, write to shared output channel */
+static void* _fl_pool_worker(void* raw) {
+    _FL_PoolWorkerArg* arg = (_FL_PoolWorkerArg*)raw;
+    void* (*fn)(void*) = arg->fn;
+    FL_Channel* input = arg->input;
+    FL_Channel* output = arg->output;
+    free(arg);
+
+    /* Create a blocking stream from the shared input channel */
+    FL_Stream* inbox = fl_stream_from_channel(input);
+
+    FL_ExceptionFrame ef;
+    _fl_exception_push(&ef);
+    if (setjmp(ef.jmp) == 0) {
+        /* Call the stream function with the inbox stream */
+        FL_Stream* result = (FL_Stream*)fn(inbox);
+
+        /* Pump result stream into shared output channel */
+        FL_Option_ptr item;
+        while ((item = fl_stream_next(result)).tag == 1) {
+            if (!fl_channel_send(output, item.value))
+                break;  /* output channel closed */
+        }
+        fl_stream_release(result);
+    } else {
+        fl_channel_set_exception(output, ef.exception, ef.exception_tag);
+    }
+    _fl_exception_pop();
+
+    fl_stream_release(inbox);
+    fl_channel_release(input);   /* drop worker's input ref */
+    fl_channel_release(output);  /* drop worker's output ref */
+    return NULL;
+}
+
+/* Monitor thread: waits for all workers to complete, then closes the output channel */
+static void* _fl_pool_monitor(void* raw) {
+    FL_Pool* pool = (FL_Pool*)raw;
+    for (fl_int i = 0; i < pool->num_workers; i++) {
+        pthread_join(pool->threads[i], NULL);
+    }
+    fl_channel_close(pool->output);  /* signal no more data */
+    return NULL;
+}
+
+FL_Pool* fl_pool_new(void* (*fn)(void*), fl_int max_workers,
+                     FL_Channel* input, fl_int output_capacity) {
+    if (max_workers < 1) max_workers = 1;
+
+    FL_Pool* pool = (FL_Pool*)malloc(sizeof(FL_Pool));
+    if (!pool) fl_panic("fl_pool_new: out of memory");
+
+    pool->input = input;
+    pool->output = fl_channel_new(output_capacity);
+    pool->max_workers = max_workers;
+    pool->fn = fn;
+    pool->threads = (pthread_t*)malloc(sizeof(pthread_t) * (size_t)max_workers);
+    if (!pool->threads) fl_panic("fl_pool_new: out of memory");
+
+    /* Spawn all workers immediately (elastic scaling deferred) */
+    pool->num_workers = max_workers;
+    for (fl_int i = 0; i < max_workers; i++) {
+        fl_channel_retain(input);   /* each worker holds a ref */
+        fl_channel_retain(pool->output);
+
+        _FL_PoolWorkerArg* arg = (_FL_PoolWorkerArg*)malloc(sizeof(_FL_PoolWorkerArg));
+        if (!arg) fl_panic("fl_pool_new: out of memory");
+        arg->fn = fn;
+        arg->input = input;
+        arg->output = pool->output;
+
+        pthread_create(&pool->threads[i], NULL, _fl_pool_worker, arg);
+    }
+
+    /* Spawn monitor thread to close output channel when all workers finish */
+    pthread_create(&pool->monitor, NULL, _fl_pool_monitor, pool);
+
+    return pool;
+}
+
+/* Wrap a pool as a coroutine for uniform .next()/.done() access */
+FL_Coroutine* fl_pool_as_coroutine(FL_Pool* pool) {
+    FL_Coroutine* c = (FL_Coroutine*)malloc(sizeof(FL_Coroutine));
+    if (!c) fl_panic("fl_pool_as_coroutine: out of memory");
+    c->stream = NULL;
+    c->channel = pool->output;
+    fl_channel_retain(pool->output);  /* coroutine consumer ref */
+    c->input_channel = pool->input;
+    fl_channel_retain(pool->input);   /* coroutine input ref */
+    c->done = fl_false;
+
+    /* Store thread info so release can join workers.
+     * We'll use the pool's first thread for the pthread_join in release.
+     * Actually, for proper cleanup we need to track all threads.
+     * For now, the pool must outlive the coroutine. We won't join in
+     * coroutine_release — instead pool cleanup happens when input closes
+     * and workers drain naturally. The coroutine just closes channels. */
+    memset(&c->thread, 0, sizeof(pthread_t));
+
+    return c;
 }
 
 /* ========================================================================

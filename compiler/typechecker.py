@@ -22,6 +22,7 @@ from compiler.ast_nodes import (
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
+    PipelineStage, CoroutinePipeline,
     # Statements
     LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
     BreakStmt, ContinueStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
@@ -1817,6 +1818,7 @@ class TypeChecker:
                 callee_sym = self._resolved.symbols.get(call.callee)
                 is_receivable = False
                 send_type: Type = TAny()
+                inbox_element_type: Type = TAny()
                 if (callee_sym is not None
                         and isinstance(callee_sym.decl, FnDecl)
                         and callee_sym.decl.params):
@@ -1825,19 +1827,41 @@ class TypeChecker:
                     if isinstance(first_param_type, TStream):
                         is_receivable = True
                         send_type = first_param_type.element
+                        inbox_element_type = first_param_type.element
 
                 if is_receivable:
-                    # Receivable coroutine: inbox param is implicit.
-                    # Type-check the call with the inbox param excluded.
                     fn_decl = callee_sym.decl
                     fn_type = self._fn_decl_type(fn_decl)
-                    # Skip the first param (inbox stream) for arg validation
-                    adjusted_params = fn_type.params[1:]
-                    adjusted_fn_type = TFn(adjusted_params, fn_type.ret,
-                                           fn_type.is_pure)
                     arg_types = [self._infer_expr(a, scope) for a in call.args]
-                    self._check_call_args(adjusted_fn_type, arg_types,
-                                          call.args, call)
+
+                    # Check if first arg is a coroutine handle (direct wiring)
+                    is_wired = (call.args
+                                and isinstance(arg_types[0], TCoroutine))
+                    if is_wired:
+                        # Direct wiring: coroutine yield type must match inbox element type
+                        wire_src = arg_types[0]
+                        if not self._is_assignable(wire_src.yield_type,
+                                                   inbox_element_type):
+                            raise self._error(
+                                f"coroutine wiring type mismatch: source yields "
+                                f"{self._type_name(wire_src.yield_type)} but inbox "
+                                f"expects {self._type_name(inbox_element_type)}",
+                                call.args[0])
+                        # Type-check remaining args against params after inbox
+                        adjusted_params = fn_type.params[1:]
+                        remaining_args = arg_types[1:]
+                        adjusted_fn_type = TFn(adjusted_params, fn_type.ret,
+                                               fn_type.is_pure)
+                        self._check_call_args(adjusted_fn_type, remaining_args,
+                                              call.args[1:], call)
+                    else:
+                        # Receivable coroutine: inbox param is implicit.
+                        # Type-check the call with the inbox param excluded.
+                        adjusted_params = fn_type.params[1:]
+                        adjusted_fn_type = TFn(adjusted_params, fn_type.ret,
+                                               fn_type.is_pure)
+                        self._check_call_args(adjusted_fn_type, arg_types,
+                                              call.args, call)
                     # Store the call's type (the return type = stream<Y>)
                     call_type = fn_type.ret
                     self._types[call] = call_type
@@ -1848,6 +1872,86 @@ class TypeChecker:
                     return TCoroutine(yield_type=call_type.element,
                                       send_type=send_type)
                 return call_type
+
+            case CoroutinePipeline(stages=stages):
+                # Type-check each stage in sequence.
+                # Stage 0: must return stream<T>. Each subsequent stage must
+                # be receivable (first param is stream) and its inbox element
+                # type must match the previous stage's yield type.
+                prev_yield: Type | None = None
+                for i, stage in enumerate(stages):
+                    callee_sym = self._resolved.symbols.get(stage.call.callee)
+                    if callee_sym is None or not isinstance(callee_sym.decl, FnDecl):
+                        raise self._error(
+                            "pipeline stage must be a named function", stage.call)
+                    fn_decl = callee_sym.decl
+                    fn_type = self._fn_decl_type(fn_decl)
+
+                    if i == 0:
+                        # First stage: type-check normally, all args explicit
+                        call_type = self._infer_expr(stage.call, scope)
+                        self._types[stage.call] = call_type
+                    else:
+                        # Subsequent stages: must be receivable
+                        if not fn_decl.params:
+                            raise self._error(
+                                "pipeline stage must be a receivable function "
+                                "(first param is stream<T>)", stage.call)
+                        first_param_type = self._resolve_type_expr(
+                            fn_decl.params[0].type_ann)
+                        if not isinstance(first_param_type, TStream):
+                            raise self._error(
+                                "pipeline stage must be a receivable function "
+                                "(first param is stream<T>)", stage.call)
+                        # Check yield type compatibility
+                        if (prev_yield is not None
+                                and not self._is_assignable(
+                                    prev_yield, first_param_type.element)):
+                            raise self._error(
+                                f"pipeline type mismatch: previous stage yields "
+                                f"{self._type_name(prev_yield)} but stage "
+                                f"expects {self._type_name(first_param_type.element)}",
+                                stage.call)
+                        # Type-check remaining args (inbox is implicit)
+                        adjusted_params = fn_type.params[1:]
+                        arg_types = [self._infer_expr(a, scope)
+                                     for a in stage.call.args]
+                        adjusted_fn_type = TFn(adjusted_params, fn_type.ret,
+                                               fn_type.is_pure)
+                        self._check_call_args(adjusted_fn_type, arg_types,
+                                              stage.call.args, stage.call)
+                        call_type = fn_type.ret
+                        self._types[stage.call] = call_type
+
+                    if not isinstance(call_type, TStream):
+                        raise self._error(
+                            "pipeline stage must return a stream type",
+                            stage.call)
+                    prev_yield = call_type.element
+
+                    # Type-check pool size expression if present
+                    if stage.pool_size is not None:
+                        ps_type = self._infer_expr(stage.pool_size, scope)
+                        if not isinstance(ps_type, (TInt, TAny)):
+                            raise self._error(
+                                "pool size must be an integer", stage.pool_size)
+
+                # Final result type: coroutine yielding the last stage's type
+                last_call_type = self._types.get(stages[-1].call)
+                if isinstance(last_call_type, TStream):
+                    # send_type is the first stage's inbox element type if it's receivable
+                    first_fn = self._resolved.symbols.get(stages[0].call.callee)
+                    s_type: Type = TAny()
+                    if (first_fn and isinstance(first_fn.decl, FnDecl)
+                            and first_fn.decl.params):
+                        fp_type = self._resolve_type_expr(
+                            first_fn.decl.params[0].type_ann)
+                        if isinstance(fp_type, TStream):
+                            s_type = fp_type.element
+                    return TCoroutine(
+                        yield_type=last_call_type.element,
+                        send_type=s_type)
+                return TAny()
 
             case _:
                 return TAny()

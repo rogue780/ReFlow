@@ -1,0 +1,35 @@
+module tests.coroutine_pool_test
+import io (println)
+
+; Producer: generates integers
+fn producer(): stream<int> {
+    let i: int:mut = 1
+    while (i <= 6) {
+        yield i
+        i = i + 1
+    }
+}
+
+; Worker: squares each value (receivable, no extra args)
+fn squarer(inbox: stream<int>): stream<int> {
+    for (val: int in inbox) {
+        yield val * val
+    }
+}
+
+fn main() {
+    ; Pipeline with pool: 3 squarer workers
+    let result :< producer() -> squarer() * 3
+
+    ; Collect all results (order may vary due to multiple workers)
+    let count: int:mut = 0
+    while (!result.done()) {
+        match result.next() {
+            some(v): { count = count + 1 }
+            none: {}
+        }
+    }
+    ; Should have 6 results total (one per input value)
+    println(f"count: {count}")
+    println("done")
+}

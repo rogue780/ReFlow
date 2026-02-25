@@ -1,0 +1,43 @@
+module tests.coroutine_wiring_test
+import io (println)
+
+; Producer: generates integers
+fn producer(start: int): stream<int> {
+    let i: int:mut = start
+    while (i < start + 3) {
+        yield i
+        i = i + 1
+    }
+}
+
+; Processor: receives ints, doubles them
+fn doubler(inbox: stream<int>): stream<int> {
+    for (val: int in inbox) {
+        yield val * 2
+    }
+}
+
+fn main() {
+    ; Direct wiring: producer's output feeds doubler's inbox
+    let p :< producer(10)
+    let d :< doubler(p)
+
+    match d.next() {
+        some(v): { println(f"doubled: {v}") }
+        none: { println("none") }
+    }
+    match d.next() {
+        some(v): { println(f"doubled: {v}") }
+        none: { println("none") }
+    }
+    match d.next() {
+        some(v): { println(f"doubled: {v}") }
+        none: { println("none") }
+    }
+
+    ; Stream should be exhausted
+    match d.next() {
+        some(v): { println(f"unexpected: {v}") }
+        none: { println("done") }
+    }
+}

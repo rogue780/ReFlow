@@ -60,6 +60,8 @@ from compiler.ast_nodes import (
     NullCoalesce,
     TypeofExpr,
     CoroutineStart,
+    PipelineStage,
+    CoroutinePipeline,
     # Statements
     LetStmt,
     AssignStmt,
@@ -1188,22 +1190,48 @@ class Parser:
 
         type_ann: TypeExpr | None = None
 
-        # Check for coroutine start: let b :< expr
+        # Check for coroutine start: let b :< expr [* N] [-> expr [* N]]*
         if self.check(TokenType.COROUTINE):
             coro_tok = self.advance()
-            call_expr = self.parse_expr()
-            # Wrap in CoroutineStart
-            if isinstance(call_expr, Call):
-                coro_expr = CoroutineStart(
-                    line=coro_tok.line,
-                    col=coro_tok.col,
-                    call=call_expr,
-                )
-            else:
+            # Parse call at high precedence so -> and * are not consumed
+            # as binary operators. Postfix precedence captures calls,
+            # field access, and indexing but not infix operators.
+            call_expr = self._parse_pratt(_PREC_UNARY)
+            if not isinstance(call_expr, Call):
                 raise self._error(
                     "coroutine start ':< ' requires a function call expression",
                     coro_tok,
                 )
+            # Check for * N pool size on first stage
+            pool_size: Expr | None = None
+            if self.check(TokenType.STAR):
+                self.advance()
+                pool_size = self._parse_pratt(_PREC_UNARY)
+            # Check for pipeline: -> next_call [* N] -> ...
+            if self.check(TokenType.ARROW) or pool_size is not None:
+                stages = [PipelineStage(
+                    line=call_expr.line, col=call_expr.col,
+                    call=call_expr, pool_size=pool_size)]
+                while self.check(TokenType.ARROW):
+                    self.advance()  # consume ->
+                    next_call = self._parse_pratt(_PREC_UNARY)
+                    if not isinstance(next_call, Call):
+                        raise self._error(
+                            "pipeline stage requires a function call", coro_tok)
+                    stage_pool: Expr | None = None
+                    if self.check(TokenType.STAR):
+                        self.advance()
+                        stage_pool = self._parse_pratt(_PREC_UNARY)
+                    stages.append(PipelineStage(
+                        line=next_call.line, col=next_call.col,
+                        call=next_call, pool_size=stage_pool))
+                coro_expr = CoroutinePipeline(
+                    line=coro_tok.line, col=coro_tok.col,
+                    stages=stages)
+            else:
+                coro_expr = CoroutineStart(
+                    line=coro_tok.line, col=coro_tok.col,
+                    call=call_expr)
             return LetStmt(
                 line=tok.line,
                 col=tok.col,

@@ -357,8 +357,16 @@ void          fl_coroutine_release(FL_Coroutine* c);
 void          fl_coroutine_send(FL_Coroutine* c, void* val);
 fl_bool       fl_coroutine_try_send(FL_Coroutine* c, void* val);
 void          fl_coroutine_set_input(FL_Coroutine* c, FL_Channel* input);
+FL_Channel*   fl_coroutine_get_channel(FL_Coroutine* c);
 FL_Stream*    fl_stream_from_channel(FL_Channel* ch);
 FL_Stream*    fl_stream_from_channel_nonblocking(FL_Channel* ch);
+
+/* --- Worker pools --- */
+typedef struct FL_Pool FL_Pool;
+
+FL_Pool*      fl_pool_new(void* (*fn)(void*), fl_int max_workers,
+                          FL_Channel* input, fl_int output_capacity);
+FL_Coroutine* fl_pool_as_coroutine(FL_Pool* pool);
 
 /* ========================================================================
  * Closures

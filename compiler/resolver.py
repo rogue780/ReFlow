@@ -21,6 +21,7 @@ from compiler.ast_nodes import (
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
+    PipelineStage, CoroutinePipeline,
     # Statements
     LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
     BreakStmt, ContinueStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
@@ -626,6 +627,12 @@ class Resolver:
 
             case CoroutineStart(call=call):
                 self._resolve_expr(call, scope)
+
+            case CoroutinePipeline(stages=stages):
+                for stage in stages:
+                    self._resolve_expr(stage.call, scope)
+                    if stage.pool_size is not None:
+                        self._resolve_expr(stage.pool_size, scope)
 
             case _:
                 # SPEC GAP: unknown expression type — reject safely
