@@ -20,6 +20,7 @@ from compiler.ast_nodes import (
     TupleType,
     MutType,
     ImutType,
+    SizedType,
     SumTypeExpr,
     SumVariantExpr,
     # Expressions
@@ -960,6 +961,14 @@ class Parser:
         Also handles fn(...): T type syntax and tuple types (A, B, C).
         """
         base = self._parse_base_type()
+
+        # Optional [N] capacity hint (e.g., stream<int>[64])
+        if self.check(TokenType.LBRACKET):
+            bracket_tok = self.advance()  # consume '['
+            cap_expr = self.parse_expr()
+            self.expect(TokenType.RBRACKET)
+            base = SizedType(line=bracket_tok.line, col=bracket_tok.col,
+                             inner=base, capacity=cap_expr)
 
         # Optional ? for option type
         if self.check(TokenType.QUESTION):

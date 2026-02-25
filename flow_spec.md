@@ -253,7 +253,7 @@ All update operators are only valid on `:mut` bindings. Using them on an immutab
 | `buffer<T>` | Mutable, in-memory container for materializing stream data. See [Buffers](#buffers). |
 | `map<K, V>` | Key-value collection. Implements `collection<K, V>`. See [Collections](#collections). |
 | `set<T>` | Unordered collection of unique values. See [Collections](#collections). |
-| `channel<T>` | Bounded, thread-safe FIFO queue. See [Channels](#channels). |
+| `channel<T>` | *(internal)* Bounded, thread-safe FIFO queue used by the coroutine runtime. Not a user-facing type. |
 
 ### Value Types
 
@@ -2056,54 +2056,6 @@ fn batch_process(s: stream<record>): stream<record> {
 
 ---
 
-## Channels
-
-A `channel<T>` is a bounded, thread-safe FIFO queue for communicating values between threads. Channels are the foundation of coroutine communication and can also be used directly for custom concurrency patterns.
-
-### Creating Channels
-
-```
-let ch = channel<int>(64)           ; capacity of 64
-let ch = channel<string>(1)         ; capacity of 1 (tightly synchronized)
-```
-
-The capacity argument is required and must be a positive integer literal or constant. It determines how many values can be buffered before the sender blocks.
-
-### Channel API
-
-```
-ch.send(val: T)                     ; push a value; blocks if buffer is full
-ch.recv(): option<T>                ; pull a value; blocks if empty; returns none when closed
-ch.close()                          ; signal no more values will be sent
-ch.len(): int                       ; number of values currently buffered
-ch.is_closed(): bool                ; true if close() has been called
-```
-
-### Ownership and Channels
-
-Sending a value into a channel transfers ownership to the channel. Receiving a value transfers ownership to the receiver. Immutable data (the default) is shared by reference — sending an immutable string into a channel is a cheap refcount increment. Mutable data is moved: the sender loses access after `send`.
-
-```
-let ch = channel<string>(8)
-let msg = "hello"
-ch.send(msg)                        ; msg is immutable, refcount incremented
-; msg is still accessible here (immutable sharing)
-
-let data: array<int>:mut = [1, 2, 3]
-ch_mut.send(data)                   ; data is mutable, ownership transfers
-; data is no longer accessible here (moved)
-```
-
-### Single-Producer, Single-Consumer
-
-A channel has exactly one producer and one consumer. This is enforced at compile time where possible and at runtime otherwise. To fan values out to multiple consumers, use explicit routing logic or multiple channels.
-
-### Closing
-
-After `close()` is called, no more values can be sent (attempting to send panics). Values already buffered can still be received. Once all buffered values have been consumed, `recv()` returns `none`.
-
----
-
 ## Coroutines
 
 The `:<` operator spawns a stream-producing function on a new thread, creating a **threaded producer** that communicates with the caller through an internal channel. This is Flow's primary mechanism for concurrent execution of producers and consumers.
@@ -2125,12 +2077,24 @@ This:
 
 ### Configurable Buffer Capacity
 
-The default channel capacity is 64. To specify a different capacity:
+The default channel capacity is 64. To specify a different capacity, annotate the stream type on the function signature with `[N]`:
 
 ```
-let gen :< producer(seed) with capacity(128)
-let gen :< producer(seed) with capacity(1)     ; tightly coupled, minimal buffering
+fn producer(seed: int): stream<int>[128] {     ; outbox capacity 128
+    yield seed
+}
+
+fn handler(inbox: stream<string>[32]): stream<Result>[64] {
+    ; inbox capacity 32, outbox capacity 64
+    for (msg in inbox) {
+        yield process(msg)
+    }
+}
+
+let gen :< producer(seed)                      ; uses capacity 128 from signature
 ```
+
+The `[N]` capacity is a runtime hint, not part of type identity — `stream<int>[64]` and `stream<int>[128]` are both `stream<int>` for type checking purposes. `N` can be any integer expression. When `[N]` is omitted, the default capacity of 64 is used.
 
 ### Coroutine API
 

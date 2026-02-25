@@ -17,7 +17,7 @@ from compiler.ast_nodes import (
     # Base
     ASTNode, TypeExpr, Expr, Stmt, Decl, Block, Pattern,
     # Type expressions
-    NamedType, GenericType, OptionType, FnType, TupleType, MutType, ImutType,
+    NamedType, GenericType, OptionType, FnType, TupleType, MutType, ImutType, SizedType,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
@@ -2217,9 +2217,13 @@ class Lowerer:
                 self._pending_stmts.append(LVarDecl(
                     c_name=stream_tmp, c_type=stream_ptr,
                     init=stream_expr))
+                # Get capacity from callee function's return type annotation
+                callee_fn = self._get_callee_fn_decl(call)
+                ret_ann = callee_fn.return_type if callee_fn else None
+                capacity = self._get_capacity_expr(ret_ann)
                 return LCall("fl_coroutine_new_threaded",
                              [LVar(stream_tmp, stream_ptr),
-                              LLit("64", LInt(32, True))],
+                              capacity],
                              coro_ptr)
 
             case _:
@@ -2513,6 +2517,26 @@ class Lowerer:
         method_c_name = f"fl_{type_name}_{expr.method}"
         return LCall(method_c_name, [recv] + lowered_args, lt)
 
+    def _get_callee_fn_decl(self, call: Call) -> FnDecl | None:
+        """Look up the FnDecl for a call's callee from the resolver symbols."""
+        sym = self._resolved.symbols.get(call.callee)
+        if sym is not None and isinstance(sym.decl, FnDecl):
+            return sym.decl
+        return None
+
+    def _get_capacity_expr(self, type_ann: TypeExpr | None) -> LExpr:
+        """Extract a capacity expression from a type annotation.
+
+        If the annotation uses SizedType (e.g., stream<int>[64]), lower the
+        capacity expression. Otherwise return the default capacity of 64.
+        """
+        default = LLit("64", LInt(32, True))
+        if type_ann is None:
+            return default
+        if isinstance(type_ann, SizedType):
+            return self._lower_expr(type_ann.capacity)
+        return default
+
     def _lower_receivable_coroutine_start(
             self, call: Call, expr: CoroutineStart) -> LExpr:
         """Lower a receivable coroutine start (first param is stream<T>).
@@ -2525,12 +2549,19 @@ class Lowerer:
         ch_ptr = LPtr(LStruct("FL_Channel"))
         stream_ptr = LPtr(LStruct("FL_Stream"))
 
-        # 1. Create the input channel: FL_Channel* _fl_tmp_N = fl_channel_new(64)
+        # Look up callee FnDecl for capacity annotations
+        callee_fn = self._get_callee_fn_decl(call)
+        inbox_ann = (callee_fn.params[0].type_ann
+                     if callee_fn and callee_fn.params else None)
+        ret_ann = callee_fn.return_type if callee_fn else None
+
+        # 1. Create the input channel with inbox capacity
         input_ch_tmp = self._fresh_temp()
+        inbox_capacity = self._get_capacity_expr(inbox_ann)
         self._pending_stmts.append(LVarDecl(
             c_name=input_ch_tmp, c_type=ch_ptr,
             init=LCall("fl_channel_new",
-                        [LLit("64", LInt(32, True))], ch_ptr)))
+                        [inbox_capacity], ch_ptr)))
 
         # 2. Create inbox stream (non-blocking: try_recv so for-in drains
         #    available messages without blocking the producer thread)
@@ -2591,13 +2622,14 @@ class Lowerer:
         self._pending_stmts.append(LVarDecl(
             c_name=stream_tmp, c_type=stream_ptr, init=stream_call))
 
-        # 6. Create threaded coroutine: fl_coroutine_new_threaded(stream, 64)
+        # 6. Create threaded coroutine with outbox capacity
+        outbox_capacity = self._get_capacity_expr(ret_ann)
         coro_tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(
             c_name=coro_tmp, c_type=coro_ptr,
             init=LCall("fl_coroutine_new_threaded",
                         [LVar(stream_tmp, stream_ptr),
-                         LLit("64", LInt(32, True))],
+                         outbox_capacity],
                         coro_ptr)))
 
         # 7. Wire up input channel: fl_coroutine_set_input(coro, input_ch)
@@ -5154,6 +5186,9 @@ class Lowerer:
                 return self._resolve_type_ann(inner)
 
             case ImutType(inner=inner):
+                return self._resolve_type_ann(inner)
+
+            case SizedType(inner=inner):
                 return self._resolve_type_ann(inner)
 
             case _:

@@ -1,0 +1,33 @@
+module tests.coroutine_capacity_send_test
+import io (println)
+
+; Receivable coroutine with capacity on both inbox and outbox
+fn echo_worker(inbox: stream<string>[16]): stream<string>[8] {
+    let running: bool:mut = true
+    while (running) {
+        let got_any: bool:mut = false
+        for (msg: string in inbox) {
+            got_any = true
+            yield "echo: " + msg
+        }
+        if (!got_any) { running = false }
+    }
+}
+
+fn main() {
+    let w :< echo_worker()
+
+    w.send("hello")
+    w.send("world")
+
+    match w.next() {
+        some(v): { println(v) }
+        none: { println("none") }
+    }
+    match w.next() {
+        some(v): { println(v) }
+        none: { println("none") }
+    }
+
+    println("test complete")
+}

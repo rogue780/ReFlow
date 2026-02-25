@@ -32,7 +32,7 @@ from compiler.ast_nodes import (
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     # Type expressions
     NamedType, GenericType, OptionType, FnType, TupleType, MutType,
-    ImutType, SumTypeExpr,
+    ImutType, SizedType, SumTypeExpr,
     # Patterns
     WildcardPattern, LiteralPattern, BindPattern, SomePattern, NonePattern,
     OkPattern, ErrPattern, VariantPattern, TuplePattern,
@@ -1492,6 +1492,40 @@ class TestTypeExpressions(unittest.TestCase):
         self.assertIsInstance(decl, FnDecl)
         self.assertIsNotNone(decl.return_type)
         self.assertIsInstance(decl.return_type, NamedType)
+
+    def test_sized_type_on_stream(self) -> None:
+        """stream<int>[64] parses as SizedType wrapping GenericType."""
+        stmt = parse_stmt("let x: stream<int>[64] = none")
+        self.assertIsInstance(stmt, LetStmt)
+        self.assertIsInstance(stmt.type_ann, SizedType)
+        self.assertIsInstance(stmt.type_ann.inner, GenericType)
+        self.assertIsInstance(stmt.type_ann.capacity, IntLit)
+        self.assertEqual(stmt.type_ann.capacity.value, 64)
+
+    def test_sized_type_on_fn_return(self) -> None:
+        """fn signature with [N] on return type."""
+        decl = parse_first_decl(
+            "fn producer(seed: int): stream<int>[128] { yield 1 }")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertIsInstance(decl.return_type, SizedType)
+        self.assertIsInstance(decl.return_type.inner, GenericType)
+        self.assertIsInstance(decl.return_type.capacity, IntLit)
+        self.assertEqual(decl.return_type.capacity.value, 128)
+
+    def test_sized_type_on_param(self) -> None:
+        """fn param with [N] on stream type."""
+        decl = parse_first_decl(
+            "fn handler(inbox: stream<string>[32]): stream<int> { yield 1 }")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertIsInstance(decl.params[0].type_ann, SizedType)
+        self.assertEqual(decl.params[0].type_ann.capacity.value, 32)
+
+    def test_sized_type_with_option(self) -> None:
+        """stream<int>[64]? — SizedType then option."""
+        stmt = parse_stmt("let x: stream<int>[64]? = none")
+        self.assertIsInstance(stmt, LetStmt)
+        self.assertIsInstance(stmt.type_ann, OptionType)
+        self.assertIsInstance(stmt.type_ann.inner, SizedType)
 
 
 # ===========================================================================

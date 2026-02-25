@@ -1,0 +1,5 @@
+module tests.errors.sized_type_on_non_stream
+
+fn main(): none {
+    let x: int[64] = 0
+}

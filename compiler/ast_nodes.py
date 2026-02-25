@@ -82,6 +82,12 @@ class ImutType(TypeExpr):        # T:imut
 
 
 @dataclass
+class SizedType(TypeExpr):        # T[N] — capacity hint on stream types
+    inner: TypeExpr
+    capacity: Expr
+
+
+@dataclass
 class SumTypeExpr(TypeExpr):
     variants: list[SumVariantExpr]
 

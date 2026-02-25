@@ -36,6 +36,24 @@ fn range(n: int): stream<int> {
     }
 }
 
+; === Custom capacity ===
+; [N] on the return type controls channel buffer size (default: 64)
+fn range_tight(n: int): stream<int>[1] {
+    let i: int:mut = 0
+    while (i < n) {
+        yield i
+        i = i + 1
+    }
+}
+
+fn range_buffered(n: int): stream<int>[128] {
+    let i: int:mut = 0
+    while (i < n) {
+        yield i
+        i = i + 1
+    }
+}
+
 fn main() {
     ; --- Basic coroutine usage ---
     ; :< spawns counter() on a new thread, returns immediately
@@ -64,10 +82,10 @@ fn main() {
     }
 
     ; --- Configurable buffer capacity ---
-    ; with capacity(N) controls how far ahead the producer can run
-    ; Default is 64; capacity(1) = tightly synchronized
+    ; [N] on the function's return type controls channel buffer size
+    ; Default is 64; [1] = tightly synchronized
     println("=== Capacity ===")
-    let tight :< range(5) with capacity(1)
+    let tight :< range_tight(5)
     while (!tight.done()) {
         match tight.next() {
             some(v): { println(f"  tight: {v}") }
@@ -75,7 +93,7 @@ fn main() {
         }
     }
 
-    let buffered :< range(5) with capacity(128)
+    let buffered :< range_buffered(5)
     while (!buffered.done()) {
         match buffered.next() {
             some(v): { println(f"  buffered: {v}") }

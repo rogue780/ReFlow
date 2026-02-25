@@ -13,7 +13,7 @@ from compiler.ast_nodes import (
     ASTNode, TypeExpr, Expr, Stmt, Decl, Pattern,
     # Type expressions
     NamedType, GenericType, OptionType, FnType, TupleType,
-    MutType, ImutType, SumTypeExpr, SumVariantExpr,
+    MutType, ImutType, SizedType, SumTypeExpr, SumVariantExpr,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
@@ -919,6 +919,9 @@ class Resolver:
         """Check if a return type is stream<T>."""
         if type_ann is None:
             return False
+        # Unwrap SizedType (e.g., stream<int>[64] → stream<int>)
+        if isinstance(type_ann, SizedType):
+            return self._is_stream_return(type_ann.inner)
         match type_ann:
             case NamedType(name="stream"):
                 return True

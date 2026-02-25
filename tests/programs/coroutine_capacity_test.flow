@@ -1,0 +1,33 @@
+module tests.coroutine_capacity_test
+import io (println)
+
+fn counter(start: int): stream<int>[32] {
+    let i: int:mut = start
+    while (i < start + 3) {
+        yield i
+        i = i + 1
+    }
+}
+
+fn main() {
+    let gen :< counter(10)
+
+    match gen.next() {
+        some(v): { println(f"v={v}") }
+        none: { println("none") }
+    }
+    match gen.next() {
+        some(v): { println(f"v={v}") }
+        none: { println("none") }
+    }
+    match gen.next() {
+        some(v): { println(f"v={v}") }
+        none: { println("none") }
+    }
+    match gen.next() {
+        some(v): { println(f"v={v}") }
+        none: { println("none") }
+    }
+
+    println(f"done={gen.done()}")
+}

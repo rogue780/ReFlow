@@ -1269,5 +1269,47 @@ fn main() {
         self.assertIsNotNone(result)
 
 
+class TestSizedTypeCapacity(unittest.TestCase):
+    """Capacity [N] syntax on stream types."""
+
+    def test_stream_capacity_type_erased(self):
+        """stream<int>[64] resolves to TStream(TInt) — capacity erased."""
+        result = check("""fn producer(): stream<int>[128] {
+    yield 42
+}
+fn main(): none {
+    let s = producer()
+}""")
+        self.assertIsNotNone(result)
+
+    def test_capacity_stored_in_side_map(self):
+        """SizedType capacity stored in TypedModule.capacities."""
+        result = check("""fn producer(): stream<int>[128] {
+    yield 42
+}
+fn main(): none {
+    let s = producer()
+}""")
+        self.assertTrue(len(result.capacities) > 0)
+
+    def test_capacity_on_non_stream_error(self):
+        """[N] on non-stream type raises TypeError."""
+        with self.assertRaises(FlowTypeError) as ctx:
+            check("""fn main(): none {
+    let x: int[64] = 0
+}""")
+        self.assertIn("capacity [N] is only supported on stream types",
+                       ctx.exception.message)
+
+    def test_capacity_on_array_error(self):
+        """[N] on array type raises TypeError."""
+        with self.assertRaises(FlowTypeError) as ctx:
+            check("""fn main(): none {
+    let x: array<int>[64] = []
+}""")
+        self.assertIn("capacity [N] is only supported on stream types",
+                       ctx.exception.message)
+
+
 if __name__ == "__main__":
     unittest.main()

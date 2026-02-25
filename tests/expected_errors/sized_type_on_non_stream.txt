@@ -1,0 +1,2 @@
+TypeError
+capacity [N] is only supported on stream types

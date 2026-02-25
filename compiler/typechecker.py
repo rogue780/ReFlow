@@ -14,7 +14,7 @@ from compiler.ast_nodes import (
     ASTNode, TypeExpr, Expr, Stmt, Decl, Pattern,
     # Type expressions
     NamedType, GenericType, OptionType, FnType, TupleType,
-    MutType, ImutType, SumTypeExpr, SumVariantExpr,
+    MutType, ImutType, SizedType, SumTypeExpr, SumVariantExpr,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
@@ -276,6 +276,7 @@ class TypedModule:
     resolved: ResolvedModule
     types: dict[ASTNode, Type] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    capacities: dict[ASTNode, Expr] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -396,6 +397,8 @@ class TypeChecker:
         self._builtin_method_sigs: dict[tuple[str, str], TFn] = {}
         # Tracks the current FnDecl being type-checked (for body-level resolution)
         self._current_fn_decl: FnDecl | None = None
+        # Capacity hints from SizedType annotations (e.g., stream<int>[64])
+        self._capacities: dict[ASTNode, Expr] = {}
 
     def check(self) -> TypedModule:
         """Run the type checking pass."""
@@ -412,6 +415,7 @@ class TypeChecker:
             resolved=self._resolved,
             types=self._types,
             warnings=self._warnings,
+            capacities=self._capacities,
         )
 
     # ------------------------------------------------------------------
@@ -1270,6 +1274,17 @@ class TypeChecker:
 
             case ImutType(inner=inner):
                 return self._resolve_type_expr(inner)
+
+            case SizedType(inner=inner, capacity=cap):
+                # Capacity is erased for type identity — resolve inner type.
+                # Store capacity expression keyed by this SizedType node.
+                resolved = self._resolve_type_expr(inner)
+                if not isinstance(resolved, TStream):
+                    raise self._error(
+                        f"capacity [N] is only supported on stream types, "
+                        f"not {self._type_name(resolved)}", te)
+                self._capacities[te] = cap
+                return resolved
 
             case _:
                 return TAny()
