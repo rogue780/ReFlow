@@ -50,6 +50,7 @@ from compiler.ast_nodes import (
     FanOut,
     TernaryExpr,
     CopyExpr,
+    RefExpr,
     SomeExpr,
     OkExpr,
     ErrExpr,
@@ -2012,6 +2013,15 @@ class Parser:
             self.advance()
             operand = self._parse_pratt(_PREC_UNARY)
             return CopyExpr(
+                line=tok.line, col=tok.col,
+                inner=operand,
+            )
+
+        # Immutable ref: &expr
+        if tok.type == TokenType.AMPERSAND:
+            self.advance()
+            operand = self._parse_pratt(_PREC_UNARY)
+            return RefExpr(
                 line=tok.line, col=tok.col,
                 inner=operand,
             )

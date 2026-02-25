@@ -489,7 +489,7 @@ class TestCopyLowering(unittest.TestCase):
         self.assertIsNotNone(ret)
         self.assertIsInstance(ret.value, LVar)
 
-    def test_copy_string_calls_retain(self):
+    def test_copy_string_calls_string_copy(self):
         m = lower("""
             fn do_stuff(): string {
                 let s: string = "hello"
@@ -498,10 +498,58 @@ class TestCopyLowering(unittest.TestCase):
         """)
         fn = find_fn(m, "do_stuff")
         self.assertIsNotNone(fn)
+        has_copy = False
+        for s in fn.body:
+            if isinstance(s, LVarDecl) and isinstance(s.init, LCall):
+                if s.init.fn_name == "fl_string_copy":
+                    has_copy = True
+        self.assertTrue(has_copy)
+
+    def test_copy_array_calls_array_copy(self):
+        m = lower("""
+            fn do_stuff(): array<int> {
+                let a: array<int> = []
+                return @a
+            }
+        """)
+        fn = find_fn(m, "do_stuff")
+        self.assertIsNotNone(fn)
+        has_copy = False
+        for s in fn.body:
+            if isinstance(s, LVarDecl) and isinstance(s.init, LCall):
+                if s.init.fn_name == "fl_array_copy":
+                    has_copy = True
+        self.assertTrue(has_copy)
+
+    def test_ref_string_calls_string_retain(self):
+        m = lower("""
+            fn do_stuff(): string {
+                let s: string = "hello"
+                return &s
+            }
+        """)
+        fn = find_fn(m, "do_stuff")
+        self.assertIsNotNone(fn)
         has_retain = False
         for s in fn.body:
             if isinstance(s, LExprStmt) and isinstance(s.expr, LCall):
                 if s.expr.fn_name == "fl_string_retain":
+                    has_retain = True
+        self.assertTrue(has_retain)
+
+    def test_ref_array_calls_array_retain(self):
+        m = lower("""
+            fn do_stuff(): array<int> {
+                let a: array<int> = []
+                return &a
+            }
+        """)
+        fn = find_fn(m, "do_stuff")
+        self.assertIsNotNone(fn)
+        has_retain = False
+        for s in fn.body:
+            if isinstance(s, LExprStmt) and isinstance(s.expr, LCall):
+                if s.expr.fn_name == "fl_array_retain":
                     has_retain = True
         self.assertTrue(has_retain)
 

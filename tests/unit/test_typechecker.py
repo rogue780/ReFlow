@@ -660,6 +660,21 @@ fn main(): none {
 }""")
         self.assertIsNotNone(result)
 
+    def test_ref_expr_on_immutable_binding_ok(self):
+        result = check("""fn main(): none {
+    let s: string = "hello"
+    let r = &s
+}""")
+        self.assertIsNotNone(result)
+
+    def test_ref_expr_on_mut_binding_error(self):
+        with self.assertRaises(FlowTypeError) as ctx:
+            check("""fn main(): none {
+    let s: string:mut = "hello"
+    let r = &s
+}""")
+        self.assertIn("cannot take immutable reference", ctx.exception.message)
+
     def test_some_expr(self):
         result = check("""fn main(): none {
     let x = some(5)

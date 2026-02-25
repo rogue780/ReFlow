@@ -18,7 +18,7 @@ from compiler.ast_nodes import (
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
-    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr,
+    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     PipelineStage, CoroutinePipeline,
@@ -595,6 +595,9 @@ class Resolver:
                 self._resolve_expr(else_e, scope)
 
             case CopyExpr(inner=inner):
+                self._resolve_expr(inner, scope)
+
+            case RefExpr(inner=inner):
                 self._resolve_expr(inner, scope)
 
             case SomeExpr(inner=inner):

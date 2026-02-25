@@ -79,6 +79,7 @@ class TokenType(Enum):
     OR = auto()              # ||
     BANG = auto()            # !
     AT = auto()              # @
+    AMPERSAND = auto()       # &
     BACKSLASH = auto()       # \
 
     # --- Single-character tokens ---
@@ -598,6 +599,7 @@ class Lexer:
             "=": TokenType.ASSIGN,
             "!": TokenType.BANG,
             "@": TokenType.AT,
+            "&": TokenType.AMPERSAND,
             "\\": TokenType.BACKSLASH,
         }
         if ch in single_char_ops:

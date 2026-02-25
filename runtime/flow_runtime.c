@@ -75,6 +75,11 @@ void fl_string_release(FL_String* s) {
     }
 }
 
+FL_String* fl_string_copy(FL_String* s) {
+    if (!s) return NULL;
+    return fl_string_new(s->data, s->len);
+}
+
 FL_String* fl_string_concat(FL_String* a, FL_String* b) {
     if (!a || !b) fl_panic("fl_string_concat: NULL argument");
     fl_int64 total = a->len + b->len;
@@ -204,6 +209,11 @@ void fl_array_release(FL_Array* arr) {
         free(arr->data);
         free(arr);
     }
+}
+
+FL_Array* fl_array_copy(FL_Array* arr) {
+    if (!arr) return NULL;
+    return fl_array_new(arr->len, arr->element_size, arr->data);
 }
 
 void* fl_array_get_ptr(FL_Array* arr, fl_int64 idx) {

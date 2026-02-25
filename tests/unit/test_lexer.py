@@ -361,6 +361,9 @@ class TestMultiCharOperators(unittest.TestCase):
     def test_at(self) -> None:
         self._single("@", TokenType.AT)
 
+    def test_ampersand(self) -> None:
+        self._single("&", TokenType.AMPERSAND)
+
     def test_backslash(self) -> None:
         self._single("\\", TokenType.BACKSLASH)
 

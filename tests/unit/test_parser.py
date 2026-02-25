@@ -27,7 +27,7 @@ from compiler.ast_nodes import (
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
-    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr,
+    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     # Type expressions
@@ -678,6 +678,11 @@ class TestUnaryOperators(unittest.TestCase):
     def test_copy_operator(self) -> None:
         expr = parse_expr("@data")
         self.assertIsInstance(expr, CopyExpr)
+        self.assertIsInstance(expr.inner, Ident)
+
+    def test_ref_operator(self) -> None:
+        expr = parse_expr("&data")
+        self.assertIsInstance(expr, RefExpr)
         self.assertIsInstance(expr.inner, Ident)
 
 

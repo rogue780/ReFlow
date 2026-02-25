@@ -19,7 +19,7 @@ from compiler.ast_nodes import (
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
-    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr,
+    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     PipelineStage, CoroutinePipeline,
@@ -1748,6 +1748,17 @@ class TypeChecker:
 
             case CopyExpr(inner=inner):
                 return self._infer_expr(inner, scope)
+
+            case RefExpr(inner=inner):
+                inner_t = self._infer_expr(inner, scope)
+                if isinstance(inner, Ident):
+                    sym = self._resolved.symbols.get(inner)
+                    if sym is not None and sym.is_mut:
+                        raise self._error(
+                            f"cannot take immutable reference of mutable "
+                            f"binding '{inner.name}'; use @ to deep copy instead",
+                            expr)
+                return inner_t
 
             case SomeExpr(inner=inner):
                 inner_t = self._infer_expr(inner, scope)

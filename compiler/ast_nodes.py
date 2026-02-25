@@ -254,6 +254,11 @@ class CopyExpr(Expr):            # @expr
 
 
 @dataclass
+class RefExpr(Expr):             # &expr
+    inner: Expr
+
+
+@dataclass
 class SomeExpr(Expr):
     inner: Expr
 

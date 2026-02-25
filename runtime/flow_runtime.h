@@ -200,6 +200,7 @@ FL_String* fl_string_new(const char* data, fl_int64 len);
 FL_String* fl_string_from_cstr(const char* cstr);
 void       fl_string_retain(FL_String* s);
 void       fl_string_release(FL_String* s);
+FL_String* fl_string_copy(FL_String* s);
 FL_String* fl_string_concat(FL_String* a, FL_String* b);
 fl_bool    fl_string_eq(FL_String* a, FL_String* b);
 fl_int64   fl_string_len(FL_String* s);
@@ -275,6 +276,7 @@ typedef struct FL_Array {
 FL_Array*     fl_array_new(fl_int64 len, fl_int64 element_size, void* initial_data);
 void          fl_array_retain(FL_Array* arr);
 void          fl_array_release(FL_Array* arr);
+FL_Array*     fl_array_copy(FL_Array* arr);
 void*         fl_array_get_ptr(FL_Array* arr, fl_int64 idx);
 FL_Option_ptr fl_array_get_safe(FL_Array* arr, fl_int64 idx);
 fl_int64      fl_array_len(FL_Array* arr);

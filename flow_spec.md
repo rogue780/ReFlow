@@ -204,7 +204,8 @@ All update operators are only valid on `:mut` bindings. Using them on an immutab
 
 | Operator | Description |
 |----------|-------------|
-| `@` | Copy operator. Cheap refcount increment for immutable heap data. Deep copy for mutable data. See [Ownership](#ownership). |
+| `@` | Copy operator. Always a mutable deep copy, independent of source. Value types are trivial stack copies. See [Ownership](#ownership). |
+| `&` | Ref operator. Cheap refcount increment. Immutable bindings only. See [Ownership](#ownership). |
 | `:<` | Coroutine operator. `let b :< a()` spawns `a()` as a threaded producer. See [Coroutines](#coroutines). |
 | `? :` | Ternary. `let a = b == c ? d : e` |
 
@@ -820,14 +821,15 @@ fn flexible(data: array<int>): int {
 
 ### Passing `:imut` to a `:mut` Parameter
 
-Passing an `:imut` binding to a `:mut` parameter is a compile error. The function requires mutation visibility that the `:imut` binding cannot provide. Use `@` to pass an explicit mutable copy:
+Passing an `:imut` binding to a `:mut` parameter is a compile error. The function requires mutation visibility that the `:imut` binding cannot provide. Use `@` to pass an explicit mutable deep copy:
 
 ```
 fn increment(x: int:mut) { x++ }
 
 let a: int = 5          ; immutable
 increment(a)            ; compile error: imut binding cannot fulfill :mut contract
-increment(@a)           ; ok: @a is a mutable copy, original a is unchanged
+increment(@a)           ; ok: @a is a mutable deep copy, original a is unchanged
+increment(&a)           ; compile error: & does not satisfy :mut
 ```
 
 ---
@@ -1610,12 +1612,22 @@ increment(@val)
 
 ### The `@` Copy Operator
 
-`@` produces a copy. For immutable heap data (strings, arrays, custom types), `@` is a cheap reference copy (refcount increment), since immutable data cannot change and sharing is safe. For mutable data, `@` is a deep copy producing an independent value.
+`@` always produces a mutable deep copy — an independent value that does not share memory with the source. For value types (int, float, bool, byte), `@` is a trivial stack copy. For heap types (string, array), `@` allocates a new copy of the data.
 
 ```
 let data: array<int> = [1, 2, 3]
 process(@data)
-; data is still owned here; @ incremented refcount for immutable array
+; data is still owned here; @data is an independent deep copy
+```
+
+### The `&` Ref Operator
+
+`&` produces a cheap immutable reference — a refcount increment that allows the data to be shared without copying. `&` is only valid on immutable bindings; applying `&` to a `:mut` binding is a compile error. Since `&` does not create a new independent copy, it cannot satisfy a `:mut` parameter.
+
+```
+let data: array<int> = [1, 2, 3]
+inspect(&data)
+; data is still owned here; &data shared the same backing memory (refcount++)
 ```
 
 ### Ownership and Parallel Execution
@@ -1643,9 +1655,10 @@ For receivable coroutines (first parameter is `stream<S>`), the inbox stream is 
 | Action | Effect |
 |--------|--------|
 | `foo(a)` | `a` is borrowed by `foo`. Reverts to caller when `foo` returns, unless `a` escapes. |
-| `foo(@a)` | A copy is passed. Caller retains ownership of `a`. Cheap for immutable, deep for mutable. |
+| `foo(@a)` | A mutable deep copy is passed. Caller retains original `a`. Always independent. |
+| `foo(&a)` | An immutable ref is passed (refcount increment). Only valid on immutable `a`. Cannot satisfy `:mut`. |
 | `yield val` | Ownership of `val` transfers to the consumer. Value types are implicitly copied. |
-| `yield @val` | A copy is yielded. Function retains ownership of `val`. |
+| `yield @val` | A deep copy is yielded. Function retains ownership of `val`. |
 | `return val` | Ownership of `val` transfers to the caller. Function terminates. |
 
 ---

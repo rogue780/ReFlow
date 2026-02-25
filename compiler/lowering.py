@@ -22,7 +22,7 @@ from compiler.ast_nodes import (
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
-    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr,
+    CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     PipelineStage, CoroutinePipeline,
@@ -2152,6 +2152,10 @@ class Lowerer:
             case CopyExpr(inner=inner):
                 return self._lower_copy(expr)
 
+            # Immutable ref
+            case RefExpr(inner=inner):
+                return self._lower_ref(expr)
+
             # Some/Ok/Err wrappers
             case SomeExpr(inner=inner):
                 return self._lower_some(expr)
@@ -3965,15 +3969,50 @@ class Lowerer:
         return LVar(val_tmp, inner_lt)
 
     def _lower_copy(self, expr: CopyExpr) -> LExpr:
-        """Lower copy expression. RT-7-3-8."""
+        """Lower @expr: always an independent mutable deep copy. RT-7-3-8."""
         inner = self._lower_expr(expr.inner)
         inner_type = self._type_of(expr.inner)
 
-        # Value types — copy is no-op
+        # Value types — stack copy is trivially independent, no-op
         if isinstance(inner_type, (TInt, TFloat, TBool, TChar, TByte)):
             return inner
 
-        # Heap types — retain for immutable, deep copy for mutable
+        # Heap types — deep copy for independence
+        match inner_type:
+            case TString():
+                tmp = self._fresh_temp()
+                lt = self._lower_type(inner_type)
+                self._pending_stmts.append(
+                    LVarDecl(c_name=tmp, c_type=lt,
+                             init=LCall("fl_string_copy", [inner], lt)))
+                return LVar(tmp, lt)
+            case TArray():
+                tmp = self._fresh_temp()
+                lt = self._lower_type(inner_type)
+                self._pending_stmts.append(
+                    LVarDecl(c_name=tmp, c_type=lt,
+                             init=LCall("fl_array_copy", [inner], lt)))
+                return LVar(tmp, lt)
+            case TStream():
+                # SPEC GAP: stream deep copy not implemented; streams are
+                # stateful and single-consumer; retain is used as a fallback
+                self._pending_stmts.append(
+                    LExprStmt(LCall("fl_stream_retain", [inner], LVoid())))
+                return inner
+            case _:
+                # SPEC GAP: deep copy for user-defined struct/sum types not
+                # yet implemented; retain used as fallback
+                return inner
+
+    def _lower_ref(self, expr: RefExpr) -> LExpr:
+        """Lower &expr: cheap refcount increment for immutable heap data."""
+        inner = self._lower_expr(expr.inner)
+        inner_type = self._type_of(expr.inner)
+
+        # Value types — trivially copied, no refcount needed
+        if isinstance(inner_type, (TInt, TFloat, TBool, TChar, TByte)):
+            return inner
+
         match inner_type:
             case TString():
                 self._pending_stmts.append(
