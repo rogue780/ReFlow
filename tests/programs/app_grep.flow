@@ -29,44 +29,118 @@ fn:pure should_skip_file(filepath: string, ext_filter: string): bool {
     return !string.ends_with(filepath, ext_filter)
 }
 
-; Search a file and print matches as linenum:text format
-; Returns match count
-fn search_and_print(filepath: string, pattern: string, case_i: bool, invert: bool): int {
+fn read_lines(filepath: string): array<string> {
+    let lines: array<string>:mut = []
     let f_opt = file.open_read(filepath)
     match f_opt {
         some(f): {
-            let line_num: int:mut = 0
-            let match_count: int:mut = 0
             while (true) {
                 let line_opt = file.read_line(f)
                 match line_opt {
                     some(line): {
-                        line_num = line_num + 1
-                        if (matches_line(line, pattern, case_i, invert)) {
-                            match_count = match_count + 1
-                            io.println(conv.to_string(line_num) + ":" + line)
-                        }
+                        lines = array.push(lines, line)
                     }
-                    none: {
-                        break
-                    }
+                    none: { break }
                 }
             }
             file.close(f)
-            return match_count
         }
-        none: {
-            io.println("ERROR: cannot open file")
-            return 0
-        }
+        none: {}
     }
+    return lines
+}
+
+; Simple search — prints linenum:text, returns match count
+fn search_and_print(filepath: string, pattern: string, case_i: bool, invert: bool): int {
+    let lines = read_lines(filepath)
+    let num_lines = array.len_string(lines)
+    let match_count: int:mut = 0
+    let idx: int:mut = 0
+    while (idx < num_lines) {
+        let line = array.get(lines, idx) ?? ""
+        if (matches_line(line, pattern, case_i, invert)) {
+            match_count = match_count + 1
+            io.println(conv.to_string(idx + 1) + ":" + line)
+        }
+        idx = idx + 1
+    }
+    return match_count
+}
+
+; Context search — prints with before/after context and -- separators
+fn search_with_context(filepath: string, pattern: string, before: int, after: int): int {
+    let lines = read_lines(filepath)
+    let num_lines = array.len_string(lines)
+
+    ; Find matching indices
+    let match_indices: array<int>:mut = []
+    let idx: int:mut = 0
+    while (idx < num_lines) {
+        let line = array.get(lines, idx) ?? ""
+        if (matches_line(line, pattern, false, false)) {
+            match_indices = array.push_int(match_indices, idx)
+        }
+        idx = idx + 1
+    }
+
+    let match_count = array.len(match_indices)
+    let printed_up_to: int:mut = -1
+    let first_group: bool:mut = true
+
+    let mi: int:mut = 0
+    while (mi < match_count) {
+        match array.get_int(match_indices, mi) {
+            some(line_idx): {
+                let range_start: int:mut = line_idx - before
+                if (range_start < 0) {
+                    range_start = 0
+                }
+                let range_end: int:mut = line_idx + after
+                if (range_end >= num_lines) {
+                    range_end = num_lines - 1
+                }
+
+                ; Group separator
+                if (!first_group && range_start > printed_up_to + 1) {
+                    io.println("--")
+                }
+                first_group = false
+
+                let start: int:mut = range_start
+                if (start <= printed_up_to) {
+                    start = printed_up_to + 1
+                }
+
+                let li: int:mut = start
+                while (li <= range_end) {
+                    let line = array.get(lines, li) ?? ""
+                    if (li == line_idx) {
+                        io.println(conv.to_string(li + 1) + ":" + line)
+                    } else {
+                        io.println(conv.to_string(li + 1) + "-" + line)
+                    }
+                    li = li + 1
+                }
+
+                if (range_end > printed_up_to) {
+                    printed_up_to = range_end
+                }
+            }
+            none: {}
+        }
+        mi = mi + 1
+    }
+
+    return match_count
 }
 
 ; --- Tests ---
 
 fn main(): none {
     ; Create test files
+    ; Lines: 1=hello world, 2=foo bar baz, 3=HELLO again, 4=nothing here, 5=foo is great
     let txt_file = io.tmpfile_create(".txt", "hello world\nfoo bar baz\nHELLO again\nnothing here\nfoo is great")
+    ; Lines: 1=error: disk full, 2=warning: low memory, 3=error: timeout, 4=info: all good
     let log_file = io.tmpfile_create(".log", "error: disk full\nwarning: low memory\nerror: timeout\ninfo: all good")
 
     ; === Basic Match ===
@@ -110,6 +184,37 @@ fn main(): none {
     io.println("=== Multi-file Search ===")
     let c6 = search_and_print(log_file, "error", false, false)
     io.println("count: " + conv.to_string(c6))
+
+    ; === Before Context ===
+    ; Search for "nothing" (line 4) with 1 line before → should show lines 3,4
+    io.println("")
+    io.println("=== Before Context ===")
+    let c7 = search_with_context(txt_file, "nothing", 1, 0)
+    io.println("count: " + conv.to_string(c7))
+
+    ; === After Context ===
+    ; Search for "hello" (line 1) with 1 line after → should show lines 1,2
+    io.println("")
+    io.println("=== After Context ===")
+    let c8 = search_with_context(txt_file, "hello", 0, 1)
+    io.println("count: " + conv.to_string(c8))
+
+    ; === Combined Context ===
+    ; Search for "error" in log (lines 1,3) with -C 1
+    ; Line 1 match: range 1-2, Line 3 match: range 2-4
+    ; Ranges overlap so no separator, prints lines 1-4 continuously
+    io.println("")
+    io.println("=== Combined Context ===")
+    let c9 = search_with_context(log_file, "error", 1, 1)
+    io.println("count: " + conv.to_string(c9))
+
+    ; === Context With Separator ===
+    ; Search for "foo" in txt (lines 2,5) with -B 0 -A 0 context but adding -C 0 won't show separators
+    ; Use -B 1 instead: line 2 range 1-2, line 5 range 4-5 → gap at 3 → separator
+    io.println("")
+    io.println("=== Context With Separator ===")
+    let c10 = search_with_context(txt_file, "foo", 1, 0)
+    io.println("count: " + conv.to_string(c10))
 
     ; Cleanup
     io.tmpfile_remove(txt_file)

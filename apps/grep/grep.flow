@@ -18,7 +18,10 @@ type SearchConfig {
     files_only: bool,
     count_only: bool,
     show_line_nums: bool,
-    ext_filter: string
+    ext_filter: string,
+    before_context: int,
+    after_context: int,
+    show_stats: bool
 }
 
 ; --- Matching ---
@@ -85,37 +88,18 @@ fn collect_files(target: string, ext_filter: string): array<string> {
     return []
 }
 
-; --- Search ---
+; --- File reading ---
 
-fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
+fn read_lines(filepath: string): array<string> {
+    let lines: array<string>:mut = []
     let f_opt = file.open_read(filepath)
     match f_opt {
         some(f): {
-            let line_num: int:mut = 0
-            let match_count: int:mut = 0
             while (true) {
                 let line_opt = file.read_line(f)
                 match line_opt {
                     some(line): {
-                        line_num = line_num + 1
-                        if (matches_line(line, config.pattern, config.case_insensitive, config.invert)) {
-                            match_count = match_count + 1
-                            if (config.files_only) {
-                                io.println(filepath)
-                                file.close(f)
-                                return 1
-                            }
-                            if (!config.count_only) {
-                                let prefix: string:mut = ""
-                                if (multi_file) {
-                                    prefix = filepath + ":"
-                                }
-                                if (config.show_line_nums) {
-                                    prefix = prefix + conv.to_string(line_num) + ":"
-                                }
-                                io.println(prefix + line)
-                            }
-                        }
+                        lines = array.push(lines, line)
                     }
                     none: {
                         break
@@ -123,20 +107,171 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
                 }
             }
             file.close(f)
-            if (config.count_only) {
-                if (multi_file) {
-                    io.println(filepath + ":" + conv.to_string(match_count))
-                } else {
-                    io.println(conv.to_string(match_count))
-                }
-            }
-            return match_count
         }
-        none: {
-            io.eprintln("grep: cannot open file: " + filepath)
-            return 0
+        none: {}
+    }
+    return lines
+}
+
+; --- Output helpers ---
+
+fn print_line(filepath: string, line_num: int, line: string, multi_file: bool, show_line_nums: bool, sep: string): none {
+    let prefix: string:mut = ""
+    if (multi_file) {
+        prefix = filepath + sep
+    }
+    if (show_line_nums) {
+        prefix = prefix + conv.to_string(line_num) + sep
+    }
+    io.println(prefix + line)
+}
+
+; --- Search ---
+
+fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
+    let has_context = config.before_context > 0 || config.after_context > 0
+
+    ; For files-only or count-only without context, use streaming read
+    if (config.files_only && !has_context) {
+        let f_opt = file.open_read(filepath)
+        match f_opt {
+            some(f): {
+                while (true) {
+                    let line_opt = file.read_line(f)
+                    match line_opt {
+                        some(line): {
+                            if (matches_line(line, config.pattern, config.case_insensitive, config.invert)) {
+                                io.println(filepath)
+                                file.close(f)
+                                return 1
+                            }
+                        }
+                        none: { break }
+                    }
+                }
+                file.close(f)
+                return 0
+            }
+            none: {
+                io.eprintln("grep: cannot open file: " + filepath)
+                return 0
+            }
         }
     }
+
+    ; Read all lines for context support
+    let lines = read_lines(filepath)
+    let num_lines = array.len_string(lines)
+    if (num_lines == 0) {
+        return 0
+    }
+
+    ; Find all matching line indices
+    let match_indices: array<int>:mut = []
+    let idx: int:mut = 0
+    while (idx < num_lines) {
+        let line = array.get(lines, idx) ?? ""
+        if (matches_line(line, config.pattern, config.case_insensitive, config.invert)) {
+            match_indices = array.push_int(match_indices, idx)
+        }
+        idx = idx + 1
+    }
+
+    let match_count = array.len(match_indices)
+
+    ; Files-only mode
+    if (config.files_only) {
+        if (match_count > 0) {
+            io.println(filepath)
+            return 1
+        }
+        return 0
+    }
+
+    ; Count-only mode
+    if (config.count_only) {
+        if (multi_file) {
+            io.println(filepath + ":" + conv.to_string(match_count))
+        } else {
+            io.println(conv.to_string(match_count))
+        }
+        return match_count
+    }
+
+    ; Print matches with context
+    if (!has_context) {
+        ; No context — simple output
+        let mi: int:mut = 0
+        while (mi < match_count) {
+            match array.get_int(match_indices, mi) {
+                some(line_idx): {
+                    let line = array.get(lines, line_idx) ?? ""
+                    print_line(filepath, line_idx + 1, line, multi_file, config.show_line_nums, ":")
+                }
+                none: {}
+            }
+            mi = mi + 1
+        }
+    } else {
+        ; Context mode — compute ranges and merge overlapping ones
+        ; printed_up_to tracks which lines have been printed to avoid duplicates
+        let printed_up_to: int:mut = -1
+        let first_group: bool:mut = true
+
+        let mi: int:mut = 0
+        while (mi < match_count) {
+            match array.get_int(match_indices, mi) {
+                some(line_idx): {
+                    let range_start: int:mut = line_idx - config.before_context
+                    if (range_start < 0) {
+                        range_start = 0
+                    }
+                    let range_end: int:mut = line_idx + config.after_context
+                    if (range_end >= num_lines) {
+                        range_end = num_lines - 1
+                    }
+
+                    ; Print group separator if there's a gap
+                    if (!first_group && range_start > printed_up_to + 1) {
+                        if (multi_file) {
+                            io.println(filepath + "---")
+                        } else {
+                            io.println("--")
+                        }
+                    }
+                    first_group = false
+
+                    ; Start from after what we already printed
+                    let start: int:mut = range_start
+                    if (start <= printed_up_to) {
+                        start = printed_up_to + 1
+                    }
+
+                    ; Print lines in range
+                    let li: int:mut = start
+                    while (li <= range_end) {
+                        let line = array.get(lines, li) ?? ""
+                        if (li == line_idx) {
+                            ; Match line — use : separator
+                            print_line(filepath, li + 1, line, multi_file, config.show_line_nums, ":")
+                        } else {
+                            ; Context line — use - separator
+                            print_line(filepath, li + 1, line, multi_file, config.show_line_nums, "-")
+                        }
+                        li = li + 1
+                    }
+
+                    if (range_end > printed_up_to) {
+                        printed_up_to = range_end
+                    }
+                }
+                none: {}
+            }
+            mi = mi + 1
+        }
+    }
+
+    return match_count
 }
 
 ; --- Argument parsing ---
@@ -151,6 +286,9 @@ fn parse_args(): SearchConfig {
     let count_only: bool:mut = false
     let show_line_nums: bool:mut = true
     let ext_filter: string:mut = ""
+    let before_context: int:mut = 0
+    let after_context: int:mut = 0
+    let show_stats: bool:mut = false
     let pattern: string:mut = ""
     let target_path: string:mut = "."
     let positional_count: int:mut = 0
@@ -177,9 +315,32 @@ fn parse_args(): SearchConfig {
         } else if (arg == "-n") {
             show_line_nums = true
             i = i + 1
+        } else if (arg == "--stats") {
+            show_stats = true
+            i = i + 1
         } else if (arg == "--ext") {
             if (i + 1 < argc) {
                 ext_filter = array.get(args, i + 1) ?? ""
+                skip_next = true
+            }
+            i = i + 1
+        } else if (arg == "-A") {
+            if (i + 1 < argc) {
+                after_context = conv.string_to_int(array.get(args, i + 1) ?? "0") ?? 0
+                skip_next = true
+            }
+            i = i + 1
+        } else if (arg == "-B") {
+            if (i + 1 < argc) {
+                before_context = conv.string_to_int(array.get(args, i + 1) ?? "0") ?? 0
+                skip_next = true
+            }
+            i = i + 1
+        } else if (arg == "-C") {
+            if (i + 1 < argc) {
+                let ctx = conv.string_to_int(array.get(args, i + 1) ?? "0") ?? 0
+                before_context = ctx
+                after_context = ctx
                 skip_next = true
             }
             i = i + 1
@@ -196,7 +357,7 @@ fn parse_args(): SearchConfig {
 
     if (positional_count == 0) {
         io.eprintln("Usage: grep [flags] <pattern> [path]")
-        io.eprintln("Flags: -i (case-insensitive) -v (invert) -l (files only) -c (count) -n (line numbers) --ext <.ext>")
+        io.eprintln("Flags: -i -v -l -c -n -A <n> -B <n> -C <n> --ext <.ext> --stats")
         sys.exit(1)
     }
 
@@ -208,7 +369,10 @@ fn parse_args(): SearchConfig {
         files_only: files_only,
         count_only: count_only,
         show_line_nums: show_line_nums,
-        ext_filter: ext_filter
+        ext_filter: ext_filter,
+        before_context: before_context,
+        after_context: after_context,
+        show_stats: show_stats
     }
 }
 
@@ -216,6 +380,8 @@ fn parse_args(): SearchConfig {
 
 fn main(): none {
     let config = parse_args()
+    let start: int64 = sys.clock_ms()
+
     let files = collect_files(config.target_path, config.ext_filter)
     let num_files = array.len_string(files)
     let multi_file = num_files > 1
@@ -224,5 +390,12 @@ fn main(): none {
     for (filepath: string in files) {
         let n = search_file(filepath, config, multi_file)
         total = total + n
+    }
+
+    if (config.show_stats) {
+        let elapsed: int64 = sys.clock_ms() - start
+        io.println(conv.to_string(num_files) + " files searched")
+        io.println(conv.to_string(total) + " lines matched")
+        io.println(conv.to_string(elapsed) + "ms elapsed")
     }
 }

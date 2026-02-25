@@ -31,4 +31,29 @@ skip any for empty: false
 3:error: timeout
 count: 2
 
+=== Before Context ===
+3-HELLO again
+4:nothing here
+count: 1
+
+=== After Context ===
+1:hello world
+2-foo bar baz
+count: 1
+
+=== Combined Context ===
+1:error: disk full
+2-warning: low memory
+3:error: timeout
+4-info: all good
+count: 2
+
+=== Context With Separator ===
+1-hello world
+2:foo bar baz
+--
+4-nothing here
+5:foo is great
+count: 2
+
 done

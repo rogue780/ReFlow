@@ -10,7 +10,11 @@ fl_bool fl_tests_app_grep_matches_line(FL_String* line, FL_String* pattern, fl_b
 
 fl_bool fl_tests_app_grep_should_skip_file(FL_String* filepath, FL_String* ext_filter);
 
+FL_Array* fl_tests_app_grep_read_lines(FL_String* filepath);
+
 fl_int fl_tests_app_grep_search_and_print(FL_String* filepath, FL_String* pattern, fl_bool case_i, fl_bool invert);
+
+fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pattern, fl_int before, fl_int after);
 
 void fl_tests_app_grep_main(void);
 
@@ -47,38 +51,128 @@ fl_bool fl_tests_app_grep_should_skip_file(FL_String* filepath, FL_String* ext_f
     return (!fl_string_ends_with(filepath, ext_filter));
 }
 
-/* Flow: tests.app_grep.search_and_print */
-fl_int fl_tests_app_grep_search_and_print(FL_String* filepath, FL_String* pattern, fl_bool case_i, fl_bool invert) {
+/* Flow: tests.app_grep.read_lines */
+FL_Array* fl_tests_app_grep_read_lines(FL_String* filepath) {
+    FL_Array* lines = fl_array_new(0, 0, NULL);
     FL_Option_ptr f_opt = fl_file_open_read(filepath);
     FL_Option_ptr _fl_tmp_0 = f_opt;
     if (_fl_tmp_0.tag == 1) {
         void* f = _fl_tmp_0.value;
-        fl_int line_num = 0;
-        fl_int match_count = 0;
         while (fl_true) {
             FL_Option_ptr line_opt = fl_file_read_line(f);
             FL_Option_ptr _fl_tmp_1 = line_opt;
             if (_fl_tmp_1.tag == 1) {
                 FL_String* line = _fl_tmp_1.value;
-                fl_int _fl_e_1;
-                FL_CHECKED_ADD(line_num, 1, &_fl_e_1);
-                line_num = _fl_e_1;
-                if (fl_tests_app_grep_matches_line(line, pattern, case_i, invert)) {
-                    fl_int _fl_e_2;
-                    FL_CHECKED_ADD(match_count, 1, &_fl_e_2);
-                    match_count = _fl_e_2;
-                    fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(line_num), fl_string_from_cstr(":")), line));
-                }
+                lines = fl_array_push_ptr(lines, line);
             } else {
                 break;
             }
         }
         fl_file_close(f);
-        return match_count;
-    } else {
-        fl_println(fl_string_from_cstr("ERROR: cannot open file"));
-        return 0;
     }
+    return lines;
+}
+
+/* Flow: tests.app_grep.search_and_print */
+fl_int fl_tests_app_grep_search_and_print(FL_String* filepath, FL_String* pattern, fl_bool case_i, fl_bool invert) {
+    FL_Array* lines = fl_tests_app_grep_read_lines(filepath);
+    fl_int num_lines = fl_array_len_int(lines);
+    fl_int match_count = 0;
+    fl_int idx = 0;
+    while (idx < num_lines) {
+        FL_Option_ptr _fl_tmp_2 = fl_array_get_safe(lines, idx);
+        FL_String* line = ((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : fl_string_from_cstr(""));
+        if (fl_tests_app_grep_matches_line(line, pattern, case_i, invert)) {
+            fl_int _fl_e_1;
+            FL_CHECKED_ADD(match_count, 1, &_fl_e_1);
+            match_count = _fl_e_1;
+            fl_int _fl_e_2;
+            FL_CHECKED_ADD(idx, 1, &_fl_e_2);
+            fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_2), fl_string_from_cstr(":")), line));
+        }
+        fl_int _fl_e_3;
+        FL_CHECKED_ADD(idx, 1, &_fl_e_3);
+        idx = _fl_e_3;
+    }
+    return match_count;
+}
+
+/* Flow: tests.app_grep.search_with_context */
+fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pattern, fl_int before, fl_int after) {
+    FL_Array* lines = fl_tests_app_grep_read_lines(filepath);
+    fl_int num_lines = fl_array_len_int(lines);
+    FL_Array* match_indices = fl_array_new(0, 0, NULL);
+    fl_int idx = 0;
+    while (idx < num_lines) {
+        FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(lines, idx);
+        FL_String* line = ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr(""));
+        if (fl_tests_app_grep_matches_line(line, pattern, fl_false, fl_false)) {
+            match_indices = fl_array_push_int(match_indices, idx);
+        }
+        fl_int _fl_e_1;
+        FL_CHECKED_ADD(idx, 1, &_fl_e_1);
+        idx = _fl_e_1;
+    }
+    fl_int match_count = fl_array_len_int(match_indices);
+    fl_int printed_up_to = (-1);
+    fl_bool first_group = fl_true;
+    fl_int mi = 0;
+    while (mi < match_count) {
+        FL_Option_int _fl_tmp_4 = fl_array_get_int(match_indices, mi);
+        if (_fl_tmp_4.tag == 1) {
+            fl_int line_idx = _fl_tmp_4.value;
+            fl_int _fl_e_2;
+            FL_CHECKED_SUB(line_idx, before, &_fl_e_2);
+            fl_int range_start = _fl_e_2;
+            if (range_start < 0) {
+                range_start = 0;
+            }
+            fl_int _fl_e_3;
+            FL_CHECKED_ADD(line_idx, after, &_fl_e_3);
+            fl_int range_end = _fl_e_3;
+            if (range_end >= num_lines) {
+                fl_int _fl_e_4;
+                FL_CHECKED_SUB(num_lines, 1, &_fl_e_4);
+                range_end = _fl_e_4;
+            }
+            fl_int _fl_e_5;
+            FL_CHECKED_ADD(printed_up_to, 1, &_fl_e_5);
+            if ((!first_group) && (range_start > _fl_e_5)) {
+                fl_println(fl_string_from_cstr("--"));
+            }
+            first_group = fl_false;
+            fl_int start = range_start;
+            if (start <= printed_up_to) {
+                fl_int _fl_e_6;
+                FL_CHECKED_ADD(printed_up_to, 1, &_fl_e_6);
+                start = _fl_e_6;
+            }
+            fl_int li = start;
+            while (li <= range_end) {
+                FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(lines, li);
+                FL_String* line = ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : fl_string_from_cstr(""));
+                if (li == line_idx) {
+                    fl_int _fl_e_7;
+                    FL_CHECKED_ADD(li, 1, &_fl_e_7);
+                    fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_7), fl_string_from_cstr(":")), line));
+                } else {
+                    fl_int _fl_e_8;
+                    FL_CHECKED_ADD(li, 1, &_fl_e_8);
+                    fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_8), fl_string_from_cstr("-")), line));
+                }
+                fl_int _fl_e_9;
+                FL_CHECKED_ADD(li, 1, &_fl_e_9);
+                li = _fl_e_9;
+            }
+            if (range_end > printed_up_to) {
+                printed_up_to = range_end;
+            }
+        }
+        fl_int _fl_e_10;
+        FL_CHECKED_ADD(mi, 1, &_fl_e_10);
+        mi = _fl_e_10;
+    }
+    return match_count;
 }
 
 /* Flow: tests.app_grep.main */
@@ -113,6 +207,22 @@ void fl_tests_app_grep_main(void) {
     fl_println(fl_string_from_cstr("=== Multi-file Search ==="));
     fl_int c6 = fl_tests_app_grep_search_and_print(log_file, fl_string_from_cstr("error"), fl_false, fl_false);
     fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c6)));
+    fl_println(fl_string_from_cstr(""));
+    fl_println(fl_string_from_cstr("=== Before Context ==="));
+    fl_int c7 = fl_tests_app_grep_search_with_context(txt_file, fl_string_from_cstr("nothing"), 1, 0);
+    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c7)));
+    fl_println(fl_string_from_cstr(""));
+    fl_println(fl_string_from_cstr("=== After Context ==="));
+    fl_int c8 = fl_tests_app_grep_search_with_context(txt_file, fl_string_from_cstr("hello"), 0, 1);
+    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c8)));
+    fl_println(fl_string_from_cstr(""));
+    fl_println(fl_string_from_cstr("=== Combined Context ==="));
+    fl_int c9 = fl_tests_app_grep_search_with_context(log_file, fl_string_from_cstr("error"), 1, 1);
+    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c9)));
+    fl_println(fl_string_from_cstr(""));
+    fl_println(fl_string_from_cstr("=== Context With Separator ==="));
+    fl_int c10 = fl_tests_app_grep_search_with_context(txt_file, fl_string_from_cstr("foo"), 1, 0);
+    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c10)));
     fl_tmpfile_remove(txt_file);
     fl_tmpfile_remove(log_file);
     fl_println(fl_string_from_cstr(""));
