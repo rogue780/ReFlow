@@ -14,7 +14,7 @@ fn echo_worker(inbox: stream<string>): stream<string> {
         }
         ; If inbox was empty AND we never got anything, stop.
         ; (Channel closed after all messages consumed.)
-        if !got_any { running = false }
+        if (!got_any) { running = false }
     }
 }
 

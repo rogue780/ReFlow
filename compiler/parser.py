@@ -1220,16 +1220,18 @@ class Parser:
         )
 
     def parse_if_stmt(self) -> IfStmt | MatchStmt:
-        """Parse: if expr { block } else if ... else { block }
-        Also: if let pattern = expr { block } [else { block }]
+        """Parse: if (expr) { block } else if ... else { block }
+        Also: if (let pattern = expr) { block } [else { block }]
         """
         tok = self.expect(TokenType.IF)
+        self.expect(TokenType.LPAREN)
 
-        # if let — desugar to MatchStmt
+        # if (let ...) — desugar to MatchStmt
         if self.check(TokenType.LET):
             return self._parse_if_let(tok)
 
         condition = self.parse_expr()
+        self.expect(TokenType.RPAREN)
         then_branch = self.parse_block()
 
         else_branch: Block | IfStmt | None = None
@@ -1249,12 +1251,14 @@ class Parser:
         )
 
     def _parse_if_let(self, if_tok: Token) -> MatchStmt:
-        """Parse: if let pattern = expr { block } [else { block }]
-        Desugars to MatchStmt with two arms."""
+        """Parse: if (let pattern = expr) { block } [else { block }]
+        Desugars to MatchStmt with two arms.
+        Note: LPAREN already consumed by parse_if_stmt()."""
         self.advance()  # consume LET
         pattern = self.parse_pattern()
         self.expect(TokenType.ASSIGN)
         subject = self.parse_expr()
+        self.expect(TokenType.RPAREN)
         then_block = self.parse_block()
 
         else_block: Block | None = None
@@ -2177,9 +2181,11 @@ class Parser:
         return TypeofExpr(line=tok.line, col=tok.col, inner=inner)
 
     def _parse_if_expr(self) -> IfExpr:
-        """Parse an if expression: if expr { block } else { block }"""
+        """Parse an if expression: if (expr) { block } else { block }"""
         tok = self.expect(TokenType.IF)
+        self.expect(TokenType.LPAREN)
         condition = self.parse_expr()
+        self.expect(TokenType.RPAREN)
         then_branch = self.parse_block()
 
         else_branch: Block | IfExpr | None = None

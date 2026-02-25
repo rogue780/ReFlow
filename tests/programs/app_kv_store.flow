@@ -20,17 +20,17 @@ import path
 
 fn:pure parse_command(line: string): (string, array<string>) {
     let trimmed = string.trim(line)
-    if string.len(trimmed) == 0 {
+    if (string.len(trimmed) == 0) {
         return ("", [])
     }
     let parts = string.split(trimmed, " ")
-    if let some(cmd_raw) = array.get(parts, 0) {
+    if (let some(cmd_raw) = array.get(parts, 0)) {
         let cmd = string.to_upper(cmd_raw)
         let args: array<string>:mut = []
         let i: int:mut = 1
         while (i < array.len_string(parts)) {
-            if let some(part) = array.get(parts, i) {
-                if string.len(part) > 0 {
+            if (let some(part) = array.get(parts, i)) {
+                if (string.len(part) > 0) {
                     args = array.push(args, part)
                 }
             }
@@ -54,8 +54,8 @@ fn serialize_store(store: map<string, string>): string {
     let json_map: map<string, JsonValue>:mut = map.new()
     let i: int:mut = 0
     while (i < array.len_string(keys)) {
-        if let some(k) = array.get(keys, i) {
-            if let some(v) = map.get(store, k) {
+        if (let some(k) = array.get(keys, i)) {
+            if (let some(v) = map.get(store, k)) {
                 json_map = map.set(json_map, k, json.string_val(v))
             }
         }
@@ -66,14 +66,14 @@ fn serialize_store(store: map<string, string>): string {
 }
 
 fn deserialize_store(data: string): map<string, string>? {
-    if let some(obj) = json.parse(data) {
-        if let some(keys) = json.keys(obj) {
+    if (let some(obj) = json.parse(data)) {
+        if (let some(keys) = json.keys(obj)) {
             let store: map<string, string>:mut = map.new()
             let i: int:mut = 0
             while (i < array.len_string(keys)) {
-                if let some(k) = array.get(keys, i) {
-                    if let some(jval) = json.get(obj, k) {
-                        if let some(s) = json.as_string(jval) {
+                if (let some(k) = array.get(keys, i)) {
+                    if (let some(jval) = json.get(obj, k)) {
+                        if (let some(s) = json.as_string(jval)) {
                             store = map.set(store, k, s)
                         }
                     }
@@ -96,14 +96,14 @@ fn dispatch_command(
             return (store, ok_response("PONG"))
         }
         "SET": {
-            if array.len_string(args) < 2 {
+            if (array.len_string(args) < 2) {
                 return (store, err_response("SET requires key and value"))
             }
             let key = array.get(args, 0) ?? ""
             let val_parts: array<string>:mut = []
             let i: int:mut = 1
             while (i < array.len_string(args)) {
-                if let some(p) = array.get(args, i) {
+                if (let some(p) = array.get(args, i)) {
                     val_parts = array.push(val_parts, p)
                 }
                 i = i + 1
@@ -113,7 +113,7 @@ fn dispatch_command(
             return (new_store, ok_response("OK"))
         }
         "GET": {
-            if array.len_string(args) < 1 {
+            if (array.len_string(args) < 1) {
                 return (store, err_response("GET requires a key"))
             }
             let key = array.get(args, 0) ?? ""
@@ -127,11 +127,11 @@ fn dispatch_command(
             }
         }
         "DEL": {
-            if array.len_string(args) < 1 {
+            if (array.len_string(args) < 1) {
                 return (store, err_response("DEL requires a key"))
             }
             let key = array.get(args, 0) ?? ""
-            if map.has(store, key) {
+            if (map.has(store, key)) {
                 let new_store = map.remove(store, key)
                 return (new_store, ok_response("1"))
             } else {
@@ -148,11 +148,11 @@ fn dispatch_command(
             return (store, ok_response(conv.to_string(n)))
         }
         "EXISTS": {
-            if array.len_string(args) < 1 {
+            if (array.len_string(args) < 1) {
                 return (store, err_response("EXISTS requires a key"))
             }
             let key = array.get(args, 0) ?? ""
-            if map.has(store, key) {
+            if (map.has(store, key)) {
                 return (store, ok_response("1"))
             } else {
                 return (store, ok_response("0"))
@@ -199,7 +199,7 @@ fn test_client(inbox: stream<string>, sock: Socket): stream<string> {
 
     let i: int:mut = 0
     while (i < array.size(commands)) {
-        if let some(cmd) = array.get(commands, i) {
+        if (let some(cmd) = array.get(commands, i)) {
             ; Send the command
             net.write_string(sock, cmd + "\r\n")
             ; Read the response
@@ -236,15 +236,15 @@ fn test_server(inbox: stream<string>, listener: Socket): stream<string> {
     while (running) {
         ; Drain inbox for shutdown signals
         for (msg: string in inbox) {
-            if msg == "STOP" {
+            if (msg == "STOP") {
                 running = false
             }
         }
 
-        if !running { return }
+        if (!running) { return }
 
         ; Accept new clients
-        if let some(client) = net.accept(listener) {
+        if (let some(client) = net.accept(listener)) {
             let addr = net.remote_addr(client) ?? "unknown"
             let fd = net.fd(client)
             client_fds = map.set(client_fds, addr, conv.to_string(fd))
@@ -257,9 +257,9 @@ fn test_server(inbox: stream<string>, listener: Socket): stream<string> {
         ; Poll clients
         let i: int:mut = 0
         while (i < array.size(handlers)) {
-            if let some(handler) = array.get_any(handlers, i) {
-                if let some(raw_msg) = handler.poll() {
-                    if let some(pipe_idx) = string.index_of(raw_msg, "|") {
+            if (let some(handler) = array.get_any(handlers, i)) {
+                if (let some(raw_msg) = handler.poll()) {
+                    if (let some(pipe_idx) = string.index_of(raw_msg, "|")) {
                         let sender_addr = string.substring(raw_msg, 0, pipe_idx)
                         let line = string.substring(raw_msg, pipe_idx + 1, string.len(raw_msg))
 
@@ -267,21 +267,21 @@ fn test_server(inbox: stream<string>, listener: Socket): stream<string> {
                         let cmd = parsed.0
                         let args = parsed.1
 
-                        if cmd == "QUIT" {
-                            if let some(fs) = map.get(client_fds, sender_addr) {
-                                if let some(f) = conv.string_to_int(fs) {
+                        if (cmd == "QUIT") {
+                            if (let some(fs) = map.get(client_fds, sender_addr)) {
+                                if (let some(f) = conv.string_to_int(fs)) {
                                     net.write_to_fd(f, ok_response("Goodbye"))
                                 }
                             }
                             client_fds = map.remove(client_fds, sender_addr)
                             running = false
                         } else {
-                            if string.len(cmd) > 0 {
+                            if (string.len(cmd) > 0) {
                                 let result = dispatch_command(cmd, args, store)
                                 store = result.0
                                 let response = result.1
-                                if let some(fs) = map.get(client_fds, sender_addr) {
-                                    if let some(f) = conv.string_to_int(fs) {
+                                if (let some(fs) = map.get(client_fds, sender_addr)) {
+                                    if (let some(f) = conv.string_to_int(fs)) {
                                         net.write_to_fd(f, response)
                                     }
                                 }
@@ -307,7 +307,7 @@ fn client_handler(inbox: stream<string>, client: Socket, addr: string): stream<s
         match net.read(client, 4096) {
             some(data): {
                 let raw = string.trim(string.from_bytes(data))
-                if string.len(raw) > 0 {
+                if (string.len(raw) > 0) {
                     yield addr + "|" + raw
                 }
             }

@@ -3,7 +3,7 @@ module tests.exception_test
 import io (println)
 
 fn might_fail(x: int): string {
-    if x < 0 {
+    if (x < 0) {
         throw "negative value"
     }
     return "success"

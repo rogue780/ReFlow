@@ -2,19 +2,19 @@ module math
 
 export fn:pure abs<T fulfills (Numeric, Comparable)>(n: T): T {
     let neg = n.negate()
-    return if n.compare(neg) < 0 { neg } else { n }
+    return if (n.compare(neg) < 0) { neg } else { n }
 }
 
 export fn:pure min<T fulfills Comparable>(a: T, b: T): T {
-    return if a.compare(b) <= 0 { a } else { b }
+    return if (a.compare(b) <= 0) { a } else { b }
 }
 
 export fn:pure max<T fulfills Comparable>(a: T, b: T): T {
-    return if a.compare(b) >= 0 { a } else { b }
+    return if (a.compare(b) >= 0) { a } else { b }
 }
 
 export fn:pure clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T {
-    return if val.compare(lo) < 0 { lo } else { if val.compare(hi) > 0 { hi } else { val } }
+    return if (val.compare(lo) < 0) { lo } else { if (val.compare(hi) > 0) { hi } else { val } }
 }
 
 ; Float-specific operations (inherently float, no generic equivalent)

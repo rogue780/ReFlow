@@ -11,7 +11,7 @@ fn:pure square(n: int): int = n * n
 
 ; Block-form function
 fn factorial(n: int): int {
-    if n <= 1 {
+    if (n <= 1) {
         return 1
     }
     return n * factorial(n - 1)
@@ -22,9 +22,9 @@ fn:pure sum_of_squares(a: int, b: int): int = add(square(a), square(b))
 
 ; Function with multiple return paths
 fn classify(n: int): string {
-    if n < 0 {
+    if (n < 0) {
         return "negative"
-    } else if n == 0 {
+    } else if (n == 0) {
         return "zero"
     }
     return "positive"

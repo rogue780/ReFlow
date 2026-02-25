@@ -35,7 +35,7 @@ fn main(): none {
     let mb2 = map.set(mb, "flag", true)
     match map.get(mb2, "flag") {
         some(v): {
-            if v {
+            if (v) {
                 io.println("true ok")
             } else {
                 io.println("FAIL: expected true")

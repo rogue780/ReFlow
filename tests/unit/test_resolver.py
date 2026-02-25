@@ -175,7 +175,7 @@ class TestScopeAndShadowing(unittest.TestCase):
         """Inner scope silently shadows outer name (per spec)."""
         src = """fn main(): none {
     let x = 5
-    if true {
+    if (true) {
         let x = 10
         let y = x
     }
@@ -191,7 +191,7 @@ class TestScopeAndShadowing(unittest.TestCase):
         """Inner block can access names from enclosing scope."""
         src = """fn main(): none {
     let x = 5
-    if true {
+    if (true) {
         let y = x
     }
 }"""
@@ -685,7 +685,7 @@ class TestExpressions(unittest.TestCase):
 
     def test_if_expr_resolves_all_branches(self):
         src = """fn test(x: int): int {
-    return if x > 0 { x } else { x }
+    return if (x > 0) { x } else { x }
 }"""
         result = resolve(src)
         idents = find_idents(result)
@@ -902,8 +902,8 @@ class TestEdgeCases(unittest.TestCase):
 
     def test_nested_if_stmt(self):
         src = """fn test(x: int): none {
-    if x > 0 {
-        if x > 10 {
+    if (x > 0) {
+        if (x > 10) {
             let y = x
         }
     }
@@ -913,9 +913,9 @@ class TestEdgeCases(unittest.TestCase):
 
     def test_else_if_chain(self):
         src = """fn test(x: int): none {
-    if x > 0 {
+    if (x > 0) {
         let a = 1
-    } else if x < 0 {
+    } else if (x < 0) {
         let b = 2
     } else {
         let c = 3

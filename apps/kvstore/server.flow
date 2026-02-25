@@ -50,9 +50,9 @@ fn timestamp(): string {
     let h = conv.to_string(time.hour(dt))
     let m = conv.to_string(time.minute(dt))
     let s = conv.to_string(time.second(dt))
-    let hh = if string.len(h) < 2 { "0" + h } else { h }
-    let mm = if string.len(m) < 2 { "0" + m } else { m }
-    let ss = if string.len(s) < 2 { "0" + s } else { s }
+    let hh = if (string.len(h) < 2) { "0" + h } else { h }
+    let mm = if (string.len(m) < 2) { "0" + m } else { m }
+    let ss = if (string.len(s) < 2) { "0" + s } else { s }
     return "[" + hh + ":" + mm + ":" + ss + "]"
 }
 
@@ -64,20 +64,20 @@ fn log(msg: string): none {
 ; Command is uppercased. Leading/trailing whitespace is trimmed.
 fn:pure parse_command(line: string): (string, array<string>) {
     let trimmed = string.trim(line)
-    if string.len(trimmed) == 0 {
+    if (string.len(trimmed) == 0) {
         return ("", [])
     }
     let parts = string.split(trimmed, " ")
     ; First token is the command, uppercased
-    if let some(cmd_raw) = array.get(parts, 0) {
+    if (let some(cmd_raw) = array.get(parts, 0)) {
         let cmd = string.to_upper(cmd_raw)
         ; Remaining tokens are args
         let args: array<string>:mut = []
         let i: int:mut = 1
         while (i < array.len_string(parts)) {
-            if let some(part) = array.get(parts, i) {
+            if (let some(part) = array.get(parts, i)) {
                 ; Skip empty parts from multiple spaces
-                if string.len(part) > 0 {
+                if (string.len(part) > 0) {
                     args = array.push(args, part)
                 }
             }
@@ -108,8 +108,8 @@ fn serialize_store(store: map<string, string>): string {
     let json_map: map<string, JsonValue>:mut = map.new()
     let i: int:mut = 0
     while (i < array.len_string(keys)) {
-        if let some(k) = array.get(keys, i) {
-            if let some(v) = map.get(store, k) {
+        if (let some(k) = array.get(keys, i)) {
+            if (let some(v) = map.get(store, k)) {
                 json_map = map.set(json_map, k, json.string_val(v))
             }
         }
@@ -121,14 +121,14 @@ fn serialize_store(store: map<string, string>): string {
 
 ; Deserialize a JSON string back to a store map.
 fn deserialize_store(data: string): map<string, string>? {
-    if let some(obj) = json.parse(data) {
-        if let some(keys) = json.keys(obj) {
+    if (let some(obj) = json.parse(data)) {
+        if (let some(keys) = json.keys(obj)) {
             let store: map<string, string>:mut = map.new()
             let i: int:mut = 0
             while (i < array.len_string(keys)) {
-                if let some(k) = array.get(keys, i) {
-                    if let some(jval) = json.get(obj, k) {
-                        if let some(s) = json.as_string(jval) {
+                if (let some(k) = array.get(keys, i)) {
+                    if (let some(jval) = json.get(obj, k)) {
+                        if (let some(s) = json.as_string(jval)) {
                             store = map.set(store, k, s)
                         }
                     }
@@ -156,7 +156,7 @@ fn dispatch_command(
             return (store, ok_response("PONG"))
         }
         "SET": {
-            if array.len_string(args) < 2 {
+            if (array.len_string(args) < 2) {
                 return (store, err_response("SET requires key and value"))
             }
             let key = array.get(args, 0) ?? ""
@@ -165,7 +165,7 @@ fn dispatch_command(
             let val_parts: array<string>:mut = []
             let i: int:mut = 1
             while (i < array.len_string(args)) {
-                if let some(p) = array.get(args, i) {
+                if (let some(p) = array.get(args, i)) {
                     val_parts = array.push(val_parts, p)
                 }
                 i = i + 1
@@ -175,7 +175,7 @@ fn dispatch_command(
             return (new_store, ok_response("OK"))
         }
         "GET": {
-            if array.len_string(args) < 1 {
+            if (array.len_string(args) < 1) {
                 return (store, err_response("GET requires a key"))
             }
             let key = array.get(args, 0) ?? ""
@@ -189,11 +189,11 @@ fn dispatch_command(
             }
         }
         "DEL": {
-            if array.len_string(args) < 1 {
+            if (array.len_string(args) < 1) {
                 return (store, err_response("DEL requires a key"))
             }
             let key = array.get(args, 0) ?? ""
-            if map.has(store, key) {
+            if (map.has(store, key)) {
                 let new_store = map.remove(store, key)
                 return (new_store, ok_response("1"))
             } else {
@@ -210,11 +210,11 @@ fn dispatch_command(
             return (store, ok_response(conv.to_string(n)))
         }
         "EXISTS": {
-            if array.len_string(args) < 1 {
+            if (array.len_string(args) < 1) {
                 return (store, err_response("EXISTS requires a key"))
             }
             let key = array.get(args, 0) ?? ""
-            if map.has(store, key) {
+            if (map.has(store, key)) {
                 return (store, ok_response("1"))
             } else {
                 return (store, ok_response("0"))
@@ -227,15 +227,15 @@ fn dispatch_command(
         "SAVE": {
             let json_str = serialize_store(store)
             let wrote = io.write_file("kvstore.dat", json_str)
-            if wrote {
+            if (wrote) {
                 return (store, ok_response("OK"))
             } else {
                 return (store, err_response("write failed"))
             }
         }
         "LOAD": {
-            if let some(data) = io.read_file("kvstore.dat") {
-                if let some(loaded) = deserialize_store(data) {
+            if (let some(data) = io.read_file("kvstore.dat")) {
+                if (let some(loaded) = deserialize_store(data)) {
                     let n = map.len(loaded)
                     return (loaded, ok_response("OK (" + conv.to_string(n) + " keys loaded)"))
                 } else {
@@ -269,7 +269,7 @@ fn client_handler(inbox: stream<string>, client: Socket, addr: string): stream<s
         match net.read(client, 4096) {
             some(data): {
                 let raw = string.trim(string.from_bytes(data))
-                if string.len(raw) > 0 {
+                if (string.len(raw) > 0) {
                     yield addr + "|" + raw
                 }
             }
@@ -289,8 +289,8 @@ fn main(): none {
     let argv = sys.args()
     let port: int:mut = 6379
 
-    if let some(port_str) = array.get(argv, 1) {
-        if let some(p) = conv.string_to_int(port_str) {
+    if (let some(port_str) = array.get(argv, 1)) {
+        if (let some(p) = conv.string_to_int(port_str)) {
             port = p
         } else {
             io.eprintln("Invalid port: " + port_str)
@@ -302,16 +302,16 @@ fn main(): none {
 
     ; Auto-load persisted data on startup
     let store: map<string, string>:mut = map.new()
-    if path.exists("kvstore.dat") {
-        if let some(data) = io.read_file("kvstore.dat") {
-            if let some(loaded) = deserialize_store(data) {
+    if (path.exists("kvstore.dat")) {
+        if (let some(data) = io.read_file("kvstore.dat")) {
+            if (let some(loaded) = deserialize_store(data)) {
                 store = loaded
                 log("Loaded " + conv.to_string(map.len(store)) + " keys from kvstore.dat")
             }
         }
     }
 
-    if let some(listener) = net.listen("0.0.0.0", port) {
+    if (let some(listener) = net.listen("0.0.0.0", port)) {
         io.println("Listening on port " + conv.to_string(port))
         io.println("Connect with: nc localhost " + conv.to_string(port))
 
@@ -326,7 +326,7 @@ fn main(): none {
         ; Main event loop
         while (true) {
             ; 1. Non-blocking accept
-            if let some(client) = net.accept(listener) {
+            if (let some(client) = net.accept(listener)) {
                 let addr = net.remote_addr(client) ?? "unknown"
                 let fd = net.fd(client)
                 client_fds = map.set(client_fds, addr, conv.to_string(fd))
@@ -342,10 +342,10 @@ fn main(): none {
             ; 2. Poll each client handler (non-blocking)
             let i: int:mut = 0
             while (i < array.size(handlers)) {
-                if let some(handler) = array.get_any(handlers, i) {
-                    if let some(raw_msg) = handler.poll() {
+                if (let some(handler) = array.get_any(handlers, i)) {
+                    if (let some(raw_msg) = handler.poll()) {
                         ; Parse "addr|message" format
-                        if let some(pipe_idx) = string.index_of(raw_msg, "|") {
+                        if (let some(pipe_idx) = string.index_of(raw_msg, "|")) {
                             let sender_addr = string.substring(raw_msg, 0, pipe_idx)
                             let line = string.substring(raw_msg, pipe_idx + 1, string.len(raw_msg))
 
@@ -354,26 +354,26 @@ fn main(): none {
                             let args = parsed.1
 
                             ; Handle QUIT specially
-                            if cmd == "QUIT" {
+                            if (cmd == "QUIT") {
                                 ; Send goodbye and clean up
-                                if let some(fs) = map.get(client_fds, sender_addr) {
-                                    if let some(f) = conv.string_to_int(fs) {
+                                if (let some(fs) = map.get(client_fds, sender_addr)) {
+                                    if (let some(f) = conv.string_to_int(fs)) {
                                         net.write_to_fd(f, ok_response("Goodbye"))
                                     }
                                 }
                                 client_fds = map.remove(client_fds, sender_addr)
                                 log("[disconnect] " + sender_addr + " (QUIT)")
                             } else {
-                                if string.len(cmd) > 0 {
+                                if (string.len(cmd) > 0) {
                                     let result = dispatch_command(cmd, args, store)
                                     store = result.0
                                     let response = result.1
 
                                     ; Send response via fd
-                                    if let some(fs) = map.get(client_fds, sender_addr) {
-                                        if let some(f) = conv.string_to_int(fs) {
+                                    if (let some(fs) = map.get(client_fds, sender_addr)) {
+                                        if (let some(f) = conv.string_to_int(fs)) {
                                             let sent = net.write_to_fd(f, response)
-                                            if !sent {
+                                            if (!sent) {
                                                 ; Dead client
                                                 client_fds = map.remove(client_fds, sender_addr)
                                                 log("[disconnect] " + sender_addr + " (write failed)")
@@ -385,8 +385,8 @@ fn main(): none {
                         }
                     } else {
                         ; Nothing ready — check if coroutine is done
-                        if handler.done() {
-                            if let some(addr) = array.get_any(handler_addrs, i) {
+                        if (handler.done()) {
+                            if (let some(addr) = array.get_any(handler_addrs, i)) {
                                 client_fds = map.remove(client_fds, addr)
                                 log("[disconnect] " + addr + " (connection closed)")
                             }

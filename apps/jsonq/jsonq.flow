@@ -39,35 +39,35 @@ import conv
 ; Split a dot-path into segments. Returns (segments, error_message).
 ; An empty query returns an empty array (meaning "root").
 fn:pure parse_path(query: string): (array<string>, string) {
-    if string.len(query) == 0 {
+    if (string.len(query) == 0) {
         return ([], "")
     }
 
     ; Check for leading/trailing dots
-    if string.starts_with(query, ".") {
+    if (string.starts_with(query, ".")) {
         return ([], "leading dot in path")
     }
-    if string.ends_with(query, ".") {
+    if (string.ends_with(query, ".")) {
         return ([], "trailing dot in path")
     }
 
     ; Check for ?type suffix — split it off as a segment
     let q: string:mut = query
     let has_type_suffix: bool:mut = false
-    if string.ends_with(q, "?type") {
+    if (string.ends_with(q, "?type")) {
         let prefix_len = string.len(q) - 5
-        q = if prefix_len > 0 { string.substring(q, 0, prefix_len) } else { "" }
+        q = if (prefix_len > 0) { string.substring(q, 0, prefix_len) } else { "" }
         has_type_suffix = true
     }
 
     let segments: array<string>:mut = []
 
-    if string.len(q) > 0 {
+    if (string.len(q) > 0) {
         let parts = string.split(q, ".")
         let i: int:mut = 0
         while (i < array.len_string(parts)) {
-            if let some(part) = array.get(parts, i) {
-                if string.len(part) == 0 {
+            if (let some(part) = array.get(parts, i)) {
+                if (string.len(part) == 0) {
                     return ([], "empty segment (double dot)")
                 }
                 segments = array.push(segments, part)
@@ -76,7 +76,7 @@ fn:pure parse_path(query: string): (array<string>, string) {
         }
     }
 
-    if has_type_suffix {
+    if (has_type_suffix) {
         segments = array.push(segments, "?type")
     }
 
@@ -85,7 +85,7 @@ fn:pure parse_path(query: string): (array<string>, string) {
 
 ; Check if a segment string is a non-negative integer (array index).
 fn:pure is_array_index(segment: string): bool {
-    if string.len(segment) == 0 { return false }
+    if (string.len(segment) == 0) { return false }
     match conv.string_to_int64(segment) {
         some(n): { return n >= 0 }
         none: { return false }
@@ -98,13 +98,13 @@ fn:pure is_array_index(segment: string): bool {
 
 fn:pure type_name(val: JsonValue): string {
     let tag = json.type_tag(val)
-    if tag == 0 { return "null" }
-    if tag == 1 { return "boolean" }
-    if tag == 2 { return "number" }
-    if tag == 3 { return "number" }
-    if tag == 4 { return "string" }
-    if tag == 5 { return "array" }
-    if tag == 6 { return "object" }
+    if (tag == 0) { return "null" }
+    if (tag == 1) { return "boolean" }
+    if (tag == 2) { return "number" }
+    if (tag == 3) { return "number" }
+    if (tag == 4) { return "string" }
+    if (tag == 5) { return "array" }
+    if (tag == 6) { return "object" }
     return "unknown"
 }
 
@@ -116,7 +116,7 @@ fn:pure value_length(val: JsonValue): JsonValue? {
     let tag = json.type_tag(val)
 
     ; Array length
-    if tag == 5 {
+    if (tag == 5) {
         match json.as_array(val) {
             some(arr): { return some(json.int_val(array.size(arr))) }
             none: { return some(json.int_val(0)) }
@@ -124,7 +124,7 @@ fn:pure value_length(val: JsonValue): JsonValue? {
     }
 
     ; Object key count
-    if tag == 6 {
+    if (tag == 6) {
         match json.keys(val) {
             some(keys): { return some(json.int_val(array.len_string(keys))) }
             none: { return some(json.int_val(0)) }
@@ -132,7 +132,7 @@ fn:pure value_length(val: JsonValue): JsonValue? {
     }
 
     ; String character count
-    if tag == 4 {
+    if (tag == 4) {
         match json.as_string(val) {
             some(s): { return some(json.int_val(string.len(s))) }
             none: { return some(json.int_val(0)) }
@@ -150,7 +150,7 @@ fn:pure value_length(val: JsonValue): JsonValue? {
 ; Returns an array because wildcard (*) can produce multiple results.
 fn resolve_segment(val: JsonValue, segment: string): array<JsonValue> {
     ; Length operator
-    if segment == "#" {
+    if (segment == "#") {
         match value_length(val) {
             some(v): { return [v] }
             none: { return [] }
@@ -158,12 +158,12 @@ fn resolve_segment(val: JsonValue, segment: string): array<JsonValue> {
     }
 
     ; Type introspection
-    if segment == "?type" {
+    if (segment == "?type") {
         return [json.string_val(type_name(val))]
     }
 
     ; Wildcard — iterate all array elements
-    if segment == "*" {
+    if (segment == "*") {
         match json.as_array(val) {
             some(arr): { return arr }
             none: { return [] }
@@ -171,8 +171,8 @@ fn resolve_segment(val: JsonValue, segment: string): array<JsonValue> {
     }
 
     ; Array index
-    if is_array_index(segment) {
-        if let some(idx) = conv.string_to_int64(segment) {
+    if (is_array_index(segment)) {
+        if (let some(idx) = conv.string_to_int64(segment)) {
             match json.get_index(val, idx) {
                 some(v): { return [v] }
                 none: { return [] }
@@ -195,11 +195,11 @@ fn resolve(root: JsonValue, segments: array<string>): array<JsonValue> {
     let i: int:mut = 0
 
     while (i < array.len_string(segments)) {
-        if let some(segment) = array.get(segments, i) {
+        if (let some(segment) = array.get(segments, i)) {
             let next: array<JsonValue>:mut = []
             let j: int:mut = 0
             while (j < array.size(current)) {
-                if let some(val) = array.get_any(current, j) {
+                if (let some(val) = array.get_any(current, j)) {
                     let results = resolve_segment(val, segment)
                     next = array.concat(next, results)
                 }
@@ -223,13 +223,13 @@ fn:pure format_value(val: JsonValue, pretty: bool): string {
     let tag = json.type_tag(val)
 
     ; Strings — raw output
-    if tag == 4 {
+    if (tag == 4) {
         return json.as_string(val) ?? ""
     }
 
     ; Objects and arrays — JSON format
-    if tag == 5 || tag == 6 {
-        if pretty {
+    if (tag == 5 || tag == 6) {
+        if (pretty) {
             return json.to_string_pretty(val, 2)
         }
         return json.to_string(val)
@@ -243,7 +243,7 @@ fn:pure format_value(val: JsonValue, pretty: bool): string {
 fn print_results(results: array<JsonValue>, pretty: bool): none {
     let i: int:mut = 0
     while (i < array.size(results)) {
-        if let some(val) = array.get_any(results, i) {
+        if (let some(val) = array.get_any(results, i)) {
             io.println(format_value(val, pretty))
         }
         i = i + 1
@@ -261,7 +261,7 @@ fn:pure is_flag(arg: string): bool {
 
 ; Read file contents, or stdin if path is "-".
 fn read_input(file_path: string): string? {
-    if file_path == "-" {
+    if (file_path == "-") {
         return io.read_stdin()
     }
     return io.read_file(file_path)
@@ -275,7 +275,7 @@ fn main(): none {
     let argv = sys.args()
     let argc = array.len_string(argv)
 
-    if argc < 2 {
+    if (argc < 2) {
         io.eprintln("Usage: jsonq <file> <query> [query...] [--pretty]")
         io.eprintln("")
         io.eprintln("  file   — JSON file path, or \"-\" for stdin")
@@ -298,11 +298,11 @@ fn main(): none {
     let queries: array<string>:mut = []
     let i: int:mut = 2
     while (i < argc) {
-        if let some(arg) = array.get(argv, i) {
-            if arg == "--pretty" {
+        if (let some(arg) = array.get(argv, i)) {
+            if (arg == "--pretty") {
                 pretty = true
             } else {
-                if !is_flag(arg) {
+                if (!is_flag(arg)) {
                     queries = array.push(queries, arg)
                 }
             }
@@ -311,7 +311,7 @@ fn main(): none {
     }
 
     ; If no queries given, default to root (empty query = print whole doc)
-    if array.len_string(queries) == 0 {
+    if (array.len_string(queries) == 0) {
         queries = array.push(queries, "")
     }
 
@@ -340,7 +340,7 @@ fn main(): none {
 fn run_queries(root: JsonValue, queries: array<string>, pretty: bool): none {
     let i: int:mut = 0
     while (i < array.len_string(queries)) {
-        if let some(query) = array.get(queries, i) {
+        if (let some(query) = array.get(queries, i)) {
             run_single_query(root, query, pretty)
         }
         i = i + 1
@@ -353,14 +353,14 @@ fn run_single_query(root: JsonValue, query: string, pretty: bool): none {
     let segments = parsed.0
     let parse_err = parsed.1
 
-    if string.len(parse_err) > 0 {
+    if (string.len(parse_err) > 0) {
         io.eprintln("Error: invalid query path '" + query + "': " + parse_err)
         sys.exit(1)
     }
 
     let results = resolve(root, segments)
 
-    if array.size(results) == 0 {
+    if (array.size(results) == 0) {
         io.eprintln("Error: path '" + query + "' not found")
         sys.exit(1)
     }

@@ -6,7 +6,7 @@ fn counter(start: int): stream<int> {
     while (true) {
         yield i
         i = i + 1
-        if i > start + 2 {
+        if (i > start + 2) {
             return
         }
     }

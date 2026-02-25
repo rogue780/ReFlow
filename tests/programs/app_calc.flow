@@ -26,7 +26,7 @@ fn:pure skip_ws(input: string, pos: int): int {
     let length = string.len(input)
     while (p < length) {
         let ch = string.char_at(input, p) ?? 'x'
-        if char.is_whitespace(ch) {
+        if (char.is_whitespace(ch)) {
             p = p + 1
         } else {
             break
@@ -37,7 +37,7 @@ fn:pure skip_ws(input: string, pos: int): int {
 
 fn:pure peek_char(input: string, pos: int): string {
     let p = skip_ws(input, pos)
-    if p >= string.len(input) {
+    if (p >= string.len(input)) {
         return ""
     }
     let ch = string.char_at(input, p) ?? ' '
@@ -50,19 +50,19 @@ fn parse_number(input: string, pos: int): (Expr, int) {
     let length = string.len(input)
     while (p < length) {
         let ch = string.char_at(input, p) ?? ' '
-        if char.is_digit(ch) {
+        if (char.is_digit(ch)) {
             p = p + 1
         } else {
             break
         }
     }
-    if p < length {
+    if (p < length) {
         let dot = string.char_at(input, p) ?? ' '
-        if char.to_string(dot) == "." {
+        if (char.to_string(dot) == ".") {
             p = p + 1
             while (p < length) {
                 let ch = string.char_at(input, p) ?? ' '
-                if char.is_digit(ch) {
+                if (char.is_digit(ch)) {
                     p = p + 1
                 } else {
                     break
@@ -81,11 +81,11 @@ fn parse_ident(input: string, pos: int): (string, int) {
     let length = string.len(input)
     while (p < length) {
         let ch = string.char_at(input, p) ?? ' '
-        if char.is_alphanumeric(ch) {
+        if (char.is_alphanumeric(ch)) {
             p = p + 1
         } else {
             let cs = char.to_string(ch)
-            if cs == "_" {
+            if (cs == "_") {
                 p = p + 1
             } else {
                 break
@@ -97,24 +97,24 @@ fn parse_ident(input: string, pos: int): (string, int) {
 
 fn parse_primary(input: string, pos: int): (Expr, int) {
     let p = skip_ws(input, pos)
-    if p >= string.len(input) {
+    if (p >= string.len(input)) {
         return (Literal(0.0), p)
     }
     let ch = string.char_at(input, p) ?? ' '
-    if char.is_digit(ch) {
+    if (char.is_digit(ch)) {
         return parse_number(input, p)
     }
-    if char.is_alpha(ch) {
+    if (char.is_alpha(ch)) {
         let result = parse_ident(input, p)
         return (Var(result.0), result.1)
     }
     let cs = char.to_string(ch)
-    if cs == "(" {
+    if (cs == "(") {
         let inner = parse_expr(input, p + 1)
         let close_pos = skip_ws(input, inner.1)
-        if close_pos < string.len(input) {
+        if (close_pos < string.len(input)) {
             let close_ch = string.char_at(input, close_pos) ?? ' '
-            if char.to_string(close_ch) == ")" {
+            if (char.to_string(close_ch) == ")") {
                 return (inner.0, close_pos + 1)
             }
         }
@@ -125,9 +125,9 @@ fn parse_primary(input: string, pos: int): (Expr, int) {
 
 fn parse_unary(input: string, pos: int): (Expr, int) {
     let p = skip_ws(input, pos)
-    if p < string.len(input) {
+    if (p < string.len(input)) {
         let ch = string.char_at(input, p) ?? ' '
-        if char.to_string(ch) == "-" {
+        if (char.to_string(ch) == "-") {
             let result = parse_unary(input, p + 1)
             return (Neg(result.0), result.1)
         }
@@ -138,9 +138,9 @@ fn parse_unary(input: string, pos: int): (Expr, int) {
 fn parse_power(input: string, pos: int): (Expr, int) {
     let base = parse_unary(input, pos)
     let p = skip_ws(input, base.1)
-    if p < string.len(input) {
+    if (p < string.len(input)) {
         let ch = string.char_at(input, p) ?? ' '
-        if char.to_string(ch) == "^" {
+        if (char.to_string(ch) == "^") {
             let exp = parse_power(input, p + 1)
             return (BinOp("^", base.0, exp.0), exp.1)
         }
@@ -155,19 +155,19 @@ fn parse_multiplicative(input: string, pos: int): (Expr, int) {
     let running: bool:mut = true
     while (running) {
         let p = skip_ws(input, cur)
-        if p >= string.len(input) {
+        if (p >= string.len(input)) {
             running = false
         } else {
             let ch = peek_char(input, cur)
-            if ch == "*" {
+            if (ch == "*") {
                 let rhs = parse_power(input, p + 1)
                 left = BinOp("*", left, rhs.0)
                 cur = rhs.1
-            } else if ch == "/" {
+            } else if (ch == "/") {
                 let rhs = parse_power(input, p + 1)
                 left = BinOp("/", left, rhs.0)
                 cur = rhs.1
-            } else if ch == "%" {
+            } else if (ch == "%") {
                 let rhs = parse_power(input, p + 1)
                 left = BinOp("%", left, rhs.0)
                 cur = rhs.1
@@ -186,15 +186,15 @@ fn parse_additive(input: string, pos: int): (Expr, int) {
     let running: bool:mut = true
     while (running) {
         let p = skip_ws(input, cur)
-        if p >= string.len(input) {
+        if (p >= string.len(input)) {
             running = false
         } else {
             let ch = peek_char(input, cur)
-            if ch == "+" {
+            if (ch == "+") {
                 let rhs = parse_multiplicative(input, p + 1)
                 left = BinOp("+", left, rhs.0)
                 cur = rhs.1
-            } else if ch == "-" {
+            } else if (ch == "-") {
                 let rhs = parse_multiplicative(input, p + 1)
                 left = BinOp("-", left, rhs.0)
                 cur = rhs.1
@@ -226,23 +226,23 @@ fn eval(expr: Expr, env: map<string, float>): float {
         BinOp(op, left, right): {
             let lv = eval(left, env)
             let rv = eval(right, env)
-            if op == "+" {
+            if (op == "+") {
                 return lv + rv
-            } else if op == "-" {
+            } else if (op == "-") {
                 return lv - rv
-            } else if op == "*" {
+            } else if (op == "*") {
                 return lv * rv
-            } else if op == "/" {
-                if rv == 0.0 {
+            } else if (op == "/") {
+                if (rv == 0.0) {
                     return 0.0
                 }
                 return lv / rv
-            } else if op == "%" {
-                if rv == 0.0 {
+            } else if (op == "%") {
+                if (rv == 0.0) {
                     return 0.0
                 }
                 return lv % rv
-            } else if op == "^" {
+            } else if (op == "^") {
                 return math.pow(lv, rv)
             } else {
                 return 0.0
@@ -256,7 +256,7 @@ fn eval(expr: Expr, env: map<string, float>): float {
 fn format_result(value: float): string {
     let as_int = cast<int>(value)
     let back = cast<float>(as_int)
-    if back == value {
+    if (back == value) {
         return conv.to_string(as_int)
     }
     return conv.to_string(value)

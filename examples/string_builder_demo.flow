@@ -21,7 +21,7 @@ fn main() {
     let nums = [10, 20, 30, 40, 50]
     let i: int:mut = 0
     for (n: int in nums) {
-        if i > 0 {
+        if (i > 0) {
             append(list_sb, ", ")
         }
         append_int(list_sb, n)

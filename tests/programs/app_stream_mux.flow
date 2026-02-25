@@ -20,9 +20,9 @@ type Record {
 ; --- Routing and formatting ---
 
 fn:pure route(r: Record): string {
-    if r.category == "error"  { return "alerts" }
-    if r.category == "metric" { return "metrics" }
-    if r.category == "audit"  { return "archive" }
+    if (r.category == "error" ) { return "alerts" }
+    if (r.category == "metric") { return "metrics" }
+    if (r.category == "audit" ) { return "archive" }
     return "default"
 }
 

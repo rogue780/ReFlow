@@ -3,7 +3,7 @@ module tests.result_test
 import io (println)
 
 fn safe_divide(a: int, b: int): result<int, string> {
-    if b == 0 {
+    if (b == 0) {
         return err("division by zero")
     }
     return ok(a / b)

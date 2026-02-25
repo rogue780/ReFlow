@@ -256,14 +256,14 @@ class TestIfExprInference(unittest.TestCase):
 
     def test_if_expr_type(self):
         result = check("""fn test(x: int): int {
-    return if x > 0 { x } else { 0 }
+    return if (x > 0) { x } else { 0 }
 }""")
         self.assertIsNotNone(result)
 
     def test_if_non_bool_condition(self):
         with self.assertRaises(FlowTypeError) as ctx:
             check("""fn bad(): none {
-    if 42 { let x = 1 }
+    if (42) { let x = 1 }
 }""")
         self.assertIn("must be bool", ctx.exception.message)
 

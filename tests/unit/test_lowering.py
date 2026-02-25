@@ -638,7 +638,7 @@ class TestIfStmtLowering(unittest.TestCase):
     def test_if_produces_lif(self):
         m = lower("""
             fn do_stuff(): none {
-                if true {
+                if (true) {
                     let x: int = 1
                 }
             }
@@ -650,7 +650,7 @@ class TestIfStmtLowering(unittest.TestCase):
     def test_if_else_produces_lif_with_else(self):
         m = lower("""
             fn do_stuff(): none {
-                if true {
+                if (true) {
                     let x: int = 1
                 } else {
                     let x: int = 2
@@ -974,8 +974,8 @@ class TestEdgeCases(unittest.TestCase):
     def test_nested_if(self):
         m = lower("""
             fn do_stuff(): none {
-                if true {
-                    if false {
+                if (true) {
+                    if (false) {
                         let x: int = 1
                     }
                 }

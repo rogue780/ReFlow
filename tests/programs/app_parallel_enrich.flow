@@ -23,8 +23,8 @@ fn:pure compute_score(value: int): int {
 }
 
 fn:pure categorize(value: int): string {
-    if value > 80 { return "high" }
-    if value > 40 { return "medium" }
+    if (value > 80) { return "high" }
+    if (value > 40) { return "medium" }
     return "low"
 }
 

@@ -3,7 +3,7 @@ module tests.option_propagate_test
 import io (println)
 
 fn find_positive(x: int): int? {
-    if x > 0 {
+    if (x > 0) {
         return some(x)
     }
     return none

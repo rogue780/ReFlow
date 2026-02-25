@@ -5,12 +5,12 @@ module examples.if_let_demo
 import io (println)
 
 fn find_positive(x: int): int? {
-    if x > 0 { return some(x) }
+    if (x > 0) { return some(x) }
     return none
 }
 
 fn safe_divide(a: int, b: int): result<int, string> {
-    if b == 0 { return err("division by zero") }
+    if (b == 0) { return err("division by zero") }
     return ok(a / b)
 }
 
@@ -22,22 +22,22 @@ fn double_positive(x: int): int? {
 
 fn main() {
     ; ── if let some ──────────────────────────────────
-    if let some(v) = find_positive(42) {
+    if (let some(v) = find_positive(42)) {
         println(f"found: {v}")
     }
 
-    if let some(v) = find_positive(-5) {
+    if (let some(v) = find_positive(-5)) {
         println(f"found: {v}")
     } else {
         println("not found")
     }
 
     ; ── if let ok / err ──────────────────────────────
-    if let ok(v) = safe_divide(10, 2) {
+    if (let ok(v) = safe_divide(10, 2)) {
         println(f"10 / 2 = {v}")
     }
 
-    if let err(e) = safe_divide(10, 0) {
+    if (let err(e) = safe_divide(10, 0)) {
         println(f"error: {e}")
     }
 

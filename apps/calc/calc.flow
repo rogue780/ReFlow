@@ -47,7 +47,7 @@ fn:pure skip_ws(input: string, pos: int): int {
     let length = string.len(input)
     while (p < length) {
         let ch = string.char_at(input, p) ?? 'x'
-        if char.is_whitespace(ch) {
+        if (char.is_whitespace(ch)) {
             p = p + 1
         } else {
             break
@@ -59,7 +59,7 @@ fn:pure skip_ws(input: string, pos: int): int {
 ; Peek at the character at pos (after skipping whitespace)
 fn:pure peek_char(input: string, pos: int): string {
     let p = skip_ws(input, pos)
-    if p >= string.len(input) {
+    if (p >= string.len(input)) {
         return ""
     }
     let ch = string.char_at(input, p) ?? ' '
@@ -75,7 +75,7 @@ fn parse_number(input: string, pos: int): (Expr, int) {
     ; Integer part
     while (p < length) {
         let ch = string.char_at(input, p) ?? ' '
-        if char.is_digit(ch) {
+        if (char.is_digit(ch)) {
             p = p + 1
         } else {
             break
@@ -83,13 +83,13 @@ fn parse_number(input: string, pos: int): (Expr, int) {
     }
 
     ; Decimal part
-    if p < length {
+    if (p < length) {
         let dot = string.char_at(input, p) ?? ' '
-        if char.to_string(dot) == "." {
+        if (char.to_string(dot) == ".") {
             p = p + 1
             while (p < length) {
                 let ch = string.char_at(input, p) ?? ' '
-                if char.is_digit(ch) {
+                if (char.is_digit(ch)) {
                     p = p + 1
                 } else {
                     break
@@ -111,11 +111,11 @@ fn parse_ident(input: string, pos: int): (string, int) {
 
     while (p < length) {
         let ch = string.char_at(input, p) ?? ' '
-        if char.is_alphanumeric(ch) {
+        if (char.is_alphanumeric(ch)) {
             p = p + 1
         } else {
             let cs = char.to_string(ch)
-            if cs == "_" {
+            if (cs == "_") {
                 p = p + 1
             } else {
                 break
@@ -130,7 +130,7 @@ fn parse_ident(input: string, pos: int): (string, int) {
 fn parse_primary(input: string, pos: int): (Expr, int) {
     let p = skip_ws(input, pos)
 
-    if p >= string.len(input) {
+    if (p >= string.len(input)) {
         io.eprintln("Error: unexpected end of expression")
         return (Literal(0.0), p)
     }
@@ -138,12 +138,12 @@ fn parse_primary(input: string, pos: int): (Expr, int) {
     let ch = string.char_at(input, p) ?? ' '
 
     ; Number
-    if char.is_digit(ch) {
+    if (char.is_digit(ch)) {
         return parse_number(input, p)
     }
 
     ; Identifier
-    if char.is_alpha(ch) {
+    if (char.is_alpha(ch)) {
         let result = parse_ident(input, p)
         let name = result.0
         return (Var(name), result.1)
@@ -151,12 +151,12 @@ fn parse_primary(input: string, pos: int): (Expr, int) {
 
     ; Parenthesized expression
     let cs = char.to_string(ch)
-    if cs == "(" {
+    if (cs == "(") {
         let inner = parse_expr(input, p + 1)
         let close_pos = skip_ws(input, inner.1)
-        if close_pos < string.len(input) {
+        if (close_pos < string.len(input)) {
             let close_ch = string.char_at(input, close_pos) ?? ' '
-            if char.to_string(close_ch) == ")" {
+            if (char.to_string(close_ch) == ")") {
                 return (inner.0, close_pos + 1)
             }
         }
@@ -171,9 +171,9 @@ fn parse_primary(input: string, pos: int): (Expr, int) {
 ; parse_unary: handle prefix minus
 fn parse_unary(input: string, pos: int): (Expr, int) {
     let p = skip_ws(input, pos)
-    if p < string.len(input) {
+    if (p < string.len(input)) {
         let ch = string.char_at(input, p) ?? ' '
-        if char.to_string(ch) == "-" {
+        if (char.to_string(ch) == "-") {
             let result = parse_unary(input, p + 1)
             return (Neg(result.0), result.1)
         }
@@ -185,9 +185,9 @@ fn parse_unary(input: string, pos: int): (Expr, int) {
 fn parse_power(input: string, pos: int): (Expr, int) {
     let base = parse_unary(input, pos)
     let p = skip_ws(input, base.1)
-    if p < string.len(input) {
+    if (p < string.len(input)) {
         let ch = string.char_at(input, p) ?? ' '
-        if char.to_string(ch) == "^" {
+        if (char.to_string(ch) == "^") {
             ; Right-associative: recurse
             let exp = parse_power(input, p + 1)
             return (BinOp("^", base.0, exp.0), exp.1)
@@ -205,19 +205,19 @@ fn parse_multiplicative(input: string, pos: int): (Expr, int) {
 
     while (running) {
         let p = skip_ws(input, cur)
-        if p >= string.len(input) {
+        if (p >= string.len(input)) {
             running = false
         } else {
             let ch = peek_char(input, cur)
-            if ch == "*" {
+            if (ch == "*") {
                 let rhs = parse_power(input, p + 1)
                 left = BinOp("*", left, rhs.0)
                 cur = rhs.1
-            } else if ch == "/" {
+            } else if (ch == "/") {
                 let rhs = parse_power(input, p + 1)
                 left = BinOp("/", left, rhs.0)
                 cur = rhs.1
-            } else if ch == "%" {
+            } else if (ch == "%") {
                 let rhs = parse_power(input, p + 1)
                 left = BinOp("%", left, rhs.0)
                 cur = rhs.1
@@ -239,15 +239,15 @@ fn parse_additive(input: string, pos: int): (Expr, int) {
 
     while (running) {
         let p = skip_ws(input, cur)
-        if p >= string.len(input) {
+        if (p >= string.len(input)) {
             running = false
         } else {
             let ch = peek_char(input, cur)
-            if ch == "+" {
+            if (ch == "+") {
                 let rhs = parse_multiplicative(input, p + 1)
                 left = BinOp("+", left, rhs.0)
                 cur = rhs.1
-            } else if ch == "-" {
+            } else if (ch == "-") {
                 let rhs = parse_multiplicative(input, p + 1)
                 left = BinOp("-", left, rhs.0)
                 cur = rhs.1
@@ -269,60 +269,52 @@ fn parse_expr(input: string, pos: int): (Expr, int) {
 ; Evaluator — recursive match over the Expr tree
 ; ===========================================================================
 
-; Evaluate an expression given a variable environment.
+fn eval_binop(op: string, lv: float, rv: float): float {
+    if (op == "+") { return lv + rv }
+    if (op == "-") { return lv - rv }
+    if (op == "*") { return lv * rv }
+    if (op == "^") { return math.pow(lv, rv) }
+    if (op == "/") {
+        if (rv == 0.0) {
+            io.eprintln("Error: division by zero")
+            return 0.0
+        }
+        return lv / rv
+    }
+    if (op == "%") {
+        if (rv == 0.0) {
+            io.eprintln("Error: modulo by zero")
+            return 0.0
+        }
+        return lv % rv
+    }
+    return 0.0
+}
+
 fn eval(expr: Expr, env: map<string, float>): float {
     match expr {
-        Literal(n): {
-            return n
-        }
-        Var(name): {
-            return map.get(env, name) ?? 0.0
-        }
-        Neg(inner): {
-            return 0.0 - eval(inner, env)
-        }
-        BinOp(op, left, right): {
-            let lv = eval(left, env)
-            let rv = eval(right, env)
-            if op == "+" {
-                return lv + rv
-            } else if op == "-" {
-                return lv - rv
-            } else if op == "*" {
-                return lv * rv
-            } else if op == "/" {
-                if rv == 0.0 {
-                    io.eprintln("Error: division by zero")
-                    return 0.0
-                }
-                return lv / rv
-            } else if op == "%" {
-                if rv == 0.0 {
-                    io.eprintln("Error: modulo by zero")
-                    return 0.0
-                }
-                return lv % rv
-            } else if op == "^" {
-                return math.pow(lv, rv)
-            } else {
-                return 0.0
-            }
-        }
+        Literal(n): n
+        Var(name): map.get(env, name) ?? 0.0
+        Neg(inner): 0.0 - eval(inner, env)
+        BinOp(op, left, right): eval_binop(op, eval(left, env), eval(right, env))
     }
 }
 
 ; ===========================================================================
-; Display — format a float result for printing
+; Display and helpers
 ; ===========================================================================
 
-; Format a float for display: show as integer if it has no fractional part.
 fn format_result(value: float): string {
     let as_int = cast<int>(value)
-    let back = cast<float>(as_int)
-    if back == value {
+    if (cast<float>(as_int) == value) {
         return conv.to_string(as_int)
     }
     return conv.to_string(value)
+}
+
+fn eval_input(input: string, env: map<string, float>): string {
+    let parsed = parse_expr(input, 0)
+    return format_result(eval(parsed.0, env))
 }
 
 ; ===========================================================================
@@ -336,96 +328,88 @@ fn print_help(): none {
     io.println("  Commands:  vars, clear, help, quit")
 }
 
+fn print_vars(env: map<string, float>): none {
+    let keys = map.keys(env)
+    if (array.len_string(keys) == 0) {
+        io.println("(no variables)")
+        return
+    }
+    let i: int:mut = 0
+    while (i < array.len_string(keys)) {
+        if (let some(k) = array.get(keys, i)) {
+            let v = map.get(env, k) ?? 0.0
+            io.println("  " + k + " = " + format_result(v))
+        }
+        i = i + 1
+    }
+}
+
+fn try_assignment(input: string, env: map<string, float>): (map<string, float>, bool) {
+    if (!string.starts_with(input, "let ")) {
+        return (env, false)
+    }
+    let rest = string.trim(string.substring(input, 4, string.len(input)))
+    match string.index_of(rest, "=") {
+        none: {
+            io.eprintln("Error: expected '=' in assignment")
+            return (env, true)
+        }
+        some(eq_pos): {
+            let var_name = string.trim(string.substring(rest, 0, eq_pos))
+            let expr_str = string.trim(string.substring(rest, eq_pos + 1, string.len(rest)))
+            if (string.len(var_name) == 0) {
+                io.eprintln("Error: missing variable name")
+                return (env, true)
+            }
+            if (string.len(expr_str) == 0) {
+                io.eprintln("Error: missing expression after '='")
+                return (env, true)
+            }
+            let value = eval_input(expr_str, env)
+            let new_env = map.set(env, var_name, conv.string_to_float(value) ?? 0.0)
+            io.println(var_name + " = " + value)
+            return (new_env, true)
+        }
+    }
+}
+
 fn main(): none {
     let env: map<string, float>:mut = map.new()
-
     io.println("Flow Calculator — type 'help' for usage, 'quit' to exit")
 
     while (true) {
         io.print("> ")
-
-        match io.read_line() {
-            none: {
-                ; EOF
-                io.println("")
-                break
-            }
-            some(line): {
-                let trimmed = string.trim(line)
-
-                if string.len(trimmed) == 0 {
-                    continue
-                }
-
-                ; Check special commands
-                if trimmed == "quit" {
-                    break
-                }
-                if trimmed == "exit" {
-                    break
-                }
-                if trimmed == "help" {
-                    print_help()
-                    continue
-                }
-                if trimmed == "clear" {
-                    env = map.new()
-                    io.println("Environment cleared")
-                    continue
-                }
-                if trimmed == "vars" {
-                    let keys = map.keys(env)
-                    if array.len_string(keys) == 0 {
-                        io.println("(no variables)")
-                    } else {
-                        let i: int:mut = 0
-                        while (i < array.len_string(keys)) {
-                            if let some(k) = array.get(keys, i) {
-                                let v = map.get(env, k) ?? 0.0
-                                io.println("  " + k + " = " + format_result(v))
-                            }
-                            i = i + 1
-                        }
-                    }
-                    continue
-                }
-
-                ; Check for variable assignment: let <name> = <expr>
-                if string.starts_with(trimmed, "let ") {
-                    let rest = string.substring(trimmed, 4, string.len(trimmed))
-                    let rest_trimmed = string.trim(rest)
-                    ; Find the '=' sign
-                    match string.index_of(rest_trimmed, "=") {
-                        some(eq_pos): {
-                            let var_name = string.trim(string.substring(rest_trimmed, 0, eq_pos))
-                            let expr_str = string.trim(string.substring(rest_trimmed, eq_pos + 1, string.len(rest_trimmed)))
-
-                            if string.len(var_name) == 0 {
-                                io.eprintln("Error: missing variable name")
-                                continue
-                            }
-                            if string.len(expr_str) == 0 {
-                                io.eprintln("Error: missing expression after '='")
-                                continue
-                            }
-
-                            let parsed = parse_expr(expr_str, 0)
-                            let value = eval(parsed.0, env)
-                            env = map.set(env, var_name, value)
-                            io.println(var_name + " = " + format_result(value))
-                        }
-                        none: {
-                            io.eprintln("Error: expected '=' in assignment")
-                        }
-                    }
-                    continue
-                }
-
-                ; Regular expression: parse → eval → print
-                let parsed = parse_expr(trimmed, 0)
-                let result = eval(parsed.0, env)
-                io.println(format_result(result))
-            }
+        let line_opt = io.read_line()
+        if (let none = line_opt) {
+            io.println("")
+            break
         }
+        let trimmed = string.trim(line_opt ?? "")
+        if (string.len(trimmed) == 0) {
+            continue
+        }
+        if (trimmed == "quit") { break }
+        if (trimmed == "exit") { break }
+        if (trimmed == "help") {
+            print_help()
+            continue
+        }
+        if (trimmed == "clear") {
+            env = map.new()
+            io.println("Environment cleared")
+            continue
+        }
+        if (trimmed == "vars") {
+            print_vars(env)
+            continue
+        }
+
+        let assign = try_assignment(trimmed, env)
+        if (assign.1) {
+            env = assign.0
+            continue
+        }
+
+        io.println(eval_input(trimmed, env))
     }
 }

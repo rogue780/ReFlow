@@ -127,7 +127,7 @@ typeof(x) == typeof("hi")   ; false: int != string
 
 ```
 fn ensure_same_type<T, U>(a: T, b: U) {
-    if typeof(a) != typeof(b) {
+    if (typeof(a) != typeof(b)) {
         throw TypeMismatchError(f"expected {typeof(a)}, got {typeof(b)}")
     }
 }
@@ -485,34 +485,34 @@ let value = match lookup(key) {
 
 ```
 ; Unwrap some — skip on none
-if let some(v) = find_user(id) {
+if (let some(v) = find_user(id)) {
     println(f"found: {v}")
 }
 
 ; Unwrap some with else
-if let some(v) = find_user(id) {
+if (let some(v) = find_user(id)) {
     greet(v)
 } else {
     println("user not found")
 }
 
 ; Unwrap ok — else handles the error case
-if let ok(data) = read_file(path) {
+if (let ok(data) = read_file(path)) {
     process(data)
 } else {
     println("read failed")
 }
 
 ; Unwrap err
-if let err(e) = validate(input) {
+if (let err(e) = validate(input)) {
     log_error(e)
 }
 ```
 
-The parser desugars `if let` into a `match` statement:
-- `if let some(x) = expr { body }` becomes `match expr { some(x): { body }, none: {} }`
-- `if let ok(x) = expr { body } else { alt }` becomes `match expr { ok(x): { body }, err(_): { alt } }`
-- `if let err(e) = expr { body }` becomes `match expr { err(e): { body }, ok(_): {} }`
+The parser desugars `if (let ...)` into a `match` statement:
+- `if (let some(x) = expr) { body }` becomes `match expr { some(x): { body }, none: {} }`
+- `if (let ok(x) = expr) { body } else { alt }` becomes `match expr { ok(x): { body }, err(_): { alt } }`
+- `if (let err(e) = expr) { body }` becomes `match expr { err(e): { body }, ok(_): {} }`
 
 No changes to the resolver, type checker, lowering, or emitter are needed — the desugared `match` flows through the existing pipeline.
 
@@ -540,7 +540,7 @@ type result<T, E> =
 
 ```
 fn parse_int(s: string): result<int, string> {
-    if s.is_empty() {
+    if (s.is_empty()) {
         return err("empty string")
     }
     ; ... parse logic ...
@@ -891,8 +891,8 @@ type LogEntry {
     message: string,
 
     fn severity_score(self): int {
-        if self.level == "ERROR" { return 8 }
-        if self.level == "WARN"  { return 5 }
+        if (self.level == "ERROR") { return 8 }
+        if (self.level == "WARN")  { return 5 }
         return 1
     }
 
@@ -960,7 +960,7 @@ type LogEntry {
     level: string,
 
     constructor from_raw(ts: int, src: string, lvl: string): LogEntry {
-        if lvl != "DEBUG" && lvl != "INFO" && lvl != "WARN" && lvl != "ERROR" {
+        if (lvl != "DEBUG" && lvl != "INFO" && lvl != "WARN" && lvl != "ERROR") {
             throw InvalidLevelError(lvl)
         }
         return LogEntry { timestamp: ts, source: src, level: lvl }
@@ -1356,7 +1356,7 @@ Function types are used in parameter declarations:
 ```
 fn filter<T>(pred: fn(T): bool, s: stream<T>): stream<T> {
     for(item: T in s) {
-        if pred(item) { yield item }
+        if (pred(item)) { yield item }
     }
 }
 ```
@@ -1380,7 +1380,7 @@ fulfill the required interface.
 ```
 ; Single bound
 fn max<T fulfills Comparable>(a: T, b: T): T {
-    return if a.compare(b) > 0 then a else b
+    return if (a.compare(b) > 0) then a else b
 }
 
 ; Multiple bounds on one parameter (parenthesized)
@@ -1451,7 +1451,7 @@ Any function may include a `finally` block that runs exactly once on termination
 fn read_lines(path: string): stream<string> {
     let handle = file.open(path)
     for(line: string in handle) {
-        if line == "STOP" { return }
+        if (line == "STOP") { return }
         yield line
     }
 } finally {
@@ -1516,7 +1516,7 @@ Inner scopes silently shadow outer names. The outer name is inaccessible within 
 ```
 fn example(): none {
     let x = 1
-    if true {
+    if (true) {
         let x = 2       ; shadows outer x, no warning
         print(x)         ; prints 2
     }
@@ -1716,9 +1716,9 @@ Snapshots are read-only. A snapshot cannot write back to its source. `pure` func
 ### `if` / `else`
 
 ```
-if a == 9 {
+if (a == 9) {
     do_something()
-} else if a == 10 {
+} else if (a == 10) {
     do_something_else()
 } else {
     default_action()
@@ -1728,7 +1728,7 @@ if a == 9 {
 `if`/`else` is an expression when both branches produce the same type:
 
 ```
-let label: string = if score >= 90 { "A" } else { "B" }
+let label: string = if (score >= 90) { "A" } else { "B" }
 ```
 
 ### Ternary
@@ -1800,8 +1800,8 @@ while (condition) {
 ```
 while (i < 100) {
     i = i + 1
-    if i == 50 { continue }  ; skip 50, keep going
-    if i == 75 { break }     ; stop at 75
+    if (i == 50) { continue }  ; skip 50, keep going
+    if (i == 75) { break }     ; stop at 75
     process(i)
 }
 ```
@@ -1822,7 +1822,7 @@ for(item: int in collection) {
 
 ```
 for(item: int in data) {
-    if item == 0 { break }
+    if (item == 0) { break }
     process(item)
 } finally {
     cleanup()    ; runs after exhaustion or break
@@ -1948,7 +1948,7 @@ In a `stream<T>` function:
 fn read_lines(path: string): stream<string> {
     let handle = file.open(path)
     for(line: string in handle) {
-        if line == "STOP" { return }
+        if (line == "STOP") { return }
         yield line
     }
 } finally {
@@ -2377,7 +2377,7 @@ try {
 } catch (ex: ValidationError) {
     quarantine(ex.data)
 } finally (? ex: Exception) {
-    if ex { log("pipeline completed with errors") }
+    if (ex) { log("pipeline completed with errors") }
     close_connections()
 }
 ```
@@ -2438,10 +2438,10 @@ type PipelineConfig {
 }
 
 fn validate_order(o: Order): result<Order, string> {
-    if o.amount <= 0.0 {
+    if (o.amount <= 0.0) {
         return err(f"Invalid amount: {o.amount}")
     }
-    if o.customer_id.is_empty() {
+    if (o.customer_id.is_empty()) {
         return err("Missing customer ID")
     }
     return ok(o)
@@ -2477,7 +2477,7 @@ fn run(): result<int, string> {
             f"parse failed after retries. original: '{ex.original}', last: '{ex.data}'")
 
     } finally (? ex: Exception) {
-        if ex { return err(ex.message()) }
+        if (ex) { return err(ex.message()) }
     }
 }
 ```

@@ -5,7 +5,7 @@ import io (println)
 
 ; A function that may throw a string exception
 fn parse_number(s: string): int {
-    if s == "bad" {
+    if (s == "bad") {
         throw "parse error: invalid input"
     }
     return 42
@@ -13,7 +13,7 @@ fn parse_number(s: string): int {
 
 ; A function that validates input
 fn validate(x: int): int {
-    if x < 0 {
+    if (x < 0) {
         throw "validation error: negative value"
     }
     return x
@@ -128,7 +128,7 @@ type ConfigError fulfills Exception<string> {
 }
 
 fn parse_config(s: string): string {
-    if s == "bad-input" {
+    if (s == "bad-input") {
         throw ConfigError { msg: "invalid config key", input: s }
     }
     return "ok"

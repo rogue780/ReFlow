@@ -3,7 +3,7 @@ module tests.exception_retry_test
 import io (println)
 
 fn parse_value(s: string): int {
-    if s == "bad" {
+    if (s == "bad") {
         throw "parse error"
     }
     return 42

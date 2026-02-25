@@ -18,7 +18,7 @@ fn main() {
     }
 
     ; Check existence
-    if has(m, "version") {
+    if (has(m, "version")) {
         println("has 'version' key")
     }
 

@@ -4,7 +4,7 @@ import io
 import conv
 
 fn:pure min<T fulfills Comparable>(a: T, b: T): T {
-    return if a.compare(b) <= 0 { a } else { b }
+    return if (a.compare(b) <= 0) { a } else { b }
 }
 
 fn main(): none {

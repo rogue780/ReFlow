@@ -5,10 +5,10 @@ import string
 ; Duplicate of parse_message from chat.server for testing.
 fn parse_message(raw: string): (string, string) {
     let trimmed = string.trim(raw)
-    if string.len(trimmed) == 0 {
+    if (string.len(trimmed) == 0) {
         return ("/empty", "")
     }
-    if string.starts_with(trimmed, "/") {
+    if (string.starts_with(trimmed, "/")) {
         match string.index_of(trimmed, " ") {
             some(idx): {
                 let cmd = string.substring(trimmed, 0, idx)
@@ -25,15 +25,15 @@ fn parse_message(raw: string): (string, string) {
 
 ; Duplicate of validate_nick from chat.server for testing.
 fn validate_nick(name: string): string? {
-    if string.len(name) == 0 { return some("Nickname cannot be empty.") }
-    if string.len(name) > 20 { return some("Nickname too long (max 20 chars).") }
-    if string.contains(name, " ") { return some("Nickname cannot contain spaces.") }
+    if (string.len(name) == 0) { return some("Nickname cannot be empty.") }
+    if (string.len(name) > 20) { return some("Nickname too long (max 20 chars).") }
+    if (string.contains(name, " ")) { return some("Nickname cannot contain spaces.") }
     return none
 }
 
 fn test_parse(input: string, expected_cmd: string, expected_arg: string): none {
     let result = parse_message(input)
-    if result.0 == expected_cmd && result.1 == expected_arg {
+    if (result.0 == expected_cmd && result.1 == expected_arg) {
         println("PASS: \"" + input + "\" -> (" + result.0 + ", " + result.1 + ")")
     } else {
         println("FAIL: \"" + input + "\" expected (" + expected_cmd + ", " + expected_arg + ") got (" + result.0 + ", " + result.1 + ")")
@@ -43,14 +43,14 @@ fn test_parse(input: string, expected_cmd: string, expected_arg: string): none {
 fn test_nick(input: string, expect_ok: bool): none {
     match validate_nick(input) {
         some(reason): {
-            if !expect_ok {
+            if (!expect_ok) {
                 println("PASS: validate_nick(\"" + input + "\") -> error: " + reason)
             } else {
                 println("FAIL: validate_nick(\"" + input + "\") expected ok, got: " + reason)
             }
         }
         none: {
-            if expect_ok {
+            if (expect_ok) {
                 println("PASS: validate_nick(\"" + input + "\") -> ok")
             } else {
                 println("FAIL: validate_nick(\"" + input + "\") expected error, got ok")

@@ -7,7 +7,7 @@ import io (println)
 fn find_index(arr: array<int>, target: int): int? {
     let i: int:mut = 0
     for (x: int in arr) {
-        if x == target {
+        if (x == target) {
             return some(i)
         }
         i++
@@ -23,7 +23,7 @@ fn find_or_default(arr: array<int>, target: int): int {
 
 ; Function returning result
 fn safe_divide(a: int, b: int): result<int, string> {
-    if b == 0 {
+    if (b == 0) {
         return err("division by zero")
     }
     return ok(a / b)

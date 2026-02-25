@@ -29,14 +29,14 @@ fn main() {
     let metric = MetricPoint { timestamp: 300, value: 9.81 }
 
     ; --- Same fields, different names → congruent ---
-    if log === event {
+    if (log === event) {
         println("LogEntry === EventRecord: true (same fields)")
     } else {
         println("LogEntry === EventRecord: false")
     }
 
     ; --- Different fields → not congruent ---
-    if log === metric {
+    if (log === metric) {
         println("LogEntry === MetricPoint: true")
     } else {
         println("LogEntry === MetricPoint: false (different fields)")
@@ -46,7 +46,7 @@ fn main() {
     ; The === operator is most useful as a guard before structural operations.
     ; Since types are known at compile time, the compiler resolves === to
     ; a constant true or false — no runtime cost.
-    if log === event {
+    if (log === event) {
         println("Guard passed: types are structurally compatible")
     }
 }

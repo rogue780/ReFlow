@@ -24,14 +24,14 @@ fn main() {
     let c = MetricPoint { timestamp: 300, value: 3.14 }
 
     ; Same fields → congruent
-    if a === b {
+    if (a === b) {
         println("a === b: true")
     } else {
         println("a === b: false")
     }
 
     ; Different fields → not congruent
-    if a === c {
+    if (a === c) {
         println("a === c: true")
     } else {
         println("a === c: false")

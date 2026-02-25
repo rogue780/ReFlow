@@ -933,21 +933,21 @@ class TestIfExpr(unittest.TestCase):
     """If expression parsing."""
 
     def test_if_else_expr(self) -> None:
-        expr = parse_expr("if a > b { a } else { b }")
+        expr = parse_expr("if (a > b) { a } else { b }")
         self.assertIsInstance(expr, IfExpr)
 
     def test_if_expr_condition(self) -> None:
-        expr = parse_expr("if a > b { a } else { b }")
+        expr = parse_expr("if (a > b) { a } else { b }")
         self.assertIsInstance(expr, IfExpr)
         self.assertIsInstance(expr.condition, BinOp)
 
     def test_if_expr_then_branch(self) -> None:
-        expr = parse_expr("if a > b { a } else { b }")
+        expr = parse_expr("if (a > b) { a } else { b }")
         self.assertIsInstance(expr, IfExpr)
         self.assertIsInstance(expr.then_branch, Block)
 
     def test_if_expr_else_branch(self) -> None:
-        expr = parse_expr("if a > b { a } else { b }")
+        expr = parse_expr("if (a > b) { a } else { b }")
         self.assertIsInstance(expr, IfExpr)
         self.assertIsNotNone(expr.else_branch)
 
@@ -1096,28 +1096,32 @@ class TestIfStmt(unittest.TestCase):
     """If statement parsing."""
 
     def test_simple_if(self) -> None:
-        stmt = parse_stmt("if cond { return 1 }")
+        stmt = parse_stmt("if (cond) { return 1 }")
         self.assertIsInstance(stmt, IfStmt)
         self.assertIsInstance(stmt.condition, Ident)
         self.assertIsInstance(stmt.then_branch, Block)
         self.assertIsNone(stmt.else_branch)
 
     def test_if_else(self) -> None:
-        stmt = parse_stmt("if cond { return 1 } else { return 2 }")
+        stmt = parse_stmt("if (cond) { return 1 } else { return 2 }")
         self.assertIsInstance(stmt, IfStmt)
         self.assertIsNotNone(stmt.else_branch)
         self.assertIsInstance(stmt.else_branch, Block)
 
     def test_if_else_if(self) -> None:
-        stmt = parse_stmt("if cond { return 1 } else if cond2 { return 2 } else { return 3 }")
+        stmt = parse_stmt("if (cond) { return 1 } else if (cond2) { return 2 } else { return 3 }")
         self.assertIsInstance(stmt, IfStmt)
         self.assertIsNotNone(stmt.else_branch)
         self.assertIsInstance(stmt.else_branch, IfStmt)
 
     def test_if_condition_is_expr(self) -> None:
-        stmt = parse_stmt("if x > 0 { return x }")
+        stmt = parse_stmt("if (x > 0) { return x }")
         self.assertIsInstance(stmt, IfStmt)
         self.assertIsInstance(stmt.condition, BinOp)
+
+    def test_if_missing_parens(self) -> None:
+        with self.assertRaises(ParseError):
+            parse_stmt("if cond { return 1 }")
 
 
 class TestWhileStmt(unittest.TestCase):
