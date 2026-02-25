@@ -1,0 +1,228 @@
+; app_healthcheck.flow — Health checker E2E test
+; Demonstrates: receivable coroutines, try/retry/catch, result types,
+; sum types, pattern matching, networking
+module tests.app_healthcheck
+
+import io
+import net
+import string
+import conv
+import array
+import time
+
+; ============================================================================
+; Data Types
+; ============================================================================
+
+type CheckStatus =
+    | Pass(code: int)
+    | Fail(msg: string)
+    | Warn(code: int, reason: string)
+
+; ============================================================================
+; Mock HTTP Server (receivable coroutine — runs on its own thread)
+; ============================================================================
+
+fn mock_server(inbox: stream<string>, port: int): stream<string> {
+    match net.listen("127.0.0.1", port) {
+        some(listener): {
+            yield "ready"
+            net.set_timeout(listener, 200)
+            let running: bool:mut = true
+            while (running) {
+                for (cmd: string in inbox) {
+                    if (cmd == "stop") {
+                        running = false
+                    }
+                }
+                if (!running) {
+                    break
+                }
+                if (let some(client) = net.accept(listener)) {
+                    if (let some(data) = net.read(client, 4096)) {
+                        let request = string.from_bytes(data)
+                        let response: string:mut = "HTTP/1.0 404 Not Found\r\n\r\nnot found"
+                        if (string.contains(request, "GET /api/health")) {
+                            response = "HTTP/1.0 200 OK\r\n\r\nok"
+                        } else if (string.contains(request, "GET /api/users")) {
+                            response = "HTTP/1.0 200 OK\r\n\r\n[users]"
+                        }
+                        net.write_string(client, response)
+                    }
+                    net.close(client)
+                }
+            }
+            net.close(listener)
+        }
+        none: {
+            yield "failed"
+        }
+    }
+}
+
+; ============================================================================
+; HTTP Status Parser (pure)
+; ============================================================================
+
+fn:pure parse_http_status(response: string): int {
+    if (let some(sp1) = string.index_of(response, " ")) {
+        let after = string.substring(response, sp1 + 1, string.len(response))
+        if (let some(sp2) = string.index_of(after, " ")) {
+            return conv.string_to_int(string.substring(after, 0, sp2)) ?? 0
+        }
+        return conv.string_to_int(after) ?? 0
+    }
+    return 0
+}
+
+; ============================================================================
+; Health Check Function
+; ============================================================================
+
+fn check_url(host: string, port: int, url_path: string, expected: int, timeout: int): CheckStatus {
+    let conn = net.connect(host, port)
+    if (let some(sock) = conn) {
+        net.set_timeout(sock, timeout)
+        let req = "GET " + url_path + " HTTP/1.0\r\nHost: " + host + "\r\n\r\n"
+        let wrote = net.write_string(sock, req)
+        if (!wrote) {
+            net.close(sock)
+            throw "write failed"
+        }
+        let response = net.read(sock, 4096)
+        if (let some(data) = response) {
+            net.close(sock)
+            let resp = string.from_bytes(data)
+            let status_code = parse_http_status(resp)
+            if (status_code == expected) {
+                return Pass(status_code)
+            }
+            return Warn(status_code, "expected " + conv.to_string(expected) + " got " + conv.to_string(status_code))
+        }
+        net.close(sock)
+        throw "timeout"
+    }
+    throw "connection failed"
+    return Pass(0)
+}
+
+; ============================================================================
+; Result Aggregator (receivable coroutine)
+; ============================================================================
+
+fn result_aggregator(inbox: stream<string>): stream<string> {
+    let p: int:mut = 0
+    let f: int:mut = 0
+    let w: int:mut = 0
+    let finished: bool:mut = false
+
+    while (!finished) {
+        for (s: string in inbox) {
+            if (s == "done") {
+                finished = true
+            } else if (s == "pass") {
+                p = p + 1
+            } else if (s == "fail") {
+                f = f + 1
+            } else if (s == "warn") {
+                w = w + 1
+            }
+        }
+        if (!finished) {
+            time.sleep_ms(5)
+        }
+    }
+
+    let total = p + f + w
+    yield conv.to_string(p) + ":" + conv.to_string(f) + ":" + conv.to_string(w) + ":" + conv.to_string(total)
+}
+
+; ============================================================================
+; Main
+; ============================================================================
+
+fn main(): none {
+    let port = 39876
+    let server :< mock_server(port)
+
+    match server.next() {
+        some(status): {
+            if (status != "ready") {
+                io.println("[HC] Server failed to start")
+                return
+            }
+        }
+        none: {
+            io.println("[HC] Server failed to start")
+            return
+        }
+    }
+
+    time.sleep_ms(50)
+
+    io.println("[HC] Starting health check for 5 targets...")
+
+    let agg :< result_aggregator()
+
+    let urls: array<string>:mut = []
+    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port) + "|/api/health|200")
+    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port) + "|/api/users|200")
+    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port) + "|/api/nothing|200")
+    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port) + "|/api/nothing|404")
+    urls = array.push(urls, "127.0.0.1|" + conv.to_string(port + 1) + "|/fail|200")
+
+    let idx: int:mut = 0
+    while (idx < 5) {
+        let target_str = array.get(urls, idx) ?? ""
+        let parts = string.split(target_str, "|")
+        let host = array.get(parts, 0) ?? "127.0.0.1"
+        let tport = conv.string_to_int(array.get(parts, 1) ?? "0") ?? 0
+        let url_path = array.get(parts, 2) ?? "/"
+        let expected = conv.string_to_int(array.get(parts, 3) ?? "200") ?? 200
+
+        io.println("[HC] Checking: " + url_path)
+
+        try {
+            let status = check_url(host, tport, url_path, expected, 2000)
+            match status {
+                Pass(pass_code): {
+                    io.println("[HC] OK: " + url_path + " (" + conv.to_string(pass_code) + ")")
+                    agg.send("pass")
+                }
+                Warn(warn_code, reason): {
+                    io.println("[HC] WARN: " + url_path + " (" + conv.to_string(warn_code) + " - " + reason + ")")
+                    agg.send("warn")
+                }
+                Fail(fail_msg): {
+                    io.println("[HC] FAIL: " + url_path + " (" + fail_msg + ")")
+                    agg.send("fail")
+                }
+            }
+        } retry check_url (ex: string, attempts: 2) {
+            io.println("[HC] RETRY: " + ex + ", retrying...")
+        } catch (ex: string) {
+            io.println("[HC] FAIL: " + url_path + " (" + ex + " after retries)")
+            agg.send("fail")
+        }
+
+        idx = idx + 1
+    }
+
+    agg.send("done")
+
+    match agg.next() {
+        some(report_str): {
+            let rparts = string.split(report_str, ":")
+            io.println("[HC] --- Report ---")
+            io.println("[HC] Passed: " + (array.get(rparts, 0) ?? "0"))
+            io.println("[HC] Failed: " + (array.get(rparts, 1) ?? "0"))
+            io.println("[HC] Warnings: " + (array.get(rparts, 2) ?? "0"))
+            io.println("[HC] Total: " + (array.get(rparts, 3) ?? "0"))
+        }
+        none: {
+            io.println("[HC] No report available")
+        }
+    }
+
+    server.send("stop")
+}

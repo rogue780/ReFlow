@@ -1,0 +1,18 @@
+[HC] Starting health check for 5 targets...
+[HC] Checking: /api/health
+[HC] OK: /api/health (200)
+[HC] Checking: /api/users
+[HC] OK: /api/users (200)
+[HC] Checking: /api/nothing
+[HC] WARN: /api/nothing (404 - expected 200 got 404)
+[HC] Checking: /api/nothing
+[HC] OK: /api/nothing (404)
+[HC] Checking: /fail
+[HC] RETRY: connection failed, retrying...
+[HC] RETRY: connection failed, retrying...
+[HC] FAIL: /fail (connection failed after retries)
+[HC] --- Report ---
+[HC] Passed: 3
+[HC] Failed: 1
+[HC] Warnings: 1
+[HC] Total: 5
