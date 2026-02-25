@@ -20,7 +20,7 @@ type CheckStatus =
     | Warn(code: int, reason: string)
 
 ; ============================================================================
-; Mock HTTP Server (receivable coroutine — runs on its own thread)
+; Mock HTTP Server (receivable coroutine for clean shutdown via message passing)
 ; ============================================================================
 
 fn mock_server(inbox: stream<string>, port: int): stream<string> {
@@ -103,7 +103,6 @@ fn check_url(host: string, port: int, url_path: string, expected: int, timeout: 
         throw "timeout"
     }
     throw "connection failed"
-    return Pass(0)
 }
 
 ; ============================================================================
@@ -185,16 +184,16 @@ fn main(): none {
         try {
             let status = check_url(host, tport, url_path, expected, 2000)
             match status {
-                Pass(pass_code): {
-                    io.println("[HC] OK: " + url_path + " (" + conv.to_string(pass_code) + ")")
+                Pass(code): {
+                    io.println("[HC] OK: " + url_path + " (" + conv.to_string(code) + ")")
                     agg.send("pass")
                 }
-                Warn(warn_code, reason): {
-                    io.println("[HC] WARN: " + url_path + " (" + conv.to_string(warn_code) + " - " + reason + ")")
+                Warn(code, reason): {
+                    io.println("[HC] WARN: " + url_path + " (" + conv.to_string(code) + " - " + reason + ")")
                     agg.send("warn")
                 }
-                Fail(fail_msg): {
-                    io.println("[HC] FAIL: " + url_path + " (" + fail_msg + ")")
+                Fail(msg): {
+                    io.println("[HC] FAIL: " + url_path + " (" + msg + ")")
                     agg.send("fail")
                 }
             }

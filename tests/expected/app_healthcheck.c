@@ -222,7 +222,6 @@ fl_tests_app_healthcheck_CheckStatus fl_tests_app_healthcheck_check_url(FL_Strin
         _fl_throw(((void*)fl_string_from_cstr("timeout")), 0);
     }
     _fl_throw(((void*)fl_string_from_cstr("connection failed")), 0);
-    return (fl_tests_app_healthcheck_CheckStatus){.tag = 0, .Pass = (fl_tests_app_healthcheck_CheckStatus_Pass){.code = 0}};
 }
 
 /* Flow: tests.app_healthcheck.result_aggregator::next */
@@ -366,21 +365,21 @@ void fl_tests_app_healthcheck_main(void) {
             fl_tests_app_healthcheck_CheckStatus _fl_tmp_27 = status;
             switch (_fl_tmp_27.tag) {
                 case 0: {
-                    fl_int pass_code = _fl_tmp_27.Pass.code;
-                    fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] OK: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(pass_code)), fl_string_from_cstr(")")));
+                    fl_int code = _fl_tmp_27.Pass.code;
+                    fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] OK: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(code)), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("pass")));
                     break;
                 }
                 case 2: {
-                    fl_int warn_code = _fl_tmp_27.Warn.code;
+                    fl_int code = _fl_tmp_27.Warn.code;
                     FL_String* reason = _fl_tmp_27.Warn.reason;
-                    fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] WARN: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(warn_code)), fl_string_from_cstr(" - ")), reason), fl_string_from_cstr(")")));
+                    fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] WARN: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(code)), fl_string_from_cstr(" - ")), reason), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("warn")));
                     break;
                 }
                 case 1: {
-                    FL_String* fail_msg = _fl_tmp_27.Fail.msg;
-                    fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), fail_msg), fl_string_from_cstr(")")));
+                    FL_String* msg = _fl_tmp_27.Fail.msg;
+                    fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), msg), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("fail")));
                     break;
                 }
@@ -400,21 +399,21 @@ void fl_tests_app_healthcheck_main(void) {
                         fl_tests_app_healthcheck_CheckStatus _fl_tmp_30 = status;
                         switch (_fl_tmp_30.tag) {
                             case 0: {
-                                fl_int pass_code = _fl_tmp_30.Pass.code;
-                                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] OK: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(pass_code)), fl_string_from_cstr(")")));
+                                fl_int code = _fl_tmp_30.Pass.code;
+                                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] OK: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(code)), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("pass")));
                                 break;
                             }
                             case 2: {
-                                fl_int warn_code = _fl_tmp_30.Warn.code;
+                                fl_int code = _fl_tmp_30.Warn.code;
                                 FL_String* reason = _fl_tmp_30.Warn.reason;
-                                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] WARN: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(warn_code)), fl_string_from_cstr(" - ")), reason), fl_string_from_cstr(")")));
+                                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] WARN: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(code)), fl_string_from_cstr(" - ")), reason), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("warn")));
                                 break;
                             }
                             case 1: {
-                                FL_String* fail_msg = _fl_tmp_30.Fail.msg;
-                                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), fail_msg), fl_string_from_cstr(")")));
+                                FL_String* msg = _fl_tmp_30.Fail.msg;
+                                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), msg), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("fail")));
                                 break;
                             }
