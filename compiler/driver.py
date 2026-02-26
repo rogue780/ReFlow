@@ -541,3 +541,66 @@ def check_only(source_path: str, *, verbose: bool = False) -> int:
     """Run pipeline through type checking only."""
     _run_multi_pipeline(source_path)
     return 0
+
+
+# ---------------------------------------------------------------------------
+# Lint-only pipeline
+# ---------------------------------------------------------------------------
+
+def lint_only(
+    source_path: str,
+    *,
+    fix: bool = False,
+    rules: list[str] | None = None,
+    exclude: list[str] | None = None,
+) -> int:
+    """Run lex + parse + lint on a single file. Returns 0 if clean, 1 if issues."""
+    from compiler.linter import (
+        build_context, lint, apply_fixes, format_diagnostic,
+        get_rules, LintRule,
+    )
+    from compiler.errors import LexError, ParseError
+
+    path = Path(source_path)
+    source = path.read_text()
+    display = _display_path(path)
+
+    # Lex — if lex fails, we can't lint at all.
+    try:
+        tokens = Lexer(source, display).tokenize()
+    except LexError:
+        raise
+
+    # Parse — if parse fails, run token/source-level rules only.
+    module = None
+    try:
+        module = Parser(tokens, display).parse()
+    except ParseError:
+        pass
+
+    selected_rules = get_rules(include=rules, exclude=exclude)
+    ctx = build_context(source, display, tokens, module)
+    diags = lint(ctx, rules=selected_rules)
+
+    if fix and diags:
+        new_source = apply_fixes(source, diags)
+        if new_source != source:
+            path.write_text(new_source)
+            # Re-lint after fix to report remaining issues.
+            source = new_source
+            try:
+                tokens = Lexer(source, display).tokenize()
+            except LexError:
+                raise
+            module = None
+            try:
+                module = Parser(tokens, display).parse()
+            except ParseError:
+                pass
+            ctx = build_context(source, display, tokens, module)
+            diags = lint(ctx, rules=selected_rules)
+
+    for d in diags:
+        print(format_diagnostic(d), file=sys.stderr)
+
+    return 0 if not diags else 1

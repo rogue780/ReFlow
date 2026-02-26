@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from compiler.driver import compile_source, emit_only, check_only, run_source
+from compiler.driver import compile_source, emit_only, check_only, run_source, lint_only
 from compiler.errors import FlowError
 
 
@@ -53,6 +53,16 @@ def main() -> int:
     check_parser.add_argument("--verbose", "-v", action="store_true",
                               help="Verbose output")
 
+    # flow lint <file>
+    lint_parser = subparsers.add_parser("lint", help="Check code style and naming conventions")
+    lint_parser.add_argument("file", help="Path to .flow source file")
+    lint_parser.add_argument("--fix", action="store_true",
+                             help="Auto-fix fixable issues")
+    lint_parser.add_argument("--rules", nargs="*", default=None,
+                             help="Only run these rules (by ID or name)")
+    lint_parser.add_argument("--exclude", nargs="*", default=None,
+                             help="Exclude these rules (by ID or name)")
+
     args = parser.parse_args()
 
     try:
@@ -68,6 +78,9 @@ def main() -> int:
                                  verbose=args.verbose)
             case "check":
                 return check_only(args.file, verbose=args.verbose)
+            case "lint":
+                return lint_only(args.file, fix=args.fix,
+                                 rules=args.rules, exclude=args.exclude)
             case _:
                 parser.print_help()
                 return 1
