@@ -35,7 +35,7 @@ from compiler.ast_nodes import (
     WildcardPattern, LiteralPattern, BindPattern, SomePattern, NonePattern,
     OkPattern, ErrPattern, VariantPattern, TuplePattern,
     # Declarations
-    FnDecl, TypeDecl, Param, StaticMemberDecl, SumVariantDecl,
+    FnDecl, TypeDecl, Param, StaticMemberDecl, SumVariantDecl, ConstructorDecl,
     # Top-level
     Module,
 )
@@ -417,7 +417,6 @@ _OPAQUE_TYPE_MAP: dict[str, str] = {
     "StringBuilder": "FL_StringBuilder",
     "DateTime": "FL_DateTime",
     "Instant": "FL_Instant",
-    "HttpResponse": "FL_HttpResponse",
 }
 
 # ---------------------------------------------------------------------------
@@ -2435,6 +2434,21 @@ class Lowerer:
             if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                     and isinstance(sym.decl, SumVariantDecl)):
                 return self._lower_variant_ctor(name, sym.decl, t, lt, lowered_args)
+            # Struct constructor — inline as compound literal
+            if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
+                    and isinstance(sym.decl, ConstructorDecl)):
+                ctor_decl: ConstructorDecl = sym.decl
+                fields = [(p.name, arg)
+                          for p, arg in zip(ctor_decl.params, lowered_args)]
+                return LCompound(fields=fields, c_type=lt)
+            # Positional struct construction via type name: MyStruct(a, b, c)
+            if (sym is not None and sym.kind == SymbolKind.TYPE
+                    and isinstance(sym.decl, TypeDecl)
+                    and not sym.decl.is_sum_type):
+                type_decl: TypeDecl = sym.decl
+                fields = [(f.name, arg)
+                          for f, arg in zip(type_decl.fields, lowered_args)]
+                return LCompound(fields=fields, c_type=lt)
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
                 # Check if this is a bounded generic — monomorphize it (SG-3-4-2)
                 fn_decl_maybe = sym.decl if isinstance(sym.decl, FnDecl) else None

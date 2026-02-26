@@ -318,6 +318,7 @@ class TypeInfo:
     is_sum_type: bool
     sum_type: TSum | None
     interfaces: list[TypeExpr]
+    module_path: str = ""
 
 
 @dataclass
@@ -380,10 +381,12 @@ _LOGICAL_OPS = {"&&", "||"}
 class TypeChecker:
     """Infer and verify types for a resolved module."""
 
-    def __init__(self, resolved: ResolvedModule) -> None:
+    def __init__(self, resolved: ResolvedModule,
+                 imported_typed: dict[str, object] | None = None) -> None:
         self._resolved = resolved
         self._module = resolved.module
         self._file = resolved.module.filename
+        self._imported_typed = imported_typed or {}
         self._types: dict[ASTNode, Type] = {}
         self._warnings: list[str] = []
         self._scope = TypeScope()
@@ -407,6 +410,7 @@ class TypeChecker:
         self._register_builtin_fulfillments()
         self._register_builtin_method_sigs()
         self._build_type_registry()
+        self._register_imported_types()
         self._build_interface_registry()
         self._register_top_level_types()
         self._validate_interface_fulfillment()
@@ -502,6 +506,39 @@ class TypeChecker:
                 sum_type=sum_type,
                 interfaces=decl.interfaces,
             )
+
+    def _register_imported_types(self) -> None:
+        """Register type declarations from imported user modules.
+
+        When a user module exports a struct type (e.g., http.HttpResponse),
+        downstream modules need it in the type registry so that cross-module
+        function return types resolve correctly.
+        """
+        for mod_key, typed_mod in self._imported_typed.items():
+            for decl in typed_mod.module.decls:
+                if not isinstance(decl, TypeDecl) or not decl.is_export:
+                    continue
+                if decl.name in self._type_registry:
+                    continue  # don't shadow local types
+                fields: dict[str, Type] = {}
+                field_mut: dict[str, bool] = {}
+                for f in decl.fields:
+                    fields[f.name] = self._resolve_type_expr(f.type_ann)
+                    field_mut[f.name] = f.is_mut
+                self._type_registry[decl.name] = TypeInfo(
+                    name=decl.name,
+                    type_params=decl.type_params,
+                    fields=fields,
+                    field_mutability=field_mut,
+                    methods={},
+                    statics={},
+                    static_mutability={},
+                    constructors={},
+                    is_sum_type=decl.is_sum_type,
+                    sum_type=None,
+                    interfaces=decl.interfaces,
+                    module_path=mod_key,
+                )
 
     # ------------------------------------------------------------------
     # Pre-pass: register builtin interfaces
@@ -1065,8 +1102,9 @@ class TypeChecker:
                     if info and info.is_sum_type and info.sum_type:
                         self._scope.define(name, info.sum_type)
                     else:
+                        mp = info.module_path if info else ""
                         self._scope.define(
-                            name, TNamed("", name, ()))
+                            name, TNamed(mp, name, ()))
                     # Register constructors
                     for c_name, c_type in (info.constructors if info else {}).items():
                         self._scope.define(c_name, c_type)
@@ -1240,7 +1278,7 @@ class TypeChecker:
                 if info is not None:
                     if info.is_sum_type and info.sum_type:
                         return info.sum_type
-                    return TNamed("", name, ())
+                    return TNamed(info.module_path, name, ())
                 # Could be a type variable
                 return TTypeVar(name)
 

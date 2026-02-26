@@ -1,24 +1,234 @@
 module http
 
-// HTTP response type (opaque, access via status/body/header)
-// HttpResponse holds status code, body string, and response headers
+import net
+import string
+import conv
+import bytes
+import map
+import array
 
-// Simple GET request
-export fn get(url:string):HttpResponse? = native "fl_http_get"
+// HTTP response struct
+export type HttpResponse {
+    status_code:int
+    response_body:string
+    response_headers:map<string, string>
+}
 
-// GET with custom headers
-export fn get_with_headers(url:string, headers:map<string, string>):HttpResponse? = native "fl_http_get_headers"
+// --- URL parsing (internal) ---
+// Returns [host, port_str, path]
 
-// POST with body and headers
-export fn post(url:string, body:string, headers:map<string, string>):HttpResponse? = native "fl_http_post"
+fn parse_host_port(url:string):array<string> {
+    let s:string:mut = url
+    if (string.starts_with(s, "http://")) {
+        s = string.substring(s, 7, string.len(s))
+    }
+    let path:string:mut = "/"
+    match string.index_of(s, "/") {
+        some(idx): {
+            path = string.substring(s, idx, string.len(s))
+            s = string.substring(s, 0, idx)
+        }
+        none: {}
+    }
+    let host:string:mut = s
+    let port_str:string:mut = "80"
+    match string.index_of(s, ":") {
+        some(idx): {
+            host = string.substring(s, 0, idx)
+            port_str = string.substring(s, idx + 1, string.len(s))
+        }
+        none: {}
+    }
+    let result:array<string>:mut = []
+    result = array.push(result, host)
+    result = array.push(result, port_str)
+    result = array.push(result, path)
+    return result
+}
 
-// PUT with body and headers
-export fn put(url:string, body:string, headers:map<string, string>):HttpResponse? = native "fl_http_put"
+// --- Read all data from socket until closed ---
 
-// DELETE with headers
-export fn delete_req(url:string, headers:map<string, string>):HttpResponse? = native "fl_http_delete"
+fn read_all(sock:Socket):string {
+    let buf:string:mut = ""
+    let reading:bool:mut = true
+    while (reading) {
+        match net.read(sock, 4096) {
+            some(chunk): {
+                buf = buf + bytes.to_string(chunk)
+            }
+            none: {
+                reading = false
+            }
+        }
+    }
+    return buf
+}
 
-// Response accessors
-export fn:pure status(resp:HttpResponse):int = native "fl_http_status"
-export fn:pure body(resp:HttpResponse):string = native "fl_http_body"
-export fn:pure header(resp:HttpResponse, key:string):string? = native "fl_http_header"
+// --- Parse HTTP response string ---
+
+fn parse_response(raw:string):HttpResponse? {
+    let boundary_opt = string.index_of(raw, "\r\n\r\n")
+    let boundary:int:mut = 0
+    match boundary_opt {
+        some(b): { boundary = b }
+        none: { return none }
+    }
+
+    let header_section = string.substring(raw, 0, boundary)
+    let body_text = string.substring(raw, boundary + 4, string.len(raw))
+
+    let header_lines = string.split(header_section, "\r\n")
+    let status_line:string:mut = ""
+    match array.get(header_lines, 0) {
+        some(s): { status_line = s }
+        none: { return none }
+    }
+
+    let sp1:int:mut = 0
+    match string.index_of(status_line, " ") {
+        some(s): { sp1 = s }
+        none: { return none }
+    }
+
+    let after_sp = string.substring(status_line, sp1 + 1, string.len(status_line))
+    let code_str:string:mut = after_sp
+    match string.index_of(after_sp, " ") {
+        some(sp2): {
+            code_str = string.substring(after_sp, 0, sp2)
+        }
+        none: {}
+    }
+
+    let code:int:mut = 0
+    match conv.string_to_int(code_str) {
+        some(c): { code = c }
+        none: { return none }
+    }
+
+    // Parse headers
+    let hdrs:map<string, string>:mut = map.new()
+    let i:int:mut = 1
+    let n = array.len_string(header_lines)
+    while (i < n) {
+        match array.get(header_lines, i) {
+            some(line): {
+                match string.index_of(line, ": ") {
+                    some(colon): {
+                        let key = string.to_lower(string.substring(line, 0, colon))
+                        let val = string.substring(line, colon + 2, string.len(line))
+                        hdrs = map.set(hdrs, key, val)
+                    }
+                    none: {}
+                }
+            }
+            none: {}
+        }
+        i++
+    }
+
+    return some(HttpResponse { status_code: code, response_body: body_text, response_headers: hdrs })
+}
+
+// --- Send request and get response on a connected socket ---
+
+fn send_and_receive(sock:Socket, method:string, host:string, path:string, request_body:string, hdrs:map<string, string>):HttpResponse? {
+    let req:string:mut = method + " " + path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: close\r\n"
+    if (string.len(request_body) > 0) {
+        req = req + "Content-Length: " + conv.to_string(string.len(request_body)) + "\r\n"
+    }
+    let keys = map.keys(hdrs)
+    let ki:int:mut = 0
+    let kn = array.len_string(keys)
+    while (ki < kn) {
+        match array.get(keys, ki) {
+            some(k): {
+                match map.get(hdrs, k) {
+                    some(v): {
+                        req = req + k + ": " + v + "\r\n"
+                    }
+                    none: {}
+                }
+            }
+            none: {}
+        }
+        ki++
+    }
+    req = req + "\r\n"
+    if (string.len(request_body) > 0) {
+        req = req + request_body
+    }
+
+    net.write_string(sock, req)
+    let raw = read_all(sock)
+    net.close(sock)
+    return parse_response(raw)
+}
+
+// --- Core request function ---
+
+fn do_request(method:string, url:string, request_body:string, hdrs:map<string, string>):HttpResponse? {
+    let parts = parse_host_port(url)
+    let host:string:mut = ""
+    match array.get(parts, 0) {
+        some(h): { host = h }
+        none: { return none }
+    }
+
+    let port_str:string:mut = "80"
+    match array.get(parts, 1) {
+        some(p): { port_str = p }
+        none: {}
+    }
+    let path:string:mut = "/"
+    match array.get(parts, 2) {
+        some(p): { path = p }
+        none: {}
+    }
+
+    let port:int:mut = 80
+    match conv.string_to_int(port_str) {
+        some(p): { port = p }
+        none: { return none }
+    }
+
+    match net.connect(host, port) {
+        some(sock): {
+            return send_and_receive(sock, method, host, path, request_body, hdrs)
+        }
+        none: { return none }
+    }
+}
+
+// --- Public API ---
+
+export fn get(url:string):HttpResponse? {
+    return do_request("GET", url, "", map.new())
+}
+
+export fn get_with_headers(url:string, headers:map<string, string>):HttpResponse? {
+    return do_request("GET", url, "", headers)
+}
+
+export fn post(url:string, body:string, headers:map<string, string>):HttpResponse? {
+    return do_request("POST", url, body, headers)
+}
+
+export fn put(url:string, body:string, headers:map<string, string>):HttpResponse? {
+    return do_request("PUT", url, body, headers)
+}
+
+export fn delete_req(url:string, headers:map<string, string>):HttpResponse? {
+    return do_request("DELETE", url, "", headers)
+}
+
+export fn:pure status(resp:HttpResponse):int {
+    return resp.status_code
+}
+
+export fn:pure body(resp:HttpResponse):string {
+    return resp.response_body
+}
+
+export fn header(resp:HttpResponse, key:string):string? {
+    return map.get(resp.response_headers, string.to_lower(key))
+}

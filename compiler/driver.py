@@ -20,7 +20,7 @@ from compiler.lowering import Lowerer
 from compiler.emitter import Emitter
 
 # Stdlib module names that live in the stdlib/ directory.
-_STDLIB_MODULES = frozenset({"io", "sys", "conv", "string", "char", "path", "math", "sort", "bytes", "file", "random", "time", "testing", "net", "json", "array", "string_builder", "map", "csv", "http"})
+_STDLIB_MODULES = frozenset({"io", "sys", "conv", "string", "char", "path", "math", "sort", "bytes", "file", "random", "time", "testing", "net", "json", "array", "string_builder", "map", "csv"})
 
 
 # ---------------------------------------------------------------------------
@@ -199,13 +199,18 @@ def _build_dependency_graph(
             # Resolve filesystem path.
             dep_path = _resolve_import_path(project_root, imp.path)
             if not dep_path.exists():
-                raise ResolveError(
-                    message=(f"cannot find module '{dep_key}': "
-                             f"expected file at '{dep_path}'"),
-                    file=pm.display_path,
-                    line=imp.line,
-                    col=imp.col,
-                )
+                # Fall back to stdlib directory for Flow-implemented modules.
+                stdlib_path = _stdlib_dir() / Path(*imp.path).with_suffix(".flow")
+                if stdlib_path.exists():
+                    dep_path = stdlib_path
+                else:
+                    raise ResolveError(
+                        message=(f"cannot find module '{dep_key}': "
+                                 f"expected file at '{dep_path}'"),
+                        file=pm.display_path,
+                        line=imp.line,
+                        col=imp.col,
+                    )
 
             dep_pm = _parse_file(dep_path)
 
@@ -331,6 +336,7 @@ def _run_multi_pipeline(
     # Resolve and type-check each module in topological order.
     # Accumulate ModuleScopes for downstream importers.
     available_scopes: dict[str, ModuleScope] = {}
+    available_typed: dict[str, object] = {}
     results: list[tuple[str, object, bool]] = []
 
     root_key = topo_order[-1].module_key  # root is last in topo order
@@ -343,10 +349,19 @@ def _run_multi_pipeline(
             if dep_key in available_scopes:
                 imported[dep_key] = available_scopes[dep_key]
 
+        # Collect typed modules for user imports so the typechecker can
+        # resolve cross-module type references (e.g., http.HttpResponse).
+        imported_typed: dict[str, object] = {}
+        for imp in _user_imports(pm.module):
+            dep_key = ".".join(imp.path)
+            if dep_key in available_typed:
+                imported_typed[dep_key] = available_typed[dep_key]
+
         resolved = Resolver(pm.module, imported).resolve()
-        typed = TypeChecker(resolved).check()
+        typed = TypeChecker(resolved, imported_typed).check()
 
         available_scopes[pm.module_key] = resolved.module_scope
+        available_typed[pm.module_key] = typed
 
         is_root = (pm.module_key == root_key)
         results.append((pm.display_path, typed, is_root))
@@ -399,6 +414,7 @@ def _lower_and_emit_multi(
     """
     dep_parts: list[str] = []
     collected_static_inits: list[tuple[str, str]] = []
+    dep_type_names: set[str] = set()
 
     all_typed = _build_all_typed(modules)
 
@@ -407,17 +423,25 @@ def _lower_and_emit_multi(
         if is_root:
             continue
         lmodule = Lowerer(typed, all_typed=all_typed).lower()
+        for td in lmodule.type_defs:
+            dep_type_names.add(td.c_name)
         emitter = Emitter(lmodule, display_path, is_root=False,
                           line_directives=line_directives)
         dep_parts.append(emitter.emit())
         collected_static_inits.extend(emitter.deferred_static_inits)
 
     # Lower and emit root module (with header and entry point).
+    # Filter out type definitions already emitted by dependency modules.
     root_part = ""
     for display_path, typed, is_root in modules:
         if not is_root:
             continue
         lmodule = Lowerer(typed, all_typed=all_typed).lower()
+        if dep_type_names:
+            lmodule.type_defs = [
+                td for td in lmodule.type_defs
+                if td.c_name not in dep_type_names
+            ]
         emitter = Emitter(
             lmodule, display_path, is_root=True,
             extra_static_inits=collected_static_inits,
