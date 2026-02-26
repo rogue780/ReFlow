@@ -29,6 +29,8 @@ def main() -> int:
     run_parser.add_argument("file", help="Path to .flow source file")
     run_parser.add_argument("--verbose", "-v", action="store_true",
                             help="Print generated C before compiling")
+    run_parser.add_argument("--no-line-directives", action="store_true",
+                            help="Disable #line directives in generated C")
     run_parser.add_argument("args", nargs="*", help="Arguments passed to the program")
 
     # flow build <file>
@@ -38,6 +40,8 @@ def main() -> int:
                               help="Output binary path")
     build_parser.add_argument("--verbose", "-v", action="store_true",
                               help="Print generated C before compiling")
+    build_parser.add_argument("--no-line-directives", action="store_true",
+                              help="Disable #line directives in generated C")
 
     # flow emit-c <file>
     emit_parser = subparsers.add_parser("emit-c", help="Emit C only, do not compile")
@@ -46,6 +50,8 @@ def main() -> int:
                              help="Output file path (default: stdout)")
     emit_parser.add_argument("--verbose", "-v", action="store_true",
                              help="Verbose output")
+    emit_parser.add_argument("--line-directives", action="store_true",
+                             help="Enable #line directives in generated C")
 
     # flow check <file>
     check_parser = subparsers.add_parser("check", help="Type check only, no output")
@@ -69,13 +75,16 @@ def main() -> int:
         match args.command:
             case "run":
                 return run_source(args.file, verbose=args.verbose,
-                                  args=args.args)
+                                  args=args.args,
+                                  line_directives=not args.no_line_directives)
             case "build":
                 return compile_source(args.file, output=args.output,
-                                      verbose=args.verbose)
+                                      verbose=args.verbose,
+                                      line_directives=not args.no_line_directives)
             case "emit-c":
                 return emit_only(args.file, output=args.output,
-                                 verbose=args.verbose)
+                                 verbose=args.verbose,
+                                 line_directives=args.line_directives)
             case "check":
                 return check_only(args.file, verbose=args.verbose)
             case "lint":

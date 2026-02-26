@@ -728,5 +728,104 @@ class TestEmitErrors(unittest.TestCase):
             e._emit_stmt(LUnknownStmt())
 
 
+# ---------------------------------------------------------------------------
+# Line directive tests
+# ---------------------------------------------------------------------------
+
+class TestLineDirectives(unittest.TestCase):
+    """Tests for #line directive emission."""
+
+    def test_line_directives_on_fn_def(self) -> None:
+        """#line directive should appear before function def when enabled."""
+        fn = LFnDef(
+            c_name="fl_main_foo",
+            params=[],
+            ret=LVoid(),
+            body=[LReturn(None)],
+            is_pure=False,
+            source_name="main.foo",
+            source_line=10,
+        )
+        module = LModule(type_defs=[], fn_defs=[fn], static_defs=[])
+        e = Emitter(module, "test.flow", line_directives=True)
+        output = e.emit()
+        self.assertIn('#line 10 "test.flow"', output)
+
+    def test_line_directives_on_stmt(self) -> None:
+        """#line directive should appear before statements with source_line."""
+        fn = LFnDef(
+            c_name="fl_main_foo",
+            params=[],
+            ret=LVoid(),
+            body=[
+                LVarDecl("x", LInt(32, True), LLit("42", LInt(32, True)), source_line=5),
+                LReturn(None, source_line=6),
+            ],
+            is_pure=False,
+            source_name="main.foo",
+            source_line=3,
+        )
+        module = LModule(type_defs=[], fn_defs=[fn], static_defs=[])
+        e = Emitter(module, "test.flow", line_directives=True)
+        output = e.emit()
+        self.assertIn('#line 3 "test.flow"', output)
+        self.assertIn('#line 5 "test.flow"', output)
+        self.assertIn('#line 6 "test.flow"', output)
+
+    def test_line_directives_off_by_default(self) -> None:
+        """No #line directives when line_directives is False (default)."""
+        fn = LFnDef(
+            c_name="fl_main_foo",
+            params=[],
+            ret=LVoid(),
+            body=[LVarDecl("x", LInt(32, True), LLit("42", LInt(32, True)), source_line=5)],
+            is_pure=False,
+            source_name="main.foo",
+            source_line=3,
+        )
+        module = LModule(type_defs=[], fn_defs=[fn], static_defs=[])
+        e = Emitter(module, "test.flow")
+        output = e.emit()
+        self.assertNotIn('#line', output)
+
+    def test_line_directives_dedup(self) -> None:
+        """Same source line on consecutive stmts should emit #line only once."""
+        fn = LFnDef(
+            c_name="fl_main_foo",
+            params=[],
+            ret=LVoid(),
+            body=[
+                LVarDecl("x", LInt(32, True), LLit("1", LInt(32, True)), source_line=5),
+                LVarDecl("y", LInt(32, True), LLit("2", LInt(32, True)), source_line=5),
+            ],
+            is_pure=False,
+            source_line=3,
+        )
+        module = LModule(type_defs=[], fn_defs=[fn], static_defs=[])
+        e = Emitter(module, "test.flow", line_directives=True)
+        output = e.emit()
+        self.assertEqual(output.count('#line 5 "test.flow"'), 1)
+
+    def test_line_directives_none_source_line_skipped(self) -> None:
+        """Stmts with source_line=None should not emit #line."""
+        fn = LFnDef(
+            c_name="fl_main_foo",
+            params=[],
+            ret=LVoid(),
+            body=[
+                LVarDecl("x", LInt(32, True), LLit("1", LInt(32, True)), source_line=5),
+                LVarDecl("y", LInt(32, True), LLit("2", LInt(32, True))),  # source_line=None
+            ],
+            is_pure=False,
+            source_line=3,
+        )
+        module = LModule(type_defs=[], fn_defs=[fn], static_defs=[])
+        e = Emitter(module, "test.flow", line_directives=True)
+        output = e.emit()
+        self.assertIn('#line 5 "test.flow"', output)
+        # Only 2 #line directives: one for fn (line 3), one for stmt (line 5)
+        self.assertEqual(output.count('#line'), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

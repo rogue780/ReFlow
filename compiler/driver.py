@@ -385,6 +385,8 @@ def _build_all_typed(
 
 def _lower_and_emit_multi(
     modules: list[tuple[str, object, bool]],
+    *,
+    line_directives: bool = False,
 ) -> str:
     """Lower and emit C for a list of (display_path, typed_module, is_root).
 
@@ -405,7 +407,8 @@ def _lower_and_emit_multi(
         if is_root:
             continue
         lmodule = Lowerer(typed, all_typed=all_typed).lower()
-        emitter = Emitter(lmodule, display_path, is_root=False)
+        emitter = Emitter(lmodule, display_path, is_root=False,
+                          line_directives=line_directives)
         dep_parts.append(emitter.emit())
         collected_static_inits.extend(emitter.deferred_static_inits)
 
@@ -417,7 +420,8 @@ def _lower_and_emit_multi(
         lmodule = Lowerer(typed, all_typed=all_typed).lower()
         emitter = Emitter(
             lmodule, display_path, is_root=True,
-            extra_static_inits=collected_static_inits)
+            extra_static_inits=collected_static_inits,
+            line_directives=line_directives)
         root_part = emitter.emit()
         break
 
@@ -435,7 +439,8 @@ def _lower_and_emit_multi(
 
 
 def compile_source(source_path: str, *, output: str | None = None,
-                   verbose: bool = False) -> int:
+                   verbose: bool = False,
+                   line_directives: bool = True) -> int:
     """Run the full pipeline: lex → parse → resolve → typecheck → lower → emit → clang."""
     modules = _run_multi_pipeline(source_path)
 
@@ -444,9 +449,11 @@ def compile_source(source_path: str, *, output: str | None = None,
         display_path, typed, _ = modules[0]
         all_typed = _build_all_typed(modules)
         lmodule = Lowerer(typed, all_typed=all_typed).lower()
-        c_source = Emitter(lmodule, display_path).emit()
+        c_source = Emitter(lmodule, display_path,
+                           line_directives=line_directives).emit()
     else:
-        c_source = _lower_and_emit_multi(modules)
+        c_source = _lower_and_emit_multi(modules,
+                                          line_directives=line_directives)
 
     if verbose:
         sys.stderr.write(c_source)
@@ -495,12 +502,14 @@ def compile_source(source_path: str, *, output: str | None = None,
 
 
 def run_source(source_path: str, *, verbose: bool = False,
-               args: list[str] | None = None) -> int:
+               args: list[str] | None = None,
+               line_directives: bool = True) -> int:
     """Compile to a temp binary, run it, clean up."""
     tmp_fd, tmp_bin = tempfile.mkstemp(prefix="fl_run_")
     os.close(tmp_fd)
     try:
-        rc = compile_source(source_path, output=tmp_bin, verbose=verbose)
+        rc = compile_source(source_path, output=tmp_bin, verbose=verbose,
+                            line_directives=line_directives)
         if rc != 0:
             return rc
         try:
@@ -516,7 +525,8 @@ def run_source(source_path: str, *, verbose: bool = False,
 
 
 def emit_only(source_path: str, *, output: str | None = None,
-              verbose: bool = False) -> int:
+              verbose: bool = False,
+              line_directives: bool = False) -> int:
     """Run pipeline through emit, output C source."""
     modules = _run_multi_pipeline(source_path)
 
@@ -525,9 +535,11 @@ def emit_only(source_path: str, *, output: str | None = None,
         display_path, typed, _ = modules[0]
         all_typed = _build_all_typed(modules)
         lmodule = Lowerer(typed, all_typed=all_typed).lower()
-        c_source = Emitter(lmodule, display_path).emit()
+        c_source = Emitter(lmodule, display_path,
+                           line_directives=line_directives).emit()
     else:
-        c_source = _lower_and_emit_multi(modules)
+        c_source = _lower_and_emit_multi(modules,
+                                          line_directives=line_directives)
 
     if output is not None:
         Path(output).write_text(c_source)

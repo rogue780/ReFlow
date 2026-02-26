@@ -258,6 +258,7 @@ class LVarDecl(LStmt):
     c_name: str
     c_type: LType
     init: LExpr | None
+    source_line: int | None = None
 
 
 @dataclass
@@ -265,17 +266,20 @@ class LArrayDecl(LStmt):
     c_name: str
     elem_type: LType
     count: int
+    source_line: int | None = None
 
 
 @dataclass
 class LAssign(LStmt):
     target: LExpr
     value: LExpr
+    source_line: int | None = None
 
 
 @dataclass
 class LReturn(LStmt):
     value: LExpr | None
+    source_line: int | None = None
 
 
 @dataclass
@@ -283,32 +287,38 @@ class LIf(LStmt):
     cond: LExpr
     then: list[LStmt]
     else_: list[LStmt]
+    source_line: int | None = None
 
 
 @dataclass
 class LWhile(LStmt):
     cond: LExpr
     body: list[LStmt]
+    source_line: int | None = None
 
 
 @dataclass
 class LBlock(LStmt):
     stmts: list[LStmt]
+    source_line: int | None = None
 
 
 @dataclass
 class LExprStmt(LStmt):
     expr: LExpr
+    source_line: int | None = None
 
 
 @dataclass
 class LGoto(LStmt):
     label: str
+    source_line: int | None = None
 
 
 @dataclass
 class LLabel(LStmt):
     name: str
+    source_line: int | None = None
 
 
 @dataclass
@@ -316,16 +326,17 @@ class LSwitch(LStmt):
     value: LExpr
     cases: list[tuple[int, list[LStmt]]]
     default: list[LStmt]
+    source_line: int | None = None
 
 
 @dataclass
 class LBreak(LStmt):
-    pass
+    source_line: int | None = None
 
 
 @dataclass
 class LContinue(LStmt):
-    pass
+    source_line: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -346,6 +357,7 @@ class LFnDef:
     body: list[LStmt]
     is_pure: bool
     source_name: str = ""
+    source_line: int | None = None
 
 
 @dataclass
@@ -901,6 +913,7 @@ class Lowerer:
             body=body,
             is_pure=fn.is_pure,
             source_name=f"{self._module_path}.{fn.name}",
+            source_line=fn.line,
         ))
         self._current_fn_return_type = saved_return_type
         self._current_fn_name = saved_fn_name
@@ -960,6 +973,7 @@ class Lowerer:
                 body=body,
                 is_pure=method.is_pure,
                 source_name=f"{self._module_path}.{td.name}.{method.name}",
+                source_line=method.line,
             ))
             self._current_fn_return_type = saved_return_type
 
@@ -982,6 +996,7 @@ class Lowerer:
                 body=body,
                 is_pure=False,
                 source_name=f"{self._module_path}.{td.name}.{ctor.name}",
+                source_line=ctor.line,
             ))
 
         # Lower static members
@@ -1088,43 +1103,54 @@ class Lowerer:
         elif isinstance(last, LBlock):
             self._inject_tail_returns(last.stmts)
 
+    @staticmethod
+    def _tag_source(stmts: list[LStmt], line: int | None) -> list[LStmt]:
+        """Set source_line on each LStmt that doesn't already have one."""
+        if line is None:
+            return stmts
+        for s in stmts:
+            if getattr(s, 'source_line', None) is None:
+                s.source_line = line
+        return stmts
+
     def _lower_stmt(self, stmt: Stmt) -> list[LStmt]:
         match stmt:
             case LetStmt():
-                return self._lower_let(stmt)
+                result = self._lower_let(stmt)
             case AssignStmt():
-                return self._lower_assign(stmt)
+                result = self._lower_assign(stmt)
             case UpdateStmt():
-                return self._lower_update(stmt)
+                result = self._lower_update(stmt)
             case ReturnStmt():
-                return self._lower_return(stmt)
+                result = self._lower_return(stmt)
             case IfStmt():
-                return self._lower_if_stmt(stmt)
+                result = self._lower_if_stmt(stmt)
             case WhileStmt():
-                return self._lower_while(stmt)
+                result = self._lower_while(stmt)
             case ForStmt():
-                return self._lower_for(stmt)
+                result = self._lower_for(stmt)
             case MatchStmt():
-                return self._lower_match_stmt(stmt)
+                result = self._lower_match_stmt(stmt)
             case ExprStmt():
-                return self._lower_expr_stmt(stmt)
+                result = self._lower_expr_stmt(stmt)
             case BreakStmt():
-                return [LBreak()]
+                result = [LBreak()]
             case ContinueStmt():
-                return [LContinue()]
+                result = [LContinue()]
             case YieldStmt():
                 # Yield outside stream fn — should not happen after type check,
                 # but handle gracefully
-                return self._lower_yield(stmt)
+                result = self._lower_yield(stmt)
             case TryStmt():
-                return self._lower_try(stmt)
+                result = self._lower_try(stmt)
             case ThrowStmt():
-                return self._lower_throw(stmt)
+                result = self._lower_throw(stmt)
             case _:
                 raise EmitError(
                     message=f"unsupported statement type: {type(stmt).__name__}",
                     file=self._file, line=stmt.line, col=stmt.col,
                 )
+        return self._tag_source(result, getattr(stmt, 'line', None))
 
     def _lower_let(self, stmt: LetStmt) -> list[LStmt]:
         val_type = self._type_of(stmt.value)

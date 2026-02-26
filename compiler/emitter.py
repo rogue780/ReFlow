@@ -36,11 +36,13 @@ class Emitter:
 
     def __init__(self, module: LModule, source_file: str, *,
                  is_root: bool = True,
-                 extra_static_inits: list[tuple[str, str]] | None = None) -> None:
+                 extra_static_inits: list[tuple[str, str]] | None = None,
+                 line_directives: bool = False) -> None:
         self._module = module
         self._source_file = source_file
         self._is_root = is_root
         self._extra_static_inits = extra_static_inits or []
+        self._line_directives = line_directives
 
         # Output buffer
         self._out: list[str] = []
@@ -53,9 +55,21 @@ class Emitter:
         # Deferred static string inits (name, init_expr) — initialized at runtime
         self._deferred_static_inits: list[tuple[str, str]] = []
 
+        # Track last emitted #line to avoid duplicates
+        self._last_line_directive: int | None = None
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
+
+    def _emit_line_directive(self, source_line: int | None) -> None:
+        """Emit a #line directive if line_directives is enabled and line changed."""
+        if not self._line_directives or source_line is None:
+            return
+        if source_line == self._last_line_directive:
+            return
+        self._last_line_directive = source_line
+        self._out.append(f'#line {source_line} "{self._source_file}"\n')
 
     @property
     def deferred_static_inits(self) -> list[tuple[str, str]]:
@@ -239,6 +253,7 @@ class Emitter:
 
     def _emit_fn_def(self, fn: LFnDef) -> None:
         """Emit a single function definition."""
+        self._emit_line_directive(fn.source_line)
         if fn.source_name:
             self._emitln(f"/* Flow: {fn.source_name} */")
         proto = self._fn_prototype(fn)
@@ -336,6 +351,7 @@ class Emitter:
 
     def _emit_stmt(self, stmt: LStmt) -> None:
         """Emit a single statement, dispatching by type."""
+        self._emit_line_directive(getattr(stmt, 'source_line', None))
         match stmt:
             case LVarDecl(c_name=name, c_type=ctype, init=init):
                 self._emit_var_decl(name, ctype, init)
