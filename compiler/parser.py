@@ -603,16 +603,28 @@ class Parser:
         if self.check(TokenType.RPAREN):
             return params
 
+        seen_default = False
         params.append(self._parse_param())
+        if params[-1].default is not None:
+            seen_default = True
         while self.check(TokenType.COMMA):
             self.advance()
             if self.check(TokenType.RPAREN):
                 break  # trailing comma
-            params.append(self._parse_param())
+            p = self._parse_param()
+            if seen_default and p.default is None:
+                raise self._error(
+                    f"parameter '{p.name}' must have a default value "
+                    f"(all parameters after a defaulted parameter must also have defaults)",
+                    self._tokens[self._pos - 1] if self._pos > 0 else None,
+                )
+            if p.default is not None:
+                seen_default = True
+            params.append(p)
         return params
 
     def _parse_param(self) -> Param:
-        """Parse a single parameter: name: Type or self"""
+        """Parse a single parameter: name: Type, name: Type = default, or self"""
         tok = self.peek()
         if tok.type == TokenType.SELF:
             self.advance()
@@ -627,11 +639,19 @@ class Parser:
         name_tok = self.expect(TokenType.IDENT)
         self.expect(TokenType.COLON)
         type_ann = self.parse_type_expr()
+
+        # Optional default value: = expr
+        default: Expr | None = None
+        if self.check(TokenType.ASSIGN):
+            self.advance()
+            default = self.parse_expr()
+
         return Param(
             line=name_tok.line,
             col=name_tok.col,
             name=name_tok.value,
             type_ann=type_ann,
+            default=default,
         )
 
     def parse_type_decl(self, is_export: bool = False) -> TypeDecl:

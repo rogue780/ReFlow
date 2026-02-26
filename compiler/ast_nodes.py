@@ -534,6 +534,7 @@ class FnDecl(Decl):
 class Param(ASTNode):
     name: str
     type_ann: TypeExpr
+    default: Expr | None = None   # compile-time constant expression
 
 
 @dataclass

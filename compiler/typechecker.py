@@ -1110,6 +1110,17 @@ class TypeChecker:
         for param in fn.params:
             p_type = self._resolve_type_expr(param.type_ann)
             fn_scope.define(param.name, p_type)
+            # Type-check default value if present
+            if param.default is not None:
+                default_type = self._infer_expr(param.default, self._module_scope)
+                if not self._is_assignable(default_type, p_type):
+                    # Allow auto-lift T to option<T> for defaults
+                    if not (isinstance(p_type, TOption)
+                            and self._is_assignable(default_type, p_type.inner)):
+                        raise self._error(
+                            f"default value for parameter '{param.name}' has type "
+                            f"{self._type_name(default_type)}, expected "
+                            f"{self._type_name(p_type)}", param)
 
         ret_type = self._resolve_type_expr(fn.return_type) if fn.return_type else TNone()
         old_ret = self._current_return_type
@@ -1415,14 +1426,19 @@ class TypeChecker:
                 arg_types = [self._infer_expr(a, scope) for a in args]
 
                 if isinstance(callee_t, TFn):
-                    self._check_call_args(callee_t, arg_types, args, expr)
-                    # BG-2-2-3: validate bounded generic call
+                    # Look up FnDecl for default param support
                     resolved_sym = self._resolved.symbols.get(callee)
-                    ret_type = callee_t.ret
+                    call_fn_decl: FnDecl | None = None
                     if resolved_sym is not None and isinstance(
                             resolved_sym.decl, FnDecl):
+                        call_fn_decl = resolved_sym.decl
+                    self._check_call_args(callee_t, arg_types, args, expr,
+                                          fn_decl=call_fn_decl)
+                    # BG-2-2-3: validate bounded generic call
+                    ret_type = callee_t.ret
+                    if call_fn_decl is not None:
                         self._validate_generic_call_bounds(
-                            resolved_sym.decl, arg_types, expr)
+                            call_fn_decl, arg_types, expr)
                         # Substitute type variables in return type
                         if resolved_sym.decl.type_params:
                             env = self._infer_type_env_from_call(
@@ -1446,7 +1462,8 @@ class TypeChecker:
                     fn_decl = resolved_sym.decl
                     if isinstance(fn_decl, FnDecl):
                         fn_type = self._fn_decl_type(fn_decl)
-                        self._check_call_args(fn_type, arg_types, args, expr)
+                        self._check_call_args(fn_type, arg_types, args, expr,
+                                              fn_decl=fn_decl)
                         # BG-2-2-4: validate bounded generic call
                         self._validate_generic_call_bounds(
                             fn_decl, arg_types, expr)
@@ -2599,11 +2616,33 @@ class TypeChecker:
 
     def _check_call_args(self, fn_type: TFn, arg_types: list[Type],
                          arg_nodes: list[Expr],
-                         call_node: ASTNode) -> None:
-        if len(arg_types) != len(fn_type.params):
+                         call_node: ASTNode,
+                         fn_decl: FnDecl | None = None) -> None:
+        n_args = len(arg_types)
+        n_params = len(fn_type.params)
+
+        if n_args < n_params:
+            # Check if missing args have defaults
+            if fn_decl is not None:
+                n_required = sum(
+                    1 for p in fn_decl.params if p.default is None
+                )
+                if n_args < n_required:
+                    if n_required == n_params:
+                        raise self._error(
+                            f"expected {n_params} arguments, got "
+                            f"{n_args}", call_node)
+                    raise self._error(
+                        f"expected at least {n_required} arguments, got "
+                        f"{n_args}", call_node)
+            else:
+                raise self._error(
+                    f"expected {n_params} arguments, got "
+                    f"{n_args}", call_node)
+        elif n_args > n_params:
             raise self._error(
-                f"expected {len(fn_type.params)} arguments, got "
-                f"{len(arg_types)}", call_node)
+                f"expected {n_params} arguments, got "
+                f"{n_args}", call_node)
 
         for i, (arg_t, param_t) in enumerate(
                 zip(arg_types, fn_type.params)):

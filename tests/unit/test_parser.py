@@ -1770,5 +1770,55 @@ class TestBoundedGenerics(unittest.TestCase):
         self.assertEqual(len(decl.type_params[1].bounds), 0)
 
 
+# ---------------------------------------------------------------------------
+# Default parameter values
+# ---------------------------------------------------------------------------
+
+class TestDefaultParams(unittest.TestCase):
+    """Tests for default parameter value parsing."""
+
+    def test_single_default(self) -> None:
+        decl = parse_first_decl(
+            "fn connect(host: string, port: int = 80): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertEqual(len(decl.params), 2)
+        self.assertIsNone(decl.params[0].default)
+        self.assertIsNotNone(decl.params[1].default)
+        self.assertIsInstance(decl.params[1].default, IntLit)
+        self.assertEqual(decl.params[1].default.value, 80)
+
+    def test_multiple_defaults(self) -> None:
+        decl = parse_first_decl(
+            "fn f(a: int, b: int = 1, c: int = 2): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertIsNone(decl.params[0].default)
+        self.assertIsInstance(decl.params[1].default, IntLit)
+        self.assertIsInstance(decl.params[2].default, IntLit)
+
+    def test_all_defaults(self) -> None:
+        decl = parse_first_decl(
+            "fn f(a: int = 0, b: string = \"hi\"): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertIsInstance(decl.params[0].default, IntLit)
+        self.assertIsInstance(decl.params[1].default, StringLit)
+
+    def test_none_default(self) -> None:
+        decl = parse_first_decl(
+            "fn f(x: int?, y: string? = none): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertIsNone(decl.params[0].default)
+        self.assertIsInstance(decl.params[1].default, NoneLit)
+
+    def test_no_default_after_default_errors(self) -> None:
+        with self.assertRaises(ParseError):
+            parse("fn f(a: int = 1, b: int): void {}")
+
+    def test_no_defaults(self) -> None:
+        decl = parse_first_decl("fn f(x: int, y: string): void {}")
+        self.assertIsInstance(decl, FnDecl)
+        self.assertIsNone(decl.params[0].default)
+        self.assertIsNone(decl.params[1].default)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2290,6 +2290,33 @@ class Lowerer:
 
         return LBinOp(op=op, left=left_expr, right=right_expr, c_type=lt)
 
+    def _fill_default_args(self, expr: Call,
+                           lowered_args: list[LExpr]) -> list[LExpr]:
+        """If fewer args than params, append lowered default expressions."""
+        if not isinstance(expr.callee, Ident):
+            return lowered_args
+        sym = self._resolved.symbols.get(expr.callee)
+        if sym is None or sym.kind not in (
+                SymbolKind.FN, SymbolKind.IMPORT, SymbolKind.CONSTRUCTOR):
+            return lowered_args
+        decl = sym.decl
+        if not isinstance(decl, FnDecl):
+            return lowered_args
+        n_args = len(lowered_args)
+        n_params = len(decl.params)
+        if n_args >= n_params:
+            return lowered_args
+        # Append lowered defaults for trailing missing params
+        result = list(lowered_args)
+        for i in range(n_args, n_params):
+            param = decl.params[i]
+            if param.default is not None:
+                result.append(self._lower_expr(param.default))
+            else:
+                # Typechecker should have caught this; defensive fallback
+                break
+        return result
+
     def _lower_call(self, expr: Call) -> LExpr:
         """Lower function call."""
         t = self._type_of(expr)
@@ -2312,6 +2339,9 @@ class Lowerer:
                     return LCall("fl_sort_array_by", [arr_arg, wrapped_cmp], lt)
 
         lowered_args = [self._lower_expr(a) for a in expr.args]
+
+        # Fill in default argument values for missing trailing params
+        lowered_args = self._fill_default_args(expr, lowered_args)
 
         if isinstance(expr.callee, Ident):
             # Direct function call
@@ -2448,6 +2478,15 @@ class Lowerer:
                 SymbolKind.FN, SymbolKind.IMPORT):
             fn_decl = resolved_sym.decl
             lowered_args = [self._lower_expr(a) for a in expr.args]
+            # Fill defaults for missing trailing params
+            if isinstance(fn_decl, FnDecl):
+                n_args = len(lowered_args)
+                n_params = len(fn_decl.params)
+                if n_args < n_params:
+                    for i in range(n_args, n_params):
+                        param = fn_decl.params[i]
+                        if param.default is not None:
+                            lowered_args.append(self._lower_expr(param.default))
             if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
                 # Gap-1: redirect array.push for non-pointer elements
                 redirected = self._maybe_redirect_array_push(

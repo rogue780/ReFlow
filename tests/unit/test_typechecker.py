@@ -1301,5 +1301,73 @@ fn main(): none {
                        ctx.exception.message)
 
 
+# ---------------------------------------------------------------------------
+# Default parameter values
+# ---------------------------------------------------------------------------
+
+class TestDefaultParams(unittest.TestCase):
+    """Tests for default parameter type checking."""
+
+    def test_call_with_default_omitted(self):
+        """Call with fewer args when defaults exist succeeds."""
+        check("""
+fn greet(name: string, greeting: string = "hello"): string {
+    return greeting
+}
+fn main(): none {
+    let x = greet("world")
+}""")
+
+    def test_call_with_all_args(self):
+        """Call with all args when defaults exist succeeds."""
+        check("""
+fn greet(name: string, greeting: string = "hello"): string {
+    return greeting
+}
+fn main(): none {
+    let x = greet("world", "hi")
+}""")
+
+    def test_default_type_mismatch(self):
+        """Default value with wrong type raises error."""
+        with self.assertRaises(FlowTypeError):
+            check("""
+fn f(x: int = "bad"): int {
+    return x
+}""")
+
+    def test_too_few_args_without_defaults(self):
+        """Calling with too few args when no defaults exist fails."""
+        with self.assertRaises(FlowTypeError):
+            check("""
+fn f(a: int, b: int): int {
+    return a
+}
+fn main(): none {
+    let x = f(1)
+}""")
+
+    def test_too_few_args_below_required(self):
+        """Calling with fewer args than required params fails."""
+        with self.assertRaises(FlowTypeError):
+            check("""
+fn f(a: int, b: int, c: int = 0): int {
+    return a
+}
+fn main(): none {
+    let x = f(1)
+}""")
+
+    def test_none_default_for_option(self):
+        """none default for option parameter works."""
+        check("""
+fn f(x: int, y: string? = none): int {
+    return x
+}
+fn main(): none {
+    let a = f(42)
+}""")
+
+
 if __name__ == "__main__":
     unittest.main()

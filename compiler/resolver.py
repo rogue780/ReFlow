@@ -333,6 +333,11 @@ class Resolver:
 
         fn_scope = Scope(parent=parent_scope, is_function_boundary=True)
 
+        # Resolve default expressions in parent scope (before params are bound)
+        for param in fn.params:
+            if param.default is not None:
+                self._resolve_expr(param.default, parent_scope)
+
         # Bind parameters
         for param in fn.params:
             is_mut = self._is_mut_binding(param.type_ann)
@@ -362,6 +367,11 @@ class Resolver:
 
         method_scope = Scope(parent=self._module_scope_obj,
                              is_function_boundary=True)
+
+        # Resolve default expressions in module scope
+        for param in method.params:
+            if param.default is not None:
+                self._resolve_expr(param.default, self._module_scope_obj)
 
         # Bind parameters — self is an explicit param per the spec
         for param in method.params:
@@ -400,6 +410,11 @@ class Resolver:
         ctor_scope = Scope(parent=self._module_scope_obj,
                            is_function_boundary=True)
 
+        # Resolve default expressions in module scope
+        for param in ctor.params:
+            if param.default is not None:
+                self._resolve_expr(param.default, self._module_scope_obj)
+
         # Bind parameters — self is an explicit param per the spec
         for param in ctor.params:
             if param.name == "self":
@@ -430,6 +445,11 @@ class Resolver:
     def _resolve_lambda(self, lam: Lambda, scope: Scope) -> None:
         """Resolve a lambda expression, tracking captures."""
         lam_scope = Scope(parent=scope, is_function_boundary=False)
+
+        # Resolve default expressions in enclosing scope
+        for param in lam.params:
+            if param.default is not None:
+                self._resolve_expr(param.default, scope)
 
         # Bind parameters
         for param in lam.params:
