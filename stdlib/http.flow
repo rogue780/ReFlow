@@ -1,0 +1,24 @@
+module http
+
+// HTTP response type (opaque, access via status/body/header)
+// HttpResponse holds status code, body string, and response headers
+
+// Simple GET request
+export fn get(url:string):HttpResponse? = native "fl_http_get"
+
+// GET with custom headers
+export fn get_with_headers(url:string, headers:map<string, string>):HttpResponse? = native "fl_http_get_headers"
+
+// POST with body and headers
+export fn post(url:string, body:string, headers:map<string, string>):HttpResponse? = native "fl_http_post"
+
+// PUT with body and headers
+export fn put(url:string, body:string, headers:map<string, string>):HttpResponse? = native "fl_http_put"
+
+// DELETE with headers
+export fn delete_req(url:string, headers:map<string, string>):HttpResponse? = native "fl_http_delete"
+
+// Response accessors
+export fn:pure status(resp:HttpResponse):int = native "fl_http_status"
+export fn:pure body(resp:HttpResponse):string = native "fl_http_body"
+export fn:pure header(resp:HttpResponse, key:string):string? = native "fl_http_header"

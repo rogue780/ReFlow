@@ -417,6 +417,7 @@ _OPAQUE_TYPE_MAP: dict[str, str] = {
     "StringBuilder": "FL_StringBuilder",
     "DateTime": "FL_DateTime",
     "Instant": "FL_Instant",
+    "HttpResponse": "FL_HttpResponse",
 }
 
 # ---------------------------------------------------------------------------

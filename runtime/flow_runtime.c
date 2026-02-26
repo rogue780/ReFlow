@@ -4670,6 +4670,301 @@ FL_Array* fl_map_values(FL_Map* m) {
 }
 
 /* ========================================================================
+ * HTTP (stdlib/http) — HTTP/1.1 client over raw sockets
+ * ======================================================================== */
+
+struct FL_HttpResponse {
+    fl_int status_code;
+    FL_String* body;
+    FL_Map* headers;   /* map<string, string> — header names lowercased */
+};
+
+/* --- URL parsing helper --- */
+typedef struct {
+    char host[256];
+    char path[4096];
+    int  port;
+} _FL_ParsedUrl;
+
+static fl_bool _fl_parse_url(FL_String* url, _FL_ParsedUrl* out) {
+    const char* s = url->data;
+    fl_int64 len = url->len;
+    fl_int64 pos = 0;
+
+    /* Skip http:// */
+    if (len >= 7 && memcmp(s, "http://", 7) == 0) {
+        pos = 7;
+    } else if (len >= 8 && memcmp(s, "https://", 8) == 0) {
+        /* HTTPS not supported over raw sockets — fail gracefully */
+        return fl_false;
+    }
+
+    out->port = 80;
+
+    /* Extract host[:port] */
+    fl_int64 host_start = pos;
+    fl_int64 host_end = pos;
+    while (host_end < len && s[host_end] != '/' && s[host_end] != ':') host_end++;
+    fl_int64 hlen = host_end - host_start;
+    if (hlen <= 0 || hlen >= (fl_int64)sizeof(out->host)) return fl_false;
+    memcpy(out->host, s + host_start, (size_t)hlen);
+    out->host[hlen] = '\0';
+    pos = host_end;
+
+    /* Port? */
+    if (pos < len && s[pos] == ':') {
+        pos++;
+        int p = 0;
+        while (pos < len && s[pos] >= '0' && s[pos] <= '9') {
+            p = p * 10 + (s[pos] - '0');
+            pos++;
+        }
+        if (p > 0 && p <= 65535) out->port = p;
+    }
+
+    /* Path */
+    if (pos < len && s[pos] == '/') {
+        fl_int64 plen = len - pos;
+        if (plen >= (fl_int64)sizeof(out->path)) plen = (fl_int64)(sizeof(out->path) - 1);
+        memcpy(out->path, s + pos, (size_t)plen);
+        out->path[plen] = '\0';
+    } else {
+        out->path[0] = '/';
+        out->path[1] = '\0';
+    }
+    return fl_true;
+}
+
+/* --- Read full HTTP response --- */
+static FL_HttpResponse* _fl_http_read_response(int fd) {
+    /* Read response into a dynamic buffer */
+    size_t cap = 4096;
+    size_t total = 0;
+    char* buf = (char*)malloc(cap);
+    if (!buf) return NULL;
+
+    for (;;) {
+        if (total + 1024 > cap) {
+            cap *= 2;
+            char* nb = (char*)realloc(buf, cap);
+            if (!nb) { free(buf); return NULL; }
+            buf = nb;
+        }
+        ssize_t n = recv(fd, buf + total, cap - total - 1, 0);
+        if (n <= 0) break;
+        total += (size_t)n;
+
+        /* Check if we have complete headers + body */
+        buf[total] = '\0';
+        char* hdr_end = strstr(buf, "\r\n\r\n");
+        if (hdr_end) {
+            size_t hdr_len = (size_t)(hdr_end - buf + 4);
+
+            /* Check for Content-Length */
+            char* cl = strcasestr(buf, "content-length:");
+            if (cl && cl < hdr_end) {
+                cl += 15;
+                while (*cl == ' ') cl++;
+                long content_length = strtol(cl, NULL, 10);
+                if (content_length >= 0) {
+                    size_t need = hdr_len + (size_t)content_length;
+                    while (total < need) {
+                        if (need + 1 > cap) {
+                            cap = need + 1;
+                            char* nb = (char*)realloc(buf, cap);
+                            if (!nb) { free(buf); return NULL; }
+                            buf = nb;
+                        }
+                        ssize_t r = recv(fd, buf + total, need - total, 0);
+                        if (r <= 0) break;
+                        total += (size_t)r;
+                    }
+                    break;
+                }
+            }
+            /* No Content-Length: check for Transfer-Encoding: chunked
+               or just read until connection closes */
+            char* te = strcasestr(buf, "transfer-encoding:");
+            if (te && te < hdr_end) {
+                /* For chunked, just read until connection closes */
+                continue;
+            }
+            /* Connection: close — read until EOF */
+            continue;
+        }
+    }
+    buf[total] = '\0';
+
+    /* Parse status line */
+    char* line_end = strstr(buf, "\r\n");
+    if (!line_end) { free(buf); return NULL; }
+
+    int status = 0;
+    /* "HTTP/1.1 200 OK\r\n" */
+    char* sp = strchr(buf, ' ');
+    if (sp && sp < line_end) {
+        status = (int)strtol(sp + 1, NULL, 10);
+    }
+
+    /* Parse headers into a map */
+    FL_Map* headers = fl_map_new();
+    char* hp = line_end + 2;
+    char* hdr_end2 = strstr(buf, "\r\n\r\n");
+    while (hp < hdr_end2) {
+        char* next_line = strstr(hp, "\r\n");
+        if (!next_line) break;
+        char* colon = memchr(hp, ':', (size_t)(next_line - hp));
+        if (colon) {
+            /* Lowercase the header name */
+            fl_int64 klen = (fl_int64)(colon - hp);
+            char* kbuf = (char*)malloc((size_t)klen + 1);
+            for (fl_int64 i = 0; i < klen; i++) {
+                char c = hp[i];
+                kbuf[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c;
+            }
+            kbuf[klen] = '\0';
+            FL_String* key = fl_string_new(kbuf, klen);
+            free(kbuf);
+
+            /* Skip ": " */
+            char* vp = colon + 1;
+            while (vp < next_line && *vp == ' ') vp++;
+            fl_int64 vlen = (fl_int64)(next_line - vp);
+            FL_String* val = fl_string_new(vp, vlen);
+            headers = fl_map_set_str(headers, key, val);
+        }
+        hp = next_line + 2;
+    }
+
+    /* Extract body */
+    FL_String* body;
+    if (hdr_end2 && hdr_end2 + 4 <= buf + total) {
+        char* body_start = hdr_end2 + 4;
+        fl_int64 body_len = (fl_int64)(total - (size_t)(body_start - buf));
+        body = fl_string_new(body_start, body_len);
+    } else {
+        body = fl_string_from_cstr("");
+    }
+
+    FL_HttpResponse* resp = (FL_HttpResponse*)malloc(sizeof(FL_HttpResponse));
+    if (!resp) { free(buf); return NULL; }
+    resp->status_code = status;
+    resp->body = body;
+    resp->headers = headers;
+    free(buf);
+    return resp;
+}
+
+/* --- Core request function --- */
+static FL_Option_ptr _fl_http_request(
+    const char* method, FL_String* url, FL_String* body_str, FL_Map* hdrs
+) {
+    _FL_ParsedUrl parsed;
+    if (!_fl_parse_url(url, &parsed)) return FL_NONE_PTR;
+
+    /* Connect */
+    FL_String* host = fl_string_from_cstr(parsed.host);
+    FL_Option_ptr conn_opt = fl_net_connect(host, parsed.port);
+    if (conn_opt.tag == 0) return FL_NONE_PTR;
+    FL_Socket* sock = (FL_Socket*)conn_opt.value;
+
+    /* Build request */
+    FL_StringBuilder* sb = fl_sb_new();
+    fl_sb_append_cstr(sb, method);
+    fl_sb_append_char(sb, ' ');
+    fl_sb_append_cstr(sb, parsed.path);
+    fl_sb_append_cstr(sb, " HTTP/1.1\r\nHost: ");
+    fl_sb_append_cstr(sb, parsed.host);
+    fl_sb_append_cstr(sb, "\r\nConnection: close\r\n");
+
+    /* Body length header for methods with body */
+    if (body_str && body_str->len > 0) {
+        fl_sb_append_cstr(sb, "Content-Length: ");
+        fl_sb_append_int64(sb, body_str->len);
+        fl_sb_append_cstr(sb, "\r\n");
+    }
+
+    /* Custom headers */
+    if (hdrs) {
+        FL_Array* keys_arr = fl_map_keys(hdrs);
+        fl_int64 nkeys = fl_array_len(keys_arr);
+        for (fl_int64 i = 0; i < nkeys; i++) {
+            FL_String* key = *(FL_String**)fl_array_get_ptr(keys_arr, i);
+            FL_Option_ptr val_opt = fl_map_get_str(hdrs, key);
+            if (val_opt.tag == 1) {
+                FL_String* val = (FL_String*)val_opt.value;
+                fl_sb_append(sb, key);
+                fl_sb_append_cstr(sb, ": ");
+                fl_sb_append(sb, val);
+                fl_sb_append_cstr(sb, "\r\n");
+            }
+        }
+    }
+
+    fl_sb_append_cstr(sb, "\r\n");
+
+    /* Append body */
+    if (body_str && body_str->len > 0) {
+        fl_sb_append(sb, body_str);
+    }
+
+    FL_String* request = fl_sb_build(sb);
+    fl_sb_release(sb);
+
+    /* Send */
+    fl_net_write_string(sock, request);
+
+    /* Read response */
+    FL_HttpResponse* resp = _fl_http_read_response(sock->fd);
+    fl_net_close(sock);
+
+    if (!resp) return FL_NONE_PTR;
+    return FL_SOME_PTR(resp);
+}
+
+FL_Option_ptr fl_http_get(FL_String* url) {
+    return _fl_http_request("GET", url, NULL, NULL);
+}
+
+FL_Option_ptr fl_http_get_headers(FL_String* url, FL_Map* headers) {
+    return _fl_http_request("GET", url, NULL, headers);
+}
+
+FL_Option_ptr fl_http_post(FL_String* url, FL_String* body, FL_Map* headers) {
+    return _fl_http_request("POST", url, body, headers);
+}
+
+FL_Option_ptr fl_http_put(FL_String* url, FL_String* body, FL_Map* headers) {
+    return _fl_http_request("PUT", url, body, headers);
+}
+
+FL_Option_ptr fl_http_delete(FL_String* url, FL_Map* headers) {
+    return _fl_http_request("DELETE", url, NULL, headers);
+}
+
+fl_int fl_http_status(FL_HttpResponse* resp) {
+    return resp ? resp->status_code : 0;
+}
+
+FL_String* fl_http_body(FL_HttpResponse* resp) {
+    return resp ? resp->body : fl_string_from_cstr("");
+}
+
+FL_Option_ptr fl_http_header(FL_HttpResponse* resp, FL_String* key) {
+    if (!resp || !key) return FL_NONE_PTR;
+    /* Lowercase the key for lookup */
+    char* kbuf = (char*)malloc((size_t)key->len + 1);
+    for (fl_int64 i = 0; i < key->len; i++) {
+        char c = key->data[i];
+        kbuf[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c;
+    }
+    kbuf[key->len] = '\0';
+    FL_String* lkey = fl_string_new(kbuf, key->len);
+    free(kbuf);
+    return fl_map_get_str(resp->headers, lkey);
+}
+
+/* ========================================================================
  * CSV (stdlib/csv) — RFC 4180 compliant parser
  * ======================================================================== */
 

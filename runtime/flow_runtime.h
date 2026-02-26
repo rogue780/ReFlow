@@ -861,6 +861,21 @@ FL_Option_ptr fl_json_keys(FL_JsonValue* obj);
 void fl_json_release(FL_JsonValue* val);
 
 /* ========================================================================
+ * HTTP (stdlib/http) — HTTP/1.1 client over raw sockets
+ * ======================================================================== */
+
+typedef struct FL_HttpResponse FL_HttpResponse;
+
+FL_Option_ptr fl_http_get(FL_String* url);
+FL_Option_ptr fl_http_get_headers(FL_String* url, FL_Map* headers);
+FL_Option_ptr fl_http_post(FL_String* url, FL_String* body, FL_Map* headers);
+FL_Option_ptr fl_http_put(FL_String* url, FL_String* body, FL_Map* headers);
+FL_Option_ptr fl_http_delete(FL_String* url, FL_Map* headers);
+fl_int        fl_http_status(FL_HttpResponse* resp);
+FL_String*    fl_http_body(FL_HttpResponse* resp);
+FL_Option_ptr fl_http_header(FL_HttpResponse* resp, FL_String* key);
+
+/* ========================================================================
  * CSV (stdlib/csv) — RFC 4180
  * ======================================================================== */
 
