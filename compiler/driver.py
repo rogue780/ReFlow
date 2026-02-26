@@ -22,11 +22,6 @@ from compiler.emitter import Emitter
 # Stdlib module names that live in the stdlib/ directory.
 _STDLIB_MODULES = frozenset({"io", "sys", "conv", "string", "char", "path", "math", "sort", "bytes", "file", "random", "time", "testing", "net", "json", "array", "string_builder", "map", "csv"})
 
-# Stdlib modules implemented in Flow (not all-native) that need full compilation.
-# These are treated as user modules in the dependency graph so their Flow code
-# gets lowered and emitted alongside the importing module.
-_FLOW_STDLIB_MODULES = frozenset({"json", "http", "csv"})
-
 
 # ---------------------------------------------------------------------------
 # Parsed module cache entry
@@ -114,15 +109,8 @@ def _get_stdlib_typed(module_name: str) -> object:
         display = f"stdlib/{module_name}.flow"
         tokens = Lexer(source, display).tokenize()
         module = Parser(tokens, display).parse()
-        # Discover stdlib imports so stdlib modules can import other stdlib modules.
-        imported_modules = _discover_stdlib_imports(module)
-        imported_typed: dict[str, object] = {}
-        for imp in module.imports:
-            dep_key = ".".join(imp.path)
-            if dep_key in _STDLIB_MODULES and dep_key != module_name:
-                imported_typed[dep_key] = _get_stdlib_typed(dep_key)
-        resolved = Resolver(module, imported_modules).resolve()
-        _stdlib_typed_cache[module_name] = TypeChecker(resolved, imported_typed).check()
+        resolved = Resolver(module).resolve()
+        _stdlib_typed_cache[module_name] = TypeChecker(resolved).check()
     return _stdlib_typed_cache[module_name]
 
 
@@ -132,15 +120,11 @@ def _load_stdlib_module(module_name: str) -> ModuleScope:
 
 
 def _discover_stdlib_imports(module: Module) -> dict[str, ModuleScope]:
-    """Discover and load native-only stdlib modules needed by the given parsed Module.
-
-    Flow-implemented stdlib modules (in _FLOW_STDLIB_MODULES) are handled
-    by the dependency graph and should not be loaded here.
-    """
+    """Discover and load stdlib modules needed by the given parsed Module."""
     imported: dict[str, ModuleScope] = {}
     for imp in module.imports:
         module_key = ".".join(imp.path)
-        if _is_native_stdlib(module_key):
+        if module_key in _STDLIB_MODULES:
             if module_key not in imported:
                 imported[module_key] = _load_stdlib_module(module_key)
     return imported
@@ -150,32 +134,21 @@ def _discover_stdlib_imports(module: Module) -> dict[str, ModuleScope]:
 # Dependency graph and topological sort
 # ---------------------------------------------------------------------------
 
-def _is_native_stdlib(module_key: str) -> bool:
-    """Return True if the module is a native-only stdlib module (no Flow code to compile)."""
-    return module_key in _STDLIB_MODULES and module_key not in _FLOW_STDLIB_MODULES
-
-
 def _has_user_imports(module: Module) -> bool:
-    """Return True if the module has any imports that need compilation.
-
-    This includes non-stdlib imports and Flow-implemented stdlib modules.
-    """
+    """Return True if the module has any non-stdlib imports."""
     for imp in module.imports:
         module_key = ".".join(imp.path)
-        if not _is_native_stdlib(module_key):
+        if module_key not in _STDLIB_MODULES:
             return True
     return False
 
 
 def _user_imports(module: Module) -> list[ImportDecl]:
-    """Return the list of imports that need compilation.
-
-    This includes non-stdlib imports and Flow-implemented stdlib modules.
-    """
+    """Return the list of non-stdlib imports from a module."""
     result: list[ImportDecl] = []
     for imp in module.imports:
         module_key = ".".join(imp.path)
-        if not _is_native_stdlib(module_key):
+        if module_key not in _STDLIB_MODULES:
             result.append(imp)
     return result
 
@@ -324,16 +297,8 @@ def _run_pipeline(source_path: str) -> tuple[str, object]:
     # Load stdlib modules referenced by imports.
     imported_modules = _discover_stdlib_imports(module)
 
-    # Collect typed modules for stdlib imports so the typechecker can
-    # resolve cross-module type references (e.g., json.JsonValue sum type).
-    imported_typed: dict[str, object] = {}
-    for imp in module.imports:
-        mod_key = ".".join(imp.path)
-        if mod_key in _STDLIB_MODULES:
-            imported_typed[mod_key] = _get_stdlib_typed(mod_key)
-
     resolved = Resolver(module, imported_modules).resolve()
-    typed = TypeChecker(resolved, imported_typed).check()
+    typed = TypeChecker(resolved).check()
     return display_path, typed
 
 

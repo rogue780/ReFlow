@@ -415,6 +415,7 @@ def _ltype_c_name(lt: LType) -> str:
 _OPAQUE_TYPE_MAP: dict[str, str] = {
     "Socket": "FL_Socket",
     "file": "FL_File",
+    "JsonValue": "FL_JsonValue",
     "StringBuilder": "FL_StringBuilder",
     "DateTime": "FL_DateTime",
     "Instant": "FL_Instant",
@@ -797,8 +798,8 @@ class Lowerer:
             case TFn():
                 # Function types lower to closure struct pointers
                 return LPtr(LStruct("FL_Closure"))
-            case TSum(name=name, module=mod):
-                c_name = mangle(mod if mod else self._module_path, name,
+            case TSum(name=name):
+                c_name = mangle(self._module_path, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
             case TRecord(fields=fields):
@@ -4496,14 +4497,6 @@ class Lowerer:
                 for variant in decl.variants:
                     if variant.name == vname and variant.fields is not None:
                         return [fname for fname, _ in variant.fields]
-        # Search imported modules (cross-module sum types)
-        if self._all_typed:
-            for typed_mod in self._all_typed.values():
-                for decl in typed_mod.module.decls:
-                    if isinstance(decl, TypeDecl) and decl.name == sum_name and decl.is_sum_type:
-                        for variant in decl.variants:
-                            if variant.name == vname and variant.fields is not None:
-                                return [fname for fname, _ in variant.fields]
         return []
 
     def _lower_match_option(self, subj: LVar, opt_t: TOption,

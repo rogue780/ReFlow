@@ -358,3 +358,56 @@ which node     # should point to ~/.nvm/versions/node/v22.x.x/bin/node
 
 If either points somewhere unexpected, do not proceed — the environment
 is not set up correctly and commands will fail or use wrong versions.
+
+## Flow Code Style
+
+When writing Flow source code (examples, tests, or any `.flow` file), follow
+these rules exactly. They match the linter (`flow lint`) and are non-negotiable.
+
+**Colons are tight.** No spaces before or after `:` in type annotations,
+parameters, fields, or modifiers.
+
+```flow
+// Correct
+fn process(data:string, count:int:mut):bool {
+let name:string = "hello"
+
+// Wrong — spaces around colons
+fn process(data: string, count: int :mut): bool {
+let name: string = "hello"
+
+Naming conventions.
+
+┌──────────────────────────────────────┬────────────┬────────────────────────┐
+│              Construct               │ Convention │        Example         │
+├──────────────────────────────────────┼────────────┼────────────────────────┤
+│ Types, interfaces, aliases, variants │ PascalCase │ HttpRequest, Color, Ok │
+├──────────────────────────────────────┼────────────┼────────────────────────┤
+│ Functions, methods                   │ snake_case │ read_file, to_string   │
+├──────────────────────────────────────┼────────────┼────────────────────────┤
+│ Variables, parameters, fields        │ snake_case │ line_count, self       │
+├──────────────────────────────────────┼────────────┼────────────────────────┤
+│ Module segments                      │ snake_case │ module net_utils.http  │
+└──────────────────────────────────────┴────────────┴────────────────────────┘
+
+Comments use //. Never use ; for comments.
+
+// Correct — space after //
+// this is a comment
+
+// Wrong
+; this is not a Flow comment
+//missing space
+
+Braces on the same line as fn, if, while, for, type, match.
+
+// Correct
+fn main():int {
+
+// Wrong
+fn main():int
+{
+
+Indentation is 4 spaces. No tabs. No trailing whitespace. Files end with
+exactly one newline.
+```
