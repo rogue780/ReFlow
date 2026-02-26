@@ -1,0 +1,7 @@
+// Error: mutable static must be accessed with @
+type Counter {
+    static count: int:mut = 0
+}
+fn main(): none {
+    let x = Counter.count
+}

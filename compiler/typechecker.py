@@ -1145,6 +1145,10 @@ class TypeChecker:
         if fn.is_pure:
             self._check_purity(fn, fn_scope)
 
+        # Phase 4: mutable static reads must use @
+        if fn.body is not None:
+            self._check_mutable_static_requires_copy(fn.body)
+
         self._current_return_type = old_ret
         self._consumed_streams = old_consumed
         self._in_pure_fn = old_pure
@@ -1192,6 +1196,9 @@ class TypeChecker:
 
         if method.is_pure:
             self._check_purity(method, method_scope)
+
+        if method.body is not None:
+            self._check_mutable_static_requires_copy(method.body)
 
         self._current_return_type = old_ret
         self._in_pure_fn = old_pure
@@ -2594,6 +2601,80 @@ class TypeChecker:
                 if else_b is not None:
                     self._check_no_mutable_static_access(
                         else_b, fn_name, error_node)
+            case _:
+                pass
+
+    # ------------------------------------------------------------------
+    # Mutable static access requires @ (Phase 4)
+    # ------------------------------------------------------------------
+
+    def _check_mutable_static_requires_copy(self, body: ASTNode) -> None:
+        """Walk AST checking that mutable static reads use @ (CopyExpr)."""
+        match body:
+            case Block(stmts=stmts):
+                for s in stmts:
+                    self._check_mutable_static_requires_copy(s)
+            case ExprStmt(expr=expr):
+                self._check_mutable_static_requires_copy(expr)
+            case LetStmt(value=value):
+                self._check_mutable_static_requires_copy(value)
+            case ReturnStmt(value=value):
+                if value is not None:
+                    self._check_mutable_static_requires_copy(value)
+            case AssignStmt(target=target, value=value):
+                # Assignment target to a mutable static is fine (writing)
+                self._check_mutable_static_requires_copy(value)
+            case Call(callee=callee, args=args):
+                self._check_mutable_static_requires_copy(callee)
+                for a in args:
+                    self._check_mutable_static_requires_copy(a)
+            case MethodCall(args=args, receiver=receiver):
+                self._check_mutable_static_requires_copy(receiver)
+                for a in args:
+                    self._check_mutable_static_requires_copy(a)
+            case NamedArg(value=value):
+                self._check_mutable_static_requires_copy(value)
+            case BinOp(left=left, right=right):
+                self._check_mutable_static_requires_copy(left)
+                self._check_mutable_static_requires_copy(right)
+            case UnaryOp(operand=operand):
+                self._check_mutable_static_requires_copy(operand)
+            case CopyExpr():
+                pass  # @ wraps the access — mutable static is allowed
+            case FieldAccess():
+                sym = self._resolved.symbols.get(body)
+                if (sym is not None
+                        and sym.kind == SymbolKind.STATIC
+                        and sym.is_mut):
+                    raise self._error(
+                        f"mutable static '{sym.name}' must be accessed "
+                        "with @ for thread safety", body)
+            case IfExpr(condition=cond, then_branch=then_b,
+                        else_branch=else_b):
+                self._check_mutable_static_requires_copy(cond)
+                self._check_mutable_static_requires_copy(then_b)
+                if else_b is not None:
+                    self._check_mutable_static_requires_copy(else_b)
+            case IfStmt(condition=cond, then_branch=then_b,
+                        else_branch=else_b):
+                self._check_mutable_static_requires_copy(cond)
+                self._check_mutable_static_requires_copy(then_b)
+                if else_b is not None:
+                    self._check_mutable_static_requires_copy(else_b)
+            case WhileStmt(condition=cond, body=while_body):
+                self._check_mutable_static_requires_copy(cond)
+                self._check_mutable_static_requires_copy(while_body)
+            case ForStmt(iterable=iterable, body=for_body):
+                self._check_mutable_static_requires_copy(iterable)
+                self._check_mutable_static_requires_copy(for_body)
+            case MatchExpr(subject=subject, arms=arms):
+                self._check_mutable_static_requires_copy(subject)
+                for arm in arms:
+                    self._check_mutable_static_requires_copy(arm.body)
+            case MatchStmt(subject=subject, arms=arms):
+                self._check_mutable_static_requires_copy(subject)
+                for arm in arms:
+                    self._check_mutable_static_requires_copy(arm.body)
             case _:
                 pass
 

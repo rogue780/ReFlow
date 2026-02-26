@@ -1440,5 +1440,45 @@ fn main(): none {
 }""")
 
 
+# ---------------------------------------------------------------------------
+# Mutable static access requires @
+# ---------------------------------------------------------------------------
+
+class TestMutableStaticCopy(unittest.TestCase):
+    """Phase 4: mutable statics must be accessed with @."""
+
+    def test_bare_mutable_static_read_errors(self):
+        """Reading a mutable static without @ raises TypeError."""
+        with self.assertRaises(FlowTypeError) as ctx:
+            check("""
+type Counter {
+    static count: int:mut = 0
+}
+fn main(): none {
+    let x = Counter.count
+}""")
+        self.assertIn("must be accessed with @", ctx.exception.message)
+
+    def test_copy_mutable_static_ok(self):
+        """Reading a mutable static with @ is allowed."""
+        check("""
+type Counter {
+    static count: int:mut = 0
+}
+fn main(): none {
+    let x = @Counter.count
+}""")
+
+    def test_assign_to_mutable_static_ok(self):
+        """Assigning to a mutable static doesn't require @."""
+        check("""
+type Counter {
+    static count: int:mut = 0
+}
+fn main(): none {
+    Counter.count = 5
+}""")
+
+
 if __name__ == "__main__":
     unittest.main()
