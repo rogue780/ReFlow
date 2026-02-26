@@ -1,15 +1,15 @@
 // Test default parameter values
 import io (println)
 
-fn greet(name: string, greeting: string = "Hello"): string {
+fn greet(name:string, greeting:string = "Hello"):string {
     return greeting + ", " + name + "!"
 }
 
-fn add(a: int, b: int = 10, c: int = 20): int {
+fn add(a:int, b:int = 10, c:int = 20):int {
     return a + b + c
 }
 
-fn main(): none {
+fn main():none {
     // Call with default omitted
     println(greet("World"))
     // Call with all args

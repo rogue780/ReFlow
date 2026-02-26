@@ -1328,7 +1328,7 @@ fn add(x: int, y: int): int = x + y
 Parameters may have default values. Once a parameter has a default, all subsequent parameters must also have defaults. Default values must be compile-time constant expressions (literals or `none`).
 
 ```
-fn connect(host: string, port: int = 80, timeout: int = 30): Connection {
+fn connect(host:string, port:int = 80, timeout:int = 30):Connection {
     // ...
 }
 
@@ -1349,7 +1349,7 @@ connect("example.com", timeout: 60)    // positional first, then named
 Named arguments are reordered to match parameter positions at compile time. They interact with defaults: named arguments can skip parameters that have defaults.
 
 ```
-fn f(a: int, b: int = 10, c: int = 20): int = a + b + c
+fn f(a:int, b:int = 10, c:int = 20):int = a + b + c
 
 f(1, c: 5)    // a=1, b=10 (default), c=5
 ```
@@ -1740,8 +1740,8 @@ Mutable statics must be read through the `@` (copy) operator. This ensures a thr
 
 ```
 type Config {
-    static host: string:mut = "localhost",
-    static port: int:mut = 5432
+    static host:string:mut = "localhost",
+    static port:int:mut = 5432
 }
 
 let port = @Config.port    // deep copy of port at this moment

@@ -1,15 +1,15 @@
 // Test named arguments
 import io (println)
 
-fn greet(name: string, greeting: string = "Hello"): string {
+fn greet(name:string, greeting:string = "Hello"):string {
     return greeting + ", " + name + "!"
 }
 
-fn add(a: int, b: int, c: int): int {
+fn add(a:int, b:int, c:int):int {
     return a + b + c
 }
 
-fn main(): none {
+fn main():none {
     // Named args reordered
     println(f"{add(c: 3, b: 2, a: 1)}")
     // Named with default
