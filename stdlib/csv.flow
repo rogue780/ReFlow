@@ -1,0 +1,19 @@
+module csv
+
+// Parse full CSV string into rows of fields (RFC 4180)
+export fn parse(s:string):array<array<string>> = native "fl_csv_parse"
+
+// Parse a single CSV row
+export fn parse_row(s:string):array<string> = native "fl_csv_parse_row"
+
+// Generate CSV string from rows
+export fn:pure to_string(rows:array<array<string>>):string = native "fl_csv_to_string"
+
+// Generate a single CSV row string
+export fn:pure row_to_string(fields:array<string>):string = native "fl_csv_row_to_string"
+
+// Parse with custom delimiter
+export fn parse_delimited(s:string, delimiter:byte):array<array<string>> = native "fl_csv_parse_delimited"
+
+// Use first row as header names, returns array of maps
+export fn with_headers(rows:array<array<string>>):array<map<string, string>> = native "fl_csv_with_headers"

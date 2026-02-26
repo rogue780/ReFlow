@@ -1,0 +1,62 @@
+module tests.stdlib_csv_test
+import io (println)
+import csv
+import conv
+import array
+import map
+
+fn main() {
+    // Basic parse
+    let rows = csv.parse("a,b,c\n1,2,3\n4,5,6")
+    let row0 = csv.parse_row("a,b,c")
+    let f0 = array.get_any(row0, 0)
+    match f0 {
+        some(v): println(f"f0={v}")
+        none: println("none")
+    }
+    let f2 = array.get_any(row0, 2)
+    match f2 {
+        some(v): println(f"f2={v}")
+        none: println("none")
+    }
+
+    // Quoted fields with embedded commas and doubled quotes
+    let row1 = csv.parse_row("\"Smith, John\",\"He said \"\"hi\"\"\"")
+    let name = array.get_any(row1, 0)
+    match name {
+        some(n): println(f"name={n}")
+        none: println("none")
+    }
+    let desc = array.get_any(row1, 1)
+    match desc {
+        some(d): println(f"desc={d}")
+        none: println("none")
+    }
+
+    // Row to string with quoting
+    let fields = csv.parse_row("hello,\"world, yo\",test")
+    let row_str = csv.row_to_string(fields)
+    println(f"row_str={row_str}")
+
+    // with_headers
+    let hrows = csv.parse("name,age\nAlice,30\nBob,25")
+    let records = csv.with_headers(hrows)
+    let rec0 = array.get_any(records, 0)
+    match rec0 {
+        some(m): {
+            let name_val = map.get(m, "name")
+            match name_val {
+                some(n): println(f"hdr_name={n}")
+                none: println("none")
+            }
+            let age_val = map.get(m, "age")
+            match age_val {
+                some(a): println(f"hdr_age={a}")
+                none: println("none")
+            }
+        }
+        none: println("none")
+    }
+
+    println("done")
+}

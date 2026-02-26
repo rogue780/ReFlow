@@ -4668,3 +4668,218 @@ FL_Array* fl_map_values(FL_Map* m) {
     free(vals);
     return arr;
 }
+
+/* ========================================================================
+ * CSV (stdlib/csv) — RFC 4180 compliant parser
+ * ======================================================================== */
+
+/* State machine states for CSV parser */
+enum _fl_csv_state { _CSV_FIELD_START, _CSV_UNQUOTED, _CSV_QUOTED, _CSV_QUOTED_QUOTE };
+
+static FL_Array* _fl_csv_parse_impl(const char* data, fl_int64 len, char delim) {
+    FL_Array* rows = fl_array_new(0, sizeof(void*), NULL);
+    FL_Array* current_row = fl_array_new(0, sizeof(void*), NULL);
+    FL_StringBuilder* field = fl_sb_new();
+    enum _fl_csv_state state = _CSV_FIELD_START;
+
+    for (fl_int64 i = 0; i < len; i++) {
+        char c = data[i];
+        switch (state) {
+            case _CSV_FIELD_START:
+                if (c == '"') {
+                    state = _CSV_QUOTED;
+                } else if (c == delim) {
+                    /* Empty field */
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                } else if (c == '\r') {
+                    /* Handle \r\n or bare \r */
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                    rows = fl_array_push_ptr(rows, current_row);
+                    current_row = fl_array_new(0, sizeof(void*), NULL);
+                    if (i + 1 < len && data[i + 1] == '\n') i++;
+                } else if (c == '\n') {
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                    rows = fl_array_push_ptr(rows, current_row);
+                    current_row = fl_array_new(0, sizeof(void*), NULL);
+                } else {
+                    fl_sb_append_char(field, (fl_char)c);
+                    state = _CSV_UNQUOTED;
+                }
+                break;
+
+            case _CSV_UNQUOTED:
+                if (c == delim) {
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                    state = _CSV_FIELD_START;
+                } else if (c == '\r') {
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                    rows = fl_array_push_ptr(rows, current_row);
+                    current_row = fl_array_new(0, sizeof(void*), NULL);
+                    if (i + 1 < len && data[i + 1] == '\n') i++;
+                    state = _CSV_FIELD_START;
+                } else if (c == '\n') {
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                    rows = fl_array_push_ptr(rows, current_row);
+                    current_row = fl_array_new(0, sizeof(void*), NULL);
+                    state = _CSV_FIELD_START;
+                } else {
+                    fl_sb_append_char(field, (fl_char)c);
+                }
+                break;
+
+            case _CSV_QUOTED:
+                if (c == '"') {
+                    state = _CSV_QUOTED_QUOTE;
+                } else {
+                    fl_sb_append_char(field, (fl_char)c);
+                }
+                break;
+
+            case _CSV_QUOTED_QUOTE:
+                if (c == '"') {
+                    /* Doubled quote — emit a single quote */
+                    fl_sb_append_char(field, '"');
+                    state = _CSV_QUOTED;
+                } else if (c == delim) {
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                    state = _CSV_FIELD_START;
+                } else if (c == '\r') {
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                    rows = fl_array_push_ptr(rows, current_row);
+                    current_row = fl_array_new(0, sizeof(void*), NULL);
+                    if (i + 1 < len && data[i + 1] == '\n') i++;
+                    state = _CSV_FIELD_START;
+                } else if (c == '\n') {
+                    current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+                    fl_sb_release(field);
+                    field = fl_sb_new();
+                    rows = fl_array_push_ptr(rows, current_row);
+                    current_row = fl_array_new(0, sizeof(void*), NULL);
+                    state = _CSV_FIELD_START;
+                } else {
+                    /* Character after closing quote (malformed) — treat as content */
+                    fl_sb_append_char(field, (fl_char)c);
+                    state = _CSV_UNQUOTED;
+                }
+                break;
+        }
+    }
+
+    /* Finalize last field/row (unless we ended exactly on a newline) */
+    if (fl_sb_len(field) > 0 || state != _CSV_FIELD_START
+        || fl_array_len(current_row) > 0) {
+        current_row = fl_array_push_ptr(current_row, fl_sb_build(field));
+        rows = fl_array_push_ptr(rows, current_row);
+    } else {
+        /* No trailing data — clean up */
+    }
+    fl_sb_release(field);
+    return rows;
+}
+
+FL_Array* fl_csv_parse(FL_String* s) {
+    return _fl_csv_parse_impl(s->data, s->len, ',');
+}
+
+FL_Array* fl_csv_parse_delimited(FL_String* s, fl_byte delimiter) {
+    return _fl_csv_parse_impl(s->data, s->len, (char)delimiter);
+}
+
+FL_Array* fl_csv_parse_row(FL_String* s) {
+    FL_Array* rows = _fl_csv_parse_impl(s->data, s->len, ',');
+    if (fl_array_len(rows) > 0) {
+        return *(FL_Array**)fl_array_get_ptr(rows, 0);
+    }
+    return fl_array_new(0, sizeof(void*), NULL);
+}
+
+static fl_bool _fl_csv_needs_quoting(FL_String* s, char delim) {
+    for (fl_int64 i = 0; i < s->len; i++) {
+        char c = s->data[i];
+        if (c == delim || c == '"' || c == '\n' || c == '\r') return fl_true;
+    }
+    return fl_false;
+}
+
+FL_String* fl_csv_row_to_string(FL_Array* fields) {
+    FL_StringBuilder* sb = fl_sb_new();
+    fl_int64 n = fl_array_len(fields);
+    for (fl_int64 i = 0; i < n; i++) {
+        if (i > 0) fl_sb_append_char(sb, ',');
+        FL_String* f = *(FL_String**)fl_array_get_ptr(fields, i);
+        if (_fl_csv_needs_quoting(f, ',')) {
+            fl_sb_append_char(sb, '"');
+            for (fl_int64 j = 0; j < f->len; j++) {
+                char c = f->data[j];
+                if (c == '"') {
+                    fl_sb_append_cstr(sb, "\"\"");
+                } else {
+                    fl_sb_append_char(sb, (fl_char)c);
+                }
+            }
+            fl_sb_append_char(sb, '"');
+        } else {
+            fl_sb_append(sb, f);
+        }
+    }
+    FL_String* result = fl_sb_build(sb);
+    fl_sb_release(sb);
+    return result;
+}
+
+FL_String* fl_csv_to_string(FL_Array* rows) {
+    FL_StringBuilder* sb = fl_sb_new();
+    fl_int64 n = fl_array_len(rows);
+    for (fl_int64 i = 0; i < n; i++) {
+        if (i > 0) fl_sb_append_cstr(sb, "\r\n");
+        FL_Array* row = *(FL_Array**)fl_array_get_ptr(rows, i);
+        FL_String* row_str = fl_csv_row_to_string(row);
+        fl_sb_append(sb, row_str);
+    }
+    FL_String* result = fl_sb_build(sb);
+    fl_sb_release(sb);
+    return result;
+}
+
+FL_Array* fl_csv_with_headers(FL_Array* rows) {
+    fl_int64 nrows = fl_array_len(rows);
+    if (nrows < 1) return fl_array_new(0, sizeof(void*), NULL);
+
+    FL_Array* headers = *(FL_Array**)fl_array_get_ptr(rows, 0);
+    fl_int64 ncols = fl_array_len(headers);
+
+    FL_Array* result = fl_array_new(0, sizeof(void*), NULL);
+    for (fl_int64 i = 1; i < nrows; i++) {
+        FL_Array* row = *(FL_Array**)fl_array_get_ptr(rows, i);
+        FL_Map* m = fl_map_new();
+        fl_int64 row_len = fl_array_len(row);
+        for (fl_int64 j = 0; j < ncols; j++) {
+            FL_String* key = *(FL_String**)fl_array_get_ptr(headers, j);
+            FL_String* val;
+            if (j < row_len) {
+                val = *(FL_String**)fl_array_get_ptr(row, j);
+            } else {
+                val = fl_string_from_cstr("");
+            }
+            m = fl_map_set_str(m, key, val);
+        }
+        result = fl_array_push_ptr(result, m);
+    }
+    return result;
+}

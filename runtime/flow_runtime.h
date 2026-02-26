@@ -861,6 +861,17 @@ FL_Option_ptr fl_json_keys(FL_JsonValue* obj);
 void fl_json_release(FL_JsonValue* val);
 
 /* ========================================================================
+ * CSV (stdlib/csv) — RFC 4180
+ * ======================================================================== */
+
+FL_Array* fl_csv_parse(FL_String* s);
+FL_Array* fl_csv_parse_row(FL_String* s);
+FL_String* fl_csv_to_string(FL_Array* rows);
+FL_String* fl_csv_row_to_string(FL_Array* fields);
+FL_Array* fl_csv_parse_delimited(FL_String* s, fl_byte delimiter);
+FL_Array* fl_csv_with_headers(FL_Array* rows);
+
+/* ========================================================================
  * Runtime Initialization
  * ======================================================================== */
 
