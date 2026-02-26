@@ -82,6 +82,7 @@ class TestKeywords(unittest.TestCase):
         ("coerce",      TokenType.COERCE),
         ("cast",        TokenType.CAST),
         ("throw",       TokenType.THROW),
+        ("extern",      TokenType.EXTERN),
         ("true",        TokenType.BOOL_LIT),
         ("false",       TokenType.BOOL_LIT),
     ]

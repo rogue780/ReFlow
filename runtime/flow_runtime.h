@@ -567,6 +567,10 @@ FL_String*    fl_string_repeat(FL_String* s, fl_int n);
 FL_String*    fl_string_url_decode(FL_String* s);
 FL_String*    fl_string_url_encode(FL_String* s);
 
+/* FFI helpers: string <-> raw pointer conversion */
+void*         fl_string_to_cptr(FL_String* s);
+FL_String*    fl_string_from_cptr(void* p, fl_int len);
+
 /* ========================================================================
  * String Builder (stdlib/string_builder)
  * ======================================================================== */

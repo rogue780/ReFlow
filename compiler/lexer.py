@@ -53,6 +53,7 @@ class TokenType(Enum):
     # SNAPSHOT removed — replaced by @ on mutable static access
     THROW = auto()
     NATIVE = auto()
+    EXTERN = auto()
 
     # --- Operators ---
     ARROW = auto()           # ->
@@ -173,6 +174,7 @@ _KEYWORDS: dict[str, TokenType] = {
     "cast": TokenType.CAST,
     "throw": TokenType.THROW,
     "native": TokenType.NATIVE,
+    "extern": TokenType.EXTERN,
     "true": TokenType.BOOL_LIT,
     "false": TokenType.BOOL_LIT,
 }

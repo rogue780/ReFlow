@@ -603,6 +603,25 @@ class SumVariantDecl(ASTNode):
     fields: list[tuple[str, TypeExpr]] | None
 
 
+@dataclass
+class ExternLibDecl(Decl):
+    lib_name: str               # "ssl", "z", "sqlite3"
+
+
+@dataclass
+class ExternTypeDecl(Decl):
+    name: str                   # "SSL_CTX", "sqlite3"
+    is_export: bool
+
+
+@dataclass
+class ExternFnDecl(Decl):
+    name: str                   # literal C function name (no mangling)
+    params: list[Param]
+    return_type: TypeExpr | None
+    is_export: bool
+
+
 # ---------------------------------------------------------------------------
 # Top-level Module (RT-3-5-1)
 # ---------------------------------------------------------------------------

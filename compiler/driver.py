@@ -10,7 +10,7 @@ from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
-from compiler.ast_nodes import Module, ImportDecl
+from compiler.ast_nodes import Module, ImportDecl, ExternLibDecl
 from compiler.errors import ResolveError
 from compiler.lexer import Lexer
 from compiler.parser import Parser
@@ -21,6 +21,11 @@ from compiler.emitter import Emitter
 
 # Stdlib module names that live in the stdlib/ directory.
 _STDLIB_MODULES = frozenset({"io", "sys", "conv", "string", "char", "path", "math", "sort", "bytes", "file", "random", "time", "testing", "net", "json", "array", "string_builder", "map", "csv"})
+
+# Stdlib modules implemented in Flow (not all-native) that need full compilation.
+# These are treated as user modules in the dependency graph so their Flow code
+# gets lowered and emitted alongside the importing module.
+_FLOW_STDLIB_MODULES = frozenset({"json", "http", "csv"})
 
 
 # ---------------------------------------------------------------------------
@@ -109,8 +114,15 @@ def _get_stdlib_typed(module_name: str) -> object:
         display = f"stdlib/{module_name}.flow"
         tokens = Lexer(source, display).tokenize()
         module = Parser(tokens, display).parse()
-        resolved = Resolver(module).resolve()
-        _stdlib_typed_cache[module_name] = TypeChecker(resolved).check()
+        # Discover stdlib imports so stdlib modules can import other stdlib modules.
+        imported_modules = _discover_stdlib_imports(module)
+        imported_typed: dict[str, object] = {}
+        for imp in module.imports:
+            dep_key = ".".join(imp.path)
+            if dep_key in _STDLIB_MODULES and dep_key != module_name:
+                imported_typed[dep_key] = _get_stdlib_typed(dep_key)
+        resolved = Resolver(module, imported_modules).resolve()
+        _stdlib_typed_cache[module_name] = TypeChecker(resolved, imported_typed).check()
     return _stdlib_typed_cache[module_name]
 
 
@@ -120,11 +132,15 @@ def _load_stdlib_module(module_name: str) -> ModuleScope:
 
 
 def _discover_stdlib_imports(module: Module) -> dict[str, ModuleScope]:
-    """Discover and load stdlib modules needed by the given parsed Module."""
+    """Discover and load native-only stdlib modules needed by the given parsed Module.
+
+    Flow-implemented stdlib modules (in _FLOW_STDLIB_MODULES) are handled
+    by the dependency graph and should not be loaded here.
+    """
     imported: dict[str, ModuleScope] = {}
     for imp in module.imports:
         module_key = ".".join(imp.path)
-        if module_key in _STDLIB_MODULES:
+        if _is_native_stdlib(module_key):
             if module_key not in imported:
                 imported[module_key] = _load_stdlib_module(module_key)
     return imported
@@ -134,21 +150,32 @@ def _discover_stdlib_imports(module: Module) -> dict[str, ModuleScope]:
 # Dependency graph and topological sort
 # ---------------------------------------------------------------------------
 
+def _is_native_stdlib(module_key: str) -> bool:
+    """Return True if the module is a native-only stdlib module (no Flow code to compile)."""
+    return module_key in _STDLIB_MODULES and module_key not in _FLOW_STDLIB_MODULES
+
+
 def _has_user_imports(module: Module) -> bool:
-    """Return True if the module has any non-stdlib imports."""
+    """Return True if the module has any imports that need compilation.
+
+    This includes non-stdlib imports and Flow-implemented stdlib modules.
+    """
     for imp in module.imports:
         module_key = ".".join(imp.path)
-        if module_key not in _STDLIB_MODULES:
+        if not _is_native_stdlib(module_key):
             return True
     return False
 
 
 def _user_imports(module: Module) -> list[ImportDecl]:
-    """Return the list of non-stdlib imports from a module."""
+    """Return the list of imports that need compilation.
+
+    This includes non-stdlib imports and Flow-implemented stdlib modules.
+    """
     result: list[ImportDecl] = []
     for imp in module.imports:
         module_key = ".".join(imp.path)
-        if module_key not in _STDLIB_MODULES:
+        if not _is_native_stdlib(module_key):
             result.append(imp)
     return result
 
@@ -297,8 +324,16 @@ def _run_pipeline(source_path: str) -> tuple[str, object]:
     # Load stdlib modules referenced by imports.
     imported_modules = _discover_stdlib_imports(module)
 
+    # Collect typed modules for stdlib imports so the typechecker can
+    # resolve cross-module type references (e.g., json.JsonValue sum type).
+    imported_typed: dict[str, object] = {}
+    for imp in module.imports:
+        mod_key = ".".join(imp.path)
+        if mod_key in _STDLIB_MODULES:
+            imported_typed[mod_key] = _get_stdlib_typed(mod_key)
+
     resolved = Resolver(module, imported_modules).resolve()
-    typed = TypeChecker(resolved).check()
+    typed = TypeChecker(resolved, imported_typed).check()
     return display_path, typed
 
 
@@ -482,6 +517,15 @@ def compile_source(source_path: str, *, output: str | None = None,
     if verbose:
         sys.stderr.write(c_source)
 
+    # Collect extern lib names from all modules for linker flags.
+    extern_libs: list[str] = []
+    seen_libs: set[str] = set()
+    for _, typed, _ in modules:
+        for decl in typed.module.decls:
+            if isinstance(decl, ExternLibDecl) and decl.lib_name not in seen_libs:
+                extern_libs.append(decl.lib_name)
+                seen_libs.add(decl.lib_name)
+
     # Determine output binary path.
     if output is None:
         output_path = str(Path(source_path).with_suffix(""))
@@ -499,16 +543,18 @@ def compile_source(source_path: str, *, output: str | None = None,
         os.write(tmp_fd, c_source.encode("utf-8"))
         os.close(tmp_fd)
 
+        clang_cmd = [
+            "clang", "-std=c11", "-Wall", "-Wextra",
+            "-pthread",
+            "-o", output_path,
+            tmp_path,
+            str(runtime_c),
+            "-I", str(runtime_include),
+            "-lm",
+        ] + [f"-l{lib}" for lib in extern_libs]
+
         result = subprocess.run(
-            [
-                "clang", "-std=c11", "-Wall", "-Wextra",
-                "-pthread",
-                "-o", output_path,
-                tmp_path,
-                str(runtime_c),
-                "-I", str(runtime_include),
-                "-lm",
-            ],
+            clang_cmd,
             capture_output=True,
             text=True,
         )

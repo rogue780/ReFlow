@@ -33,7 +33,7 @@ from compiler.ast_nodes import (
     # Declarations
     ModuleDecl, ImportDecl, FnDecl, TypeDecl, InterfaceDecl, AliasDecl,
     FieldDecl, ConstructorDecl, StaticMemberDecl, SumVariantDecl, Param,
-    TypeParam,
+    TypeParam, ExternLibDecl, ExternTypeDecl, ExternFnDecl,
     # Top-level
     Module,
 )
@@ -75,6 +75,12 @@ class TChar(Type):
 
 @dataclass(frozen=True)
 class TByte(Type):
+    pass
+
+
+@dataclass(frozen=True)
+class TPtr(Type):
+    """Raw pointer type (void*). Used for FFI."""
     pass
 
 
@@ -165,6 +171,7 @@ class TAlias(Type):
 class TSum(Type):
     name: str
     variants: tuple[TVariant, ...]
+    module: str = ""
 
 
 @dataclass(frozen=True)
@@ -349,6 +356,7 @@ _BUILTIN_TYPES: dict[str, Type] = {
     "bool": TBool(),
     "char": TChar(),
     "byte": TByte(),
+    "ptr": TPtr(),
     "string": TString(),
     "none": TNone(),
 }
@@ -403,12 +411,15 @@ class TypeChecker:
         self._current_fn_decl: FnDecl | None = None
         # Capacity hints from SizedType annotations (e.g., stream<int>[64])
         self._capacities: dict[ASTNode, Expr] = {}
+        # Extern type names from extern type declarations (FFI)
+        self._extern_types: set[str] = set()
 
     def check(self) -> TypedModule:
         """Run the type checking pass."""
         self._register_builtin_interfaces()
         self._register_builtin_fulfillments()
         self._register_builtin_method_sigs()
+        self._collect_extern_types()
         self._build_type_registry()
         self._register_imported_types()
         self._build_interface_registry()
@@ -426,6 +437,12 @@ class TypeChecker:
     # ------------------------------------------------------------------
     # Pre-pass: build type registry from TypeDecls
     # ------------------------------------------------------------------
+
+    def _collect_extern_types(self) -> None:
+        """Collect extern type names for FFI type resolution."""
+        for decl in self._module.decls:
+            if isinstance(decl, ExternTypeDecl):
+                self._extern_types.add(decl.name)
 
     def _build_type_registry(self) -> None:
         for decl in self._module.decls:
@@ -510,7 +527,7 @@ class TypeChecker:
     def _register_imported_types(self) -> None:
         """Register type declarations from imported user modules.
 
-        When a user module exports a struct type (e.g., http.HttpResponse),
+        When a user module exports a type (struct or sum type),
         downstream modules need it in the type registry so that cross-module
         function return types resolve correctly.
         """
@@ -525,6 +542,36 @@ class TypeChecker:
                 for f in decl.fields:
                     fields[f.name] = self._resolve_type_expr(f.type_ann)
                     field_mut[f.name] = f.is_mut
+                # Build sum_type TSum for imported sum types
+                sum_type: TSum | None = None
+                if decl.is_sum_type:
+                    # Register a preliminary entry so recursive variant
+                    # field resolution finds this type.
+                    preliminary_sum = TSum(decl.name, ())
+                    self._type_registry[decl.name] = TypeInfo(
+                        name=decl.name,
+                        type_params=decl.type_params,
+                        fields={},
+                        field_mutability={},
+                        methods={},
+                        statics={},
+                        static_mutability={},
+                        constructors={},
+                        is_sum_type=True,
+                        sum_type=preliminary_sum,
+                        interfaces=decl.interfaces,
+                        module_path=mod_key,
+                    )
+                    variants = []
+                    for v in decl.variants:
+                        if v.fields is not None:
+                            v_fields = tuple(
+                                self._resolve_type_expr(ft)
+                                for _, ft in v.fields)
+                            variants.append(TVariant(v.name, v_fields))
+                        else:
+                            variants.append(TVariant(v.name, None))
+                    sum_type = TSum(decl.name, tuple(variants), module=mod_key)
                 self._type_registry[decl.name] = TypeInfo(
                     name=decl.name,
                     type_params=decl.type_params,
@@ -535,7 +582,7 @@ class TypeChecker:
                     static_mutability={},
                     constructors={},
                     is_sum_type=decl.is_sum_type,
-                    sum_type=None,
+                    sum_type=sum_type,
                     interfaces=decl.interfaces,
                     module_path=mod_key,
                 )
@@ -1124,6 +1171,20 @@ class TypeChecker:
                     target = self._resolve_type_expr(decl.target)
                     self._scope.define(name, TAlias(name, target))
 
+                case ExternFnDecl(name=name):
+                    param_types = tuple(
+                        self._resolve_type_expr(p.type_ann)
+                        for p in decl.params)
+                    ret = (self._resolve_type_expr(decl.return_type)
+                           if decl.return_type else TNone())
+                    self._scope.define(name, TFn(param_types, ret, False))
+
+                case ExternTypeDecl(name=name):
+                    self._scope.define(name, TNamed("", name, ()))
+
+                case ExternLibDecl():
+                    pass
+
         self._module_scope = TypeScope()
         self._module_scope._types = dict(self._scope._types)
 
@@ -1138,6 +1199,8 @@ class TypeChecker:
                     self._check_fn_body(decl)
                 case TypeDecl():
                     self._check_type_decl(decl)
+                case ExternFnDecl() | ExternTypeDecl() | ExternLibDecl():
+                    pass  # no bodies to check
 
     def _check_fn_body(self, fn: FnDecl) -> None:
         if fn.body is None:
@@ -1273,6 +1336,9 @@ class TypeChecker:
                 builtin = _BUILTIN_TYPES.get(name)
                 if builtin is not None:
                     return builtin
+                # FFI extern type
+                if name in self._extern_types:
+                    return TNamed("", name, ())
                 # User-defined type or type parameter
                 info = self._type_registry.get(name)
                 if info is not None:
@@ -2057,8 +2123,12 @@ class TypeChecker:
 
                 if type_ann is not None:
                     expected = self._resolve_type_expr(type_ann)
+                    # none → ptr (null pointer)
+                    if (isinstance(expected, TPtr)
+                            and isinstance(value, NoneLit)):
+                        val_t = TPtr()
                     # RT-6-4-5: auto-lift T to option<T>
-                    if (isinstance(expected, TOption)
+                    elif (isinstance(expected, TOption)
                             and not isinstance(val_t, (TOption, TAny))
                             and self._is_assignable(val_t, expected.inner)):
                         val_t = TOption(val_t)
@@ -2099,8 +2169,12 @@ class TypeChecker:
                     val_t = self._infer_expr(value, scope)
                     if self._current_return_type is not None:
                         expected = self._current_return_type
+                        # none → ptr (null pointer)
+                        if (isinstance(expected, TPtr)
+                                and isinstance(value, NoneLit)):
+                            pass  # null pointer
                         # Auto-lift for option return
-                        if (isinstance(expected, TOption)
+                        elif (isinstance(expected, TOption)
                                 and not isinstance(val_t, (TOption, TAny))
                                 and self._is_assignable(val_t, expected.inner)):
                             pass  # auto-lifted
@@ -2907,6 +2981,10 @@ class TypeChecker:
         if self._types_equal(source, target):
             return True
 
+        # TNone assignable to ptr (null pointer)
+        if isinstance(source, TNone) and isinstance(target, TPtr):
+            return True
+
         # T assignable to option<T>
         if isinstance(target, TOption):
             if isinstance(source, TOption):
@@ -3045,6 +3123,8 @@ class TypeChecker:
                 return "char"
             case TByte():
                 return "byte"
+            case TPtr():
+                return "ptr"
             case TString():
                 return "string"
             case TNone():

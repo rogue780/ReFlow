@@ -11,7 +11,7 @@ from compiler.resolver import Resolver
 from compiler.errors import TypeError as FlowTypeError
 from compiler.typechecker import (
     TypeChecker, TypedModule,
-    TInt, TFloat, TBool, TChar, TByte, TString, TNone,
+    TInt, TFloat, TBool, TChar, TByte, TPtr, TString, TNone,
     TOption, TResult, TTuple, TArray, TStream, TFn, TRecord,
     TNamed, TAlias, TSum, TVariant, TTypeVar, TAny,
     apply_env,
@@ -1539,6 +1539,74 @@ fn main():none {
         for node, t in result.types.items():
             if isinstance(node, MethodCall) and node.method == "kill":
                 self.assertIsInstance(t, TNone)
+
+
+class TestPtrType(unittest.TestCase):
+    """Tests for the ptr builtin type (FFI)."""
+
+    def test_ptr_type_resolves(self) -> None:
+        result = check("fn main():none { let p:ptr = none }")
+        from compiler.ast_nodes import LetStmt
+        for node, t in result.types.items():
+            if isinstance(node, LetStmt) and node.name == "p":
+                break
+
+    def test_ptr_param_type(self) -> None:
+        result = check("fn take_ptr(p:ptr):none {}")
+        from compiler.ast_nodes import FnDecl
+        for node, t in result.types.items():
+            if isinstance(node, FnDecl) and node.name == "take_ptr":
+                self.assertIsInstance(t, TFn)
+                self.assertIsInstance(t.params[0], TPtr)
+
+    def test_ptr_return_type(self) -> None:
+        result = check("fn get_ptr():ptr { return none }")
+        from compiler.ast_nodes import FnDecl
+        for node, t in result.types.items():
+            if isinstance(node, FnDecl) and node.name == "get_ptr":
+                self.assertIsInstance(t, TFn)
+                self.assertIsInstance(t.ret, TPtr)
+
+
+class TestExternDecls(unittest.TestCase):
+    """Tests for extern declarations through the type checker."""
+
+    def test_extern_fn_callable(self) -> None:
+        """An extern fn can be called with correct arg types."""
+        result = check("""
+extern fn abs(x:int):int
+fn main():none {
+    let v:int = abs(-1)
+}""")
+        from compiler.ast_nodes import Call
+        for node, t in result.types.items():
+            if isinstance(node, Call):
+                self.assertIsInstance(t, TInt)
+
+    def test_extern_fn_wrong_arg_type(self) -> None:
+        """Calling an extern fn with wrong arg type raises TypeError."""
+        with self.assertRaises(FlowTypeError):
+            check("""
+extern fn abs(x:int):int
+fn main():none {
+    let v:int = abs("hello")
+}""")
+
+    def test_extern_type_as_param(self) -> None:
+        """An extern type can be used as a parameter type."""
+        check("""
+extern type SSL_CTX
+extern fn SSL_CTX_free(ctx:SSL_CTX):none
+fn main():none {}""")
+
+    def test_extern_lib_passthrough(self) -> None:
+        """extern lib declarations are accepted without error."""
+        check("""
+extern lib "m"
+extern fn sqrt(x:float):float
+fn main():none {
+    let v:float = sqrt(4.0)
+}""")
 
 
 if __name__ == "__main__":

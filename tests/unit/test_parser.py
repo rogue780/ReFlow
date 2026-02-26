@@ -19,6 +19,7 @@ from compiler.ast_nodes import (
     # Declarations
     ModuleDecl, ImportDecl, FnDecl, TypeDecl, InterfaceDecl, AliasDecl,
     FieldDecl, ConstructorDecl, StaticMemberDecl, SumVariantDecl, Param,
+    ExternLibDecl, ExternTypeDecl, ExternFnDecl,
     # Statements
     LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
     BreakStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
@@ -1858,6 +1859,80 @@ class TestNamedArgs(unittest.TestCase):
     def test_positional_after_named_errors(self) -> None:
         with self.assertRaises(ParseError):
             parse("fn main(): none { f(x: 1, 2) }")
+
+
+class TestExternDecls(unittest.TestCase):
+    """Tests for extern lib/type/fn declarations (FFI)."""
+
+    def test_extern_lib(self) -> None:
+        mod = parse('extern lib "z"')
+        self.assertEqual(len(mod.decls), 1)
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternLibDecl)
+        self.assertEqual(d.lib_name, "z")
+
+    def test_extern_type(self) -> None:
+        mod = parse("extern type SSL_CTX")
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternTypeDecl)
+        self.assertEqual(d.name, "SSL_CTX")
+        self.assertFalse(d.is_export)
+
+    def test_export_extern_type(self) -> None:
+        mod = parse("export extern type SSL_CTX")
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternTypeDecl)
+        self.assertTrue(d.is_export)
+
+    def test_extern_fn_no_return(self) -> None:
+        mod = parse("extern fn free(p:ptr)")
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "free")
+        self.assertEqual(len(d.params), 1)
+        self.assertEqual(d.params[0].name, "p")
+        self.assertIsNone(d.return_type)
+        self.assertFalse(d.is_export)
+
+    def test_extern_fn_with_return(self) -> None:
+        mod = parse("extern fn strlen(s:ptr):int")
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "strlen")
+        self.assertEqual(len(d.params), 1)
+        self.assertIsInstance(d.return_type, NamedType)
+        self.assertEqual(d.return_type.name, "int")
+
+    def test_extern_fn_multiple_params(self) -> None:
+        mod = parse("extern fn SSL_write(ssl:ptr, buf:ptr, n:int):int")
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "SSL_write")
+        self.assertEqual(len(d.params), 3)
+
+    def test_export_extern_fn(self) -> None:
+        mod = parse("export extern fn abs(x:int):int")
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertTrue(d.is_export)
+
+    def test_export_extern_lib_error(self) -> None:
+        with self.assertRaises(ParseError):
+            parse('export extern lib "x"')
+
+    def test_extern_bad_keyword_error(self) -> None:
+        with self.assertRaises(ParseError):
+            parse("extern badword")
+
+    def test_multiple_extern_decls(self) -> None:
+        src = '''extern lib "ssl"
+extern type SSL_CTX
+extern fn SSL_CTX_new():ptr'''
+        mod = parse(src)
+        self.assertEqual(len(mod.decls), 3)
+        self.assertIsInstance(mod.decls[0], ExternLibDecl)
+        self.assertIsInstance(mod.decls[1], ExternTypeDecl)
+        self.assertIsInstance(mod.decls[2], ExternFnDecl)
 
 
 if __name__ == "__main__":

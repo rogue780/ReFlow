@@ -1,0 +1,5 @@
+extern fn abs(x:int):int
+
+fn main() {
+    let v:int = abs("hello")
+}

@@ -1,0 +1,16 @@
+import io (println)
+import conv
+
+// Extern declarations — internal to this module
+extern fn abs(x:int):int
+
+// Flow wrapper — the idiomatic pattern
+fn safe_abs(x:int):int {
+    return abs(x)
+}
+
+fn main() {
+    println(conv.to_string(safe_abs(-42)))
+    println(conv.to_string(safe_abs(0)))
+    println(conv.to_string(safe_abs(7)))
+}

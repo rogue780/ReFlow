@@ -20,3 +20,5 @@ export fn:pure from_bytes(data: array<byte>): string = native "fl_string_from_by
 export fn repeat(s: string, n: int): string = native "fl_string_repeat"
 export fn url_decode(s: string): string = native "fl_string_url_decode"
 export fn url_encode(s: string): string = native "fl_string_url_encode"
+export fn to_cptr(s: string): ptr = native "fl_string_to_cptr"
+export fn from_cptr(p: ptr, len: int): string = native "fl_string_from_cptr"

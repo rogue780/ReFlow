@@ -1,0 +1,26 @@
+import io (println)
+import conv
+
+extern lib "m"
+extern fn sqrt(x:float):float
+extern fn ceil(x:float):float
+extern fn floor(x:float):float
+
+// Flow wrappers
+fn my_sqrt(x:float):float {
+    return sqrt(x)
+}
+
+fn my_ceil(x:float):float {
+    return ceil(x)
+}
+
+fn my_floor(x:float):float {
+    return floor(x)
+}
+
+fn main() {
+    println(conv.to_string(my_sqrt(9.0)))
+    println(conv.to_string(my_ceil(3.2)))
+    println(conv.to_string(my_floor(3.8)))
+}

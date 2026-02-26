@@ -32,6 +32,7 @@ from compiler.ast_nodes import (
     # Declarations
     ModuleDecl, ImportDecl, FnDecl, TypeDecl, InterfaceDecl, AliasDecl,
     FieldDecl, ConstructorDecl, StaticMemberDecl, SumVariantDecl, Param,
+    ExternLibDecl, ExternTypeDecl, ExternFnDecl,
     # Top-level
     Module,
 )
@@ -202,6 +203,18 @@ class Resolver:
                                  decl.target, False)
                     self._define_or_error(self._scope, name, sym, decl)
 
+                case ExternFnDecl(name=name):
+                    sym = Symbol(name, SymbolKind.FN, decl,
+                                 decl.return_type, False)
+                    self._define_or_error(self._scope, name, sym, decl)
+
+                case ExternTypeDecl(name=name):
+                    sym = Symbol(name, SymbolKind.TYPE, decl, None, False)
+                    self._define_or_error(self._scope, name, sym, decl)
+
+                case ExternLibDecl():
+                    pass  # linker-only directive
+
     # ------------------------------------------------------------------
     # Phase 2: Resolve import declarations (RT-5-2-3)
     # ------------------------------------------------------------------
@@ -307,6 +320,9 @@ class Resolver:
                 case AliasDecl():
                     # Nothing to resolve in type alias bodies
                     pass
+
+                case ExternFnDecl() | ExternTypeDecl() | ExternLibDecl():
+                    pass  # no bodies to resolve
 
     def _resolve_type_decl(self, decl: TypeDecl) -> None:
         """Resolve methods, constructors, and static member initializers."""
@@ -992,6 +1008,16 @@ class Resolver:
                         mod_scope.exports[name] = sym
 
                 case AliasDecl(name=name, is_export=True):
+                    sym = self._scope.lookup_local(name)
+                    if sym is not None:
+                        mod_scope.exports[name] = sym
+
+                case ExternFnDecl(name=name, is_export=True):
+                    sym = self._scope.lookup_local(name)
+                    if sym is not None:
+                        mod_scope.exports[name] = sym
+
+                case ExternTypeDecl(name=name, is_export=True):
                     sym = self._scope.lookup_local(name)
                     if sym is not None:
                         mod_scope.exports[name] = sym

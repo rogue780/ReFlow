@@ -1,0 +1,2 @@
+ParseError
+expected 'lib', 'type', or 'fn' after 'extern'

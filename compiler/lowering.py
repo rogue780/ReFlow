@@ -36,12 +36,13 @@ from compiler.ast_nodes import (
     OkPattern, ErrPattern, VariantPattern, TuplePattern,
     # Declarations
     FnDecl, TypeDecl, Param, StaticMemberDecl, SumVariantDecl, ConstructorDecl,
+    ExternLibDecl, ExternTypeDecl, ExternFnDecl,
     # Top-level
     Module,
 )
 from compiler.typechecker import (
     TypedModule, Type,
-    TInt, TFloat, TBool, TChar, TByte, TString, TNone,
+    TInt, TFloat, TBool, TChar, TByte, TPtr, TString, TNone,
     TOption, TResult, TTuple, TArray, TStream, TCoroutine, TBuffer, TMap, TSet,
     TFn, TRecord, TNamed, TAlias, TSum, TVariant, TTypeVar, TAny, TSelf,
 )
@@ -374,6 +375,7 @@ class LModule:
     fn_defs: list[LFnDef]
     static_defs: list[LStaticDef]
     entry_point: str | None = None  # mangled C name of the entry function
+    extern_fn_protos: list[tuple[str, list[LType], LType]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -413,7 +415,6 @@ def _ltype_c_name(lt: LType) -> str:
 _OPAQUE_TYPE_MAP: dict[str, str] = {
     "Socket": "FL_Socket",
     "file": "FL_File",
-    "JsonValue": "FL_JsonValue",
     "StringBuilder": "FL_StringBuilder",
     "DateTime": "FL_DateTime",
     "Instant": "FL_Instant",
@@ -494,6 +495,7 @@ _BUILTIN_TYPE_ANNS: dict[str, Type] = {
     "bool": TBool(),
     "char": TChar(),
     "byte": TByte(),
+    "ptr": TPtr(),
     "string": TString(),
     "none": TNone(),
     "void": TNone(),  # alias: some users write ': void' though ': none' is canonical
@@ -687,18 +689,36 @@ class Lowerer:
         # while inside _lower_stream_stmts, None otherwise.
         self._stream_body_ctx: tuple[str, Type, list[int]] | None = None
 
+        # FFI: extern type names for lowering TNamed to void*
+        self._extern_type_names: set[str] = set()
+        for decl in self._module.decls:
+            if isinstance(decl, ExternTypeDecl):
+                self._extern_type_names.add(decl.name)
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
 
     def lower(self) -> LModule:
         """Run the lowering pass."""
+        extern_fn_protos: list[tuple[str, list[LType], LType]] = []
         for decl in self._module.decls:
             match decl:
                 case FnDecl():
                     self._lower_fn_decl(decl)
                 case TypeDecl():
                     self._lower_type_decl(decl)
+                case ExternFnDecl():
+                    param_ltypes = [self._lower_extern_type(
+                        self._resolve_type_ann(p.type_ann))
+                        for p in decl.params]
+                    ret_ltype = (self._lower_extern_type(
+                        self._resolve_type_ann(decl.return_type))
+                        if decl.return_type else LVoid())
+                    extern_fn_protos.append(
+                        (decl.name, param_ltypes, ret_ltype))
+                case ExternTypeDecl() | ExternLibDecl():
+                    pass  # handled elsewhere
 
         # Lower all collected monomorphization sites (SG-3-4-1).
         # Emit them BEFORE the regular functions so callers can always find
@@ -721,6 +741,7 @@ class Lowerer:
             fn_defs=self._fn_defs,
             static_defs=self._static_defs,
             entry_point=entry_point,
+            extern_fn_protos=extern_fn_protos,
         )
 
     # ------------------------------------------------------------------
@@ -739,6 +760,8 @@ class Lowerer:
                 return LChar()
             case TByte():
                 return LByte()
+            case TPtr():
+                return LPtr(LVoid())
             case TString():
                 return LPtr(LStruct("FL_String"))
             case TNone():
@@ -765,14 +788,17 @@ class Lowerer:
                 # Opaque runtime types get their C type directly
                 if not mod and name in _OPAQUE_TYPE_MAP:
                     return LPtr(LStruct(_OPAQUE_TYPE_MAP[name]))
+                # FFI extern types → opaque void*
+                if not mod and name in self._extern_type_names:
+                    return LPtr(LVoid())
                 c_name = mangle(mod if mod else self._module_path, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
             case TFn():
                 # Function types lower to closure struct pointers
                 return LPtr(LStruct("FL_Closure"))
-            case TSum(name=name):
-                c_name = mangle(self._module_path, name,
+            case TSum(name=name, module=mod):
+                c_name = mangle(mod if mod else self._module_path, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
             case TRecord(fields=fields):
@@ -2006,6 +2032,9 @@ class Lowerer:
             case NoneLit():
                 # Lower to FL_NONE compound literal with concrete option type
                 t = self._type_of(expr)
+                # none in ptr context → NULL
+                if isinstance(t, TPtr):
+                    return LLit("NULL", LPtr(LVoid()))
                 # Prefer function return type for concrete option type
                 if isinstance(t, TOption) and isinstance(t.inner, TAny):
                     if isinstance(self._current_fn_return_type, TOption):
@@ -2430,6 +2459,13 @@ class Lowerer:
             # Direct function call
             name = expr.callee.name
             sym = self._resolved.symbols.get(expr.callee)
+            # FFI extern fn — use literal C name, no mangling
+            if sym is not None and isinstance(sym.decl, ExternFnDecl):
+                extern_decl: ExternFnDecl = sym.decl
+                # Rewrite function-typed args as raw C function pointers
+                final_args = self._rewrite_extern_fn_args(
+                    extern_decl, call_args, lowered_args)
+                return LCall(extern_decl.name, final_args, lt)
             # Sum type variant constructor — inline as compound literal
             if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                     and isinstance(sym.decl, SumVariantDecl)):
@@ -2482,6 +2518,10 @@ class Lowerer:
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, lowered_args, lt)
+            # Named import of an extern fn from another module
+            if (sym is not None and sym.kind == SymbolKind.IMPORT
+                    and isinstance(sym.decl, ExternFnDecl)):
+                return LCall(sym.decl.name, lowered_args, lt)
             # Named import of a native function: import io (println)
             if sym is not None and sym.kind == SymbolKind.IMPORT:
                 fn_decl = sym.decl
@@ -2513,6 +2553,58 @@ class Lowerer:
         if isinstance(callee_type, TFn):
             return self._make_closure_call(callee_expr, callee_type, lowered_args, lt)
         return LIndirectCall(callee_expr, lowered_args, lt)
+
+    def _lower_extern_type(self, t: Type) -> LType:
+        """Lower a type for extern FFI context.
+
+        Like _lower_type but TFn becomes LFnPtr (raw C function pointer)
+        instead of LPtr(LStruct("FL_Closure")).
+        """
+        if isinstance(t, TFn):
+            param_ltypes = [self._lower_extern_type(p) for p in t.params]
+            ret_ltype = self._lower_extern_type(t.ret)
+            return LFnPtr(param_ltypes, ret_ltype)
+        return self._lower_type(t)
+
+    def _rewrite_extern_fn_args(
+            self, extern_decl: ExternFnDecl,
+            call_args: list[Expr],
+            lowered_args: list[LExpr]) -> list[LExpr]:
+        """Rewrite args for extern fn calls: replace closure-typed args with
+        raw C function pointers when the arg is a direct function reference."""
+        result = list(lowered_args)
+        for i, param in enumerate(extern_decl.params):
+            if i >= len(call_args):
+                break
+            param_type = self._resolve_type_ann(param.type_ann)
+            if not isinstance(param_type, TFn):
+                continue
+            arg_expr = call_args[i]
+            if isinstance(arg_expr, Ident):
+                arg_sym = self._resolved.symbols.get(arg_expr)
+                if arg_sym is not None and isinstance(arg_sym.decl, FnDecl):
+                    # Non-capturing named function → raw C function pointer
+                    fn_decl = arg_sym.decl
+                    c_name = mangle(self._module_path, None, fn_decl.name,
+                                    file=self._file, line=arg_expr.line,
+                                    col=arg_expr.col)
+                    fn_ptr_type = self._lower_type(param_type)
+                    # Build LFnPtr type for correct C emission
+                    param_ltypes = [self._lower_type(pt)
+                                    for pt in param_type.params]
+                    ret_ltype = self._lower_type(param_type.ret)
+                    result[i] = LVar(c_name, LFnPtr(param_ltypes, ret_ltype))
+                elif arg_sym is not None and isinstance(arg_sym.decl, Lambda):
+                    raise EmitError(
+                        message="cannot pass a capturing closure to an extern function; "
+                                "use a named function instead",
+                        file=self._file, line=arg_expr.line, col=arg_expr.col)
+            elif isinstance(arg_expr, Lambda):
+                raise EmitError(
+                    message="cannot pass a lambda to an extern function; "
+                            "use a named function instead",
+                    file=self._file, line=arg_expr.line, col=arg_expr.col)
+        return result
 
     def _lower_variant_ctor(self, name: str, decl: SumVariantDecl,
                             t: Type, lt: LType,
@@ -4404,6 +4496,14 @@ class Lowerer:
                 for variant in decl.variants:
                     if variant.name == vname and variant.fields is not None:
                         return [fname for fname, _ in variant.fields]
+        # Search imported modules (cross-module sum types)
+        if self._all_typed:
+            for typed_mod in self._all_typed.values():
+                for decl in typed_mod.module.decls:
+                    if isinstance(decl, TypeDecl) and decl.name == sum_name and decl.is_sum_type:
+                        for variant in decl.variants:
+                            if variant.name == vname and variant.fields is not None:
+                                return [fname for fname, _ in variant.fields]
         return []
 
     def _lower_match_option(self, subj: LVar, opt_t: TOption,

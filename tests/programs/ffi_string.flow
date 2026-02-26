@@ -1,0 +1,16 @@
+import io (println)
+import conv
+import string
+
+// Test string.to_cptr and string.from_cptr round-trip
+fn round_trip(s:string):string {
+    let p:ptr = string.to_cptr(s)
+    let len:int = string.len(s)
+    return string.from_cptr(p, len)
+}
+
+fn main() {
+    println(round_trip("hello"))
+    println(round_trip(""))
+    println(round_trip("Flow FFI"))
+}

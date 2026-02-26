@@ -98,6 +98,9 @@ from compiler.ast_nodes import (
     ImportDecl,
     FnDecl,
     Param,
+    ExternLibDecl,
+    ExternTypeDecl,
+    ExternFnDecl,
     TypeDecl,
     FieldDecl,
     ConstructorDecl,
@@ -385,6 +388,8 @@ class Parser:
                 return self.parse_interface_decl(is_export=is_export)
             case TokenType.ALIAS:
                 return self.parse_alias_decl(is_export=is_export)
+            case TokenType.EXTERN:
+                return self._parse_extern_decl(is_export=is_export)
             case TokenType.IMPORT:
                 # Late imports after exports — collect them
                 imp = self.parse_import_decl()
@@ -485,6 +490,63 @@ class Parser:
                 is_static = True
 
         return is_pure, is_static
+
+    def _parse_extern_decl(self, is_export: bool = False) -> Decl:
+        """Parse extern declarations: extern lib/type/fn."""
+        tok = self.expect(TokenType.EXTERN)
+        next_tok = self.peek()
+
+        # extern lib "name"
+        if next_tok.type == TokenType.IDENT and next_tok.value == "lib":
+            if is_export:
+                raise self._error("'export extern lib' is not allowed", tok)
+            self.advance()  # consume 'lib'
+            lib_tok = self.expect(TokenType.STRING_LIT)
+            return ExternLibDecl(
+                line=tok.line, col=tok.col,
+                lib_name=lib_tok.value,
+            )
+
+        # extern type NAME
+        if next_tok.type == TokenType.TYPE:
+            self.advance()  # consume 'type'
+            name_tok = self.expect(TokenType.IDENT)
+            return ExternTypeDecl(
+                line=tok.line, col=tok.col,
+                name=name_tok.value,
+                is_export=is_export,
+            )
+
+        # extern fn NAME(params):RetType
+        if next_tok.type == TokenType.FN:
+            return self._parse_extern_fn_decl(tok, is_export)
+
+        raise self._error(
+            f"expected 'lib', 'type', or 'fn' after 'extern' but found '{next_tok.value}'",
+            next_tok,
+        )
+
+    def _parse_extern_fn_decl(self, extern_tok: Token, is_export: bool) -> ExternFnDecl:
+        """Parse: extern fn c_name(params):RetType"""
+        self.expect(TokenType.FN)
+        name_tok = self.expect(TokenType.IDENT)
+
+        self.expect(TokenType.LPAREN)
+        params = self._parse_param_list()
+        self.expect(TokenType.RPAREN)
+
+        return_type: TypeExpr | None = None
+        if self.check(TokenType.COLON):
+            self.advance()
+            return_type = self.parse_type_expr()
+
+        return ExternFnDecl(
+            line=extern_tok.line, col=extern_tok.col,
+            name=name_tok.value,
+            params=params,
+            return_type=return_type,
+            is_export=is_export,
+        )
 
     def parse_fn_decl(
         self,

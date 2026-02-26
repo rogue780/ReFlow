@@ -4465,6 +4465,17 @@ FL_String* fl_string_url_encode(FL_String* s) {
     return result;
 }
 
+/* FFI helpers: string <-> raw pointer */
+void* fl_string_to_cptr(FL_String* s) {
+    if (!s) fl_panic("fl_string_to_cptr: NULL string");
+    return (void*)s->data;
+}
+
+FL_String* fl_string_from_cptr(void* p, fl_int len) {
+    if (!p) fl_panic("fl_string_from_cptr: NULL pointer");
+    return fl_string_new((const char*)p, (fl_int64)len);
+}
+
 /* ========================================================================
  * String Builder
  * ======================================================================== */

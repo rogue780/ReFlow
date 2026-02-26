@@ -107,7 +107,7 @@ fn private(): int = 99  // not importable
 
 ## Keywords
 
-`module`, `import`, `export`, `as`, `alias`, `type`, `typeof`, `mut`, `imut`, `let`, `fn`, `return`, `yield`, `try`, `retry`, `catch`, `finally`, `interface`, `fulfills`, `constructor`, `self`, `for`, `in`, `while`, `if`, `else`, `match`, `none`, `break`, `continue`, `static`, `pure`, `record`, `some`, `ok`, `err`, `coerce`, `cast`, `throw`, and all built-in type names.
+`module`, `import`, `export`, `as`, `alias`, `type`, `typeof`, `mut`, `imut`, `let`, `fn`, `return`, `yield`, `try`, `retry`, `catch`, `finally`, `interface`, `fulfills`, `constructor`, `self`, `for`, `in`, `while`, `if`, `else`, `match`, `none`, `break`, `continue`, `static`, `pure`, `record`, `some`, `ok`, `err`, `coerce`, `cast`, `throw`, `extern`, and all built-in type names.
 
 ---
 
@@ -254,6 +254,7 @@ All update operators are only valid on `:mut` bindings. Using them on an immutab
 | `buffer<T>` | Mutable, in-memory container for materializing stream data. See [Buffers](#buffers). |
 | `map<K, V>` | Key-value collection. Implements `collection<K, V>`. See [Collections](#collections). |
 | `set<T>` | Unordered collection of unique values. See [Collections](#collections). |
+| `ptr` | Opaque raw pointer (`void*`). FFI-only type. Cannot be dereferenced. See [FFI](#foreign-function-interface-ffi). |
 | `channel<T>` | *(internal)* Bounded, thread-safe FIFO queue used by the coroutine runtime. Not a user-facing type. |
 
 ### Value Types
@@ -2438,6 +2439,120 @@ try -> finally -> exception propagates
 ### Exception Propagation
 
 Unhandled exceptions propagate up the call stack until caught or until the program terminates with an unhandled exception error.
+
+---
+
+## Foreign Function Interface (FFI)
+
+Flow provides three `extern` declaration forms for binding C libraries directly
+from any `.flow` module. The intended pattern is to declare extern bindings
+privately and expose Flow-friendly wrappers as the public API.
+
+### `extern lib`
+
+Links a shared library at compile time. Translates to a `-l` flag passed to the
+linker.
+
+```
+extern lib "ssl"       // -lssl
+extern lib "crypto"    // -lcrypto
+```
+
+`export extern lib` is not allowed — library linkage is a build-level concern,
+not an API concern.
+
+### `extern type`
+
+Declares an opaque C type. The type is represented as `void*` at runtime — Flow
+code cannot inspect or modify its contents. Opaque types can be passed to and
+returned from extern functions.
+
+```
+extern type SSL_CTX
+extern type SSL
+```
+
+Extern types can be exported (`export extern type SSL_CTX`) so that importing
+modules can use the type in their own function signatures.
+
+### `extern fn`
+
+Declares a C function by its exact name. The compiler emits the function call
+with no name mangling.
+
+```
+extern fn SSL_CTX_new():ptr
+extern fn SSL_write(ssl:SSL, buf:ptr, n:int):int
+```
+
+Parameters and return types must use Flow types that map directly to C:
+
+| Flow type | C type |
+|-----------|--------|
+| `int` | `int32_t` |
+| `int64` | `int64_t` |
+| `float` | `double` |
+| `float32` | `float` |
+| `bool` | `int32_t` (0/1) |
+| `byte` | `uint8_t` |
+| `ptr` | `void*` |
+| `fn(A):B` | `B (*)(A)` (function pointer) |
+
+Extern functions can be exported so that importing modules can call them
+directly, but the idiomatic pattern is to wrap them:
+
+```
+module ssl
+
+extern lib "ssl"
+extern type SSL
+extern fn SSL_write(ssl:SSL, buf:ptr, n:int):int
+
+export fn write(ssl:SSL, data:string):int {
+    return SSL_write(ssl, string.to_cptr(data), string.len(data))
+}
+```
+
+### `ptr` type
+
+`ptr` is a built-in opaque type representing a raw `void*` pointer. It cannot be
+dereferenced, indexed, or used in pointer arithmetic — it is strictly an FFI
+marshaling type. The only operations on `ptr` are:
+
+- Pass to / receive from extern functions
+- Assign `none` (null pointer)
+- Convert to/from strings via `string.to_cptr()` and `string.from_cptr()`
+
+### Function pointer callbacks
+
+Non-capturing Flow functions can be passed as C function pointer arguments to
+extern functions. When an extern fn parameter has a function type
+(`fn(A, B):C`), passing a named Flow function takes its address directly:
+
+```
+extern fn register_handler(cb:fn(int):int):none
+
+fn my_handler(x:int):int {
+    return x * 2
+}
+
+fn main() {
+    register_handler(my_handler)    // passes &fl_main_my_handler
+}
+```
+
+Capturing closures (lambdas that reference outer variables) cannot be passed to
+extern functions. The compiler rejects this with a clear error.
+
+### Limitations
+
+- **No automatic header inclusion.** Declaring `extern fn strlen(s:ptr):int`
+  will conflict with the system `<string.h>` declaration if the types don't
+  match exactly. For standard C library functions, use the Flow-equivalent
+  signatures or wrap them in a separate C helper.
+- **No struct-by-value.** C structs cannot be passed or returned by value. Use
+  `ptr` for struct pointers.
+- **No variadic functions.** C variadic functions like `printf` cannot be bound.
 
 ---
 
