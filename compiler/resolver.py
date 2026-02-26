@@ -16,7 +16,7 @@ from compiler.ast_nodes import (
     MutType, ImutType, SizedType, SumTypeExpr, SumVariantExpr,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
-    Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
+    Ident, NamedArg, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
@@ -506,6 +506,9 @@ class Resolver:
 
             case UnaryOp(operand=operand):
                 self._resolve_expr(operand, scope)
+
+            case NamedArg(value=value):
+                self._resolve_expr(value, scope)
 
             case Call(callee=callee, args=args):
                 self._resolve_expr(callee, scope)

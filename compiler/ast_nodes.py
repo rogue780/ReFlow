@@ -159,6 +159,12 @@ class UnaryOp(Expr):
 
 
 @dataclass
+class NamedArg(Expr):
+    name: str
+    value: Expr
+
+
+@dataclass
 class Call(Expr):
     callee: Expr
     args: list[Expr]

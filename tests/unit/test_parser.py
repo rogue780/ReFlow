@@ -25,7 +25,7 @@ from compiler.ast_nodes import (
     MatchStmt, TryStmt, Block, MatchArm, RetryBlock, CatchBlock, FinallyBlock,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
-    Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
+    Ident, NamedArg, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
@@ -1818,6 +1818,46 @@ class TestDefaultParams(unittest.TestCase):
         self.assertIsInstance(decl, FnDecl)
         self.assertIsNone(decl.params[0].default)
         self.assertIsNone(decl.params[1].default)
+
+
+# ---------------------------------------------------------------------------
+# Named arguments
+# ---------------------------------------------------------------------------
+
+class TestNamedArgs(unittest.TestCase):
+    """Tests for named argument parsing."""
+
+    def test_single_named_arg(self) -> None:
+        mod = parse("fn main(): none { f(x: 1) }")
+        fn = mod.decls[0]
+        call = fn.body.stmts[0].expr
+        self.assertIsInstance(call, Call)
+        self.assertEqual(len(call.args), 1)
+        self.assertIsInstance(call.args[0], NamedArg)
+        self.assertEqual(call.args[0].name, "x")
+        self.assertIsInstance(call.args[0].value, IntLit)
+
+    def test_mixed_positional_and_named(self) -> None:
+        mod = parse("fn main(): none { f(1, y: 2) }")
+        fn = mod.decls[0]
+        call = fn.body.stmts[0].expr
+        self.assertIsInstance(call, Call)
+        self.assertEqual(len(call.args), 2)
+        self.assertIsInstance(call.args[0], IntLit)
+        self.assertIsInstance(call.args[1], NamedArg)
+        self.assertEqual(call.args[1].name, "y")
+
+    def test_all_named_args(self) -> None:
+        mod = parse("fn main(): none { f(a: 1, b: 2) }")
+        fn = mod.decls[0]
+        call = fn.body.stmts[0].expr
+        self.assertEqual(len(call.args), 2)
+        self.assertIsInstance(call.args[0], NamedArg)
+        self.assertIsInstance(call.args[1], NamedArg)
+
+    def test_positional_after_named_errors(self) -> None:
+        with self.assertRaises(ParseError):
+            parse("fn main(): none { f(x: 1, 2) }")
 
 
 if __name__ == "__main__":

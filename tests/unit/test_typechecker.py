@@ -1369,5 +1369,76 @@ fn main(): none {
 }""")
 
 
+# ---------------------------------------------------------------------------
+# Named arguments
+# ---------------------------------------------------------------------------
+
+class TestNamedArgs(unittest.TestCase):
+    """Tests for named argument type checking."""
+
+    def test_named_args_reorder(self):
+        """Named args reorder to match param positions."""
+        check("""
+fn f(a: int, b: string): int {
+    return a
+}
+fn main(): none {
+    let x = f(b: "hi", a: 42)
+}""")
+
+    def test_named_with_positional(self):
+        """Mixing positional and named args."""
+        check("""
+fn f(a: int, b: string, c: bool): int {
+    return a
+}
+fn main(): none {
+    let x = f(1, c: true, b: "hi")
+}""")
+
+    def test_named_arg_type_mismatch(self):
+        """Named arg with wrong type fails."""
+        with self.assertRaises(FlowTypeError):
+            check("""
+fn f(a: int, b: string): int {
+    return a
+}
+fn main(): none {
+    let x = f(a: "bad", b: "hi")
+}""")
+
+    def test_unknown_named_arg(self):
+        """Unknown named arg fails."""
+        with self.assertRaises(FlowTypeError):
+            check("""
+fn f(a: int): int {
+    return a
+}
+fn main(): none {
+    let x = f(z: 1)
+}""")
+
+    def test_duplicate_named_arg(self):
+        """Duplicate named arg fails."""
+        with self.assertRaises(FlowTypeError):
+            check("""
+fn f(a: int, b: int): int {
+    return a
+}
+fn main(): none {
+    let x = f(a: 1, a: 2)
+}""")
+
+    def test_named_args_with_defaults(self):
+        """Named args combined with defaults."""
+        check("""
+fn f(a: int, b: int = 10, c: int = 20): int {
+    return a + b + c
+}
+fn main(): none {
+    let x = f(1, c: 5)
+}""")
+
+
 if __name__ == "__main__":
     unittest.main()

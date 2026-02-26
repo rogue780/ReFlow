@@ -32,6 +32,7 @@ from compiler.ast_nodes import (
     CharLit,
     NoneLit,
     Ident,
+    NamedArg,
     BinOp,
     UnaryOp,
     Call,
@@ -2436,15 +2437,39 @@ class Parser:
     def _parse_arg_list(self) -> list[Expr]:
         """Parse a comma-separated argument list (inside parens, brackets not consumed)."""
         args: list[Expr] = []
+        seen_named = False
         if self.check(TokenType.RPAREN):
             return args
-        args.append(self.parse_expr())
+        args.append(self._parse_call_arg(seen_named))
+        if isinstance(args[-1], NamedArg):
+            seen_named = True
         while self.check(TokenType.COMMA):
             self.advance()
             if self.check(TokenType.RPAREN):
                 break  # trailing comma
-            args.append(self.parse_expr())
+            arg = self._parse_call_arg(seen_named)
+            if isinstance(arg, NamedArg):
+                seen_named = True
+            elif seen_named:
+                raise self._error(
+                    "positional arguments cannot follow named arguments")
+            args.append(arg)
         return args
+
+    def _parse_call_arg(self, seen_named: bool) -> Expr:
+        """Parse a single call argument, detecting named args (name: expr)."""
+        if (self.check(TokenType.IDENT)
+                and self.peek2().type == TokenType.COLON):
+            # Named argument: name: expr
+            tok = self.advance()  # consume IDENT
+            self.advance()  # consume COLON
+            value = self.parse_expr()
+            return NamedArg(line=tok.line, col=tok.col,
+                            name=tok.value, value=value)
+        if seen_named:
+            raise self._error(
+                "positional arguments cannot follow named arguments")
+        return self.parse_expr()
 
     # ------------------------------------------------------------------
     # Pattern parsing (Story 4-4, RT-4-4-6)

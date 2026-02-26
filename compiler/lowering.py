@@ -20,7 +20,7 @@ from compiler.ast_nodes import (
     NamedType, GenericType, OptionType, FnType, TupleType, MutType, ImutType, SizedType,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
-    Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
+    Ident, NamedArg, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
@@ -1949,6 +1949,9 @@ class Lowerer:
 
     def _lower_expr(self, expr: Expr) -> LExpr:
         match expr:
+            case NamedArg(value=value):
+                return self._lower_expr(value)
+
             # Literals
             case IntLit(value=v, suffix=suffix):
                 t = self._type_of(expr)
@@ -2290,6 +2293,58 @@ class Lowerer:
 
         return LBinOp(op=op, left=left_expr, right=right_expr, c_type=lt)
 
+    def _reorder_args_for_decl(self, args: list[Expr],
+                               decl: Decl) -> list[Expr]:
+        """Reorder named args to match param order for any FnDecl."""
+        if not any(isinstance(a, NamedArg) for a in args):
+            return args
+        if not isinstance(decl, FnDecl):
+            return args
+        positional: list[Expr] = []
+        named: dict[str, Expr] = {}
+        for a in args:
+            if isinstance(a, NamedArg):
+                named[a.name] = a.value
+            else:
+                positional.append(a)
+        result = list(positional)
+        n_pos = len(positional)
+        for i in range(n_pos, len(decl.params)):
+            pname = decl.params[i].name
+            if pname in named:
+                result.append(named[pname])
+        return result
+
+    def _reorder_call_named_args(self, expr: Call) -> list[Expr]:
+        """Reorder named args in a Call to match param order."""
+        args = expr.args
+        if not any(isinstance(a, NamedArg) for a in args):
+            return args
+        if not isinstance(expr.callee, Ident):
+            return args
+        sym = self._resolved.symbols.get(expr.callee)
+        if sym is None:
+            return args
+        decl = sym.decl
+        if not isinstance(decl, FnDecl):
+            return args
+        # Split positional and named
+        positional: list[Expr] = []
+        named: dict[str, Expr] = {}
+        for a in args:
+            if isinstance(a, NamedArg):
+                named[a.name] = a.value
+            else:
+                positional.append(a)
+        # Build reordered list
+        result = list(positional)
+        n_pos = len(positional)
+        for i in range(n_pos, len(decl.params)):
+            pname = decl.params[i].name
+            if pname in named:
+                result.append(named[pname])
+        return result
+
     def _fill_default_args(self, expr: Call,
                            lowered_args: list[LExpr]) -> list[LExpr]:
         """If fewer args than params, append lowered default expressions."""
@@ -2338,7 +2393,9 @@ class Lowerer:
                         expr.args[1], elem_type)
                     return LCall("fl_sort_array_by", [arr_arg, wrapped_cmp], lt)
 
-        lowered_args = [self._lower_expr(a) for a in expr.args]
+        # Reorder named args to param order before lowering
+        call_args = self._reorder_call_named_args(expr)
+        lowered_args = [self._lower_expr(a) for a in call_args]
 
         # Fill in default argument values for missing trailing params
         lowered_args = self._fill_default_args(expr, lowered_args)
@@ -2477,7 +2534,9 @@ class Lowerer:
         if resolved_sym is not None and resolved_sym.kind in (
                 SymbolKind.FN, SymbolKind.IMPORT):
             fn_decl = resolved_sym.decl
-            lowered_args = [self._lower_expr(a) for a in expr.args]
+            # Reorder named args to param order
+            mc_args = self._reorder_args_for_decl(expr.args, fn_decl)
+            lowered_args = [self._lower_expr(a) for a in mc_args]
             # Fill defaults for missing trailing params
             if isinstance(fn_decl, FnDecl):
                 n_args = len(lowered_args)

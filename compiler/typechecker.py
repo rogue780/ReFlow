@@ -17,7 +17,7 @@ from compiler.ast_nodes import (
     MutType, ImutType, SizedType, SumTypeExpr, SumVariantExpr,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
-    Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
+    Ident, NamedArg, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
@@ -1313,6 +1313,9 @@ class TypeChecker:
     def _infer_expr_inner(self, expr: Expr, scope: TypeScope) -> Type:
         match expr:
             # RT-6-2-3: Literals
+            case NamedArg(value=value):
+                return self._infer_expr(value, scope)
+
             case IntLit(suffix=suffix):
                 if suffix and suffix in _INT_SUFFIXES:
                     return _INT_SUFFIXES[suffix]
@@ -1432,6 +1435,10 @@ class TypeChecker:
                     if resolved_sym is not None and isinstance(
                             resolved_sym.decl, FnDecl):
                         call_fn_decl = resolved_sym.decl
+                    # Reorder named args to match param order
+                    if call_fn_decl is not None:
+                        args, arg_types = self._reorder_named_args(
+                            args, arg_types, call_fn_decl, expr)
                     self._check_call_args(callee_t, arg_types, args, expr,
                                           fn_decl=call_fn_decl)
                     # BG-2-2-3: validate bounded generic call
@@ -1462,6 +1469,9 @@ class TypeChecker:
                     fn_decl = resolved_sym.decl
                     if isinstance(fn_decl, FnDecl):
                         fn_type = self._fn_decl_type(fn_decl)
+                        # Reorder named args to match param order
+                        args, arg_types = self._reorder_named_args(
+                            args, arg_types, fn_decl, expr)
                         self._check_call_args(fn_type, arg_types, args, expr,
                                               fn_decl=fn_decl)
                         # BG-2-2-4: validate bounded generic call
@@ -2613,6 +2623,54 @@ class TypeChecker:
     # ------------------------------------------------------------------
     # Call argument checking (RT-6-5-1, RT-6-5-2)
     # ------------------------------------------------------------------
+
+    def _reorder_named_args(
+            self, args: list[Expr], arg_types: list[Type],
+            fn_decl: FnDecl, call_node: ASTNode,
+    ) -> tuple[list[Expr], list[Type]]:
+        """Reorder named args to match param order. Returns (args, types)."""
+        # If no named args, return as-is
+        if not any(isinstance(a, NamedArg) for a in args):
+            return args, arg_types
+
+        # Split positional and named args
+        positional_args: list[Expr] = []
+        positional_types: list[Type] = []
+        named_map: dict[str, tuple[Expr, Type]] = {}
+
+        for arg, atype in zip(args, arg_types):
+            if isinstance(arg, NamedArg):
+                if arg.name in named_map:
+                    raise self._error(
+                        f"duplicate named argument '{arg.name}'",
+                        call_node)
+                named_map[arg.name] = (arg, atype)
+            else:
+                named_map  # positional
+                positional_args.append(arg)
+                positional_types.append(atype)
+
+        # Build reordered list: positional args fill first params, then
+        # named args fill remaining params by name
+        param_names = [p.name for p in fn_decl.params]
+        result_args: list[Expr] = list(positional_args)
+        result_types: list[Type] = list(positional_types)
+        n_pos = len(positional_args)
+
+        for i in range(n_pos, len(param_names)):
+            pname = param_names[i]
+            if pname in named_map:
+                arg_expr, arg_type = named_map.pop(pname)
+                result_args.append(arg_expr)
+                result_types.append(arg_type)
+            # else: missing — _check_call_args will handle via defaults or error
+
+        # Check for unknown named args
+        for leftover in named_map:
+            raise self._error(
+                f"unknown named argument '{leftover}'", call_node)
+
+        return result_args, result_types
 
     def _check_call_args(self, fn_type: TFn, arg_types: list[Type],
                          arg_nodes: list[Expr],
