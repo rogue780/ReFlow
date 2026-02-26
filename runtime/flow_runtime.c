@@ -490,14 +490,16 @@ FL_Option_ptr fl_channel_try_recv(FL_Channel* ch) {
 /* --- Threaded coroutine producer --- */
 
 typedef struct {
-    FL_Stream*  stream;
-    FL_Channel* channel;
+    FL_Stream*    stream;
+    FL_Channel*   channel;
+    FL_Coroutine* coroutine;
 } _FL_CoroutineProducerArg;
 
 static void* _fl_coroutine_producer(void* raw) {
     _FL_CoroutineProducerArg* arg = (_FL_CoroutineProducerArg*)raw;
     FL_Stream* stream = arg->stream;
     FL_Channel* channel = arg->channel;
+    FL_Coroutine* coroutine = arg->coroutine;
     free(arg);
 
     FL_ExceptionFrame ef;
@@ -505,6 +507,8 @@ static void* _fl_coroutine_producer(void* raw) {
     if (setjmp(ef.jmp) == 0) {
         FL_Option_ptr item;
         while ((item = fl_stream_next(stream)).tag == 1) {
+            if (atomic_load(&coroutine->cancelled))
+                break;  /* cancelled by stop/kill */
             if (!fl_channel_send(channel, item.value))
                 break;  /* channel closed by consumer */
         }
@@ -527,6 +531,7 @@ FL_Coroutine* fl_coroutine_new(FL_Stream* stream) {
     c->channel = NULL;
     c->input_channel = NULL;
     c->done = fl_false;
+    atomic_store(&c->cancelled, fl_false);
     return c;
 }
 
@@ -537,6 +542,7 @@ FL_Coroutine* fl_coroutine_new_threaded(FL_Stream* stream, fl_int capacity) {
     c->channel = fl_channel_new(capacity);
     c->input_channel = NULL;
     c->done = fl_false;
+    atomic_store(&c->cancelled, fl_false);
 
     /* Producer holds refs to both stream and channel */
     fl_stream_retain(stream);
@@ -546,6 +552,7 @@ FL_Coroutine* fl_coroutine_new_threaded(FL_Stream* stream, fl_int capacity) {
     if (!arg) fl_panic("fl_coroutine_new_threaded: out of memory");
     arg->stream = stream;
     arg->channel = c->channel;
+    arg->coroutine = c;
 
     pthread_create(&c->thread, NULL, _fl_coroutine_producer, arg);
     return c;
@@ -581,15 +588,45 @@ fl_bool fl_coroutine_done(FL_Coroutine* c) {
     return c->done;
 }
 
+void fl_coroutine_stop(FL_Coroutine* c) {
+    if (!c || c->done) return;
+    atomic_store(&c->cancelled, fl_true);
+    if (c->input_channel) {
+        fl_channel_close(c->input_channel);
+    }
+    if (c->channel) {
+        fl_channel_close(c->channel);
+        pthread_join(c->thread, NULL);
+    }
+    c->done = fl_true;
+}
+
+void fl_coroutine_kill(FL_Coroutine* c) {
+    if (!c || c->done) return;
+    atomic_store(&c->cancelled, fl_true);
+    if (c->input_channel) {
+        fl_channel_close(c->input_channel);
+    }
+    if (c->channel) {
+        fl_channel_close(c->channel);
+        pthread_detach(c->thread);
+    }
+    c->done = fl_true;
+}
+
 void fl_coroutine_release(FL_Coroutine* c) {
     if (!c) return;
     if (c->input_channel) {
-        fl_channel_close(c->input_channel);    /* unblock producer if waiting on inbox */
+        if (!c->done) {
+            fl_channel_close(c->input_channel);    /* unblock producer if waiting on inbox */
+        }
         fl_channel_release(c->input_channel);  /* drop consumer-side ref */
     }
     if (c->channel) {
-        fl_channel_close(c->channel);    /* unblock producer if blocked */
-        pthread_join(c->thread, NULL);   /* wait for producer to exit */
+        if (!c->done) {
+            fl_channel_close(c->channel);    /* unblock producer if blocked */
+            pthread_join(c->thread, NULL);   /* wait for producer to exit */
+        }
         fl_channel_release(c->channel);  /* drop consumer's ref */
     } else {
         fl_stream_release(c->stream);

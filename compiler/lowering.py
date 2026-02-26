@@ -3000,6 +3000,10 @@ class Lowerer:
             cast_val = self._box_for_channel(send_val, send_type)
             return LCall("fl_coroutine_send",
                          [recv, cast_val], LVoid())
+        elif expr.method == "stop":
+            return LCall("fl_coroutine_stop", [recv], LVoid())
+        elif expr.method == "kill":
+            return LCall("fl_coroutine_kill", [recv], LVoid())
         raise EmitError(
             message=f"unknown coroutine method: {expr.method}",
             file=self._file, line=expr.line, col=expr.col)

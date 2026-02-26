@@ -1480,5 +1480,66 @@ fn main(): none {
 }""")
 
 
+# ---------------------------------------------------------------------------
+# Coroutine stop/kill methods
+# ---------------------------------------------------------------------------
+
+class TestCoroutineStopKill(unittest.TestCase):
+    """Tests for .stop() and .kill() coroutine methods."""
+
+    def test_stop_no_args(self) -> None:
+        """stop() with no args should type-check."""
+        check("""
+fn numbers():stream<int> {
+    yield 1
+}
+fn main():none {
+    let h :< numbers()
+    h.stop()
+}""")
+
+    def test_kill_no_args(self) -> None:
+        """kill() with no args should type-check."""
+        check("""
+fn numbers():stream<int> {
+    yield 1
+}
+fn main():none {
+    let h :< numbers()
+    h.kill()
+}""")
+
+    def test_stop_returns_none(self) -> None:
+        """stop() should return TNone type."""
+        result = check("""
+fn numbers():stream<int> {
+    yield 1
+}
+fn main():none {
+    let h :< numbers()
+    h.stop()
+}""")
+        # Find MethodCall node for stop and verify its type is TNone
+        from compiler.ast_nodes import MethodCall
+        for node, t in result.types.items():
+            if isinstance(node, MethodCall) and node.method == "stop":
+                self.assertIsInstance(t, TNone)
+
+    def test_kill_returns_none(self) -> None:
+        """kill() should return TNone type."""
+        result = check("""
+fn numbers():stream<int> {
+    yield 1
+}
+fn main():none {
+    let h :< numbers()
+    h.kill()
+}""")
+        from compiler.ast_nodes import MethodCall
+        for node, t in result.types.items():
+            if isinstance(node, MethodCall) and node.method == "kill":
+                self.assertIsInstance(t, TNone)
+
+
 if __name__ == "__main__":
     unittest.main()

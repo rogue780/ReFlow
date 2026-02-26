@@ -1,0 +1,28 @@
+module tests.coroutine_stop_test
+import io (println)
+
+fn counter():stream<int> {
+    let i:int:mut = 0
+    while (true) {
+        i++
+        yield i
+    }
+}
+
+fn main() {
+    let h :< counter()
+    match h.next() {
+        some(v): println(f"v={v}")
+        none: println("none")
+    }
+    match h.next() {
+        some(v): println(f"v={v}")
+        none: println("none")
+    }
+    match h.next() {
+        some(v): println(f"v={v}")
+        none: println("none")
+    }
+    h.stop()
+    println("stopped")
+}

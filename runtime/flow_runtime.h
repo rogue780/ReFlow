@@ -353,6 +353,7 @@ typedef struct FL_Coroutine {
     FL_Channel* input_channel;   /* receivable: set; otherwise: NULL */
     pthread_t   thread;          /* only valid when channel != NULL */
     fl_bool     done;
+    _Atomic fl_bool cancelled;   /* set by stop/kill to signal producer */
 } FL_Coroutine;
 
 FL_Coroutine* fl_coroutine_new(FL_Stream* stream);
@@ -365,6 +366,8 @@ void          fl_coroutine_send(FL_Coroutine* c, void* val);
 fl_bool       fl_coroutine_try_send(FL_Coroutine* c, void* val);
 void          fl_coroutine_set_input(FL_Coroutine* c, FL_Channel* input);
 FL_Channel*   fl_coroutine_get_channel(FL_Coroutine* c);
+void          fl_coroutine_stop(FL_Coroutine* c);
+void          fl_coroutine_kill(FL_Coroutine* c);
 FL_Stream*    fl_stream_from_channel(FL_Channel* ch);
 FL_Stream*    fl_stream_from_channel_nonblocking(FL_Channel* ch);
 

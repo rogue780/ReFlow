@@ -1529,6 +1529,14 @@ class TypeChecker:
                                     f"got {self._type_name(arg_types[0])}",
                                     args[0])
                         return TNone()
+                    elif method_name == "stop":
+                        if args:
+                            self._error("stop() takes no arguments", expr)
+                        return TNone()
+                    elif method_name == "kill":
+                        if args:
+                            self._error("kill() takes no arguments", expr)
+                        return TNone()
                     else:
                         self._error(
                             f"coroutine has no method '{method_name}'", expr)
