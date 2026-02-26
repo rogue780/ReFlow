@@ -1,7 +1,7 @@
 module tests.coroutine_wiring_test
 import io (println)
 
-; Producer: generates integers
+// Producer: generates integers
 fn producer(start: int): stream<int> {
     let i: int:mut = start
     while (i < start + 3) {
@@ -10,7 +10,7 @@ fn producer(start: int): stream<int> {
     }
 }
 
-; Processor: receives ints, doubles them
+// Processor: receives ints, doubles them
 fn doubler(inbox: stream<int>): stream<int> {
     for (val: int in inbox) {
         yield val * 2
@@ -18,7 +18,7 @@ fn doubler(inbox: stream<int>): stream<int> {
 }
 
 fn main() {
-    ; Direct wiring: producer's output feeds doubler's inbox
+    // Direct wiring: producer's output feeds doubler's inbox
     let p :< producer(10)
     let d :< doubler(p)
 
@@ -35,7 +35,7 @@ fn main() {
         none: { println("none") }
     }
 
-    ; Stream should be exhausted
+    // Stream should be exhausted
     match d.next() {
         some(v): { println(f"unexpected: {v}") }
         none: { println("done") }

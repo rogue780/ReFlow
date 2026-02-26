@@ -11,12 +11,12 @@ fn range(n: int): stream<int> {
 }
 
 fn main() {
-    ; Basic stream consumption
+    // Basic stream consumption
     for (x: int in range(5)) {
         println(f"  {x}")
     }
 
-    ; Stream sum
+    // Stream sum
     let total: int:mut = 0
     for (x: int in range(10)) {
         total += x

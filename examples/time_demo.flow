@@ -1,4 +1,4 @@
-; time_demo.flow — Demonstrates the time stdlib module
+// time_demo.flow — Demonstrates the time stdlib module
 module examples.time_demo
 
 import io (println)

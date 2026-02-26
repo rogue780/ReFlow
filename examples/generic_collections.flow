@@ -1,7 +1,7 @@
-; generic_collections.flow — Demonstrates generic array and map functions
-;
-; Shows how to use the generic stdlib functions for arrays and maps
-; with different value types including strings, ints, and coroutines.
+// generic_collections.flow — Demonstrates generic array and map functions
+//
+// Shows how to use the generic stdlib functions for arrays and maps
+// with different value types including strings, ints, and coroutines.
 
 module examples.generic_collections
 
@@ -11,9 +11,9 @@ import map
 import conv
 
 fn main() {
-    ; --- Generic arrays ---
+    // --- Generic arrays ---
 
-    ; Push strings into an array using the generic push<T>
+    // Push strings into an array using the generic push<T>
     let names: array<string>:mut = []
     names = array.push(names, "Alice")
     names = array.push(names, "Bob")
@@ -29,7 +29,7 @@ fn main() {
         i = i + 1
     }
 
-    ; Push ints using the type-specific push_int
+    // Push ints using the type-specific push_int
     let scores: array<int>:mut = []
     scores = array.push_int(scores, 95)
     scores = array.push_int(scores, 87)
@@ -45,7 +45,7 @@ fn main() {
         j = j + 1
     }
 
-    ; Concatenate string arrays
+    // Concatenate string arrays
     let group_a: array<string>:mut = []
     group_a = array.push(group_a, "X")
     group_a = array.push(group_a, "Y")
@@ -54,9 +54,9 @@ fn main() {
     let combined = array.concat(group_a, group_b)
     println(f"\nCombined: {array.size(combined)} items")
 
-    ; --- Generic maps ---
+    // --- Generic maps ---
 
-    ; Map with string values (generic V = string)
+    // Map with string values (generic V = string)
     let config: map<string, string>:mut = map.new()
     config = map.set(config, "host", "localhost")
     config = map.set(config, "port", "8080")

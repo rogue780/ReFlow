@@ -1,4 +1,4 @@
-; congruence_test.flow — E2E test for the === congruence operator
+// congruence_test.flow — E2E test for the === congruence operator
 module tests.congruence_test
 
 import io (println)
@@ -23,14 +23,14 @@ fn main() {
     let b = EventRecord { timestamp: 200, source: "eu-west-1" }
     let c = MetricPoint { timestamp: 300, value: 3.14 }
 
-    ; Same fields → congruent
+    // Same fields → congruent
     if (a === b) {
         println("a === b: true")
     } else {
         println("a === b: false")
     }
 
-    ; Different fields → not congruent
+    // Different fields → not congruent
     if (a === c) {
         println("a === c: true")
     } else {

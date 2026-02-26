@@ -1,7 +1,7 @@
 module tests.coroutine_pipeline_test
 import io (println)
 
-; Stage 1: generates integers
+// Stage 1: generates integers
 fn producer(): stream<int> {
     let i: int:mut = 1
     while (i <= 4) {
@@ -10,14 +10,14 @@ fn producer(): stream<int> {
     }
 }
 
-; Stage 2: doubles each value (receivable)
+// Stage 2: doubles each value (receivable)
 fn doubler(inbox: stream<int>): stream<int> {
     for (val: int in inbox) {
         yield val * 2
     }
 }
 
-; Stage 3: adds 100 to each value (receivable)
+// Stage 3: adds 100 to each value (receivable)
 fn adder(inbox: stream<int>): stream<int> {
     for (val: int in inbox) {
         yield val + 100
@@ -25,10 +25,10 @@ fn adder(inbox: stream<int>): stream<int> {
 }
 
 fn main() {
-    ; Pipeline syntax: producer -> doubler -> adder
+    // Pipeline syntax: producer -> doubler -> adder
     let result :< producer() -> doubler() -> adder()
 
-    ; Should produce: 1*2+100=102, 2*2+100=104, 3*2+100=106, 4*2+100=108
+    // Should produce: 1*2+100=102, 2*2+100=104, 3*2+100=106, 4*2+100=108
     while (!result.done()) {
         match result.next() {
             some(v): { println(f"{v}") }

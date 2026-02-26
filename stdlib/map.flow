@@ -1,7 +1,7 @@
 module map
 
-; Generic map with string keys — value type V is inferred from usage.
-; Values are stored as opaque pointers internally.
+// Generic map with string keys — value type V is inferred from usage.
+// Values are stored as opaque pointers internally.
 
 export fn new<V>(): map<string, V> = native "fl_map_new"
 export fn set<V>(m: map<string, V>, key: string, val: V): map<string, V> = native "fl_map_set_str"

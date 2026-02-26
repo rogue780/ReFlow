@@ -1,8 +1,8 @@
 module tests.app_calc
 
-; Self-test for the calculator app.
-; Exercises: recursive sum types, match, fn:pure, tuples, map<string, float>,
-; float modulo, math.pow
+// Self-test for the calculator app.
+// Exercises: recursive sum types, match, fn:pure, tuples, map<string, float>,
+// float modulo, math.pow
 
 import io
 import string
@@ -11,7 +11,7 @@ import math
 import map
 import char
 
-; --- AST (same as apps/calc/calc.flow) ---
+// --- AST (same as apps/calc/calc.flow) ---
 
 type Expr =
     | Literal(value: float)
@@ -19,7 +19,7 @@ type Expr =
     | Neg(inner: Expr)
     | BinOp(op: string, left: Expr, right: Expr)
 
-; --- Parser (same as apps/calc/calc.flow) ---
+// --- Parser (same as apps/calc/calc.flow) ---
 
 fn:pure skip_ws(input: string, pos: int): int {
     let p: int:mut = pos
@@ -210,7 +210,7 @@ fn parse_expr(input: string, pos: int): (Expr, int) {
     return parse_additive(input, pos)
 }
 
-; --- Evaluator ---
+// --- Evaluator ---
 
 fn eval(expr: Expr, env: map<string, float>): float {
     match expr {
@@ -251,7 +251,7 @@ fn eval(expr: Expr, env: map<string, float>): float {
     }
 }
 
-; --- Helpers ---
+// --- Helpers ---
 
 fn format_result(value: float): string {
     let as_int = cast<int>(value)
@@ -268,46 +268,46 @@ fn eval_and_print(label: string, input: string, env: map<string, float>): none {
     io.println(label + " = " + format_result(result))
 }
 
-; --- Test suite ---
+// --- Test suite ---
 
 fn main(): none {
     let env: map<string, float>:mut = map.new()
 
-    ; Basic arithmetic
+    // Basic arithmetic
     eval_and_print("2 + 3", "2 + 3", env)
     eval_and_print("10 - 4", "10 - 4", env)
     eval_and_print("3 * 7", "3 * 7", env)
     eval_and_print("20 / 4", "20 / 4", env)
 
-    ; Precedence
+    // Precedence
     eval_and_print("2 + 3 * 4", "2 + 3 * 4", env)
     eval_and_print("(2 + 3) * 4", "(2 + 3) * 4", env)
 
-    ; Unary negation
+    // Unary negation
     eval_and_print("-5", "-5", env)
     eval_and_print("-5 + 3", "-5 + 3", env)
     eval_and_print("-(2 + 3)", "-(2 + 3)", env)
 
-    ; Exponentiation
+    // Exponentiation
     eval_and_print("2 ^ 10", "2 ^ 10", env)
     eval_and_print("3 ^ 2", "3 ^ 2", env)
 
-    ; Nested expressions
+    // Nested expressions
     eval_and_print("(1 + 2) * (3 + 4)", "(1 + 2) * (3 + 4)", env)
     eval_and_print("2 ^ 2 ^ 3", "2 ^ 2 ^ 3", env)
 
-    ; Variables (stored as float directly, no string conversion)
+    // Variables (stored as float directly, no string conversion)
     env = map.set(env, "x", 10.0)
     env = map.set(env, "y", 5.0)
     eval_and_print("x + y", "x + y", env)
     eval_and_print("x * y", "x * y", env)
     eval_and_print("x ^ 2", "x ^ 2", env)
 
-    ; Float arithmetic
+    // Float arithmetic
     eval_and_print("3.14 * 2", "3.14 * 2", env)
     eval_and_print("1 / 3", "1 / 3", env)
 
-    ; Modulo
+    // Modulo
     eval_and_print("10 % 3", "10 % 3", env)
     eval_and_print("10.5 % 3", "10.5 % 3", env)
 

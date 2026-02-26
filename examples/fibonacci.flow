@@ -1,4 +1,4 @@
-; fibonacci.flow — Recursive Fibonacci
+// fibonacci.flow — Recursive Fibonacci
 module examples.fibonacci
 
 import io (println)

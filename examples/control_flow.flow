@@ -1,4 +1,4 @@
-; control_flow.flow — If/else, while, break, continue, ternary
+// control_flow.flow — If/else, while, break, continue, ternary
 module examples.control_flow
 
 import io (println)
@@ -15,12 +15,12 @@ fn fizzbuzz(n: int): string {
 }
 
 fn main() {
-    ; If/else as expression
+    // If/else as expression
     let x = 42
     let label = if (x > 0) { "positive" } else { "non-positive" }
     println(f"{x} is {label}")
 
-    ; While loop with mutable counter
+    // While loop with mutable counter
     let i: int:mut = 1
     let total: int:mut = 0
     while (i <= 10) {
@@ -29,7 +29,7 @@ fn main() {
     }
     println(f"sum 1..10 = {total}")
 
-    ; While loop with break
+    // While loop with break
     let j: int:mut = 0
     while (true) {
         if (j >= 5) {
@@ -39,7 +39,7 @@ fn main() {
     }
     println(f"broke at j = {j}")
 
-    ; While loop with continue — skip even numbers
+    // While loop with continue — skip even numbers
     let n: int:mut = 0
     let odd_sum: int:mut = 0
     while (n < 10) {
@@ -51,7 +51,7 @@ fn main() {
     }
     println(f"sum of odds 1..9 = {odd_sum}")
 
-    ; FizzBuzz
+    // FizzBuzz
     let k: int:mut = 1
     while (k <= 15) {
         println(fizzbuzz(k))

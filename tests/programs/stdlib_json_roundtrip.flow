@@ -32,7 +32,7 @@ fn main(): void {
         }
         none: io.println("parse failed")
     }
-    ; Builder test: construct and serialize
+    // Builder test: construct and serialize
     let built = json.bool_val(true)
     io.println(json.to_string(built))
     io.println(conv.to_string(json.is_null(json.null_val())))

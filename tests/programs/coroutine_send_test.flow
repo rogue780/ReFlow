@@ -1,9 +1,9 @@
 module tests.coroutine_send_test
 import io (println)
 
-; Receivable coroutine: first param is stream<string> (the inbox).
-; The inbox is non-blocking — for-in drains available messages then exits.
-; The producer loops, checking the inbox each iteration.
+// Receivable coroutine: first param is stream<string> (the inbox).
+// The inbox is non-blocking — for-in drains available messages then exits.
+// The producer loops, checking the inbox each iteration.
 fn echo_worker(inbox: stream<string>): stream<string> {
     let running: bool:mut = true
     while (running) {
@@ -12,8 +12,8 @@ fn echo_worker(inbox: stream<string>): stream<string> {
             got_any = true
             yield "echo: " + msg
         }
-        ; If inbox was empty AND we never got anything, stop.
-        ; (Channel closed after all messages consumed.)
+        // If inbox was empty AND we never got anything, stop.
+        // (Channel closed after all messages consumed.)
         if (!got_any) { running = false }
     }
 }
@@ -21,12 +21,12 @@ fn echo_worker(inbox: stream<string>): stream<string> {
 fn main() {
     let w :< echo_worker()
 
-    ; Send messages into the inbox (queued in channel FIFO)
+    // Send messages into the inbox (queued in channel FIFO)
     w.send("hello")
     w.send("world")
     w.send("done")
 
-    ; Read echoed responses
+    // Read echoed responses
     match w.next() {
         some(v): { println(v) }
         none: { println("none") }

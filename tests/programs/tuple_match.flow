@@ -1,4 +1,4 @@
-; tuple_match.flow — Match on tuple values
+// tuple_match.flow — Match on tuple values
 module tests.tuple_match
 
 import io (println)
@@ -29,32 +29,32 @@ fn first(t: (int, string)): int {
 }
 
 fn main() {
-    ; Basic tuple match with bind patterns
+    // Basic tuple match with bind patterns
     let p = (10, 20)
     match p {
         (a, b): println(f"a={a}, b={b}")
     }
 
-    ; Tuple match with wildcard
+    // Tuple match with wildcard
     let q = (42, "hello")
     match q {
         (n, _): println(f"first={n}")
     }
 
-    ; Tuple match in function
+    // Tuple match in function
     println(f"classify(3,4) = {classify_pair(3, 4)}")
 
-    ; Swap via tuple match
+    // Swap via tuple match
     let swapped = swap((1, 2))
     match swapped {
         (c, d): println(f"swap(1,2) = ({c},{d})")
     }
 
-    ; First element extraction
+    // First element extraction
     let r = first((99, "world"))
     println(f"first(99,world) = {r}")
 
-    ; Match expression on tuple
+    // Match expression on tuple
     let t = (5, 10)
     let sum = match t {
         (x, y): x + y

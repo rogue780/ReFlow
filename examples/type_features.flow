@@ -1,10 +1,10 @@
-; type_features.flow — Cast, typeof, copy
+// type_features.flow — Cast, typeof, copy
 module examples.type_features
 
 import io (println)
 
 fn main() {
-    ; typeof — compile-time type name as string
+    // typeof — compile-time type name as string
     let x = 42
     let t = typeof(x)
     println(f"typeof(42) = {t}")
@@ -12,7 +12,7 @@ fn main() {
     let s = "hello"
     println(f"typeof(s) = {typeof(s)}")
 
-    ; cast — numeric type conversion
+    // cast — numeric type conversion
     let big: int64 = cast<int64>(x)
     println(f"cast<int64>(42) = {big}")
 
@@ -20,7 +20,7 @@ fn main() {
     let as_float: float = cast<float>(small)
     println(f"cast<float>(100) = {as_float}")
 
-    ; @ copy operator
+    // @ copy operator
     let original = "hello"
     let copied = @original
     println(f"original={original}, copy={copied}")

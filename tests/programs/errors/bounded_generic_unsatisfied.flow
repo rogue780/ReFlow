@@ -1,4 +1,4 @@
-; Bounded generic call with type that does not fulfill the bound
+// Bounded generic call with type that does not fulfill the bound
 module test
 
 interface Printable {

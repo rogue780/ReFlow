@@ -1,11 +1,11 @@
-; path_demo.flow — Demonstrates the path module
+// path_demo.flow — Demonstrates the path module
 module examples.path_demo
 
 import io (println)
 import path (join, stem, parent, with_suffix, cwd, resolve, exists, is_dir, is_file, extension, list_dir)
 
 fn main() {
-    ; Existing path functions
+    // Existing path functions
     let working_dir: string = cwd()
     println(f"cwd: {working_dir}")
     println(f"join: {join(working_dir, \"src\")}")
@@ -14,7 +14,7 @@ fn main() {
     println(f"with_suffix 'foo.txt' '.md': {with_suffix(\"foo.txt\", \".md\")}")
     println(f"exists '.': {exists(\".\")}")
 
-    ; New path functions
+    // New path functions
     println(f"is_dir '.': {is_dir(\".\")}")
     println(f"is_file 'Makefile': {is_file(\"Makefile\")}")
 

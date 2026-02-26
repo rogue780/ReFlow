@@ -15,7 +15,7 @@ fn compute(x: int, y: int): result<int, string> {
 }
 
 fn main() {
-    ; Direct result matching
+    // Direct result matching
     match safe_divide(10, 3) {
         ok(v): { println(f"10 / 3 = {v}") }
         err(msg): { println(f"error: {msg}") }
@@ -26,7 +26,7 @@ fn main() {
         err(msg): { println(f"error: {msg}") }
     }
 
-    ; Propagation
+    // Propagation
     match compute(20, 4) {
         ok(v): { println(f"compute(20, 4) = {v}") }
         err(msg): { println(f"compute error: {msg}") }

@@ -1,4 +1,4 @@
-; testing_demo.flow — Demonstrates the testing stdlib module
+// testing_demo.flow — Demonstrates the testing stdlib module
 module examples.testing_demo
 
 import io (println)
@@ -7,18 +7,18 @@ import testing (assert_true, assert_false, assert_eq_int, assert_eq_string, asse
 fn main() {
     println("Running testing assertions...")
 
-    ; Boolean assertions
+    // Boolean assertions
     assert_true(1 == 1, "1 should equal 1")
     assert_false(1 == 2, "1 should not equal 2")
 
-    ; Integer equality
+    // Integer equality
     assert_eq_int(42, 42, "42 should equal 42")
     assert_eq_int(0, 0, "zero should equal zero")
 
-    ; String equality
+    // String equality
     assert_eq_string("hello", "hello", "hello should equal hello")
 
-    ; Boolean equality
+    // Boolean equality
     assert_eq_bool(true, true, "true should equal true")
     assert_eq_bool(false, false, "false should equal false")
 

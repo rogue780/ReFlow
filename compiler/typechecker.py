@@ -20,7 +20,7 @@ from compiler.ast_nodes import (
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
-    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
+    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     PipelineStage, CoroutinePipeline,
     # Statements
@@ -368,7 +368,7 @@ _FLOAT_SUFFIXES: dict[str, Type] = {
 
 _NUMERIC_TYPES = (TInt, TFloat)
 
-_ARITHMETIC_OPS = {"+", "-", "*", "/", "//", "%", "**"}
+_ARITHMETIC_OPS = {"+", "-", "*", "/", "</", "%", "**"}
 _COMPARISON_OPS = {"<", ">", "<=", ">=", "==", "!="}
 _LOGICAL_OPS = {"&&", "||"}
 
@@ -1792,8 +1792,6 @@ class TypeChecker:
                 self._infer_expr(inner, scope)
                 return self._resolve_type_expr(target)
 
-            case SnapshotExpr(inner=inner):
-                return self._infer_expr(inner, scope)
 
             case PropagateExpr(inner=inner):
                 inner_t = self._infer_expr(inner, scope)
@@ -2450,10 +2448,6 @@ class TypeChecker:
                 if else_b is not None:
                     self._check_purity_body(else_b, fn_name)
 
-            case SnapshotExpr():
-                raise self._error(
-                    f"pure function '{fn_name}' cannot use snapshot()",
-                    node)
 
             case _:
                 pass  # Other nodes don't affect purity

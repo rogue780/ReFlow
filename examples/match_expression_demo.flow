@@ -1,9 +1,9 @@
-; match_expression_demo.flow — Match as an expression that returns values
+// match_expression_demo.flow — Match as an expression that returns values
 module examples.match_expression_demo
 
 import io (println)
 
-; Match as the last expression in a function body is an implicit return
+// Match as the last expression in a function body is an implicit return
 fn classify(x: int): string {
     match x {
         0: "zero"

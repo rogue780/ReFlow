@@ -4,7 +4,7 @@ import conv
 import map
 
 fn main(): none {
-    ; Test map<string, float>
+    // Test map<string, float>
     let mf: map<string, float> = map.new()
     let mf2 = map.set(mf, "pi", 3.14)
     let mf3 = map.set(mf2, "e", 2.718)
@@ -17,7 +17,7 @@ fn main(): none {
         none: io.println("none ok")
     }
 
-    ; Test map<string, int>
+    // Test map<string, int>
     let mi: map<string, int> = map.new()
     let mi2 = map.set(mi, "x", 42)
     let mi3 = map.set(mi2, "y", 100)
@@ -30,7 +30,7 @@ fn main(): none {
         none: io.println("FAIL: y not found")
     }
 
-    ; Test map<string, bool>
+    // Test map<string, bool>
     let mb: map<string, bool> = map.new()
     let mb2 = map.set(mb, "flag", true)
     match map.get(mb2, "flag") {

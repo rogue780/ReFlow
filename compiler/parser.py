@@ -56,7 +56,6 @@ from compiler.ast_nodes import (
     ErrExpr,
     CoerceExpr,
     CastExpr,
-    SnapshotExpr,
     PropagateExpr,
     NullCoalesce,
     TypeofExpr,
@@ -124,7 +123,7 @@ _PREC_AND = 5            # &&
 _PREC_EQUALITY = 6       # == != ===
 _PREC_COMPARISON = 7     # < > <= >=
 _PREC_ADD = 8            # + -
-_PREC_MUL = 9            # * / // %
+_PREC_MUL = 9            # * / </ %
 _PREC_POWER = 10         # **
 _PREC_UNARY = 11         # - ! @
 _PREC_POSTFIX = 12       # ? .field (args) [idx]
@@ -147,7 +146,7 @@ _INFIX_PRECEDENCE: dict[TokenType, int] = {
     TokenType.MINUS: _PREC_ADD,
     TokenType.STAR: _PREC_MUL,
     TokenType.SLASH: _PREC_MUL,
-    TokenType.DOUBLE_SLASH: _PREC_MUL,
+    TokenType.FLOOR_DIV: _PREC_MUL,
     TokenType.PERCENT: _PREC_MUL,
     TokenType.DOUBLE_STAR: _PREC_POWER,
     # Postfix operators handled separately
@@ -169,7 +168,7 @@ _BINOP_STRINGS: dict[TokenType, str] = {
     TokenType.MINUS: "-",
     TokenType.STAR: "*",
     TokenType.SLASH: "/",
-    TokenType.DOUBLE_SLASH: "//",
+    TokenType.FLOOR_DIV: "</",
     TokenType.PERCENT: "%",
     TokenType.DOUBLE_STAR: "**",
 }
@@ -1823,7 +1822,6 @@ class Parser:
                 TokenType.TYPEOF,
                 TokenType.COERCE,
                 TokenType.CAST,
-                TokenType.SNAPSHOT,
                 TokenType.SELF,
             )
             if not can_start_expr:
@@ -2060,8 +2058,6 @@ class Parser:
                 return self._parse_coerce_expr()
             case TokenType.CAST:
                 return self._parse_cast_expr()
-            case TokenType.SNAPSHOT:
-                return self._parse_snapshot_expr()
             case TokenType.TYPEOF:
                 return self._parse_typeof_expr()
 
@@ -2209,14 +2205,6 @@ class Parser:
         inner = self.parse_expr()
         self.expect(TokenType.RPAREN)
         return CastExpr(line=tok.line, col=tok.col, inner=inner, target_type=target_type)
-
-    def _parse_snapshot_expr(self) -> SnapshotExpr:
-        """Parse: snapshot(expr)"""
-        tok = self.advance()  # 'snapshot'
-        self.expect(TokenType.LPAREN)
-        inner = self.parse_expr()
-        self.expect(TokenType.RPAREN)
-        return SnapshotExpr(line=tok.line, col=tok.col, inner=inner)
 
     def _parse_typeof_expr(self) -> TypeofExpr:
         """Parse: typeof(expr)"""

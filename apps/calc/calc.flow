@@ -1,20 +1,20 @@
 module calc
 
-; calc.flow — Interactive expression calculator
-;
-; Usage: python main.py run apps/calc/calc.flow
-;
-; Features:
-;   - Arithmetic: + - * / % ^
-;   - Parentheses for grouping
-;   - Unary negation: -5, -(2+3)
-;   - Variable assignment: let x = 10
-;   - Variable reference in expressions: x * 2 + 1
-;   - Commands: vars, clear, help, quit/exit
-;
-; Language features exercised:
-;   Recursive sum type (Expr), recursive match, fn:pure, tuples,
-;   option<T>, map<string, float>, while loops with :mut
+// calc.flow — Interactive expression calculator
+//
+// Usage: python main.py run apps/calc/calc.flow
+//
+// Features:
+//   - Arithmetic: + - * / % ^
+//   - Parentheses for grouping
+//   - Unary negation: -5, -(2+3)
+//   - Variable assignment: let x = 10
+//   - Variable reference in expressions: x * 2 + 1
+//   - Commands: vars, clear, help, quit/exit
+//
+// Language features exercised:
+//   Recursive sum type (Expr), recursive match, fn:pure, tuples,
+//   option<T>, map<string, float>, while loops with :mut
 
 import io
 import string
@@ -24,9 +24,9 @@ import map
 import array
 import char
 
-; ===========================================================================
-; AST — recursive expression tree
-; ===========================================================================
+// ===========================================================================
+// AST — recursive expression tree
+// ===========================================================================
 
 type Expr =
     | Literal(value: float)
@@ -34,14 +34,14 @@ type Expr =
     | Neg(inner: Expr)
     | BinOp(op: string, left: Expr, right: Expr)
 
-; ===========================================================================
-; Parser — single-pass recursive descent over the input string
-;
-; Each parse function takes (input, pos) and returns (Expr, new_pos).
-; Whitespace is skipped at the start of each parse function.
-; ===========================================================================
+// ===========================================================================
+// Parser — single-pass recursive descent over the input string
+//
+// Each parse function takes (input, pos) and returns (Expr, new_pos).
+// Whitespace is skipped at the start of each parse function.
+// ===========================================================================
 
-; Skip whitespace starting at pos
+// Skip whitespace starting at pos
 fn:pure skip_ws(input: string, pos: int): int {
     let p: int:mut = pos
     let length = string.len(input)
@@ -56,7 +56,7 @@ fn:pure skip_ws(input: string, pos: int): int {
     return p
 }
 
-; Peek at the character at pos (after skipping whitespace)
+// Peek at the character at pos (after skipping whitespace)
 fn:pure peek_char(input: string, pos: int): string {
     let p = skip_ws(input, pos)
     if (p >= string.len(input)) {
@@ -66,13 +66,13 @@ fn:pure peek_char(input: string, pos: int): string {
     return char.to_string(ch)
 }
 
-; Parse a number: digits with optional decimal point
+// Parse a number: digits with optional decimal point
 fn parse_number(input: string, pos: int): (Expr, int) {
     let start = pos
     let p: int:mut = pos
     let length = string.len(input)
 
-    ; Integer part
+    // Integer part
     while (p < length) {
         let ch = string.char_at(input, p) ?? ' '
         if (char.is_digit(ch)) {
@@ -82,7 +82,7 @@ fn parse_number(input: string, pos: int): (Expr, int) {
         }
     }
 
-    ; Decimal part
+    // Decimal part
     if (p < length) {
         let dot = string.char_at(input, p) ?? ' '
         if (char.to_string(dot) == ".") {
@@ -103,7 +103,7 @@ fn parse_number(input: string, pos: int): (Expr, int) {
     return (Literal(value), p)
 }
 
-; Parse an identifier: [a-zA-Z_][a-zA-Z0-9_]*
+// Parse an identifier: [a-zA-Z_][a-zA-Z0-9_]*
 fn parse_ident(input: string, pos: int): (string, int) {
     let start = pos
     let p: int:mut = pos
@@ -126,7 +126,7 @@ fn parse_ident(input: string, pos: int): (string, int) {
     return (string.substring(input, start, p), p)
 }
 
-; parse_primary: numbers, identifiers, parenthesized expressions
+// parse_primary: numbers, identifiers, parenthesized expressions
 fn parse_primary(input: string, pos: int): (Expr, int) {
     let p = skip_ws(input, pos)
 
@@ -137,19 +137,19 @@ fn parse_primary(input: string, pos: int): (Expr, int) {
 
     let ch = string.char_at(input, p) ?? ' '
 
-    ; Number
+    // Number
     if (char.is_digit(ch)) {
         return parse_number(input, p)
     }
 
-    ; Identifier
+    // Identifier
     if (char.is_alpha(ch)) {
         let result = parse_ident(input, p)
         let name = result.0
         return (Var(name), result.1)
     }
 
-    ; Parenthesized expression
+    // Parenthesized expression
     let cs = char.to_string(ch)
     if (cs == "(") {
         let inner = parse_expr(input, p + 1)
@@ -168,7 +168,7 @@ fn parse_primary(input: string, pos: int): (Expr, int) {
     return (Literal(0.0), p + 1)
 }
 
-; parse_unary: handle prefix minus
+// parse_unary: handle prefix minus
 fn parse_unary(input: string, pos: int): (Expr, int) {
     let p = skip_ws(input, pos)
     if (p < string.len(input)) {
@@ -181,14 +181,14 @@ fn parse_unary(input: string, pos: int): (Expr, int) {
     return parse_primary(input, p)
 }
 
-; parse_power: right-associative exponentiation (^)
+// parse_power: right-associative exponentiation (^)
 fn parse_power(input: string, pos: int): (Expr, int) {
     let base = parse_unary(input, pos)
     let p = skip_ws(input, base.1)
     if (p < string.len(input)) {
         let ch = string.char_at(input, p) ?? ' '
         if (char.to_string(ch) == "^") {
-            ; Right-associative: recurse
+            // Right-associative: recurse
             let exp = parse_power(input, p + 1)
             return (BinOp("^", base.0, exp.0), exp.1)
         }
@@ -196,7 +196,7 @@ fn parse_power(input: string, pos: int): (Expr, int) {
     return (base.0, base.1)
 }
 
-; parse_multiplicative: * / % (left-associative)
+// parse_multiplicative: * / % (left-associative)
 fn parse_multiplicative(input: string, pos: int): (Expr, int) {
     let first = parse_power(input, pos)
     let left: Expr:mut = first.0
@@ -230,7 +230,7 @@ fn parse_multiplicative(input: string, pos: int): (Expr, int) {
     return (left, cur)
 }
 
-; parse_additive: + - (left-associative)
+// parse_additive: + - (left-associative)
 fn parse_additive(input: string, pos: int): (Expr, int) {
     let first = parse_multiplicative(input, pos)
     let left: Expr:mut = first.0
@@ -260,14 +260,14 @@ fn parse_additive(input: string, pos: int): (Expr, int) {
     return (left, cur)
 }
 
-; parse_expr: top-level entry point
+// parse_expr: top-level entry point
 fn parse_expr(input: string, pos: int): (Expr, int) {
     return parse_additive(input, pos)
 }
 
-; ===========================================================================
-; Evaluator — recursive match over the Expr tree
-; ===========================================================================
+// ===========================================================================
+// Evaluator — recursive match over the Expr tree
+// ===========================================================================
 
 fn eval_binop(op: string, lv: float, rv: float): float {
     if (op == "+") { return lv + rv }
@@ -300,9 +300,9 @@ fn eval(expr: Expr, env: map<string, float>): float {
     }
 }
 
-; ===========================================================================
-; Display and helpers
-; ===========================================================================
+// ===========================================================================
+// Display and helpers
+// ===========================================================================
 
 fn format_result(value: float): string {
     let as_int = cast<int>(value)
@@ -317,9 +317,9 @@ fn eval_input(input: string, env: map<string, float>): string {
     return format_result(eval(parsed.0, env))
 }
 
-; ===========================================================================
-; REPL — read-eval-print loop
-; ===========================================================================
+// ===========================================================================
+// REPL — read-eval-print loop
+// ===========================================================================
 
 fn print_help(): none {
     io.println("Flow Calculator")

@@ -1,4 +1,4 @@
-; pipeline.flow — Composition chain example
+// pipeline.flow — Composition chain example
 module examples.pipeline
 
 import io (println)
@@ -8,8 +8,8 @@ fn:pure square(x: int): int = x * x
 fn:pure add(x: int, y: int): int = x + y
 
 fn main() {
-    ; x -> (double | square) -> add
-    ; equivalent to: add(double(5), square(5))
+    // x -> (double | square) -> add
+    // equivalent to: add(double(5), square(5))
     let result: int = 5 -> (double | square) -> add
     println(f"result = {result}")
 }

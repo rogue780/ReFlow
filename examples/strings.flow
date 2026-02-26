@@ -1,4 +1,4 @@
-; strings.flow — String operations, f-strings, concatenation, comparison
+// strings.flow — String operations, f-strings, concatenation, comparison
 module examples.strings
 
 import io (println)
@@ -14,34 +14,34 @@ fn repeat(s: string, n: int): string {
 }
 
 fn main() {
-    ; String literals
+    // String literals
     let name = "Flow"
     let version = "0.1"
 
-    ; F-string interpolation
+    // F-string interpolation
     println(f"{name} v{version}")
 
-    ; F-string with expressions
+    // F-string with expressions
     let x = 42
     let half = x / 2
     println(f"{x} / 2 = {half}")
 
-    ; String concatenation
+    // String concatenation
     let full = name + " " + "Language"
     println(full)
 
-    ; String comparison
+    // String comparison
     let a = "hello"
     let b = "hello"
     let c = "world"
     println(f"a == b: {a == b}")
     println(f"a == c: {a == c}")
 
-    ; Repeated string building
+    // Repeated string building
     let stars = repeat("*", 10)
     println(stars)
 
-    ; Nested f-string expressions
+    // Nested f-string expressions
     let temp = 72
     let unit = "F"
     println(f"Temperature: {temp} degrees {unit}")

@@ -1,13 +1,13 @@
 module json
 
-; Parsing
+// Parsing
 export fn parse(s: string): JsonValue? = native "fl_json_parse"
 
-; Serialization
+// Serialization
 export fn:pure to_string(val: JsonValue): string = native "fl_json_to_string"
 export fn:pure to_string_pretty(val: JsonValue, indent: int): string = native "fl_json_to_string_pretty"
 
-; Accessors
+// Accessors
 export fn:pure get(val: JsonValue, key: string): JsonValue? = native "fl_json_get"
 export fn:pure get_index(val: JsonValue, idx: int64): JsonValue? = native "fl_json_get_index"
 export fn:pure as_string(val: JsonValue): string? = native "fl_json_as_string"
@@ -19,7 +19,7 @@ export fn:pure is_null(val: JsonValue): bool = native "fl_json_is_null"
 export fn:pure type_tag(val: JsonValue): byte = native "fl_json_type_tag"
 export fn:pure keys(val: JsonValue): array<string>? = native "fl_json_keys"
 
-; Builders
+// Builders
 export fn:pure null_val(): JsonValue = native "fl_json_null"
 export fn:pure string_val(s: string): JsonValue = native "fl_json_string"
 export fn:pure int_val(n: int64): JsonValue = native "fl_json_int"

@@ -28,7 +28,7 @@ from compiler.ast_nodes import (
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
-    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
+    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     # Type expressions
     NamedType, GenericType, OptionType, FnType, TupleType, MutType,
@@ -588,9 +588,9 @@ class TestBinaryOperators(unittest.TestCase):
         self.assertEqual(expr.op, "%")
 
     def test_floor_division(self) -> None:
-        expr = parse_expr("7 // 3")
+        expr = parse_expr("7 </ 3")
         self.assertIsInstance(expr, BinOp)
-        self.assertEqual(expr.op, "//")
+        self.assertEqual(expr.op, "</")
 
     def test_exponentiation(self) -> None:
         expr = parse_expr("2 ** 10")
@@ -795,10 +795,6 @@ class TestCompositeExpressions(unittest.TestCase):
         expr = parse_expr("cast<int>(val)")
         self.assertIsInstance(expr, CastExpr)
         self.assertIsNotNone(expr.target_type)
-
-    def test_snapshot_expr(self) -> None:
-        expr = parse_expr("snapshot(Config.port)")
-        self.assertIsInstance(expr, SnapshotExpr)
 
     def test_type_construction(self) -> None:
         expr = parse_expr("Point { x: 1.0, y: 2.0 }")

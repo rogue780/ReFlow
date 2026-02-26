@@ -9,8 +9,9 @@ from compiler.linter import (
     LintContext, LintDiagnostic, LintSeverity,
     build_context, lint, apply_fixes, get_rules, format_diagnostic,
     TypePascalCase, VariantPascalCase, FnSnakeCase, VarSnakeCase,
-    ModuleSnakeCase, AliasPascalCase, CommentSpace, NoCComments,
-    BraceSameLine, IndentFourSpaces, NoTrailingWhitespace, FileEndsNewline,
+    ModuleSnakeCase, AliasPascalCase, CommentSpace, NoSemicolonComments,
+    NoSpaceAroundColon, BraceSameLine,
+    IndentFourSpaces, NoTrailingWhitespace, FileEndsNewline,
     ALL_RULES,
 )
 
@@ -184,77 +185,127 @@ class TestAliasPascalCase(unittest.TestCase):
 
 class TestCommentSpace(unittest.TestCase):
     def test_proper_comment_passes(self):
-        ctx = _make_ctx("; this is a comment\n")
+        ctx = _make_ctx("// this is a comment\n")
         diags = CommentSpace().check(ctx)
         self.assertEqual(diags, [])
 
     def test_no_space_warns(self):
-        ctx = _make_ctx(";this is a comment\n")
+        ctx = _make_ctx("//this is a comment\n")
         diags = CommentSpace().check(ctx)
         self.assertEqual(len(diags), 1)
         self.assertEqual(diags[0].rule_id, "FL-C001")
         self.assertTrue(diags[0].fixable)
 
     def test_decorator_exempt(self):
-        # ;=== and ;--- are decorator comments, exempt from FL-C001
-        ctx = _make_ctx(";=== section\n;--- divider\n;;; triple\n")
+        # //=== and //--- are decorator comments, exempt from FL-C001
+        ctx = _make_ctx("//=== section\n//--- divider\n/// triple\n")
         diags = CommentSpace().check(ctx)
         self.assertEqual(diags, [])
 
-    def test_bare_semicolon_passes(self):
-        ctx = _make_ctx(";\n")
+    def test_bare_double_slash_passes(self):
+        ctx = _make_ctx("//\n")
         diags = CommentSpace().check(ctx)
         self.assertEqual(diags, [])
 
     def test_fix_inserts_space(self):
-        source = ";comment\n"
+        source = "//comment\n"
         ctx = _make_ctx(source)
         diags = CommentSpace().check(ctx)
         self.assertEqual(len(diags), 1)
         fixed = apply_fixes(source, diags)
-        self.assertEqual(fixed, "; comment\n")
+        self.assertEqual(fixed, "// comment\n")
 
 
 # ---------------------------------------------------------------------------
-# FL-C002: no-c-comments
+# FL-C002: no-semicolon-comments
 # ---------------------------------------------------------------------------
 
-class TestNoCComments(unittest.TestCase):
-    def test_no_c_comment_passes(self):
-        ctx = _make_ctx("; normal comment\n")
-        diags = NoCComments().check(ctx)
+class TestNoSemicolonComments(unittest.TestCase):
+    def test_double_slash_comment_passes(self):
+        ctx = _make_ctx("// normal comment\n")
+        diags = NoSemicolonComments().check(ctx)
         self.assertEqual(diags, [])
 
-    def test_c_comment_warns(self):
-        ctx = _make_ctx("// c-style comment\n")
-        diags = NoCComments().check(ctx)
+    def test_semicolon_comment_warns(self):
+        # Build context manually since ';' is no longer valid in the lexer
+        source = "; semicolon comment\n"
+        ctx = build_context(source, "test.flow", [], None)
+        diags = NoSemicolonComments().check(ctx)
         self.assertEqual(len(diags), 1)
         self.assertEqual(diags[0].rule_id, "FL-C002")
-        self.assertTrue(diags[0].fixable)
 
-    def test_double_slash_in_code_not_flagged(self):
-        # // at the start of a line is flagged, but not inside expressions
-        # (the check only flags line-leading //)
+    def test_code_no_semicolon_not_flagged(self):
         ctx = _make_ctx("fn main(): int {\n    return 0\n}\n")
-        diags = NoCComments().check(ctx)
+        diags = NoSemicolonComments().check(ctx)
         self.assertEqual(diags, [])
 
-    def test_indented_c_comment_warns(self):
-        ctx = _make_ctx("    // indented c-style\n")
-        diags = NoCComments().check(ctx)
+    def test_indented_semicolon_comment_warns(self):
+        # Build context manually since ';' is no longer valid in the lexer
+        source = "    ; indented semicolon\n"
+        ctx = build_context(source, "test.flow", [], None)
+        diags = NoSemicolonComments().check(ctx)
         self.assertEqual(len(diags), 1)
-
-    def test_fix_replaces_with_semicolon(self):
-        source = "// c-style comment\n"
-        ctx = _make_ctx(source)
-        diags = NoCComments().check(ctx)
-        fixed = apply_fixes(source, diags)
-        self.assertEqual(fixed, "; c-style comment\n")
 
 
 # ---------------------------------------------------------------------------
 # FL-S001: brace-same-line
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# FL-S005: no-space-around-colon
+# ---------------------------------------------------------------------------
+
+class TestNoSpaceAroundColon(unittest.TestCase):
+    def test_tight_colon_passes(self):
+        ctx = _make_ctx("fn main(x:int):int {\n    return x\n}\n")
+        diags = NoSpaceAroundColon().check(ctx)
+        self.assertEqual(diags, [])
+
+    def test_space_after_colon_warns(self):
+        ctx = _make_ctx("fn main(x: int): int {\n    return x\n}\n")
+        diags = NoSpaceAroundColon().check(ctx)
+        # Two colons, each with space after
+        self.assertEqual(len(diags), 2)
+        self.assertTrue(all(d.rule_id == "FL-S005" for d in diags))
+        self.assertTrue(all(d.fixable for d in diags))
+
+    def test_space_before_colon_warns(self):
+        ctx = _make_ctx("fn main(x :int) :int {\n    return x\n}\n")
+        diags = NoSpaceAroundColon().check(ctx)
+        self.assertEqual(len(diags), 2)
+        self.assertTrue(all("before" in d.message for d in diags))
+
+    def test_spaces_both_sides_warns(self):
+        ctx = _make_ctx("fn main(x : int) : int {\n    return x\n}\n")
+        diags = NoSpaceAroundColon().check(ctx)
+        # Two colons, each with space before AND after = 4 diagnostics
+        self.assertEqual(len(diags), 4)
+
+    def test_modifier_tight_passes(self):
+        ctx = _make_ctx("fn main(x:int:mut):int {\n    return x\n}\n")
+        diags = NoSpaceAroundColon().check(ctx)
+        self.assertEqual(diags, [])
+
+    def test_modifier_space_warns(self):
+        ctx = _make_ctx("fn main(x:int :mut):int {\n    return x\n}\n")
+        diags = NoSpaceAroundColon().check(ctx)
+        self.assertEqual(len(diags), 1)
+        self.assertIn("before", diags[0].message)
+
+    def test_fix_removes_spaces(self):
+        source = "fn main(x: int): int {\n    return x\n}\n"
+        ctx = _make_ctx(source)
+        diags = NoSpaceAroundColon().check(ctx)
+        fixed = apply_fixes(source, diags)
+        self.assertIn("x:int", fixed)
+        self.assertIn("):int", fixed)
+
+    def test_let_type_annotation(self):
+        ctx = _make_ctx("fn main():int {\n    let x: int = 1\n    return x\n}\n")
+        diags = NoSpaceAroundColon().check(ctx)
+        self.assertEqual(len(diags), 1)
+        self.assertIn("after", diags[0].message)
+
 
 class TestBraceSameLine(unittest.TestCase):
     def test_same_line_passes(self):
@@ -386,12 +437,12 @@ class TestFileEndsNewline(unittest.TestCase):
 
 class TestFixEngine(unittest.TestCase):
     def test_multiple_fixes_applied_correctly(self):
-        source = ";comment1\n;comment2\n"
+        source = "//comment1\n//comment2\n"
         ctx = _make_ctx(source)
         diags = CommentSpace().check(ctx)
         self.assertEqual(len(diags), 2)
         fixed = apply_fixes(source, diags)
-        self.assertEqual(fixed, "; comment1\n; comment2\n")
+        self.assertEqual(fixed, "// comment1\n// comment2\n")
 
     def test_no_fixable_diags_returns_same(self):
         source = "hello\n"
@@ -402,13 +453,13 @@ class TestFixEngine(unittest.TestCase):
         self.assertEqual(apply_fixes(source, diags), source)
 
     def test_mixed_fixable_and_non_fixable(self):
-        source = ";comment  \n"
+        source = "//comment  \n"
         ctx = _make_ctx(source)
         comment_diags = CommentSpace().check(ctx)
         trailing_diags = NoTrailingWhitespace().check(ctx)
         all_diags = comment_diags + trailing_diags
         fixed = apply_fixes(source, all_diags)
-        self.assertEqual(fixed, "; comment\n")
+        self.assertEqual(fixed, "// comment\n")
 
 
 # ---------------------------------------------------------------------------
@@ -470,7 +521,7 @@ class TestFormatDiagnostic(unittest.TestCase):
     def test_fixable_tag(self):
         d = LintDiagnostic(
             rule_id="FL-C001",
-            message="comment should have space after ';'",
+            message="comment should have space after '//'",
             file="test.flow",
             line=1,
             col=2,
@@ -487,13 +538,13 @@ class TestFormatDiagnostic(unittest.TestCase):
 
 class TestLintOrchestrator(unittest.TestCase):
     def test_clean_file_returns_no_diags(self):
-        source = "fn main(): int {\n    return 0\n}\n"
+        source = "fn main():int {\n    return 0\n}\n"
         ctx = _make_ctx(source)
         diags = lint(ctx)
         self.assertEqual(diags, [])
 
     def test_multiple_issues_sorted_by_location(self):
-        source = ";comment\nfn myFunc(): int {\n    return 0\n}\n"
+        source = "//comment\nfn myFunc(): int {\n    return 0\n}\n"
         ctx = _make_ctx(source)
         diags = lint(ctx)
         # Should have at least FL-C001 and FL-N003
@@ -505,7 +556,7 @@ class TestLintOrchestrator(unittest.TestCase):
         self.assertEqual(lines, sorted(lines))
 
     def test_lint_with_specific_rules(self):
-        source = ";comment\nfn myFunc(): int {\n    return 0\n}\n"
+        source = "//comment\nfn myFunc(): int {\n    return 0\n}\n"
         ctx = _make_ctx(source)
         rules = get_rules(include=["FL-C001"])
         diags = lint(ctx, rules=rules)

@@ -66,6 +66,11 @@ void fl_panic_oob(void);
 #define FL_CHECKED_MOD(a, b, result) \
     do { if ((b) == 0) fl_panic_divzero(); *(result) = (a) % (b); } while(0)
 
+#define FL_CHECKED_FLOOR_DIV(a, b, result) \
+    do { if ((b) == 0) fl_panic_divzero(); \
+         *(result) = (a) / (b) - ((a) % (b) != 0 && (((a) ^ (b)) < 0)); \
+    } while(0)
+
 #define FL_CHECKED_FMOD(a, b, result) \
     do { if ((b) == 0.0) fl_panic_divzero(); *(result) = fmod((a), (b)); } while(0)
 

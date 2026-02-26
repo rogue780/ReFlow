@@ -1,6 +1,6 @@
-; app_healthcheck.flow — Health checker E2E test
-; Demonstrates: receivable coroutines, try/retry/catch, result types,
-; sum types, pattern matching, networking
+// app_healthcheck.flow — Health checker E2E test
+// Demonstrates: receivable coroutines, try/retry/catch, result types,
+// sum types, pattern matching, networking
 module tests.app_healthcheck
 
 import io
@@ -10,18 +10,18 @@ import conv
 import array
 import time
 
-; ============================================================================
-; Data Types
-; ============================================================================
+// ============================================================================
+// Data Types
+// ============================================================================
 
 type CheckStatus =
     | Pass(code: int)
     | Fail(msg: string)
     | Warn(code: int, reason: string)
 
-; ============================================================================
-; Mock HTTP Server (receivable coroutine for clean shutdown via message passing)
-; ============================================================================
+// ============================================================================
+// Mock HTTP Server (receivable coroutine for clean shutdown via message passing)
+// ============================================================================
 
 fn mock_server(inbox: stream<string>, port: int): stream<string> {
     match net.listen("127.0.0.1", port) {
@@ -60,9 +60,9 @@ fn mock_server(inbox: stream<string>, port: int): stream<string> {
     }
 }
 
-; ============================================================================
-; HTTP Status Parser (pure)
-; ============================================================================
+// ============================================================================
+// HTTP Status Parser (pure)
+// ============================================================================
 
 fn:pure parse_http_status(response: string): int {
     if (let some(sp1) = string.index_of(response, " ")) {
@@ -75,9 +75,9 @@ fn:pure parse_http_status(response: string): int {
     return 0
 }
 
-; ============================================================================
-; Health Check Function
-; ============================================================================
+// ============================================================================
+// Health Check Function
+// ============================================================================
 
 fn check_url(host: string, port: int, url_path: string, expected: int, timeout: int): CheckStatus {
     let conn = net.connect(host, port)
@@ -105,9 +105,9 @@ fn check_url(host: string, port: int, url_path: string, expected: int, timeout: 
     throw "connection failed"
 }
 
-; ============================================================================
-; Result Aggregator (receivable coroutine)
-; ============================================================================
+// ============================================================================
+// Result Aggregator (receivable coroutine)
+// ============================================================================
 
 fn result_aggregator(inbox: stream<string>): stream<string> {
     let p: int:mut = 0
@@ -136,9 +136,9 @@ fn result_aggregator(inbox: stream<string>): stream<string> {
     yield conv.to_string(p) + ":" + conv.to_string(f) + ":" + conv.to_string(w) + ":" + conv.to_string(total)
 }
 
-; ============================================================================
-; Main
-; ============================================================================
+// ============================================================================
+// Main
+// ============================================================================
 
 fn main(): none {
     let port = 39876

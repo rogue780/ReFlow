@@ -1,10 +1,10 @@
-; basics.flow — Primitive types, let bindings, arithmetic, comparisons
+// basics.flow — Primitive types, let bindings, arithmetic, comparisons
 module examples.basics
 
 import io (println)
 
 fn main() {
-    ; Integer types and arithmetic
+    // Integer types and arithmetic
     let a: int = 42
     let b: int = 10
     let sum = a + b
@@ -16,13 +16,13 @@ fn main() {
     println(f"sum={sum}, diff={diff}, product={product}")
     println(f"quotient={quotient}, remainder={remainder}")
 
-    ; Float arithmetic
+    // Float arithmetic
     let pi: float = 3.14159
     let radius: float = 5.0
     let area = pi * radius * radius
     println(f"area={area}")
 
-    ; Boolean and logical operators
+    // Boolean and logical operators
     let t: bool = true
     let f: bool = false
     let and_result = t && f
@@ -30,14 +30,14 @@ fn main() {
     let not_result = !t
     println(f"and={and_result}, or={or_result}, not={not_result}")
 
-    ; Comparisons
+    // Comparisons
     let lt = a < 100
     let gt = a > 100
     let eq = a == 42
     let neq = a != 0
     println(f"lt={lt}, gt={gt}, eq={eq}, neq={neq}")
 
-    ; Mutable variables and update operators
+    // Mutable variables and update operators
     let x: int:mut = 0
     x += 10
     x -= 3
@@ -50,15 +50,15 @@ fn main() {
     x--
     println(f"after decrement: x={x}")
 
-    ; Ternary expression
+    // Ternary expression
     let max = a > b ? a : b
     println(f"max of {a} and {b} is {max}")
 
-    ; Unary negation
+    // Unary negation
     let neg = -a
     println(f"negation of {a} is {neg}")
 
-    ; String concatenation
+    // String concatenation
     let greeting = "Hello" + ", " + "World!"
     println(greeting)
 }

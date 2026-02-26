@@ -1,15 +1,15 @@
-; structs.flow — Named types, fields, methods, statics, spread
+// structs.flow — Named types, fields, methods, statics, spread
 module examples.structs
 
 import io (println)
 
-; Basic struct with fields
+// Basic struct with fields
 type Point {
     x: float
     y: float
 }
 
-; Type with mutable field and methods
+// Type with mutable field and methods
 type Counter {
     value: int:mut
 
@@ -20,7 +20,7 @@ type Counter {
     }
 }
 
-; Type with methods
+// Type with methods
 type Color {
     r: int
     g: int
@@ -31,7 +31,7 @@ type Color {
     }
 }
 
-; Type with static member
+// Type with static member
 type Config {
     static default_name: string = "Flow"
 
@@ -40,26 +40,26 @@ type Config {
 }
 
 fn main() {
-    ; Struct literal construction
+    // Struct literal construction
     let p = Point { x: 3.0, y: 4.0 }
     println(f"point: ({p.x}, {p.y})")
 
-    ; Second struct literal
+    // Second struct literal
     let p2 = Point { x: 10.0, y: 20.0 }
     println(f"p2: ({p2.x}, {p2.y})")
 
-    ; Mutable field
+    // Mutable field
     let c: Counter:mut = Counter { value: 0 }
     c.display()
     c.value = 42
     c.display()
     println(f"current = {c.current()}")
 
-    ; Direct construction + method call
+    // Direct construction + method call
     let red = Color { r: 255, g: 0, b: 0 }
     println(f"red = {red.describe()}")
 
-    ; Static member access
+    // Static member access
     println(f"default name: {Config.default_name}")
 
     let cfg = Config { name: "MyApp", version: 1 }

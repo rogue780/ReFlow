@@ -1,15 +1,15 @@
-; functions.flow — Named functions, expression form, pure functions
+// functions.flow — Named functions, expression form, pure functions
 module examples.functions
 
 import io (println)
 
-; Expression-form function
+// Expression-form function
 fn:pure add(x: int, y: int): int = x + y
 
-; Expression-form with single expression
+// Expression-form with single expression
 fn:pure square(n: int): int = n * n
 
-; Block-form function
+// Block-form function
 fn factorial(n: int): int {
     if (n <= 1) {
         return 1
@@ -17,10 +17,10 @@ fn factorial(n: int): int {
     return n * factorial(n - 1)
 }
 
-; Pure function calling other pure functions
+// Pure function calling other pure functions
 fn:pure sum_of_squares(a: int, b: int): int = add(square(a), square(b))
 
-; Function with multiple return paths
+// Function with multiple return paths
 fn classify(n: int): string {
     if (n < 0) {
         return "negative"
@@ -30,7 +30,7 @@ fn classify(n: int): string {
     return "positive"
 }
 
-; Function returning none (side effects only)
+// Function returning none (side effects only)
 fn greet(name: string): none {
     println(f"Hello, {name}!")
 }

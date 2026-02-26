@@ -1,6 +1,6 @@
-; app_parallel_enrich.flow — Parallel data enrichment pipeline
-; Exercises: parallel fan-out <:(a|b|c), fn:pure enrichment,
-; coroutines (:< operator), streams, composition chains
+// app_parallel_enrich.flow — Parallel data enrichment pipeline
+// Exercises: parallel fan-out <:(a|b|c), fn:pure enrichment,
+// coroutines (:< operator), streams, composition chains
 module tests.app_parallel_enrich
 
 import io (println)
@@ -8,7 +8,7 @@ import string
 import array
 import conv
 
-; --- Types ---
+// --- Types ---
 
 type Record {
     id: int
@@ -16,7 +16,7 @@ type Record {
     value: int
 }
 
-; --- Pure enrichment functions (safe for parallel fan-out) ---
+// --- Pure enrichment functions (safe for parallel fan-out) ---
 
 fn:pure compute_score(value: int): int {
     return value * 3 + 1
@@ -36,7 +36,7 @@ fn:pure format_result(score: int, category: string, hash: int): string {
     return "score=" + conv.to_string(score) + " cat=" + category + " hash=" + conv.to_string(hash)
 }
 
-; --- Stream producer using ints ---
+// --- Stream producer using ints ---
 
 fn produce_values(): stream<int> {
     yield 90
@@ -45,24 +45,24 @@ fn produce_values(): stream<int> {
     yield 75
 }
 
-; --- Main ---
+// --- Main ---
 
 fn main() {
     let names = ["alpha", "beta", "gamma", "delta"]
     let values = [90, 45, 20, 75]
 
-    ; Part 1: Parallel fan-out with <:() on integer values
+    // Part 1: Parallel fan-out with <:() on integer values
     println("=== Parallel Enrichment ===")
     let idx: int:mut = 0
     for (v: int in values) {
-        ; Parallel fan-out: three enrichments run concurrently
+        // Parallel fan-out: three enrichments run concurrently
         let output = v -> <:(compute_score | categorize | compute_hash) -> format_result
         let name = array.get(names, idx) ?? ""
         println(name + ": " + output)
         idx = idx + 1
     }
 
-    ; Part 2: Coroutine producer with stream consumption
+    // Part 2: Coroutine producer with stream consumption
     println("=== Coroutine Stream ===")
     let source :< produce_values()
     let j: int:mut = 0

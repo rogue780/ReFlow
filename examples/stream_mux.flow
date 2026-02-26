@@ -1,6 +1,6 @@
-; app_stream_mux.flow — Stream multiplexer
-; Exercises: pattern matching for routing, map<string,string>,
-; conditional routing, record types, composition chains
+// app_stream_mux.flow — Stream multiplexer
+// Exercises: pattern matching for routing, map<string,string>,
+// conditional routing, record types, composition chains
 module tests.app_stream_mux
 
 import io (println)
@@ -9,7 +9,7 @@ import array
 import conv
 import map
 
-; --- Types ---
+// --- Types ---
 
 type Record {
     category: string
@@ -17,7 +17,7 @@ type Record {
     data: string
 }
 
-; --- Routing and formatting ---
+// --- Routing and formatting ---
 
 fn:pure route(r: Record): string {
     if (r.category == "error" ) { return "alerts" }
@@ -30,7 +30,7 @@ fn:pure format_record(r: Record): string {
     return "[" + r.category + "/" + conv.to_string(r.priority) + "] " + r.data
 }
 
-; --- Main ---
+// --- Main ---
 
 fn main() {
     let records = [
@@ -42,7 +42,7 @@ fn main() {
         Record { category: "info",   priority: 4, data: "startup complete" }
     ]
 
-    ; Route each record and collect formatted output per destination
+    // Route each record and collect formatted output per destination
     let destinations: map<string, string>:mut = map.new()
     for (r: Record in records) {
         let dest = route(r)
@@ -51,7 +51,7 @@ fn main() {
         destinations = map.set(destinations, dest, existing + line + "\n")
     }
 
-    ; Print each destination's collected output
+    // Print each destination's collected output
     let ks = map.keys(destinations)
     for (key: string in ks) {
         println("=== " + key + " ===")

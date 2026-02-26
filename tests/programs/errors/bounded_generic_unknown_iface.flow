@@ -1,4 +1,4 @@
-; Bound references nonexistent interface
+// Bound references nonexistent interface
 module test
 
 type Foo { x: int }

@@ -7,11 +7,11 @@ fn:pure square(x: int): int = x * x
 fn:pure add_one(x: int): int = x + 1
 
 fn main() {
-    ; Simple chain
+    // Simple chain
     let r1 = 5 -> double -> square
     println(f"5 -> double -> square = {r1}")
 
-    ; Another chain
+    // Another chain
     let r2 = 3 -> add_one -> double
     println(f"3 -> add_one -> double = {r2}")
 }

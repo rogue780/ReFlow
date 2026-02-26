@@ -1,10 +1,10 @@
-; congruence.flow — Structural congruence with the === operator
+// congruence.flow — Structural congruence with the === operator
 module examples.congruence
 
 import io (println)
 
-; Two types with the same field names and types are congruent,
-; even if their type names differ.
+// Two types with the same field names and types are congruent,
+// even if their type names differ.
 
 type LogEntry {
     timestamp: int
@@ -16,7 +16,7 @@ type EventRecord {
     source: string
 }
 
-; A type with different fields is NOT congruent.
+// A type with different fields is NOT congruent.
 
 type MetricPoint {
     timestamp: int
@@ -28,24 +28,24 @@ fn main() {
     let event = EventRecord { timestamp: 200, source: "eu-west-1" }
     let metric = MetricPoint { timestamp: 300, value: 9.81 }
 
-    ; --- Same fields, different names → congruent ---
+    // --- Same fields, different names → congruent ---
     if (log === event) {
         println("LogEntry === EventRecord: true (same fields)")
     } else {
         println("LogEntry === EventRecord: false")
     }
 
-    ; --- Different fields → not congruent ---
+    // --- Different fields → not congruent ---
     if (log === metric) {
         println("LogEntry === MetricPoint: true")
     } else {
         println("LogEntry === MetricPoint: false (different fields)")
     }
 
-    ; --- Using === as a guard ---
-    ; The === operator is most useful as a guard before structural operations.
-    ; Since types are known at compile time, the compiler resolves === to
-    ; a constant true or false — no runtime cost.
+    // --- Using === as a guard ---
+    // The === operator is most useful as a guard before structural operations.
+    // Since types are known at compile time, the compiler resolves === to
+    // a constant true or false — no runtime cost.
     if (log === event) {
         println("Guard passed: types are structurally compatible")
     }

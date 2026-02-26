@@ -5,7 +5,7 @@ import conv
 import io
 
 fn main(): void {
-    ; Generic math functions work with both int and float
+    // Generic math functions work with both int and float
     io.println(conv.to_string(math.abs(-5)))
     io.println(conv.to_string(math.abs(-3.14)))
     io.println(conv.to_string(math.min(10, 3)))

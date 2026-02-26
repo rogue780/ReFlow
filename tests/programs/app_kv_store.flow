@@ -1,8 +1,8 @@
 module tests.app_kv_store
 
-; Self-test for the KV store protocol.
-; Starts a server on a high port, connects a client coroutine,
-; runs a scripted sequence of commands, and prints responses.
+// Self-test for the KV store protocol.
+// Starts a server on a high port, connects a client coroutine,
+// runs a scripted sequence of commands, and prints responses.
 
 import net
 import io
@@ -14,9 +14,9 @@ import time
 import json
 import path
 
-; ===========================================================================
-; Duplicated pure helpers from kvstore.server (for self-contained test)
-; ===========================================================================
+// ===========================================================================
+// Duplicated pure helpers from kvstore.server (for self-contained test)
+// ===========================================================================
 
 fn:pure parse_command(line: string): (string, array<string>) {
     let trimmed = string.trim(line)
@@ -168,12 +168,12 @@ fn dispatch_command(
     }
 }
 
-; ===========================================================================
-; Test client coroutine
-; ===========================================================================
+// ===========================================================================
+// Test client coroutine
+// ===========================================================================
 
 fn test_client(inbox: stream<string>, sock: Socket): stream<string> {
-    ; Small delay to ensure server is ready
+    // Small delay to ensure server is ready
     time.sleep_ms(50)
 
     let commands: array<string>:mut = []
@@ -200,9 +200,9 @@ fn test_client(inbox: stream<string>, sock: Socket): stream<string> {
     let i: int:mut = 0
     while (i < array.size(commands)) {
         if (let some(cmd) = array.get(commands, i)) {
-            ; Send the command
+            // Send the command
             net.write_string(sock, cmd + "\r\n")
-            ; Read the response
+            // Read the response
             time.sleep_ms(50)
             match net.read(sock, 4096) {
                 some(data): {
@@ -220,9 +220,9 @@ fn test_client(inbox: stream<string>, sock: Socket): stream<string> {
     net.close(sock)
 }
 
-; ===========================================================================
-; Server coroutine — handles clients for the test
-; ===========================================================================
+// ===========================================================================
+// Server coroutine — handles clients for the test
+// ===========================================================================
 
 fn test_server(inbox: stream<string>, listener: Socket): stream<string> {
     net.set_timeout(listener, 100)
@@ -234,7 +234,7 @@ fn test_server(inbox: stream<string>, listener: Socket): stream<string> {
     let running: bool:mut = true
 
     while (running) {
-        ; Drain inbox for shutdown signals
+        // Drain inbox for shutdown signals
         for (msg: string in inbox) {
             if (msg == "STOP") {
                 running = false
@@ -243,7 +243,7 @@ fn test_server(inbox: stream<string>, listener: Socket): stream<string> {
 
         if (!running) { return }
 
-        ; Accept new clients
+        // Accept new clients
         if (let some(client) = net.accept(listener)) {
             let addr = net.remote_addr(client) ?? "unknown"
             let fd = net.fd(client)
@@ -254,7 +254,7 @@ fn test_server(inbox: stream<string>, listener: Socket): stream<string> {
             handler_addrs = array.push(handler_addrs, addr)
         }
 
-        ; Poll clients
+        // Poll clients
         let i: int:mut = 0
         while (i < array.size(handlers)) {
             if (let some(handler) = array.get_any(handlers, i)) {
@@ -316,14 +316,14 @@ fn client_handler(inbox: stream<string>, client: Socket, addr: string): stream<s
     }
 }
 
-; ===========================================================================
-; Main — run the test
-; ===========================================================================
+// ===========================================================================
+// Main — run the test
+// ===========================================================================
 
 fn main(): none {
     io.println("=== KV Store Protocol Test ===")
 
-    ; Test parse_command
+    // Test parse_command
     let t1 = parse_command("SET foo bar")
     io.println("parse 'SET foo bar' -> (" + t1.0 + ", " + conv.to_string(array.len_string(t1.1)) + " args)")
 
@@ -333,93 +333,93 @@ fn main(): none {
     let t3 = parse_command("")
     io.println("parse '' -> (" + t3.0 + ", " + conv.to_string(array.len_string(t3.1)) + " args)")
 
-    ; Test ok_response / err_response
+    // Test ok_response / err_response
     io.println("ok_response: " + string.trim(ok_response("PONG")))
     io.println("err_response: " + string.trim(err_response("key not found")))
 
-    ; Test dispatch_command directly (no network needed)
+    // Test dispatch_command directly (no network needed)
     io.println("")
     io.println("=== Dispatch Tests ===")
     let store: map<string, string>:mut = map.new()
 
-    ; PING
+    // PING
     let r1 = dispatch_command("PING", [], store)
     store = r1.0
     io.println("PING -> " + string.trim(r1.1))
 
-    ; SET foo bar
+    // SET foo bar
     let set_args: array<string> = ["foo", "bar"]
     let r2 = dispatch_command("SET", set_args, store)
     store = r2.0
     io.println("SET foo bar -> " + string.trim(r2.1))
 
-    ; SET greeting hello world
+    // SET greeting hello world
     let set_args2: array<string> = ["greeting", "hello", "world"]
     let r3 = dispatch_command("SET", set_args2, store)
     store = r3.0
     io.println("SET greeting hello world -> " + string.trim(r3.1))
 
-    ; GET foo
+    // GET foo
     let r4 = dispatch_command("GET", ["foo"], store)
     store = r4.0
     io.println("GET foo -> " + string.trim(r4.1))
 
-    ; GET greeting (value with space)
+    // GET greeting (value with space)
     let r5 = dispatch_command("GET", ["greeting"], store)
     store = r5.0
     io.println("GET greeting -> " + string.trim(r5.1))
 
-    ; EXISTS foo
+    // EXISTS foo
     let r6 = dispatch_command("EXISTS", ["foo"], store)
     store = r6.0
     io.println("EXISTS foo -> " + string.trim(r6.1))
 
-    ; COUNT
+    // COUNT
     let r7 = dispatch_command("COUNT", [], store)
     store = r7.0
     io.println("COUNT -> " + string.trim(r7.1))
 
-    ; DEL foo
+    // DEL foo
     let r8 = dispatch_command("DEL", ["foo"], store)
     store = r8.0
     io.println("DEL foo -> " + string.trim(r8.1))
 
-    ; GET foo (should be gone)
+    // GET foo (should be gone)
     let r9 = dispatch_command("GET", ["foo"], store)
     store = r9.0
     io.println("GET foo -> " + string.trim(r9.1))
 
-    ; EXISTS foo (should be 0)
+    // EXISTS foo (should be 0)
     let r10 = dispatch_command("EXISTS", ["foo"], store)
     store = r10.0
     io.println("EXISTS foo -> " + string.trim(r10.1))
 
-    ; COUNT (should be 1 — greeting remains)
+    // COUNT (should be 1 — greeting remains)
     let r11 = dispatch_command("COUNT", [], store)
     store = r11.0
     io.println("COUNT -> " + string.trim(r11.1))
 
-    ; DEL nonexistent
+    // DEL nonexistent
     let r12 = dispatch_command("DEL", ["nonexistent"], store)
     store = r12.0
     io.println("DEL nonexistent -> " + string.trim(r12.1))
 
-    ; FLUSHALL
+    // FLUSHALL
     let r13 = dispatch_command("FLUSHALL", [], store)
     store = r13.0
     io.println("FLUSHALL -> " + string.trim(r13.1))
 
-    ; COUNT after flush
+    // COUNT after flush
     let r14 = dispatch_command("COUNT", [], store)
     store = r14.0
     io.println("COUNT -> " + string.trim(r14.1))
 
-    ; Unknown command
+    // Unknown command
     let r15 = dispatch_command("BADCMD", [], store)
     store = r15.0
     io.println("BADCMD -> " + string.trim(r15.1))
 
-    ; Error cases
+    // Error cases
     let r16 = dispatch_command("GET", [], store)
     store = r16.0
     io.println("GET (no args) -> " + string.trim(r16.1))
@@ -428,7 +428,7 @@ fn main(): none {
     store = r17.0
     io.println("SET (one arg) -> " + string.trim(r17.1))
 
-    ; Test serialization round-trip
+    // Test serialization round-trip
     io.println("")
     io.println("=== Serialization Tests ===")
     let test_store: map<string, string>:mut = map.new()
@@ -452,7 +452,7 @@ fn main(): none {
         }
     }
 
-    ; Test bad deserialization
+    // Test bad deserialization
     match deserialize_store("not json at all") {
         some(_): { io.println("should not parse") }
         none: { io.println("bad json rejected") }

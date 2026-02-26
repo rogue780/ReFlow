@@ -1,11 +1,11 @@
-; string_builder_demo.flow — Efficient string construction
+// string_builder_demo.flow — Efficient string construction
 module examples.string_builder_demo
 
 import io (println)
 import string_builder (new, append, append_int, append_char, build)
 
 fn main() {
-    ; Build an HTML table row
+    // Build an HTML table row
     let sb = new()
     append(sb, "<tr>")
     append(sb, "<td>Alice</td>")
@@ -16,7 +16,7 @@ fn main() {
     let row = build(sb)
     println(row)
 
-    ; Build a comma-separated list
+    // Build a comma-separated list
     let list_sb = new()
     let nums = [10, 20, 30, 40, 50]
     let i: int:mut = 0
@@ -30,7 +30,7 @@ fn main() {
     let csv = build(list_sb)
     println(f"Numbers: {csv}")
 
-    ; Build a pattern with chars
+    // Build a pattern with chars
     let pat_sb = new()
     let j: int:mut = 0
     while (j < 5) {

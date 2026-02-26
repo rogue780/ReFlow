@@ -383,23 +383,23 @@ class CommentSpace(LintRule):
         for tok in ctx.tokens:
             if tok.type != TokenType.COMMENT:
                 continue
-            # Token value starts with ';'
+            # Token value starts with '//'
             text = tok.value
-            if len(text) <= 1:
-                # Just ';' alone — no content, no check needed
+            if len(text) <= 2:
+                # Just '//' alone — no content, no check needed
                 continue
-            second = text[1]
-            # Exempt decorator comments: ;=== ;--- ;;;
-            if second in ('=', '-', ';'):
+            third = text[2]
+            # Exempt decorator comments: //=== //--- ///
+            if third in ('=', '-', '/'):
                 continue
-            if second != ' ':
-                offset = _offset_of(ctx, tok.line, tok.col + 1)
+            if third != ' ':
+                offset = _offset_of(ctx, tok.line, tok.col + 2)
                 diags.append(LintDiagnostic(
                     rule_id=self.rule_id,
-                    message="comment should have space after ';'",
+                    message="comment should have space after '//'",
                     file=ctx.filename,
                     line=tok.line,
-                    col=tok.col + 1,
+                    col=tok.col + 2,
                     severity=LintSeverity.WARNING,
                     fixable=True,
                     fix_start=offset,
@@ -409,30 +409,25 @@ class CommentSpace(LintRule):
         return diags
 
 
-class NoCComments(LintRule):
+class NoSemicolonComments(LintRule):
     rule_id = "FL-C002"
-    name = "no-c-comments"
+    name = "no-semicolon-comments"
 
     def check(self, ctx: LintContext) -> list[LintDiagnostic]:
         diags: list[LintDiagnostic] = []
         for i, raw_line in enumerate(ctx.source_lines):
             stripped = raw_line.lstrip()
-            if stripped.startswith("//"):
+            if stripped.startswith(";"):
                 line_num = i + 1
                 col = len(raw_line) - len(stripped) + 1
-                offset = ctx.line_offsets[line_num] + (col - 1)
-                end_offset = offset + 2
                 diags.append(LintDiagnostic(
                     rule_id=self.rule_id,
-                    message="C-style comment '//' — use ';' for Flow comments",
+                    message="semicolon comment ';' — use '//' for Flow comments",
                     file=ctx.filename,
                     line=line_num,
                     col=col,
                     severity=LintSeverity.WARNING,
-                    fixable=True,
-                    fix_start=offset,
-                    fix_end=end_offset,
-                    fix_replacement=";",
+                    fixable=False,
                 ))
         return diags
 
@@ -546,6 +541,56 @@ class FileEndsNewline(LintRule):
         return diags
 
 
+class NoSpaceAroundColon(LintRule):
+    rule_id = "FL-S005"
+    name = "no-space-around-colon"
+
+    def check(self, ctx: LintContext) -> list[LintDiagnostic]:
+        diags: list[LintDiagnostic] = []
+        for tok in ctx.tokens:
+            if tok.type != TokenType.COLON:
+                continue
+            colon_offset = _offset_of(ctx, tok.line, tok.col)
+
+            # Check for space before colon
+            if colon_offset > 0 and ctx.source[colon_offset - 1] in (' ', '\t'):
+                ws_start = colon_offset - 1
+                while ws_start > 0 and ctx.source[ws_start - 1] in (' ', '\t'):
+                    ws_start -= 1
+                diags.append(LintDiagnostic(
+                    rule_id=self.rule_id,
+                    message="no space before ':'",
+                    file=ctx.filename,
+                    line=tok.line,
+                    col=tok.col - (colon_offset - ws_start),
+                    severity=LintSeverity.WARNING,
+                    fixable=True,
+                    fix_start=ws_start,
+                    fix_end=colon_offset,
+                    fix_replacement="",
+                ))
+
+            # Check for space after colon
+            after = colon_offset + 1
+            if after < len(ctx.source) and ctx.source[after] in (' ', '\t'):
+                ws_end = after + 1
+                while ws_end < len(ctx.source) and ctx.source[ws_end] in (' ', '\t'):
+                    ws_end += 1
+                diags.append(LintDiagnostic(
+                    rule_id=self.rule_id,
+                    message="no space after ':'",
+                    file=ctx.filename,
+                    line=tok.line,
+                    col=tok.col + 1,
+                    severity=LintSeverity.WARNING,
+                    fixable=True,
+                    fix_start=after,
+                    fix_end=ws_end,
+                    fix_replacement="",
+                ))
+        return diags
+
+
 class BraceSameLine(LintRule):
     rule_id = "FL-S001"
     name = "brace-same-line"
@@ -627,7 +672,8 @@ ALL_RULES: list[LintRule] = [
     ModuleSnakeCase(),
     AliasPascalCase(),
     CommentSpace(),
-    NoCComments(),
+    NoSemicolonComments(),
+    NoSpaceAroundColon(),
     BraceSameLine(),
     IndentFourSpaces(),
     NoTrailingWhitespace(),

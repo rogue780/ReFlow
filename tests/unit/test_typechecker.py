@@ -958,31 +958,6 @@ fn main(): none {
         self.assertIn("not yet implemented", ctx.exception.message)
 
 
-class TestSnapshotExpr(unittest.TestCase):
-    """Snapshot expression type checking."""
-
-    def test_snapshot_preserves_type(self):
-        """snapshot of a static int type-checks as int."""
-        result = check("""type Config {
-    static counter: int = 0
-}
-fn main(): none {
-    let snap = snapshot(Config.counter)
-}""")
-        self.assertIsNotNone(result)
-
-    def test_pure_fn_with_snapshot_error(self):
-        """snapshot in fn:pure raises TypeError."""
-        with self.assertRaises(FlowTypeError) as ctx:
-            check("""type Config {
-    static counter: int = 0
-}
-fn:pure bad(): int {
-    return snapshot(Config.counter)
-}""")
-        self.assertIn("cannot use snapshot()", ctx.exception.message)
-
-
 class TestCongruenceOperator(unittest.TestCase):
     """Positive tests for the === congruence operator."""
 

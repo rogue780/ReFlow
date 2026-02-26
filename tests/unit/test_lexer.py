@@ -81,7 +81,6 @@ class TestKeywords(unittest.TestCase):
         ("err",         TokenType.ERR),
         ("coerce",      TokenType.COERCE),
         ("cast",        TokenType.CAST),
-        ("snapshot",    TokenType.SNAPSHOT),
         ("throw",       TokenType.THROW),
         ("true",        TokenType.BOOL_LIT),
         ("false",       TokenType.BOOL_LIT),
@@ -210,8 +209,8 @@ class TestKeywords(unittest.TestCase):
     def test_cast(self) -> None:
         self.assertEqual(types("cast"), [TokenType.CAST])
 
-    def test_snapshot(self) -> None:
-        self.assertEqual(types("snapshot"), [TokenType.SNAPSHOT])
+    def test_snapshot_is_now_ident(self) -> None:
+        self.assertEqual(types("snapshot"), [TokenType.IDENT])
 
     def test_throw(self) -> None:
         self.assertEqual(types("throw"), [TokenType.THROW])
@@ -343,8 +342,8 @@ class TestMultiCharOperators(unittest.TestCase):
     def test_double_star(self) -> None:
         self._single("**", TokenType.DOUBLE_STAR)
 
-    def test_double_slash(self) -> None:
-        self._single("//", TokenType.DOUBLE_SLASH)
+    def test_floor_div(self) -> None:
+        self._single("</", TokenType.FLOOR_DIV)
 
     def test_spread(self) -> None:
         self._single("..", TokenType.SPREAD)
@@ -470,11 +469,17 @@ class TestOperatorMaximalMunch(unittest.TestCase):
         self.assertEqual(len(toks), 1)
         self.assertEqual(toks[0].type, TokenType.DOUBLE_STAR)
 
-    def test_double_slash_not_two_slashes(self) -> None:
-        # // is integer division, NOT a comment when no preceding ;
+    def test_double_slash_is_comment(self) -> None:
+        # // is now a comment, not an operator
         toks = non_eof("//")
         self.assertEqual(len(toks), 1)
-        self.assertEqual(toks[0].type, TokenType.DOUBLE_SLASH)
+        self.assertEqual(toks[0].type, TokenType.COMMENT)
+
+    def test_floor_div_not_lt_then_slash(self) -> None:
+        # </ is floor division, a single token
+        toks = non_eof("</")
+        self.assertEqual(len(toks), 1)
+        self.assertEqual(toks[0].type, TokenType.FLOOR_DIV)
 
     def test_spread_not_two_dots(self) -> None:
         toks = non_eof("..")
@@ -890,21 +895,21 @@ class TestCharLiterals(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class TestComments(unittest.TestCase):
-    """Semicolon starts a comment running to end of line."""
+    """Double-slash starts a comment running to end of line."""
 
     def test_standalone_comment(self) -> None:
-        toks = non_eof("; this is a comment")
+        toks = non_eof("// this is a comment")
         self.assertEqual(len(toks), 1)
         self.assertEqual(toks[0].type, TokenType.COMMENT)
 
     def test_comment_value_contains_text(self) -> None:
-        toks = non_eof("; hello world")
+        toks = non_eof("// hello world")
         self.assertEqual(toks[0].type, TokenType.COMMENT)
-        # Value should include everything after the semicolon
+        # Value should include everything after the //
         self.assertIn("hello world", toks[0].value)
 
     def test_comment_after_code(self) -> None:
-        toks = non_eof("let x ; this is a comment")
+        toks = non_eof("let x // this is a comment")
         ttypes = [t.type for t in toks]
         self.assertIn(TokenType.LET, ttypes)
         self.assertIn(TokenType.IDENT, ttypes)
@@ -917,7 +922,7 @@ class TestComments(unittest.TestCase):
         self.assertEqual(non_eof_toks[2].type, TokenType.COMMENT)
 
     def test_comment_then_next_line_code(self) -> None:
-        src = "; first line comment\nlet y"
+        src = "// first line comment\nlet y"
         toks = non_eof(src)
         ttypes = [t.type for t in toks]
         self.assertIn(TokenType.COMMENT, ttypes)
@@ -925,13 +930,13 @@ class TestComments(unittest.TestCase):
         self.assertIn(TokenType.IDENT, ttypes)
 
     def test_empty_comment(self) -> None:
-        toks = non_eof(";")
+        toks = non_eof("//")
         self.assertEqual(len(toks), 1)
         self.assertEqual(toks[0].type, TokenType.COMMENT)
 
     def test_decorative_comment(self) -> None:
-        # ;===================
-        toks = non_eof(";===================")
+        # //===================
+        toks = non_eof("//===================")
         self.assertEqual(len(toks), 1)
         self.assertEqual(toks[0].type, TokenType.COMMENT)
 
@@ -1343,7 +1348,7 @@ class TestEdgeCases(unittest.TestCase):
         self.assertEqual(toks[0].type, TokenType.EOF)
 
     def test_only_comment_gives_comment_and_eof(self) -> None:
-        toks = lex("; just a comment")
+        toks = lex("// just a comment")
         non_eof_toks = [t for t in toks if t.type != TokenType.EOF]
         self.assertEqual(len(non_eof_toks), 1)
         self.assertEqual(non_eof_toks[0].type, TokenType.COMMENT)

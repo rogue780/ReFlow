@@ -1,4 +1,4 @@
-; stdlib_generic_map.flow — Tests generic map functions
+// stdlib_generic_map.flow — Tests generic map functions
 module tests.stdlib_generic_map
 
 import io (println)
@@ -7,7 +7,7 @@ import array
 import conv
 
 fn main() {
-    ; Test map<string, string> — same as before but with generic signatures
+    // Test map<string, string> — same as before but with generic signatures
     let m: map<string, string>:mut = map.new()
     m = map.set(m, "greeting", "hello")
     m = map.set(m, "farewell", "goodbye")
@@ -25,17 +25,17 @@ fn main() {
         none: { println("farewell=none") }
     }
 
-    ; Keys and values
+    // Keys and values
     let ks = map.keys(m)
     println(f"keys count={array.len_string(ks)}")
 
     let vs = map.values(m)
     println(f"values count={array.len_string(vs)}")
 
-    ; Remove
+    // Remove
     m = map.remove(m, "greeting")
     println(f"after remove has greeting={map.has(m, "greeting")}")
 
-    ; Test len
+    // Test len
     println(f"len={map.len(m)}")
 }

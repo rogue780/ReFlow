@@ -8,7 +8,7 @@ import conv
 import file
 import path
 
-; --- Configuration ---
+// --- Configuration ---
 
 type SearchConfig {
     pattern: string,
@@ -24,7 +24,7 @@ type SearchConfig {
     show_stats: bool
 }
 
-; --- Matching ---
+// --- Matching ---
 
 fn:pure matches_line(line: string, pattern: string, case_i: bool, invert: bool): bool {
     let haystack: string:mut = line
@@ -47,7 +47,7 @@ fn:pure should_skip_file(filepath: string, ext_filter: string): bool {
     return !string.ends_with(filepath, ext_filter)
 }
 
-; --- File collection ---
+// --- File collection ---
 
 fn walk_dir(dir: string, ext_filter: string): array<string> {
     let result: array<string>:mut = []
@@ -88,7 +88,7 @@ fn collect_files(target: string, ext_filter: string): array<string> {
     return []
 }
 
-; --- File reading ---
+// --- File reading ---
 
 fn read_lines(filepath: string): array<string> {
     let lines: array<string>:mut = []
@@ -113,7 +113,7 @@ fn read_lines(filepath: string): array<string> {
     return lines
 }
 
-; --- Output helpers ---
+// --- Output helpers ---
 
 fn print_line(filepath: string, line_num: int, line: string, multi_file: bool, show_line_nums: bool, sep: string): none {
     let prefix: string:mut = ""
@@ -126,12 +126,12 @@ fn print_line(filepath: string, line_num: int, line: string, multi_file: bool, s
     io.println(prefix + line)
 }
 
-; --- Search ---
+// --- Search ---
 
 fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
     let has_context = config.before_context > 0 || config.after_context > 0
 
-    ; For files-only or count-only without context, use streaming read
+    // For files-only or count-only without context, use streaming read
     if (config.files_only && !has_context) {
         let f_opt = file.open_read(filepath)
         match f_opt {
@@ -159,14 +159,14 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
         }
     }
 
-    ; Read all lines for context support
+    // Read all lines for context support
     let lines = read_lines(filepath)
     let num_lines = array.len_string(lines)
     if (num_lines == 0) {
         return 0
     }
 
-    ; Find all matching line indices
+    // Find all matching line indices
     let match_indices: array<int>:mut = []
     let idx: int:mut = 0
     while (idx < num_lines) {
@@ -179,7 +179,7 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
 
     let match_count = array.len(match_indices)
 
-    ; Files-only mode
+    // Files-only mode
     if (config.files_only) {
         if (match_count > 0) {
             io.println(filepath)
@@ -188,7 +188,7 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
         return 0
     }
 
-    ; Count-only mode
+    // Count-only mode
     if (config.count_only) {
         if (multi_file) {
             io.println(filepath + ":" + conv.to_string(match_count))
@@ -198,9 +198,9 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
         return match_count
     }
 
-    ; Print matches with context
+    // Print matches with context
     if (!has_context) {
-        ; No context — simple output
+        // No context — simple output
         let mi: int:mut = 0
         while (mi < match_count) {
             match array.get_int(match_indices, mi) {
@@ -213,8 +213,8 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
             mi = mi + 1
         }
     } else {
-        ; Context mode — compute ranges and merge overlapping ones
-        ; printed_up_to tracks which lines have been printed to avoid duplicates
+        // Context mode — compute ranges and merge overlapping ones
+        // printed_up_to tracks which lines have been printed to avoid duplicates
         let printed_up_to: int:mut = -1
         let first_group: bool:mut = true
 
@@ -231,7 +231,7 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
                         range_end = num_lines - 1
                     }
 
-                    ; Print group separator if there's a gap
+                    // Print group separator if there's a gap
                     if (!first_group && range_start > printed_up_to + 1) {
                         if (multi_file) {
                             io.println(filepath + "---")
@@ -241,21 +241,21 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
                     }
                     first_group = false
 
-                    ; Start from after what we already printed
+                    // Start from after what we already printed
                     let start: int:mut = range_start
                     if (start <= printed_up_to) {
                         start = printed_up_to + 1
                     }
 
-                    ; Print lines in range
+                    // Print lines in range
                     let li: int:mut = start
                     while (li <= range_end) {
                         let line = array.get(lines, li) ?? ""
                         if (li == line_idx) {
-                            ; Match line — use : separator
+                            // Match line — use : separator
                             print_line(filepath, li + 1, line, multi_file, config.show_line_nums, ":")
                         } else {
-                            ; Context line — use - separator
+                            // Context line — use - separator
                             print_line(filepath, li + 1, line, multi_file, config.show_line_nums, "-")
                         }
                         li = li + 1
@@ -274,7 +274,7 @@ fn search_file(filepath: string, config: SearchConfig, multi_file: bool): int {
     return match_count
 }
 
-; --- Argument parsing ---
+// --- Argument parsing ---
 
 fn parse_args(): SearchConfig {
     let args = sys.args()
@@ -376,7 +376,7 @@ fn parse_args(): SearchConfig {
     }
 }
 
-; --- Entry point ---
+// --- Entry point ---
 
 fn main(): none {
     let config = parse_args()

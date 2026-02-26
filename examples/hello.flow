@@ -1,4 +1,4 @@
-; hello.flow — Hello World example
+// hello.flow — Hello World example
 module examples.hello
 
 import io (println)

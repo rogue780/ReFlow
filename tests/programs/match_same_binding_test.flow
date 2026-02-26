@@ -8,7 +8,7 @@ type Shape =
     | Square(side: float)
     | Rect(width: float, height: float)
 
-; Same binding name "val" across all match arms
+// Same binding name "val" across all match arms
 fn:pure describe(s: Shape): string {
     match s {
         Circle(val): { return f"circle r={val}" }
@@ -17,7 +17,7 @@ fn:pure describe(s: Shape): string {
     }
 }
 
-; Same binding name "x" across all match arms
+// Same binding name "x" across all match arms
 fn:pure area(s: Shape): float {
     match s {
         Circle(x): { return 3.14 * x * x }

@@ -1,4 +1,4 @@
-; arrays_tuples.flow — Array literals, iteration, tuple literals, matching
+// arrays_tuples.flow — Array literals, iteration, tuple literals, matching
 module examples.arrays_tuples
 
 import io (println)
@@ -20,45 +20,45 @@ fn swap(t: (int, int)): (int, int) {
 }
 
 fn main() {
-    ; Array literal
+    // Array literal
     let numbers = [10, 20, 30, 40, 50]
     println(f"sum = {sum_array(numbers)}")
 
-    ; For loop over array
+    // For loop over array
     for (n: int in numbers) {
         println(f"  item: {n}")
     }
 
-    ; Tuple literal and field access
+    // Tuple literal and field access
     let pair = (42, "answer")
     println(f"pair.0 = {pair.0}")
     println(f"pair.1 = {pair.1}")
 
-    ; Tuple with more elements
+    // Tuple with more elements
     let triple = (1, 2, 3)
     let tsum = triple.0 + triple.1 + triple.2
     println(f"triple sum = {tsum}")
 
-    ; --- Tuple pattern matching ---
-    ; Destructure with bind patterns
+    // --- Tuple pattern matching ---
+    // Destructure with bind patterns
     let point = (3, 4)
     match point {
         (x, y): println(f"point = ({x}, {y})")
     }
 
-    ; Wildcard to ignore elements
+    // Wildcard to ignore elements
     let entry = (99, "hello")
     match entry {
         (id, _): println(f"id = {id}")
     }
 
-    ; Swap via tuple match
+    // Swap via tuple match
     let swapped = swap((1, 2))
     match swapped {
         (a, b): println(f"swap(1,2) = ({a}, {b})")
     }
 
-    ; Match expression: destructure and compute
+    // Match expression: destructure and compute
     let coords = (5, 10)
     let total = match coords {
         (cx, cy): cx + cy

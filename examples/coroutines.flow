@@ -1,10 +1,10 @@
-; coroutines.flow — Threaded producers with channel-based communication
+// coroutines.flow — Threaded producers with channel-based communication
 module examples.coroutines
 import io (println)
 
-; === Basic Coroutine ===
-; A coroutine is a stream function spawned on a separate thread with :<
-; Yielded values are pushed into a bounded internal channel (FIFO)
+// === Basic Coroutine ===
+// A coroutine is a stream function spawned on a separate thread with :<
+// Yielded values are pushed into a bounded internal channel (FIFO)
 
 fn counter(start: int): stream<int> {
     let i: int:mut = start
@@ -25,8 +25,8 @@ fn fibonacci(): stream<int> {
     }
 }
 
-; === Bounded producer ===
-; Produces exactly N values, then the stream ends naturally
+// === Bounded producer ===
+// Produces exactly N values, then the stream ends naturally
 
 fn range(n: int): stream<int> {
     let i: int:mut = 0
@@ -36,8 +36,8 @@ fn range(n: int): stream<int> {
     }
 }
 
-; === Custom capacity ===
-; [N] on the return type controls channel buffer size (default: 64)
+// === Custom capacity ===
+// [N] on the return type controls channel buffer size (default: 64)
 fn range_tight(n: int): stream<int>[1] {
     let i: int:mut = 0
     while (i < n) {
@@ -55,8 +55,8 @@ fn range_buffered(n: int): stream<int>[128] {
 }
 
 fn main() {
-    ; --- Basic coroutine usage ---
-    ; :< spawns counter() on a new thread, returns immediately
+    // --- Basic coroutine usage ---
+    // :< spawns counter() on a new thread, returns immediately
     println("=== Counter ===")
     let gen :< counter(10)
     match gen.next() {
@@ -69,7 +69,7 @@ fn main() {
     }
     println(f"done? {gen.done()}")
 
-    ; --- Fibonacci coroutine ---
+    // --- Fibonacci coroutine ---
     println("=== Fibonacci ===")
     let fib :< fibonacci()
     let i: int:mut = 0
@@ -81,9 +81,9 @@ fn main() {
         i = i + 1
     }
 
-    ; --- Configurable buffer capacity ---
-    ; [N] on the function's return type controls channel buffer size
-    ; Default is 64; [1] = tightly synchronized
+    // --- Configurable buffer capacity ---
+    // [N] on the function's return type controls channel buffer size
+    // Default is 64; [1] = tightly synchronized
     println("=== Capacity ===")
     let tight :< range_tight(5)
     while (!tight.done()) {
@@ -101,8 +101,8 @@ fn main() {
         }
     }
 
-    ; --- Multiple independent coroutines ---
-    ; Each runs on its own thread; immutable data shared via refcount
+    // --- Multiple independent coroutines ---
+    // Each runs on its own thread; immutable data shared via refcount
     println("=== Multiple coroutines ===")
     let a :< counter(0)
     let b :< counter(100)
@@ -115,8 +115,8 @@ fn main() {
         none: { println("done") }
     }
 
-    ; --- Concurrent producers sharing immutable data ---
-    ; Immutable values are safely shared across threads without copying
+    // --- Concurrent producers sharing immutable data ---
+    // Immutable values are safely shared across threads without copying
     println("=== Shared immutable config ===")
     let prefix = "item"
     let c1 :< label_range(prefix, 0, 3)
@@ -135,7 +135,7 @@ fn main() {
     }
 }
 
-; Helper: produces labeled values
+// Helper: produces labeled values
 fn label_range(prefix: string, start: int, count: int): stream<string> {
     let i: int:mut = 0
     while (i < count) {

@@ -1,33 +1,33 @@
 module kvstore.server
 
-; server.flow — In-memory key-value store with TCP text protocol
-;
-; Usage: server [port]
-;   port — TCP port to listen on (default: 6379)
-;
-; Connect with: nc localhost <port>
-;
-; Protocol:
-;   SET key value     → +OK
-;   GET key           → +value   or  -ERR key not found
-;   DEL key           → +1       or  +0
-;   KEYS              → +key1 key2 key3 ...
-;   COUNT             → +N
-;   EXISTS key        → +1       or  +0
-;   FLUSHALL          → +OK
-;   SAVE              → +OK      (snapshot to disk)
-;   LOAD              → +OK (N keys loaded)
-;   PING              → +PONG
-;   QUIT              → (closes connection)
-;
-; Architecture:
-;   - Main thread runs a non-blocking event loop
-;   - Listener socket has a short timeout for non-blocking accept
-;   - Each client gets a receivable coroutine (inbox: stream<string>)
-;   - Client coroutines yield "addr|line" messages to the main thread
-;   - Main thread polls each client with .poll() (non-blocking)
-;   - Dispatch is single-writer: store is owned by main(), all mutations here
-;   - Responses sent via net.write_to_fd
+// server.flow — In-memory key-value store with TCP text protocol
+//
+// Usage: server [port]
+//   port — TCP port to listen on (default: 6379)
+//
+// Connect with: nc localhost <port>
+//
+// Protocol:
+//   SET key value     → +OK
+//   GET key           → +value   or  -ERR key not found
+//   DEL key           → +1       or  +0
+//   KEYS              → +key1 key2 key3 ...
+//   COUNT             → +N
+//   EXISTS key        → +1       or  +0
+//   FLUSHALL          → +OK
+//   SAVE              → +OK      (snapshot to disk)
+//   LOAD              → +OK (N keys loaded)
+//   PING              → +PONG
+//   QUIT              → (closes connection)
+//
+// Architecture:
+//   - Main thread runs a non-blocking event loop
+//   - Listener socket has a short timeout for non-blocking accept
+//   - Each client gets a receivable coroutine (inbox: stream<string>)
+//   - Client coroutines yield "addr|line" messages to the main thread
+//   - Main thread polls each client with .poll() (non-blocking)
+//   - Dispatch is single-writer: store is owned by main(), all mutations here
+//   - Responses sent via net.write_to_fd
 
 import net
 import io
@@ -40,11 +40,11 @@ import time
 import json
 import path
 
-; ===========================================================================
-; Pure helpers
-; ===========================================================================
+// ===========================================================================
+// Pure helpers
+// ===========================================================================
 
-; Format a timestamp prefix for server console logging.
+// Format a timestamp prefix for server console logging.
 fn timestamp(): string {
     let dt = time.datetime_now()
     let h = conv.to_string(time.hour(dt))
@@ -60,23 +60,23 @@ fn log(msg: string): none {
     io.println(timestamp() + " " + msg)
 }
 
-; Parse a command line into (COMMAND, [arg1, arg2, ...]).
-; Command is uppercased. Leading/trailing whitespace is trimmed.
+// Parse a command line into (COMMAND, [arg1, arg2, ...]).
+// Command is uppercased. Leading/trailing whitespace is trimmed.
 fn:pure parse_command(line: string): (string, array<string>) {
     let trimmed = string.trim(line)
     if (string.len(trimmed) == 0) {
         return ("", [])
     }
     let parts = string.split(trimmed, " ")
-    ; First token is the command, uppercased
+    // First token is the command, uppercased
     if (let some(cmd_raw) = array.get(parts, 0)) {
         let cmd = string.to_upper(cmd_raw)
-        ; Remaining tokens are args
+        // Remaining tokens are args
         let args: array<string>:mut = []
         let i: int:mut = 1
         while (i < array.len_string(parts)) {
             if (let some(part) = array.get(parts, i)) {
-                ; Skip empty parts from multiple spaces
+                // Skip empty parts from multiple spaces
                 if (string.len(part) > 0) {
                     args = array.push(args, part)
                 }
@@ -88,21 +88,21 @@ fn:pure parse_command(line: string): (string, array<string>) {
     return ("", [])
 }
 
-; Format a success response.
+// Format a success response.
 fn:pure ok_response(msg: string): string {
     return "+" + msg + "\r\n"
 }
 
-; Format an error response.
+// Format an error response.
 fn:pure err_response(msg: string): string {
     return "-ERR " + msg + "\r\n"
 }
 
-; ===========================================================================
-; Persistence — serialize / deserialize
-; ===========================================================================
+// ===========================================================================
+// Persistence — serialize / deserialize
+// ===========================================================================
 
-; Serialize the store to a JSON string.
+// Serialize the store to a JSON string.
 fn serialize_store(store: map<string, string>): string {
     let keys = map.keys(store)
     let json_map: map<string, JsonValue>:mut = map.new()
@@ -119,7 +119,7 @@ fn serialize_store(store: map<string, string>): string {
     return json.to_string_pretty(obj, 2)
 }
 
-; Deserialize a JSON string back to a store map.
+// Deserialize a JSON string back to a store map.
 fn deserialize_store(data: string): map<string, string>? {
     if (let some(obj) = json.parse(data)) {
         if (let some(keys) = json.keys(obj)) {
@@ -141,11 +141,11 @@ fn deserialize_store(data: string): map<string, string>? {
     return none
 }
 
-; ===========================================================================
-; Command dispatch — processes a parsed command against the store
-; ===========================================================================
+// ===========================================================================
+// Command dispatch — processes a parsed command against the store
+// ===========================================================================
 
-; Returns (updated_store, response_string).
+// Returns (updated_store, response_string).
 fn dispatch_command(
     cmd: string,
     args: array<string>,
@@ -160,8 +160,8 @@ fn dispatch_command(
                 return (store, err_response("SET requires key and value"))
             }
             let key = array.get(args, 0) ?? ""
-            ; Value is everything after the key — rejoin args[1..] to support
-            ; values with spaces.
+            // Value is everything after the key — rejoin args[1..] to support
+            // values with spaces.
             let val_parts: array<string>:mut = []
             let i: int:mut = 1
             while (i < array.len_string(args)) {
@@ -251,21 +251,21 @@ fn dispatch_command(
     }
 }
 
-; ===========================================================================
-; Client coroutine — runs on its own thread
-; ===========================================================================
+// ===========================================================================
+// Client coroutine — runs on its own thread
+// ===========================================================================
 
-; A receivable coroutine that reads lines from the client socket.
-; Yields "addr|line" strings for the main thread to parse and dispatch.
+// A receivable coroutine that reads lines from the client socket.
+// Yields "addr|line" strings for the main thread to parse and dispatch.
 fn client_handler(inbox: stream<string>, client: Socket, addr: string): stream<string> {
     net.set_timeout(client, 100)
     let alive: bool:mut = true
 
     while (alive) {
-        ; Drain inbox (not used for responses — responses go via fd)
+        // Drain inbox (not used for responses — responses go via fd)
         for (msg: string in inbox) {}
 
-        ; Try to read from the socket
+        // Try to read from the socket
         match net.read(client, 4096) {
             some(data): {
                 let raw = string.trim(string.from_bytes(data))
@@ -274,16 +274,16 @@ fn client_handler(inbox: stream<string>, client: Socket, addr: string): stream<s
                 }
             }
             none: {
-                ; Timeout or connection close — keep looping.
-                ; A real disconnect will be caught when write fails.
+                // Timeout or connection close — keep looping.
+                // A real disconnect will be caught when write fails.
             }
         }
     }
 }
 
-; ===========================================================================
-; Main thread — non-blocking event loop
-; ===========================================================================
+// ===========================================================================
+// Main thread — non-blocking event loop
+// ===========================================================================
 
 fn main(): none {
     let argv = sys.args()
@@ -300,7 +300,7 @@ fn main(): none {
 
     io.println("Flow KV Store v1.0")
 
-    ; Auto-load persisted data on startup
+    // Auto-load persisted data on startup
     let store: map<string, string>:mut = map.new()
     if (path.exists("kvstore.dat")) {
         if (let some(data) = io.read_file("kvstore.dat")) {
@@ -315,17 +315,17 @@ fn main(): none {
         io.println("Listening on port " + conv.to_string(port))
         io.println("Connect with: nc localhost " + conv.to_string(port))
 
-        ; Set short timeout on listener for non-blocking accept
+        // Set short timeout on listener for non-blocking accept
         net.set_timeout(listener, 50)
 
-        ; Client state
+        // Client state
         let client_fds: map<string, string>:mut = map.new()
         let handlers: array<Coroutine<string>>:mut = []
         let handler_addrs: array<string>:mut = []
 
-        ; Main event loop
+        // Main event loop
         while (true) {
-            ; 1. Non-blocking accept
+            // 1. Non-blocking accept
             if (let some(client) = net.accept(listener)) {
                 let addr = net.remote_addr(client) ?? "unknown"
                 let fd = net.fd(client)
@@ -333,18 +333,18 @@ fn main(): none {
 
                 log("[connect] " + addr)
 
-                ; Spawn client coroutine
+                // Spawn client coroutine
                 let handler :< client_handler(client, addr)
                 handlers = array.push(handlers, handler)
                 handler_addrs = array.push(handler_addrs, addr)
             }
 
-            ; 2. Poll each client handler (non-blocking)
+            // 2. Poll each client handler (non-blocking)
             let i: int:mut = 0
             while (i < array.size(handlers)) {
                 if (let some(handler) = array.get_any(handlers, i)) {
                     if (let some(raw_msg) = handler.poll()) {
-                        ; Parse "addr|message" format
+                        // Parse "addr|message" format
                         if (let some(pipe_idx) = string.index_of(raw_msg, "|")) {
                             let sender_addr = string.substring(raw_msg, 0, pipe_idx)
                             let line = string.substring(raw_msg, pipe_idx + 1, string.len(raw_msg))
@@ -353,9 +353,9 @@ fn main(): none {
                             let cmd = parsed.0
                             let args = parsed.1
 
-                            ; Handle QUIT specially
+                            // Handle QUIT specially
                             if (cmd == "QUIT") {
-                                ; Send goodbye and clean up
+                                // Send goodbye and clean up
                                 if (let some(fs) = map.get(client_fds, sender_addr)) {
                                     if (let some(f) = conv.string_to_int(fs)) {
                                         net.write_to_fd(f, ok_response("Goodbye"))
@@ -369,12 +369,12 @@ fn main(): none {
                                     store = result.0
                                     let response = result.1
 
-                                    ; Send response via fd
+                                    // Send response via fd
                                     if (let some(fs) = map.get(client_fds, sender_addr)) {
                                         if (let some(f) = conv.string_to_int(fs)) {
                                             let sent = net.write_to_fd(f, response)
                                             if (!sent) {
-                                                ; Dead client
+                                                // Dead client
                                                 client_fds = map.remove(client_fds, sender_addr)
                                                 log("[disconnect] " + sender_addr + " (write failed)")
                                             }
@@ -384,7 +384,7 @@ fn main(): none {
                             }
                         }
                     } else {
-                        ; Nothing ready — check if coroutine is done
+                        // Nothing ready — check if coroutine is done
                         if (handler.done()) {
                             if (let some(addr) = array.get_any(handler_addrs, i)) {
                                 client_fds = map.remove(client_fds, addr)
@@ -396,7 +396,7 @@ fn main(): none {
                 i = i + 1
             }
 
-            ; 3. Small sleep to prevent busy-wait
+            // 3. Small sleep to prevent busy-wait
             time.sleep_ms(10)
         }
 

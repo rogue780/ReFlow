@@ -1,16 +1,16 @@
-; interfaces.flow — Interface contracts and fulfillment validation
+// interfaces.flow — Interface contracts and fulfillment validation
 module examples.interfaces
 
 import io (println)
 
-; --- Basic interface ---
-; An interface declares method signatures that types must implement
+// --- Basic interface ---
+// An interface declares method signatures that types must implement
 
 interface Printable {
     fn to_string(self): string
 }
 
-; A type fulfills an interface by declaring all required methods
+// A type fulfills an interface by declaring all required methods
 
 type Color fulfills Printable {
     r: int
@@ -31,8 +31,8 @@ type Point fulfills Printable {
     }
 }
 
-; --- Pure interface ---
-; Interfaces can require methods to be pure
+// --- Pure interface ---
+// Interfaces can require methods to be pure
 
 interface Hashable {
     fn:pure hash(self): int
@@ -47,8 +47,8 @@ type Pixel fulfills Hashable {
     }
 }
 
-; --- Generic interface (Exception<T>) ---
-; Exception<T> is a builtin interface requiring message(), data(), original()
+// --- Generic interface (Exception<T>) ---
+// Exception<T> is a builtin interface requiring message(), data(), original()
 
 type AppError fulfills Exception<string> {
     msg: string
@@ -67,7 +67,7 @@ type AppError fulfills Exception<string> {
     }
 }
 
-; --- Multiple methods ---
+// --- Multiple methods ---
 
 interface Describable {
     fn name(self): string,
@@ -88,23 +88,23 @@ type Animal fulfills Describable {
 }
 
 fn main() {
-    ; Basic fulfillment
+    // Basic fulfillment
     let red = Color { r: 255, g: 0, b: 0 }
     println(red.to_string())
 
     let origin = Point { x: 0.0, y: 0.0 }
     println(origin.to_string())
 
-    ; Pure interface fulfillment
+    // Pure interface fulfillment
     let px = Pixel { x: 10, y: 20 }
     println(f"hash: {px.hash()}")
 
-    ; Exception<T> fulfillment
+    // Exception<T> fulfillment
     let app_err = AppError { msg: "oops", detail: "something broke" }
     println(f"error: {app_err.message()}")
     println(f"data: {app_err.data()}")
 
-    ; Multiple methods
+    // Multiple methods
     let dog = Animal { species: "Dog", sound: "woof" }
     println(dog.describe())
 }

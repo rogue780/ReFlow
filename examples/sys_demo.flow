@@ -1,4 +1,4 @@
-; sys_demo.flow — Demonstrates the sys module
+// sys_demo.flow — Demonstrates the sys module
 module examples.sys_demo
 
 import io (println)
@@ -6,11 +6,11 @@ import sys (args, env_get, clock_ms)
 import conv (int64_to_string)
 
 fn main() {
-    ; Command line args
+    // Command line args
     let argv: array<string> = args()
     println(f"Program: {argv[0]}")
 
-    ; Environment variable
+    // Environment variable
     match env_get("HOME") {
         some(home) -> println(f"HOME = {home}")
         none -> println("HOME is not set")
@@ -21,9 +21,9 @@ fn main() {
         none -> println("NONEXISTENT_VAR is not set (expected)")
     }
 
-    ; Timing
+    // Timing
     let start: int64 = clock_ms()
-    ; Do some work
+    // Do some work
     let sum: int:mut = 0
     let i: int:mut = 0
     while i < 1000000 {

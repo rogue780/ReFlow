@@ -1,13 +1,13 @@
-; app_prime_sieve.flow — Prime sieve using coroutines
-; Exercises: dynamic coroutine creation with :< operator,
-; .next()/.done() on coroutine handles, stream functions
-; with yield, multiple coroutines
+// app_prime_sieve.flow — Prime sieve using coroutines
+// Exercises: dynamic coroutine creation with :< operator,
+// .next()/.done() on coroutine handles, stream functions
+// with yield, multiple coroutines
 module tests.app_prime_sieve
 
 import io (println)
 import conv
 
-; Generate integers from start up to limit
+// Generate integers from start up to limit
 fn integers_from(start: int, limit: int): stream<int> {
     let i: int:mut = start
     while (i <= limit) {
@@ -16,7 +16,7 @@ fn integers_from(start: int, limit: int): stream<int> {
     }
 }
 
-; Check if n is prime using trial division
+// Check if n is prime using trial division
 fn:pure is_prime(n: int): bool {
     if (n < 2) { return false }
     if (n < 4) { return true }
@@ -29,7 +29,7 @@ fn:pure is_prime(n: int): bool {
     return true
 }
 
-; Stream function: yield only primes from source
+// Stream function: yield only primes from source
 fn filter_primes(start: int, limit: int): stream<int> {
     let i: int:mut = start
     while (i <= limit) {
@@ -42,7 +42,7 @@ fn filter_primes(start: int, limit: int): stream<int> {
 
 fn main() {
     println("=== Coroutine sieve ===")
-    ; Use a coroutine to produce candidates, filter in-line
+    // Use a coroutine to produce candidates, filter in-line
     let candidates :< integers_from(2, 50)
     while (!candidates.done()) {
         match candidates.next() {
@@ -56,7 +56,7 @@ fn main() {
     }
 
     println("=== Filtered stream ===")
-    ; Second approach: stream function that yields only primes
+    // Second approach: stream function that yields only primes
     let primes :< filter_primes(2, 50)
     while (!primes.done()) {
         match primes.next() {
@@ -68,7 +68,7 @@ fn main() {
     }
 
     println("=== Concurrent coroutines ===")
-    ; Two coroutines running concurrently producing different ranges
+    // Two coroutines running concurrently producing different ranges
     let low :< filter_primes(2, 25)
     let high :< filter_primes(26, 50)
     println("Low primes:")

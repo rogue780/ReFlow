@@ -6,7 +6,7 @@ import array
 import conv
 import file
 
-; --- Helpers (duplicated from grep app for self-contained testing) ---
+// --- Helpers (duplicated from grep app for self-contained testing) ---
 
 fn:pure matches_line(line: string, pattern: string, case_i: bool, invert: bool): bool {
     let haystack: string:mut = line
@@ -50,7 +50,7 @@ fn read_lines(filepath: string): array<string> {
     return lines
 }
 
-; Simple search — prints linenum:text, returns match count
+// Simple search — prints linenum:text, returns match count
 fn search_and_print(filepath: string, pattern: string, case_i: bool, invert: bool): int {
     let lines = read_lines(filepath)
     let num_lines = array.len_string(lines)
@@ -67,12 +67,12 @@ fn search_and_print(filepath: string, pattern: string, case_i: bool, invert: boo
     return match_count
 }
 
-; Context search — prints with before/after context and -- separators
+// Context search — prints with before/after context and -- separators
 fn search_with_context(filepath: string, pattern: string, before: int, after: int): int {
     let lines = read_lines(filepath)
     let num_lines = array.len_string(lines)
 
-    ; Find matching indices
+    // Find matching indices
     let match_indices: array<int>:mut = []
     let idx: int:mut = 0
     while (idx < num_lines) {
@@ -100,7 +100,7 @@ fn search_with_context(filepath: string, pattern: string, before: int, after: in
                     range_end = num_lines - 1
                 }
 
-                ; Group separator
+                // Group separator
                 if (!first_group && range_start > printed_up_to + 1) {
                     io.println("--")
                 }
@@ -134,89 +134,89 @@ fn search_with_context(filepath: string, pattern: string, before: int, after: in
     return match_count
 }
 
-; --- Tests ---
+// --- Tests ---
 
 fn main(): none {
-    ; Create test files
-    ; Lines: 1=hello world, 2=foo bar baz, 3=HELLO again, 4=nothing here, 5=foo is great
+    // Create test files
+    // Lines: 1=hello world, 2=foo bar baz, 3=HELLO again, 4=nothing here, 5=foo is great
     let txt_file = io.tmpfile_create(".txt", "hello world\nfoo bar baz\nHELLO again\nnothing here\nfoo is great")
-    ; Lines: 1=error: disk full, 2=warning: low memory, 3=error: timeout, 4=info: all good
+    // Lines: 1=error: disk full, 2=warning: low memory, 3=error: timeout, 4=info: all good
     let log_file = io.tmpfile_create(".log", "error: disk full\nwarning: low memory\nerror: timeout\ninfo: all good")
 
-    ; === Basic Match ===
+    // === Basic Match ===
     io.println("=== Basic Match ===")
     let c1 = search_and_print(txt_file, "foo", false, false)
     io.println("count: " + conv.to_string(c1))
 
-    ; === Case Insensitive ===
+    // === Case Insensitive ===
     io.println("")
     io.println("=== Case Insensitive ===")
     let c2 = search_and_print(txt_file, "hello", true, false)
     io.println("count: " + conv.to_string(c2))
 
-    ; === Case Sensitive ===
+    // === Case Sensitive ===
     io.println("")
     io.println("=== Case Sensitive ===")
     let c3 = search_and_print(txt_file, "hello", false, false)
     io.println("count: " + conv.to_string(c3))
 
-    ; === Invert Match ===
+    // === Invert Match ===
     io.println("")
     io.println("=== Invert Match ===")
     let c4 = search_and_print(txt_file, "foo", false, true)
     io.println("count: " + conv.to_string(c4))
 
-    ; === No Match ===
+    // === No Match ===
     io.println("")
     io.println("=== No Match ===")
     let c5 = search_and_print(txt_file, "zzzzz", false, false)
     io.println("count: " + conv.to_string(c5))
 
-    ; === Extension Filter ===
+    // === Extension Filter ===
     io.println("")
     io.println("=== Extension Filter ===")
     io.println("skip .txt for .log: " + conv.to_string(should_skip_file("data.txt", ".log")))
     io.println("skip .log for .log: " + conv.to_string(should_skip_file("data.log", ".log")))
     io.println("skip any for empty: " + conv.to_string(should_skip_file("data.txt", "")))
 
-    ; === Multi-file Search ===
+    // === Multi-file Search ===
     io.println("")
     io.println("=== Multi-file Search ===")
     let c6 = search_and_print(log_file, "error", false, false)
     io.println("count: " + conv.to_string(c6))
 
-    ; === Before Context ===
-    ; Search for "nothing" (line 4) with 1 line before → should show lines 3,4
+    // === Before Context ===
+    // Search for "nothing" (line 4) with 1 line before → should show lines 3,4
     io.println("")
     io.println("=== Before Context ===")
     let c7 = search_with_context(txt_file, "nothing", 1, 0)
     io.println("count: " + conv.to_string(c7))
 
-    ; === After Context ===
-    ; Search for "hello" (line 1) with 1 line after → should show lines 1,2
+    // === After Context ===
+    // Search for "hello" (line 1) with 1 line after → should show lines 1,2
     io.println("")
     io.println("=== After Context ===")
     let c8 = search_with_context(txt_file, "hello", 0, 1)
     io.println("count: " + conv.to_string(c8))
 
-    ; === Combined Context ===
-    ; Search for "error" in log (lines 1,3) with -C 1
-    ; Line 1 match: range 1-2, Line 3 match: range 2-4
-    ; Ranges overlap so no separator, prints lines 1-4 continuously
+    // === Combined Context ===
+    // Search for "error" in log (lines 1,3) with -C 1
+    // Line 1 match: range 1-2, Line 3 match: range 2-4
+    // Ranges overlap so no separator, prints lines 1-4 continuously
     io.println("")
     io.println("=== Combined Context ===")
     let c9 = search_with_context(log_file, "error", 1, 1)
     io.println("count: " + conv.to_string(c9))
 
-    ; === Context With Separator ===
-    ; Search for "foo" in txt (lines 2,5) with -B 0 -A 0 context but adding -C 0 won't show separators
-    ; Use -B 1 instead: line 2 range 1-2, line 5 range 4-5 → gap at 3 → separator
+    // === Context With Separator ===
+    // Search for "foo" in txt (lines 2,5) with -B 0 -A 0 context but adding -C 0 won't show separators
+    // Use -B 1 instead: line 2 range 1-2, line 5 range 4-5 → gap at 3 → separator
     io.println("")
     io.println("=== Context With Separator ===")
     let c10 = search_with_context(txt_file, "foo", 1, 0)
     io.println("count: " + conv.to_string(c10))
 
-    ; Cleanup
+    // Cleanup
     io.tmpfile_remove(txt_file)
     io.tmpfile_remove(log_file)
 

@@ -10,11 +10,11 @@ fn naturals(start: int): stream<int> {
 }
 
 fn main() {
-    ; Two independent coroutines from the same factory
+    // Two independent coroutines from the same factory
     let a :< naturals(0)
     let b :< naturals(100)
 
-    ; Interleave calls
+    // Interleave calls
     match a.next() {
         some(v): { println(f"a={v}") }
         none: { println("a=none") }
@@ -32,7 +32,7 @@ fn main() {
         none: { println("b=none") }
     }
 
-    ; Check done (infinite streams never done)
+    // Check done (infinite streams never done)
     println(f"a_done={a.done()}")
     println(f"b_done={b.done()}")
 }

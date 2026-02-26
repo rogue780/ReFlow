@@ -50,7 +50,7 @@ class TokenType(Enum):
     ERR = auto()
     COERCE = auto()
     CAST = auto()
-    SNAPSHOT = auto()
+    # SNAPSHOT removed — replaced by @ on mutable static access
     THROW = auto()
     NATIVE = auto()
 
@@ -72,7 +72,7 @@ class TokenType(Enum):
     INCREMENT = auto()       # ++
     DECREMENT = auto()       # --
     DOUBLE_STAR = auto()     # **
-    DOUBLE_SLASH = auto()    # //
+    FLOOR_DIV = auto()       # </
     COROUTINE = auto()       # :<
     SPREAD = auto()          # ..
     AND = auto()             # &&
@@ -171,7 +171,6 @@ _KEYWORDS: dict[str, TokenType] = {
     "err": TokenType.ERR,
     "coerce": TokenType.COERCE,
     "cast": TokenType.CAST,
-    "snapshot": TokenType.SNAPSHOT,
     "throw": TokenType.THROW,
     "native": TokenType.NATIVE,
     "true": TokenType.BOOL_LIT,
@@ -518,7 +517,8 @@ class Lexer:
         start_line = self._line
         start_col = self._col
         start_pos = self._pos
-        self._advance()  # consume ';'
+        self._advance()  # consume first '/'
+        self._advance()  # consume second '/'
         while not self._at_end() and self._peek() != "\n":
             self._advance()
         text = self._source[start_pos:self._pos]
@@ -559,7 +559,7 @@ class Lexer:
             ("++", TokenType.INCREMENT),
             ("--", TokenType.DECREMENT),
             ("**", TokenType.DOUBLE_STAR),
-            ("//", TokenType.DOUBLE_SLASH),
+            ("</", TokenType.FLOOR_DIV),
             ("??", TokenType.DOUBLE_QUESTION),
             ("&&", TokenType.AND),
             ("||", TokenType.OR),
@@ -629,8 +629,8 @@ class Lexer:
             self._tokens.append(self._make_token(TokenType.NEWLINE, "\n", line, col))
             return
 
-        # Comment: ';' to end of line.
-        if ch == ";":
+        # Comment: '//' to end of line.
+        if ch == "/" and self._peek(1) == "/":
             tok = self._scan_comment()
             self._tokens.append(tok)
             # Don't emit a separate NEWLINE for comment-only lines:

@@ -1,18 +1,18 @@
 module http.server
 
-; server.flow — HTTP/1.1 static file server
-;
-; Usage: server [port] [document_root]
-;   port          — TCP port to listen on (default: 8080)
-;   document_root — directory to serve files from (default: ".")
-;
-; Features:
-;   - Static file serving with Content-Type detection (~25 MIME types)
-;   - Auto-serves index.html for directories, or generates HTML listing
-;   - Path traversal protection + URL percent-decoding
-;   - RFC 7231 Date header on every response
-;   - GET-only (405 for other methods)
-;   - Connection: close (one request per connection)
+// server.flow — HTTP/1.1 static file server
+//
+// Usage: server [port] [document_root]
+//   port          — TCP port to listen on (default: 8080)
+//   document_root — directory to serve files from (default: ".")
+//
+// Features:
+//   - Static file serving with Content-Type detection (~25 MIME types)
+//   - Auto-serves index.html for directories, or generates HTML listing
+//   - Path traversal protection + URL percent-decoding
+//   - RFC 7231 Date header on every response
+//   - GET-only (405 for other methods)
+//   - Connection: close (one request per connection)
 
 import net
 import io
@@ -26,9 +26,9 @@ import sort
 import array
 import string_builder
 
-; ===========================================================================
-; Pure / stateless helpers
-; ===========================================================================
+// ===========================================================================
+// Pure / stateless helpers
+// ===========================================================================
 
 fn mime_type(ext: string): string {
     let lower = string.to_lower(ext)
@@ -95,18 +95,18 @@ fn resolve_fs_path(doc_root: string, url_path: string): string {
     return path.join(doc_root, url_path)
 }
 
-; Validate, URL-decode, and strip query/fragment from a raw URL path.
-; Returns none if the path is unsafe (traversal, null bytes, etc.).
+// Validate, URL-decode, and strip query/fragment from a raw URL path.
+// Returns none if the path is unsafe (traversal, null bytes, etc.).
 fn sanitize_path(raw: string): string? {
     if (string.len(raw) == 0       ) { return none }
     if (!string.starts_with(raw, "/")) { return none }
     if (string.contains(raw, "%00")  ) { return none }
 
-    ; Decode so %2e%2e -> ".." is caught by the traversal check below
+    // Decode so %2e%2e -> ".." is caught by the traversal check below
     let decoded = string.url_decode(raw)
     if (string.contains(decoded, "..")) { return none }
 
-    ; Strip query string then fragment
+    // Strip query string then fragment
     let clean: string:mut = decoded
     if (let some(idx) = string.index_of(decoded, "?")) {
         clean = string.substring(decoded, 0, idx)
@@ -119,7 +119,7 @@ fn sanitize_path(raw: string): string? {
     return some(clean)
 }
 
-; Extract (method, url_path) from the first line of a raw HTTP request.
+// Extract (method, url_path) from the first line of a raw HTTP request.
 fn parse_request_line(raw: string): (string, string)? {
     let first_line: string:mut = raw
     if (let some(idx) = string.index_of(raw, "\r\n")) {
@@ -135,9 +135,9 @@ fn parse_request_line(raw: string): (string, string)? {
     return some((method, url_path))
 }
 
-; ===========================================================================
-; Response builders
-; ===========================================================================
+// ===========================================================================
+// Response builders
+// ===========================================================================
 
 fn build_response_header(status: int, content_type: string, content_length: int64): string {
     let sb = string_builder.new()
@@ -171,7 +171,7 @@ fn build_redirect(location: string): string {
     return string_builder.build(sb)
 }
 
-; Generate an HTML directory listing; returns none if the dir can't be read.
+// Generate an HTML directory listing; returns none if the dir can't be read.
 fn build_directory_html(url_path: string, fs_path: string): string? {
     let entries = path.list_dir(fs_path)?
     let sorted = sort.sort(entries)
@@ -204,11 +204,11 @@ fn build_directory_html(url_path: string, fs_path: string): string? {
     return some(string_builder.build(sb))
 }
 
-; ===========================================================================
-; Response senders — work with a live Socket
-; ===========================================================================
+// ===========================================================================
+// Response senders — work with a live Socket
+// ===========================================================================
 
-; Send bytes with headers in one call; returns the status code for convenience.
+// Send bytes with headers in one call; returns the status code for convenience.
 fn send_response(client: Socket, status: int, ct: string, body: array<byte>): int {
     net.write_string(client, build_response_header(status, ct, bytes.len(body)))
     net.write(client, body)
@@ -228,13 +228,13 @@ fn serve_file(client: Socket, fs_path: string, ct: string): int {
 }
 
 fn serve_directory(client: Socket, url_path: string, fs_path: string): int {
-    ; Redirect bare directory URL to trailing-slash form
+    // Redirect bare directory URL to trailing-slash form
     if (!string.ends_with(url_path, "/")) {
         net.write_string(client, build_redirect(url_path + "/"))
         return 301
     }
 
-    ; index.html takes priority over directory listing
+    // index.html takes priority over directory listing
     let index_path = path.join(fs_path, "index.html")
     if (path.is_file(index_path)) {
         return serve_file(client, index_path, mime_for_path(index_path))
@@ -247,9 +247,9 @@ fn serve_directory(client: Socket, url_path: string, fs_path: string): int {
     return 500
 }
 
-; ===========================================================================
-; Request routing
-; ===========================================================================
+// ===========================================================================
+// Request routing
+// ===========================================================================
 
 fn route_get(client: Socket, clean_path: string, resolved_root: string): int {
     let fs_path = resolve_fs_path(resolved_root, clean_path)
@@ -268,8 +268,8 @@ fn:pure request_wants_close(raw: string): bool {
     return string.contains(string.to_lower(raw), "connection: close")
 }
 
-; Parse, validate, route, and log a single HTTP request.
-; All dispatch is at most 2 levels deep; response sending is delegated.
+// Parse, validate, route, and log a single HTTP request.
+// All dispatch is at most 2 levels deep; response sending is delegated.
 fn handle_request(client: Socket, raw: string, resolved_root: string, addr: string): none {
     if (let some(parsed) = parse_request_line(raw)) {
         let method = parsed.0
@@ -292,7 +292,7 @@ fn handle_request(client: Socket, raw: string, resolved_root: string, addr: stri
     }
 }
 
-; Serve requests on a persistent connection until the client closes or idles out.
+// Serve requests on a persistent connection until the client closes or idles out.
 fn handle_connection(client: Socket, resolved_root: string, addr: string): none {
     net.set_timeout(client, 5000)
     let alive: bool:mut = true
@@ -308,11 +308,11 @@ fn handle_connection(client: Socket, resolved_root: string, addr: string): none 
     net.close(client)
 }
 
-; ===========================================================================
-; Accept pool — concurrent connection handling
-; ===========================================================================
+// ===========================================================================
+// Accept pool — concurrent connection handling
+// ===========================================================================
 
-; Accept and handle connections in a loop until the listener is closed.
+// Accept and handle connections in a loop until the listener is closed.
 fn accept_loop(listener: Socket, root: string): none {
     while (true) {
         if (let some(client) = net.accept(listener)) {
@@ -323,16 +323,16 @@ fn accept_loop(listener: Socket, root: string): none {
     }
 }
 
-; Streaming wrapper so accept_loop can be spawned as a coroutine with :<.
-; Each worker runs accept_loop on its own thread; the OS distributes
-; incoming connections across all workers.
+// Streaming wrapper so accept_loop can be spawned as a coroutine with :<.
+// Each worker runs accept_loop on its own thread; the OS distributes
+// incoming connections across all workers.
 fn worker(listener: Socket, root: string): stream<int> {
     accept_loop(listener, root)
 }
 
-; ===========================================================================
-; Entry point
-; ===========================================================================
+// ===========================================================================
+// Entry point
+// ===========================================================================
 
 fn main(): none {
     let argv = sys.args()

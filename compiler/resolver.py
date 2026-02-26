@@ -19,7 +19,7 @@ from compiler.ast_nodes import (
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
-    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
+    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     PipelineStage, CoroutinePipeline,
     # Statements
@@ -615,8 +615,6 @@ class Resolver:
             case CastExpr(inner=inner):
                 self._resolve_expr(inner, scope)
 
-            case SnapshotExpr(inner=inner):
-                self._resolve_expr(inner, scope)
 
             case PropagateExpr(inner=inner):
                 self._resolve_expr(inner, scope)

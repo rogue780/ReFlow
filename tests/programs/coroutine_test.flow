@@ -15,7 +15,7 @@ fn counter(start: int): stream<int> {
 fn main() {
     let gen :< counter(10)
 
-    ; First three calls return some
+    // First three calls return some
     match gen.next() {
         some(v): { println(f"v={v}") }
         none: { println("none") }
@@ -29,15 +29,15 @@ fn main() {
         none: { println("none") }
     }
 
-    ; done should still be false (last call was some)
+    // done should still be false (last call was some)
     println(f"done={gen.done()}")
 
-    ; Fourth call exhausts the stream
+    // Fourth call exhausts the stream
     match gen.next() {
         some(v): { println(f"v={v}") }
         none: { println("none") }
     }
 
-    ; Now done should be true
+    // Now done should be true
     println(f"done={gen.done()}")
 }

@@ -27,6 +27,7 @@ _CHECKED_OP_MAP: dict[str, str] = {
     "*": "FL_CHECKED_MUL",
     "/": "FL_CHECKED_DIV",
     "%": "FL_CHECKED_MOD",
+    "</": "FL_CHECKED_FLOOR_DIV",
 }
 
 

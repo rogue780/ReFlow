@@ -3,12 +3,12 @@ module tests.lambda_basic
 import io (println)
 
 fn main() {
-    ; Basic lambda, no captures, called directly
+    // Basic lambda, no captures, called directly
     let dbl = \(x: int => x * 2)
     let result = dbl(5)
     println(f"dbl(5) = {result}")
 
-    ; Lambda with multiple params
+    // Lambda with multiple params
     let add = \(a: int, b: int => a + b)
     let sum = add(3, 7)
     println(f"add(3, 7) = {sum}")

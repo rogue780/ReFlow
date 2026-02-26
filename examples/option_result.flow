@@ -1,9 +1,9 @@
-; option_result.flow — Option, Result, pattern matching, ??, ? propagation
+// option_result.flow — Option, Result, pattern matching, ??, ? propagation
 module examples.option_result
 
 import io (println)
 
-; Function returning option
+// Function returning option
 fn find_index(arr: array<int>, target: int): int? {
     let i: int:mut = 0
     for (x: int in arr) {
@@ -15,13 +15,13 @@ fn find_index(arr: array<int>, target: int): int? {
     return none
 }
 
-; Using ?? null coalescing
+// Using ?? null coalescing
 fn find_or_default(arr: array<int>, target: int): int {
     let idx = find_index(arr, target) ?? -1
     return idx
 }
 
-; Function returning result
+// Function returning result
 fn safe_divide(a: int, b: int): result<int, string> {
     if (b == 0) {
         return err("division by zero")
@@ -29,7 +29,7 @@ fn safe_divide(a: int, b: int): result<int, string> {
     return ok(a / b)
 }
 
-; Using ? propagation
+// Using ? propagation
 fn compute(x: int, y: int): result<int, string> {
     let quotient = safe_divide(x, y)?
     return ok(quotient + 1)
@@ -38,7 +38,7 @@ fn compute(x: int, y: int): result<int, string> {
 fn main() {
     let nums = [10, 20, 30, 40, 50]
 
-    ; Option matching
+    // Option matching
     match find_index(nums, 30) {
         some(i): println(f"found 30 at index {i}")
         none: println("30 not found")
@@ -49,20 +49,20 @@ fn main() {
         none: println("99 not found")
     }
 
-    ; Null coalescing
+    // Null coalescing
     let idx = find_or_default(nums, 20)
     println(f"index of 20: {idx}")
     let missing = find_or_default(nums, 99)
     println(f"index of 99: {missing}")
 
-    ; Auto-lifting: int assigned to int?
+    // Auto-lifting: int assigned to int?
     let maybe: int? = 42
     match maybe {
         some(v): println(f"auto-lifted: {v}")
         none: println("none")
     }
 
-    ; Result matching
+    // Result matching
     match safe_divide(10, 3) {
         ok(v): println(f"10 / 3 = {v}")
         err(msg): println(f"error: {msg}")
@@ -73,7 +73,7 @@ fn main() {
         err(msg): println(f"error: {msg}")
     }
 
-    ; ? propagation
+    // ? propagation
     match compute(10, 3) {
         ok(v): println(f"compute(10, 3) = {v}")
         err(msg): println(f"compute error: {msg}")

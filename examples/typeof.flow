@@ -1,4 +1,4 @@
-; typeof.flow — Runtime type introspection with typeof()
+// typeof.flow — Runtime type introspection with typeof()
 module examples.typeof_demo
 
 import io (println)
@@ -8,10 +8,10 @@ fn show_type(label: string, type_name: string) {
 }
 
 fn main() {
-    ; typeof() returns a string representation of the expression's type
-    ; It is evaluated at compile time and emitted as a string literal
+    // typeof() returns a string representation of the expression's type
+    // It is evaluated at compile time and emitted as a string literal
 
-    ; Primitive types
+    // Primitive types
     let x = 42
     show_type("integer", typeof(x))
 
@@ -24,10 +24,10 @@ fn main() {
     let s = "hello"
     show_type("string", typeof(s))
 
-    ; Composite types
+    // Composite types
     let pair = (1, 2)
     show_type("tuple", typeof(pair))
 
-    ; typeof in expressions
+    // typeof in expressions
     println(f"The type of 42 is: {typeof(x)}")
 }

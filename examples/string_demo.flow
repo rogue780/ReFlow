@@ -1,4 +1,4 @@
-; string_demo.flow — Demonstrates the string module
+// string_demo.flow — Demonstrates the string module
 module examples.string_demo
 
 import io (println)
@@ -8,14 +8,14 @@ import conv (int_to_string)
 fn main() {
     let s: string = "Hello, World!"
 
-    ; Length and character access
+    // Length and character access
     println(f"len: {len(s)}")
     match char_at(s, 0) {
         some(c) -> println(f"char_at(0): {c}")
         none -> println("out of bounds")
     }
 
-    ; Substrings and searching
+    // Substrings and searching
     println(f"substring(0, 5): {substring(s, 0, 5)}")
     match index_of(s, "World") {
         some(idx) -> println(f"index_of 'World': {idx}")
@@ -25,17 +25,17 @@ fn main() {
     println(f"starts_with 'Hello': {starts_with(s, "Hello")}")
     println(f"ends_with '!': {ends_with(s, "!")}")
 
-    ; Transformation
+    // Transformation
     println(f"to_lower: {to_lower(s)}")
     println(f"to_upper: {to_upper(s)}")
     println(f"replace: {replace(s, "World", "Flow")}")
     println(f"trim: '{trim("  hello  ")}'")
 
-    ; Split and join
+    // Split and join
     let parts: array<string> = split("a,b,c", ",")
     println(f"split 'a,b,c': {join(parts, " | ")}")
 
-    ; Bytes conversion
+    // Bytes conversion
     let bytes: array<byte> = to_bytes("Flow")
     let back: string = from_bytes(bytes)
     println(f"to_bytes -> from_bytes: {back}")

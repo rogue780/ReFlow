@@ -1,7 +1,7 @@
 module tests.coroutine_capacity_send_test
 import io (println)
 
-; Receivable coroutine with capacity on both inbox and outbox
+// Receivable coroutine with capacity on both inbox and outbox
 fn echo_worker(inbox: stream<string>[16]): stream<string>[8] {
     let running: bool:mut = true
     while (running) {

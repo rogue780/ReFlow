@@ -10,10 +10,10 @@ fn parse_value(s: string): int {
 }
 
 fn main() {
-    ; Test retry: function throws, retry body runs, then retries
-    ; Since retry re-executes the try body, and we can't modify the
-    ; string exception in a meaningful way for retry, this tests the
-    ; retry-then-catch escalation pattern.
+    // Test retry: function throws, retry body runs, then retries
+    // Since retry re-executes the try body, and we can't modify the
+    // string exception in a meaningful way for retry, this tests the
+    // retry-then-catch escalation pattern.
     try {
         let val = parse_value("bad")
         println(f"got: {val}")

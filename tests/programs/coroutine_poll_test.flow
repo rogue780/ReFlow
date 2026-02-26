@@ -1,9 +1,9 @@
-; coroutine_poll_test.flow — Tests .poll() non-blocking method
+// coroutine_poll_test.flow — Tests .poll() non-blocking method
 module tests.coroutine_poll_test
 
 import io (println)
 
-; A simple generator that yields 3 values
+// A simple generator that yields 3 values
 fn counter(): stream<int> {
     yield 1
     yield 2
@@ -11,11 +11,11 @@ fn counter(): stream<int> {
 }
 
 fn main() {
-    ; Start a coroutine
+    // Start a coroutine
     let gen :< counter()
 
-    ; .poll() on a non-threaded coroutine calls fl_stream_next
-    ; which returns values directly (same as .next() for non-threaded)
+    // .poll() on a non-threaded coroutine calls fl_stream_next
+    // which returns values directly (same as .next() for non-threaded)
     match gen.poll() {
         some(v): { println(f"poll={v}") }
         none: { println("poll=none") }
@@ -29,7 +29,7 @@ fn main() {
         none: { println("poll=none") }
     }
 
-    ; After exhaustion, poll returns none
+    // After exhaustion, poll returns none
     match gen.poll() {
         some(v): { println(f"poll={v}") }
         none: { println("poll=none") }

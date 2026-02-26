@@ -23,7 +23,7 @@ from compiler.ast_nodes import (
     Ident, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
-    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr, SnapshotExpr,
+    SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
     PropagateExpr, NullCoalesce, TypeofExpr, CoroutineStart,
     PipelineStage, CoroutinePipeline,
     # Statements
@@ -2177,16 +2177,6 @@ class Lowerer:
                 lt = self._lower_type(t)
                 return LCast(inner=inner_expr, c_type=lt)
 
-            # Snapshot
-            case SnapshotExpr(inner=inner):
-                # SPEC GAP: .refresh() not implemented. Without parallelism
-                # (Gap #10), .refresh() has no observable effect since only
-                # the current thread can mutate the source static. The
-                # pass-through is correct for value types (C copy semantics)
-                # and immutable heap types (strings/arrays are reference-counted
-                # and their content cannot change).
-                return self._lower_expr(inner)
-
             # Propagate (RT-7-3-7)
             case PropagateExpr(inner=inner):
                 return self._lower_propagate(expr)
@@ -2277,7 +2267,7 @@ class Lowerer:
                 return LLit("fl_false", LBool())
 
         # Integer checked arithmetic (RT-7-3-2)
-        if isinstance(left_type, TInt) and isinstance(right_type, TInt) and op in ("+", "-", "*", "/", "%"):
+        if isinstance(left_type, TInt) and isinstance(right_type, TInt) and op in ("+", "-", "*", "/", "%", "</"):
             # Implicit widening: cast narrower operand to wider type
             l = left_expr
             r = right_expr

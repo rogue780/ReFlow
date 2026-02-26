@@ -1,19 +1,19 @@
 module chat.server
 
-; server.flow — Multi-client TCP chat server
-;
-; Usage: server [port]
-;   port — TCP port to listen on (default: 9000)
-;
-; Connect with: nc localhost <port>
-;
-; Architecture:
-;   - Main thread runs a non-blocking event loop
-;   - Listener socket has a short timeout for non-blocking accept
-;   - Each client gets a receivable coroutine (inbox: stream<string>)
-;   - Client coroutines are stored in a generic array<Coroutine<string>>
-;   - Main thread polls each client with .poll() (non-blocking)
-;   - Broadcasts use net.write_to_fd to reach all connected clients
+// server.flow — Multi-client TCP chat server
+//
+// Usage: server [port]
+//   port — TCP port to listen on (default: 9000)
+//
+// Connect with: nc localhost <port>
+//
+// Architecture:
+//   - Main thread runs a non-blocking event loop
+//   - Listener socket has a short timeout for non-blocking accept
+//   - Each client gets a receivable coroutine (inbox: stream<string>)
+//   - Client coroutines are stored in a generic array<Coroutine<string>>
+//   - Main thread polls each client with .poll() (non-blocking)
+//   - Broadcasts use net.write_to_fd to reach all connected clients
 
 import net
 import io
@@ -24,12 +24,12 @@ import map
 import array
 import time
 
-; ===========================================================================
-; Pure helpers
-; ===========================================================================
+// ===========================================================================
+// Pure helpers
+// ===========================================================================
 
-; Split raw input into (command, argument).
-; Lines starting with "/" are commands; everything else is "/say".
+// Split raw input into (command, argument).
+// Lines starting with "/" are commands; everything else is "/say".
 fn parse_message(raw: string): (string, string) {
     let trimmed = string.trim(raw)
     if (string.len(trimmed) == 0) {
@@ -47,7 +47,7 @@ fn parse_message(raw: string): (string, string) {
     return ("/say", trimmed)
 }
 
-; Validate a nickname: non-empty, no spaces, <= 20 chars.
+// Validate a nickname: non-empty, no spaces, <= 20 chars.
 fn validate_nick(name: string): string? {
     if (string.len(name) == 0) { return some("Nickname cannot be empty.") }
     if (string.len(name) > 20) { return some("Nickname too long (max 20 chars).") }
@@ -55,7 +55,7 @@ fn validate_nick(name: string): string? {
     return none
 }
 
-; Check if a nickname is already taken in the nicknames map.
+// Check if a nickname is already taken in the nicknames map.
 fn is_nick_taken(nicks: map<string, string>, name: string): bool {
     let vals = map.values(nicks)
     let i: int:mut = 0
@@ -68,8 +68,8 @@ fn is_nick_taken(nicks: map<string, string>, name: string): bool {
     return false
 }
 
-; Generate a default nickname from a remote address.
-; Uses the port portion (after last ":") as a suffix.
+// Generate a default nickname from a remote address.
+// Uses the port portion (after last ":") as a suffix.
 fn generate_nickname(addr: string): string {
     if (let some(idx) = string.index_of(addr, ":")) {
         let suffix = string.substring(addr, idx + 1, string.len(addr))
@@ -78,13 +78,13 @@ fn generate_nickname(addr: string): string {
     return "user_" + addr
 }
 
-; Format a timestamp prefix for server console logging.
+// Format a timestamp prefix for server console logging.
 fn timestamp(): string {
     let dt = time.datetime_now()
     let h = conv.to_string(time.hour(dt))
     let m = conv.to_string(time.minute(dt))
     let s = conv.to_string(time.second(dt))
-    ; Pad single digits
+    // Pad single digits
     let hh = if (string.len(h) < 2) { "0" + h } else { h }
     let mm = if (string.len(m) < 2) { "0" + m } else { m }
     let ss = if (string.len(s) < 2) { "0" + s } else { s }
@@ -95,9 +95,9 @@ fn log(msg: string): none {
     io.println(timestamp() + " " + msg)
 }
 
-; ===========================================================================
-; Broadcast helper — send message to all clients except sender
-; ===========================================================================
+// ===========================================================================
+// Broadcast helper — send message to all clients except sender
+// ===========================================================================
 
 fn broadcast(client_fds: map<string, string>, exclude_addr: string, msg: string): array<string> {
     let addrs = map.keys(client_fds)
@@ -121,7 +121,7 @@ fn broadcast(client_fds: map<string, string>, exclude_addr: string, msg: string)
     return dead
 }
 
-; Send a message to a specific fd stored as string in client_fds
+// Send a message to a specific fd stored as string in client_fds
 fn send_to(client_fds: map<string, string>, addr: string, msg: string): none {
     if (let some(fs) = map.get(client_fds, addr)) {
         if (let some(f) = conv.string_to_int(fs)) {
@@ -130,8 +130,8 @@ fn send_to(client_fds: map<string, string>, addr: string, msg: string): none {
     }
 }
 
-; Remove dead clients from state maps and notify remaining clients.
-; Returns (updated_nicknames, updated_client_fds).
+// Remove dead clients from state maps and notify remaining clients.
+// Returns (updated_nicknames, updated_client_fds).
 fn remove_dead_clients(
     dead: array<string>,
     nicknames: map<string, string>,
@@ -153,21 +153,21 @@ fn remove_dead_clients(
     return (nicks, fds)
 }
 
-; ===========================================================================
-; Client coroutine — runs on its own thread
-; ===========================================================================
+// ===========================================================================
+// Client coroutine — runs on its own thread
+// ===========================================================================
 
-; A receivable coroutine: first param stream<string> is the inbox.
-; - Reads lines from the socket and yields them (prefixed with addr)
-; - Drains inbox each iteration to write broadcast messages to the socket
-;
-; Yielded values are formatted as "addr|raw_line" for the main thread
-; to parse and dispatch.
-;
-; The inbox receives pre-formatted broadcast strings to write directly
-; to the client socket.
+// A receivable coroutine: first param stream<string> is the inbox.
+// - Reads lines from the socket and yields them (prefixed with addr)
+// - Drains inbox each iteration to write broadcast messages to the socket
+//
+// Yielded values are formatted as "addr|raw_line" for the main thread
+// to parse and dispatch.
+//
+// The inbox receives pre-formatted broadcast strings to write directly
+// to the client socket.
 fn client_handler(inbox: stream<string>, client: Socket, addr: string): stream<string> {
-    ; Send welcome message
+    // Send welcome message
     net.write_string(client, "Welcome to Flow Chat!\r\n")
     net.write_string(client, "Type /help for commands.\r\n")
 
@@ -175,31 +175,31 @@ fn client_handler(inbox: stream<string>, client: Socket, addr: string): stream<s
     let alive: bool:mut = true
 
     while (alive) {
-        ; 1. Drain inbox: write any pending broadcast messages to this client
+        // 1. Drain inbox: write any pending broadcast messages to this client
         for (msg: string in inbox) {
             net.write_string(client, msg)
         }
 
-        ; 2. Try to read from the socket
+        // 2. Try to read from the socket
         match net.read(client, 4096) {
             some(data): {
                 let raw = string.trim(string.from_bytes(data))
                 if (string.len(raw) > 0) {
-                    ; Yield "addr|message" for the main thread
+                    // Yield "addr|message" for the main thread
                     yield addr + "|" + raw
                 }
             }
             none: {
-                ; Timeout or connection close — keep looping.
-                ; A real disconnect will be caught when write fails.
+                // Timeout or connection close — keep looping.
+                // A real disconnect will be caught when write fails.
             }
         }
     }
 }
 
-; ===========================================================================
-; Message dispatch — processes a parsed command from a client
-; ===========================================================================
+// ===========================================================================
+// Message dispatch — processes a parsed command from a client
+// ===========================================================================
 
 fn dispatch_message(
     sender_addr: string,
@@ -276,9 +276,9 @@ fn dispatch_message(
     return (nicks, fds, true)
 }
 
-; ===========================================================================
-; Main thread — non-blocking event loop
-; ===========================================================================
+// ===========================================================================
+// Main thread — non-blocking event loop
+// ===========================================================================
 
 fn main(): none {
     let argv = sys.args()
@@ -299,49 +299,49 @@ fn main(): none {
         io.println("Listening on port " + conv.to_string(port))
         io.println("Connect with: nc localhost " + conv.to_string(port))
 
-        ; Set short timeout on listener for non-blocking accept
+        // Set short timeout on listener for non-blocking accept
         net.set_timeout(listener, 50)
 
-        ; Client state maps
+        // Client state maps
         let nicknames: map<string, string>:mut = map.new()
         let client_fds: map<string, string>:mut = map.new()
 
-        ; Client coroutine handles and their addresses
+        // Client coroutine handles and their addresses
         let handlers: array<Coroutine<string>>:mut = []
         let handler_addrs: array<string>:mut = []
 
-        ; Main event loop
+        // Main event loop
         while (true) {
-            ; 1. Non-blocking accept (returns none on timeout)
+            // 1. Non-blocking accept (returns none on timeout)
             if (let some(client) = net.accept(listener)) {
                 let addr = net.remote_addr(client) ?? "unknown"
                 let nick = generate_nickname(addr)
                 nicknames = map.set(nicknames, addr, nick)
 
-                ; Store the fd for broadcasting
+                // Store the fd for broadcasting
                 let fd = net.fd(client)
                 client_fds = map.set(client_fds, addr, conv.to_string(fd))
 
                 log("[connect] " + nick + " from " + addr)
 
-                ; Broadcast join notification
+                // Broadcast join notification
                 let dead = broadcast(client_fds, addr, "*** " + nick + " has joined ***\r\n")
                 let cleaned = remove_dead_clients(dead, nicknames, client_fds)
                 nicknames = cleaned.0
                 client_fds = cleaned.1
 
-                ; Spawn client coroutine and track it
+                // Spawn client coroutine and track it
                 let handler :< client_handler(client, addr)
                 handlers = array.push(handlers, handler)
                 handler_addrs = array.push(handler_addrs, addr)
             }
 
-            ; 2. Poll each client handler (non-blocking)
+            // 2. Poll each client handler (non-blocking)
             let i: int:mut = 0
             while (i < array.size(handlers)) {
                 if (let some(handler) = array.get_any(handlers, i)) {
                     if (let some(raw_msg) = handler.poll()) {
-                        ; Parse "addr|message" format
+                        // Parse "addr|message" format
                         if (let some(pipe_idx) = string.index_of(raw_msg, "|")) {
                             let sender_addr = string.substring(raw_msg, 0, pipe_idx)
                             let line = string.substring(raw_msg, pipe_idx + 1, string.len(raw_msg))
@@ -355,7 +355,7 @@ fn main(): none {
                             let alive = result.2
 
                             if (!alive) {
-                                ; Client requested disconnect
+                                // Client requested disconnect
                                 let leaving_nick = map.get(nicknames, sender_addr) ?? sender_addr
                                 nicknames = map.remove(nicknames, sender_addr)
                                 client_fds = map.remove(client_fds, sender_addr)
@@ -367,9 +367,9 @@ fn main(): none {
                             }
                         }
                     } else {
-                        ; Nothing ready from this client — check if done
+                        // Nothing ready from this client — check if done
                         if (handler.done()) {
-                            ; Client disconnected
+                            // Client disconnected
                             if (let some(addr) = array.get_any(handler_addrs, i)) {
                                 let leaving_nick = map.get(nicknames, addr) ?? addr
                                 nicknames = map.remove(nicknames, addr)
@@ -386,7 +386,7 @@ fn main(): none {
                 i = i + 1
             }
 
-            ; 3. Small sleep to prevent busy-wait
+            // 3. Small sleep to prevent busy-wait
             time.sleep_ms(10)
         }
 

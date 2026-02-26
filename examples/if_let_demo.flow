@@ -1,6 +1,6 @@
 module examples.if_let_demo
 
-; Demonstrates if-let and option ? operator
+// Demonstrates if-let and option ? operator
 
 import io (println)
 
@@ -14,14 +14,14 @@ fn safe_divide(a: int, b: int): result<int, string> {
     return ok(a / b)
 }
 
-; Option ? — flatten chained option operations
+// Option ? — flatten chained option operations
 fn double_positive(x: int): int? {
     let v = find_positive(x)?
     return some(v * 2)
 }
 
 fn main() {
-    ; ── if let some ──────────────────────────────────
+    // ── if let some ──────────────────────────────────
     if (let some(v) = find_positive(42)) {
         println(f"found: {v}")
     }
@@ -32,7 +32,7 @@ fn main() {
         println("not found")
     }
 
-    ; ── if let ok / err ──────────────────────────────
+    // ── if let ok / err ──────────────────────────────
     if (let ok(v) = safe_divide(10, 2)) {
         println(f"10 / 2 = {v}")
     }
@@ -41,7 +41,7 @@ fn main() {
         println(f"error: {e}")
     }
 
-    ; ── option ? ─────────────────────────────────────
+    // ── option ? ─────────────────────────────────────
     match double_positive(5) {
         some(v): { println(f"doubled: {v}") }
         none:    { println("none") }

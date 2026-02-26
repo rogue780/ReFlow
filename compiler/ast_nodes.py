@@ -286,11 +286,6 @@ class CastExpr(Expr):
 
 
 @dataclass
-class SnapshotExpr(Expr):
-    inner: Expr
-
-
-@dataclass
 class PropagateExpr(Expr):       # expr?
     inner: Expr
 

@@ -1,8 +1,8 @@
 module tests.app_json_query
 
-; Self-test for the JSON query engine.
-; Writes test JSON to a temp file, runs queries via the engine functions
-; directly, and prints results for golden file comparison.
+// Self-test for the JSON query engine.
+// Writes test JSON to a temp file, runs queries via the engine functions
+// directly, and prints results for golden file comparison.
 
 import io
 import string
@@ -10,9 +10,9 @@ import array
 import json
 import conv
 
-; ===========================================================================
-; Duplicated query engine (self-contained test)
-; ===========================================================================
+// ===========================================================================
+// Duplicated query engine (self-contained test)
+// ===========================================================================
 
 fn:pure parse_path(query: string): (array<string>, string) {
     if (string.len(query) == 0) {
@@ -159,11 +159,11 @@ fn:pure format_value(val: JsonValue, pretty: bool): string {
     return json.to_string(val)
 }
 
-; ===========================================================================
-; Test helpers
-; ===========================================================================
+// ===========================================================================
+// Test helpers
+// ===========================================================================
 
-; Run a query and print the result(s), one per line.
+// Run a query and print the result(s), one per line.
 fn run_query(root: JsonValue, query: string, pretty: bool): none {
     let parsed = parse_path(query)
     let segments = parsed.0
@@ -188,9 +188,9 @@ fn run_query(root: JsonValue, query: string, pretty: bool): none {
     }
 }
 
-; ===========================================================================
-; Main — run all tests
-; ===========================================================================
+// ===========================================================================
+// Main — run all tests
+// ===========================================================================
 
 fn main(): none {
     let test_json = "{\"name\":\"Alice\",\"age\":30,\"active\":true,\"nothing\":null,\"address\":{\"city\":\"New York\",\"zip\":\"10001\"},\"scores\":[95,87,92],\"users\":[{\"name\":\"Alice\",\"email\":\"alice@example.com\"},{\"name\":\"Bob\",\"email\":\"bob@example.com\"},{\"name\":\"Charlie\",\"email\":\"charlie@example.com\"}]}"

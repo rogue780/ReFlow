@@ -1,26 +1,26 @@
-; healthcheck.flow — HTTP health checker
-;
-; Usage:
-;   healthcheck [options] <url>...
-;   healthcheck --demo
-;
-; Options:
-;   --demo             Run against a built-in mock server
-;   --timeout <ms>     Read timeout per request (default: 2000)
-;   --retries <n>      Retry count on failure (default: 3)
-;   --expected <code>  Default expected HTTP status (default: 200)
-;
-; URLs:
-;   http://host:port/path    Full URL (port defaults to 80)
-;   host:port/path           Shorthand without scheme
-;
-; Examples:
-;   healthcheck http://localhost:8080/health http://localhost:8080/api/users
-;   healthcheck --timeout 5000 --retries 5 http://10.0.0.1:3000/status
-;   healthcheck --expected 204 http://api.example.com/healthz
-;   healthcheck --demo
-;
-; Note: HTTP only. HTTPS is not supported.
+// healthcheck.flow — HTTP health checker
+//
+// Usage:
+//   healthcheck [options] <url>...
+//   healthcheck --demo
+//
+// Options:
+//   --demo             Run against a built-in mock server
+//   --timeout <ms>     Read timeout per request (default: 2000)
+//   --retries <n>      Retry count on failure (default: 3)
+//   --expected <code>  Default expected HTTP status (default: 200)
+//
+// URLs:
+//   http://host:port/path    Full URL (port defaults to 80)
+//   host:port/path           Shorthand without scheme
+//
+// Examples:
+//   healthcheck http://localhost:8080/health http://localhost:8080/api/users
+//   healthcheck --timeout 5000 --retries 5 http://10.0.0.1:3000/status
+//   healthcheck --expected 204 http://api.example.com/healthz
+//   healthcheck --demo
+//
+// Note: HTTP only. HTTPS is not supported.
 
 module healthcheck
 
@@ -32,9 +32,9 @@ import array
 import time
 import sys
 
-; ============================================================================
-; Data Types
-; ============================================================================
+// ============================================================================
+// Data Types
+// ============================================================================
 
 type CheckStatus =
     | Pass(code: int)
@@ -49,11 +49,11 @@ type Config {
     demo: bool
 }
 
-; ============================================================================
-; URL Parsing (pure)
-; ============================================================================
+// ============================================================================
+// URL Parsing (pure)
+// ============================================================================
 
-; Parse host from URL: "http://host:port/path" → "host"
+// Parse host from URL: "http://host:port/path" → "host"
 fn:pure parse_host(url: string): string {
     let after_proto: string:mut = url
     if (let some(idx) = string.index_of(url, "://")) {
@@ -68,7 +68,7 @@ fn:pure parse_host(url: string): string {
     return after_proto
 }
 
-; Parse port from URL: "http://host:port/path" → port (default 80)
+// Parse port from URL: "http://host:port/path" → port (default 80)
 fn:pure parse_port(url: string): int {
     let after_proto: string:mut = url
     if (let some(idx) = string.index_of(url, "://")) {
@@ -84,7 +84,7 @@ fn:pure parse_port(url: string): int {
     return 80
 }
 
-; Parse path from URL: "http://host:port/path" → "/path" (default "/")
+// Parse path from URL: "http://host:port/path" → "/path" (default "/")
 fn:pure parse_path(url: string): string {
     let after_proto: string:mut = url
     if (let some(idx) = string.index_of(url, "://")) {
@@ -96,7 +96,7 @@ fn:pure parse_path(url: string): string {
     return "/"
 }
 
-; Parse HTTP status code from response: "HTTP/1.0 200 OK..." → 200
+// Parse HTTP status code from response: "HTTP/1.0 200 OK..." → 200
 fn:pure parse_http_status(response: string): int {
     if (let some(sp1) = string.index_of(response, " ")) {
         let after = string.substring(response, sp1 + 1, string.len(response))
@@ -108,9 +108,9 @@ fn:pure parse_http_status(response: string): int {
     return 0
 }
 
-; ============================================================================
-; Argument Parsing
-; ============================================================================
+// ============================================================================
+// Argument Parsing
+// ============================================================================
 
 fn parse_args(): Config {
     let args = sys.args()
@@ -197,9 +197,9 @@ fn print_usage(): none {
     io.println("Note: HTTP only. HTTPS is not supported.")
 }
 
-; ============================================================================
-; Mock HTTP Server (receivable coroutine for clean shutdown via message passing)
-; ============================================================================
+// ============================================================================
+// Mock HTTP Server (receivable coroutine for clean shutdown via message passing)
+// ============================================================================
 
 fn mock_server(inbox: stream<string>, port: int): stream<string> {
     match net.listen("127.0.0.1", port) {
@@ -238,11 +238,11 @@ fn mock_server(inbox: stream<string>, port: int): stream<string> {
     }
 }
 
-; ============================================================================
-; Health Check Function
-; Throws string exceptions for network failures (retry-worthy).
-; Returns CheckStatus for HTTP outcomes.
-; ============================================================================
+// ============================================================================
+// Health Check Function
+// Throws string exceptions for network failures (retry-worthy).
+// Returns CheckStatus for HTTP outcomes.
+// ============================================================================
 
 fn check_url(host: string, port: int, url_path: string, expected: int, timeout: int): CheckStatus {
     let conn = net.connect(host, port)
@@ -270,9 +270,9 @@ fn check_url(host: string, port: int, url_path: string, expected: int, timeout: 
     throw "connection failed"
 }
 
-; ============================================================================
-; Result Aggregator (receivable coroutine)
-; ============================================================================
+// ============================================================================
+// Result Aggregator (receivable coroutine)
+// ============================================================================
 
 fn result_aggregator(inbox: stream<string>): stream<string> {
     let p: int:mut = 0
@@ -301,21 +301,21 @@ fn result_aggregator(inbox: stream<string>): stream<string> {
     yield conv.to_string(p) + ":" + conv.to_string(f) + ":" + conv.to_string(w) + ":" + conv.to_string(total)
 }
 
-; ============================================================================
-; Display
-; ============================================================================
+// ============================================================================
+// Display
+// ============================================================================
 
 fn display_url(url: string): string {
-    ; Strip scheme for cleaner display
+    // Strip scheme for cleaner display
     if (let some(idx) = string.index_of(url, "://")) {
         return string.substring(url, idx + 3, string.len(url))
     }
     return url
 }
 
-; ============================================================================
-; Check loop — shared between demo and real mode
-; ============================================================================
+// ============================================================================
+// Check loop — shared between demo and real mode
+// ============================================================================
 
 fn run_checks(urls: array<string>, config: Config): none {
     let num_urls = array.len_string(urls)
@@ -376,15 +376,15 @@ fn run_checks(urls: array<string>, config: Config): none {
     }
 }
 
-; ============================================================================
-; Main
-; ============================================================================
+// ============================================================================
+// Main
+// ============================================================================
 
 fn main(): none {
     let config = parse_args()
 
     if (config.demo) {
-        ; Demo mode: start mock server and check built-in targets
+        // Demo mode: start mock server and check built-in targets
         let demo_port = 39876
         let server :< mock_server(demo_port)
 
@@ -415,7 +415,7 @@ fn main(): none {
 
         server.send("stop")
     } else {
-        ; Real mode: check user-provided URLs
+        // Real mode: check user-provided URLs
         run_checks(config.urls, config)
     }
 }

@@ -1,4 +1,4 @@
-; stdlib_generic_array.flow — Tests generic array functions
+// stdlib_generic_array.flow — Tests generic array functions
 module tests.stdlib_generic_array
 
 import io (println)
@@ -6,7 +6,7 @@ import array
 import conv
 
 fn main() {
-    ; Test push<T> with strings (pointer type)
+    // Test push<T> with strings (pointer type)
     let strs: array<string>:mut = []
     strs = array.push(strs, "hello")
     strs = array.push(strs, "world")
@@ -21,7 +21,7 @@ fn main() {
         none: { println("strs[1]=none") }
     }
 
-    ; Test push_int (value type)
+    // Test push_int (value type)
     let nums: array<int>:mut = []
     nums = array.push_int(nums, 10)
     nums = array.push_int(nums, 20)
@@ -37,7 +37,7 @@ fn main() {
         none: { println("nums[2]=none") }
     }
 
-    ; Test push_float
+    // Test push_float
     let floats: array<float>:mut = []
     floats = array.push_float(floats, 1.5)
     floats = array.push_float(floats, 2.5)
@@ -48,7 +48,7 @@ fn main() {
         none: { println("floats[0]=none") }
     }
 
-    ; Test concat<T> with strings
+    // Test concat<T> with strings
     let a: array<string>:mut = []
     a = array.push(a, "a")
     let b: array<string>:mut = []
@@ -65,7 +65,7 @@ fn main() {
         none: { println("ab[1]=none") }
     }
 
-    ; Test push_bool
+    // Test push_bool
     let bools: array<bool>:mut = []
     bools = array.push_bool(bools, true)
     bools = array.push_bool(bools, false)

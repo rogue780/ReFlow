@@ -1,9 +1,9 @@
-; sum_types.flow — Sum types, pattern matching, exhaustiveness
+// sum_types.flow — Sum types, pattern matching, exhaustiveness
 module examples.sum_types
 
 import io (println)
 
-; Sum type with data-carrying and unit variants
+// Sum type with data-carrying and unit variants
 type Shape =
     | Circle(radius: float)
     | Rectangle(width: float, height: float)
@@ -37,7 +37,7 @@ fn describe(s: Shape): string {
     }
 }
 
-; Sum type with unit variants (enum-like)
+// Sum type with unit variants (enum-like)
 type Direction =
     | North
     | South
@@ -71,7 +71,7 @@ fn main() {
     println(f"{describe(r)}: area = {area(r)}")
     println(f"{describe(sq)}: area = {area(sq)}")
 
-    ; Unit variants
+    // Unit variants
     let dir = North
     let opp = opposite(dir)
     println(f"opposite of {direction_name(dir)} is {direction_name(opp)}")

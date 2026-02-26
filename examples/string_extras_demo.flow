@@ -1,17 +1,17 @@
-; string_extras_demo.flow — String repeat, URL encode/decode, and auto-coercion
+// string_extras_demo.flow — String repeat, URL encode/decode, and auto-coercion
 module examples.string_extras_demo
 
 import io (println)
 import string (repeat, url_encode, url_decode)
 
 fn main() {
-    ; String repeat
+    // String repeat
     let border = repeat("=-", 20)
     println(border)
     println("  Flow String Extras  ")
     println(border)
 
-    ; Auto-coerce Showable types in string concatenation
+    // Auto-coerce Showable types in string concatenation
     let count = 42
     let msg = "The answer is: " + count
     println(msg)
@@ -24,16 +24,16 @@ fn main() {
     let status = "Feature enabled: " + flag
     println(status)
 
-    ; URL encoding
+    // URL encoding
     let raw = "hello world & friends=true"
     let encoded = url_encode(raw)
     println(f"encoded: {encoded}")
 
-    ; URL decoding
+    // URL decoding
     let decoded = url_decode(encoded)
     println(f"decoded: {decoded}")
 
-    ; Round-trip
+    // Round-trip
     let path = "/files/my document.txt"
     let safe_path = url_encode(path)
     println(f"safe path: {safe_path}")

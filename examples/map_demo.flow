@@ -1,41 +1,41 @@
-; map_demo.flow — Hash map operations with string keys
+// map_demo.flow — Hash map operations with string keys
 module examples.map_demo
 
 import io (println)
 import map (new, set, get, has, remove, len, keys)
 
 fn main() {
-    ; Create and populate a map
+    // Create and populate a map
     let m = new()
     let m = set(m, "name", "Flow")
     let m = set(m, "version", "0.1")
     let m = set(m, "type", "compiler")
 
-    ; Lookup with option type
+    // Lookup with option type
     match get(m, "name") {
         some(v): { println(f"name = {v}") }
         none: { println("not found") }
     }
 
-    ; Check existence
+    // Check existence
     if (has(m, "version")) {
         println("has 'version' key")
     }
 
-    ; Missing key
+    // Missing key
     match get(m, "author") {
         some(v): { println(f"author = {v}") }
         none: { println("'author' not found (expected)") }
     }
 
-    ; Map size
+    // Map size
     println(f"map has {len(m)} entries")
 
-    ; Remove a key
+    // Remove a key
     let m2 = remove(m, "type")
     println(f"after remove: {len(m2)} entries")
 
-    ; Iterate keys
+    // Iterate keys
     let ks = keys(m)
     for (k: string in ks) {
         println(f"  key: {k}")
