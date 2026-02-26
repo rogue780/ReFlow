@@ -19,7 +19,7 @@ Flow reserves the following identifiers. They cannot be used as variable names, 
 | `import` | `imut` | `in` | `int` | `int16` | `int32` |
 | `int64` | `interface` | `let` | `match` | `module` | `mut` |
 | `native` | `none` | `ok` | `option` | `pure` | `record` |
-| `result` | `retry` | `return` | `self` | `set` | `snapshot` |
+| `result` | `retry` | `return` | `self` | `set` | |
 | `some` | `static` | `stream` | `string` | `throw` | `true` |
 | `try` | `type` | `typeof` | `uint` | `uint16` | `uint32` |
 | `uint64` | `while` | `yield` | | | |
@@ -39,7 +39,7 @@ Operators are listed from highest precedence (tightest binding) to lowest. Opera
 | 2 | `-` (unary) | Negation | Right |
 | 2 | `@` | Copy | Right |
 | 3 | `**` | Exponentiation | Right |
-| 4 | `*`  `/`  `%`  `//` | Multiply, divide, modulo, floor div | Left |
+| 4 | `*`  `/`  `%`  `</` | Multiply, divide, modulo, floor div | Left |
 | 5 | `+`  `-` | Add, subtract | Left |
 | 6 | `<`  `>`  `<=`  `>=` | Relational comparison | Left |
 | 7 | `==`  `!=`  `===` | Equality, inequality, congruence | Left |
@@ -60,12 +60,12 @@ Operators are listed from highest precedence (tightest binding) to lowest. Opera
 #### Integer Literals
 
 ```flow
-42                  ; decimal
--17                 ; negative
-0                   ; zero
-1_000_000           ; underscores for readability
-0xFF                ; hexadecimal
-0xDEAD_BEEF         ; hex with underscores
+42  // decimal
+-17  // negative
+0  // zero
+1_000_000  // underscores for readability
+0xFF  // hexadecimal
+0xDEAD_BEEF  // hex with underscores
 ```
 
 Integer literals are `int` (32-bit signed) by default. Assign to a typed binding for other widths:
@@ -79,12 +79,12 @@ let c: byte = 255
 #### Float Literals
 
 ```flow
-3.14                ; basic decimal
--0.5                ; negative
-1.0                 ; explicit float (the decimal point is required)
-1e10                ; scientific notation
-2.5e-3              ; scientific with negative exponent
-1_000.000_1         ; underscores permitted
+3.14  // basic decimal
+-0.5  // negative
+1.0  // explicit float (the decimal point is required)
+1e10  // scientific notation
+2.5e-3  // scientific with negative exponent
+1_000.000_1  // underscores permitted
 ```
 
 Float literals are `float` (64-bit, IEEE 754 double) by default. Use a typed binding for `float32`.
@@ -92,9 +92,9 @@ Float literals are `float` (64-bit, IEEE 754 double) by default. Use a typed bin
 #### String Literals
 
 ```flow
-"hello"             ; plain string
+"hello"  // plain string
 "line one\nline two"; escape sequences
-""                  ; empty string
+""  // empty string
 ```
 
 Escape sequences:
@@ -133,7 +133,7 @@ false
 ```flow
 'A'
 '\n'
-'\u{03B1}'          ; Greek alpha
+'\u{03B1}'  // Greek alpha
 ```
 
 Character literals produce a `char` value (Unicode scalar).
@@ -141,9 +141,9 @@ Character literals produce a `char` value (Unicode scalar).
 #### Array Literals
 
 ```flow
-[1, 2, 3]           ; array<int>
-["a", "b"]           ; array<string>
-[]                   ; empty array (type inferred from context)
+[1, 2, 3]  // array<int>
+["a", "b"]  // array<string>
+[]  // empty array (type inferred from context)
 ```
 
 All elements must be the same type.
@@ -151,22 +151,22 @@ All elements must be the same type.
 #### Tuple Literals
 
 ```flow
-(42, "hello")        ; (int, string)
-(1.0, 2.0, 3.0)     ; (float, float, float)
+(42, "hello")  // (int, string)
+(1.0, 2.0, 3.0)  // (float, float, float)
 ```
 
 #### None Literal
 
 ```flow
-none                 ; the absence value for option<T>
+none  // the absence value for option<T>
 ```
 
 ### A.1.4 Comments
 
 ```flow
-; this is a comment
-; there are no block comments
-; multi-line comments repeat the semicolon on each line
+// this is a comment
+// there are no block comments
+// multi-line comments repeat the semicolon on each line
 ```
 
 The `;` character begins a comment that extends to the end of the line. There is no block comment syntax.
@@ -245,10 +245,10 @@ Variants without parentheses carry no payload.
 ### A.2.3 Function Types
 
 ```flow
-fn(int): bool               ; takes int, returns bool
-fn(int, int): int            ; two params
-fn(string): stream<int>      ; returns a stream
-fn(): none                   ; no params, no meaningful return
+fn(int): bool  // takes int, returns bool
+fn(int, int): int  // two params
+fn(string): stream<int>  // returns a stream
+fn(): none  // no params, no meaningful return
 ```
 
 Function types are used for lambda bindings, higher-order parameters, and type annotations.
@@ -258,13 +258,13 @@ Function types are used for lambda bindings, higher-order parameters, and type a
 Type parameters are declared in angle brackets. They may carry interface bounds.
 
 ```flow
-; Unbounded
+// Unbounded
 type Pair<A, B> { first: A, second: B }
 
-; Single bound
+// Single bound
 type SortedList<T fulfills Comparable> { items: array<T> }
 
-; Multiple bounds (parenthesized)
+// Multiple bounds (parenthesized)
 type Cache<K fulfills (Hashable, Comparable), V> { data: map<K, V> }
 ```
 
@@ -330,8 +330,7 @@ let raw: int = t.value()
 | Cast | `cast<T>(expr)` | `cast<int64>(x)` |
 | Coerce | `coerce(expr)` | `coerce(src)` |
 | Typeof | `typeof(expr)` | `typeof(x)` |
-| Snapshot | `snapshot(expr)` | `snapshot(Config.port)` |
-| Copy operator | `@expr` | `@data` |
+| Copy operator | `@expr` | `@data`, `@Config.port` |
 | Some wrapping | `some(expr)` | `some(42)` |
 | Ok wrapping | `ok(expr)` | `ok(value)` |
 | Err wrapping | `err(expr)` | `err("bad")` |
@@ -350,9 +349,9 @@ let raw: int = t.value()
 Composition chains evaluate left to right using an implicit value stack.
 
 ```flow
-x -> f -> g              ; g(f(x))
-x -> y -> mul            ; mul(x, y)
-x -> (dbl | sqr) -> mul  ; mul(dbl(x), sqr(x))
+x -> f -> g  // g(f(x))
+x -> y -> mul  // mul(x, y)
+x -> (dbl | sqr) -> mul  // mul(dbl(x), sqr(x))
 ```
 
 Rules:
@@ -383,10 +382,10 @@ If the left operand is `some(v)`, evaluates to `v`. If `none`, evaluates the rig
 ### A.3.5 Lambdas
 
 ```flow
-\(x: int => x * 2)                      ; single param
-\(x: int, y: int => x + y)              ; multiple params
-\( => 42)                                ; no params
-\(s: string => s.len() > 5)             ; predicate
+\(x: int => x * 2)  // single param
+\(x: int, y: int => x + y)  // multiple params
+\( => 42)  // no params
+\(s: string => s.len() > 5)  // predicate
 ```
 
 Capture rules:
@@ -427,10 +426,10 @@ Capture rules:
 ### A.4.2 `let` Bindings
 
 ```flow
-let x: int = 5              ; immutable, explicit type
-let y = compute()            ; immutable, inferred type
-let z: int:mut = 0           ; mutable
-let w: int?:mut = none       ; mutable optional
+let x: int = 5  // immutable, explicit type
+let y = compute()  // immutable, inferred type
+let z: int:mut = 0  // mutable
+let w: int?:mut = none  // mutable optional
 ```
 
 A `let` without `:mut` creates an immutable binding. Reassignment to an immutable binding is a compile error.
@@ -440,13 +439,13 @@ A `let` without `:mut` creates an immutable binding. Reassignment to an immutabl
 Assignment and compound assignment are only valid on `:mut` bindings or `:mut` struct fields.
 
 ```flow
-x = 10                       ; simple assignment
-x += 5                       ; compound: x = x + 5
-x -= 1                       ; compound: x = x - 1
-x *= 2                       ; compound: x = x * 2
-x /= 3                       ; compound: x = x / 3
-x++                          ; increment: x = x + 1
-x--                          ; decrement: x = x - 1
+x = 10  // simple assignment
+x += 5  // compound: x = x + 5
+x -= 1  // compound: x = x - 1
+x *= 2  // compound: x = x * 2
+x /= 3  // compound: x = x / 3
+x++  // increment: x = x + 1
+x--  // decrement: x = x - 1
 ```
 
 ### A.4.4 `return`
@@ -460,7 +459,7 @@ fn add(a: int, b: int): int {
 
 fn log(msg: string) {
     io.println(msg)
-    return                   ; explicit return none
+    return  // explicit return none
 }
 ```
 
@@ -505,9 +504,9 @@ module math.vector
 ### A.5.2 Import Declarations
 
 ```flow
-import math.vector                   ; namespace import: vector.Vec3, vector.dot
-import math.vector (Vec3, dot)       ; named imports: Vec3, dot in local scope
-import math.vector as vec            ; aliased: vec.Vec3, vec.dot
+import math.vector  // namespace import: vector.Vec3, vector.dot
+import math.vector (Vec3, dot)  // named imports: Vec3, dot in local scope
+import math.vector as vec  // aliased: vec.Vec3, vec.dot
 ```
 
 Bare import uses the **last component** as the namespace name. Circular imports are a compile error.
@@ -518,7 +517,7 @@ Only `export`-marked declarations are visible to importers.
 
 ```flow
 export fn visible(): int = 42
-fn private(): int = 99               ; module-private
+fn private(): int = 99  // module-private
 export type Point { x: float, y: float }
 ```
 
@@ -547,7 +546,7 @@ fn:pure square(x: int): int = x * x
 Pure function restrictions:
 - All called functions must be `pure`.
 - No mutable statics read or written.
-- No `snapshot()`, no I/O, no randomness.
+- No mutable static access (even with `@`), no I/O, no randomness.
 - No `:mut` parameters accepted.
 - Local `:mut` variables are permitted if mutation does not escape.
 
@@ -622,8 +621,8 @@ Methods take explicit `self` as the first parameter.
 
 ```flow
 type Counter {
-    name: string,            ; immutable
-    count: int:mut           ; mutable
+    name: string,  // immutable
+    count: int:mut  // mutable
 }
 ```
 
@@ -659,7 +658,7 @@ let e = LogEntry.from_raw(100, "us-east-1")
 #### Struct spread
 
 ```flow
-let q = Point { x: 9.9, ..p }       ; copies y, z from p; overrides x
+let q = Point { x: 9.9, ..p }  // copies y, z from p; overrides x
 ```
 
 The `..source` must come last. Spread bypasses constructors.
@@ -917,13 +916,13 @@ data -> for(x: int) {
 
 ```flow
 try {
-    ; code that may throw
+    // code that may throw
 } retry function_name (ex: ExceptionType, attempts: N) {
-    ; correct ex.data before retry
+    // correct ex.data before retry
 } catch (ex: ExceptionType) {
-    ; handle after retries exhausted
+    // handle after retries exhausted
 } finally (? ex: Exception) {
-    ; cleanup; always runs once
+    // cleanup; always runs once
 }
 ```
 
@@ -987,9 +986,9 @@ fn handler(inbox: stream<string>): stream<Result> {
     }
 }
 
-let h :< handler()                   ; inbox auto-created
-h.send("command")                    ; pushes to inbox
-let r = h.next()                     ; reads from yields
+let h :< handler()  // inbox auto-created
+h.send("command")  // pushes to inbox
+let r = h.next()  // reads from yields
 ```
 
 ### A.9.4 Channel Capacity
@@ -1060,7 +1059,7 @@ Passing `:imut` to `:mut` is a compile error. Use `@` for a mutable copy.
 Mutable data cannot cross parallel fan-out or coroutine boundaries. Options:
 - Transfer ownership (sender loses access).
 - Copy with `@`.
-- Use `snapshot()` for static values.
+- Use `@` on mutable statics for thread-safe deep copies.
 
 ---
 
@@ -1118,16 +1117,16 @@ All conversions are explicit via `cast<T>`:
 
 ```flow
 let a: int = 100
-let b: int64 = cast<int64>(a)       ; widening, always succeeds
-let c: float = cast<float>(a)       ; int to float
-let d: int = cast<int>(3.9)         ; truncates toward zero: 3
+let b: int64 = cast<int64>(a)  // widening, always succeeds
+let c: float = cast<float>(a)  // int to float
+let d: int = cast<int>(3.9)  // truncates toward zero: 3
 ```
 
 **Exception:** integers of the same signedness widen implicitly when the target is strictly wider.
 
 ```flow
 let a: int = 100
-let b: int64 = a                     ; implicit widening
+let b: int64 = a  // implicit widening
 ```
 
 Mixed signedness remains a compile error. Float-to-int and int-to-float require explicit `cast`.

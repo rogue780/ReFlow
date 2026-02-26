@@ -183,7 +183,7 @@ type Box fulfills Measurable {
     l: int, w: int, h: int
 
     fn length(self): int = self.l
-    ; compile error: type 'Box' does not implement 'width' required by 'Measurable'
+    // compile error: type 'Box' does not implement 'width' required by 'Measurable'
 }
 ```
 
@@ -195,7 +195,7 @@ type BadBox fulfills Measurable {
 
     fn length(self): int = self.l
     fn width(self): string = f"{self.w}"
-    ; compile error: method 'width' returns 'string', expected 'int'
+    // compile error: method 'width' returns 'string', expected 'int'
 }
 ```
 
@@ -317,9 +317,9 @@ fn main() {
     let a = Point { x: 1, y: 2 }
     let b = Point { x: 1, y: 2 }
     let c = Point { x: 3, y: 4 }
-    println(f"a == b: {a == b}")   ; true
-    println(f"a == c: {a == c}")   ; false
-    println(f"a != c: {a != c}")   ; true
+    println(f"a == b: {a == b}")  // true
+    println(f"a == c: {a == c}")  // false
+    println(f"a != c: {a != c}")  // true
 }
 ```
 
@@ -348,7 +348,7 @@ interface Showable {
 
 ```flow
 let count = 42
-let msg = "count: " + count    ; "count: 42"
+let msg = "count: " + count  // "count: 42"
 ```
 
 For user-defined types:
@@ -364,7 +364,7 @@ type Color fulfills Showable {
 
 fn main() {
     let c = Color { r: 255, g: 128, b: 0 }
-    println(f"color: {c}")    ; color: (255, 128, 0)
+    println(f"color: {c}")  // color: (255, 128, 0)
 }
 ```
 
@@ -481,11 +481,11 @@ Any type fulfilling `SortedContainer` must supply a concrete type for `T` that i
 
 ```flow
 type SortedInts fulfills SortedContainer<int> {
-    ; ok: int fulfills Comparable
+    // ok: int fulfills Comparable
     items: array<int>
 
     fn insert(self, val: int): SortedInts {
-        ; insert in sorted order
+        // insert in sorted order
         let result: array<int>:mut = []
         let inserted: bool:mut = false
         for (item: int in self.items) {
@@ -545,8 +545,8 @@ fn main() {
     let b = Point { x: 1, y: 2 }
     let c = Point { x: 3, y: 4 }
 
-    println(f"a == b: {a == b}")   ; true: same field values
-    println(f"a == c: {a == c}")   ; false: different values
+    println(f"a == b: {a == b}")  // true: same field values
+    println(f"a == c: {a == c}")  // false: different values
 }
 ```
 
@@ -564,7 +564,7 @@ fn main() {
     let log = LogEntry { timestamp: 100, source: "us-east-1" }
     let event = EventRecord { source: "us-east-1", timestamp: 100 }
 
-    println(f"log == event: {log == event}")   ; true: same field values
+    println(f"log == event: {log == event}")  // true: same field values
 }
 ```
 
@@ -584,8 +584,8 @@ fn main() {
     let b = EventRecord { source: "west-2", timestamp: 200 }
     let c = MetricPoint { timestamp: 100, value: 3.14 }
 
-    println(f"a === b: {a === b}")   ; true: same field names and types
-    println(f"a === c: {a === c}")   ; false: MetricPoint has 'value', not 'source'
+    println(f"a === b: {a === b}")  // true: same field names and types
+    println(f"a === c: {a === c}")  // false: MetricPoint has 'value', not 'source'
 }
 ```
 
@@ -604,7 +604,7 @@ type InputData { x: int, y: int }
 type ProcessedData { x: int, y: int }
 
 fn process(input: InputData): ProcessedData {
-    ; safe: InputData and ProcessedData are congruent
+    // safe: InputData and ProcessedData are congruent
     return coerce(input)
 }
 ```
@@ -630,10 +630,10 @@ fn:pure stringify<T fulfills Showable>(items: array<T>): string {
 
 fn main() {
     let nums = [1, 2, 3]
-    println(stringify(nums))    ; 1, 2, 3
+    println(stringify(nums))  // 1, 2, 3
 
     let words = ["hello", "world"]
-    println(stringify(words))   ; hello, world
+    println(stringify(words))  // hello, world
 }
 ```
 
@@ -658,10 +658,10 @@ fn find_max_display<T fulfills (Comparable, Showable)>(items: array<T>): string 
 The parentheses are required. Without them, `<T fulfills Comparable, Showable>` would declare two type parameters: `T` bounded by `Comparable`, and an unbounded parameter named `Showable`. This is the disambiguation rule from Chapter 3: parentheses group bounds on one parameter; no parentheses means the comma separates parameters.
 
 ```flow
-; Two parameters: T bounded by Comparable, U unbounded
+// Two parameters: T bounded by Comparable, U unbounded
 fn wrap<T fulfills Comparable, U>(a: T, b: U): T = a
 
-; One parameter with two bounds
+// One parameter with two bounds
 fn process<T fulfills (Comparable, Showable)>(a: T): string {
     return a.to_string()
 }
@@ -684,8 +684,8 @@ type Box<T fulfills Showable> {
 The bound is checked when the type is instantiated:
 
 ```flow
-let b = Box<int> { value: 42 }    ; ok: int fulfills Showable
-b.display()                         ; Box(42)
+let b = Box<int> { value: 42 }  // ok: int fulfills Showable
+b.display()  // Box(42)
 ```
 
 ### Bounds on Interface Declarations
@@ -706,8 +706,8 @@ Any type fulfilling `Transformer` must supply a concrete type for `T` that fulfi
 alias Sortable<T fulfills Comparable>: array<T>
 
 fn sort<T fulfills Comparable>(items: Sortable<T>): Sortable<T> {
-    ; sort the array
-    ; ...
+    // sort the array
+    // ...
     return items
 }
 ```
@@ -780,10 +780,10 @@ type RingBuffer<T> fulfills collection<int, T> {
     }
 
     fn set(self, key: int, val: T): RingBuffer<T> {
-        ; If at capacity, drop the oldest element
+        // If at capacity, drop the oldest element
         let new_items: array<T>:mut = self.items
         if (self.count >= self.capacity) {
-            ; remove first element, append new one
+            // remove first element, append new one
             new_items = array.slice(self.items, 1, array.length(self.items))
             array.push(new_items, val)
             return RingBuffer<T> {
@@ -836,10 +836,10 @@ fn main() {
     buf = buf.set(0, "first")
     buf = buf.set(1, "second")
     buf = buf.set(2, "third")
-    buf = buf.set(3, "fourth")    ; drops "first"
+    buf = buf.set(3, "fourth")  // drops "first"
 
-    println(f"length: {buf.len()}")    ; 3
-    print_all(buf)                      ; second, third, fourth
+    println(f"length: {buf.len()}")  // 3
+    print_all(buf)  // second, third, fourth
 }
 ```
 
@@ -858,7 +858,7 @@ fn max<T fulfills Comparable>(a: T, b: T): T {
 }
 
 fn main() {
-    let m = max(3, 7)    ; compiler generates code for max<int>
+    let m = max(3, 7)  // compiler generates code for max<int>
 }
 ```
 
@@ -955,7 +955,7 @@ type Config fulfills Storable {
     data: string
 
     fn save(self): bool = true
-    ; compile error: type 'Config' does not implement 'load' required by 'Storable'
+    // compile error: type 'Config' does not implement 'load' required by 'Storable'
 }
 ```
 
@@ -972,7 +972,7 @@ type MyCounter fulfills Counter {
     n: int
 
     fn increment(self): int = self.n + 1
-    ; compile error: method 'increment' returns 'int', expected 'MyCounter'
+    // compile error: method 'increment' returns 'int', expected 'MyCounter'
 }
 ```
 
@@ -992,7 +992,7 @@ type MyCounter fulfills Counter {
 
 ```flow
 fn sort<T fulfills Comparable>(items: array<T>): array<T> {
-    ; ...
+    // ...
 }
 
 type Blob { data: array<byte> }
@@ -1000,7 +1000,7 @@ type Blob { data: array<byte> }
 fn main() {
     let blobs = [Blob { data: [] }]
     sort(blobs)
-    ; compile error: type 'Blob' does not fulfill 'Comparable'
+    // compile error: type 'Blob' does not fulfill 'Comparable'
 }
 ```
 
@@ -1017,7 +1017,7 @@ type User fulfills Hashable {
     name: string
 
     fn hash(self): int {
-        println(f"hashing {self.name}")    ; ERROR: println is not pure
+        println(f"hashing {self.name}")  // ERROR: println is not pure
         return string.length(self.name)
     }
 }
@@ -1098,7 +1098,7 @@ type Score fulfills Comparable {
 fn sort_ascending<T fulfills Comparable>(items: array<T>): array<T> {
     let sorted: array<T>:mut = []
     for (item: T in items) {
-        ; Find insertion point
+        // Find insertion point
         let inserted: bool:mut = false
         let result: array<T>:mut = []
         for (existing: T in sorted) {
@@ -1255,11 +1255,11 @@ type SimpleMap fulfills collection<string, int> {
     }
 
     fn set(self, key: string, val: int): SimpleMap {
-        ; Check if key already exists
+        // Check if key already exists
         let i: int:mut = 0
         for (k: string in self.map_keys) {
             if (k == key) {
-                ; Update existing value
+                // Update existing value
                 let new_vals: array<int>:mut = self.map_values
                 new_vals[i] = val
                 return SimpleMap {
@@ -1269,7 +1269,7 @@ type SimpleMap fulfills collection<string, int> {
             }
             i++
         }
-        ; Append new key-value pair
+        // Append new key-value pair
         let new_keys: array<string>:mut = self.map_keys
         let new_vals: array<int>:mut = self.map_values
         array.push(new_keys, key)

@@ -186,9 +186,9 @@ You can use different import styles for different modules in the same file.
 Each import statement is independent:
 
 ```flow
-import math.vector (Vec3, dot)     ; selective: use these constantly
-import math.matrix as mat          ; alias: use occasionally, keep prefix
-import io                          ; namespace: use io.println, io.read_line
+import math.vector (Vec3, dot)  // selective: use these constantly
+import math.matrix as mat  // alias: use occasionally, keep prefix
+import io  // namespace: use io.println, io.read_line
 ```
 
 There is no restriction on combining styles. Choose whichever form makes the
@@ -233,25 +233,25 @@ module auth
 
 import crypto (hash_password, verify_password)
 
-; Public: other modules can call this
+// Public: other modules can call this
 export fn authenticate(user: string, password: string): bool {
     let stored = lookup_hash(user)
     return verify_password(password, stored)
 }
 
-; Public: other modules can use this type
+// Public: other modules can use this type
 export type Credentials {
     username: string,
     token: string
 }
 
-; Private: only this module can call this
+// Private: only this module can call this
 fn lookup_hash(user: string): string {
-    ; implementation detail: read from database
+    // implementation detail: read from database
     return "stored_hash_placeholder"
 }
 
-; Private: internal constant
+// Private: internal constant
 let MAX_ATTEMPTS: int = 5
 ```
 
@@ -316,7 +316,7 @@ For immutable data, this is unremarkable. A constant is a constant. For
 mutable statics, it matters:
 
 ```flow
-; config.flow
+// config.flow
 module config
 
 export type DB {
@@ -326,7 +326,7 @@ export type DB {
 ```
 
 ```flow
-; server.flow
+// server.flow
 module server
 
 import config (DB)
@@ -337,7 +337,7 @@ fn connect(): string {
 ```
 
 ```flow
-; admin.flow
+// admin.flow
 module admin
 
 import config (DB)
@@ -408,7 +408,7 @@ module.
 ### Before: Circular
 
 ```flow
-; orders.flow
+// orders.flow
 module orders
 import inventory (check_stock)
 
@@ -420,17 +420,17 @@ export fn place(o: Order): bool {
 ```
 
 ```flow
-; inventory.flow
+// inventory.flow
 module inventory
-import orders (Order)         ; circular: orders already imports inventory
+import orders (Order)  // circular: orders already imports inventory
 
 export fn check_stock(item: string, qty: int): bool {
-    ; ...
+    // ...
     return true
 }
 
 export fn pending_orders(): array<Order> {
-    ; needs the Order type
+    // needs the Order type
     return []
 }
 ```
@@ -438,14 +438,14 @@ export fn pending_orders(): array<Order> {
 ### After: Extracted
 
 ```flow
-; types.flow
+// types.flow
 module types
 
 export type Order { item: string, quantity: int }
 ```
 
 ```flow
-; orders.flow
+// orders.flow
 module orders
 import types (Order)
 import inventory (check_stock)
@@ -456,7 +456,7 @@ export fn place(o: Order): bool {
 ```
 
 ```flow
-; inventory.flow
+// inventory.flow
 module inventory
 import types (Order)
 
@@ -566,14 +566,14 @@ within the inner scope, and no warning is emitted:
 ```flow
 fn example() {
     let x = 10
-    println(f"{x}")        ; 10
+    println(f"{x}")  // 10
 
     if (true) {
-        let x = 20         ; shadows outer x
-        println(f"{x}")    ; 20
+        let x = 20  // shadows outer x
+        println(f"{x}")  // 20
     }
 
-    println(f"{x}")        ; 10 again: inner x is out of scope
+    println(f"{x}")  // 10 again: inner x is out of scope
 }
 ```
 
@@ -587,8 +587,8 @@ Parameters shadow imported names:
 import math (sqrt)
 
 fn sqrt(x: int): int {
-    ; this function shadows the imported sqrt
-    ; within this file, sqrt refers to this function
+    // this function shadows the imported sqrt
+    // within this file, sqrt refers to this function
     return x
 }
 ```
@@ -603,7 +603,7 @@ Shadowing across nested scopes is more common and less dangerous:
 ```flow
 fn process(items: array<string>) {
     for (item: string in items) {
-        let item = f"processed: {item}"   ; shadows loop variable
+        let item = f"processed: {item}"  // shadows loop variable
         println(item)
     }
 }
@@ -630,16 +630,16 @@ management application:
 
 ```
 taskman/
-    main.flow                   ; module taskman.main
-    config.flow                 ; module taskman.config
+    main.flow  // module taskman.main
+    config.flow  // module taskman.config
     models/
-        task.flow               ; module taskman.models.task
-        user.flow               ; module taskman.models.user
+        task.flow  // module taskman.models.task
+        user.flow  // module taskman.models.user
     storage/
-        memory.flow             ; module taskman.storage.memory
+        memory.flow  // module taskman.storage.memory
     services/
-        tasks.flow              ; module taskman.services.tasks
-        auth.flow               ; module taskman.services.auth
+        tasks.flow  // module taskman.services.tasks
+        auth.flow  // module taskman.services.auth
 ```
 
 Each directory maps to a segment of the module path. Each file declares its
@@ -650,7 +650,7 @@ full module name. Let us walk through the code.
 Types live in their own modules, free of logic:
 
 ```flow
-; models/task.flow
+// models/task.flow
 module taskman.models.task
 
 export type Priority = Low | Medium | High
@@ -664,7 +664,7 @@ export type Task {
 ```
 
 ```flow
-; models/user.flow
+// models/user.flow
 module taskman.models.user
 
 export type User {
@@ -681,7 +681,7 @@ imports of their own, so they can never be part of a cycle.
 ### Configuration
 
 ```flow
-; config.flow
+// config.flow
 module taskman.config
 
 export type App {
@@ -697,18 +697,18 @@ be changed after initialization.
 ### Storage
 
 ```flow
-; storage/memory.flow
+// storage/memory.flow
 module taskman.storage.memory
 
 import taskman.models.task (Task)
 
 export fn store(t: Task): bool {
-    ; persist the task
+    // persist the task
     return true
 }
 
 export fn find_by_id(id: int): Task? {
-    ; look up a task, return none if not found
+    // look up a task, return none if not found
     return none
 }
 ```
@@ -720,7 +720,7 @@ depend on storage, storage depends on models. Never the reverse.
 ### Services
 
 ```flow
-; services/tasks.flow
+// services/tasks.flow
 module taskman.services.tasks
 
 import taskman.models.task (Task, Priority)
@@ -742,7 +742,7 @@ export fn create_task(title: string, priority: Priority): Task? {
 }
 
 fn next_id(): int {
-    ; private helper: generate unique IDs
+    // private helper: generate unique IDs
     return 1
 }
 ```
@@ -753,7 +753,7 @@ The service module imports from both models and storage. `next_id` is private
 ### The Entry Point
 
 ```flow
-; main.flow
+// main.flow
 module taskman.main
 
 import io (println)
@@ -905,7 +905,7 @@ Write a `main.flow` that calls `increment` three times and prints the result
 of `get_count`. Verify that the count is 3.
 
 ```flow
-; counter.flow
+// counter.flow
 module counter
 
 export type State {
@@ -922,7 +922,7 @@ export fn get_count(): int {
 ```
 
 ```flow
-; main.flow
+// main.flow
 module main
 
 import io (println)
@@ -957,7 +957,7 @@ refactor the code to eliminate it. All existing functionality must be
 preserved.
 
 ```flow
-; users.flow
+// users.flow
 module users
 import permissions (Role)
 
@@ -969,7 +969,7 @@ export fn create(name: string): User {
 ```
 
 ```flow
-; permissions.flow
+// permissions.flow
 module permissions
 import users (User)
 

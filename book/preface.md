@@ -61,8 +61,8 @@ fn greet(name: string): string {
 Comments in Flow use the semicolon character:
 
 ```flow
-; this is a comment
-let x: int = 42  ; so is this
+// this is a comment
+let x: int = 42  // so is this
 ```
 
 **Bold text** marks the first use of an important term. After its introduction, the term appears in normal weight.

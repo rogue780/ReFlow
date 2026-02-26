@@ -76,7 +76,7 @@ specified, in any order:
 
 ```flow
 let p = Point { x: 3.0, y: 4.0 }
-let q = Point { y: 0.0, x: 1.0 }   ; order does not matter
+let q = Point { y: 0.0, x: 1.0 }  // order does not matter
 ```
 
 Omitting a field is a compile error. There are no default values. This
@@ -106,7 +106,7 @@ let segment = Line {
     start: Point { x: 0.0, y: 0.0 },
     end_point: Point { x: 3.0, y: 4.0 },
 }
-println(f"length: {segment.length()}")   ; 5.0
+println(f"length: {segment.length()}")  // 5.0
 ```
 
 ### 6.1.2 The `self` Parameter
@@ -134,16 +134,16 @@ remaining arguments go in the parentheses:
 
 ```flow
 let c = Circle { radius: 5.0 }
-let a = c.area()              ; 78.53975
-let big = c.scale(2.0)       ; Circle { radius: 10.0 }
+let a = c.area()  // 78.53975
+let big = c.scale(2.0)  // Circle { radius: 10.0 }
 ```
 
 Because `self` is just a function parameter, methods also participate in
 composition chains. The two calls below are identical:
 
 ```flow
-let a1 = c.area()            ; method call syntax
-let a2 = c -> area           ; composition syntax
+let a1 = c.area()  // method call syntax
+let a2 = c -> area  // composition syntax
 ```
 
 This is not a special rule for methods. It is the general composition
@@ -158,7 +158,7 @@ let result = Circle { radius: 1.0 }
     .scale(2.0)
     .scale(3.0)
     .area()
-; result is the area of a circle with radius 6.0
+// result is the area of a circle with radius 6.0
 ```
 
 Notice that `scale` returns a new `Circle` rather than modifying the
@@ -224,11 +224,11 @@ type Record {
 }
 
 let r1 = Record { id: 1, status: "pending" }
-; r1.status = "done"     ; compile error: r1 is not :mut
+// r1.status = "done"  // compile error: r1 is not :mut
 
 let r2: Record:mut = Record { id: 2, status: "pending" }
-r2.status = "done"       ; ok: binding is :mut and field is :mut
-; r2.id = 3              ; compile error: id is not :mut
+r2.status = "done"  // ok: binding is :mut and field is :mut
+// r2.id = 3  // compile error: id is not :mut
 ```
 
 This two-level design is deliberate. The field declaration says what *can*
@@ -313,7 +313,7 @@ type Email {
     address: string,
 
     constructor parse(raw: string): Email {
-        ; simplified validation
+        // simplified validation
         if (!raw.contains("@")) {
             throw "invalid email: missing @"
         }
@@ -321,8 +321,8 @@ type Email {
     }
 }
 
-let valid = Email.parse("alice@example.com")    ; ok
-; let bad = Email { address: "not-an-email" }   ; compile error: must use constructor
+let valid = Email.parse("alice@example.com")  // ok
+// let bad = Email { address: "not-an-email" }  // compile error: must use constructor
 ```
 
 This is how Flow enforces invariants at the type level. If `Email` always
@@ -337,16 +337,16 @@ not add constructors just because you can. Add them when there is a
 constraint to enforce.
 
 ```flow
-; No constructor needed: all field combinations are valid
+// No constructor needed: all field combinations are valid
 type Point { x: float, y: float }
-let p = Point { x: 3.0, y: 4.0 }    ; direct construction, fine
+let p = Point { x: 3.0, y: 4.0 }  // direct construction, fine
 
-; Constructor needed: not all strings are valid emails
+// Constructor needed: not all strings are valid emails
 type Email {
     address: string,
     constructor parse(raw: string): Email { ... }
 }
-let e = Email.parse("alice@example.com")   ; must go through constructor
+let e = Email.parse("alice@example.com")  // must go through constructor
 ```
 
 ### 6.2.3 Multiple Constructors
@@ -368,8 +368,8 @@ type Color {
     }
 
     constructor hex(code: string): Color {
-        ; parse hex string into r, g, b
-        ; ...
+        // parse hex string into r, g, b
+        // ...
         return Color { r: r, g: g, b: b }
     }
 
@@ -469,7 +469,7 @@ you know it is happening because you see `TypeName.field` --- but it is
 shared mutable state. Treat it with discipline:
 
 ```flow
-; file: settings.flow
+// file: settings.flow
 module settings
 
 export type DB {
@@ -479,7 +479,7 @@ export type DB {
 ```
 
 ```flow
-; file: server.flow
+// file: server.flow
 module server
 import settings (DB)
 
@@ -489,12 +489,12 @@ fn connect_string(): string {
 ```
 
 ```flow
-; file: admin.flow
+// file: admin.flow
 module admin
 import settings (DB)
 
 fn override_host(h: string) {
-    DB.host = h    ; server.flow sees this change
+    DB.host = h  // server.flow sees this change
 }
 ```
 
@@ -544,7 +544,7 @@ fn main() {
         active: true,
     }
 
-    ; create a copy with only the age changed
+    // create a copy with only the age changed
     let older = User { age: 31, ..alice }
 
     println(f"{older.name}, age {older.age}")
@@ -567,8 +567,8 @@ Spread creates a new value. The original is unchanged:
 
 ```flow
 let deactivated = User { active: false, ..alice }
-; alice.active is still true
-; deactivated.active is false
+// alice.active is still true
+// deactivated.active is false
 ```
 
 You can override multiple fields at once:
@@ -614,8 +614,8 @@ type PositiveInt {
 }
 
 let good = PositiveInt.new(42)
-; This bypasses the constructor — no validation
-let bad = PositiveInt { value: -1, ..good }   ; no error at construction
+// This bypasses the constructor — no validation
+let bad = PositiveInt { value: -1, ..good }  // no error at construction
 ```
 
 Spread is a trusted operation for internal copies. If validation matters,
@@ -762,7 +762,7 @@ fn bad_area(s: Shape): float {
     match s {
         Circle(r): 3.14159 * r * r,
         Rectangle(w, h): w * h,
-        ; compile error: Triangle not handled
+        // compile error: Triangle not handled
     }
 }
 ```
@@ -972,7 +972,7 @@ types are compatible regardless of where they were created:
 ```flow
 let a: record = { x: 1, y: 2 }
 let b: record = { x: 10, y: 20 }
-; a and b have the same type: { x: int, y: int }
+// a and b have the same type: { x: int, y: int }
 ```
 
 Records are useful for intermediate pipeline data, parsed rows, and
@@ -1036,8 +1036,8 @@ primitive type.
 let d: Meters = Meters.from(100.0)
 let t: Seconds = Seconds.from(9.58)
 
-; speed(t, d)     ; compile error: Seconds is not Meters
-; speed(100.0, t) ; compile error: float is not Meters
+// speed(t, d)  // compile error: Seconds is not Meters
+// speed(100.0, t) ; compile error: float is not Meters
 ```
 
 Aliases can also wrap function types:
@@ -1093,11 +1093,11 @@ type Transformer {
 fn main() {
     let input = InputData { x: 3, y: 4 }
 
-    ; coerce InputData to Transformer (same fields: x, y)
+    // coerce InputData to Transformer (same fields: x, y)
     let t: Transformer:mut = coerce(input)
     t.scale(10)
 
-    ; coerce Transformer back to OutputData
+    // coerce Transformer back to OutputData
     let output: OutputData = coerce(t)
     println(f"result: ({output.x}, {output.y})")
 }
@@ -1144,12 +1144,12 @@ with different types all cause compile errors:
 
 ```flow
 type A { x: int, y: int }
-type B { x: int, y: float }    ; y is float, not int
-type C { x: int, y: int, z: int }   ; extra field z
+type B { x: int, y: float }  // y is float, not int
+type C { x: int, y: int, z: int }  // extra field z
 
 let a = A { x: 1, y: 2 }
-; let b: B = coerce(a)  ; compile error: y types differ
-; let c: C = coerce(a)  ; compile error: C has field z that A lacks
+// let b: B = coerce(a)  // compile error: y types differ
+// let c: C = coerce(a)  // compile error: C has field z that A lacks
 ```
 
 ---
@@ -1180,16 +1180,16 @@ new one:
 import array (push, get, len)
 
 let a: array<int> = [1, 2, 3]
-let b: array<int> = array.push(a, 4)    ; [1, 2, 3, 4] — a is unchanged
+let b: array<int> = array.push(a, 4)  // [1, 2, 3, 4] — a is unchanged
 ```
 
 Element access returns `option<T>` because the index might be out of
 bounds:
 
 ```flow
-let first: int? = array.get_int(nums, 0)     ; some(1)
-let bad: int? = array.get_int(nums, 99)      ; none
-let safe: int = array.get_int(nums, 0) ?? 0  ; 1
+let first: int? = array.get_int(nums, 0)  // some(1)
+let bad: int? = array.get_int(nums, 99)  // none
+let safe: int = array.get_int(nums, 0) ?? 0  // 1
 ```
 
 The `for` loop iterates over array elements directly:
@@ -1216,9 +1216,9 @@ let scores: map<string, int> = map.new()
 let scores2 = map.set(scores, "alice", 95)
 let scores3 = map.set(scores2, "bob", 87)
 
-let alice: int? = map.get(scores3, "alice")   ; some(95)
-let carol: int? = map.get(scores3, "carol")   ; none
-let safe: int = map.get(scores3, "carol") ?? 0  ; 0
+let alice: int? = map.get(scores3, "alice")  // some(95)
+let carol: int? = map.get(scores3, "carol")  // none
+let safe: int = map.get(scores3, "carol") ?? 0  // 0
 ```
 
 Like arrays, maps are immutable by default. `map.set` returns a new map;
@@ -1382,7 +1382,7 @@ is the payoff for the strictness you have seen throughout this chapter.
 type Point { x: float, y: float }
 
 let p = Point { x: 3.0 }
-; compile error: missing field 'y' in Point literal
+// compile error: missing field 'y' in Point literal
 ```
 
 Every field must be specified. There are no defaults and no optional fields.
@@ -1398,7 +1398,7 @@ type Age {
 }
 
 let a = Age { value: 25 }
-; compile error: type Age has constructors; use Age.new()
+// compile error: type Age has constructors; use Age.new()
 ```
 
 Once any constructor is defined, literal construction outside the type body
@@ -1413,7 +1413,7 @@ fn name(c: Color): string {
     match c {
         Red: "red",
         Green: "green",
-        ; compile error: Blue not handled
+        // compile error: Blue not handled
     }
 }
 ```
@@ -1427,14 +1427,14 @@ type Counter { value: int:mut }
 
 let c = Counter { value: 0 }
 c.value = 1
-; compile error: cannot mutate field on immutable binding 'c'
+// compile error: cannot mutate field on immutable binding 'c'
 ```
 
 The binding must be `:mut` to mutate even `:mut` fields:
 
 ```flow
 let c: Counter:mut = Counter { value: 0 }
-c.value = 1    ; ok
+c.value = 1  // ok
 ```
 
 ### Wrong Variant Data
@@ -1445,7 +1445,7 @@ type Shape =
     | Rectangle(width: float, height: float)
 
 let s = Circle(5.0, 3.0)
-; compile error: Circle takes 1 argument, got 2
+// compile error: Circle takes 1 argument, got 2
 ```
 
 Each variant's argument count and types must match its definition.
@@ -1456,11 +1456,11 @@ error. The variant fields have types just like struct fields.
 
 ```flow
 type A { x: int, y: int }
-type B { x: int, z: int }    ; z, not y
+type B { x: int, z: int }  // z, not y
 
 let a = A { x: 1, y: 2 }
 let b: B = coerce(a)
-; compile error: types A and B are not structurally congruent
+// compile error: types A and B are not structurally congruent
 ```
 
 The field names must match exactly. Renaming a field breaks congruence.
@@ -1473,7 +1473,7 @@ type Color { r: int, g: int, b: int }
 
 let p = Point { x: 1.0, y: 2.0 }
 let c = Color { r: 0, ..p }
-; compile error: cannot spread Point into Color
+// compile error: cannot spread Point into Color
 ```
 
 The spread source must be the same type as the value being constructed

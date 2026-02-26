@@ -48,9 +48,9 @@ dependencies explicit and keep the local namespace clean.
 Flow has three import forms:
 
 ```flow
-import io                    ; import all exports, use as io.println(...)
-import io (println, print)   ; import specific names into local scope
-import io as output          ; alias, use as output.println(...)
+import io  // import all exports, use as io.println(...)
+import io (println, print)  // import specific names into local scope
+import io as output  // alias, use as output.println(...)
 ```
 
 For now, the second form --- named imports --- is all you need.
@@ -68,8 +68,8 @@ not use semicolons as statement terminators. In Flow, the semicolon is the
 comment character:
 
 ```flow
-; This is a comment. Everything after the semicolon is ignored.
-println("Hello, World!")  ; this is also a comment
+// This is a comment. Everything after the semicolon is ignored.
+println("Hello, World!")  // this is also a comment
 ```
 
 If you have programmed in C, Java, JavaScript, Rust, or Go, the semicolon
@@ -81,10 +81,10 @@ There is no block comment syntax. Multi-line comments repeat the semicolon
 on each line:
 
 ```flow
-;================================
-; This is a multi-line comment.
-; Each line uses a semicolon.
-;================================
+//================================
+// This is a multi-line comment.
+// Each line uses a semicolon.
+//================================
 ```
 
 ---
@@ -350,7 +350,7 @@ Immutable means immutable. Once bound, the value cannot change:
 
 ```flow
 let x = 42
-x = 43       ; compile error: cannot assign to immutable binding 'x'
+x = 43  // compile error: cannot assign to immutable binding 'x'
 ```
 
 This is not a suggestion from the compiler. It is an error, and the program
@@ -360,9 +360,9 @@ To make a binding mutable, add `:mut` after the type:
 
 ```flow
 let x: int:mut = 0
-x = 42       ; ok
-x += 10      ; ok
-x++          ; ok: x is now 53
+x = 42  // ok
+x += 10  // ok
+x++  // ok: x is now 53
 ```
 
 The `:mut` qualifier is part of the type annotation, not the variable name.
@@ -373,8 +373,8 @@ When using type inference with mutable bindings, you still need the type
 annotation because `:mut` has no place to attach without it:
 
 ```flow
-let x: int:mut = 0     ; mutable, type annotated
-let y = 42              ; immutable, type inferred
+let x: int:mut = 0  // mutable, type annotated
+let y = 42  // immutable, type inferred
 ```
 
 Here is a summary of the update operators:
@@ -397,7 +397,7 @@ Mutable strings work too:
 ```flow
 let msg: string:mut = "hello"
 msg = msg + " world"
-println(msg)  ; prints "hello world"
+println(msg)  // prints "hello world"
 ```
 
 Why default to immutable? Because immutable data is easier to reason about.
@@ -833,10 +833,10 @@ fn square(x: int): int = x * x
 fn negate(x: int): int = 0 - x
 
 fn main() {
-    ; Nested calls: read inside-out
+    // Nested calls: read inside-out
     let a = negate(square(double(5)))
 
-    ; Composition: read left to right
+    // Composition: read left to right
     let b = 5 -> double -> square -> negate
 
     println(f"nested:      {a}")
@@ -862,9 +862,9 @@ arguments, the two preceding values on the stack are consumed:
 fn add(x: int, y: int): int = x + y
 
 fn main() {
-    ; 3 and 4 are pushed, add consumes both, double consumes the result
+    // 3 and 4 are pushed, add consumes both, double consumes the result
     let result = 3 -> 4 -> add -> double
-    println(f"result: {result}")  ; 14
+    println(f"result: {result}")  // 14
 }
 ```
 
@@ -883,10 +883,10 @@ To give you a preview of fan-out, here is a taste:
 fn add(x: int, y: int): int = x + y
 
 fn main() {
-    ; Fan-out: 5 is passed to both double and square,
-    ; their results feed into add
+    // Fan-out: 5 is passed to both double and square,
+    // their results feed into add
     let result = 5 -> (double | square) -> add
-    println(f"result: {result}")  ; double(5) + square(5) = 10 + 25 = 35
+    println(f"result: {result}")  // double(5) + square(5) = 10 + 25 = 35
 }
 ```
 
@@ -924,7 +924,7 @@ An infinite loop uses `while (true)`:
 
 ```flow
 while (true) {
-    ; runs until break or the program exits
+    // runs until break or the program exits
 }
 ```
 
@@ -944,30 +944,30 @@ variable types. When the collection or stream is exhausted, the loop ends.
 Both loops support **`break`** and **`continue`**:
 
 ```flow
-; Find the first negative number
+// Find the first negative number
 let nums = [3, 7, -2, 5, -8]
 let found: int:mut = 0
 for (n: int in nums) {
     if (n < 0) {
         found = n
-        break     ; exit the loop immediately
+        break  // exit the loop immediately
     }
 }
 println(f"first negative: {found}")
 ```
 
 ```flow
-; Sum only odd numbers from 1 to 9
+// Sum only odd numbers from 1 to 9
 let total: int:mut = 0
 let i: int:mut = 0
 while (i < 10) {
     i++
     if (i % 2 == 0) {
-        continue  ; skip even numbers, jump to next iteration
+        continue  // skip even numbers, jump to next iteration
     }
     total += i
 }
-println(f"sum of odds 1..9: {total}")  ; 25
+println(f"sum of odds 1..9: {total}")  // 25
 ```
 
 `break` exits the innermost enclosing loop. `continue` skips the rest of
@@ -1195,7 +1195,7 @@ fn double(x: int): int = x * 2
 
 ```flow
 fn broken(x: int): int {
-    yield x    ; compile error
+    yield x  // compile error
     return x
 }
 ```
@@ -1219,7 +1219,7 @@ This chapter covered the ground-level mechanics of Flow:
 - **`fn main()`** is the entry point of every executable program.
 - **`flow run`, `flow build`, `flow check`, `flow emit-c`** are the four
   compiler commands.
-- **Comments** use `;` (semicolon), not `//`.
+- **Comments** use `//` (double slash).
 - **`let` bindings** are immutable by default. `:mut` opts into mutability.
 - **Type inference** works for local variables; explicit annotations are
   always available.

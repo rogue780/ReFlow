@@ -67,9 +67,9 @@ type system ensures you handle that possibility.
 
 ```flow
 let a: option<int> = some(42)
-let b: int? = some(42)           ; same type
+let b: int? = some(42)  // same type
 let c: option<string> = none
-let d: string? = none             ; same type
+let d: string? = none  // same type
 ```
 
 Use whichever is clearer in context. `int?` is shorter and reads naturally
@@ -86,7 +86,7 @@ The long form reads better when nesting or when the option itself is the
 subject of discussion:
 
 ```flow
-; option<option<int>> is rare, but possible
+// option<option<int>> is rare, but possible
 let nested: option<option<int>> = some(some(42))
 ```
 
@@ -100,23 +100,23 @@ value is a plain `T`, it automatically wraps the value in `some`. This is
 called **auto-lifting**:
 
 ```flow
-let x: int? = 42                  ; auto-lifted to some(42)
-let y: int? = some(42)            ; explicit, same result
+let x: int? = 42  // auto-lifted to some(42)
+let y: int? = some(42)  // explicit, same result
 ```
 
 Auto-lifting also works in return statements and function arguments:
 
 ```flow
 fn maybe_score(): int? {
-    return 95                      ; lifted to some(95)
+    return 95  // lifted to some(95)
 }
 
 fn process(x: int?) {
-    ; ...
+    // ...
 }
 
-process(42)                        ; lifted to some(42)
-process(none)                      ; no lifting needed
+process(42)  // lifted to some(42)
+process(none)  // no lifting needed
 ```
 
 Auto-lifting does *not* fire in three situations:
@@ -166,7 +166,7 @@ enclosing function:
 
 ```flow
 fn double_positive(x: int): int? {
-    let v = find_positive(x)?      ; if none, return none immediately
+    let v = find_positive(x)?  // if none, return none immediately
     return some(v * 2)
 }
 ```
@@ -244,8 +244,8 @@ fn extract_domain(email: string): string? {
 }
 
 fn get_user_domain(id: string): string? {
-    let user = find_user(id)?           ; none if user not found
-    let email = user.email?             ; none if email not set
+    let user = find_user(id)?  // none if user not found
+    let email = user.email?  // none if email not set
     let domain = extract_domain(email)? ; none if email malformed
     return some(domain)
 }
@@ -280,12 +280,12 @@ regardless of how many optional steps there are.
 Options and mutability combine as you would expect:
 
 ```flow
-let x: int?:mut = some(5)         ; nullable, mutable
-x = none                           ; now absent
-x = 42                             ; auto-lifted to some(42)
+let x: int?:mut = some(5)  // nullable, mutable
+x = none  // now absent
+x = 42  // auto-lifted to some(42)
 
-let y: int? = some(5)             ; nullable, immutable
-; y = none                        ; compile error: immutable binding
+let y: int? = some(5)  // nullable, immutable
+// y = none  // compile error: immutable binding
 ```
 
 The `:mut` qualifier goes after the `?`. The type `int?:mut` is a mutable
@@ -347,7 +347,7 @@ When multiple operations can fail, chaining results with `match` becomes
 verbose quickly:
 
 ```flow
-; Without propagation --- verbose
+// Without propagation --- verbose
 fn compute(x: int, y: int): result<int, string> {
     match safe_divide(x, y) {
         ok(q)    : return ok(q + 1),
@@ -360,7 +360,7 @@ The `?` operator does this automatically:
 
 ```flow
 fn compute(x: int, y: int): result<int, string> {
-    let q = safe_divide(x, y)?    ; returns err early if division fails
+    let q = safe_divide(x, y)?  // returns err early if division fails
     return ok(q + 1)
 }
 ```
@@ -374,9 +374,9 @@ Propagation chains naturally:
 
 ```flow
 fn load_and_process(path: string): result<record, string> {
-    let raw = read_file(path)?           ; propagate if read fails
-    let parsed = parse(raw)?             ; propagate if parse fails
-    let validated = validate(parsed)?    ; propagate if validation fails
+    let raw = read_file(path)?  // propagate if read fails
+    let parsed = parse(raw)?  // propagate if parse fails
+    let validated = validate(parsed)?  // propagate if validation fails
     return ok(validated)
 }
 ```
@@ -424,7 +424,7 @@ is `string`:
 
 ```flow
 fn parse_port(s: string): result<int, string> {
-    ; ...
+    // ...
     return err("port out of range")
 }
 ```
@@ -440,7 +440,7 @@ type ConfigError {
 }
 
 fn parse_config(text: string): result<Config, ConfigError> {
-    ; ...
+    // ...
     return err(ConfigError {
         field: "port",
         reason: "not a number",
@@ -464,7 +464,7 @@ is `ok(v)`, it unwraps to `v`. If the left side is `err(e)`, it evaluates
 and returns the right side:
 
 ```flow
-let result = safe_divide(10, 0) ?? -1    ; -1 because division failed
+let result = safe_divide(10, 0) ?? -1  // -1 because division failed
 let value = find_user(id) ?? default_user ; default_user if lookup failed
 ```
 
@@ -515,7 +515,7 @@ value"; a result says "maybe a value, and if not, here is why." You can
 convert between them:
 
 ```flow
-; Option to result: provide an error message for the none case
+// Option to result: provide an error message for the none case
 fn require_user(id: string): result<User, string> {
     match find_user(id) {
         some(u) : return ok(u),
@@ -523,7 +523,7 @@ fn require_user(id: string): result<User, string> {
     }
 }
 
-; Result to option: discard the error information
+// Result to option: discard the error information
 fn try_parse(s: string): int? {
     match parse_int(s) {
         ok(n)  : return some(n),
@@ -561,9 +561,9 @@ fulfill the built-in `Exception<T>` interface:
 
 ```flow
 interface Exception<T> {
-    fn message(self): string   ; human-readable description
-    fn data(self): T           ; the payload that caused the failure
-    fn original(self): T       ; the original payload, read-only
+    fn message(self): string  // human-readable description
+    fn data(self): T  // the payload that caused the failure
+    fn original(self): T  // the original payload, read-only
 }
 ```
 
@@ -687,7 +687,7 @@ fn parse(input: string): int {
     if (input == "") {
         throw ParseError.from_raw("empty input", input)
     }
-    ; ... parsing logic ...
+    // ... parsing logic ...
     return 42
 }
 
@@ -739,7 +739,7 @@ fn process_file(path: string) {
     } catch (ex: ParseError) {
         log(f"parse error: {ex.message()}")
     } finally {
-        close(handle)           ; always runs
+        close(handle)  // always runs
     }
 }
 ```
@@ -783,8 +783,8 @@ The `retry` block names the specific function to re-invoke:
 try {
     let result = parse(raw_input)
 } retry parse (ex: ParseError, attempts: 3) {
-    ex.data = sanitize(ex.data)    ; correct the payload
-    ; parse() re-runs with the corrected value
+    ex.data = sanitize(ex.data)  // correct the payload
+    // parse() re-runs with the corrected value
 }
 ```
 
@@ -853,7 +853,7 @@ try {
     println(f"attempt failed. original: {ex.original}")
     println(f"current data: {ex.data}")
     ex.data = sanitize(ex.data)
-    ; parse re-runs with the sanitized value
+    // parse re-runs with the sanitized value
 }
 ```
 
@@ -875,14 +875,14 @@ try {
     let result = src -> read_csv -> parse -> validate -> write
 
 } retry parse (ex: ParseError, attempts: 3) {
-    ; Attempt 1: sanitize the input
-    ; Attempt 2: sanitize again
-    ; Attempt 3: sanitize one more time
+    // Attempt 1: sanitize the input
+    // Attempt 2: sanitize again
+    // Attempt 3: sanitize one more time
     ex.data = sanitize(ex.data)
 
 } catch (ex: ParseError) {
-    ; All 3 retries failed. ex.data is the last corrected value.
-    ; ex.original is the initial failing value.
+    // All 3 retries failed. ex.data is the last corrected value.
+    // ex.original is the initial failing value.
     log(f"parse failed after 3 attempts.")
     log(f"  original input: {ex.original}")
     log(f"  last attempt:   {ex.data}")
@@ -1077,7 +1077,7 @@ fn parse_config(text: string): result<Config, string> {
     if (len(lines) == 0) {
         return err("empty config file")
     }
-    ; ... parse lines ...
+    // ... parse lines ...
     return ok(config)
 }
 ```
@@ -1100,7 +1100,7 @@ fn parse_record(raw: string): Record {
     if (raw.contains("\0")) {
         throw ParseError.from_raw("null byte in record", raw)
     }
-    ; ... parse ...
+    // ... parse ...
     return record
 }
 ```
@@ -1197,7 +1197,7 @@ type IOError fulfills Exception<string> {
 }
 
 fn find_config(paths: array<string>): string? {
-    ; Option: the config file might not exist at any path
+    // Option: the config file might not exist at any path
     for (p: string in paths) {
         if (file_exists(p)) {
             return some(p)
@@ -1207,7 +1207,7 @@ fn find_config(paths: array<string>): string? {
 }
 
 fn parse_port(s: string): result<int, string> {
-    ; Result: the string might not be a valid port number
+    // Result: the string might not be a valid port number
     let n = string_to_int(s) ?? -1
     if (n < 1) {
         return err(f"invalid port: {s}")
@@ -1227,7 +1227,7 @@ fn load_config(): result<int, string> {
     }
 
     try {
-        ; Exception: reading the file might fail
+        // Exception: reading the file might fail
         let contents = read_all(open(path))
         let port = parse_port(contents)?
         return ok(port)
@@ -1265,7 +1265,7 @@ them and convert to results for a cleaner API.
 ```flow
 fn main() {
     let x: int? = some(42)
-    let y: int = x              ; compile error: cannot assign int? to int
+    let y: int = x  // compile error: cannot assign int? to int
 }
 ```
 
@@ -1277,7 +1277,7 @@ An `option<int>` is not an `int`. You must unwrap it with `match`, `??`,
 ```flow
 match find_user(id) {
     some(u) : process(u)
-    ; compile error: non-exhaustive match --- missing 'none' arm
+    // compile error: non-exhaustive match --- missing 'none' arm
 }
 ```
 
@@ -1288,7 +1288,7 @@ wildcard `_` arm.
 
 ```flow
 fn get_name(): string {
-    let user = find_user(id)?    ; compile error: ? requires option return type
+    let user = find_user(id)?  // compile error: ? requires option return type
     return user.name
 }
 ```
@@ -1301,8 +1301,8 @@ enclosing function to return `result<U, E>` with a compatible error type.
 
 ```flow
 fn fetch(): result<int, string> {
-    let x = parse_int(s)?       ; ok: both return result<_, string>
-    let y = read_file(path)?    ; compile error if read_file returns result<_, IOError>
+    let x = parse_int(s)?  // ok: both return result<_, string>
+    let y = read_file(path)?  // compile error if read_file returns result<_, IOError>
     return ok(x + y)
 }
 ```
@@ -1325,8 +1325,8 @@ fn fetch(): result<int, string> {
 
 ```flow
 fn main() {
-    parse(bad_input)    ; throws ParseError
-    ; no try/catch: program terminates with unhandled exception
+    parse(bad_input)  // throws ParseError
+    // no try/catch: program terminates with unhandled exception
 }
 ```
 
@@ -1342,7 +1342,7 @@ system does not enforce it.
 try {
     let x = parse(input)
 } retry validate (ex: ParseError, attempts: 3) {
-    ; compile error: 'validate' does not appear in the try block
+    // compile error: 'validate' does not appear in the try block
     ex.data = sanitize(ex.data)
 }
 ```
@@ -1355,7 +1355,7 @@ function that is not called there is a compile error.
 ```flow
 match safe_divide(10, 3) {
     ok(v) : println(f"result: {v}")
-    ; compile error: non-exhaustive match --- missing 'err' arm
+    // compile error: non-exhaustive match --- missing 'err' arm
 }
 ```
 
@@ -1368,8 +1368,8 @@ must be covered, or a wildcard `_` arm must be present.
 try {
     let result = parse(input)
 } retry parse (ex: ParseError, attempts: 2) {
-    ex.original = "overwrite"    ; compile error: ex.original is immutable
-    ex.data = sanitize(ex.data)  ; ok: ex.data is mutable
+    ex.original = "overwrite"  // compile error: ex.original is immutable
+    ex.data = sanitize(ex.data)  // ok: ex.data is mutable
 }
 ```
 
@@ -1381,7 +1381,7 @@ can be modified in a retry block.
 
 ```flow
 let x: int? = some(42)
-let y: int? = x               ; y is some(42), not some(some(42))
+let y: int? = x  // y is some(42), not some(some(42))
 ```
 
 This is *not* an error. Auto-lifting does not fire when the source is
@@ -1395,7 +1395,7 @@ variable continue to work without changes.
 
 ```flow
 let x: int = some(42) ?? "default"
-; compile error: ?? branches must have the same type
+// compile error: ?? branches must have the same type
 ```
 
 The left side of `??` unwraps to `int` (the inner type of `int?`). The
@@ -1435,7 +1435,7 @@ type Order {
 }
 
 fn parse_order(raw: string): Order {
-    ; Simplified: expects "customer_id,amount"
+    // Simplified: expects "customer_id,amount"
     let parts = split(raw, ",")
     if (len(parts) != 2) {
         throw ParseError.from_raw("expected 2 fields", raw)
@@ -1459,12 +1459,12 @@ fn validate_order(o: Order): result<Order, string> {
 }
 
 fn sanitize(raw: string): string {
-    ; Strip leading/trailing whitespace, fix common formatting issues
+    // Strip leading/trailing whitespace, fix common formatting issues
     return trim(raw)
 }
 
 fn process_record(raw: string): string? {
-    ; Option: skip records that fail validation
+    // Option: skip records that fail validation
     try {
         let order = parse_order(raw)
         match validate_order(order) {

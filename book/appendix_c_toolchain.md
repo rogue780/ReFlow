@@ -21,13 +21,13 @@ On macOS, `clang` ships with Xcode Command Line Tools. On Linux, install
 it through your package manager:
 
 ```bash
-; Debian / Ubuntu
+// Debian / Ubuntu
 sudo apt install clang python3 python3-venv
 
-; Fedora
+// Fedora
 sudo dnf install clang python3
 
-; macOS (Xcode CLT includes clang)
+// macOS (Xcode CLT includes clang)
 xcode-select --install
 ```
 
@@ -88,8 +88,8 @@ a native binary. The output file is named after the source file with the
 `.flow` extension removed:
 
 ```bash
-flow build server.flow      ; produces ./server
-flow build hello.flow       ; produces ./hello
+flow build server.flow  // produces ./server
+flow build hello.flow  // produces ./hello
 ```
 
 Use `-o` to specify a different output path:
@@ -262,16 +262,16 @@ mirror the directory structure.
 
 ```
 my_project/
-    main.flow               ; entry point: module main, fn main()
-    config.flow             ; module config
+    main.flow  // entry point: module main, fn main()
+    config.flow  // module config
     models/
-        user.flow           ; module models.user
-        order.flow          ; module models.order
+        user.flow  // module models.user
+        order.flow  // module models.order
     services/
-        auth.flow           ; module services.auth
-        billing.flow        ; module services.billing
+        auth.flow  // module services.auth
+        billing.flow  // module services.billing
     tests/
-        test_auth.flow      ; test programs (compiled independently)
+        test_auth.flow  // test programs (compiled independently)
         test_billing.flow
 ```
 
@@ -280,14 +280,14 @@ declares `module models.user`. The compiler infers the project root from
 the module path and uses it to resolve imports:
 
 ```flow
-; In services/auth.flow
+// In services/auth.flow
 module services.auth
 
 import models.user (User)
 import io (println)
 
 fn authenticate(u: User): bool {
-    ; ...
+    // ...
 }
 ```
 
@@ -318,11 +318,11 @@ A minimal project with a single source file needs no directory structure
 at all:
 
 ```bash
-; Write the program
-; hello.flow:
-;   module hello
-;   import io (println)
-;   fn main() { println("Hello!") }
+// Write the program
+// hello.flow:
+//   module hello
+//   import io (println)
+//   fn main() { println("Hello!") }
 
 flow run hello.flow
 ```

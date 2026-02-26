@@ -44,7 +44,7 @@ Consumed directly, this runs on the caller's thread:
 ```flow
 let s = counter(1)
 for (n: int in s) {
-    println(f"{n}")       ; 1, 2, 3, ... one at a time, same thread
+    println(f"{n}")  // 1, 2, 3, ... one at a time, same thread
 }
 ```
 
@@ -66,7 +66,7 @@ The handle is how you interact with the producer from the consumer side:
 
 ```flow
 match gen.next() {
-    some(v): { println(f"got: {v}") }    ; "got: 1"
+    some(v): { println(f"got: {v}") }  // "got: 1"
     none: {}
 }
 ```
@@ -180,7 +180,7 @@ by annotating the stream return type with `[N]`:
 
 ```flow
 fn tight_producer(): stream<int>[1] {
-    ; capacity 1: producer and consumer lock-step
+    // capacity 1: producer and consumer lock-step
     let i: int:mut = 0
     while (i < 100) {
         yield i
@@ -189,7 +189,7 @@ fn tight_producer(): stream<int>[1] {
 }
 
 fn big_buffer(): stream<int>[256] {
-    ; capacity 256: producer can run far ahead
+    // capacity 256: producer can run far ahead
     let i: int:mut = 0
     while (i < 1000) {
         yield i
@@ -270,9 +270,9 @@ You can also consume without `.done()`, using `.next()` alone:
 ```flow
 let gen :< counter(1)
 
-let a = gen.next()    ; some(1)
-let b = gen.next()    ; some(2)
-let c = gen.next()    ; some(3)
+let a = gen.next()  // some(1)
+let b = gen.next()  // some(2)
+let c = gen.next()  // some(3)
 ```
 
 This is useful when you know how many values to expect, or when you want
@@ -375,7 +375,7 @@ fn processor(inbox: stream<string>, prefix: string): stream<string> {
     }
 }
 
-let p :< processor(">>")    ; "inbox" is auto-created; ">>" maps to prefix
+let p :< processor(">>")  // "inbox" is auto-created; ">>" maps to prefix
 ```
 
 ### 10.3.2 Sending with `.send()`
@@ -415,13 +415,13 @@ fn main() {
 
     w.send("hello")
     match w.next() {
-        some(v): { println(v) }    ; "echo: hello"
+        some(v): { println(v) }  // "echo: hello"
         none: {}
     }
 
     w.send("world")
     match w.next() {
-        some(v): { println(v) }    ; "echo: world"
+        some(v): { println(v) }  // "echo: world"
         none: {}
     }
 }
@@ -495,7 +495,7 @@ fn doubler(inbox: stream<int>): stream<int> {
 
 fn main() {
     let p :< producer(10)
-    let d :< doubler(p)        ; wired: producer's output feeds doubler's input
+    let d :< doubler(p)  // wired: producer's output feeds doubler's input
 
     while (!d.done()) {
         match d.next() {
@@ -534,7 +534,7 @@ fn tripler(inbox: stream<int>): stream<int> {
 fn main() {
     let p :< producer(1)
     let d :< doubler(p)
-    let t :< tripler(d)      ; producer -> doubler -> tripler
+    let t :< tripler(d)  // producer -> doubler -> tripler
 
     while (!t.done()) {
         match t.next() {
@@ -608,7 +608,7 @@ fn adder(inbox: stream<int>): stream<int> {
 fn main() {
     let result :< producer() -> doubler() -> adder()
 
-    ; produces: 1*2+100=102, 2*2+100=104, 3*2+100=106, 4*2+100=108
+    // produces: 1*2+100=102, 2*2+100=104, 3*2+100=106, 4*2+100=108
     while (!result.done()) {
         match result.next() {
             some(v): { println(f"{v}") }
@@ -681,7 +681,7 @@ fn squarer(inbox: stream<int>): stream<int> {
 fn main() {
     let result :< producer() -> squarer() * 3
 
-    ; 3 squarer workers process the 6 values
+    // 3 squarer workers process the 6 values
     let count: int:mut = 0
     while (!result.done()) {
         match result.next() {
@@ -689,7 +689,7 @@ fn main() {
             none: {}
         }
     }
-    println(f"processed: {count}")    ; "processed: 6"
+    println(f"processed: {count}")  // "processed: 6"
 }
 ```
 
@@ -762,23 +762,23 @@ fn main() {
     let gen :< failing_producer()
 
     match gen.next() {
-        some(v): { println(f"got: {v}") }    ; "got: 1"
+        some(v): { println(f"got: {v}") }  // "got: 1"
         none: {}
     }
 
     match gen.next() {
-        some(v): { println(f"got: {v}") }    ; "got: 2"
+        some(v): { println(f"got: {v}") }  // "got: 2"
         none: {}
     }
 
-    ; The next call re-throws the exception on this thread
+    // The next call re-throws the exception on this thread
     try {
         match gen.next() {
             some(v): { println(f"got: {v}") }
             none: { println("done") }
         }
     } catch (ex: ParseError) {
-        println(f"caught: {ex.message()}")    ; "caught: bad data"
+        println(f"caught: {ex.message()}")  // "caught: bad data"
     }
 }
 ```
@@ -851,10 +851,10 @@ Values passed to a coroutine follow Flow's ownership rules (Chapter 8):
   channel to the producer, following the same rules.
 
 ```flow
-let config = load_config()              ; immutable
-let a :< process(config, chunk_1)       ; config is shared, not copied
-let b :< process(config, chunk_2)       ; same config, refcount incremented
-; both coroutines read config concurrently --- safe, no locks
+let config = load_config()  // immutable
+let a :< process(config, chunk_1)  // config is shared, not copied
+let b :< process(config, chunk_2)  // same config, refcount incremented
+// both coroutines read config concurrently --- safe, no locks
 ```
 
 ---
@@ -916,7 +916,7 @@ fn main() {
         }
     }
 
-    println(f"sum of squares: {sum}")    ; "sum of squares: 285"
+    println(f"sum of squares: {sum}")  // "sum of squares: 285"
 }
 ```
 
@@ -943,7 +943,7 @@ fn tasks(): stream<int> {
 
 fn heavy_work(inbox: stream<int>): stream<int> {
     for (task: int in inbox) {
-        ; simulate expensive computation
+        // simulate expensive computation
         let result: int:mut = 0
         let j: int:mut = 0
         while (j < task * 1000) {
@@ -955,7 +955,7 @@ fn heavy_work(inbox: stream<int>): stream<int> {
 }
 
 fn main() {
-    ; 4 workers process 20 tasks concurrently
+    // 4 workers process 20 tasks concurrently
     let results :< tasks() -> heavy_work() * 4
 
     let count: int:mut = 0
@@ -1048,19 +1048,19 @@ fn main() {
 
     server.send("ping")
     match server.next() {
-        some(v): { println(v) }    ; "pong"
+        some(v): { println(v) }  // "pong"
         none: {}
     }
 
     server.send("time")
     match server.next() {
-        some(v): { println(v) }    ; "1234567890"
+        some(v): { println(v) }  // "1234567890"
         none: {}
     }
 
     server.send("quit")
     match server.next() {
-        some(v): { println(v) }    ; "unknown command: quit"
+        some(v): { println(v) }  // "unknown command: quit"
         none: {}
     }
 }
@@ -1168,19 +1168,19 @@ fn main() {
 
     acc.send(10)
     match acc.next() {
-        some(v): { println(f"total: {v}") }    ; "total: 10"
+        some(v): { println(f"total: {v}") }  // "total: 10"
         none: {}
     }
 
     acc.send(25)
     match acc.next() {
-        some(v): { println(f"total: {v}") }    ; "total: 35"
+        some(v): { println(f"total: {v}") }  // "total: 35"
         none: {}
     }
 
     acc.send(5)
     match acc.next() {
-        some(v): { println(f"total: {v}") }    ; "total: 40"
+        some(v): { println(f"total: {v}") }  // "total: 40"
         none: {}
     }
 }
@@ -1216,12 +1216,12 @@ fn increment(inbox: stream<int>): stream<int> {
 }
 
 fn main() {
-    ; Pipeline syntax
+    // Pipeline syntax
     let result :< generate() -> doubler() -> increment()
 
     while (!result.done()) {
         match result.next() {
-            some(v): { println(f"{v}") }    ; 3, 5, 7, 9, 11, 13, 15, 17, 19, 21
+            some(v): { println(f"{v}") }  // 3, 5, 7, 9, 11, 13, 15, 17, 19, 21
             none: {}
         }
     }
@@ -1276,7 +1276,7 @@ filters out multiples of a discovered prime.
 module sieve_exercise
 import io (println)
 
-; Generate integers from start upward
+// Generate integers from start upward
 fn integers(start: int): stream<int> {
     let i: int:mut = start
     while (i <= 100) {
@@ -1285,7 +1285,7 @@ fn integers(start: int): stream<int> {
     }
 }
 
-; Filter: pass through only values not divisible by prime
+// Filter: pass through only values not divisible by prime
 fn sieve_filter(inbox: stream<int>, prime: int): stream<int> {
     for (n: int in inbox) {
         if (n % prime != 0) {
@@ -1295,36 +1295,36 @@ fn sieve_filter(inbox: stream<int>, prime: int): stream<int> {
 }
 
 fn main() {
-    ; Start with integers from 2
+    // Start with integers from 2
     let source :< integers(2)
 
-    ; Collect primes up to 100
-    ; Each discovered prime creates a new filter stage
+    // Collect primes up to 100
+    // Each discovered prime creates a new filter stage
     let primes: array<int>:mut = []
     let current :< integers(2)
 
-    ; Read the first value: it is prime
-    ; Wire a filter, read the next prime, wire another filter, etc.
-    ;
-    ; For a fixed sieve, manually wire the first few stages:
+    // Read the first value: it is prime
+    // Wire a filter, read the next prime, wire another filter, etc.
+    //
+    // For a fixed sieve, manually wire the first few stages:
     let stage1 :< integers(2)
 
     match stage1.next() {
         some(p): {
-            println(f"prime: {p}")    ; 2
+            println(f"prime: {p}")  // 2
             let stage2 :< sieve_filter(stage1, p)
 
             match stage2.next() {
                 some(p2): {
-                    println(f"prime: {p2}")    ; 3
+                    println(f"prime: {p2}")  // 3
                     let stage3 :< sieve_filter(stage2, p2)
 
                     match stage3.next() {
                         some(p3): {
-                            println(f"prime: {p3}")    ; 5
+                            println(f"prime: {p3}")  // 5
                             let stage4 :< sieve_filter(stage3, p3)
 
-                            ; Continue reading primes from the filtered stream
+                            // Continue reading primes from the filtered stream
                             while (!stage4.done()) {
                                 match stage4.next() {
                                     some(v): { println(f"prime: {v}") }

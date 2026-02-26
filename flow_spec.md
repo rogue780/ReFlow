@@ -19,15 +19,15 @@ Flow is a strongly-typed functional language with a composition-first design, li
 
 ## Comments
 
-Single-line comments use `;`. There is no block comment syntax. Multiline comments repeat `;` on each line.
+Single-line comments use `//`. There is no block comment syntax. Multiline comments repeat `//` on each line.
 
 ```
-; this is a single-line comment
+// this is a single-line comment
 
-;================================
-; This is a multiline comment.
-; Each line uses a semicolon.
-;================================
+//================================
+// This is a multiline comment.
+// Each line uses double-slash.
+//================================
 ```
 
 ---
@@ -47,9 +47,9 @@ export fn cross(a: Vec3, b: Vec3): Vec3 = ...
 ### Importing
 
 ```
-import math.vector                       ; imports all exports into vector namespace
-import math.vector (Vec3, dot)           ; named imports into local scope
-import math.vector as vec                ; aliased namespace
+import math.vector  // imports all exports into vector namespace
+import math.vector (Vec3, dot)  // named imports into local scope
+import math.vector as vec  // aliased namespace
 ```
 
 The namespace for a bare import is the **last component** of the import path. `import math.vector` makes exports available as `vector.Vec3`, `vector.dot`, etc. Named imports (`import math.vector (Vec3, dot)`) bring names directly into scope. Aliased imports (`import math.vector as vec`) use the alias as the namespace: `vec.Vec3`.
@@ -65,7 +65,7 @@ Circular imports are a compile error. The compiler detects cycles and reports th
 When two modules import the same module, that module is instantiated exactly once. All importers share the same static values. Mutable statics are type-namespaced shared state (`Config.host`). This is explicit, not global, but it is shared. Treat mutable statics with the same discipline as shared mutable state in any concurrent system.
 
 ```
-; file: config.flow
+// file: config.flow
 module config
 
 export type DB {
@@ -75,22 +75,22 @@ export type DB {
 ```
 
 ```
-; file: server.flow
+// file: server.flow
 module server
 import config (DB)
 
 fn connect(): Connection {
-    return db.open(DB.host, DB.port)    ; reads shared static
+    return db.open(DB.host, DB.port)  // reads shared static
 }
 ```
 
 ```
-; file: admin.flow
+// file: admin.flow
 module admin
 import config (DB)
 
 fn override_host(h: string) {
-    DB.host = h    ; modifies shared static, server.flow sees this change
+    DB.host = h  // modifies shared static, server.flow sees this change
 }
 ```
 
@@ -100,14 +100,14 @@ Only declarations marked `export` are visible to importers. Unmarked declaration
 
 ```
 export fn visible(): int = 42
-fn private(): int = 99       ; not importable
+fn private(): int = 99  // not importable
 ```
 
 ---
 
 ## Keywords
 
-`module`, `import`, `export`, `as`, `alias`, `type`, `typeof`, `mut`, `imut`, `let`, `fn`, `return`, `yield`, `try`, `retry`, `catch`, `finally`, `interface`, `fulfills`, `constructor`, `self`, `for`, `in`, `while`, `if`, `else`, `match`, `none`, `break`, `continue`, `static`, `pure`, `record`, `some`, `ok`, `err`, `coerce`, `cast`, `snapshot`, `throw`, and all built-in type names.
+`module`, `import`, `export`, `as`, `alias`, `type`, `typeof`, `mut`, `imut`, `let`, `fn`, `return`, `yield`, `try`, `retry`, `catch`, `finally`, `interface`, `fulfills`, `constructor`, `self`, `for`, `in`, `while`, `if`, `else`, `match`, `none`, `break`, `continue`, `static`, `pure`, `record`, `some`, `ok`, `err`, `coerce`, `cast`, `throw`, and all built-in type names.
 
 ---
 
@@ -117,10 +117,10 @@ fn private(): int = 99       ; not importable
 
 ```
 let x: int = 42
-let t = typeof(x)           ; t is the type `int`
+let t = typeof(x)  // t is the type `int`
 
-typeof(x) == typeof(42)     ; true: both are int
-typeof(x) == typeof("hi")   ; false: int != string
+typeof(x) == typeof(42)  // true: both are int
+typeof(x) == typeof("hi")  // false: int != string
 ```
 
 `typeof` is most useful in generic functions to assert or constrain types:
@@ -148,7 +148,7 @@ fn ensure_same_type<T, U>(a: T, b: U) {
 | `/` | Division |
 | `*` | Multiplication |
 | `**` | Exponentiation |
-| `//` | Integer (floor) division |
+| `</` | Integer (floor) division |
 | `%` | Modulo |
 
 ### Comparison
@@ -263,8 +263,8 @@ All update operators are only valid on `:mut` bindings. Using them on an immutab
 ```
 let count: int:mut = 0
 count++
-yield count          ; implicitly copied, count still accessible
-yield count          ; fine
+yield count  // implicitly copied, count still accessible
+yield count  // fine
 ```
 
 ### Array Literals
@@ -275,24 +275,24 @@ Arrays are constructed with bracket syntax. The element type is inferred from th
 let nums: array<int> = [1, 2, 3, 4, 5]
 let names: array<string> = ["alice", "bob", "carol"]
 let empty: array<int> = []
-let mixed_inference = [10, 20, 30]    ; inferred as array<int>
+let mixed_inference = [10, 20, 30]  // inferred as array<int>
 ```
 
 All elements must be of the same type. A heterogeneous literal is a compile error:
 
 ```
-let bad = [1, "two", 3]    ; compile error: int and string are not the same type
+let bad = [1, "two", 3]  // compile error: int and string are not the same type
 ```
 
 Arrays are immutable by default. The `:mut` modifier on the binding allows reassigning the variable to a different array, not modifying individual elements. Arrays have no in-place mutation; transformations produce new arrays.
 
 ```
 let a: array<int> = [1, 2, 3]
-let b: array<int> = a.push(4)    ; new array [1, 2, 3, 4]; a is unchanged
+let b: array<int> = a.push(4)  // new array [1, 2, 3, 4]; a is unchanged
 
 let c: array<int>:mut = [1, 2, 3]
-c = [4, 5, 6]                     ; ok: rebinding c to a new array
-c.get(0)                          ; some(4)
+c = [4, 5, 6]  // ok: rebinding c to a new array
+c.get(0)  // some(4)
 ```
 
 Nested arrays:
@@ -306,26 +306,26 @@ let matrix: array<array<int>> = [[1, 2], [3, 4], [5, 6]]
 The `array` module provides generic and type-specific functions. The generic `push<T>` and `get_any<T>` functions work for all element types, including pointer/heap types, value types, and user-defined sum types. The compiler automatically handles the necessary boxing and dereferencing for non-pointer element types. Type-specific variants are also available for common value types.
 
 ```
-; Generic (works for all element types including sum types)
+// Generic (works for all element types including sum types)
 array.push<T>(arr: array<T>, val: T): array<T>
 array.get_any<T>(arr: array<T>, idx: int): T?
 array.size<T>(arr: array<T>): int
 array.concat<T>(a: array<T>, b: array<T>): array<T>
 
-; Value-type push variants (also work via generic push<T>)
+// Value-type push variants (also work via generic push<T>)
 array.push_int(arr: array<int>, val: int): array<int>
 array.push_float(arr: array<float>, val: float): array<float>
 array.push_bool(arr: array<bool>, val: bool): array<bool>
 array.push_byte(arr: array<byte>, val: byte): array<byte>
 array.push_int64(arr: array<int64>, val: int64): array<int64>
 
-; Type-specific getters
+// Type-specific getters
 array.get_int(arr: array<int>, idx: int): int?
 array.get_float(arr: array<float>, idx: int): float?
 array.get_bool(arr: array<bool>, idx: int): bool?
 array.get(arr: array<string>, idx: int): string?
 
-; Type-specific lengths
+// Type-specific lengths
 array.len(arr: array<int>): int
 array.len_string(arr: array<string>): int
 array.len_float(arr: array<float>): int
@@ -340,9 +340,9 @@ array.len_float(arr: array<float>): int
 `int` is 32-bit signed by default. Sized variants are available for all widths:
 
 ```
-let a: int = 100           ; 32-bit signed
+let a: int = 100  // 32-bit signed
 let b: int64 = 1_000_000_000_000
-let c: uint = 42           ; 32-bit unsigned
+let c: uint = 42  // 32-bit unsigned
 let d: uint64 = 18_446_744_073_709_551_615
 ```
 
@@ -358,7 +358,7 @@ Integer overflow and underflow throw `OverflowError` at runtime. There is no sil
 
 ```
 let max: int = 2_147_483_647
-let n = max + 1    ; throws OverflowError
+let n = max + 1  // throws OverflowError
 ```
 
 ### Division by Zero
@@ -368,9 +368,9 @@ Integer division by zero throws `DivisionByZeroError`.
 Float division by zero follows IEEE 754: dividing a non-zero float by zero produces `float.infinity` or `float.neg_infinity`. Dividing zero by zero produces `float.nan`.
 
 ```
-let a: float = 1.0 / 0.0    ; float.infinity
-let b: float = -1.0 / 0.0   ; float.neg_infinity
-let c: float = 0.0 / 0.0    ; float.nan
+let a: float = 1.0 / 0.0  // float.infinity
+let b: float = -1.0 / 0.0  // float.neg_infinity
+let c: float = 0.0 / 0.0  // float.nan
 ```
 
 ### Float Modulo
@@ -380,9 +380,9 @@ The `%` operator works on both integer and float operands. For integers, it comp
 Float modulo by zero throws `DivisionByZeroError` (unlike float division, which follows IEEE 754).
 
 ```
-let a: float = 10.5 % 3.0   ; 1.5
-let b: float = -7.5 % 2.0   ; -1.5
-let c: float = 1.0 % 0.0    ; throws DivisionByZeroError
+let a: float = 10.5 % 3.0  // 1.5
+let b: float = -7.5 % 2.0  // -1.5
+let c: float = 1.0 % 0.0  // throws DivisionByZeroError
 ```
 
 ### Numeric Conversion
@@ -391,10 +391,10 @@ Conversions between numeric types are always explicit using `cast<T>`. Widening 
 
 ```
 let a: int = 100
-let b: int64 = cast<int64>(a)     ; widening, always succeeds
-let c: float64 = cast<float64>(a) ; int to float, always succeeds
-let d: int32 = cast<int32>(b)     ; narrowing, throws if out of range
-let e: int = cast<int>(3.9)       ; truncates toward zero: e == 3
+let b: int64 = cast<int64>(a)  // widening, always succeeds
+let c: float64 = cast<float64>(a) // int to float, always succeeds
+let d: int32 = cast<int32>(b)  // narrowing, throws if out of range
+let e: int = cast<int>(3.9)  // truncates toward zero: e == 3
 ```
 
 ### Implicit Integer Widening
@@ -404,11 +404,11 @@ Integer types of the same signedness widen implicitly when the target is strictl
 ```
 let a: int = 100
 let b: int64 = 200
-let c: int64 = a + b    ; a is implicitly widened to int64
-let d: int64 = a        ; implicit widening in assignment
+let c: int64 = a + b  // a is implicitly widened to int64
+let d: int64 = a  // implicit widening in assignment
 
 fn accept_large(n: int64): none { }
-accept_large(a)          ; int implicitly widens to int64
+accept_large(a)  // int implicitly widens to int64
 ```
 
 Mixed signedness (e.g., `int + uint`) remains a compile error. Narrowing (e.g., `int64` to `int`) still requires explicit `cast<T>`. Float-to-int and int-to-float conversions remain explicit.
@@ -424,9 +424,9 @@ Mixed signedness (e.g., `int + uint`) remains a compile error. Narrowing (e.g., 
 The value `none` is both the type name and the literal value representing absence.
 
 ```
-let x: int? = some(5)       ; explicitly some
-let y: int? = 5             ; int is automatically lifted to some(5)
-let z: int? = none          ; explicit absence
+let x: int? = some(5)  // explicitly some
+let y: int? = 5  // int is automatically lifted to some(5)
+let z: int? = none  // explicit absence
 ```
 
 ### Auto-lifting Rules
@@ -434,16 +434,16 @@ let z: int? = none          ; explicit absence
 When a non-optional value is assigned or passed where an `option<T>` is expected, it is automatically wrapped in `some()`. This lifting is applied only when the target type is statically known to be `option<T>` and the source type is `T` (not itself an `option<T>`).
 
 ```
-let a: int? = 5                    ; lifted: some(5)
-let b: int? = some(5)              ; explicit: same result
-let c: int? = none                 ; explicit none, no lifting
+let a: int? = 5  // lifted: some(5)
+let b: int? = some(5)  // explicit: same result
+let c: int? = none  // explicit none, no lifting
 
-fn maybe_score(): int? { return 95 }   ; return value lifted to some(95)
+fn maybe_score(): int? { return 95 }  // return value lifted to some(95)
 
 fn process(x: int?): string = ...
-process(42)                        ; argument lifted to some(42)
-process(none)                      ; explicit none, no lifting
-process(some(42))                  ; explicit some, no double-wrapping
+process(42)  // argument lifted to some(42)
+process(none)  // explicit none, no lifting
+process(some(42))  // explicit some, no double-wrapping
 ```
 
 Auto-lifting does **not** apply when:
@@ -453,11 +453,11 @@ Auto-lifting does **not** apply when:
 - The assignment is within a `match` arm that binds via `some(v)`: the bound `v` is already the inner value.
 
 ```
-; Generic context: explicit wrapping required
-fn wrap<T>(val: T): option<T> = some(val)    ; must be explicit
+// Generic context: explicit wrapping required
+fn wrap<T>(val: T): option<T> = some(val)  // must be explicit
 
-; Non-generic: auto-lift works
-let n: int? = compute_score()    ; lifted if compute_score returns int
+// Non-generic: auto-lift works
+let n: int? = compute_score()  // lifted if compute_score returns int
 ```
 
 ### The `??` Operator
@@ -485,26 +485,26 @@ let value = match lookup(key) {
 `if let` is sugar for a `match` with two arms: one for the matching pattern, and a complement for the else branch. It avoids the boilerplate of exhaustive match when only one variant is interesting.
 
 ```
-; Unwrap some — skip on none
+// Unwrap some — skip on none
 if (let some(v) = find_user(id)) {
     println(f"found: {v}")
 }
 
-; Unwrap some with else
+// Unwrap some with else
 if (let some(v) = find_user(id)) {
     greet(v)
 } else {
     println("user not found")
 }
 
-; Unwrap ok — else handles the error case
+// Unwrap ok — else handles the error case
 if (let ok(data) = read_file(path)) {
     process(data)
 } else {
     println("read failed")
 }
 
-; Unwrap err
+// Unwrap err
 if (let err(e) = validate(input)) {
     log_error(e)
 }
@@ -520,9 +520,9 @@ No changes to the resolver, type checker, lowering, or emitter are needed — th
 ### Nullable with Mutability
 
 ```
-let x: int?:mut = 5        ; nullable, mutable
-let y: int:mut = 5          ; mutable, never none
-let z: int? = none          ; nullable, immutable
+let x: int?:mut = 5  // nullable, mutable
+let y: int:mut = 5  // mutable, never none
+let z: int? = none  // nullable, immutable
 ```
 
 ---
@@ -544,7 +544,7 @@ fn parse_int(s: string): result<int, string> {
     if (s.is_empty()) {
         return err("empty string")
     }
-    ; ... parse logic ...
+    // ... parse logic ...
     return ok(parsed_value)
 }
 ```
@@ -566,8 +566,8 @@ The postfix `?` operator unwraps a `result` or `option` value, short-circuiting 
 
 ```
 fn load_and_process(path: string): result<record, string> {
-    let raw = read_file(path)?      ; if err, return err immediately
-    let parsed = parse(raw)?        ; same
+    let raw = read_file(path)?  // if err, return err immediately
+    let parsed = parse(raw)?  // same
     let validated = validate(parsed)?
     return ok(validated)
 }
@@ -579,7 +579,7 @@ The `E` type in the propagated `err` must be compatible with the enclosing funct
 
 ```
 fn double_positive(x: int): int? {
-    let v = find_positive(x)?    ; if none, return none immediately
+    let v = find_positive(x)?  // if none, return none immediately
     return some(v * 2)
 }
 ```
@@ -636,7 +636,7 @@ Omitting a variant without `_` is a compile error:
 ```
 fn bad(s: Shape): float = match s {
     Circle(r) : r * r
-    ; compile error: Rectangle and Triangle not handled
+    // compile error: Rectangle and Triangle not handled
 }
 ```
 
@@ -679,8 +679,8 @@ let triple: (float, float, float) = (1.0, 2.0, 3.0)
 Tuple fields are accessed by zero-based index:
 
 ```
-let n: int = pair.0        ; 42
-let s: string = pair.1     ; "hello"
+let n: int = pair.0  // 42
+let s: string = pair.1  // "hello"
 ```
 
 ### Destructuring
@@ -694,7 +694,7 @@ Tuples may be used anywhere a type is expected, including as function parameters
 
 ```
 fn min_max(items: array<int>): (int, int) {
-    ; ... compute ...
+    // ... compute ...
     return (min_val, max_val)
 }
 
@@ -720,7 +720,7 @@ type EventRecord { source: string, timestamp: int }
 let a = LogEntry { timestamp: 100, source: "us-east-1" }
 let b = EventRecord { source: "us-east-1", timestamp: 100 }
 
-a == b    ; true: all field values match
+a == b  // true: all field values match
 ```
 
 For primitives and strings, `==` is standard value equality.
@@ -738,8 +738,8 @@ let a: LogEntry = ...
 let b: EventRecord = ...
 let c: MetricPoint = ...
 
-a === b    ; true: same field names and types
-a === c    ; false: MetricPoint has 'value', not 'source'
+a === b  // true: same field names and types
+a === c  // false: MetricPoint has 'value', not 'source'
 ```
 
 Congruence is most useful as a guard before structural assignment via `coerce`.
@@ -755,11 +755,11 @@ type Transformer   { x: int, y: int, fn do_transform(self) { self.x += 3; self.y
 
 let sd: SomeData = { x: 5, y: 2 }
 
-let tf: Transformer = coerce(sd)    ; copies x and y, method 'do_transform' is from the type
+let tf: Transformer = coerce(sd)  // copies x and y, method 'do_transform' is from the type
 tf.do_transform()
 
 let tfd: TransformedData = coerce(tf)
-; tfd is { x: 8, y: 4 }
+// tfd is { x: 8, y: 4 }
 ```
 
 `coerce` does not invoke constructors. It copies field values by name. If the target type has a constructor, use it explicitly if validation is required.
@@ -779,10 +779,10 @@ let tfd: TransformedData = coerce(tf)
 Type modifiers follow a fixed order: type, then `?`, then `:mut`/`:imut`. No duplicates. Order is not commutative.
 
 ```
-int                   ; immutable int
-int?                  ; immutable nullable int
-int:mut               ; mutable int
-int?:mut              ; mutable nullable int
+int  // immutable int
+int?  // immutable nullable int
+int:mut  // mutable int
+int?:mut  // mutable nullable int
 ```
 
 `int:mut?` is a compile error. `?` must precede `:mut`.
@@ -790,9 +790,9 @@ int?:mut              ; mutable nullable int
 ### Variables
 
 ```
-let x: int = 5           ; immutable
-let y: int:imut = 5      ; explicitly immutable, same as above
-let z: int:mut = 5       ; mutable
+let x: int = 5  // immutable
+let y: int:imut = 5  // explicitly immutable, same as above
+let z: int:mut = 5  // mutable
 ```
 
 ### Function Parameters
@@ -805,17 +805,17 @@ Bare (no modifier) accepts either mutability with no guarantee either way.
 
 ```
 fn read_only(data: array<int>:imut): int {
-    ; accepts both :mut and bare/imut bindings
-    ; cannot mutate data
+    // accepts both :mut and bare/imut bindings
+    // cannot mutate data
 }
 
 fn will_modify(data: array<int>:mut): int {
-    ; caller must pass a :mut binding
-    ; mutations are visible to the caller
+    // caller must pass a :mut binding
+    // mutations are visible to the caller
 }
 
 fn flexible(data: array<int>): int {
-    ; accepts any mutability
+    // accepts any mutability
 }
 ```
 
@@ -826,10 +826,10 @@ Passing an `:imut` binding to a `:mut` parameter is a compile error. The functio
 ```
 fn increment(x: int:mut) { x++ }
 
-let a: int = 5          ; immutable
-increment(a)            ; compile error: imut binding cannot fulfill :mut contract
-increment(@a)           ; ok: @a is a mutable deep copy, original a is unchanged
-increment(&a)           ; compile error: & does not satisfy :mut
+let a: int = 5  // immutable
+increment(a)  // compile error: imut binding cannot fulfill :mut contract
+increment(@a)  // ok: @a is a mutable deep copy, original a is unchanged
+increment(&a)  // compile error: & does not satisfy :mut
 ```
 
 ---
@@ -865,9 +865,9 @@ fn process(ts: Timestamp, id: UserID) { ... }
 
 let t: Timestamp = Timestamp.from(12345)
 let i: UserID = UserID.from("abc")
-process(t, i)      ; fine
-process(i, t)      ; compile error: UserID is not Timestamp
-process(12345, i)  ; compile error: int is not Timestamp
+process(t, i)  // fine
+process(i, t)  // compile error: UserID is not Timestamp
+process(12345, i)  // compile error: int is not Timestamp
 ```
 
 Conversion uses `.from()` to construct and `.value()` to unwrap:
@@ -908,8 +908,8 @@ Methods take explicit `self` as their first parameter. Nothing is implicitly inj
 
 ```
 let entry: LogEntry = ...
-entry -> severity_score          ; composition chain
-entry.severity_score()           ; method call syntax — identical
+entry -> severity_score  // composition chain
+entry.severity_score()  // method call syntax — identical
 ```
 
 ### Per-Field Mutability
@@ -924,11 +924,11 @@ type Record {
     score: int:mut,
 
     fn update_score(self, s: int) {
-        self.score = s           ; fine: score is :mut
+        self.score = s  // fine: score is :mut
     }
 
     fn set_id(self, i: int) {
-        self.id = i              ; compile error: id is not :mut
+        self.id = i  // compile error: id is not :mut
     }
 }
 ```
@@ -949,7 +949,7 @@ type Config {
 }
 ```
 
-Functions that read or write mutable statics without a snapshot are not parallelizable and may not appear inside `<:(a | b)`.
+Functions that read or write mutable statics are not parallelizable and may not appear inside `<:(a | b)`. Mutable statics must be read through `@` (deep copy) for thread safety.
 
 ### Constructors
 
@@ -996,13 +996,13 @@ When constructing a type literal, the `..source` syntax copies all fields from `
 type Point { x: float, y: float, z: float }
 
 let p = Point { x: 1.0, y: 2.0, z: 3.0 }
-let q = Point { x: 9.9, ..p }    ; q is { x: 9.9, y: 2.0, z: 3.0 }
+let q = Point { x: 9.9, ..p }  // q is { x: 9.9, y: 2.0, z: 3.0 }
 ```
 
 The spread `..source` must come last in the field list. Explicitly named fields take precedence over spread fields. Any field that appears both explicitly and in the spread uses the explicit value.
 
 ```
-let r = Point { z: 0.0, ..p }    ; r is { x: 1.0, y: 2.0, z: 0.0 }
+let r = Point { z: 0.0, ..p }  // r is { x: 1.0, y: 2.0, z: 0.0 }
 ```
 
 The source and target must be the same type or structurally congruent (for use with `coerce`). Spreading between non-congruent types is a compile error.
@@ -1010,10 +1010,10 @@ The source and target must be the same type or structurally congruent (for use w
 Struct spread does not invoke constructors. If the target type has a constructor and validation is required, construct through the constructor explicitly.
 
 ```
-; Spread bypasses constructors — use for trusted internal copies only
-let copy = LogEntry { level: "WARN", ..original }    ; no constructor validation
+// Spread bypasses constructors — use for trusted internal copies only
+let copy = LogEntry { level: "WARN", ..original }  // no constructor validation
 
-; Use constructor if validation matters
+// Use constructor if validation matters
 let safe = LogEntry.from_raw(original.timestamp, original.source, "WARN")
 ```
 
@@ -1038,13 +1038,13 @@ type SortedList<T fulfills Comparable> {
     items: array<T>,
 
     fn insert(self, val: T): SortedList<T> {
-        ; T is guaranteed to have compare()
+        // T is guaranteed to have compare()
         ...
     }
 }
 
-let valid: SortedList<int> = ...            ; ok: int fulfills Comparable
-let invalid: SortedList<MyPlainType> = ...  ; compile error: MyPlainType does not fulfill Comparable
+let valid: SortedList<int> = ...  // ok: int fulfills Comparable
+let invalid: SortedList<MyPlainType> = ...  // compile error: MyPlainType does not fulfill Comparable
 ```
 
 Multiple bounds on a single parameter require parentheses:
@@ -1140,13 +1140,13 @@ compiler-synthesized method implementations (not source-level `fulfills`
 declarations).
 
 ```
-; Ordering comparison.
-; Returns negative if self < other, zero if equal, positive if self > other.
+// Ordering comparison.
+// Returns negative if self < other, zero if equal, positive if self > other.
 interface Comparable {
     fn:pure compare(self, other: self): int
 }
 
-; Arithmetic operations on numeric types.
+// Arithmetic operations on numeric types.
 interface Numeric {
     fn:pure negate(self): self
     fn:pure add(self, other: self): self
@@ -1154,12 +1154,12 @@ interface Numeric {
     fn:pure mul(self, other: self): self
 }
 
-; Value equality.
+// Value equality.
 interface Equatable {
     fn:pure equals(self, other: self): bool
 }
 
-; Human-readable string conversion.
+// Human-readable string conversion.
 interface Showable {
     fn:pure to_string(self): string
 }
@@ -1225,17 +1225,17 @@ A hash map implementing `collection<K, V>`. Keys must be hashable (all primitive
 let scores: map<string, int> = map.new()
 let scores2 = scores.set("alice", 95).set("bob", 87)
 
-let alice_score: option<int> = scores2.get("alice")   ; some(95)
-let carol_score: option<int> = scores2.get("carol")   ; none
+let alice_score: option<int> = scores2.get("alice")  // some(95)
+let carol_score: option<int> = scores2.get("carol")  // none
 
-let with_default: int = scores2.get("carol") ?? 0     ; 0
+let with_default: int = scores2.get("carol") ?? 0  // 0
 ```
 
 Maps are immutable by default. `.set()` returns a new map. For a mutable map:
 
 ```
 let scores: map<string, int>:mut = map.new()
-scores.insert("alice", 95)    ; mutates in place
+scores.insert("alice", 95)  // mutates in place
 scores.remove("bob")
 ```
 
@@ -1249,14 +1249,14 @@ map.from_pairs(pairs: array<(K, V)>): map<K, V>
 
 map.get<V>(m: map<string, V>, key: string): V?
 map.set<V>(m: map<string, V>, key: string, val: V): map<string, V>
-m.insert(key: K, val: V)                 ; :mut only: mutates in place
+m.insert(key: K, val: V)  // :mut only: mutates in place
 map.remove<V>(m: map<string, V>, key: string): map<string, V>
 map.has<V>(m: map<string, V>, key: string): bool
 map.keys<V>(m: map<string, V>): array<string>
 map.values<V>(m: map<string, V>): array<V>
 m.entries(): stream<(K, V)>
 map.len<V>(m: map<string, V>): int64
-m.merge(other: map<K, V>): map<K, V>     ; right-biased on key collision
+m.merge(other: map<K, V>): map<K, V>  // right-biased on key collision
 ```
 
 ### `set<T>`
@@ -1265,7 +1265,7 @@ An unordered collection of unique values. Elements must be hashable.
 
 ```
 let tags: set<string> = set.from(["alpha", "beta", "gamma"])
-let has_alpha: bool = tags.has("alpha")     ; true
+let has_alpha: bool = tags.has("alpha")  // true
 let updated = tags.add("delta").remove("beta")
 ```
 
@@ -1276,10 +1276,10 @@ set.new(): set<T>
 set.from(items: array<T>): set<T>
 
 s.has(val: T): bool
-s.add(val: T): set<T>             ; immutable: returns new set
-s.remove(val: T): set<T>          ; immutable: returns new set
-s.insert(val: T)                  ; :mut only
-s.delete(val: T)                  ; :mut only
+s.add(val: T): set<T>  // immutable: returns new set
+s.remove(val: T): set<T>  // immutable: returns new set
+s.insert(val: T)  // :mut only
+s.delete(val: T)  // :mut only
 s.union(other: set<T>): set<T>
 s.intersect(other: set<T>): set<T>
 s.difference(other: set<T>): set<T>
@@ -1293,7 +1293,7 @@ Any type may fulfill `collection<K, V>` to plug into generic collection-handling
 
 ```
 type OrderedMap<K, V> fulfills collection<K, V> {
-    ; tree-backed ordered map implementation
+    // tree-backed ordered map implementation
     fn get(self, key: K): option<V> { ... }
     fn set(self, key: K, val: V): OrderedMap<K, V> { ... }
     fn keys(self): stream<K> { ... }
@@ -1323,6 +1323,42 @@ Single-expression body (expression form):
 fn add(x: int, y: int): int = x + y
 ```
 
+### Default Parameter Values
+
+Parameters may have default values. Once a parameter has a default, all subsequent parameters must also have defaults. Default values must be compile-time constant expressions (literals or `none`).
+
+```
+fn connect(host: string, port: int = 80, timeout: int = 30): Connection {
+    // ...
+}
+
+connect("example.com")             // port=80, timeout=30
+connect("example.com", 443)        // timeout=30
+connect("example.com", 443, 60)    // all explicit
+```
+
+### Named Arguments
+
+Function calls may use named arguments to pass values by parameter name rather than position. Named arguments follow positional arguments. Once a named argument appears, all subsequent arguments must be named.
+
+```
+connect(host: "example.com", port: 443)
+connect("example.com", timeout: 60)    // positional first, then named
+```
+
+Named arguments are reordered to match parameter positions at compile time. They interact with defaults: named arguments can skip parameters that have defaults.
+
+```
+fn f(a: int, b: int = 10, c: int = 20): int = a + b + c
+
+f(1, c: 5)    // a=1, b=10 (default), c=5
+```
+
+Errors:
+- Positional argument after a named argument is a compile error.
+- Duplicate named arguments are a compile error.
+- Unknown parameter names are a compile error.
+
 ### Lambdas
 
 ```
@@ -1339,7 +1375,7 @@ Lambdas capture variables from the enclosing scope (see [Lambda Capture Semantic
 
 ```
 fn process(x: int, threshold: int): bool {
-    let check = \(v: int => v > threshold)   ; captures threshold
+    let check = \(v: int => v > threshold)  // captures threshold
     return check(x)
 }
 ```
@@ -1380,23 +1416,23 @@ bounds at each call site: the concrete type inferred for the parameter must
 fulfill the required interface.
 
 ```
-; Single bound
+// Single bound
 fn max<T fulfills Comparable>(a: T, b: T): T {
     return if (a.compare(b) > 0) then a else b
 }
 
-; Multiple bounds on one parameter (parenthesized)
+// Multiple bounds on one parameter (parenthesized)
 fn format_and_hash<T fulfills (Printable, Hashable)>(val: T): int {
     io.println(val.to_str())
     return val.hash()
 }
 
-; Multiple bounded parameters
+// Multiple bounded parameters
 fn convert<A fulfills Serializable, B fulfills Parseable>(a: A): B {
     return B.from_string(a.serialize())
 }
 
-; Mixed bounded and unbounded
+// Mixed bounded and unbounded
 fn wrap<T fulfills Printable, U>(val: T, extra: U): string {
     return val.to_str()
 }
@@ -1422,7 +1458,7 @@ A `pure` function is deterministic: the same inputs always produce the same outp
 
 - All called functions must also be `pure`.
 - No mutable statics are read or written.
-- No `snapshot()` is called.
+- No mutable statics are accessed (even with `@`).
 - No I/O is performed.
 - No randomness or time-dependent operations.
 - No `:mut` parameters are accepted.
@@ -1438,7 +1474,7 @@ fn:pure sum(items: array<int>): int {
     return total
 }
 
-fn:pure bad(x: int): int = x + random()    ; compile error: random() is not pure
+fn:pure bad(x: int): int = x + random()  // compile error: random() is not pure
 ```
 
 #### Caching and Memoization
@@ -1489,9 +1525,9 @@ When one operand of `+` is a `string` and the other is a type that fulfills `Sho
 
 ```
 let count = 42
-let msg = "count: " + count     ; "count: 42"
+let msg = "count: " + count  // "count: 42"
 let pi = 3.14
-let s = "pi = " + pi + "!"     ; "pi = 3.14!"
+let s = "pi = " + pi + "!"  // "pi = 3.14!"
 ```
 
 This coercion applies only to `+` and only when at least one operand is statically `string`. It does not apply to other arithmetic operators.
@@ -1519,18 +1555,18 @@ Inner scopes silently shadow outer names. The outer name is inaccessible within 
 fn example(): none {
     let x = 1
     if (true) {
-        let x = 2       ; shadows outer x, no warning
-        print(x)         ; prints 2
+        let x = 2  // shadows outer x, no warning
+        print(x)  // prints 2
     }
-    print(x)             ; prints 1
+    print(x)  // prints 1
 }
 ```
 
 ```
 fn process(x: int, threshold: int): bool {
-    let check = \(v: int => v > threshold)   ; captures threshold
+    let check = \(v: int => v > threshold)  // captures threshold
     return check(x)
-    ; v is not accessible here
+    // v is not accessible here
 }
 ```
 
@@ -1540,10 +1576,10 @@ Immutable values are captured by reference (cheap, safe to share). Mutable value
 
 ```
 fn example(): fn(): int {
-    let x: int = 10          ; immutable: captured by reference
-    let y: int:mut = 20      ; mutable: captured by copy
+    let x: int = 10  // immutable: captured by reference
+    let y: int:mut = 20  // mutable: captured by copy
 
-    return \( => x + y)      ; x is shared, y is snapshot
+    return \( => x + y)  // x is shared, y is snapshot
 }
 ```
 
@@ -1562,10 +1598,10 @@ The compiler tracks ownership statically and rejects programs that would share m
 ```
 let a: string = "hello"
 foo(a)
-; a is accessible here: foo borrowed it, returned, ownership reverted
+// a is accessible here: foo borrowed it, returned, ownership reverted
 foo(a)
 bar(a)
-; both calls are valid, a is borrowed and returned each time
+// both calls are valid, a is borrowed and returned each time
 ```
 
 During `foo`'s execution, `a` is owned by `foo`. This prevents concurrent access but requires no special syntax for the 90% case.
@@ -1582,12 +1618,12 @@ When a value escapes, ownership transfers to the caller permanently. The origina
 
 ```
 fn identity(x: string): string {
-    return x    ; x escapes via return; ownership moves to caller
+    return x  // x escapes via return; ownership moves to caller
 }
 
 fn process(x: string): int {
     let len = x.len()
-    return len  ; len escapes (value type, copied); x did not escape, reverts
+    return len  // len escapes (value type, copied); x did not escape, reverts
 }
 ```
 
@@ -1600,14 +1636,14 @@ fn increment(x: int:mut) { x++ }
 
 let val: int:mut = 5
 increment(val)
-; val is now 6
+// val is now 6
 ```
 
 To prevent mutation visibility, pass a copy:
 
 ```
 increment(@val)
-; val is still 5, the copy was modified and discarded
+// val is still 5, the copy was modified and discarded
 ```
 
 ### The `@` Copy Operator
@@ -1617,7 +1653,7 @@ increment(@val)
 ```
 let data: array<int> = [1, 2, 3]
 process(@data)
-; data is still owned here; @data is an independent deep copy
+// data is still owned here; @data is an independent deep copy
 ```
 
 ### The `&` Ref Operator
@@ -1627,7 +1663,7 @@ process(@data)
 ```
 let data: array<int> = [1, 2, 3]
 inspect(&data)
-; data is still owned here; &data shared the same backing memory (refcount++)
+// data is still owned here; &data shared the same backing memory (refcount++)
 ```
 
 ### Ownership and Parallel Execution
@@ -1636,7 +1672,7 @@ Mutable data cannot be shared across parallel fan-out branches or coroutine boun
 
 - Transfer ownership (the sender loses access).
 - Copy with `@` (each branch gets an independent copy).
-- Use `snapshot()` on a static value (see [Snapshot Values](#snapshot-values)).
+- Use `@` on a mutable static to get a thread-safe deep copy (see [Reading Mutable Statics](#reading-mutable-statics)).
 
 Coroutines run on separate threads. Values passed to a coroutine function are owned by the coroutine's thread for its lifetime. Values yielded into the channel transfer ownership to the consumer. Immutable data can be safely shared between the spawning scope and the coroutine without copying.
 
@@ -1684,12 +1720,12 @@ A stream can only have one consumer. This is enforced at compile time where poss
 Channels provide thread-safe value transfer between coroutine producers and consumers. Sending a value into a channel is an atomic ownership transfer. Immutable values are shared via refcount (atomic increment). Mutable values are moved. Reference counting uses atomic operations to ensure thread safety.
 
 ```
-; Compile error: stream consumed twice
+// Compile error: stream consumed twice
 let s = read_lines("data.csv")
 let a = s -> process_a
-let b = s -> process_b    ; error: s already consumed
+let b = s -> process_b  // error: s already consumed
 
-; Correct: buffer and copy
+// Correct: buffer and copy
 let s = read_lines("data.csv")
 let buf: buffer<string>:mut = buffer.collect(s)
 let a = (@buf).drain() -> process_a
@@ -1698,9 +1734,9 @@ let b = buf.drain() -> process_b
 
 ---
 
-## Snapshot Values
+## Reading Mutable Statics
 
-`snapshot()` is a built-in function that creates a local, frozen copy of a static value. Snapshots are used to safely read configuration from parallel branches without locking.
+Mutable statics must be read through the `@` (copy) operator. This ensures a thread-safe deep copy is taken, preventing data races when mutable statics are accessed from concurrent contexts.
 
 ```
 type Config {
@@ -1708,19 +1744,23 @@ type Config {
     static port: int:mut = 5432
 }
 
-let port = snapshot(Config.port)    ; frozen copy of port at this moment
+let port = @Config.port    // deep copy of port at this moment
+let host = @Config.host    // deep copy of host
 ```
 
-The snapshot does not update automatically. Call `.refresh()` to pull the current value from the source:
+Reading a mutable static without `@` is a compile error:
 
 ```
-for(batch in chunks) {
-    batch -> filter(\(r: record => r.port == port)) -> write
-    port.refresh()    ; pick up any changes between batches
-}
+let port = Config.port     // compile error: mutable static 'port' must be accessed with @ for thread safety
 ```
 
-Snapshots are read-only. A snapshot cannot write back to its source. `pure` functions cannot use `snapshot()`, as the value may differ between calls.
+Writing to a mutable static does not require `@`:
+
+```
+Config.port = 8080         // assignment is fine without @
+```
+
+The `@` operator uses the existing deep-copy mechanism (`@expr`), which is already part of the language for ownership management. This replaces the former `snapshot()` built-in with a more consistent approach that reuses existing language primitives.
 
 ---
 
@@ -1813,8 +1853,8 @@ while (condition) {
 ```
 while (i < 100) {
     i = i + 1
-    if (i == 50) { continue }  ; skip 50, keep going
-    if (i == 75) { break }     ; stop at 75
+    if (i == 50) { continue }  // skip 50, keep going
+    if (i == 75) { break }  // stop at 75
     process(i)
 }
 ```
@@ -1838,7 +1878,7 @@ for(item: int in data) {
     if (item == 0) { break }
     process(item)
 } finally {
-    cleanup()    ; runs after exhaustion or break
+    cleanup()  // runs after exhaustion or break
 }
 ```
 
@@ -1912,8 +1952,8 @@ Equivalent to `mul(sqr(x), dbl(y))`.
 Arity checking:
 
 ```
-fn good(x: int): int = x -> (dbl | sqr) -> mul        ; fan-out 2, mul takes 2: ok
-fn bad(x: int): int  = x -> (dbl | sqr | inc) -> mul  ; compile error: fan-out 3, mul takes 2
+fn good(x: int): int = x -> (dbl | sqr) -> mul  // fan-out 2, mul takes 2: ok
+fn bad(x: int): int  = x -> (dbl | sqr | inc) -> mul  // compile error: fan-out 3, mul takes 2
 ```
 
 ### Parallel Fan-out
@@ -1928,7 +1968,7 @@ fn process(x: record): output =
 Parallel fan-out is safe because:
 
 - Input to the fan-out is immutable.
-- No branch reads or writes mutable statics without a snapshot.
+- No branch reads or writes mutable statics.
 - `pure` functions are always safe in parallel fan-out.
 - Non-pure functions are permitted if they take only `:imut` parameters and do not access mutable statics.
 
@@ -2004,7 +2044,7 @@ stream.group_by(f: fn(T): K): stream<(K, buffer<T>)>
 stream.take(n: int): stream<T>
 stream.skip(n: int): stream<T>
 stream.zip<U>(other: stream<U>): stream<(T, U)>
-stream.flatten<U>(): stream<U>              ; where T is stream<U> or array<U>
+stream.flatten<U>(): stream<U>  // where T is stream<U> or array<U>
 stream.map<U>(f: fn(T): U): stream<U>
 stream.filter(pred: fn(T): bool): stream<T>
 stream.reduce<U>(init: U, f: fn(U, T): U): U
@@ -2038,7 +2078,7 @@ buffer.collect(s: stream<T>): buffer<T>
 buffer.with_capacity(n: int): buffer<T>
 
 buf.push(val: T)
-buf.drain(): stream<T>             ; converts to stream, consumes buffer
+buf.drain(): stream<T>  // converts to stream, consumes buffer
 buf.len(): int
 buf.get(i: int): option<T>
 buf.sort_by(f: fn(T, T): int)
@@ -2063,7 +2103,7 @@ fn sort_by_date(s: stream<record>): stream<record> {
 ```
 fn batch_process(s: stream<record>): stream<record> {
     let chunks: stream<buffer<record>> = s.chunks(1000)
-    ; process each chunk independently
+    // process each chunk independently
 }
 ```
 
@@ -2093,18 +2133,18 @@ This:
 The default channel capacity is 64. To specify a different capacity, annotate the stream type on the function signature with `[N]`:
 
 ```
-fn producer(seed: int): stream<int>[128] {     ; outbox capacity 128
+fn producer(seed: int): stream<int>[128] {  // outbox capacity 128
     yield seed
 }
 
 fn handler(inbox: stream<string>[32]): stream<Result>[64] {
-    ; inbox capacity 32, outbox capacity 64
+    // inbox capacity 32, outbox capacity 64
     for (msg in inbox) {
         yield process(msg)
     }
 }
 
-let gen :< producer(seed)                      ; uses capacity 128 from signature
+let gen :< producer(seed)  // uses capacity 128 from signature
 ```
 
 The `[N]` capacity is a runtime hint, not part of type identity — `stream<int>[64]` and `stream<int>[128]` are both `stream<int>` for type checking purposes. `N` can be any integer expression. When `[N]` is omitted, the default capacity of 64 is used.
@@ -2114,10 +2154,10 @@ The `[N]` capacity is a runtime hint, not part of type identity — `stream<int>
 The coroutine handle exposes up to three methods, depending on whether the coroutine function is **receivable** (supports bidirectional communication).
 
 ```
-gen.next(): option<YieldType>       ; read next value from channel; blocks if empty; none when done
-gen.poll(): option<YieldType>       ; non-blocking: returns none immediately if nothing ready
-gen.send(val: SendType)             ; push a value into the producer's inbox stream (receivable only)
-gen.done(): bool                    ; true when producer has finished AND channel is drained
+gen.next(): option<YieldType>  // read next value from channel; blocks if empty; none when done
+gen.poll(): option<YieldType>  // non-blocking: returns none immediately if nothing ready
+gen.send(val: SendType)  // push a value into the producer's inbox stream (receivable only)
+gen.done(): bool  // true when producer has finished AND channel is drained
 ```
 
 `.next()` blocks the calling thread if the channel is empty and the producer is still running. It returns `none` only when the producer has finished (returned or fallen off the end of the function) and all buffered values have been consumed.
@@ -2133,9 +2173,9 @@ A coroutine function is **receivable** when its first parameter has type `stream
 ```
 fn handler(inbox: stream<string>, config: Config): stream<Result> { ... }
 
-let h :< handler(my_config)         ; inbox is auto-created; my_config maps to 2nd param
-h.send("command")                   ; pushes "command" onto inbox: stream<string>
-match h.next() { ... }              ; pulls from yields: option<Result>
+let h :< handler(my_config)  // inbox is auto-created; my_config maps to 2nd param
+h.send("command")  // pushes "command" onto inbox: stream<string>
+match h.next() { ... }  // pulls from yields: option<Result>
 ```
 
 The type of `.send()` is derived from the inbox parameter: if the first parameter is `stream<S>`, then `.send()` accepts `S`. The type of `.next()` is derived from the return type: if the function returns `stream<Y>`, then `.next()` returns `option<Y>`. The two types are independent.
@@ -2163,8 +2203,8 @@ fn echo_worker(inbox: stream<string>): stream<string> {
 let w :< echo_worker()
 w.send("hello")
 w.send("world")
-match w.next() { some(v): { io.println(v) } none: {} }  ; "echo: hello"
-match w.next() { some(v): { io.println(v) } none: {} }  ; "echo: world"
+match w.next() { some(v): { io.println(v) } none: {} }  // "echo: hello"
+match w.next() { some(v): { io.println(v) } none: {} }  // "echo: world"
 ```
 
 The type parameters of `.send()` and `.next()` are always derived from the coroutine function's signature. Passing the wrong type is a compile error.
@@ -2175,15 +2215,15 @@ The type parameters of `.send()` and `.next()` are always derived from the corou
 fn producer(seed: int): stream<int> {
     let current: int:mut = seed
     while (true) {
-        yield current               ; pushes into channel, may block if full
+        yield current  // pushes into channel, may block if full
         current = current * 2
     }
 }
 
-let gen :< producer(1)              ; spawns thread, returns immediately
-let a: option<int> = gen.next()     ; some(1) — reads from channel
-let b: option<int> = gen.next()     ; some(2)
-let c: option<int> = gen.next()     ; some(4)
+let gen :< producer(1)  // spawns thread, returns immediately
+let a: option<int> = gen.next()  // some(1) — reads from channel
+let b: option<int> = gen.next()  // some(2)
+let c: option<int> = gen.next()  // some(4)
 ```
 
 The producer runs concurrently. While the caller processes value `a`, the producer may have already computed and buffered values `b`, `c`, and beyond (up to the channel capacity).
@@ -2196,7 +2236,7 @@ Immutable data can be safely shared across multiple coroutines without copying o
 let config: Config = load_config()
 let a :< process_batch(config, chunk_1)
 let b :< process_batch(config, chunk_2)
-; both threads share config via refcount — zero copies, zero locks
+// both threads share config via refcount — zero copies, zero locks
 ```
 
 Both producers run concurrently on separate threads. The caller can interleave reads:
@@ -2223,8 +2263,8 @@ fn failing_producer(): stream<int> {
 }
 
 let gen :< failing_producer()
-let a = gen.next()                  ; some(1)
-let b = gen.next()                  ; throws ParseError on the caller's thread
+let a = gen.next()  // some(1)
+let b = gen.next()  // throws ParseError on the caller's thread
 ```
 
 ### Coroutine Lifetime
@@ -2251,9 +2291,9 @@ Exceptions are types that fulfill the built-in `Exception<T>` interface, where `
 
 ```
 interface Exception<T> {
-    fn message(self): string   ; human-readable description of the failure
-    fn data(self): T           ; the payload that caused the failure (mutable in retry context)
-    fn original(self): T       ; the original payload, unmodified, read-only
+    fn message(self): string  // human-readable description of the failure
+    fn data(self): T  // the payload that caused the failure (mutable in retry context)
+    fn original(self): T  // the original payload, unmodified, read-only
 }
 ```
 
@@ -2273,7 +2313,7 @@ type ParseError fulfills Exception<string> {
         return ParseError {
             msg: m,
             payload: p,
-            original_payload: p    ; original is set once at construction and never changes
+            original_payload: p  // original is set once at construction and never changes
         }
     }
 
@@ -2310,18 +2350,18 @@ throw ValidationError.from_record("missing required field", row)
 
 ```
 try {
-    ; code that may throw
+    // code that may throw
 } retry function_name (ex: ExceptionType, attempts: <expr>) {
-    ; ex.data is mutable here: correct it before the retry
-    ; ex.original is always the original failing value, read-only
-    ; the named function re-runs with the corrected ex.data
-    ; <expr> is any integer expression (literal, variable, or computation)
+    // ex.data is mutable here: correct it before the retry
+    // ex.original is always the original failing value, read-only
+    // the named function re-runs with the corrected ex.data
+    // <expr> is any integer expression (literal, variable, or computation)
 } catch (ex: ExceptionType) {
-    ; handle after retries are exhausted (or if no retry exists)
-    ; ex.data holds the last corrected value; ex.original holds the first
+    // handle after retries are exhausted (or if no retry exists)
+    // ex.data holds the last corrected value; ex.original holds the first
 } finally (? ex: Exception) {
-    ; cleanup; always runs exactly once
-    ; ex is present if an exception occurred, absent if try succeeded
+    // cleanup; always runs exactly once
+    // ex is present if an exception occurred, absent if try succeeded
 }
 ```
 
@@ -2335,9 +2375,9 @@ All blocks except `try` are optional. `retry` and `catch` may each appear multip
 try {
     let result = line -> parse -> validate -> write
 } retry parse (ex: ParseError, attempts: 3) {
-    ex.data = sanitize(ex.data)    ; correct the payload
-    ; parse() re-runs with the corrected string
-    ; its result flows into validate -> write as normal
+    ex.data = sanitize(ex.data)  // correct the payload
+    // parse() re-runs with the corrected string
+    // its result flows into validate -> write as normal
 }
 ```
 
@@ -2376,22 +2416,22 @@ For the same exception type, `retry` and `catch` form an escalation chain:
 `finally` runs exactly once at termination, never between retries.
 
 ```
-; Try succeeds:
+// Try succeeds:
 try -> finally
 
-; Retry fixes it:
+// Retry fixes it:
 try -> retry -> (function re-executes) -> finally
 
-; Retry exhausted, catch exists:
+// Retry exhausted, catch exists:
 try -> retry (n times) -> catch -> finally
 
-; Retry exhausted, no catch:
+// Retry exhausted, no catch:
 try -> retry (n times) -> finally -> exception propagates
 
-; No retry, catch exists:
+// No retry, catch exists:
 try -> catch -> finally
 
-; No retry, no catch:
+// No retry, no catch:
 try -> finally -> exception propagates
 ```
 
@@ -2425,13 +2465,13 @@ fn validate_order(o: Order): result<Order, string> {
     return ok(o)
 }
 
-; pure: no I/O, no mutation of external state, deterministic
+// pure: no I/O, no mutation of external state, deterministic
 fn:pure apply_discount(o: Order): Order =
-    Order { amount: o.amount * 0.95, ..o }    ; struct spread: copy all fields, override amount
+    Order { amount: o.amount * 0.95, ..o }  // struct spread: copy all fields, override amount
 
 fn run(): result<int, string> {
-    let input  = snapshot(PipelineConfig.input_path)
-    let output = snapshot(PipelineConfig.output_path)
+    let input  = @PipelineConfig.input_path
+    let output = @PipelineConfig.output_path
 
     try {
         let count = input
@@ -2445,12 +2485,12 @@ fn run(): result<int, string> {
         return ok(count)
 
     } retry parse_order (ex: ParseError, attempts: 2) {
-        ; ex.data is the string that failed to parse
-        ; ex.original is that same string, frozen at throw time
-        ex.data = sanitize(ex.data)    ; correct it; parse_order re-runs with ex.data
+        // ex.data is the string that failed to parse
+        // ex.original is that same string, frozen at throw time
+        ex.data = sanitize(ex.data)  // correct it; parse_order re-runs with ex.data
 
     } catch (ex: ParseError) {
-        ; retries exhausted: log both the original and the last attempted correction
+        // retries exhausted: log both the original and the last attempted correction
         log_error(PipelineConfig.error_log,
             f"parse failed after retries. original: '{ex.original}', last: '{ex.data}'")
 

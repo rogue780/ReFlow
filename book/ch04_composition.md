@@ -43,7 +43,7 @@ With two functions the difference is small. Add a third:
 fn:pure negate(x: int): int = 0 - x
 
 let result = 5 -> double -> square -> negate
-; negate(square(double(5))) = negate(100) = -100
+// negate(square(double(5))) = negate(100) = -100
 ```
 
 The arrow version still reads as a sequence of steps. The nested version requires you to find the innermost parenthesis and work outward. The gap widens with every additional stage.
@@ -59,16 +59,16 @@ fn:pure square(x: int): int = x * x
 fn:pure negate(x: int): int = 0 - x
 
 fn main() {
-    let a = 5 -> double              ; 10
-    let b = 5 -> double -> square    ; 100
-    let c = 5 -> square -> double    ; 50
+    let a = 5 -> double  // 10
+    let b = 5 -> double -> square  // 100
+    let c = 5 -> square -> double  // 50
 
     println(f"a = {a}")
     println(f"b = {b}")
     println(f"c = {c}")
 
-    ; Order matters: double then square is not square then double
-    let d = 5 -> double -> square -> negate  ; -100
+    // Order matters: double then square is not square then double
+    let d = 5 -> double -> square -> negate  // -100
     println(f"d = {d}")
 }
 ```
@@ -94,11 +94,11 @@ fn:pure add(x: int, y: int): int = x + y
 
 ```flow
 let result = 3 -> 4 -> add
-; Stack trace:
-;   push 3     → stack: [3]
-;   push 4     → stack: [3, 4]
-;   add (arity 2) pops 3 and 4, pushes 7 → stack: [7]
-; result = 7
+// Stack trace:
+//   push 3     → stack: [3]
+//   push 4     → stack: [3, 4]
+//   add (arity 2) pops 3 and 4, pushes 7 → stack: [7]
+// result = 7
 ```
 
 This is equivalent to `add(3, 4)`. The values are consumed left to right: `3` becomes the first argument, `4` becomes the second.
@@ -109,12 +109,12 @@ You can continue the chain after consuming values:
 fn:pure double(x: int): int = x * 2
 
 let result = 3 -> 4 -> add -> double
-; Stack trace:
-;   push 3     → stack: [3]
-;   push 4     → stack: [3, 4]
-;   add        → stack: [7]
-;   double     → stack: [14]
-; result = 14
+// Stack trace:
+//   push 3     → stack: [3]
+//   push 4     → stack: [3, 4]
+//   add        → stack: [7]
+//   double     → stack: [14]
+// result = 14
 ```
 
 Equivalent to `double(add(3, 4))`. Four stages, no nesting.
@@ -127,13 +127,13 @@ fn:pure square(x: int): int = x * x
 fn:pure mul(x: int, y: int): int = x * y
 
 let result = 3 -> 4 -> add -> 2 -> mul
-; Stack trace:
-;   push 3     → stack: [3]
-;   push 4     → stack: [3, 4]
-;   add        → stack: [7]
-;   push 2     → stack: [7, 2]
-;   mul        → stack: [14]
-; result = 14
+// Stack trace:
+//   push 3     → stack: [3]
+//   push 4     → stack: [3, 4]
+//   add        → stack: [7]
+//   push 2     → stack: [7, 2]
+//   mul        → stack: [14]
+// result = 14
 ```
 
 Values and functions can be interleaved freely. The stack grows when values are pushed and shrinks when functions consume them. The only requirement is that the stack has enough values when a function needs them, and that exactly one value remains when the chain ends.
@@ -143,7 +143,7 @@ Values and functions can be interleaved freely. The stack grows when values are 
 The compiler checks that every function in a chain has enough values on the stack to satisfy its arity. If you write:
 
 ```flow
-let bad = 3 -> add   ; compile error
+let bad = 3 -> add  // compile error
 ```
 
 The compiler rejects this. `add` requires 2 arguments but only 1 value is on the stack.
@@ -177,16 +177,16 @@ Not every function call needs an arrow. `add(3, 4)` is perfectly readable as a d
 A useful heuristic: if you would write a chain of nested calls, or a sequence of `let` bindings where each binding uses only the previous one, a composition chain is likely clearer:
 
 ```flow
-; Nested calls: read inside-out
+// Nested calls: read inside-out
 let result = format(validate(parse(clean(input))))
 
-; Intermediate bindings: readable but verbose
+// Intermediate bindings: readable but verbose
 let cleaned = clean(input)
 let parsed = parse(cleaned)
 let validated = validate(parsed)
 let result = format(validated)
 
-; Composition: left to right, no intermediates
+// Composition: left to right, no intermediates
 let result = input -> clean -> parse -> validate -> format
 ```
 
@@ -239,10 +239,10 @@ The compiler enforces that the number of results produced by a fan-out matches t
 fn:pure mul(x: int, y: int): int = x * y
 
 fn good(x: int): int = x -> (double | square) -> mul
-; fan-out produces 2 values, mul takes 2: ok
+// fan-out produces 2 values, mul takes 2: ok
 
 fn bad(x: int): int = x -> (double | square | negate) -> mul
-; compile error: fan-out produces 3 values, mul takes 2
+// compile error: fan-out produces 3 values, mul takes 2
 ```
 
 If you have three branches, you need a function that takes three arguments:
@@ -251,7 +251,7 @@ If you have three branches, you need a function that takes three arguments:
 fn:pure sum3(a: int, b: int, c: int): int = a + b + c
 
 fn ok(x: int): int = x -> (double | square | negate) -> sum3
-; fan-out produces 3, sum3 takes 3: ok
+// fan-out produces 3, sum3 takes 3: ok
 ```
 
 The rule is straightforward: the number of branches must equal the arity of the consuming function. The compiler checks this statically.
@@ -266,7 +266,7 @@ fn:pure double(x: int): int = x * 2
 fn:pure mul(x: int, y: int): int = x * y
 
 let result = (3 -> square | 7 -> double) -> mul
-; square(3) = 9, double(7) = 14, mul(9, 14) = 126
+// square(3) = 9, double(7) = 14, mul(9, 14) = 126
 ```
 
 Each branch is an independent chain. The left branch pushes `3` and applies `square`. The right branch pushes `7` and applies `double`. Their results feed `mul`.
@@ -277,7 +277,7 @@ This is useful when the inputs to a multi-argument function come from different 
 fn:pure normalize(x: float, min: float, max: float): float =
     (x - min) / (max - min)
 
-; Both min and max are derived from the same dataset, but via different functions
+// Both min and max are derived from the same dataset, but via different functions
 let normalized = (value -> identity | data -> find_min | data -> find_max) -> normalize
 ```
 
@@ -291,8 +291,8 @@ fn:pure square(x: int): int = x * x
 fn:pure mul(x: int, y: int): int = x * y
 
 fn pipeline(x: int): int = x -> (double | square) -> mul -> square
-; mul(double(x), square(x)) then square the result
-; x=3: mul(6, 9) = 54, square(54) = 2916
+// mul(double(x), square(x)) then square the result
+// x=3: mul(6, 9) = 54, square(54) = 2916
 ```
 
 The chain reads naturally: fan out `x` to `double` and `square`, multiply the results, then square the product. Four operations, one line, no nesting.
@@ -322,7 +322,7 @@ Lambdas work directly in composition chains:
 
 ```flow
 let result = 5 -> \(x: int => x * 2) -> \(x: int => x * x)
-; result = 100
+// result = 100
 ```
 
 This is equivalent to the named-function version from Section 4.1. In practice, you use named functions for stages that appear in multiple chains and lambdas for one-off transformations.
@@ -333,12 +333,12 @@ Lambdas capture variables from the enclosing scope. Immutable values are capture
 
 ```flow
 fn make_adder(n: int): fn(int): int {
-    return \(x: int => x + n)   ; captures n by reference (immutable)
+    return \(x: int => x + n)  // captures n by reference (immutable)
 }
 
 fn main() {
     let add5 = make_adder(5)
-    let result = 10 -> add5      ; 15
+    let result = 10 -> add5  // 15
 }
 ```
 
@@ -354,7 +354,7 @@ fn scale_and_offset(factor: int, offset: int): fn(int): int {
 fn main() {
     let transform = scale_and_offset(3, 10)
     let result = 5 -> transform -> \(x: int => x * x)
-    ; transform(5) = 5 * 3 + 10 = 25, then square: 625
+    // transform(5) = 5 * 3 + 10 = 25, then square: 625
 }
 ```
 
@@ -373,8 +373,8 @@ fn filter<T>(pred: fn(T): bool, s: stream<T>): stream<T> {
 When you use `filter` in a chain, you pass the predicate as an argument and the stream flows in from the chain:
 
 ```flow
-; filter(is_valid) is a partial call: the predicate is bound,
-; the stream argument comes from the chain
+// filter(is_valid) is a partial call: the predicate is bound,
+// the stream argument comes from the chain
 src -> read_lines -> filter(\(line: string => line != ""))
 ```
 
@@ -385,9 +385,9 @@ The lambda `\(line: string => line != "")` serves as the predicate. It is define
 Function types describe the signature of a function value. They are written as `fn(param_types): return_type`:
 
 ```flow
-fn(int): int               ; takes int, returns int
-fn(int, int): bool          ; takes two ints, returns bool
-fn(string): stream<int>     ; takes string, returns stream of ints
+fn(int): int  // takes int, returns int
+fn(int, int): bool  // takes two ints, returns bool
+fn(string): stream<int>  // takes string, returns stream of ints
 ```
 
 You use function types when declaring parameters that accept functions:
@@ -401,7 +401,7 @@ This function takes a value and a function, applies the function twice, and retu
 ```flow
 fn main() {
     let result = apply_twice(3, \(x: int => x * 2))
-    ; 3 -> double -> double = 12
+    // 3 -> double -> double = 12
 }
 ```
 
@@ -435,15 +435,15 @@ Concurrent execution introduces the possibility of data races. Flow prevents the
 - **Non-pure functions** that take only `:imut` parameters and do not access mutable statics. These functions may perform I/O or other effects, but they cannot read or write shared mutable state.
 
 ```flow
-fn:pure validate(data: record): bool { ... }     ; pure: always safe
-fn:pure compute_hash(data: record): int { ... }   ; pure: always safe
+fn:pure validate(data: record): bool { ... }  // pure: always safe
+fn:pure compute_hash(data: record): int { ... }  // pure: always safe
 
-fn log_and_extract(data: record): string {        ; not pure, but safe:
-    io.log(f"processing {data.id}")               ;   takes immutable input,
-    return data.id                                 ;   no mutable statics
+fn log_and_extract(data: record): string {  // not pure, but safe:
+    io.log(f"processing {data.id}")  //   takes immutable input,
+    return data.id  //   no mutable statics
 }
 
-; All three are safe in parallel fan-out
+// All three are safe in parallel fan-out
 fn process(data: record): result =
     data -> <:(validate | compute_hash | log_and_extract) -> combine
 ```
@@ -494,17 +494,17 @@ When a `stream<T>` flows into a function that expects `T` (not `stream<T>`), the
 ```flow
 fn:pure parse(line: string): record { ... }
 
-; read_lines returns stream<string>
-; parse expects string (not stream<string>)
-; auto-mapping: parse is applied to each element
-; result: stream<record>
+// read_lines returns stream<string>
+// parse expects string (not stream<string>)
+// auto-mapping: parse is applied to each element
+// result: stream<record>
 src -> read_lines -> parse
 ```
 
 Without auto-mapping, you would need to write an explicit loop or call a `map` function:
 
 ```flow
-; Without auto-mapping (hypothetical)
+// Without auto-mapping (hypothetical)
 src -> read_lines -> stream.map(parse)
 ```
 
@@ -613,7 +613,7 @@ fn words(text: string): stream<string> {
 fn main() {
     let text = "  the quick brown fox jumps over the lazy dog  "
 
-    ; Composition pipeline: split into words, normalize, filter, print
+    // Composition pipeline: split into words, normalize, filter, print
     for (w: string in text -> words -> normalize -> filter(is_long)) {
         println(w)
     }
@@ -701,17 +701,17 @@ fn:pure add(x: int, y: int): int = x + y
 fn:pure sub(x: int, y: int): int = x - y
 
 fn main() {
-    ; Pipeline: double and square 5, then add the results
+    // Pipeline: double and square 5, then add the results
     let a = 5 -> (double | square) -> add
-    println(f"(double | square) -> add: {a}")  ; 35
+    println(f"(double | square) -> add: {a}")  // 35
 
-    ; Longer pipeline: different transforms, subtract, absolute value
+    // Longer pipeline: different transforms, subtract, absolute value
     let b = 7 -> (double | square) -> sub -> abs
-    println(f"(double | square) -> sub -> abs: {b}")  ; |14 - 49| = 35
+    println(f"(double | square) -> sub -> abs: {b}")  // |14 - 49| = 35
 
-    ; Multi-value pipeline
+    // Multi-value pipeline
     let c = 3 -> 4 -> add -> double -> square
-    println(f"3 -> 4 -> add -> double -> square: {c}")  ; square(double(7)) = 196
+    println(f"3 -> 4 -> add -> double -> square: {c}")  // square(double(7)) = 196
 }
 ```
 
@@ -742,12 +742,12 @@ fn:pure sum_stream(s: stream<int>): int {
 }
 
 fn main() {
-    ; Double each number, keep positives, sum them
+    // Double each number, keep positives, sum them
     let result = numbers() -> double -> filter(is_positive) -> sum_stream
     println(f"sum of positive doubles: {result}")
-    ; doubles: [-6, -2, 0, 4, 8, 14, -10, 20]
-    ; positives: [4, 8, 14, 20]
-    ; sum: 46
+    // doubles: [-6, -2, 0, 4, 8, 14, -10, 20]
+    // positives: [4, 8, 14, 20]
+    // sum: 46
 }
 ```
 
@@ -786,7 +786,7 @@ Not every pipeline is pure. I/O, logging, network calls --- these are effects, a
 ```flow
 fn:pure parse(line: string): record { ... }
 fn:pure validate(r: record): bool { ... }
-fn save(r: record): record { ... }         ; not pure: writes to disk
+fn save(r: record): record { ... }  // not pure: writes to disk
 
 fn pipeline(src: string): stream<record> =
     src -> read_lines -> parse -> filter(validate) -> save
@@ -805,13 +805,13 @@ The most common composition error is an arity mismatch --- the number of values 
 ```flow
 fn:pure add(x: int, y: int): int = x + y
 
-let bad = 5 -> add   ; compile error: add expects 2 arguments, stack has 1
+let bad = 5 -> add  // compile error: add expects 2 arguments, stack has 1
 ```
 
 The fix: ensure the right number of values are on the stack before the function. Either push another value or use a different function:
 
 ```flow
-let good = 5 -> 10 -> add     ; add(5, 10) = 15
+let good = 5 -> 10 -> add  // add(5, 10) = 15
 ```
 
 ### 4.8.2 Fan-Out Arity Mismatch
@@ -822,7 +822,7 @@ A fan-out group produces as many values as it has branches. The next function mu
 fn:pure mul(x: int, y: int): int = x * y
 
 fn bad(x: int): int = x -> (double | square | negate) -> mul
-; compile error: fan-out produces 3 values, mul takes 2
+// compile error: fan-out produces 3 values, mul takes 2
 ```
 
 The fix: match the number of branches to the consuming function's arity, or change the consuming function:
@@ -841,7 +841,7 @@ Each stage's output type must match the next stage's input type:
 fn:pure double(x: int): int = x * 2
 fn:pure to_upper(s: string): string { ... }
 
-let bad = 5 -> double -> to_upper  ; compile error: to_upper expects string, got int
+let bad = 5 -> double -> to_upper  // compile error: to_upper expects string, got int
 ```
 
 The chain produces an `int` from `double`, but `to_upper` expects a `string`. The compiler reports this as a type error at the exact stage where the mismatch occurs.
@@ -860,14 +860,14 @@ Parallel fan-out requires immutable input:
 
 ```flow
 let data: record:mut = get_record()
-let bad = data -> <:(validate | hash)   ; compile error: mutable input to parallel fan-out
+let bad = data -> <:(validate | hash)  // compile error: mutable input to parallel fan-out
 ```
 
 The fix: use an immutable binding, or make a copy:
 
 ```flow
-let data: record = get_record()          ; immutable by default
-let good = data -> <:(validate | hash)   ; ok
+let data: record = get_record()  // immutable by default
+let good = data -> <:(validate | hash)  // ok
 ```
 
 ### 4.8.5 Impure Function in Parallel Fan-Out
@@ -878,18 +878,18 @@ Functions in parallel fan-out must be pure or must not access mutable statics:
 let counter: int:mut = 0
 
 fn increment_counter(x: record): record {
-    counter += 1    ; accesses mutable static
+    counter += 1  // accesses mutable static
     return x
 }
 
 let bad = data -> <:(validate | increment_counter)
-; compile error: increment_counter accesses mutable state
+// compile error: increment_counter accesses mutable state
 ```
 
 The fix: restructure to avoid mutable shared state, or use sequential fan-out:
 
 ```flow
-; Sequential fan-out: no concurrency, no data race risk
+// Sequential fan-out: no concurrency, no data race risk
 let ok = data -> (validate | increment_counter) -> combine
 ```
 
@@ -944,12 +944,12 @@ You did not need to think about loops, intermediate variables, or error accumula
 Because each stage is an independent function, you can test it independently:
 
 ```flow
-; Test parse_record on a single line
+// Test parse_record on a single line
 let record = parse_record("Alice,30,Engineering")
 assert(record.name == "Alice")
 assert(record.age == 30)
 
-; Test is_valid on a single record
+// Test is_valid on a single record
 assert(is_valid(record) == true)
 assert(is_valid(Record { name: "", age: -1, dept: "" }) == false)
 ```

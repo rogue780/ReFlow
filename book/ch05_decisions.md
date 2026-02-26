@@ -61,13 +61,13 @@ The last expression in each branch is the value produced by that branch. There i
 When used as an expression, the `else` branch is mandatory. Without it, the compiler cannot know what value to produce when the condition is false.
 
 ```flow
-; This is fine --- statement form, no value needed
+// This is fine --- statement form, no value needed
 if (debug) {
     println("debug mode")
 }
 
-; This is a compile error --- expression form needs else
-; let msg: string = if (debug) { "debug mode" }
+// This is a compile error --- expression form needs else
+// let msg: string = if (debug) { "debug mode" }
 ```
 
 Expression-form `if` is useful for short, value-producing conditionals. For longer logic with side effects, statement form with explicit `return` reads better.
@@ -92,9 +92,9 @@ A few common uses:
 ```flow
 fn main() {
     let x = -5
-    let abs = x < 0 ? -x : x          ; absolute value
-    let sign = x > 0 ? "+" : "-"       ; sign label
-    let clamped = x > 100 ? 100 : x    ; upper bound
+    let abs = x < 0 ? -x : x  // absolute value
+    let sign = x > 0 ? "+" : "-"  // sign label
+    let clamped = x > 100 ? 100 : x  // upper bound
     println(f"abs={abs} sign={sign} clamped={clamped}")
 }
 ```
@@ -290,7 +290,7 @@ fn name(c: Color): string {
     return match c {
         Red: "red",
         Green: "green"
-        ; compile error: Blue not handled
+        // compile error: Blue not handled
     }
 }
 ```
@@ -306,7 +306,7 @@ fn name(c: Color): string {
     }
 }
 
-; Or:
+// Or:
 fn name_short(c: Color): string {
     return match c {
         Red: "red",
@@ -343,7 +343,7 @@ fn to_string(res: result<int, string>): string {
 
 ```flow
 fn fizzbuzz(n: int): string {
-    ; This needs a wildcard --- the compiler cannot know all ints are covered
+    // This needs a wildcard --- the compiler cannot know all ints are covered
     let mod3 = n % 3 == 0
     let mod5 = n % 5 == 0
     return match true {
@@ -447,7 +447,7 @@ fn greet_user(id: int) {
     if (let some(user) = find_user(id)) {
         println(f"hello, {user}")
     }
-    ; if find_user returns none, nothing happens
+    // if find_user returns none, nothing happens
 }
 ```
 
@@ -485,7 +485,7 @@ fn validate_and_log(input: string) {
     if (let err(e) = validate(input)) {
         println(f"validation failed: {e}")
     }
-    ; if validation succeeded, nothing to log
+    // if validation succeeded, nothing to log
 }
 ```
 
@@ -637,7 +637,7 @@ Chapter 9 introduces streams, which provide a lazy alternative that does not all
 
 ```flow
 fn main() {
-    ; Print numbers 1-10, skipping 5, stopping at 8
+    // Print numbers 1-10, skipping 5, stopping at 8
     let i: int:mut = 0
     while (true) {
         i = i + 1
@@ -670,7 +670,7 @@ fn main() {
         let j: int:mut = 0
         while (j < 3) {
             j = j + 1
-            if (j == 2) { continue }  ; skips j==2, not the outer loop
+            if (j == 2) { continue }  // skips j==2, not the outer loop
             println(f"({i}, {j})")
         }
     }
@@ -903,7 +903,7 @@ fn action(l: Light): string {
     return match l {
         Red: "stop",
         Green: "go"
-        ; compile error: variant 'Yellow' not handled
+        // compile error: variant 'Yellow' not handled
     }
 }
 ```
@@ -917,8 +917,8 @@ fn to_word(n: int): string {
     return match n {
         1: "one",
         2: "two"
-        ; compiler warning: not all int values covered
-        ; runtime error if n is anything other than 1 or 2
+        // compiler warning: not all int values covered
+        // runtime error if n is anything other than 1 or 2
     }
 }
 ```
@@ -928,7 +928,7 @@ The fix: add `_: "unknown"` or whatever default is appropriate.
 ### Type mismatch in expression `if`
 
 ```flow
-; compile error: branches produce different types
+// compile error: branches produce different types
 let x = if (flag) { 42 } else { "hello" }
 ```
 
@@ -937,7 +937,7 @@ Both branches must produce the same type. If you need different types, you are p
 ### Missing `else` in expression `if`
 
 ```flow
-; compile error: expression if requires else branch
+// compile error: expression if requires else branch
 let x: int = if (flag) { 42 }
 ```
 
@@ -947,7 +947,7 @@ An expression `if` always needs an `else`. The compiler does not invent a defaul
 
 ```flow
 fn bad() {
-    break  ; compile error: break outside loop
+    break  // compile error: break outside loop
 }
 ```
 
@@ -959,7 +959,7 @@ fn bad() {
 fn bad(n: int): string {
     return match n {
         0: "zero",
-        1: 1,         ; compile error: arm produces int, expected string
+        1: 1,  // compile error: arm produces int, expected string
         _: "other"
     }
 }
@@ -973,7 +973,7 @@ When `match` is used as an expression, all arms must produce the same type. The 
 fn redundant(n: int): string {
     return match n {
         _: "default",
-        0: "zero"      ; warning: unreachable pattern
+        0: "zero"  // warning: unreachable pattern
     }
 }
 ```
@@ -987,7 +987,7 @@ fn main() {
     let i: int = 0
     while (i < 10) {
         println(f"{i}")
-        i = i + 1       ; compile error: cannot assign to immutable binding
+        i = i + 1  // compile error: cannot assign to immutable binding
     }
 }
 ```

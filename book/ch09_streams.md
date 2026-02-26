@@ -87,7 +87,7 @@ for (n: int in s) {
     println(f"{n}")
 }
 
-; s is now exhausted. It cannot be iterated again.
+// s is now exhausted. It cannot be iterated again.
 ```
 
 Attempting to consume a stream twice is a compile error where the compiler
@@ -95,8 +95,8 @@ can detect it:
 
 ```flow
 let s = range(10)
-let a = s -> count     ; s consumed here
-let b = s -> count     ; compile error: s already consumed
+let a = s -> count  // s consumed here
+let b = s -> count  // compile error: s already consumed
 ```
 
 If you need the same data twice, materialize the stream into a buffer
@@ -105,8 +105,8 @@ If you need the same data twice, materialize the stream into a buffer
 ```flow
 let s = range(10)
 let buf: buffer<int>:mut = buffer.collect(s)
-let a = (@buf).drain() -> count    ; copy of buffer, drained
-let b = buf.drain() -> count       ; original buffer, drained
+let a = (@buf).drain() -> count  // copy of buffer, drained
+let b = buf.drain() -> count  // original buffer, drained
 ```
 
 The `@` operator copies the buffer. Each copy drains independently. The
@@ -190,7 +190,7 @@ producer only runs when the consumer pulls. An infinite stream that nobody
 consumes uses no resources.
 
 ```flow
-; Print the first 10 Fibonacci numbers
+// Print the first 10 Fibonacci numbers
 for (n: int in fibonacci().take(10)) {
     println(f"{n}")
 }
@@ -301,14 +301,14 @@ the consumer only read three lines of a million-line file:
 
 ```flow
 fn main() {
-    ; Read only the header line
+    // Read only the header line
     let lines = read_lines("data.csv")
     match lines.next() {
         some(header): println(f"Header: {header}"),
         none: println("Empty file")
     }
-    ; lines goes out of scope here.
-    ; The finally block in read_lines runs: handle.close()
+    // lines goes out of scope here.
+    // The finally block in read_lines runs: handle.close()
 }
 ```
 
@@ -370,12 +370,12 @@ you can switch between them without changing the consuming code:
 ```flow
 let data: array<int> = [10, 20, 30]
 
-; Consuming an array
+// Consuming an array
 for (n: int in data) {
     println(f"{n}")
 }
 
-; Consuming a stream that yields the same values
+// Consuming a stream that yields the same values
 for (n: int in range(3).map(\(x: int => (x + 1) * 10))) {
     println(f"{n}")
 }
@@ -389,7 +389,7 @@ fn find_first_negative(s: stream<int>): int {
         if (n >= 0) { continue }
         return n
     }
-    return 0   ; no negative found
+    return 0  // no negative found
 }
 ```
 
@@ -448,13 +448,13 @@ loop, or interleave consumption with other logic:
 
 ```flow
 fn parse_header_and_rows(lines: stream<string>): stream<record> {
-    ; First line is the header
+    // First line is the header
     let header_opt = lines.next()
     match header_opt {
         none: return,
         some(header): {
             let columns = parse_header(header)
-            ; Remaining lines are data rows
+            // Remaining lines are data rows
             for (line: string in lines) {
                 yield parse_row(columns, line)
             }
@@ -487,7 +487,7 @@ streams, not arrays.
 
 ```flow
 let squares = range(5).map(\(x: int => x * x))
-; yields: 0, 1, 4, 9, 16
+// yields: 0, 1, 4, 9, 16
 ```
 
 The function receives one element and returns one element. The types
@@ -495,8 +495,8 @@ can differ --- `map` is how you change the element type of a stream:
 
 ```flow
 let labels = range(5).map(\(x: int => f"item {x}"))
-; yields: "item 0", "item 1", "item 2", "item 3", "item 4"
-; type: stream<string>
+// yields: "item 0", "item 1", "item 2", "item 3", "item 4"
+// type: stream<string>
 ```
 
 `map` is lazy. Calling `.map(...)` on a stream returns a new stream
@@ -507,7 +507,7 @@ runs only when the consumer pulls a value from the mapped stream.
 
 ```flow
 let evens = range(10).filter(\(x: int => x % 2 == 0))
-; yields: 0, 2, 4, 6, 8
+// yields: 0, 2, 4, 6, 8
 ```
 
 The predicate receives one element and returns `bool`. Elements where the
@@ -526,7 +526,7 @@ and the next element, and returns the new accumulator:
 
 ```flow
 let sum = range(10).reduce(0, \(acc: int, x: int => acc + x))
-; sum is 45
+// sum is 45
 ```
 
 The initial value (`0`) is the starting accumulator. For each element,
@@ -541,18 +541,18 @@ a plain value.
 Common uses of `reduce`:
 
 ```flow
-; Sum
+// Sum
 let sum = range(10).reduce(0, \(acc: int, x: int => acc + x))
 
-; Product
+// Product
 let product = range(1, 6).reduce(1, \(acc: int, x: int => acc * x))
 
-; String concatenation
+// String concatenation
 let csv = names.reduce("", \(acc: string, name: string =>
     if (acc == "") { name } else { f"{acc},{name}" }
 ))
 
-; Find maximum
+// Find maximum
 let max = range(10).reduce(0, \(acc: int, x: int =>
     if (x > acc) { x } else { acc }
 ))
@@ -561,13 +561,13 @@ let max = range(10).reduce(0, \(acc: int, x: int =>
 These three compose naturally:
 
 ```flow
-; Sum of squares of even numbers from 0 to 9
+// Sum of squares of even numbers from 0 to 9
 let result = range(10)
     .filter(\(x: int => x % 2 == 0))
     .map(\(x: int => x * x))
     .reduce(0, \(acc: int, x: int => acc + x))
 
-println(f"{result}")   ; 120
+println(f"{result}")  // 120
 ```
 
 The chain reads top to bottom: start with 0..9, keep the evens, square
@@ -589,7 +589,7 @@ laziness is not an optimization hint; it is the default execution model.
 **`take(n)`** yields the first `n` elements and then closes the stream:
 
 ```flow
-; First 5 Fibonacci numbers
+// First 5 Fibonacci numbers
 for (n: int in fibonacci().take(5)) {
     println(f"{n}")
 }
@@ -611,7 +611,7 @@ forever, but `fibonacci().take(5)` yields exactly 5 values and stops.
 **`skip(n)`** discards the first `n` elements and yields the rest:
 
 ```flow
-; Skip the first 10, then take the next 5
+// Skip the first 10, then take the next 5
 for (n: int in range(100).skip(10).take(5)) {
     println(f"{n}")
 }
@@ -657,7 +657,7 @@ Output:
 shorter, the remaining elements of the longer stream are discarded:
 
 ```flow
-; range(3) exhausts first, so only 3 pairs are produced
+// range(3) exhausts first, so only 3 pairs are produced
 let short_zip = range(3).zip(range(100))
 for (pair: (int, int) in short_zip) {
     match pair {
@@ -678,7 +678,7 @@ A common use of `zip` is to pair indices with values:
 
 ```flow
 fn enumerate(s: stream<string>): stream<(int, string)> {
-    let indices = naturals()   ; 0, 1, 2, ...
+    let indices = naturals()  // 0, 1, 2, ...
     return indices.zip(s)
 }
 
@@ -697,7 +697,7 @@ grouping or restructuring elements.
 **`chunks(n)`** groups elements into fixed-size buffers:
 
 ```flow
-; Process data in batches of 3
+// Process data in batches of 3
 for (batch: buffer<int> in range(10).chunks(3)) {
     println(f"batch of {batch.len()} items")
 }
@@ -814,7 +814,7 @@ let buf: buffer<string>:mut = buffer.new()
 buf.push("first")
 buf.push("second")
 buf.push("third")
-println(f"{buf.len()} items")   ; 3
+println(f"{buf.len()} items")  // 3
 ```
 
 `buffer.new()` creates an empty buffer. `push` appends one element.
@@ -835,13 +835,13 @@ let buf: buffer<int>:mut = buffer.with_capacity(1000)
 let buf: buffer<int>:mut = buffer.collect(range(5))
 
 match buf.get(2) {
-    some(v): println(f"element 2: {v}"),   ; element 2: 2
+    some(v): println(f"element 2: {v}"),  // element 2: 2
     none: println("out of bounds")
 }
 
 match buf.get(99) {
     some(v): println(f"element 99: {v}"),
-    none: println("out of bounds")         ; out of bounds
+    none: println("out of bounds")  // out of bounds
 }
 ```
 
@@ -855,13 +855,13 @@ Buffers support in-place mutation:
 ```flow
 let buf: buffer<int>:mut = buffer.collect(range(5))
 
-; Reverse in place
+// Reverse in place
 buf.reverse()
-; buf is now [4, 3, 2, 1, 0]
+// buf is now [4, 3, 2, 1, 0]
 
-; Sort with a comparison function
+// Sort with a comparison function
 buf.sort_by(\(a: int, b: int => a - b))
-; buf is now [0, 1, 2, 3, 4]
+// buf is now [0, 1, 2, 3, 4]
 ```
 
 The `sort_by` comparator returns a negative integer if the first argument
@@ -874,8 +874,8 @@ three-way comparison convention.
 ```flow
 let buf: buffer<int>:mut = buffer.collect(range(10))
 let middle: buffer<int>:mut = buf.slice(3, 7)
-; middle contains [3, 4, 5, 6]
-println(f"{middle.len()}")   ; 4
+// middle contains [3, 4, 5, 6]
+println(f"{middle.len()}")  // 4
 ```
 
 ### 9.5.4 Draining Back to a Stream
@@ -947,10 +947,10 @@ element:
 ```flow
 fn:pure double(x: int): int = x * 2
 
-; double expects int, not stream<int>
-; composition auto-maps it over the stream
+// double expects int, not stream<int>
+// composition auto-maps it over the stream
 let result = range(5) -> double
-; result is a stream<int> yielding: 0, 2, 4, 6, 8
+// result is a stream<int> yielding: 0, 2, 4, 6, 8
 ```
 
 This is a key design decision. It means every eager function is
@@ -967,9 +967,9 @@ fn count(s: stream<int>): int {
     return n
 }
 
-; count expects stream<int>, receives it directly
+// count expects stream<int>, receives it directly
 let n = range(100) -> count
-; n is 100
+// n is 100
 ```
 
 The compiler distinguishes these cases by the parameter type. If the
@@ -1133,12 +1133,12 @@ ownership moves:
 fn generate_names(): stream<string> {
     let name = "Alice"
     yield name
-    ; name is still accessible here because strings are immutable
-    ; and shared via reference counting
+    // name is still accessible here because strings are immutable
+    // and shared via reference counting
 
     let data: array<int>:mut = [1, 2, 3]
     yield_data(data)
-    ; for mutable data, ownership would transfer to the consumer
+    // for mutable data, ownership would transfer to the consumer
 }
 ```
 
@@ -1149,7 +1149,7 @@ If you need to yield a value and continue using it, use the copy operator
 fn repeat_value(val: string, n: int): stream<string> {
     let i: int:mut = 0
     while (i < n) {
-        yield @val     ; copy yielded, function retains val
+        yield @val  // copy yielded, function retains val
         i++
     }
 }
@@ -1184,8 +1184,8 @@ This means you cannot do this:
 ```flow
 let text = "hello\nworld"
 let s = lines_of(text)
-; text is borrowed by lines_of for the stream's lifetime
-println(text)              ; ok: text is immutable, shared via refcount
+// text is borrowed by lines_of for the stream's lifetime
+println(text)  // ok: text is immutable, shared via refcount
 ```
 
 For immutable data, this is transparent --- immutable values are shared
@@ -1238,7 +1238,7 @@ fn:pure is_even(x: int): bool = x % 2 == 0
 fn:pure square(x: int): int = x * x
 
 fn main() {
-    ; Chain of helpers: filter, map, take
+    // Chain of helpers: filter, map, take
     let result = range(0, 100)
         .filter(\(x: int => is_even(x)))
         .map(\(x: int => square(x)))
@@ -1246,15 +1246,15 @@ fn main() {
         .reduce(0, \(acc: int, x: int => acc + x))
 
     println(f"Sum of first 10 even squares: {result}")
-    ; 0 + 4 + 16 + 36 + 64 + 100 + 144 + 196 + 256 + 324 = 1140
+    // 0 + 4 + 16 + 36 + 64 + 100 + 144 + 196 + 256 + 324 = 1140
 
-    ; Manual iteration
+    // Manual iteration
     let fib = fibonacci()
     let first = fib.next() ?? 0
     let second = fib.next() ?? 0
     println(f"First two Fibonacci: {first}, {second}")
 
-    ; Buffering for sort
+    // Buffering for sort
     let sorted = range(0, 10)
         .map(\(x: int => 9 - x))
     let buf: buffer<int>:mut = buffer.collect(sorted)
@@ -1263,7 +1263,7 @@ fn main() {
         println(f"{n}")
     }
 
-    ; Zip two streams
+    // Zip two streams
     let names: array<string> = ["Alice", "Bob", "Carol"]
     let scores = range(90, 93)
     for (pair: (string, int) in names.zip(scores)) {
@@ -1389,7 +1389,7 @@ functions and `for` loops, and once with composition and stream helpers.
 Verify both produce the same count.
 
 ```flow
-; Version 1: explicit
+// Version 1: explicit
 fn search_count_v1(path: string, term: string): int {
     let n: int:mut = 0
     for (line: string in read_lines(path)) {
@@ -1400,7 +1400,7 @@ fn search_count_v1(path: string, term: string): int {
     return n
 }
 
-; Version 2: composition
+// Version 2: composition
 fn search_count_v2(path: string, term: string): int =
     path -> read_lines
          -> filter(\(line: string => string.contains(line, term)))

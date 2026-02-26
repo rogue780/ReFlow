@@ -129,11 +129,11 @@ import io (println)
 fn main() {
     let dir = path.cwd()
     let full = path.join(dir, "src/main.flow")
-    println(f"stem: {path.stem(full)}")      ; "main"
-    println(f"parent: {path.parent(full)}")  ; ".../src"
+    println(f"stem: {path.stem(full)}")  // "main"
+    println(f"parent: {path.parent(full)}")  // ".../src"
 
     match path.extension("report.csv") {
-        some(ext) -> println(f"ext: {ext}")  ; ".csv"
+        some(ext) -> println(f"ext: {ext}")  // ".csv"
         none -> println("no extension")
     }
 }
@@ -244,19 +244,19 @@ import io (println)
 fn main() {
     let nums = [10, 20, 30]
     match array.get_int(nums, 1) {
-        some(v) -> println(f"nums[1] = {v}")   ; 20
+        some(v) -> println(f"nums[1] = {v}")  // 20
         none -> println("out of bounds")
     }
 
-    ; Build an array dynamically
+    // Build an array dynamically
     let names: array<string>:mut = []
     names = array.push(names, "Alice")
     names = array.push(names, "Bob")
-    println(f"count: {array.size(names)}")      ; 2
+    println(f"count: {array.size(names)}")  // 2
 
-    ; Concatenate
+    // Concatenate
     let all = array.concat([1, 2], [3, 4])
-    println(f"total: {array.len(all)}")         ; 4
+    println(f"total: {array.len(all)}")  // 4
 }
 ```
 
@@ -292,8 +292,8 @@ fn main() {
         none -> println("not found")
     }
 
-    println(f"entries: {map.len(m)}")           ; 2
-    println(f"has port: {map.has(m, "port")}")  ; true
+    println(f"entries: {map.len(m)}")  // 2
+    println(f"has port: {map.has(m, "port")}")  // true
 
     let ks = map.keys(m)
     for (k: string in ks) {
@@ -322,14 +322,14 @@ import io (println)
 fn main() {
     let nums = [5, 3, 1, 4, 2]
     let sorted = sort.sort(nums)
-    for (n: int in sorted) { println(f"  {n}") }   ; 1 2 3 4 5
+    for (n: int in sorted) { println(f"  {n}") }  // 1 2 3 4 5
 
     let desc = sort.reverse(sorted)
-    for (n: int in desc) { println(f"  {n}") }      ; 5 4 3 2 1
+    for (n: int in desc) { println(f"  {n}") }  // 5 4 3 2 1
 
     let words = ["banana", "apple", "cherry"]
     let sorted_w = sort.sort(words)
-    for (w: string in sorted_w) { println(w) }      ; apple banana cherry
+    for (w: string in sorted_w) { println(w) }  // apple banana cherry
 }
 ```
 
@@ -353,9 +353,9 @@ import conv
 import io (println)
 
 fn main() {
-    println(conv.to_string(42))          ; "42"
-    println(conv.to_string(3.14))        ; "3.14"
-    println(conv.to_string(true))        ; "true"
+    println(conv.to_string(42))  // "42"
+    println(conv.to_string(3.14))  // "3.14"
+    println(conv.to_string(true))  // "true"
 
     match conv.string_to_int("123") {
         some(n) -> println(f"parsed: {n}")
@@ -435,10 +435,10 @@ import char
 import io (println)
 
 fn main() {
-    println(f"is_digit('5'): {char.is_digit('5')}")        ; true
-    println(f"is_alpha('z'): {char.is_alpha('z')}")        ; true
+    println(f"is_digit('5'): {char.is_digit('5')}")  // true
+    println(f"is_alpha('z'): {char.is_alpha('z')}")  // true
     println(f"is_whitespace(' '): {char.is_whitespace(' ')}") ; true
-    println(f"code of 'A': {char.to_code('A')}")           ; 65
+    println(f"code of 'A': {char.to_code('A')}")  // 65
 }
 ```
 
@@ -490,12 +490,12 @@ import json
 import io (println)
 
 fn main() {
-    ; Parse
+    // Parse
     match json.parse("{\"name\":\"Flow\",\"version\":1}") {
         some(root) -> {
             println(json.to_string_pretty(root, 2))
 
-            ; Access fields
+            // Access fields
             match json.get(root, "name") {
                 some(n) -> match json.as_string(n) {
                     some(s) -> println(f"name: {s}")
@@ -507,10 +507,10 @@ fn main() {
         none -> println("parse failed")
     }
 
-    ; Build
+    // Build
     let v = json.string_val("hello")
-    println(json.to_string(v))               ; "hello"
-    println(f"is null: {json.is_null(json.null_val())}")  ; true
+    println(json.to_string(v))  // "hello"
+    println(f"is null: {json.is_null(json.null_val())}")  // true
 }
 ```
 
@@ -540,7 +540,7 @@ import net
 import io (println)
 
 fn main() {
-    ; Listen on loopback
+    // Listen on loopback
     match net.listen("127.0.0.1", 8080) {
         some(srv) -> {
             println("Listening on :8080")
@@ -628,7 +628,7 @@ fn main() {
     }
 
     let start = sys.clock_ms()
-    ; ... work ...
+    // ... work ...
     let elapsed = sys.clock_ms() - start
     println(f"took {elapsed}ms")
 }
@@ -670,7 +670,7 @@ fn main() {
     }
     sb.append(b, "</ul>")
     println(sb.build(b))
-    ; <ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>
+    // <ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>
 }
 ```
 
@@ -697,13 +697,13 @@ fn main() {
     println(f"byte length: {bytes.len(data)}")
 
     let head = bytes.slice(data, 0, 5)
-    println(f"first 5 bytes: {bytes.to_string(head)}")   ; "Hello"
+    println(f"first 5 bytes: {bytes.to_string(head)}")  // "Hello"
 
     let combined = bytes.concat(
         bytes.from_string("Hello"),
         bytes.from_string(" Flow")
     )
-    println(bytes.to_string(combined))                    ; "Hello Flow"
+    println(bytes.to_string(combined))  // "Hello Flow"
 }
 ```
 
@@ -793,19 +793,19 @@ fn range(n: int): stream<int> {
 }
 
 fn main() {
-    ; Take and skip
+    // Take and skip
     for (n: int in range(10).skip(3).take(4)) {
-        println(f"  {n}")     ; 3, 4, 5, 6
+        println(f"  {n}")  // 3, 4, 5, 6
     }
 
-    ; Map and filter
+    // Map and filter
     for (n: int in range(10).filter(\(x: int => x % 2 == 0)).map(\(x: int => x * 3))) {
-        println(f"  {n}")     ; 0, 6, 12, 18, 24
+        println(f"  {n}")  // 0, 6, 12, 18, 24
     }
 
-    ; Reduce
+    // Reduce
     let sum = range(5).reduce(0, \(acc: int, x: int => acc + x))
-    println(f"sum: {sum}")    ; 10
+    println(f"sum: {sum}")  // 10
 }
 ```
 
@@ -849,7 +849,7 @@ fn sort_stream(s: stream<int>): stream<int> {
 
 fn main() {
     for (n: int in sort_stream(numbers())) {
-        println(f"  {n}")     ; 1, 1, 3, 4, 5
+        println(f"  {n}")  // 1, 1, 3, 4, 5
     }
 }
 ```

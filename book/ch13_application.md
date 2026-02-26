@@ -51,10 +51,10 @@ A real project would split this into multiple files:
 
 ```
 log_analyzer/
-    main.flow           ; module log_analyzer.main
-    models.flow         ; module log_analyzer.models
-    parser.flow         ; module log_analyzer.parser
-    pipeline.flow       ; module log_analyzer.pipeline
+    main.flow  // module log_analyzer.main
+    models.flow  // module log_analyzer.models
+    parser.flow  // module log_analyzer.parser
+    pipeline.flow  // module log_analyzer.pipeline
 ```
 
 `models.flow` defines the data types: severity levels, log entries, the summary report, and the custom exception type. It has no logic --- just type definitions. `parser.flow` contains pure functions for detecting formats and parsing lines. Every function in this module is marked `fn:pure`; it has no I/O and no side effects. `pipeline.flow` assembles the stream processing stages, including the report accumulator and formatting functions. `main.flow` wires everything together, handles errors, and produces output.
@@ -70,7 +70,7 @@ No module imports a module that imports it. No circular dependencies. This is no
 In a multi-file project, the imports would look like this:
 
 ```flow
-; main.flow
+// main.flow
 module log_analyzer.main
 import log_analyzer.models (Severity, LogEntry, Report, ParseError)
 import log_analyzer.parser (detect_and_parse, sanitize)
@@ -94,14 +94,14 @@ import string
 import array
 import conv
 
-;; ============================================================
-;; Module: log_analyzer.models
-;; Types and sum types for the log analysis domain
-;; ============================================================
+//; ============================================================
+//; Module: log_analyzer.models
+//; Types and sum types for the log analysis domain
+//; ============================================================
 
-; Severity is a sum type: exactly one of four levels.
-; Adding a fifth level later will cause the compiler to flag
-; every match that does not handle it.
+// Severity is a sum type: exactly one of four levels.
+// Adding a fifth level later will cause the compiler to flag
+// every match that does not handle it.
 
 type Severity =
     | Error
@@ -113,9 +113,9 @@ type Severity =
 Why a sum type instead of a string or an integer? Three reasons. First, the compiler enforces exhaustiveness: every `match` on `Severity` must handle all four variants or include a wildcard. If we add a `Fatal` variant next month, the compiler finds every place in the code that needs updating. Second, there is no way to construct an invalid severity. A string could be `"ERORR"` or `"warning"` or empty. A `Severity` is always one of the four defined variants. Third, pattern matching on sum types is cleaner than string comparison chains.
 
 ```flow
-; A parsed log entry. All fields are strings for simplicity;
-; a production system would parse the timestamp into a proper
-; date type.
+// A parsed log entry. All fields are strings for simplicity;
+// a production system would parse the timestamp into a proper
+// date type.
 
 type LogEntry {
     timestamp: string
@@ -128,7 +128,7 @@ type LogEntry {
 `LogEntry` is a struct with four fields. It is immutable by default. Once a `LogEntry` is constructed, its fields cannot change. This makes it safe to pass between pipeline stages, between threads, and between coroutines without copying.
 
 ```flow
-; A report accumulates counts as it processes entries.
+// A report accumulates counts as it processes entries.
 
 type Report {
     total: int
@@ -144,9 +144,9 @@ type Report {
 We also need a way to represent parse failures as structured exceptions, not bare strings. This lets the retry mechanism inspect and correct the failing input.
 
 ```flow
-; A typed exception for parse failures.
-; Fulfills Exception<string> so retry blocks can access
-; and modify the failing line via ex.data().
+// A typed exception for parse failures.
+// Fulfills Exception<string> so retry blocks can access
+// and modify the failing line via ex.data().
 
 type ParseError fulfills Exception<string> {
     msg: string
@@ -170,10 +170,10 @@ The parser module is entirely pure functions. No I/O, no mutation of external st
 ### Severity Parsing
 
 ```flow
-;; ============================================================
-;; Module: log_analyzer.parser
-;; Pure functions for parsing different log formats
-;; ============================================================
+//; ============================================================
+//; Module: log_analyzer.parser
+//; Pure functions for parsing different log formats
+//; ============================================================
 
 fn:pure parse_severity(s: string): Severity {
     match s {
@@ -207,7 +207,7 @@ Key-value lines start with `ts=`. CSV lines contain commas. Everything else is s
 Each parser takes a raw string and returns a `LogEntry`. If the line is too short or missing required fields, it throws a `ParseError`.
 
 ```flow
-; Key-value format: ts=TIMESTAMP level=LEVEL src=SOURCE msg=MESSAGE
+// Key-value format: ts=TIMESTAMP level=LEVEL src=SOURCE msg=MESSAGE
 fn:pure parse_kv(line: string): LogEntry {
     let parts = string.split(line, " ")
     if (array.len_string(parts) < 4) {
@@ -229,7 +229,7 @@ fn:pure parse_kv(line: string): LogEntry {
     }
 }
 
-; CSV format: TIMESTAMP,LEVEL,SOURCE,MESSAGE
+// CSV format: TIMESTAMP,LEVEL,SOURCE,MESSAGE
 fn:pure parse_csv(line: string): LogEntry {
     let parts = string.split(line, ",")
     if (array.len_string(parts) < 4) {
@@ -247,7 +247,7 @@ fn:pure parse_csv(line: string): LogEntry {
     }
 }
 
-; Space-delimited format: TIMESTAMP SOURCE LEVEL MESSAGE
+// Space-delimited format: TIMESTAMP SOURCE LEVEL MESSAGE
 fn:pure parse_simple(line: string): LogEntry {
     let parts = string.split(line, " ")
     if (array.len_string(parts) < 4) {
@@ -310,10 +310,10 @@ With the types and parsers defined, we can build the processing pipeline. The ke
 In a real system, lines come from a file or a network socket. Here we produce them from an array:
 
 ```flow
-;; ============================================================
-;; Module: log_analyzer.pipeline
-;; Stream processing stages
-;; ============================================================
+//; ============================================================
+//; Module: log_analyzer.pipeline
+//; Stream processing stages
+//; ============================================================
 
 fn line_source(lines: array<string>): stream<string> {
     for (line: string in lines) {
@@ -433,14 +433,14 @@ fn:pure format_and_label(entry: LogEntry): string {
 In a composition chain, fan-out lets you split a value to multiple functions and combine the results:
 
 ```flow
-; Fan-out: entry goes to both format_entry and severity_label,
-; results are combined by build_display_line
+// Fan-out: entry goes to both format_entry and severity_label,
+// results are combined by build_display_line
 fn:pure build_display_line(formatted: string, label: string): string {
     return formatted + " [" + label + "]"
 }
 
-; Usage in a chain:
-; entry -> (format_entry | severity_label) -> build_display_line
+// Usage in a chain:
+// entry -> (format_entry | severity_label) -> build_display_line
 ```
 
 The entry flows into `format_entry` and `severity_label` simultaneously. `format_entry` produces a formatted string; `severity_label` produces a label. Both results are pushed onto the value stack and consumed by `build_display_line`, which takes two arguments. The types align, the arity matches, and the compiler verifies it all statically.
@@ -486,7 +486,7 @@ fn run_parallel_parsers(lines: array<string>) {
     let p1 :< parse_worker()
     let p2 :< parse_worker()
 
-    ; Distribute lines round-robin across parsers
+    // Distribute lines round-robin across parsers
     let i: int:mut = 0
     for (line: string in lines) {
         if (i % 2 == 0) {
@@ -497,9 +497,9 @@ fn run_parallel_parsers(lines: array<string>) {
         i = i + 1
     }
 
-    ; Collect results
-    ; (In practice, you would interleave reads with sends
-    ; to avoid deadlock with bounded channels)
+    // Collect results
+    // (In practice, you would interleave reads with sends
+    // to avoid deadlock with bounded channels)
 }
 ```
 
@@ -550,11 +550,11 @@ fn process_line(line: string): option<LogEntry> {
         let entry = detect_and_parse(line)
         return some(entry)
     } retry detect_and_parse (ex: ParseError, attempts: 2) {
-        ; The parse failed. Sanitize the line and try again.
-        ; ex.data is mutable: we modify the payload before retry.
+        // The parse failed. Sanitize the line and try again.
+        // ex.data is mutable: we modify the payload before retry.
         ex.payload = sanitize(ex.data())
     } catch (ex: ParseError) {
-        ; All retries exhausted. Log the failure and move on.
+        // All retries exhausted. Log the failure and move on.
         println("SKIP: " + ex.message()
               + " | original: " + ex.original()
               + " | last attempt: " + ex.data())
@@ -611,9 +611,9 @@ import string
 import array
 import conv
 
-;; ============================================================
-;; Module: log_analyzer.models
-;; ============================================================
+//; ============================================================
+//; Module: log_analyzer.models
+//; ============================================================
 
 type Severity =
     | Error
@@ -646,9 +646,9 @@ type ParseError fulfills Exception<string> {
     fn original(self): string { return self.original_payload }
 }
 
-;; ============================================================
-;; Module: log_analyzer.parser
-;; ============================================================
+//; ============================================================
+//; Module: log_analyzer.parser
+//; ============================================================
 
 fn:pure parse_severity(s: string): Severity {
     match s {
@@ -744,9 +744,9 @@ fn:pure sanitize(line: string): string {
     return string.trim(cleaned)
 }
 
-;; ============================================================
-;; Module: log_analyzer.pipeline
-;; ============================================================
+//; ============================================================
+//; Module: log_analyzer.pipeline
+//; ============================================================
 
 fn:pure format_entry(entry: LogEntry): string {
     return "[" + severity_label(entry.severity) + "] "
@@ -789,9 +789,9 @@ fn print_report(report: Report) {
     println("==========================================")
 }
 
-;; ============================================================
-;; Module: log_analyzer.main
-;; ============================================================
+//; ============================================================
+//; Module: log_analyzer.main
+//; ============================================================
 
 fn process_line(line: string): option<LogEntry> {
     try {
@@ -807,7 +807,7 @@ fn process_line(line: string): option<LogEntry> {
 }
 
 fn main() {
-    ; Sample log data: three formats plus two malformed lines
+    // Sample log data: three formats plus two malformed lines
     let lines = [
         "ts=2024-01-15T09:30:00 level=ERROR src=api msg=connection_timeout",
         "ts=2024-01-15T09:30:01 level=WARN src=api msg=high_latency",
@@ -830,7 +830,7 @@ fn main() {
     let skipped: int:mut = 0
 
     for (line: string in lines) {
-        ; Skip empty lines
+        // Skip empty lines
         if (string.len(line) == 0) {
             skipped = skipped + 1
             continue
@@ -839,10 +839,10 @@ fn main() {
         let result = process_line(line)
         match result {
             some(entry): {
-                ; Print the formatted entry
+                // Print the formatted entry
                 println(format_entry(entry))
 
-                ; Accumulate into the report
+                // Accumulate into the report
                 report = add_to_report(report, entry)
             }
             none: {
@@ -907,7 +907,7 @@ When an entry is successfully parsed, we do two things with it: format it for di
 
 ```flow
 fn process_entry(entry: LogEntry, report: Report): Report {
-    ; Fan-out: entry goes to both format_entry and severity_label
+    // Fan-out: entry goes to both format_entry and severity_label
     let display = entry -> (format_entry | severity_label)
                         -> build_display_line
     println(display)
@@ -934,13 +934,13 @@ fn line_source(lines: array<string>): stream<string> {
     }
 }
 
-; In a composition chain:
-; lines -> line_source -> detect_and_parse -> format_entry
-;
-; line_source produces stream<string>
-; detect_and_parse takes string, returns LogEntry -> auto-mapped
-; format_entry takes LogEntry, returns string -> auto-mapped
-; Result: stream<string> of formatted log entries
+// In a composition chain:
+// lines -> line_source -> detect_and_parse -> format_entry
+//
+// line_source produces stream<string>
+// detect_and_parse takes string, returns LogEntry -> auto-mapped
+// format_entry takes LogEntry, returns string -> auto-mapped
+// Result: stream<string> of formatted log entries
 ```
 
 Each stage is a small function. Composition connects them. Auto-mapping handles the iteration. The pipeline reads as a description of the transformation, not as a sequence of loop instructions.
@@ -950,7 +950,7 @@ This is the most important design pattern in Flow. You write each function for a
 The stream pipeline also composes with stream helpers from the standard library:
 
 ```flow
-; Filter, transform, and take the first N entries
+// Filter, transform, and take the first N entries
 fn first_errors(lines: array<string>, n: int): stream<string> {
     let entries = line_source(lines)
     for (line: string in entries) {
@@ -971,7 +971,7 @@ fn first_errors(lines: array<string>, n: int): stream<string> {
 Or more concisely with stream helpers:
 
 ```flow
-; Using take to limit output
+// Using take to limit output
 for (line: string in first_errors(lines, 5).take(5)) {
     println(line)
 }
@@ -989,8 +989,8 @@ fn parse_stage(inbox: stream<string>): stream<LogEntry> {
         try {
             yield detect_and_parse(line)
         } catch (ex: ParseError) {
-            ; skip malformed lines in the coroutine
-            ; (in production, yield an error variant instead)
+            // skip malformed lines in the coroutine
+            // (in production, yield an error variant instead)
         }
     }
 }
@@ -998,14 +998,14 @@ fn parse_stage(inbox: stream<string>): stream<LogEntry> {
 fn run_concurrent(lines: array<string>) {
     let parser :< parse_stage()
 
-    ; Feed lines to the parser coroutine
+    // Feed lines to the parser coroutine
     for (line: string in lines) {
         if (string.len(line) > 0) {
             parser.send(line)
         }
     }
 
-    ; Read parsed entries
+    // Read parsed entries
     let report: Report:mut = empty_report()
     while (!parser.done()) {
         match parser.next() {
@@ -1044,8 +1044,8 @@ To add support:
 
 ```flow
 fn:pure parse_json_log(line: string): LogEntry {
-    ; Extract fields from the JSON string
-    ; (Uses the json module or manual string parsing)
+    // Extract fields from the JSON string
+    // (Uses the json module or manual string parsing)
     ...
 }
 ```
@@ -1099,8 +1099,8 @@ fn write_to_file(entry: LogEntry, path: string) {
 Or use fan-out to send each entry to multiple destinations:
 
 ```flow
-; entry -> (format_for_console | format_for_file)
-;       -> (println | write_to_file)
+// entry -> (format_for_console | format_for_file)
+//       -> (println | write_to_file)
 ```
 
 Fan-out is not limited to pure functions. The branches can perform I/O, as long as they do not share mutable state. Sequential fan-out (`|`) evaluates branches one at a time, so there is no concurrency issue. Parallel fan-out (`<:()`) requires pure functions or functions that do not access mutable statics.
@@ -1115,7 +1115,7 @@ fn run_scaled(lines: array<string>) {
     let p2 :< parse_stage()
     let p3 :< parse_stage()
 
-    ; Distribute lines across parsers
+    // Distribute lines across parsers
     let i: int:mut = 0
     for (line: string in lines) {
         if (string.len(line) > 0) {
@@ -1128,8 +1128,8 @@ fn run_scaled(lines: array<string>) {
         }
     }
 
-    ; Collect from all three
-    ; ...
+    // Collect from all three
+    // ...
 }
 ```
 
@@ -1195,7 +1195,7 @@ Every function in this program is testable in isolation. The pure functions are 
 ### Testing Parsers
 
 ```flow
-; Unit tests for parse_kv
+// Unit tests for parse_kv
 fn test_parse_kv() {
     let entry = parse_kv("ts=2024-01-15 level=ERROR src=api msg=timeout")
     assert(entry.timestamp == "2024-01-15")
@@ -1207,7 +1207,7 @@ fn test_parse_kv() {
     }
 }
 
-; Unit tests for parse_csv
+// Unit tests for parse_csv
 fn test_parse_csv() {
     let entry = parse_csv("2024-01-15,WARN,db,slow_query")
     assert(entry.timestamp == "2024-01-15")
@@ -1222,7 +1222,7 @@ fn test_parse_csv() {
 ### Testing Error Handling
 
 ```flow
-; Test that malformed lines throw ParseError
+// Test that malformed lines throw ParseError
 fn test_malformed_throws() {
     try {
         let entry = detect_and_parse("garbage")
@@ -1260,7 +1260,7 @@ Because `add_to_report` is pure and takes explicit inputs, testing it requires n
 
 ```flow
 fn test_format_detection() {
-    ; Key-value lines start with ts=
+    // Key-value lines start with ts=
     let kv_entry = detect_and_parse(
         "ts=2024-01-15 level=WARN src=api msg=slow")
     match kv_entry.severity {
@@ -1269,7 +1269,7 @@ fn test_format_detection() {
     }
     assert(kv_entry.source == "api")
 
-    ; CSV lines contain commas
+    // CSV lines contain commas
     let csv_entry = detect_and_parse(
         "2024-01-15,ERROR,db,connection_lost")
     match csv_entry.severity {
@@ -1278,7 +1278,7 @@ fn test_format_detection() {
     }
     assert(csv_entry.source == "db")
 
-    ; Everything else is space-delimited
+    // Everything else is space-delimited
     let simple_entry = detect_and_parse(
         "2024-01-15 web INFO page_rendered")
     match simple_entry.severity {
@@ -1295,20 +1295,20 @@ Each test constructs a line in a specific format, parses it, and verifies that t
 
 ```flow
 fn test_sanitize() {
-    ; Tab characters become spaces
+    // Tab characters become spaces
     assert(sanitize("hello\tworld") == "hello world")
 
-    ; Leading and trailing whitespace removed
+    // Leading and trailing whitespace removed
     assert(sanitize("  padded  ") == "padded")
 
-    ; Combined: tab and whitespace
+    // Combined: tab and whitespace
     assert(sanitize("  a\tb  ") == "a b")
 }
 
 fn test_retry_behavior() {
-    ; A line that is malformed but fixable by sanitization
-    ; "ts=2024\tlevel=WARN\tsrc=api\tmsg=ok" has tabs instead of spaces
-    ; After sanitize: "ts=2024 level=WARN src=api msg=ok" which parses as kv
+    // A line that is malformed but fixable by sanitization
+    // "ts=2024\tlevel=WARN\tsrc=api\tmsg=ok" has tabs instead of spaces
+    // After sanitize: "ts=2024 level=WARN src=api msg=ok" which parses as kv
     let result = process_line("ts=2024\tlevel=WARN\tsrc=api\tmsg=ok")
     match result {
         some(entry): {

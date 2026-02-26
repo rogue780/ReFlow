@@ -1,8 +1,6 @@
 # Chapter 3: Functions and Purity
 
-A program is a collection of functions. In Flow, every function takes typed parameters, returns exactly one value, and has a body that is either a block of statements or a single expression. There are no varargs, no overloads, no default parameters. A function's signature tells you everything about how to call it and what you get back.
-
-This matters more than it sounds. In languages with default arguments, implicit conversions, and overload resolution, reading a call site tells you almost nothing --- you have to find the declaration, check which overload was selected, and verify which defaults apply. In Flow, `add(x, y)` calls a function named `add` with exactly two arguments of exactly the types declared. The mental overhead is low and stays low as the program grows.
+A program is a collection of functions. In Flow, every function takes typed parameters, returns exactly one value, and has a body that is either a block of statements or a single expression. There are no varargs and no overloads. Functions support default parameter values and named arguments for flexibility while keeping signatures explicit. A function's signature tells you everything about how to call it and what you get back.
 
 This chapter covers how to define functions, how purity works, how lambdas and closures work, how generics work, and how to pass functions around as values.
 
@@ -168,7 +166,7 @@ The compiler transitively verifies these constraints on every `fn:pure` function
 - **No mutable statics.** No reading or writing module-level mutable state.
 - **No calling impure functions.** Every function called from a pure function must itself be pure.
 - **No `:mut` parameters.** A pure function cannot accept mutable parameters, because mutating a caller's data is a side effect.
-- **Deterministic.** No `random()`, no `time.now()`, no `snapshot()`.
+- **Deterministic.** No `random()`, no `time.now()`, no mutable static access.
 
 One rule surprises newcomers: **local mutation is allowed inside a pure function.** As long as the mutation does not escape, purity is preserved:
 
@@ -188,7 +186,7 @@ The compiler checks these rules at compile time. Violations produce clear errors
 
 ```flow
 fn:pure bad_square(x: int): int {
-    println(f"squaring {x}")     ; compile error: println is not pure
+    println(f"squaring {x}")  // compile error: println is not pure
     return x * x
 }
 ```
@@ -199,12 +197,12 @@ The transitivity rule is the one that catches people most often in practice. If 
 
 ```flow
 fn helper(x: int): int {
-    println(f"debug: {x}")    ; impure
+    println(f"debug: {x}")  // impure
     return x
 }
 
 fn:pure transform(x: int): int {
-    return helper(x) * 2      ; compile error: helper is not pure
+    return helper(x) * 2  // compile error: helper is not pure
 }
 ```
 
@@ -301,8 +299,8 @@ fn make_greeting(salutation: string): fn(string): string {
 
 fn main(): none {
     let greet = make_greeting("Hello")
-    println(greet("Alice"))    ; Hello, Alice!
-    println(greet("Bob"))      ; Hello, Bob!
+    println(greet("Alice"))  // Hello, Alice!
+    println(greet("Bob"))  // Hello, Bob!
 }
 ```
 
@@ -314,7 +312,7 @@ The capture rules depend on mutability:
 
 ```flow
 fn make_adder(n: int): fn(int): int {
-    return \(x: int => x + n)    ; n is immutable, captured by reference
+    return \(x: int => x + n)  // n is immutable, captured by reference
 }
 ```
 
@@ -323,9 +321,9 @@ fn make_adder(n: int): fn(int): int {
 ```flow
 fn example(): none {
     let counter: int:mut = 10
-    let snapshot = \( => counter)    ; captures counter's value: 10
+    let snapshot = \( => counter)  // captures counter's value: 10
     counter = 20
-    println(f"{snapshot()}")         ; prints 10, not 20
+    println(f"{snapshot()}")  // prints 10, not 20
 }
 ```
 
@@ -350,8 +348,8 @@ fn identity<T>(x: T): T = x
 The `<T>` after the function name declares a type parameter. Inside the function, `T` stands for whatever type the caller provides. When called, the compiler infers the concrete type:
 
 ```flow
-let a: int = identity(42)          ; T is int
-let b: string = identity("hello")  ; T is string
+let a: int = identity(42)  // T is int
+let b: string = identity("hello")  // T is string
 ```
 
 You can have multiple type parameters:
@@ -378,8 +376,8 @@ fn max<T fulfills Comparable>(a: T, b: T): T {
 The `fulfills Comparable` bound tells the compiler: "T must be a type that implements the `Comparable` interface." Because `Comparable` guarantees comparison operators, the `a > b` expression is valid. The compiler checks the bound at each call site:
 
 ```flow
-let m = max(3, 7)           ; int fulfills Comparable: ok
-let s = max("abc", "xyz")   ; string fulfills Comparable: ok
+let m = max(3, 7)  // int fulfills Comparable: ok
+let s = max("abc", "xyz")  // string fulfills Comparable: ok
 ```
 
 If you call `max` with a type that does not fulfill `Comparable`, you get a compile error naming the type and the missing interface.
@@ -396,10 +394,10 @@ fn format_and_hash<T fulfills (Stringable, Hashable)>(val: T): int {
 Without parentheses, a comma after a bound starts a new type parameter. This is the disambiguation rule:
 
 ```flow
-; Two parameters: T bounded by Comparable, U unbounded
+// Two parameters: T bounded by Comparable, U unbounded
 fn wrap<T fulfills Comparable, U>(a: T, b: U): T = a
 
-; One parameter with two bounds
+// One parameter with two bounds
 fn process<T fulfills (Comparable, Hashable)>(a: T): int {
     return a.hash()
 }
@@ -441,10 +439,10 @@ A word on when to use generics: reach for them when you find yourself writing th
 Functions in Flow are values. A function's type is written with the `fn` keyword, the parameter types in parentheses, a colon, and the return type:
 
 ```flow
-fn(int): int              ; takes an int, returns an int
-fn(int, int): int         ; takes two ints, returns an int
-fn(string): bool          ; takes a string, returns a bool
-fn(int): fn(int): int     ; takes an int, returns a function
+fn(int): int  // takes an int, returns an int
+fn(int, int): int  // takes two ints, returns an int
+fn(string): bool  // takes a string, returns a bool
+fn(int): fn(int): int  // takes an int, returns a function
 ```
 
 These types appear in parameter lists, return types, and variable declarations. A function that takes or returns another function is called a **higher-order function**.
@@ -460,8 +458,8 @@ fn:pure double(n: int): int = n * 2
 fn:pure negate_int(n: int): int = 0 - n
 
 fn main(): none {
-    println(f"{apply(double, 5)}")        ; 10
-    println(f"{apply(negate_int, 5)}")    ; -5
+    println(f"{apply(double, 5)}")  // 10
+    println(f"{apply(negate_int, 5)}")  // -5
 }
 ```
 
@@ -472,7 +470,7 @@ You can pass lambdas directly, without naming them first:
 ```flow
 fn main(): none {
     let result = apply(\(x: int => x * x), 6)
-    println(f"{result}")    ; 36
+    println(f"{result}")  // 36
 }
 ```
 
@@ -495,8 +493,8 @@ fn main(): none {
     let numbers = [1, 2, 3, 4, 5]
     let doubled = transform_all(numbers, \(x: int => x * 2))
     let squared = transform_all(numbers, \(x: int => x * x))
-    ; doubled is [2, 4, 6, 8, 10]
-    ; squared is [1, 4, 9, 16, 25]
+    // doubled is [2, 4, 6, 8, 10]
+    // squared is [1, 4, 9, 16, 25]
 }
 ```
 
@@ -514,8 +512,8 @@ fn make_adder(n: int): fn(int): int {
 fn main(): none {
     let add5 = make_adder(5)
     let add10 = make_adder(10)
-    println(f"{add5(3)}")     ; 8
-    println(f"{add10(3)}")    ; 13
+    println(f"{add5(3)}")  // 8
+    println(f"{add10(3)}")  // 13
 }
 ```
 
@@ -531,8 +529,8 @@ fn apply_twice(f: fn(int): int, x: int): int = f(f(x))
 fn:pure increment(n: int): int = n + 1
 
 fn main(): none {
-    println(f"{apply_twice(increment, 5)}")    ; 7
-    println(f"{apply_twice(double, 3)}")       ; 12
+    println(f"{apply_twice(increment, 5)}")  // 7
+    println(f"{apply_twice(double, 3)}")  // 12
 }
 ```
 
@@ -545,10 +543,10 @@ fn compose(f: fn(int): int, g: fn(int): int): fn(int): int {
 
 fn main(): none {
     let double_then_inc = compose(increment, double)
-    println(f"{double_then_inc(5)}")    ; 11 (double 5 = 10, increment 10 = 11)
+    println(f"{double_then_inc(5)}")  // 11 (double 5 = 10, increment 10 = 11)
 
     let inc_then_double = compose(double, increment)
-    println(f"{inc_then_double(5)}")    ; 12 (increment 5 = 6, double 6 = 12)
+    println(f"{inc_then_double(5)}")  // 12 (increment 5 = 6, double 6 = 12)
 }
 ```
 
@@ -626,10 +624,10 @@ Inner scopes silently shadow outer names. No warning is emitted:
 fn example(): none {
     let x: int = 1
     if (true) {
-        let x: int = 2     ; shadows outer x
-        println(f"{x}")     ; prints 2
+        let x: int = 2  // shadows outer x
+        println(f"{x}")  // prints 2
     }
-    println(f"{x}")         ; prints 1, outer x is unchanged
+    println(f"{x}")  // prints 1, outer x is unchanged
 }
 ```
 
@@ -639,8 +637,8 @@ Shadowing is sometimes useful for narrowing a type or providing a more specific 
 
 ```flow
 fn parse_and_validate(raw: string): int {
-    let value: int = string.to_int(raw)    ; parse the string
-    let value: int = clamp(value, 0, 100)  ; shadow with clamped version
+    let value: int = string.to_int(raw)  // parse the string
+    let value: int = clamp(value, 0, 100)  // shadow with clamped version
     return value
 }
 ```
@@ -657,7 +655,7 @@ The most common error when starting with `fn:pure` is calling an impure function
 
 ```flow
 fn:pure compute(x: int): int {
-    println(f"computing {x}")    ; ERROR: println is not pure
+    println(f"computing {x}")  // ERROR: println is not pure
     return x * x
 }
 ```
@@ -672,8 +670,8 @@ Every code path in a block-bodied function must return a value (unless the retur
 fn classify(n: int): string {
     if (n > 0) { return "positive" }
     if (n < 0) { return "negative" }
-    ; ERROR: not all code paths return a value
-    ; (what if n == 0?)
+    // ERROR: not all code paths return a value
+    // (what if n == 0?)
 }
 ```
 
@@ -696,14 +694,14 @@ fn:pure double(n: int): int = n * 2
 
 fn main(): none {
     let x: float = 3.14
-    let result = double(x)    ; ERROR: expected int, got float
+    let result = double(x)  // ERROR: expected int, got float
 }
 ```
 
 There is no implicit conversion between `int` and `float`. Use an explicit conversion:
 
 ```flow
-let result = double(int(x))    ; explicit conversion, compiles
+let result = double(int(x))  // explicit conversion, compiles
 ```
 
 ### Wrong number of arguments
@@ -712,8 +710,8 @@ let result = double(int(x))    ; explicit conversion, compiles
 fn:pure add(x: int, y: int): int = x + y
 
 fn main(): none {
-    let r = add(1)          ; ERROR: expected 2 arguments, got 1
-    let s = add(1, 2, 3)    ; ERROR: expected 2 arguments, got 3
+    let r = add(1)  // ERROR: expected 2 arguments, got 1
+    let s = add(1, 2, 3)  // ERROR: expected 2 arguments, got 3
 }
 ```
 
@@ -721,7 +719,7 @@ fn main(): none {
 
 ```flow
 fn greet(name: string): int {
-    return f"Hello, {name}!"    ; ERROR: expected int, got string
+    return f"Hello, {name}!"  // ERROR: expected int, got string
 }
 ```
 
@@ -732,9 +730,9 @@ This is not an error, but it surprises people:
 ```flow
 fn main(): none {
     let x: int:mut = 1
-    let f = \( => x)    ; captures x by copy, snapshot is 1
+    let f = \( => x)  // captures x by copy, snapshot is 1
     x = 2
-    println(f"{f()}")    ; prints 1, not 2
+    println(f"{f()}")  // prints 1, not 2
 }
 ```
 
@@ -749,7 +747,7 @@ fn apply(f: fn(int): int, x: int): int = f(x)
 fn:pure half(x: float): float = x / 2.0
 
 fn main(): none {
-    let r = apply(half, 5)    ; ERROR: expected fn(int): int, got fn(float): float
+    let r = apply(half, 5)  // ERROR: expected fn(int): int, got fn(float): float
 }
 ```
 
@@ -764,7 +762,7 @@ fn outer(): none {
     let secret: int = 42
 
     fn inner(): int {
-        return secret    ; ERROR: cannot access outer function variable
+        return secret  // ERROR: cannot access outer function variable
     }
 }
 ```
@@ -774,7 +772,7 @@ If you need `inner` to use `secret`, either pass it as a parameter or use a lamb
 ```flow
 fn outer(): none {
     let secret: int = 42
-    let inner = \( => secret)    ; OK: lambda captures from enclosing scope
+    let inner = \( => secret)  // OK: lambda captures from enclosing scope
     println(f"{inner()}")
 }
 ```
@@ -785,7 +783,7 @@ A pure function cannot accept mutable parameters:
 
 ```flow
 fn:pure sort_in_place(items: array<int>:mut): none {
-    ; ERROR: pure function cannot accept :mut parameter
+    // ERROR: pure function cannot accept :mut parameter
 }
 ```
 
@@ -793,7 +791,7 @@ The reason is straightforward: mutating a caller's data is a side effect. If `so
 
 ```flow
 fn:pure sorted(items: array<int>): array<int> {
-    ; ... create and return a new sorted array ...
+    // ... create and return a new sorted array ...
 }
 ```
 
@@ -828,10 +826,10 @@ fn:pure gcd(a: int, b: int): int {
 }
 
 fn main(): none {
-    println(f"gcd(48, 18) = {gcd(48, 18)}")    ; 6
-    println(f"gcd(100, 75) = {gcd(100, 75)}")   ; 25
-    println(f"gcd(17, 0) = {gcd(17, 0)}")       ; 17
-    println(f"gcd(0, 5) = {gcd(0, 5)}")         ; 5
+    println(f"gcd(48, 18) = {gcd(48, 18)}")  // 6
+    println(f"gcd(100, 75) = {gcd(100, 75)}")  // 25
+    println(f"gcd(17, 0) = {gcd(17, 0)}")  // 17
+    println(f"gcd(0, 5) = {gcd(0, 5)}")  // 5
 }
 ```
 
@@ -845,8 +843,8 @@ fn make_multiplier(factor: int): fn(int): int {
 fn main(): none {
     let triple = make_multiplier(3)
     let times10 = make_multiplier(10)
-    println(f"triple(7) = {triple(7)}")        ; 21
-    println(f"times10(7) = {times10(7)}")      ; 70
+    println(f"triple(7) = {triple(7)}")  // 21
+    println(f"times10(7) = {times10(7)}")  // 70
 }
 ```
 
@@ -859,9 +857,9 @@ fn min<T fulfills Comparable>(a: T, b: T): T {
 }
 
 fn main(): none {
-    println(f"min(3, 7) = {min(3, 7)}")              ; 3
-    println(f"min(9, 2) = {min(9, 2)}")              ; 2
-    println(f'min("apple", "banana") = {min("apple", "banana")}')  ; apple
+    println(f"min(3, 7) = {min(3, 7)}")  // 3
+    println(f"min(9, 2) = {min(9, 2)}")  // 2
+    println(f'min("apple", "banana") = {min("apple", "banana")}')  // apple
 }
 ```
 
@@ -878,8 +876,8 @@ fn compose(f: fn(int): int, g: fn(int): int): fn(int): int {
 fn main(): none {
     let double_after_inc = compose(double, increment)
     let inc_after_double = compose(increment, double)
-    println(f"compose(double, increment)(5) = {double_after_inc(5)}")    ; 12
-    println(f"compose(increment, double)(5) = {inc_after_double(5)}")    ; 11
+    println(f"compose(double, increment)(5) = {double_after_inc(5)}")  // 12
+    println(f"compose(increment, double)(5) = {inc_after_double(5)}")  // 11
 }
 ```
 
@@ -906,16 +904,16 @@ fn apply_if(pred: fn(int): bool, transform: fn(int): int, value: int): int {
 }
 
 fn main(): none {
-    ; Demonstrate each function
-    println(f"square(5) = {square(5)}")          ; 25
-    println(f"cube(3) = {cube(3)}")              ; 27
-    println(f"abs(-7) = {abs(-7)}")              ; 7
-    println(f"clamp(15, 0, 10) = {clamp(15, 0, 10)}")  ; 10
-    println(f"is_even(4) = {is_even(4)}")        ; true
-    println(f"is_odd(4) = {is_odd(4)}")          ; false
+    // Demonstrate each function
+    println(f"square(5) = {square(5)}")  // 25
+    println(f"cube(3) = {cube(3)}")  // 27
+    println(f"abs(-7) = {abs(-7)}")  // 7
+    println(f"clamp(15, 0, 10) = {clamp(15, 0, 10)}")  // 10
+    println(f"is_even(4) = {is_even(4)}")  // true
+    println(f"is_odd(4) = {is_odd(4)}")  // false
 
-    ; apply_if: square only even numbers
-    println(f"apply_if(is_even, square, 4) = {apply_if(is_even, square, 4)}")  ; 16
-    println(f"apply_if(is_even, square, 5) = {apply_if(is_even, square, 5)}")  ; 5
+    // apply_if: square only even numbers
+    println(f"apply_if(is_even, square, 4) = {apply_if(is_even, square, 4)}")  // 16
+    println(f"apply_if(is_even, square, 5) = {apply_if(is_even, square, 5)}")  // 5
 }
 ```

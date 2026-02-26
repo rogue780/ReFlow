@@ -43,7 +43,7 @@ fn consume(data: string): none {
 fn main() {
     let msg = "hello"
     consume(msg)
-    ; msg is still valid here --- consume borrowed it
+    // msg is still valid here --- consume borrowed it
     println(msg)
 }
 ```
@@ -61,14 +61,14 @@ When a value escapes, ownership transfers permanently:
 
 ```flow
 fn take_and_return(data: string): string {
-    return data    ; data escapes via return
+    return data  // data escapes via return
 }
 
 fn main() {
     let a = "hello"
     let b = take_and_return(a)
-    ; a's ownership transferred to take_and_return,
-    ; which transferred it out via return to b
+    // a's ownership transferred to take_and_return,
+    // which transferred it out via return to b
     println(b)
 }
 ```
@@ -89,10 +89,10 @@ fn display(data: Record:imut): none {
 
 fn main() {
     let rec = Record { name: "Alice" }
-    display(rec)          ; borrowed, not moved
-    println(rec.name)     ; still valid
-    display(rec)          ; borrowed again
-    println(rec.name)     ; still valid
+    display(rec)  // borrowed, not moved
+    println(rec.name)  // still valid
+    display(rec)  // borrowed again
+    println(rec.name)  // still valid
 }
 ```
 
@@ -121,12 +121,12 @@ three ways this happens.
 ```flow
 fn create(): Record {
     let r = Record { name: "Bob" }
-    return r    ; r escapes; caller owns it
+    return r  // r escapes; caller owns it
 }
 
 fn main() {
     let rec = create()
-    println(rec.name)    ; "Bob"
+    println(rec.name)  // "Bob"
 }
 ```
 
@@ -135,8 +135,8 @@ yielded value to the consumer:
 
 ```flow
 fn names(): stream<string> {
-    yield "Alice"    ; consumer owns "Alice"
-    yield "Bob"      ; consumer owns "Bob"
+    yield "Alice"  // consumer owns "Alice"
+    yield "Bob"  // consumer owns "Bob"
 }
 
 fn main() {
@@ -162,7 +162,7 @@ fn make_pair(): Pair {
     let a = "left"
     let b = "right"
     return Pair { first: a, second: b }
-    ; both a and b have escaped via the returned struct
+    // both a and b have escaped via the returned struct
 }
 ```
 
@@ -186,20 +186,20 @@ data is copied in full.
 
 ```flow
 let a = "hello"
-let b = @a     ; new allocation; b is an independent copy
-println(a)     ; "hello"
-println(b)     ; "hello"
-; a and b are independent; modifying one won't affect the other
+let b = @a  // new allocation; b is an independent copy
+println(a)  // "hello"
+println(b)  // "hello"
+// a and b are independent; modifying one won't affect the other
 ```
 
 The same applies to arrays:
 
 ```flow
 let data = [1, 2, 3, 4, 5]
-let copy = @data    ; full copy: new allocation with same contents
-println(data)       ; [1, 2, 3, 4, 5]
-println(copy)       ; [1, 2, 3, 4, 5]
-; data and copy are independent
+let copy = @data  // full copy: new allocation with same contents
+println(data)  // [1, 2, 3, 4, 5]
+println(copy)  // [1, 2, 3, 4, 5]
+// data and copy are independent
 ```
 
 Because `@` always produces an independent copy, it is safe to pass the
@@ -215,10 +215,10 @@ immutable bindings; applying `&` to a `:mut` binding is a compile error.
 
 ```flow
 let a = "hello"
-let b = &a     ; refcount incremented; a and b share the same memory
-println(a)     ; "hello"
-println(b)     ; "hello"
-; a and b point to the same memory, but neither can mutate it
+let b = &a  // refcount incremented; a and b share the same memory
+println(a)  // "hello"
+println(b)  // "hello"
+// a and b point to the same memory, but neither can mutate it
 ```
 
 This is safe because the immutable binding guarantees neither `a` nor `b`
@@ -229,10 +229,10 @@ The same applies to arrays:
 
 ```flow
 let data = [1, 2, 3, 4, 5]
-let alias = &data    ; cheap: refcount increment, shared data
-println(data)        ; [1, 2, 3, 4, 5]
-println(alias)       ; [1, 2, 3, 4, 5]
-; both point to the same underlying array
+let alias = &data  // cheap: refcount increment, shared data
+println(data)  // [1, 2, 3, 4, 5]
+println(alias)  // [1, 2, 3, 4, 5]
+// both point to the same underlying array
 ```
 
 When a reference goes out of scope, the reference count is decremented. When
@@ -250,18 +250,18 @@ contract.
 - You need an independent copy that can be mutated.
 - You're passing to a `:mut` parameter while retaining your original.
 - You're crossing a thread boundary with data that may change.
-- You want a snapshot of changing data.
+- You want a frozen copy of changing data (e.g., mutable statics).
 
 ```flow
 fn store_name(name: string): Record {
-    return Record { name: name }    ; name escapes
+    return Record { name: name }  // name escapes
 }
 
 fn main() {
     let name = "Alice"
-    let rec = store_name(@name)    ; pass a deep copy; retain original
-    println(name)                  ; still valid
-    println(rec.name)              ; "Alice"
+    let rec = store_name(@name)  // pass a deep copy; retain original
+    println(name)  // still valid
+    println(rec.name)  // "Alice"
 }
 ```
 
@@ -278,8 +278,8 @@ fn print_label(s: string): none {
 
 fn main() {
     let title = "Report"
-    print_label(&title)    ; cheap ref; title still valid after call
-    print_label(&title)    ; can share multiple times
+    print_label(&title)  // cheap ref; title still valid after call
+    print_label(&title)  // can share multiple times
 }
 ```
 
@@ -307,16 +307,16 @@ There are two mutability modifiers and one default:
 immutable. For function parameters, it accepts either mutability:
 
 ```flow
-let x = 42           ; immutable
-let y: int = 42      ; immutable, explicitly annotated
+let x = 42  // immutable
+let y: int = 42  // immutable, explicitly annotated
 ```
 
 **`:mut`.** The binding is mutable. The owning scope can modify it:
 
 ```flow
 let x: int:mut = 0
-x = 42               ; ok
-x++                  ; ok
+x = 42  // ok
+x++  // ok
 ```
 
 **`:imut`.** Explicitly immutable. On a variable, this is identical to the
@@ -324,7 +324,7 @@ bare default. On a function parameter, it means the function promises not to
 mutate the value:
 
 ```flow
-let x: int:imut = 5     ; same as `let x: int = 5`
+let x: int:imut = 5  // same as `let x: int = 5`
 ```
 
 The `:imut` modifier is most useful on parameters, where it communicates
@@ -334,11 +334,11 @@ Modifier grammar follows a fixed order: type, then `?` (if optional), then
 `:mut` or `:imut`. The order is not commutative:
 
 ```flow
-int                  ; immutable int
-int?                 ; immutable optional int
-int:mut              ; mutable int
-int?:mut             ; mutable optional int
-; int:mut?           ; compile error --- ? must precede :mut
+int  // immutable int
+int?  // immutable optional int
+int:mut  // mutable int
+int?:mut  // mutable optional int
+// int:mut?  // compile error --- ? must precede :mut
 ```
 
 ### 8.3.2 Parameter Mutability
@@ -351,17 +351,17 @@ function cannot mutate the parameter. This is the read-only contract:
 
 ```flow
 fn display(data: array<int>:imut): none {
-    ; data cannot be modified here
+    // data cannot be modified here
     for (x: int in data) {
         println(f"{x}")
     }
 }
 
 let immutable_data = [1, 2, 3]
-display(immutable_data)             ; ok
+display(immutable_data)  // ok
 
 let mutable_data: array<int>:mut = [4, 5, 6]
-display(mutable_data)               ; also ok --- :imut accepts :mut bindings
+display(mutable_data)  // also ok --- :imut accepts :mut bindings
 ```
 
 **`:mut` parameters** require the caller to pass a `:mut` binding. The
@@ -375,15 +375,15 @@ fn increment(x: int:mut): none {
 
 let val: int:mut = 5
 increment(val)
-; val is now 6 --- mutation was visible
+// val is now 6 --- mutation was visible
 ```
 
 This is the write contract. Passing an immutable binding to a `:mut`
 parameter is a compile error:
 
 ```flow
-let val = 5           ; immutable
-; increment(val)      ; compile error: immutable binding cannot fulfill :mut
+let val = 5  // immutable
+// increment(val)  // compile error: immutable binding cannot fulfill :mut
 ```
 
 The asymmetry is deliberate. Reading is always safe: an `:imut` parameter
@@ -396,8 +396,8 @@ guarantee either way:
 
 ```flow
 fn flexible(data: array<int>): int {
-    ; data might or might not be mutated
-    ; caller accepts either possibility
+    // data might or might not be mutated
+    // caller accepts either possibility
     return data.length
 }
 ```
@@ -406,8 +406,8 @@ To prevent a function from mutating your data when you are unsure of its
 contract, pass a copy:
 
 ```flow
-increment(@val)     ; @val creates a mutable copy; original is untouched
-; val is still 5
+increment(@val)  // @val creates a mutable copy; original is untouched
+// val is still 5
 ```
 
 ### 8.3.3 Mutable Data Cannot Cross Thread Boundaries
@@ -422,8 +422,8 @@ Immutable data is always safe --- it cannot change, so concurrent access is
 harmless:
 
 ```flow
-let config = Config { host: "localhost", port: 8080 }    ; immutable
-let w :< worker(config)    ; ok --- immutable data shared via refcount
+let config = Config { host: "localhost", port: 8080 }  // immutable
+let w :< worker(config)  // ok --- immutable data shared via refcount
 ```
 
 Mutable data is not safe. Two threads mutating the same value is a data
@@ -432,7 +432,7 @@ it rejects the program:
 
 ```flow
 let data: Data:mut = Data { count: 0 }
-; let w :< worker(data)    ; compile error: mutable data cannot cross threads
+// let w :< worker(data)  // compile error: mutable data cannot cross threads
 ```
 
 To send mutable data to a coroutine, copy it. Each thread gets an
@@ -440,7 +440,7 @@ independent value:
 
 ```flow
 let data: Data:mut = Data { count: 0 }
-let w :< worker(@data)    ; ok --- deep copy, independent value
+let w :< worker(@data)  // ok --- deep copy, independent value
 ```
 
 After the copy, the original `data` and the coroutine's copy are completely
@@ -468,7 +468,7 @@ bindings currently refer to the value.
 When you create a value:
 
 ```flow
-let name = "Alice"    ; refcount = 1
+let name = "Alice"  // refcount = 1
 ```
 
 The reference count starts at 1. The binding `name` is the sole owner.
@@ -476,7 +476,7 @@ The reference count starts at 1. The binding `name` is the sole owner.
 When you create an immutable reference with `&` on immutable data:
 
 ```flow
-let alias = &name    ; refcount = 2
+let alias = &name  // refcount = 2
 ```
 
 The reference count increments to 2. Both `name` and `alias` point to the
@@ -486,11 +486,11 @@ When a binding goes out of scope:
 
 ```flow
 fn example(): none {
-    let name = "Alice"       ; refcount = 1
-    let alias = &name        ; refcount = 2
-    ; ... use name and alias ...
-}   ; alias goes out of scope: refcount = 1
-    ; name goes out of scope: refcount = 0 → memory freed
+    let name = "Alice"  // refcount = 1
+    let alias = &name  // refcount = 2
+    // ... use name and alias ...
+}  // alias goes out of scope: refcount = 1
+    // name goes out of scope: refcount = 0 → memory freed
 ```
 
 Each scope exit decrements the reference count. When it reaches zero, the
@@ -560,8 +560,8 @@ predictable order:
 fn process_file(): none {
     let conn = open_connection("db://localhost")
     let data = conn.query("SELECT * FROM users")
-    ; ... work with data ...
-}   ; data freed, then conn freed --- deterministic, LIFO order
+    // ... work with data ...
+}  // data freed, then conn freed --- deterministic, LIFO order
 ```
 
 In a garbage-collected language, `conn` might not be freed until the next
@@ -586,7 +586,7 @@ streams. But some data is global --- configuration values stored as static
 fields on types. How do you safely read global mutable state from concurrent
 code?
 
-Flow's answer is `snapshot()`.
+Flow's answer is the `@` (copy) operator.
 
 ### 8.5.1 The Problem
 
@@ -602,68 +602,62 @@ type Config {
 Any function can read `Config.port`. But in concurrent code --- coroutines,
 fan-out branches --- reading a mutable static is a data race. One thread
 might be updating `Config.port` while another is reading it. Flow does not
-add implicit locks. Instead, it provides a mechanism for taking a local,
-frozen copy.
+add implicit locks. Instead, it requires an explicit deep copy using `@`.
 
-### 8.5.2 Creating a Snapshot
+### 8.5.2 Reading Mutable Statics with `@`
 
-`snapshot()` takes a static field reference and returns a frozen local
-copy:
+The `@` operator takes a deep copy of a mutable static field, producing a
+local, independent value:
 
 ```flow
 fn worker(): stream<string> {
-    let port = snapshot(Config.port)    ; frozen copy of port at this moment
+    let port = @Config.port  // deep copy of port at this moment
     while (true) {
         yield f"connecting to port {port}"
     }
 }
 ```
 
-The snapshot is read-only. It does not update when the source changes. It
-cannot write back to the source. It is a value, not a reference.
+The copy is independent of the source. It does not update when the source
+changes. It is a value, not a reference.
 
-This is safe for concurrent code because each thread gets its own snapshot.
+This is safe for concurrent code because each thread gets its own copy.
 No locks. No synchronization. No shared mutable state.
 
-### 8.5.3 Refreshing a Snapshot
+Reading a mutable static without `@` is a compile error:
 
-Sometimes you want a snapshot that can be updated periodically --- not on
-every access, but at controlled points. The `.refresh()` method pulls the
-current value from the source:
+```flow
+fn bad(): int {
+    return Config.port  // compile error: mutable static 'port' must be accessed with @ for thread safety
+}
+```
+
+### 8.5.3 Refreshing Values
+
+To pick up the latest value of a mutable static, simply take a new `@` copy:
 
 ```flow
 fn processor(batches: stream<array<Record>>): stream<Record> {
-    let port = snapshot(Config.port)
+    let port:int:mut = @Config.port
     for (batch: array<Record> in batches) {
         for (rec: Record in batch) {
-            yield Record { host: Config.host, port: port, data: rec.data }
+            yield Record { host: @Config.host, port: port, data: rec.data }
         }
-        port.refresh()    ; pick up any config changes between batches
+        port = @Config.port  // pick up any config changes between batches
     }
 }
 ```
 
-Between `.refresh()` calls, the snapshot holds a stable value. This gives
-you control over when your code sees changes: not on every read (which
-would require locking), not never (which would ignore updates), but at
-explicit points you choose.
-
 ### 8.5.4 Restrictions
 
-Two restrictions apply:
-
-**Snapshots are read-only.** You cannot assign to a snapshot or use it to
-modify the source static. The data flows one way: from the static field
-to the snapshot.
-
-**Pure functions cannot use `snapshot()`.** A pure function must return the
-same result for the same arguments. Since a snapshot reads mutable global
-state, and that state may differ between calls, `snapshot()` violates the
-purity contract. The compiler rejects it:
+**Pure functions cannot access mutable statics.** A pure function must return
+the same result for the same arguments. Since mutable statics represent
+global state that may change between calls, even a `@` copy would violate
+the purity contract:
 
 ```flow
 pure fn compute(x: int): int {
-    ; let port = snapshot(Config.port)    ; compile error: pure function cannot use snapshot
+    // let port = @Config.port  // compile error: pure function cannot access mutable statics
     return x * 2
 }
 ```
@@ -698,7 +692,7 @@ fn main() {
     for (line: string in enumerate(names)) {
         println(line)
     }
-    ; names is accessible again here --- stream closed, borrow ended
+    // names is accessible again here --- stream closed, borrow ended
     println(f"total: {names.length}")
 }
 ```
@@ -722,8 +716,8 @@ fn process(data: array<string>): stream<string> {
 }
 
 fn main() {
-    let names = ["Alice", "Bob", "Carol"]             ; immutable
-    let results :< process(names)                     ; ok: immutable data, refcount shared
+    let names = ["Alice", "Bob", "Carol"]  // immutable
+    let results :< process(names)  // ok: immutable data, refcount shared
     for (line: string in results) {
         println(line)
     }
@@ -744,8 +738,8 @@ fn mutating_worker(data: Config:mut): stream<string> {
 
 fn main() {
     let cfg: Config:mut = Config { retries: 3 }
-    let w :< mutating_worker(cfg)     ; cfg is moved to the coroutine
-    ; cfg is no longer accessible here
+    let w :< mutating_worker(cfg)  // cfg is moved to the coroutine
+    // cfg is no longer accessible here
     for (line: string in w) {
         println(line)
     }
@@ -755,7 +749,7 @@ fn main() {
 If you need to keep access to mutable data while a coroutine uses it, copy:
 
 ```flow
-let w :< mutating_worker(@cfg)    ; deep copy; cfg is still accessible
+let w :< mutating_worker(@cfg)  // deep copy; cfg is still accessible
 ```
 
 ### 8.6.3 Yielded Values
@@ -771,10 +765,10 @@ fn generate(): stream<string> {
     let template = "item"
     let i: int:mut = 0
     while (i < 3) {
-        yield @template    ; yield a copy; retain template
+        yield @template  // yield a copy; retain template
         i++
     }
-    ; template is still accessible here
+    // template is still accessible here
 }
 ```
 
@@ -824,7 +818,7 @@ type Sensor {
 }
 
 fn summarize(sensor: Sensor:imut): string {
-    ; :imut parameter --- borrows, does not consume
+    // :imut parameter --- borrows, does not consume
     let total: float:mut = 0.0
     for (r: float in sensor.readings) {
         total += r
@@ -835,7 +829,7 @@ fn summarize(sensor: Sensor:imut): string {
 
 fn process_batch(sensors: array<Sensor>): stream<string> {
     for (s: Sensor in sensors) {
-        yield summarize(s)    ; summarize borrows s; yield transfers the string
+        yield summarize(s)  // summarize borrows s; yield transfers the string
     }
 }
 
@@ -846,16 +840,16 @@ fn main() {
         Sensor { name: "pressure", readings: [1013.0, 1012.5, 1014.2] }
     ]
 
-    ; Direct consumption: sensors is borrowed for the stream's lifetime
+    // Direct consumption: sensors is borrowed for the stream's lifetime
     for (line: string in process_batch(sensors)) {
         println(line)
     }
 
-    ; sensors is still valid after the stream closes
+    // sensors is still valid after the stream closes
     println(f"processed {sensors.length} sensors")
 
-    ; Explicit ref for cheap immutable sharing
-    let backup = &sensors    ; cheap refcount increment (immutable data)
+    // Explicit ref for cheap immutable sharing
+    let backup = &sensors  // cheap refcount increment (immutable data)
     println(f"backup has {backup.length} sensors")
 }
 ```
@@ -881,21 +875,21 @@ The most common ownership error is using a value after it has been moved:
 
 ```flow
 fn take(data: array<int>): array<int> {
-    return data    ; data escapes
+    return data  // data escapes
 }
 
 fn main() {
     let nums = [1, 2, 3]
     let taken = take(nums)
-    ; println(f"{nums.length}")    ; compile error: nums was consumed by take
+    // println(f"{nums.length}")  // compile error: nums was consumed by take
 }
 ```
 
 The fix: either restructure to avoid the move, or use `@` to pass a copy:
 
 ```flow
-let taken = take(@nums)    ; pass a copy; nums is retained
-println(f"{nums.length}")  ; ok
+let taken = take(@nums)  // pass a copy; nums is retained
+println(f"{nums.length}")  // ok
 ```
 
 ### Immutable Binding to `:mut` Parameter
@@ -908,15 +902,15 @@ fn increment(x: int:mut): none {
 }
 
 let val = 5
-; increment(val)    ; compile error: immutable binding cannot fulfill :mut
+// increment(val)  // compile error: immutable binding cannot fulfill :mut
 ```
 
 The fix: either make the binding mutable, or pass a mutable copy:
 
 ```flow
 let val: int:mut = 5
-increment(val)          ; ok: val is mutable
-; val is now 6
+increment(val)  // ok: val is mutable
+// val is now 6
 ```
 
 ### Mutable Data Across Threads
@@ -925,13 +919,13 @@ Attempting to share mutable data with a coroutine:
 
 ```flow
 let config: Config:mut = Config { retries: 3 }
-; let w :< worker(config)    ; compile error: mutable data cannot cross threads
+// let w :< worker(config)  // compile error: mutable data cannot cross threads
 ```
 
 The fix: copy the data:
 
 ```flow
-let w :< worker(@config)    ; ok: deep copy
+let w :< worker(@config)  // ok: deep copy
 ```
 
 ### Mutating an `:imut` Parameter
@@ -940,7 +934,7 @@ Trying to modify data inside a function that promised not to:
 
 ```flow
 fn read_only(data: array<int>:imut): none {
-    ; data = [4, 5, 6]    ; compile error: cannot mutate :imut parameter
+    // data = [4, 5, 6]  // compile error: cannot mutate :imut parameter
 }
 ```
 
@@ -949,7 +943,7 @@ restructure the function to produce a new value instead of mutating:
 
 ```flow
 fn transform(data: array<int>:imut): array<int> {
-    ; return a new array instead of mutating
+    // return a new array instead of mutating
     return array.map(data, \(x: int => x * 2))
 }
 ```
@@ -963,7 +957,7 @@ there is nothing left for a second:
 ```flow
 let s = generate_data()
 let a = process_a(s)
-; let b = process_b(s)    ; compile error: s already consumed
+// let b = process_b(s)  // compile error: s already consumed
 ```
 
 The fix: buffer the stream and copy the buffer, or restructure the code to
@@ -976,13 +970,13 @@ let a = (@buf).drain() -> process_a
 let b = buf.drain() -> process_b
 ```
 
-### Snapshot in a Pure Function
+### Mutable Static Access in a Pure Function
 
-Attempting to use `snapshot()` in a function marked `pure`:
+Attempting to access a mutable static in a function marked `pure`:
 
 ```flow
 pure fn get_threshold(): int {
-    ; let t = snapshot(Config.threshold)    ; compile error
+    // let t = @Config.threshold  // compile error: pure functions cannot access mutable statics
     return 100
 }
 ```
@@ -1023,8 +1017,8 @@ Flow's ownership model rests on a small set of rules:
   crossing a coroutine boundary.
 - **Reference counting, no cycles.** Immutable data cannot form cycles.
   Mutable data has one owner. No cycle detector needed.
-- **`snapshot()` for static values.** Frozen local copy of mutable statics,
-  safe for concurrent code, refreshable on demand.
+- **`@` for mutable static reads.** Deep copy of mutable statics,
+  safe for concurrent code, required by the compiler.
 
 These rules eliminate use-after-free, double-free, data races, and memory
 leaks without a garbage collector. The cost is that you occasionally need to
@@ -1056,14 +1050,14 @@ fn take_string(s: string): string {
 fn main() {
     let greeting = "hello"
     let taken = take_string(greeting)
-    ; Try uncommenting the next line to see the compile error:
-    ; println(greeting)    ; error: greeting was consumed
+    // Try uncommenting the next line to see the compile error:
+    // println(greeting)  // error: greeting was consumed
     println(taken)
 
-    ; Fix: use @ to retain the original
+    // Fix: use @ to retain the original
     let greeting2 = "world"
     let taken2 = take_string(@greeting2)
-    println(greeting2)     ; ok: greeting2 was copied, not moved
+    println(greeting2)  // ok: greeting2 was copied, not moved
     println(taken2)
 }
 ```
@@ -1088,18 +1082,18 @@ type MutableRecord {
 }
 
 fn main() {
-    ; Immutable copy: cheap refcount increment
+    // Immutable copy: cheap refcount increment
     let a = ImmutableRecord { name: "Alice" }
     let b = @a
-    println(f"a.name: {a.name}")    ; Alice
-    println(f"b.name: {b.name}")    ; Alice (same underlying data)
+    println(f"a.name: {a.name}")  // Alice
+    println(f"b.name: {b.name}")  // Alice (same underlying data)
 
-    ; Mutable copy: deep copy
+    // Mutable copy: deep copy
     let c: MutableRecord:mut = MutableRecord { name: "Bob", count: 0 }
-    let d = @c                      ; deep copy
+    let d = @c  // deep copy
     c.count = 42
-    println(f"c.count: {c.count}")  ; 42
-    println(f"d.count: {d.count}")  ; 0 --- independent copy
+    println(f"c.count: {c.count}")  // 42
+    println(f"d.count: {d.count}")  // 0 --- independent copy
 }
 ```
 
@@ -1126,9 +1120,9 @@ fn worker(id: int, cfg: Config): stream<string> {
 }
 
 fn main() {
-    let cfg = Config { host: "localhost", port: 8080 }    ; immutable
+    let cfg = Config { host: "localhost", port: 8080 }  // immutable
 
-    ; Both coroutines share cfg via refcount --- no copy needed
+    // Both coroutines share cfg via refcount --- no copy needed
     let w1 :< worker(1, cfg)
     let w2 :< worker(2, cfg)
 
@@ -1150,10 +1144,10 @@ module ex_mixed_fields
 import io (println)
 
 type UserProfile {
-    id: int,                ; immutable: set once
-    name: string,           ; immutable: set once
-    score: int:mut,         ; mutable: can be updated
-    status: string:mut      ; mutable: can be updated
+    id: int,  // immutable: set once
+    name: string,  // immutable: set once
+    score: int:mut,  // mutable: can be updated
+    status: string:mut  // mutable: can be updated
 }
 
 fn update_score(profile: UserProfile:mut): none {
@@ -1162,9 +1156,9 @@ fn update_score(profile: UserProfile:mut): none {
 }
 
 fn display(profile: UserProfile:imut): none {
-    ; read-only access to all fields
+    // read-only access to all fields
     println(f"id={profile.id} name={profile.name} score={profile.score} status={profile.status}")
-    ; profile.score = 0    ; compile error: :imut parameter cannot be mutated
+    // profile.score = 0  // compile error: :imut parameter cannot be mutated
 }
 
 fn main() {
@@ -1175,22 +1169,22 @@ fn main() {
         status: "new"
     }
 
-    display(user)           ; :imut accepts :mut binding
-    update_score(user)      ; :mut parameter requires :mut binding
-    display(user)           ; score and status changed; id and name unchanged
+    display(user)  // :imut accepts :mut binding
+    update_score(user)  // :mut parameter requires :mut binding
+    display(user)  // score and status changed; id and name unchanged
 
-    ; user.id = 2          ; compile error: id is not :mut
-    ; user.name = "Bob"    ; compile error: name is not :mut
-    user.score = 100        ; ok: score is :mut
+    // user.id = 2  // compile error: id is not :mut
+    // user.name = "Bob"  // compile error: name is not :mut
+    user.score = 100  // ok: score is :mut
 }
 ```
 
-**5.** Use `snapshot()` in a worker coroutine to safely read changing
+**5.** Use `@` in a worker coroutine to safely read changing
 configuration. Define a type with a mutable static field, launch a worker
-that takes a snapshot, processes several items, then refreshes.
+that takes a `@` copy, processes several items, then refreshes.
 
 ```flow
-module ex_snapshot
+module ex_copy_static
 
 import io (println)
 
@@ -1199,7 +1193,7 @@ type AppConfig {
 }
 
 fn processor(items: array<int>): stream<string> {
-    let thresh = snapshot(AppConfig.threshold)
+    let thresh = @AppConfig.threshold
     for (item: int in items) {
         if (item > thresh) {
             yield f"{item} exceeds threshold {thresh}"
@@ -1207,7 +1201,7 @@ fn processor(items: array<int>): stream<string> {
             yield f"{item} within threshold {thresh}"
         }
     }
-    ; thresh.refresh() would pull the latest value here
+    // thresh = @AppConfig.threshold would pull the latest value here
 }
 
 fn main() {

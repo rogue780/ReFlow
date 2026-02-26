@@ -25,11 +25,11 @@ fn main(): int {
     let a: int = 10
     let b: int = 3
 
-    io.println(conv.to_string(a + b))    ; 13
-    io.println(conv.to_string(a - b))    ; 7
-    io.println(conv.to_string(a * b))    ; 30
-    io.println(conv.to_string(a / b))    ; 3 (integer division, truncates)
-    io.println(conv.to_string(a % b))    ; 1 (modulo)
+    io.println(conv.to_string(a + b))  // 13
+    io.println(conv.to_string(a - b))  // 7
+    io.println(conv.to_string(a * b))  // 30
+    io.println(conv.to_string(a / b))  // 3 (integer division, truncates)
+    io.println(conv.to_string(a % b))  // 1 (modulo)
 
     return 0
 }
@@ -41,15 +41,15 @@ Underscores are allowed in numeric literals for readability. The compiler ignore
 
 ```flow
 let population: int = 8_100_000_000
-let big: int = 9_223_372_036_854_775_807   ; 2^63 - 1
+let big: int = 9_223_372_036_854_775_807  // 2^63 - 1
 ```
 
-Flow also provides the `**` operator for exponentiation and `//` for floor division:
+Flow also provides the `**` operator for exponentiation and `</` for floor division:
 
 ```flow
 fn main(): int {
-    io.println(conv.to_string(2 ** 10))    ; 1024
-    io.println(conv.to_string(10 // 3))    ; 3 (floor division)
+    io.println(conv.to_string(2 ** 10))  // 1024
+    io.println(conv.to_string(10 </ 3))  // 3 (floor division)
 
     return 0
 }
@@ -60,11 +60,11 @@ The update operators `+=`, `-=`, `*=`, `/=`, `++`, and `--` work on mutable bind
 ```flow
 fn main(): int {
     let count: int:mut = 0
-    count++              ; 1
-    count += 5           ; 6
-    count--              ; 5
-    count *= 2           ; 10
-    io.println(conv.to_string(count))   ; 10
+    count++  // 1
+    count += 5  // 6
+    count--  // 5
+    count *= 2  // 10
+    io.println(conv.to_string(count))  // 10
 
     return 0
 }
@@ -76,8 +76,8 @@ These operators require a `:mut` binding. Using them on an immutable binding is 
 
 ```flow
 fn main(): int {
-    let max: int = 9_223_372_036_854_775_807   ; 2^63 - 1
-    let n = max + 1                             ; throws OverflowError
+    let max: int = 9_223_372_036_854_775_807  // 2^63 - 1
+    let n = max + 1  // throws OverflowError
     return 0
 }
 ```
@@ -88,7 +88,7 @@ Integer division by zero throws `DivisionByZeroError`:
 
 ```flow
 fn main(): int {
-    let x: int = 42 / 0   ; throws DivisionByZeroError
+    let x: int = 42 / 0  // throws DivisionByZeroError
     return 0
 }
 ```
@@ -114,10 +114,10 @@ fn main(): int {
     let a: float = 10.0
     let b: float = 3.0
 
-    io.println(conv.to_string(a + b))    ; 13.0
-    io.println(conv.to_string(a - b))    ; 7.0
-    io.println(conv.to_string(a * b))    ; 30.0
-    io.println(conv.to_string(a / b))    ; 3.3333333333333335
+    io.println(conv.to_string(a + b))  // 13.0
+    io.println(conv.to_string(a - b))  // 7.0
+    io.println(conv.to_string(a * b))  // 30.0
+    io.println(conv.to_string(a / b))  // 3.3333333333333335
 
     return 0
 }
@@ -127,9 +127,9 @@ Floating-point arithmetic follows IEEE 754 rules, which means division by zero d
 
 ```flow
 fn main(): int {
-    let a: float = 1.0 / 0.0     ; infinity
-    let b: float = -1.0 / 0.0    ; negative infinity
-    let c: float = 0.0 / 0.0     ; NaN (not a number)
+    let a: float = 1.0 / 0.0  // infinity
+    let b: float = -1.0 / 0.0  // negative infinity
+    let c: float = 0.0 / 0.0  // NaN (not a number)
     return 0
 }
 ```
@@ -140,9 +140,9 @@ There is one exception to the IEEE 754 rule: **float modulo by zero panics**.
 
 ```flow
 fn main(): int {
-    let a: float = 10.5 % 3.0   ; 1.5  (uses C's fmod)
-    let b: float = -7.5 % 2.0   ; -1.5
-    let c: float = 1.0 % 0.0    ; throws DivisionByZeroError
+    let a: float = 10.5 % 3.0  // 1.5  (uses C's fmod)
+    let b: float = -7.5 % 2.0  // -1.5
+    let c: float = 1.0 % 0.0  // throws DivisionByZeroError
     return 0
 }
 ```
@@ -165,9 +165,9 @@ fn main(): int {
     let a: bool = true
     let b: bool = false
 
-    io.println(conv.to_string(a && b))    ; false
-    io.println(conv.to_string(a || b))    ; true
-    io.println(conv.to_string(!a))        ; false
+    io.println(conv.to_string(a && b))  // false
+    io.println(conv.to_string(a || b))  // true
+    io.println(conv.to_string(!a))  // false
 
     return 0
 }
@@ -177,7 +177,7 @@ fn main(): int {
 
 ```flow
 fn safe_divide(x: int, y: int): bool {
-    ; y != 0 is checked first; if false, division never happens
+    // y != 0 is checked first; if false, division never happens
     return y != 0 && (x / y > 10)
 }
 ```
@@ -186,12 +186,12 @@ The comparison operators produce booleans:
 
 ```flow
 fn main(): int {
-    io.println(conv.to_string(10 == 10))   ; true  (equality)
-    io.println(conv.to_string(10 != 5))    ; true  (inequality)
-    io.println(conv.to_string(3 < 7))      ; true  (less than)
-    io.println(conv.to_string(3 > 7))      ; false (greater than)
-    io.println(conv.to_string(5 <= 5))     ; true  (less than or equal)
-    io.println(conv.to_string(5 >= 6))     ; false (greater than or equal)
+    io.println(conv.to_string(10 == 10))  // true  (equality)
+    io.println(conv.to_string(10 != 5))  // true  (inequality)
+    io.println(conv.to_string(3 < 7))  // true  (less than)
+    io.println(conv.to_string(3 > 7))  // false (greater than)
+    io.println(conv.to_string(5 <= 5))  // true  (less than or equal)
+    io.println(conv.to_string(5 >= 6))  // false (greater than or equal)
 
     return 0
 }
@@ -214,7 +214,7 @@ You will not use `byte` as a standalone type very often. Its primary role is as 
 fn main(): int {
     let data: array<byte> = string.to_bytes("hello")
     let back: string = string.from_bytes(data)
-    io.println(back)   ; hello
+    io.println(back)  // hello
     return 0
 }
 ```
@@ -263,7 +263,7 @@ fn main(): int {
     let score: int = 95
 
     let msg: string = f"Player {name} scored {score} points."
-    io.println(msg)   ; Player Alice scored 95 points.
+    io.println(msg)  // Player Alice scored 95 points.
 
     return 0
 }
@@ -276,9 +276,9 @@ fn main(): int {
     let x: int = 10
     let y: int = 20
 
-    io.println(f"{x} + {y} = {x + y}")            ; 10 + 20 = 30
-    io.println(f"is positive: {x > 0}")            ; is positive: true
-    io.println(f"half: {cast<float>(x) / 2.0}")    ; half: 5.0
+    io.println(f"{x} + {y} = {x + y}")  // 10 + 20 = 30
+    io.println(f"is positive: {x > 0}")  // is positive: true
+    io.println(f"half: {cast<float>(x) / 2.0}")  // half: 5.0
 
     return 0
 }
@@ -293,7 +293,7 @@ The `+` operator concatenates strings:
 ```flow
 fn main(): int {
     let full: string = "hello" + " " + "world"
-    io.println(full)   ; hello world
+    io.println(full)  // hello world
 
     return 0
 }
@@ -304,10 +304,10 @@ When one operand of `+` is a string and the other is a type that supports string
 ```flow
 fn main(): int {
     let count: int = 42
-    let msg: string = "count: " + count      ; "count: 42"
+    let msg: string = "count: " + count  // "count: 42"
 
     let pi: float = 3.14
-    let s: string = "pi = " + pi + "!"       ; "pi = 3.14!"
+    let s: string = "pi = " + pi + "!"  // "pi = 3.14!"
 
     io.println(msg)
     io.println(s)
@@ -328,9 +328,9 @@ The `string` module provides the standard set of string manipulation functions. 
 fn main(): int {
     let s: string = "hello, world"
 
-    io.println(conv.to_string(string.len(s)))       ; 12
-    io.println(string.substring(s, 0, 5))            ; hello
-    io.println(string.substring(s, 7, 12))           ; world
+    io.println(conv.to_string(string.len(s)))  // 12
+    io.println(string.substring(s, 0, 5))  // hello
+    io.println(string.substring(s, 7, 12))  // world
 
     return 0
 }
@@ -346,10 +346,10 @@ fn main(): int {
 fn main(): int {
     let s: string = "hello, world"
 
-    io.println(conv.to_string(string.contains(s, "world")))        ; true
-    io.println(conv.to_string(string.contains(s, "xyz")))          ; false
-    io.println(conv.to_string(string.starts_with(s, "hello")))     ; true
-    io.println(conv.to_string(string.ends_with(s, ".txt")))        ; false
+    io.println(conv.to_string(string.contains(s, "world")))  // true
+    io.println(conv.to_string(string.contains(s, "xyz")))  // false
+    io.println(conv.to_string(string.starts_with(s, "hello")))  // true
+    io.println(conv.to_string(string.ends_with(s, ".txt")))  // false
 
     return 0
 }
@@ -359,10 +359,10 @@ fn main(): int {
 
 ```flow
 fn main(): int {
-    io.println(string.to_upper("hello"))                     ; HELLO
-    io.println(string.to_lower("HELLO"))                     ; hello
-    io.println(string.trim("  hello  "))                     ; hello
-    io.println(string.replace("aabaa", "aa", "x"))           ; xbx
+    io.println(string.to_upper("hello"))  // HELLO
+    io.println(string.to_lower("HELLO"))  // hello
+    io.println(string.trim("  hello  "))  // hello
+    io.println(string.replace("aabaa", "aa", "x"))  // xbx
 
     return 0
 }
@@ -374,15 +374,15 @@ fn main(): int {
 fn main(): int {
     let csv_line: string = "alice,95,A"
     let parts: array<string> = string.split(csv_line, ",")
-    ; parts is ["alice", "95", "A"]
+    // parts is ["alice", "95", "A"]
 
     for (p: string in parts) {
         io.println(p)
     }
 
-    ; Rejoin with a different separator
+    // Rejoin with a different separator
     let rejoined: string = string.join(parts, " | ")
-    io.println(rejoined)   ; alice | 95 | A
+    io.println(rejoined)  // alice | 95 | A
 
     return 0
 }
@@ -408,7 +408,7 @@ fn parse_pair(line: string): (string, string) {
 
 fn main(): int {
     let (k, v) = parse_pair("host = localhost")
-    io.println(f"key: '{k}', value: '{v}'")   ; key: 'host', value: 'localhost'
+    io.println(f"key: '{k}', value: '{v}'")  // key: 'host', value: 'localhost'
 
     return 0
 }
@@ -431,13 +431,13 @@ let empty: array<int> = []
 The element type is inferred from the contents when unambiguous:
 
 ```flow
-let inferred = [10, 20, 30]   ; inferred as array<int>
+let inferred = [10, 20, 30]  // inferred as array<int>
 ```
 
 All elements must be the same type. A heterogeneous literal is a compile error:
 
 ```flow
-let bad = [1, "two", 3]   ; compile error: int and string are not the same type
+let bad = [1, "two", 3]  // compile error: int and string are not the same type
 ```
 
 ### 2.3.2 Accessing Elements
@@ -449,13 +449,13 @@ fn main(): int {
     let nums: array<int> = [10, 20, 30]
 
     match array.get_int(nums, 0) {
-        some(v) : io.println(conv.to_string(v)),   ; 10
+        some(v) : io.println(conv.to_string(v)),  // 10
         none    : io.println("out of bounds")
     }
 
     match array.get_int(nums, 99) {
         some(v) : io.println(conv.to_string(v)),
-        none    : io.println("out of bounds")       ; this branch
+        none    : io.println("out of bounds")  // this branch
     }
 
     return 0
@@ -471,7 +471,7 @@ fn main(): int {
     let names: array<string> = ["alice", "bob"]
 
     match array.get(names, 0) {
-        some(name) : io.println(name),   ; alice
+        some(name) : io.println(name),  // alice
         none       : io.println("empty")
     }
 
@@ -484,7 +484,7 @@ The `??` operator provides a convenient shorthand when you have a default value:
 ```flow
 fn main(): int {
     let nums: array<int> = [10, 20, 30]
-    let val: int = array.get_int(nums, 5) ?? 0   ; 0 (out of bounds)
+    let val: int = array.get_int(nums, 5) ?? 0  // 0 (out of bounds)
 
     io.println(conv.to_string(val))
 
@@ -501,11 +501,11 @@ fn main(): int {
     let a: array<int> = [1, 2, 3]
     let b: array<int> = array.push_int(a, 4)
 
-    ; a is still [1, 2, 3]
-    ; b is [1, 2, 3, 4]
+    // a is still [1, 2, 3]
+    // b is [1, 2, 3, 4]
 
-    io.println(conv.to_string(array.len(a)))   ; 3
-    io.println(conv.to_string(array.len(b)))   ; 4
+    io.println(conv.to_string(array.len(a)))  // 3
+    io.println(conv.to_string(array.len(b)))  // 4
 
     return 0
 }
@@ -538,8 +538,8 @@ fn main(): int {
     let nums: array<int> = [10, 20, 30]
     let names: array<string> = ["alice", "bob"]
 
-    io.println(conv.to_string(array.len(nums)))          ; 3
-    io.println(conv.to_string(array.len_string(names)))   ; 2
+    io.println(conv.to_string(array.len(nums)))  // 3
+    io.println(conv.to_string(array.len_string(names)))  // 2
 
     return 0
 }
@@ -576,8 +576,8 @@ fn main(): int {
         total += s
     }
 
-    io.println(f"Total: {total}")                  ; Total: 438
-    io.println(f"Count: {array.len(scores)}")      ; Count: 5
+    io.println(f"Total: {total}")  // Total: 438
+    io.println(f"Count: {array.len(scores)}")  // Count: 5
 
     return 0
 }
@@ -596,9 +596,9 @@ fn main(): int {
     let a: array<int> = [1, 2, 3]
     let b: array<int> = [4, 5, 6]
     let c: array<int> = array.concat(a, b)
-    ; c is [1, 2, 3, 4, 5, 6]
+    // c is [1, 2, 3, 4, 5, 6]
 
-    io.println(conv.to_string(array.len(c)))   ; 6
+    io.println(conv.to_string(array.len(c)))  // 6
 
     return 0
 }
@@ -623,11 +623,11 @@ Tuple elements are accessed by zero-based index using dot notation:
 fn main(): int {
     let pair: (int, string) = (42, "hello")
 
-    let n: int = pair.0        ; 42
-    let s: string = pair.1     ; "hello"
+    let n: int = pair.0  // 42
+    let s: string = pair.1  // "hello"
 
-    io.println(conv.to_string(n))   ; 42
-    io.println(s)                    ; hello
+    io.println(conv.to_string(n))  // 42
+    io.println(s)  // hello
 
     return 0
 }
@@ -644,8 +644,8 @@ fn main(): int {
     let pair: (int, string) = (42, "hello")
     let (n, s) = pair
 
-    io.println(conv.to_string(n))   ; 42
-    io.println(s)                    ; hello
+    io.println(conv.to_string(n))  // 42
+    io.println(s)  // hello
 
     return 0
 }
@@ -658,9 +658,9 @@ fn main(): int {
     let triple: (int, float, string) = (1, 2.5, "three")
     let (a, b, c) = triple
 
-    io.println(conv.to_string(a))    ; 1
-    io.println(conv.to_string(b))    ; 2.5
-    io.println(c)                     ; three
+    io.println(conv.to_string(a))  // 1
+    io.println(conv.to_string(b))  // 2.5
+    io.println(c)  // three
 
     return 0
 }
@@ -694,7 +694,7 @@ fn main(): int {
     let data: array<int> = [38, 12, 95, 7, 63]
     let (lo, hi) = min_max(data)
 
-    io.println(f"min: {lo}, max: {hi}")   ; min: 7, max: 95
+    io.println(f"min: {lo}, max: {hi}")  // min: 7, max: 95
 
     return 0
 }
@@ -713,14 +713,14 @@ Some operations do not always produce a value. Looking up a key in a map, access
 `option<T>` is a type that is either `some(value)` or `none`:
 
 ```flow
-let x: option<int> = some(5)     ; a value is present
-let y: option<int> = none         ; no value
+let x: option<int> = some(5)  // a value is present
+let y: option<int> = none  // no value
 ```
 
 The sugar `T?` is equivalent to `option<T>`. Both notations mean exactly the same thing:
 
 ```flow
-let x: int? = some(5)     ; same as option<int>
+let x: int? = some(5)  // same as option<int>
 let y: int? = none
 ```
 
@@ -731,16 +731,16 @@ A bare `int` can never be `none`. Only `int?` can. The type system enforces this
 When the target type is statically known to be `option<T>` and you provide a plain `T`, Flow automatically wraps it in `some`:
 
 ```flow
-let x: int? = 5            ; automatically lifted to some(5)
-let y: int? = some(5)      ; explicit, same result
-let z: int? = none          ; no lifting needed
+let x: int? = 5  // automatically lifted to some(5)
+let y: int? = some(5)  // explicit, same result
+let z: int? = none  // no lifting needed
 ```
 
 This convenience avoids writing `some(...)` everywhere. Auto-lifting also works in function returns and arguments:
 
 ```flow
 fn maybe_score(): int? {
-    return 95               ; lifted to some(95)
+    return 95  // lifted to some(95)
 }
 ```
 
@@ -759,8 +759,8 @@ fn describe(value: int?): string {
 }
 
 fn main(): int {
-    io.println(describe(some(42)))   ; got 42
-    io.println(describe(none))       ; nothing
+    io.println(describe(some(42)))  // got 42
+    io.println(describe(none))  // nothing
 
     return 0
 }
@@ -775,13 +775,13 @@ The `??` (null coalescing) operator provides a default value when an option is `
 ```flow
 fn main(): int {
     let x: int? = none
-    let y: int = x ?? 0       ; 0, because x is none
+    let y: int = x ?? 0  // 0, because x is none
 
     let a: int? = some(42)
-    let b: int = a ?? 0       ; 42, because a has a value
+    let b: int = a ?? 0  // 42, because a has a value
 
-    io.println(conv.to_string(y))   ; 0
-    io.println(conv.to_string(b))   ; 42
+    io.println(conv.to_string(y))  // 0
+    io.println(conv.to_string(b))  // 42
 
     return 0
 }
@@ -794,8 +794,8 @@ The right side of `??` is only evaluated if the left side is `none` (short-circu
 ```flow
 fn main(): int {
     let scores: array<int> = [85, 92, 78]
-    let first: int = array.get_int(scores, 0) ?? 0     ; 85
-    let missing: int = array.get_int(scores, 99) ?? 0  ; 0
+    let first: int = array.get_int(scores, 0) ?? 0  // 85
+    let missing: int = array.get_int(scores, 99) ?? 0  // 0
 
     io.println(conv.to_string(first))
     io.println(conv.to_string(missing))
@@ -815,11 +815,11 @@ Flow's type system **infers** types when they are unambiguous. You do not need t
 ### 2.6.1 Inference at Work
 
 ```flow
-let x = 42           ; inferred as int
-let y = 3.14         ; inferred as float
-let z = "hello"      ; inferred as string
-let b = true         ; inferred as bool
-let a = [1, 2, 3]   ; inferred as array<int>
+let x = 42  // inferred as int
+let y = 3.14  // inferred as float
+let z = "hello"  // inferred as string
+let b = true  // inferred as bool
+let a = [1, 2, 3]  // inferred as array<int>
 ```
 
 The compiler examines the right-hand side of each `let` and determines the type. No annotation needed. The inferred type is exactly as if you had written the annotation yourself --- there is no "weaker" or "less precise" inference. `let x = 42` and `let x: int = 42` produce identical compiled code.
@@ -839,7 +839,7 @@ You cannot write `fn add(a, b)` and expect the compiler to figure it out. Functi
 **Empty collections** require annotations because there is no content to infer from:
 
 ```flow
-let empty: array<int> = []     ; annotation required: [] could be array of anything
+let empty: array<int> = []  // annotation required: [] could be array of anything
 ```
 
 ### 2.6.3 When Annotations Are Useful
@@ -855,8 +855,8 @@ let name: string = ""
 Annotations are also necessary when you want a type different from what would be inferred:
 
 ```flow
-let x: float = 0       ; without annotation, 0 would be inferred as int
-let y: int? = 5         ; without annotation, 5 would be inferred as int (not option<int>)
+let x: float = 0  // without annotation, 0 would be inferred as int
+let y: int? = 5  // without annotation, 5 would be inferred as int (not option<int>)
 ```
 
 A reasonable guideline: annotate bindings at the top of a function or when the type is not immediately obvious from the right-hand side. Inside a computation where the types are obvious from context, let inference do its job.
@@ -867,23 +867,23 @@ By default, `let` bindings are **immutable**. You cannot reassign them:
 
 ```flow
 let x: int = 5
-x = 10          ; compile error: x is immutable
+x = 10  // compile error: x is immutable
 ```
 
 Add `:mut` to make a binding mutable:
 
 ```flow
 let x: int:mut = 5
-x = 10          ; ok
-x += 3          ; ok, x is now 13
-x++             ; ok, x is now 14
+x = 10  // ok
+x += 3  // ok, x is now 13
+x++  // ok, x is now 14
 ```
 
 The `:mut` modifier follows the type. When combined with `?`, the `?` comes first:
 
 ```flow
-let a: int:mut = 0          ; mutable int
-let b: int?:mut = some(5)   ; mutable optional int
+let a: int:mut = 0  // mutable int
+let b: int?:mut = some(5)  // mutable optional int
 ```
 
 The order matters. `int:mut?` is a compile error; `int?:mut` is correct. The grammar is: type, then optional `?`, then optional `:mut` or `:imut`.
@@ -891,9 +891,9 @@ The order matters. `int:mut?` is a compile error; `int?:mut` is correct. The gra
 You can also write `:imut` to explicitly mark a binding as immutable. This has the same effect as the default (no modifier), but makes the immutability visually explicit:
 
 ```flow
-let x: int = 5           ; immutable (default)
-let y: int:imut = 5      ; explicitly immutable, same as above
-let z: int:mut = 5       ; mutable
+let x: int = 5  // immutable (default)
+let y: int:imut = 5  // explicitly immutable, same as above
+let z: int:mut = 5  // mutable
 ```
 
 Immutability is the default for a reason. Immutable data is simpler to reason about, safe to share across threads without locks, and never surprises you with unexpected changes. Use `:mut` when you need it --- loop counters, accumulators, state that genuinely changes --- but prefer immutable bindings as your starting point. Programs that minimize mutable state are easier to test, easier to debug, and easier to parallelize.
@@ -912,7 +912,7 @@ When `int` and `float` appear in the same arithmetic expression, the `int` is im
 fn main(): int {
     let x: int = 42
     let y: float = 3.14
-    let z: float = x + y      ; x is widened to float, z is 45.14
+    let z: float = x + y  // x is widened to float, z is 45.14
 
     io.println(conv.to_string(z))
 
@@ -930,16 +930,16 @@ No other implicit conversions exist. `int` does not silently become `string`. `b
 
 ```flow
 fn main(): int {
-    ; int to float
-    let a: float = cast<float>(42)       ; 42.0
+    // int to float
+    let a: float = cast<float>(42)  // 42.0
 
-    ; float to int (truncates toward zero)
-    let b: int = cast<int>(3.7)          ; 3
-    let c: int = cast<int>(-2.9)         ; -2
+    // float to int (truncates toward zero)
+    let b: int = cast<int>(3.7)  // 3
+    let c: int = cast<int>(-2.9)  // -2
 
-    io.println(conv.to_string(a))   ; 42.0
-    io.println(conv.to_string(b))   ; 3
-    io.println(conv.to_string(c))   ; -2
+    io.println(conv.to_string(a))  // 42.0
+    io.println(conv.to_string(b))  // 3
+    io.println(conv.to_string(c))  // -2
 
     return 0
 }
@@ -951,7 +951,7 @@ Narrowing integer casts (converting from a wider to a narrower type) throw `Over
 
 ```flow
 let big: int = 9_223_372_036_854_775_807
-; Casting this to a 32-bit type would throw OverflowError
+// Casting this to a 32-bit type would throw OverflowError
 ```
 
 ### 2.7.3 String Conversions
@@ -960,26 +960,26 @@ Converting between strings and numbers uses the `conv` module:
 
 ```flow
 fn main(): int {
-    ; Number to string
-    let s: string = conv.to_string(42)        ; "42"
-    let t: string = conv.to_string(3.14)      ; "3.14"
+    // Number to string
+    let s: string = conv.to_string(42)  // "42"
+    let t: string = conv.to_string(3.14)  // "3.14"
 
     io.println(s)
     io.println(t)
 
-    ; String to number (returns option, because parsing can fail)
-    let n: int? = conv.string_to_int("42")         ; some(42)
-    let bad: int? = conv.string_to_int("hello")    ; none
-    let f: float? = conv.string_to_float("3.14")   ; some(3.14)
+    // String to number (returns option, because parsing can fail)
+    let n: int? = conv.string_to_int("42")  // some(42)
+    let bad: int? = conv.string_to_int("hello")  // none
+    let f: float? = conv.string_to_float("3.14")  // some(3.14)
 
     match n {
-        some(v) : io.println(f"parsed: {v}"),      ; parsed: 42
+        some(v) : io.println(f"parsed: {v}"),  // parsed: 42
         none    : io.println("parse failed")
     }
 
     match bad {
         some(v) : io.println(f"parsed: {v}"),
-        none    : io.println("parse failed")        ; parse failed
+        none    : io.println("parse failed")  // parse failed
     }
 
     return 0
@@ -1001,7 +1001,7 @@ All integer arithmetic is checked. Overflow throws `OverflowError`:
 ```flow
 fn main(): int {
     let max: int = 9_223_372_036_854_775_807
-    let boom = max + 1   ; throws OverflowError
+    let boom = max + 1  // throws OverflowError
     return 0
 }
 ```
@@ -1012,7 +1012,7 @@ This applies to `+`, `-`, `*`, and `**`. Division and modulo cannot overflow exc
 
 ```flow
 fn main(): int {
-    let x: int = 42 / 0    ; throws DivisionByZeroError
+    let x: int = 42 / 0  // throws DivisionByZeroError
     return 0
 }
 ```
@@ -1021,7 +1021,7 @@ Integer modulo by zero also throws `DivisionByZeroError`:
 
 ```flow
 fn main(): int {
-    let x: int = 42 % 0    ; throws DivisionByZeroError
+    let x: int = 42 % 0  // throws DivisionByZeroError
     return 0
 }
 ```
@@ -1032,9 +1032,9 @@ Float division by zero follows IEEE 754 and does not throw:
 
 ```flow
 fn main(): int {
-    let a: float = 1.0 / 0.0     ; infinity
-    let b: float = -1.0 / 0.0    ; negative infinity
-    let c: float = 0.0 / 0.0     ; NaN
+    let a: float = 1.0 / 0.0  // infinity
+    let b: float = -1.0 / 0.0  // negative infinity
+    let c: float = 0.0 / 0.0  // NaN
 
     return 0
 }
@@ -1046,8 +1046,8 @@ Float modulo is the exception to the IEEE 754 rule. It throws:
 
 ```flow
 fn main(): int {
-    let a: float = 10.5 % 3.0   ; 1.5 --- this is fine
-    let b: float = 1.0 % 0.0    ; throws DivisionByZeroError
+    let a: float = 10.5 % 3.0  // 1.5 --- this is fine
+    let b: float = 1.0 % 0.0  // throws DivisionByZeroError
     return 0
 }
 ```
@@ -1074,14 +1074,14 @@ This section covers the most common type-related compiler errors you will encoun
 
 ```flow
 let x: int = "hello"
-; compile error: type mismatch: expected int, got string
+// compile error: type mismatch: expected int, got string
 ```
 
 The fix is obvious once you see it: either change the annotation or change the value. But this error also appears in subtler forms:
 
 ```flow
 let x: int = 3.14
-; compile error: type mismatch: expected int, got float
+// compile error: type mismatch: expected int, got float
 ```
 
 Even though 3.14 is a number, Flow does not implicitly narrow a `float` to an `int`. Use `cast<int>(3.14)` if you want truncation.
@@ -1091,7 +1091,7 @@ Even though 3.14 is a number, Flow does not implicitly narrow a `float` to an `i
 ```flow
 let x: int = 5
 x = 10
-; compile error: cannot assign to immutable binding
+// compile error: cannot assign to immutable binding
 ```
 
 The fix: declare the binding as `let x: int:mut = 5`.
@@ -1100,20 +1100,20 @@ The fix: declare the binding as `let x: int:mut = 5`.
 
 ```flow
 let x: int:mut? = some(5)
-; compile error: ? must precede :mut
+// compile error: ? must precede :mut
 ```
 
 The correct order is type, then `?`, then `:mut`:
 
 ```flow
-let x: int?:mut = some(5)   ; correct
+let x: int?:mut = some(5)  // correct
 ```
 
 ### Heterogeneous Array
 
 ```flow
 let bad = [1, "two", 3]
-; compile error: array elements must be the same type
+// compile error: array elements must be the same type
 ```
 
 All array elements must have a single, uniform type. If you need to mix types, use a tuple or a sum type (Chapter 6).
@@ -1124,7 +1124,7 @@ All array elements must have a single, uniform type. If you need to mix types, u
 fn add(a, b) {
     return a + b
 }
-; compile error: function parameters require type annotations
+// compile error: function parameters require type annotations
 ```
 
 Every function parameter needs a type, and every function needs a return type:
@@ -1139,7 +1139,7 @@ fn add(a: int, b: int): int {
 
 ```flow
 if (42 == "42") { ... }
-; compile error: cannot compare int and string
+// compile error: cannot compare int and string
 ```
 
 Flow does not coerce types for comparison. If you need to compare an int to a string, convert one of them explicitly first.
@@ -1183,7 +1183,7 @@ fn main(): int {
         i++
     }
 
-    ; Compute average
+    // Compute average
     let total: int:mut = 0
     for (s: int in scores) {
         total += s
