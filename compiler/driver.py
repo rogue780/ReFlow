@@ -10,7 +10,7 @@ from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
-from compiler.ast_nodes import Module, ImportDecl, ExternLibDecl
+from compiler.ast_nodes import Module, ImportDecl, ExternLibDecl, FnDecl
 from compiler.errors import ResolveError
 from compiler.lexer import Lexer
 from compiler.parser import Parser
@@ -128,6 +128,35 @@ def _discover_stdlib_imports(module: Module) -> dict[str, ModuleScope]:
             if module_key not in imported:
                 imported[module_key] = _load_stdlib_module(module_key)
     return imported
+
+
+def _stdlib_needs_compilation(typed_module) -> bool:
+    """Return True if the stdlib module has non-generic FnDecl with bodies that need compilation."""
+    for decl in typed_module.module.decls:
+        if isinstance(decl, FnDecl) and decl.body is not None:
+            if not decl.type_params and not decl.native_name:
+                return True
+    return False
+
+
+def _inject_compilable_stdlib(modules):
+    """Prepend stdlib modules with compilable bodies to the modules list."""
+    needed: set[str] = set()
+    for _, typed, _ in modules:
+        for imp in typed.module.imports:
+            mod_key = ".".join(imp.path)
+            if mod_key in _STDLIB_MODULES and mod_key not in needed:
+                stdlib_typed = _get_stdlib_typed(mod_key)
+                if _stdlib_needs_compilation(stdlib_typed):
+                    needed.add(mod_key)
+
+    # Prepend stdlib modules (they must come before user modules that call them)
+    for mod_key in sorted(needed):  # sorted for deterministic output
+        stdlib_typed = _get_stdlib_typed(mod_key)
+        display = f"stdlib/{mod_key}.flow"
+        modules.insert(0, (display, stdlib_typed, False))
+
+    return modules
 
 
 # ---------------------------------------------------------------------------
@@ -467,6 +496,7 @@ def compile_source(source_path: str, *, output: str | None = None,
                    line_directives: bool = True) -> int:
     """Run the full pipeline: lex → parse → resolve → typecheck → lower → emit → clang."""
     modules = _run_multi_pipeline(source_path)
+    modules = _inject_compilable_stdlib(modules)
 
     if len(modules) == 1:
         # Single module fast path — still needs stdlib all_typed for mono.
@@ -564,6 +594,7 @@ def emit_only(source_path: str, *, output: str | None = None,
               line_directives: bool = False) -> int:
     """Run pipeline through emit, output C source."""
     modules = _run_multi_pipeline(source_path)
+    modules = _inject_compilable_stdlib(modules)
 
     if len(modules) == 1:
         # Single module fast path — still needs stdlib all_typed for mono.
