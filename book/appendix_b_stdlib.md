@@ -110,7 +110,7 @@ All functions operate on path strings; no special Path type is required.
 
 | Signature | Description |
 |-----------|-------------|
-| `fn join(a: string, b: string): string` | Join two path segments with the platform separator. |
+| `fn join(..segments: string): string` | Join any number of path segments with `/`. |
 | `fn stem(p: string): string` | Filename without extension: `"main.flow"` -> `"main"`. |
 | `fn parent(p: string): string` | Parent directory: `"foo/bar.txt"` -> `"foo"`. |
 | `fn with_suffix(p: string, suffix: string): string` | Replace extension: `with_suffix("x.txt", ".md")` -> `"x.md"`. |
@@ -159,7 +159,7 @@ String functions operate on immutable UTF-8 strings and always return new values
 | `fn trim_left(s: string): string` | Strip leading whitespace. |
 | `fn trim_right(s: string): string` | Strip trailing whitespace. |
 | `fn replace(s: string, old: string, new_str: string): string` | Replace all occurrences of `old` with `new_str`. |
-| `fn join(parts: array<string>, sep: string): string` | Join array elements with `sep` between them. |
+| `fn join(sep: string, ..parts: string): string` | Join strings with `sep` between them. Variadic. |
 | `fn to_lower(s: string): string` | Convert to lowercase. |
 | `fn to_upper(s: string): string` | Convert to uppercase. |
 | `fn:pure to_bytes(s: string): array<byte>` | Convert string to its UTF-8 byte representation. |
@@ -179,7 +179,7 @@ fn main() {
     println(f"contains 'World': {string.contains(s, "World")}")
 
     let parts = string.split("a,b,c", ",")
-    println(f"joined: {string.join(parts, " | ")}")
+    println(f"joined: {string.join(" | ", ..parts)}")
 
     let border = string.repeat("=-", 20)
     println(border)
@@ -382,8 +382,8 @@ library.
 | Signature | Description |
 |-----------|-------------|
 | `fn:pure abs<T fulfills (Numeric, Comparable)>(n: T): T` | Absolute value. |
-| `fn:pure min<T fulfills Comparable>(a: T, b: T): T` | Smaller of two values. |
-| `fn:pure max<T fulfills Comparable>(a: T, b: T): T` | Larger of two values. |
+| `fn:pure min<T fulfills Comparable>(first: T, ..rest: T): T` | Smallest of one or more values. Variadic. |
+| `fn:pure max<T fulfills Comparable>(first: T, ..rest: T): T` | Largest of one or more values. Variadic. |
 | `fn:pure clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T` | Clamp `val` to the range `[lo, hi]`. |
 
 **Float-specific functions:**

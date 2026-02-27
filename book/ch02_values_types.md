@@ -381,14 +381,14 @@ fn main(): int {
     }
 
     // Rejoin with a different separator
-    let rejoined: string = string.join(parts, " | ")
+    let rejoined:string = string.join(" | ", ..parts)
     io.println(rejoined)  // alice | 95 | A
 
     return 0
 }
 ```
 
-`string.split(s, "")` splits into individual bytes. `string.join(parts, sep)` is the inverse of `split`: it concatenates an array of strings with a separator between each pair.
+`string.split(s, "")` splits into individual bytes. `string.join(sep, ..parts)` is the inverse of `split`: it concatenates strings with a separator between each pair. It is variadic — you can pass individual strings (`string.join(", ", "a", "b")`) or spread an array (`string.join(" | ", ..parts)`).
 
 Here is a practical example that parses a simple key-value pair:
 

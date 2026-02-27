@@ -625,7 +625,7 @@ fn:pure stringify<T fulfills Showable>(items: array<T>): string {
     for (item: T in items) {
         array.push(parts, item.to_string())
     }
-    return string.join(parts, ", ")
+    return string.join(", ", ..parts)
 }
 
 fn main() {

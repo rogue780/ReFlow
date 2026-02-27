@@ -291,7 +291,7 @@ String manipulation. All functions are `pure`.
 | `trim_left` | `fn:pure trim_left(s: string): string` | Implemented | `fl_string_trim_left` |
 | `trim_right` | `fn:pure trim_right(s: string): string` | Implemented | `fl_string_trim_right` |
 | `replace` | `fn:pure replace(s: string, old: string, new: string): string` | Implemented | `fl_string_replace` |
-| `join` | `fn:pure join(parts: array<string>, sep: string): string` | Implemented | `fl_string_join` |
+| `join` | `fn join(sep: string, ..parts: string): string` | Implemented | Pure Flow |
 | `to_lower` | `fn:pure to_lower(s: string): string` | Implemented | `fl_string_to_lower` |
 | `to_upper` | `fn:pure to_upper(s: string): string` | Implemented | `fl_string_to_upper` |
 | `concat` | `fn:pure concat(a: string, b: string): string` | Implemented | `fl_string_concat` |
@@ -307,6 +307,9 @@ String manipulation. All functions are `pure`.
   source is ASCII). Returns `none` for out-of-bounds.
 - `substring(s, start, end)` is half-open `[start, end)`. Clamps to bounds.
 - `split(s, "")` splits into individual characters (bytes).
+- `join(sep, ..parts)` is variadic: `string.join(", ", "a", "b", "c")` returns
+  `"a, b, c"`. An existing array can be spread: `string.join(" ", ..words)`.
+  Implemented in pure Flow (no C runtime function).
 - `index_of` returns the byte offset of the first occurrence, or `none`.
 - `to_bytes` / `from_bytes` convert between string and raw byte array. No
   encoding validation on `from_bytes` (caller's responsibility).
@@ -419,7 +422,7 @@ functions touch the filesystem.
 
 | Function | Signature | Status | Runtime |
 |----------|-----------|--------|---------|
-| `join` | `fn:pure join(a: string, b: string): string` | Implemented | `fl_path_join` |
+| `join` | `fn:pure join(..segments: string): string` | Implemented | Pure Flow |
 | `stem` | `fn:pure stem(path: string): string` | Implemented | `fl_path_stem` |
 | `parent` | `fn:pure parent(path: string): string` | Implemented | `fl_path_parent` |
 | `with_suffix` | `fn:pure with_suffix(path: string, suffix: string): string` | Implemented | `fl_path_with_suffix` |
@@ -433,8 +436,10 @@ functions touch the filesystem.
 
 ### Behavior Notes
 
-- `join(a, b)` inserts `/` between `a` and `b` if `a` doesn't already end
-  with `/`.
+- `join(..segments)` is variadic: `path.join("a", "b", "c")` returns `"a/b/c"`.
+  Inserts `/` between segments unless the preceding segment already ends with `/`.
+  Empty segments are skipped. Zero segments returns `""`. Existing 2-arg calls
+  like `path.join(dir, file)` work unchanged.
 - `stem("foo/bar.txt")` returns `"bar"`.
 - `parent("foo/bar.txt")` returns `"foo"`. Returns `"."` if no slash.
 - `resolve` calls `realpath`. Returns the input unchanged if the path doesn't
@@ -455,8 +460,8 @@ Numeric operations. All functions are `pure`.
 | Function | Signature | Status | Notes |
 |----------|-----------|--------|-------|
 | `abs` | `fn:pure abs<T fulfills (Numeric, Comparable)>(n: T): T` | Planned | generic |
-| `min` | `fn:pure min<T fulfills Comparable>(a: T, b: T): T` | Planned | generic |
-| `max` | `fn:pure max<T fulfills Comparable>(a: T, b: T): T` | Planned | generic |
+| `min` | `fn:pure min<T fulfills Comparable>(first: T, ..rest: T): T` | Implemented | generic, variadic |
+| `max` | `fn:pure max<T fulfills Comparable>(first: T, ..rest: T): T` | Implemented | generic, variadic |
 | `clamp` | `fn:pure clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T` | Planned | generic |
 | `floor` | `fn:pure floor(f: float): float` | Planned | `fl_math_floor` |
 | `ceil` | `fn:pure ceil(f: float): float` | Planned | `fl_math_ceil` |
@@ -470,6 +475,11 @@ The generic functions are implemented in Flow using `Comparable` and
 site. `abs` avoids a `zero()` static method by computing
 `n.compare(n.negate())` — if `n` is negative, `negate()` is returned.
 `clamp` delegates to `min` and `max`.
+
+`min` and `max` are variadic: `math.min(5, 3, 8, 1)` returns `1`,
+`math.max(5, 3, 8, 1)` returns `8`. They require at least one argument
+(`first`); the remaining arguments are collected into `rest`. Existing 2-arg
+calls like `math.min(a, b)` work unchanged.
 
 The float-specific functions (`floor`, `ceil`, `round`, `pow`, `sqrt`,
 `log`) remain `native` because they wrap `<math.h>` and have no generic
@@ -911,7 +921,7 @@ type JsonValue = sum {
 | `int_val` | `fn:pure int_val(n: int64): JsonValue` | Planned | `fl_json_int` |
 | `float_val` | `fn:pure float_val(f: float): JsonValue` | Planned | `fl_json_float` |
 | `bool_val` | `fn:pure bool_val(b: bool): JsonValue` | Planned | `fl_json_bool` |
-| `array_val` | `fn:pure array_val(items: array<JsonValue>): JsonValue` | Planned | `fl_json_array` |
+| `array_val` | `fn:pure array_val(..items: JsonValue): JsonValue` | Implemented | Pure Flow |
 | `object_val` | `fn:pure object_val(m: map<string, JsonValue>): JsonValue` | Planned | `fl_json_object` |
 
 ### Behavior Notes
@@ -930,6 +940,9 @@ type JsonValue = sum {
 - `get_index(val, idx)` works on `JsonArray` — returns `none` if not an
   array or index is out of bounds.
 - `as_*` accessors return `none` if the value is not the expected variant.
+- `array_val` is variadic: `json.array_val(json.int_val(1), json.int_val(2))`
+  constructs a JSON array. An existing `array<JsonValue>` can be spread:
+  `json.array_val(..items)`.
 
 ### Runtime Implementation Notes
 

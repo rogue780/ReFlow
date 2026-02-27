@@ -1404,6 +1404,12 @@ Restrictions:
 - At a call site, either pass individual arguments or a single spread (`..arr`), not both mixed.
 - Named arguments fill fixed parameters only, not the variadic parameter.
 
+Several stdlib functions use variadic parameters:
+- `path.join(..segments:string)` — join any number of path segments
+- `math.min(first:T, ..rest:T)` / `math.max(first:T, ..rest:T)` — N-ary min/max
+- `string.join(sep:string, ..parts:string)` — join strings with separator
+- `json.array_val(..items:JsonValue)` — build a JSON array from values
+
 ### Lambdas
 
 ```
