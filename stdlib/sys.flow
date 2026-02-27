@@ -1,8 +1,8 @@
 module sys
 
-export fn exit(code: int): none = native "fl_sys_exit"
-export fn args(): array<string> = native "fl_sys_args"
-export fn run_process(command: string, args: array<string>): int = native "fl_run_process"
-export fn run_process_capture(command: string, args: array<string>): string? = native "fl_run_process_capture"
-export fn env_get(name: string): string? = native "fl_env_get"
-export fn clock_ms(): int64 = native "fl_clock_ms"
+export extern fn "fl_sys_exit" exit(code:int):none
+export extern fn "fl_sys_args" args():array<string>
+export extern fn "fl_run_process" run_process(command:string, args:array<string>):int
+export extern fn "fl_run_process_capture" run_process_capture(command:string, args:array<string>):string?
+export extern fn "fl_env_get" env_get(name:string):string?
+export extern fn "fl_clock_ms" clock_ms():int64

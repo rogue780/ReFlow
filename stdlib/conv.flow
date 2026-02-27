@@ -1,10 +1,10 @@
 module conv
 
-export fn:pure to_string<T fulfills Showable>(val: T): string {
+export fn:pure to_string<T fulfills Showable>(val:T):string {
     return val.to_string()
 }
 
 // Parsing remains type-specific (different rules and error modes per type)
-export fn:pure string_to_int(s: string): int? = native "fl_string_to_int_opt"
-export fn:pure string_to_int64(s: string): int64? = native "fl_string_to_int64_opt"
-export fn:pure string_to_float(s: string): float? = native "fl_string_to_float_opt"
+export extern fn "fl_string_to_int_opt" string_to_int(s:string):int?
+export extern fn "fl_string_to_int64_opt" string_to_int64(s:string):int64?
+export extern fn "fl_string_to_float_opt" string_to_float(s:string):float?

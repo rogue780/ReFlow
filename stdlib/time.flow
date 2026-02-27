@@ -1,22 +1,24 @@
 module time
 
-export fn now(): int64 = native "fl_time_unix_timestamp"
-export fn now_ms(): int64 = native "fl_time_unix_timestamp_ms"
-export fn sleep_ms(ms: int): none = native "fl_time_sleep_ms"
+extern type DateTime
+
+export extern fn "fl_time_unix_timestamp" now():int64
+export extern fn "fl_time_unix_timestamp_ms" now_ms():int64
+export extern fn "fl_time_sleep_ms" sleep_ms(ms:int):none
 
 // DateTime construction
-export fn datetime_now(): DateTime = native "fl_time_datetime_now"
-export fn datetime_utc(): DateTime = native "fl_time_datetime_utc"
+export extern fn "fl_time_datetime_now" datetime_now():DateTime
+export extern fn "fl_time_datetime_utc" datetime_utc():DateTime
 
 // Formatting
-export fn format_iso8601(dt: DateTime): string = native "fl_time_format_iso8601"
-export fn format_rfc2822(dt: DateTime): string = native "fl_time_format_rfc2822"
-export fn format_http(dt: DateTime): string = native "fl_time_format_http"
+export extern fn "fl_time_format_iso8601" format_iso8601(dt:DateTime):string
+export extern fn "fl_time_format_rfc2822" format_rfc2822(dt:DateTime):string
+export extern fn "fl_time_format_http" format_http(dt:DateTime):string
 
 // Component accessors
-export fn year(dt: DateTime): int = native "fl_time_year"
-export fn month(dt: DateTime): int = native "fl_time_month"
-export fn day(dt: DateTime): int = native "fl_time_day"
-export fn hour(dt: DateTime): int = native "fl_time_hour"
-export fn minute(dt: DateTime): int = native "fl_time_minute"
-export fn second(dt: DateTime): int = native "fl_time_second"
+export extern fn "fl_time_year" year(dt:DateTime):int
+export extern fn "fl_time_month" month(dt:DateTime):int
+export extern fn "fl_time_day" day(dt:DateTime):int
+export extern fn "fl_time_hour" hour(dt:DateTime):int
+export extern fn "fl_time_minute" minute(dt:DateTime):int
+export extern fn "fl_time_second" second(dt:DateTime):int

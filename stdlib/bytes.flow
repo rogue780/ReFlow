@@ -1,7 +1,7 @@
 module bytes
 
-export fn:pure from_string(s: string): array<byte> = native "fl_string_to_bytes"
-export fn:pure to_string(data: array<byte>): string = native "fl_string_from_bytes"
-export fn:pure slice(data: array<byte>, start: int64, end_idx: int64): array<byte> = native "fl_bytes_slice"
-export fn:pure concat(a: array<byte>, b: array<byte>): array<byte> = native "fl_bytes_concat"
-export fn:pure len(data: array<byte>): int64 = native "fl_bytes_len"
+export extern fn "fl_string_to_bytes" from_string(s:string):array<byte>
+export extern fn "fl_string_from_bytes" to_string(data:array<byte>):string
+export extern fn "fl_bytes_slice" slice(data:array<byte>, start:int64, end_idx:int64):array<byte>
+export extern fn "fl_bytes_concat" concat(a:array<byte>, b:array<byte>):array<byte>
+export extern fn "fl_bytes_len" len(data:array<byte>):int64

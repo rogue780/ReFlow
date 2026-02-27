@@ -1,16 +1,16 @@
 module io
 
-export fn print(s: string): none = native "fl_print"
-export fn println(s: string): none = native "fl_println"
-export fn eprint(s: string): none = native "fl_eprint"
-export fn eprintln(s: string): none = native "fl_eprintln"
-export fn read_line(): string? = native "fl_read_line"
-export fn read_byte(): byte? = native "fl_read_byte"
-export fn read_stdin(): string? = native "fl_read_stdin"
-export fn read_file(path: string): string? = native "fl_read_file"
-export fn write_file(path: string, contents: string): bool = native "fl_write_file"
-export fn tmpfile_create(suffix: string, contents: string): string = native "fl_tmpfile_create"
-export fn tmpfile_remove(path: string): none = native "fl_tmpfile_remove"
-export fn read_file_bytes(path: string): array<byte>? = native "fl_read_file_bytes"
-export fn write_file_bytes(path: string, data: array<byte>): bool = native "fl_write_file_bytes"
-export fn append_file(path: string, contents: string): bool = native "fl_append_file"
+export extern fn "fl_print" print(s:string):none
+export extern fn "fl_println" println(s:string):none
+export extern fn "fl_eprint" eprint(s:string):none
+export extern fn "fl_eprintln" eprintln(s:string):none
+export extern fn "fl_read_line" read_line():string?
+export extern fn "fl_read_byte" read_byte():byte?
+export extern fn "fl_read_stdin" read_stdin():string?
+export extern fn "fl_read_file" read_file(path:string):string?
+export extern fn "fl_write_file" write_file(path:string, contents:string):bool
+export extern fn "fl_tmpfile_create" tmpfile_create(suffix:string, contents:string):string
+export extern fn "fl_tmpfile_remove" tmpfile_remove(path:string):none
+export extern fn "fl_read_file_bytes" read_file_bytes(path:string):array<byte>?
+export extern fn "fl_write_file_bytes" write_file_bytes(path:string, data:array<byte>):bool
+export extern fn "fl_append_file" append_file(path:string, contents:string):bool

@@ -1,12 +1,14 @@
 module string_builder
 
-export fn new(): StringBuilder = native "fl_sb_new"
-export fn with_capacity(cap: int64): StringBuilder = native "fl_sb_with_capacity"
-export fn append(sb: StringBuilder, s: string): none = native "fl_sb_append"
-export fn append_char(sb: StringBuilder, c: char): none = native "fl_sb_append_char"
-export fn append_int(sb: StringBuilder, v: int): none = native "fl_sb_append_int"
-export fn append_int64(sb: StringBuilder, v: int64): none = native "fl_sb_append_int64"
-export fn append_float(sb: StringBuilder, v: float): none = native "fl_sb_append_float"
-export fn build(sb: StringBuilder): string = native "fl_sb_build"
-export fn len(sb: StringBuilder): int64 = native "fl_sb_len"
-export fn clear(sb: StringBuilder): none = native "fl_sb_clear"
+extern type StringBuilder
+
+export extern fn "fl_sb_new" new():StringBuilder
+export extern fn "fl_sb_with_capacity" with_capacity(cap:int64):StringBuilder
+export extern fn "fl_sb_append" append(sb:StringBuilder, s:string):none
+export extern fn "fl_sb_append_char" append_char(sb:StringBuilder, c:char):none
+export extern fn "fl_sb_append_int" append_int(sb:StringBuilder, v:int):none
+export extern fn "fl_sb_append_int64" append_int64(sb:StringBuilder, v:int64):none
+export extern fn "fl_sb_append_float" append_float(sb:StringBuilder, v:float):none
+export extern fn "fl_sb_build" build(sb:StringBuilder):string
+export extern fn "fl_sb_len" len(sb:StringBuilder):int64
+export extern fn "fl_sb_clear" clear(sb:StringBuilder):none

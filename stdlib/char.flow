@@ -1,9 +1,9 @@
 module char
 
-export fn:pure is_digit(c: char): bool = native "fl_char_is_digit"
-export fn:pure is_alpha(c: char): bool = native "fl_char_is_alpha"
-export fn:pure is_alphanumeric(c: char): bool = native "fl_char_is_alphanumeric"
-export fn:pure is_whitespace(c: char): bool = native "fl_char_is_whitespace"
-export fn:pure to_code(c: char): int = native "fl_char_to_int"
-export fn:pure from_code(n: int): char = native "fl_int_to_char"
-export fn:pure to_string(c: char): string = native "fl_char_to_string"
+export extern fn "fl_char_is_digit" is_digit(c:char):bool
+export extern fn "fl_char_is_alpha" is_alpha(c:char):bool
+export extern fn "fl_char_is_alphanumeric" is_alphanumeric(c:char):bool
+export extern fn "fl_char_is_whitespace" is_whitespace(c:char):bool
+export extern fn "fl_char_to_int" to_code(c:char):int
+export extern fn "fl_int_to_char" from_code(n:int):char
+export extern fn "fl_char_to_string" to_string(c:char):string

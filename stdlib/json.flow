@@ -1,29 +1,31 @@
 module json
 
+extern type JsonValue
+
 // Parsing
-export fn parse(s: string): JsonValue? = native "fl_json_parse"
+export extern fn "fl_json_parse" parse(s:string):JsonValue?
 
 // Serialization
-export fn:pure to_string(val: JsonValue): string = native "fl_json_to_string"
-export fn:pure to_string_pretty(val: JsonValue, indent: int): string = native "fl_json_to_string_pretty"
+export extern fn "fl_json_to_string" to_string(val:JsonValue):string
+export extern fn "fl_json_to_string_pretty" to_string_pretty(val:JsonValue, indent:int):string
 
 // Accessors
-export fn:pure get(val: JsonValue, key: string): JsonValue? = native "fl_json_get"
-export fn:pure get_index(val: JsonValue, idx: int64): JsonValue? = native "fl_json_get_index"
-export fn:pure as_string(val: JsonValue): string? = native "fl_json_as_string"
-export fn:pure as_int(val: JsonValue): int64? = native "fl_json_as_int"
-export fn:pure as_float(val: JsonValue): float? = native "fl_json_as_float"
-export fn:pure as_bool(val: JsonValue): bool? = native "fl_json_as_bool"
-export fn:pure as_array(val: JsonValue): array<JsonValue>? = native "fl_json_as_array"
-export fn:pure is_null(val: JsonValue): bool = native "fl_json_is_null"
-export fn:pure type_tag(val: JsonValue): byte = native "fl_json_type_tag"
-export fn:pure keys(val: JsonValue): array<string>? = native "fl_json_keys"
+export extern fn "fl_json_get" get(val:JsonValue, key:string):JsonValue?
+export extern fn "fl_json_get_index" get_index(val:JsonValue, idx:int64):JsonValue?
+export extern fn "fl_json_as_string" as_string(val:JsonValue):string?
+export extern fn "fl_json_as_int" as_int(val:JsonValue):int64?
+export extern fn "fl_json_as_float" as_float(val:JsonValue):float?
+export extern fn "fl_json_as_bool" as_bool(val:JsonValue):bool?
+export extern fn "fl_json_as_array" as_array(val:JsonValue):array<JsonValue>?
+export extern fn "fl_json_is_null" is_null(val:JsonValue):bool
+export extern fn "fl_json_type_tag" type_tag(val:JsonValue):byte
+export extern fn "fl_json_keys" keys(val:JsonValue):array<string>?
 
 // Builders
-export fn:pure null_val(): JsonValue = native "fl_json_null"
-export fn:pure string_val(s: string): JsonValue = native "fl_json_string"
-export fn:pure int_val(n: int64): JsonValue = native "fl_json_int"
-export fn:pure float_val(f: float): JsonValue = native "fl_json_float"
-export fn:pure bool_val(b: bool): JsonValue = native "fl_json_bool"
-export fn:pure array_val(items: array<JsonValue>): JsonValue = native "fl_json_array"
-export fn:pure object_val(entries: map<string, JsonValue>): JsonValue = native "fl_json_object"
+export extern fn "fl_json_null" null_val():JsonValue
+export extern fn "fl_json_string" string_val(s:string):JsonValue
+export extern fn "fl_json_int" int_val(n:int64):JsonValue
+export extern fn "fl_json_float" float_val(f:float):JsonValue
+export extern fn "fl_json_bool" bool_val(b:bool):JsonValue
+export extern fn "fl_json_array" array_val(items:array<JsonValue>):JsonValue
+export extern fn "fl_json_object" object_val(entries:map<string, JsonValue>):JsonValue

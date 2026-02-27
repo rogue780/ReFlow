@@ -1,13 +1,13 @@
 module path
 
-export fn join(a: string, b: string): string = native "fl_path_join"
-export fn stem(p: string): string = native "fl_path_stem"
-export fn parent(p: string): string = native "fl_path_parent"
-export fn with_suffix(p: string, suffix: string): string = native "fl_path_with_suffix"
-export fn cwd(): string = native "fl_path_cwd"
-export fn resolve(p: string): string = native "fl_path_resolve"
-export fn exists(p: string): bool = native "fl_path_exists"
-export fn is_dir(p: string): bool = native "fl_path_is_dir"
-export fn is_file(p: string): bool = native "fl_path_is_file"
-export fn:pure extension(p: string): string? = native "fl_path_extension"
-export fn list_dir(p: string): array<string>? = native "fl_path_list_dir"
+export extern fn "fl_path_join" join(a:string, b:string):string
+export extern fn "fl_path_stem" stem(p:string):string
+export extern fn "fl_path_parent" parent(p:string):string
+export extern fn "fl_path_with_suffix" with_suffix(p:string, suffix:string):string
+export extern fn "fl_path_cwd" cwd():string
+export extern fn "fl_path_resolve" resolve(p:string):string
+export extern fn "fl_path_exists" exists(p:string):bool
+export extern fn "fl_path_is_dir" is_dir(p:string):bool
+export extern fn "fl_path_is_file" is_file(p:string):bool
+export extern fn "fl_path_extension" extension(p:string):string?
+export extern fn "fl_path_list_dir" list_dir(p:string):array<string>?

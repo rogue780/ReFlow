@@ -171,7 +171,6 @@ class TAlias(Type):
 class TSum(Type):
     name: str
     variants: tuple[TVariant, ...]
-    module: str = ""
 
 
 @dataclass(frozen=True)
@@ -527,7 +526,7 @@ class TypeChecker:
     def _register_imported_types(self) -> None:
         """Register type declarations from imported user modules.
 
-        When a user module exports a type (struct or sum type),
+        When a user module exports a struct type (e.g., http.HttpResponse),
         downstream modules need it in the type registry so that cross-module
         function return types resolve correctly.
         """
@@ -542,36 +541,6 @@ class TypeChecker:
                 for f in decl.fields:
                     fields[f.name] = self._resolve_type_expr(f.type_ann)
                     field_mut[f.name] = f.is_mut
-                # Build sum_type TSum for imported sum types
-                sum_type: TSum | None = None
-                if decl.is_sum_type:
-                    # Register a preliminary entry so recursive variant
-                    # field resolution finds this type.
-                    preliminary_sum = TSum(decl.name, ())
-                    self._type_registry[decl.name] = TypeInfo(
-                        name=decl.name,
-                        type_params=decl.type_params,
-                        fields={},
-                        field_mutability={},
-                        methods={},
-                        statics={},
-                        static_mutability={},
-                        constructors={},
-                        is_sum_type=True,
-                        sum_type=preliminary_sum,
-                        interfaces=decl.interfaces,
-                        module_path=mod_key,
-                    )
-                    variants = []
-                    for v in decl.variants:
-                        if v.fields is not None:
-                            v_fields = tuple(
-                                self._resolve_type_expr(ft)
-                                for _, ft in v.fields)
-                            variants.append(TVariant(v.name, v_fields))
-                        else:
-                            variants.append(TVariant(v.name, None))
-                    sum_type = TSum(decl.name, tuple(variants), module=mod_key)
                 self._type_registry[decl.name] = TypeInfo(
                     name=decl.name,
                     type_params=decl.type_params,
@@ -582,7 +551,7 @@ class TypeChecker:
                     static_mutability={},
                     constructors={},
                     is_sum_type=decl.is_sum_type,
-                    sum_type=sum_type,
+                    sum_type=None,
                     interfaces=decl.interfaces,
                     module_path=mod_key,
                 )
@@ -1473,6 +1442,13 @@ class TypeChecker:
                     fn_decl = resolved_sym.decl
                     if isinstance(fn_decl, FnDecl):
                         return self._fn_decl_type(fn_decl)
+                    if isinstance(fn_decl, ExternFnDecl):
+                        param_types = tuple(
+                            self._resolve_type_expr(p.type_ann)
+                            for p in fn_decl.params)
+                        ret = (self._resolve_type_expr(fn_decl.return_type)
+                               if fn_decl.return_type else TNone())
+                        return TFn(param_types, ret, False)
                 return TAny()
 
             # RT-6-2-4: Binary operators
@@ -1595,6 +1571,15 @@ class TypeChecker:
                                 fn_decl, arg_types)
                             ret_type = apply_env(ret_type, env)
                         return ret_type
+                    if isinstance(fn_decl, ExternFnDecl):
+                        param_types = tuple(
+                            self._resolve_type_expr(p.type_ann)
+                            for p in fn_decl.params)
+                        ret = (self._resolve_type_expr(fn_decl.return_type)
+                               if fn_decl.return_type else TNone())
+                        fn_type = TFn(param_types, ret, False)
+                        self._check_call_args(fn_type, arg_types, args, expr)
+                        return ret
                     return TAny()
 
                 recv_t = self._infer_expr(receiver, scope)

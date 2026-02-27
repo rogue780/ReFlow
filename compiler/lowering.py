@@ -2698,6 +2698,9 @@ class Lowerer:
                     return wrapped
                 # Native function — call the C name directly
                 return LCall(fn_decl.native_name, lowered_args, lt)
+            # Extern fn — use literal C name, no mangling
+            if isinstance(fn_decl, ExternFnDecl):
+                return LCall(fn_decl.c_name or fn_decl.name, lowered_args, lt)
             # Non-native imported function — use mangled name from source module
             if isinstance(fn_decl, FnDecl):
                 src_module = self._resolve_import_module_path(expr.receiver)

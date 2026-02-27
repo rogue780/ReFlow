@@ -1,26 +1,26 @@
 module math
 
-export fn:pure abs<T fulfills (Numeric, Comparable)>(n: T): T {
+export fn:pure abs<T fulfills (Numeric, Comparable)>(n:T):T {
     let neg = n.negate()
     return if (n.compare(neg) < 0) { neg } else { n }
 }
 
-export fn:pure min<T fulfills Comparable>(a: T, b: T): T {
+export fn:pure min<T fulfills Comparable>(a:T, b:T):T {
     return if (a.compare(b) <= 0) { a } else { b }
 }
 
-export fn:pure max<T fulfills Comparable>(a: T, b: T): T {
+export fn:pure max<T fulfills Comparable>(a:T, b:T):T {
     return if (a.compare(b) >= 0) { a } else { b }
 }
 
-export fn:pure clamp<T fulfills Comparable>(val: T, lo: T, hi: T): T {
+export fn:pure clamp<T fulfills Comparable>(val:T, lo:T, hi:T):T {
     return if (val.compare(lo) < 0) { lo } else { if (val.compare(hi) > 0) { hi } else { val } }
 }
 
 // Float-specific operations (inherently float, no generic equivalent)
-export fn:pure floor(f: float): float = native "fl_math_floor"
-export fn:pure ceil(f: float): float = native "fl_math_ceil"
-export fn:pure round(f: float): float = native "fl_math_round"
-export fn:pure pow(base: float, exp: float): float = native "fl_math_pow"
-export fn:pure sqrt(f: float): float = native "fl_math_sqrt"
-export fn:pure log(f: float): float = native "fl_math_log"
+export extern fn "fl_math_floor" floor(f:float):float
+export extern fn "fl_math_ceil" ceil(f:float):float
+export extern fn "fl_math_round" round(f:float):float
+export extern fn "fl_math_pow" pow(base:float, exp:float):float
+export extern fn "fl_math_sqrt" sqrt(f:float):float
+export extern fn "fl_math_log" log(f:float):float

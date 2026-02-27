@@ -1,5 +1,5 @@
 module random
 
-export fn int_range(min: int, max: int): int = native "fl_random_int_range"
-export fn float_unit(): float = native "fl_random_float_unit"
-export fn bool(): bool = native "fl_random_bool"
+export extern fn "fl_random_int_range" int_range(min:int, max:int):int
+export extern fn "fl_random_float_unit" float_unit():float
+export extern fn "fl_random_bool" bool():bool
