@@ -500,23 +500,41 @@ def _lower_and_emit_multi(
     dep_parts: list[str] = []
     collected_static_inits: list[tuple[str, str]] = []
     dep_type_names: set[str] = set()
+    dep_fn_names: set[str] = set()
 
     all_typed = _build_all_typed(modules)
 
     # Lower and emit dependency modules (no header, no entry point).
+    # Deduplicate type defs and function defs across dependency modules
+    # to avoid C redefinition errors when multiple deps share types or
+    # monomorphized functions.
     for display_path, typed, is_root in modules:
         if is_root:
             continue
         lmodule = Lowerer(typed, all_typed=all_typed).lower()
+        # Filter out type defs already emitted by earlier dep modules.
+        if dep_type_names:
+            lmodule.type_defs = [
+                td for td in lmodule.type_defs
+                if td.c_name not in dep_type_names
+            ]
         for td in lmodule.type_defs:
             dep_type_names.add(td.c_name)
+        # Filter out function defs already emitted by earlier dep modules.
+        if dep_fn_names:
+            lmodule.fn_defs = [
+                fd for fd in lmodule.fn_defs
+                if fd.c_name not in dep_fn_names
+            ]
+        for fd in lmodule.fn_defs:
+            dep_fn_names.add(fd.c_name)
         emitter = Emitter(lmodule, display_path, is_root=False,
                           line_directives=line_directives)
         dep_parts.append(emitter.emit())
         collected_static_inits.extend(emitter.deferred_static_inits)
 
     # Lower and emit root module (with header and entry point).
-    # Filter out type definitions already emitted by dependency modules.
+    # Filter out type definitions and functions already emitted by deps.
     root_part = ""
     for display_path, typed, is_root in modules:
         if not is_root:
@@ -526,6 +544,11 @@ def _lower_and_emit_multi(
             lmodule.type_defs = [
                 td for td in lmodule.type_defs
                 if td.c_name not in dep_type_names
+            ]
+        if dep_fn_names:
+            lmodule.fn_defs = [
+                fd for fd in lmodule.fn_defs
+                if fd.c_name not in dep_fn_names
             ]
         emitter = Emitter(
             lmodule, display_path, is_root=True,
