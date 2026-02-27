@@ -564,31 +564,6 @@ void*         fl_string_to_cptr(FL_String* s);
 FL_String*    fl_string_from_cptr(void* p, fl_int len);
 
 /* ========================================================================
- * String Builder (stdlib/string_builder)
- * ======================================================================== */
-
-typedef struct FL_StringBuilder {
-    _Atomic fl_int64 refcount;
-    char*    data;
-    fl_int64 len;
-    fl_int64 capacity;
-} FL_StringBuilder;
-
-FL_StringBuilder* fl_sb_new(void);
-FL_StringBuilder* fl_sb_with_capacity(fl_int64 cap);
-void              fl_sb_append(FL_StringBuilder* sb, FL_String* s);
-void              fl_sb_append_cstr(FL_StringBuilder* sb, const char* s);
-void              fl_sb_append_char(FL_StringBuilder* sb, fl_char c);
-void              fl_sb_append_int(FL_StringBuilder* sb, fl_int v);
-void              fl_sb_append_int64(FL_StringBuilder* sb, fl_int64 v);
-void              fl_sb_append_float(FL_StringBuilder* sb, fl_float v);
-FL_String*        fl_sb_build(FL_StringBuilder* sb);
-fl_int64          fl_sb_len(FL_StringBuilder* sb);
-void              fl_sb_clear(FL_StringBuilder* sb);
-void              fl_sb_retain(FL_StringBuilder* sb);
-void              fl_sb_release(FL_StringBuilder* sb);
-
-/* ========================================================================
  * Character Utilities (stdlib/char — RB-1-2)
  * ======================================================================== */
 
@@ -797,10 +772,18 @@ fl_bool       fl_net_write_string_fd(fl_int fd, FL_String* s);
  * ======================================================================== */
 
 void*         fl_mem_alloc(fl_int64 size);
+void*         fl_mem_realloc(void* p, fl_int64 size);
 void          fl_mem_free(void* p);
 fl_byte       fl_mem_read_byte(void* p, fl_int64 offset);
 void          fl_mem_write_byte(void* p, fl_int64 offset, fl_byte val);
 fl_int        fl_mem_read_int(void* p, fl_int64 offset);
+fl_int64      fl_mem_read_int64(void* p, fl_int64 offset);
+void          fl_mem_write_int64(void* p, fl_int64 offset, fl_int64 val);
+void*         fl_mem_read_ptr(void* p, fl_int64 offset);
+void          fl_mem_write_ptr(void* p, fl_int64 offset, void* val);
+void          fl_mem_copy(void* dst, void* src, fl_int64 len);
+void          fl_mem_copy_str(void* dst, fl_int64 offset, FL_String* s);
+FL_String*    fl_mem_to_string(void* p, fl_int64 len);
 fl_bool       fl_ptr_is_null(void* p);
 void*         fl_ptr_null(void);
 FL_Option_ptr fl_ptr_to_option(void* p);

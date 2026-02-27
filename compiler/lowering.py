@@ -415,7 +415,6 @@ def _ltype_c_name(lt: LType) -> str:
 _OPAQUE_TYPE_MAP: dict[str, str] = {
     "Socket": "FL_Socket",
     "file": "FL_File",
-    "StringBuilder": "FL_StringBuilder",
     "DateTime": "FL_DateTime",
     "Instant": "FL_Instant",
 }

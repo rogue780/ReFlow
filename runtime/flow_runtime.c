@@ -3605,137 +3605,6 @@ FL_String* fl_string_from_cptr(void* p, fl_int len) {
 }
 
 /* ========================================================================
- * String Builder
- * ======================================================================== */
-
-static void _fl_sb_grow(FL_StringBuilder* sb, fl_int64 needed) {
-    fl_int64 new_cap = sb->capacity;
-    while (new_cap < sb->len + needed) {
-        new_cap = new_cap < 64 ? 64 : new_cap * 2;
-    }
-    if (new_cap != sb->capacity) {
-        sb->data = (char*)realloc(sb->data, (size_t)new_cap);
-        if (!sb->data) fl_panic("fl_sb_grow: out of memory");
-        sb->capacity = new_cap;
-    }
-}
-
-FL_StringBuilder* fl_sb_new(void) {
-    FL_StringBuilder* sb = (FL_StringBuilder*)malloc(sizeof(FL_StringBuilder));
-    if (!sb) fl_panic("fl_sb_new: out of memory");
-    sb->refcount = 1;
-    sb->data = NULL;
-    sb->len = 0;
-    sb->capacity = 0;
-    return sb;
-}
-
-FL_StringBuilder* fl_sb_with_capacity(fl_int64 cap) {
-    FL_StringBuilder* sb = fl_sb_new();
-    if (cap > 0) {
-        sb->data = (char*)malloc((size_t)cap);
-        if (!sb->data) fl_panic("fl_sb_with_capacity: out of memory");
-        sb->capacity = cap;
-    }
-    return sb;
-}
-
-void fl_sb_append(FL_StringBuilder* sb, FL_String* s) {
-    if (!sb || !s) return;
-    _fl_sb_grow(sb, s->len);
-    memcpy(sb->data + sb->len, s->data, (size_t)s->len);
-    sb->len += s->len;
-}
-
-void fl_sb_append_cstr(FL_StringBuilder* sb, const char* s) {
-    if (!sb || !s) return;
-    fl_int64 slen = (fl_int64)strlen(s);
-    _fl_sb_grow(sb, slen);
-    memcpy(sb->data + sb->len, s, (size_t)slen);
-    sb->len += slen;
-}
-
-void fl_sb_append_char(FL_StringBuilder* sb, fl_char c) {
-    if (!sb) return;
-    /* UTF-8 encode the char (up to 4 bytes) */
-    char buf[4];
-    int n = 0;
-    if (c < 0x80) {
-        buf[0] = (char)c; n = 1;
-    } else if (c < 0x800) {
-        buf[0] = (char)(0xC0 | (c >> 6));
-        buf[1] = (char)(0x80 | (c & 0x3F)); n = 2;
-    } else if (c < 0x10000) {
-        buf[0] = (char)(0xE0 | (c >> 12));
-        buf[1] = (char)(0x80 | ((c >> 6) & 0x3F));
-        buf[2] = (char)(0x80 | (c & 0x3F)); n = 3;
-    } else {
-        buf[0] = (char)(0xF0 | (c >> 18));
-        buf[1] = (char)(0x80 | ((c >> 12) & 0x3F));
-        buf[2] = (char)(0x80 | ((c >> 6) & 0x3F));
-        buf[3] = (char)(0x80 | (c & 0x3F)); n = 4;
-    }
-    _fl_sb_grow(sb, n);
-    memcpy(sb->data + sb->len, buf, (size_t)n);
-    sb->len += n;
-}
-
-void fl_sb_append_int(FL_StringBuilder* sb, fl_int v) {
-    if (!sb) return;
-    char buf[32];
-    int n = snprintf(buf, sizeof(buf), "%d", (int)v);
-    _fl_sb_grow(sb, n);
-    memcpy(sb->data + sb->len, buf, (size_t)n);
-    sb->len += n;
-}
-
-void fl_sb_append_int64(FL_StringBuilder* sb, fl_int64 v) {
-    if (!sb) return;
-    char buf[32];
-    int n = snprintf(buf, sizeof(buf), "%lld", (long long)v);
-    _fl_sb_grow(sb, n);
-    memcpy(sb->data + sb->len, buf, (size_t)n);
-    sb->len += n;
-}
-
-void fl_sb_append_float(FL_StringBuilder* sb, fl_float v) {
-    if (!sb) return;
-    char buf[64];
-    int n = snprintf(buf, sizeof(buf), "%g", v);
-    _fl_sb_grow(sb, n);
-    memcpy(sb->data + sb->len, buf, (size_t)n);
-    sb->len += n;
-}
-
-FL_String* fl_sb_build(FL_StringBuilder* sb) {
-    if (!sb || sb->len == 0) return fl_string_from_cstr("");
-    return fl_string_new(sb->data, sb->len);
-}
-
-fl_int64 fl_sb_len(FL_StringBuilder* sb) {
-    if (!sb) return 0;
-    return sb->len;
-}
-
-void fl_sb_clear(FL_StringBuilder* sb) {
-    if (!sb) return;
-    sb->len = 0;
-}
-
-void fl_sb_retain(FL_StringBuilder* sb) {
-    if (!sb) return;
-    atomic_fetch_add(&sb->refcount, 1);
-}
-
-void fl_sb_release(FL_StringBuilder* sb) {
-    if (!sb) return;
-    if (atomic_fetch_sub(&sb->refcount, 1) == 1) {
-        free(sb->data);
-        free(sb);
-    }
-}
-
-/* ========================================================================
  * Map string-key convenience wrappers
  * ======================================================================== */
 
@@ -3816,6 +3685,10 @@ void* fl_mem_alloc(fl_int64 size) {
     return malloc((size_t)size);
 }
 
+void* fl_mem_realloc(void* p, fl_int64 size) {
+    return realloc(p, (size_t)size);
+}
+
 void fl_mem_free(void* p) {
     free(p);
 }
@@ -3832,6 +3705,40 @@ fl_int fl_mem_read_int(void* p, fl_int64 offset) {
     fl_int v;
     memcpy(&v, (char*)p + offset, sizeof(fl_int));
     return v;
+}
+
+fl_int64 fl_mem_read_int64(void* p, fl_int64 offset) {
+    fl_int64 v;
+    memcpy(&v, (char*)p + offset, sizeof(fl_int64));
+    return v;
+}
+
+void fl_mem_write_int64(void* p, fl_int64 offset, fl_int64 val) {
+    memcpy((char*)p + offset, &val, sizeof(fl_int64));
+}
+
+void* fl_mem_read_ptr(void* p, fl_int64 offset) {
+    void* v;
+    memcpy(&v, (char*)p + offset, sizeof(void*));
+    return v;
+}
+
+void fl_mem_write_ptr(void* p, fl_int64 offset, void* val) {
+    memcpy((char*)p + offset, &val, sizeof(void*));
+}
+
+void fl_mem_copy(void* dst, void* src, fl_int64 len) {
+    memcpy(dst, src, (size_t)len);
+}
+
+void fl_mem_copy_str(void* dst, fl_int64 offset, FL_String* s) {
+    if (!s) return;
+    memcpy((char*)dst + offset, s->data, (size_t)s->len);
+}
+
+FL_String* fl_mem_to_string(void* p, fl_int64 len) {
+    if (!p || len <= 0) return fl_string_from_cstr("");
+    return fl_string_new((const char*)p, len);
 }
 
 fl_bool fl_ptr_is_null(void* p) {

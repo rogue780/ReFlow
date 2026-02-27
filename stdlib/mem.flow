@@ -1,0 +1,18 @@
+module mem
+
+export extern fn "fl_mem_alloc" alloc(size:int64):ptr
+export extern fn "fl_mem_realloc" realloc(p:ptr, size:int64):ptr
+export extern fn "fl_mem_free" free(p:ptr):none
+export extern fn "fl_mem_read_byte" read_byte(p:ptr, offset:int64):byte
+export extern fn "fl_mem_write_byte" write_byte(p:ptr, offset:int64, val:byte):none
+export extern fn "fl_mem_read_int" read_int(p:ptr, offset:int64):int
+export extern fn "fl_mem_read_int64" read_int64(p:ptr, offset:int64):int64
+export extern fn "fl_mem_write_int64" write_int64(p:ptr, offset:int64, val:int64):none
+export extern fn "fl_mem_read_ptr" read_ptr(p:ptr, offset:int64):ptr
+export extern fn "fl_mem_write_ptr" write_ptr(p:ptr, offset:int64, val:ptr):none
+export extern fn "fl_mem_copy" copy(dst:ptr, src:ptr, len:int64):none
+export extern fn "fl_mem_copy_str" copy_str(dst:ptr, offset:int64, s:string):none
+export extern fn "fl_mem_to_string" to_string(p:ptr, len:int64):string
+export extern fn "fl_ptr_is_null" is_null(p:ptr):bool
+export extern fn "fl_ptr_null" null():ptr
+export extern fn "fl_ptr_to_option" to_option(p:ptr):ptr?

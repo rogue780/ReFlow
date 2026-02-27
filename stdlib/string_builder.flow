@@ -1,14 +1,153 @@
 module string_builder
 
-extern type StringBuilder
+import mem
+import string
+import char
+import conv
 
-export extern fn "fl_sb_new" new():StringBuilder
-export extern fn "fl_sb_with_capacity" with_capacity(cap:int64):StringBuilder
-export extern fn "fl_sb_append" append(sb:StringBuilder, s:string):none
-export extern fn "fl_sb_append_char" append_char(sb:StringBuilder, c:char):none
-export extern fn "fl_sb_append_int" append_int(sb:StringBuilder, v:int):none
-export extern fn "fl_sb_append_int64" append_int64(sb:StringBuilder, v:int64):none
-export extern fn "fl_sb_append_float" append_float(sb:StringBuilder, v:float):none
-export extern fn "fl_sb_build" build(sb:StringBuilder):string
-export extern fn "fl_sb_len" len(sb:StringBuilder):int64
-export extern fn "fl_sb_clear" clear(sb:StringBuilder):none
+// StringBuilder is an opaque ptr to a header block:
+//   offset 0:  len      (int64)
+//   offset 8:  capacity (int64)
+//   offset 16: data     (ptr to char buffer)
+
+export type StringBuilder {
+    handle:ptr
+}
+
+fn get_len(sb:StringBuilder):int64 {
+    return mem.read_int64(sb.handle, cast<int64>(0))
+}
+
+fn set_len(sb:StringBuilder, len:int64):none {
+    mem.write_int64(sb.handle, cast<int64>(0), len)
+}
+
+fn get_cap(sb:StringBuilder):int64 {
+    return mem.read_int64(sb.handle, cast<int64>(8))
+}
+
+fn set_cap(sb:StringBuilder, cap:int64):none {
+    mem.write_int64(sb.handle, cast<int64>(8), cap)
+}
+
+fn get_data(sb:StringBuilder):ptr {
+    return mem.read_ptr(sb.handle, cast<int64>(16))
+}
+
+fn set_data(sb:StringBuilder, data:ptr):none {
+    mem.write_ptr(sb.handle, cast<int64>(16), data)
+}
+
+fn grow(sb:StringBuilder, needed:int64):none {
+    let cur_len = get_len(sb)
+    let cur_cap = get_cap(sb)
+    let required = cur_len + needed
+    if (required <= cur_cap) { return }
+    let new_cap:int64:mut = cur_cap
+    while (new_cap < required) {
+        if (new_cap < 64) {
+            new_cap = 64
+        } else {
+            new_cap = new_cap * 2
+        }
+    }
+    let old_data = get_data(sb)
+    if (mem.is_null(old_data)) {
+        let new_data = mem.alloc(new_cap)
+        set_data(sb, new_data)
+    } else {
+        let new_data = mem.realloc(old_data, new_cap)
+        set_data(sb, new_data)
+    }
+    set_cap(sb, new_cap)
+}
+
+export fn new():StringBuilder {
+    let handle = mem.alloc(cast<int64>(24))
+    mem.write_int64(handle, cast<int64>(0), cast<int64>(0))
+    mem.write_int64(handle, cast<int64>(8), cast<int64>(0))
+    mem.write_ptr(handle, cast<int64>(16), mem.null())
+    return StringBuilder { handle: handle }
+}
+
+export fn with_capacity(cap:int64):StringBuilder {
+    let sb = new()
+    if (cap > 0) {
+        let data = mem.alloc(cap)
+        set_data(sb, data)
+        set_cap(sb, cap)
+    }
+    return sb
+}
+
+export fn append(sb:StringBuilder, s:string):none {
+    let slen = cast<int64>(string.len(s))
+    if (slen == 0) { return }
+    grow(sb, slen)
+    let data = get_data(sb)
+    let cur_len = get_len(sb)
+    mem.copy_str(data, cur_len, s)
+    set_len(sb, cur_len + slen)
+}
+
+export fn append_char(sb:StringBuilder, c:char):none {
+    let code = char.to_code(c)
+    if (code < 128) {
+        grow(sb, cast<int64>(1))
+        let data = get_data(sb)
+        let cur_len = get_len(sb)
+        mem.write_byte(data, cur_len, cast<byte>(code))
+        set_len(sb, cur_len + 1)
+    } else if (code < 2048) {
+        grow(sb, cast<int64>(2))
+        let data = get_data(sb)
+        let cur_len = get_len(sb)
+        mem.write_byte(data, cur_len, cast<byte>(192 + code / 64))
+        mem.write_byte(data, cur_len + 1, cast<byte>(128 + code % 64))
+        set_len(sb, cur_len + 2)
+    } else if (code < 65536) {
+        grow(sb, cast<int64>(3))
+        let data = get_data(sb)
+        let cur_len = get_len(sb)
+        mem.write_byte(data, cur_len, cast<byte>(224 + code / 4096))
+        mem.write_byte(data, cur_len + 1, cast<byte>(128 + (code / 64) % 64))
+        mem.write_byte(data, cur_len + 2, cast<byte>(128 + code % 64))
+        set_len(sb, cur_len + 3)
+    } else {
+        grow(sb, cast<int64>(4))
+        let data = get_data(sb)
+        let cur_len = get_len(sb)
+        mem.write_byte(data, cur_len, cast<byte>(240 + code / 262144))
+        mem.write_byte(data, cur_len + 1, cast<byte>(128 + (code / 4096) % 64))
+        mem.write_byte(data, cur_len + 2, cast<byte>(128 + (code / 64) % 64))
+        mem.write_byte(data, cur_len + 3, cast<byte>(128 + code % 64))
+        set_len(sb, cur_len + 4)
+    }
+}
+
+export fn append_int(sb:StringBuilder, v:int):none {
+    append(sb, conv.to_string(v))
+}
+
+export fn append_int64(sb:StringBuilder, v:int64):none {
+    append(sb, conv.int64_to_string(v))
+}
+
+export fn append_float(sb:StringBuilder, v:float):none {
+    append(sb, conv.float_to_string(v))
+}
+
+export fn build(sb:StringBuilder):string {
+    let cur_len = get_len(sb)
+    if (cur_len == 0) { return "" }
+    let data = get_data(sb)
+    return mem.to_string(data, cur_len)
+}
+
+export fn len(sb:StringBuilder):int64 {
+    return get_len(sb)
+}
+
+export fn clear(sb:StringBuilder):none {
+    set_len(sb, cast<int64>(0))
+}

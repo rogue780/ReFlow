@@ -384,11 +384,291 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
     return (FL_Option_float){.tag = 1, .value = result};
 }
 
+/* From: stdlib/string_builder.flow */
+
+typedef struct fl_string_builder_StringBuilder fl_string_builder_StringBuilder;
+
+FL_String* fl_conv_to_string__int(fl_int val);
+
+fl_int64 fl_string_builder_get_len(fl_string_builder_StringBuilder sb);
+
+void fl_string_builder_set_len(fl_string_builder_StringBuilder sb, fl_int64 len);
+
+fl_int64 fl_string_builder_get_cap(fl_string_builder_StringBuilder sb);
+
+void fl_string_builder_set_cap(fl_string_builder_StringBuilder sb, fl_int64 cap);
+
+void* fl_string_builder_get_data(fl_string_builder_StringBuilder sb);
+
+void fl_string_builder_set_data(fl_string_builder_StringBuilder sb, void* data);
+
+void fl_string_builder_grow(fl_string_builder_StringBuilder sb, fl_int64 needed);
+
+fl_string_builder_StringBuilder fl_string_builder_new(void);
+
+fl_string_builder_StringBuilder fl_string_builder_with_capacity(fl_int64 cap);
+
+void fl_string_builder_append(fl_string_builder_StringBuilder sb, FL_String* s);
+
+void fl_string_builder_append_char(fl_string_builder_StringBuilder sb, fl_char c);
+
+void fl_string_builder_append_int(fl_string_builder_StringBuilder sb, fl_int v);
+
+void fl_string_builder_append_int64(fl_string_builder_StringBuilder sb, fl_int64 v);
+
+void fl_string_builder_append_float(fl_string_builder_StringBuilder sb, fl_float v);
+
+FL_String* fl_string_builder_build(fl_string_builder_StringBuilder sb);
+
+fl_int64 fl_string_builder_len(fl_string_builder_StringBuilder sb);
+
+void fl_string_builder_clear(fl_string_builder_StringBuilder sb);
+
+struct fl_string_builder_StringBuilder {
+    void* handle;
+};
+
+/* Flow: conv.to_string[mono] */
+FL_String* fl_conv_to_string__int(fl_int val) {
+    return fl_int_to_string(val);
+}
+
+/* Flow: string_builder.get_len */
+fl_int64 fl_string_builder_get_len(fl_string_builder_StringBuilder sb) {
+    return fl_mem_read_int64(sb.handle, ((fl_int64)0));
+}
+
+/* Flow: string_builder.set_len */
+void fl_string_builder_set_len(fl_string_builder_StringBuilder sb, fl_int64 len) {
+    fl_mem_write_int64(sb.handle, ((fl_int64)0), len);
+}
+
+/* Flow: string_builder.get_cap */
+fl_int64 fl_string_builder_get_cap(fl_string_builder_StringBuilder sb) {
+    return fl_mem_read_int64(sb.handle, ((fl_int64)8));
+}
+
+/* Flow: string_builder.set_cap */
+void fl_string_builder_set_cap(fl_string_builder_StringBuilder sb, fl_int64 cap) {
+    fl_mem_write_int64(sb.handle, ((fl_int64)8), cap);
+}
+
+/* Flow: string_builder.get_data */
+void* fl_string_builder_get_data(fl_string_builder_StringBuilder sb) {
+    return fl_mem_read_ptr(sb.handle, ((fl_int64)16));
+}
+
+/* Flow: string_builder.set_data */
+void fl_string_builder_set_data(fl_string_builder_StringBuilder sb, void* data) {
+    fl_mem_write_ptr(sb.handle, ((fl_int64)16), data);
+}
+
+/* Flow: string_builder.grow */
+void fl_string_builder_grow(fl_string_builder_StringBuilder sb, fl_int64 needed) {
+    fl_int64 cur_len = fl_string_builder_get_len(sb);
+    fl_int64 cur_cap = fl_string_builder_get_cap(sb);
+    fl_int64 _fl_e_1;
+    FL_CHECKED_ADD(cur_len, needed, &_fl_e_1);
+    fl_int64 required = _fl_e_1;
+    if (required <= cur_cap) {
+        return;
+    }
+    fl_int64 new_cap = cur_cap;
+    while (new_cap < required) {
+        if (new_cap < 64) {
+            new_cap = 64;
+        } else {
+            fl_int64 _fl_e_2;
+            FL_CHECKED_MUL(new_cap, ((fl_int64)2), &_fl_e_2);
+            new_cap = _fl_e_2;
+        }
+    }
+    void* old_data = fl_string_builder_get_data(sb);
+    if (fl_ptr_is_null(old_data)) {
+        void* new_data = fl_mem_alloc(new_cap);
+        fl_string_builder_set_data(sb, new_data);
+    } else {
+        void* new_data = fl_mem_realloc(old_data, new_cap);
+        fl_string_builder_set_data(sb, new_data);
+    }
+    fl_string_builder_set_cap(sb, new_cap);
+}
+
+/* Flow: string_builder.new */
+fl_string_builder_StringBuilder fl_string_builder_new(void) {
+    void* handle = fl_mem_alloc(((fl_int64)24));
+    fl_mem_write_int64(handle, ((fl_int64)0), ((fl_int64)0));
+    fl_mem_write_int64(handle, ((fl_int64)8), ((fl_int64)0));
+    fl_mem_write_ptr(handle, ((fl_int64)16), fl_ptr_null());
+    return (fl_string_builder_StringBuilder){.handle = handle};
+}
+
+/* Flow: string_builder.with_capacity */
+fl_string_builder_StringBuilder fl_string_builder_with_capacity(fl_int64 cap) {
+    fl_string_builder_StringBuilder sb = fl_string_builder_new();
+    if (cap > 0) {
+        void* data = fl_mem_alloc(cap);
+        fl_string_builder_set_data(sb, data);
+        fl_string_builder_set_cap(sb, cap);
+    }
+    return sb;
+}
+
+/* Flow: string_builder.append */
+void fl_string_builder_append(fl_string_builder_StringBuilder sb, FL_String* s) {
+    fl_int64 slen = ((fl_int64)fl_string_len(s));
+    if (slen == 0) {
+        return;
+    }
+    fl_string_builder_grow(sb, slen);
+    void* data = fl_string_builder_get_data(sb);
+    fl_int64 cur_len = fl_string_builder_get_len(sb);
+    fl_mem_copy_str(data, cur_len, s);
+    fl_int64 _fl_e_1;
+    FL_CHECKED_ADD(cur_len, slen, &_fl_e_1);
+    fl_string_builder_set_len(sb, _fl_e_1);
+}
+
+/* Flow: string_builder.append_char */
+void fl_string_builder_append_char(fl_string_builder_StringBuilder sb, fl_char c) {
+    fl_int code = fl_char_to_code(c);
+    if (code < 128) {
+        fl_string_builder_grow(sb, ((fl_int64)1));
+        void* data = fl_string_builder_get_data(sb);
+        fl_int64 cur_len = fl_string_builder_get_len(sb);
+        fl_mem_write_byte(data, cur_len, ((fl_byte)code));
+        fl_int64 _fl_e_1;
+        FL_CHECKED_ADD(cur_len, ((fl_int64)1), &_fl_e_1);
+        fl_string_builder_set_len(sb, _fl_e_1);
+    } else {
+        if (code < 2048) {
+            fl_string_builder_grow(sb, ((fl_int64)2));
+            void* data = fl_string_builder_get_data(sb);
+            fl_int64 cur_len = fl_string_builder_get_len(sb);
+            fl_int _fl_e_3;
+            FL_CHECKED_DIV(code, 64, &_fl_e_3);
+            fl_int _fl_e_2;
+            FL_CHECKED_ADD(192, _fl_e_3, &_fl_e_2);
+            fl_mem_write_byte(data, cur_len, ((fl_byte)_fl_e_2));
+            fl_int64 _fl_e_4;
+            FL_CHECKED_ADD(cur_len, ((fl_int64)1), &_fl_e_4);
+            fl_int _fl_e_6;
+            FL_CHECKED_MOD(code, 64, &_fl_e_6);
+            fl_int _fl_e_5;
+            FL_CHECKED_ADD(128, _fl_e_6, &_fl_e_5);
+            fl_mem_write_byte(data, _fl_e_4, ((fl_byte)_fl_e_5));
+            fl_int64 _fl_e_7;
+            FL_CHECKED_ADD(cur_len, ((fl_int64)2), &_fl_e_7);
+            fl_string_builder_set_len(sb, _fl_e_7);
+        } else {
+            if (code < 65536) {
+                fl_string_builder_grow(sb, ((fl_int64)3));
+                void* data = fl_string_builder_get_data(sb);
+                fl_int64 cur_len = fl_string_builder_get_len(sb);
+                fl_int _fl_e_9;
+                FL_CHECKED_DIV(code, 4096, &_fl_e_9);
+                fl_int _fl_e_8;
+                FL_CHECKED_ADD(224, _fl_e_9, &_fl_e_8);
+                fl_mem_write_byte(data, cur_len, ((fl_byte)_fl_e_8));
+                fl_int64 _fl_e_10;
+                FL_CHECKED_ADD(cur_len, ((fl_int64)1), &_fl_e_10);
+                fl_int _fl_e_13;
+                FL_CHECKED_DIV(code, 64, &_fl_e_13);
+                fl_int _fl_e_12;
+                FL_CHECKED_MOD(_fl_e_13, 64, &_fl_e_12);
+                fl_int _fl_e_11;
+                FL_CHECKED_ADD(128, _fl_e_12, &_fl_e_11);
+                fl_mem_write_byte(data, _fl_e_10, ((fl_byte)_fl_e_11));
+                fl_int64 _fl_e_14;
+                FL_CHECKED_ADD(cur_len, ((fl_int64)2), &_fl_e_14);
+                fl_int _fl_e_16;
+                FL_CHECKED_MOD(code, 64, &_fl_e_16);
+                fl_int _fl_e_15;
+                FL_CHECKED_ADD(128, _fl_e_16, &_fl_e_15);
+                fl_mem_write_byte(data, _fl_e_14, ((fl_byte)_fl_e_15));
+                fl_int64 _fl_e_17;
+                FL_CHECKED_ADD(cur_len, ((fl_int64)3), &_fl_e_17);
+                fl_string_builder_set_len(sb, _fl_e_17);
+            } else {
+                fl_string_builder_grow(sb, ((fl_int64)4));
+                void* data = fl_string_builder_get_data(sb);
+                fl_int64 cur_len = fl_string_builder_get_len(sb);
+                fl_int _fl_e_19;
+                FL_CHECKED_DIV(code, 262144, &_fl_e_19);
+                fl_int _fl_e_18;
+                FL_CHECKED_ADD(240, _fl_e_19, &_fl_e_18);
+                fl_mem_write_byte(data, cur_len, ((fl_byte)_fl_e_18));
+                fl_int64 _fl_e_20;
+                FL_CHECKED_ADD(cur_len, ((fl_int64)1), &_fl_e_20);
+                fl_int _fl_e_23;
+                FL_CHECKED_DIV(code, 4096, &_fl_e_23);
+                fl_int _fl_e_22;
+                FL_CHECKED_MOD(_fl_e_23, 64, &_fl_e_22);
+                fl_int _fl_e_21;
+                FL_CHECKED_ADD(128, _fl_e_22, &_fl_e_21);
+                fl_mem_write_byte(data, _fl_e_20, ((fl_byte)_fl_e_21));
+                fl_int64 _fl_e_24;
+                FL_CHECKED_ADD(cur_len, ((fl_int64)2), &_fl_e_24);
+                fl_int _fl_e_27;
+                FL_CHECKED_DIV(code, 64, &_fl_e_27);
+                fl_int _fl_e_26;
+                FL_CHECKED_MOD(_fl_e_27, 64, &_fl_e_26);
+                fl_int _fl_e_25;
+                FL_CHECKED_ADD(128, _fl_e_26, &_fl_e_25);
+                fl_mem_write_byte(data, _fl_e_24, ((fl_byte)_fl_e_25));
+                fl_int64 _fl_e_28;
+                FL_CHECKED_ADD(cur_len, ((fl_int64)3), &_fl_e_28);
+                fl_int _fl_e_30;
+                FL_CHECKED_MOD(code, 64, &_fl_e_30);
+                fl_int _fl_e_29;
+                FL_CHECKED_ADD(128, _fl_e_30, &_fl_e_29);
+                fl_mem_write_byte(data, _fl_e_28, ((fl_byte)_fl_e_29));
+                fl_int64 _fl_e_31;
+                FL_CHECKED_ADD(cur_len, ((fl_int64)4), &_fl_e_31);
+                fl_string_builder_set_len(sb, _fl_e_31);
+            }
+        }
+    }
+}
+
+/* Flow: string_builder.append_int */
+void fl_string_builder_append_int(fl_string_builder_StringBuilder sb, fl_int v) {
+    fl_string_builder_append(sb, fl_conv_to_string__int(v));
+}
+
+/* Flow: string_builder.append_int64 */
+void fl_string_builder_append_int64(fl_string_builder_StringBuilder sb, fl_int64 v) {
+    fl_string_builder_append(sb, fl_int64_to_string(v));
+}
+
+/* Flow: string_builder.append_float */
+void fl_string_builder_append_float(fl_string_builder_StringBuilder sb, fl_float v) {
+    fl_string_builder_append(sb, fl_float_to_string(v));
+}
+
+/* Flow: string_builder.build */
+FL_String* fl_string_builder_build(fl_string_builder_StringBuilder sb) {
+    fl_int64 cur_len = fl_string_builder_get_len(sb);
+    if (cur_len == 0) {
+        return fl_string_from_cstr("");
+    }
+    void* data = fl_string_builder_get_data(sb);
+    return fl_mem_to_string(data, cur_len);
+}
+
+/* Flow: string_builder.len */
+fl_int64 fl_string_builder_len(fl_string_builder_StringBuilder sb) {
+    return fl_string_builder_get_len(sb);
+}
+
+/* Flow: string_builder.clear */
+void fl_string_builder_clear(fl_string_builder_StringBuilder sb) {
+    fl_string_builder_set_len(sb, ((fl_int64)0));
+}
+
 typedef struct fl_tests_app_csv_to_json_Schema fl_tests_app_csv_to_json_Schema;
 
 typedef struct fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_CsvRow;
-
-FL_String* fl_conv_to_string__int(fl_int val);
 
 fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_parse_row(fl_int idx, FL_String* line);
 
@@ -413,11 +693,6 @@ struct fl_tests_app_csv_to_json_CsvRow {
     fl_int index;
     FL_Array* fields;
 };
-
-/* Flow: conv.to_string[mono] */
-FL_String* fl_conv_to_string__int(fl_int val) {
-    return fl_int_to_string(val);
-}
 
 /* Flow: tests.app_csv_to_json.parse_row */
 fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_parse_row(fl_int idx, FL_String* line) {
@@ -469,33 +744,33 @@ FL_String* fl_tests_app_csv_to_json_escape_json(FL_String* s) {
 /* Flow: tests.app_csv_to_json.to_json */
 FL_String* fl_tests_app_csv_to_json_to_json(fl_tests_app_csv_to_json_CsvRow row, fl_tests_app_csv_to_json_Schema schema) {
     FL_Array* cols = schema.columns;
-    void* b = fl_sb_new();
-    fl_sb_append(b, fl_string_from_cstr("{"));
+    fl_string_builder_StringBuilder b = fl_string_builder_new();
+    fl_string_builder_append(b, fl_string_from_cstr("{"));
     fl_int i = 0;
     while (i < fl_array_len_int(cols)) {
         if (i > 0) {
-            fl_sb_append(b, fl_string_from_cstr(","));
+            fl_string_builder_append(b, fl_string_from_cstr(","));
         }
         FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(cols, i);
         FL_String* col_name = ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr(""));
         FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(row.fields, i);
         FL_String* field_val = ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : fl_string_from_cstr(""));
-        fl_sb_append(b, fl_string_from_cstr("\""));
-        fl_sb_append(b, fl_tests_app_csv_to_json_escape_json(col_name));
-        fl_sb_append(b, fl_string_from_cstr("\":"));
+        fl_string_builder_append(b, fl_string_from_cstr("\""));
+        fl_string_builder_append(b, fl_tests_app_csv_to_json_escape_json(col_name));
+        fl_string_builder_append(b, fl_string_from_cstr("\":"));
         if (fl_string_len(field_val) > 0) {
-            fl_sb_append(b, fl_string_from_cstr("\""));
-            fl_sb_append(b, fl_tests_app_csv_to_json_escape_json(field_val));
-            fl_sb_append(b, fl_string_from_cstr("\""));
+            fl_string_builder_append(b, fl_string_from_cstr("\""));
+            fl_string_builder_append(b, fl_tests_app_csv_to_json_escape_json(field_val));
+            fl_string_builder_append(b, fl_string_from_cstr("\""));
         } else {
-            fl_sb_append(b, fl_string_from_cstr("null"));
+            fl_string_builder_append(b, fl_string_from_cstr("null"));
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    fl_sb_append(b, fl_string_from_cstr("}"));
-    return fl_sb_build(b);
+    fl_string_builder_append(b, fl_string_from_cstr("}"));
+    return fl_string_builder_build(b);
 }
 
 /* Flow: tests.app_csv_to_json.sanitize */

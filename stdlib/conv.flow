@@ -1,10 +1,314 @@
 module conv
 
+import string
+import char
+
 export fn:pure to_string<T fulfills Showable>(val:T):string {
     return val.to_string()
 }
 
-// Parsing remains type-specific (different rules and error modes per type)
-export extern fn "fl_string_to_int_opt" string_to_int(s:string):int?
-export extern fn "fl_string_to_int64_opt" string_to_int64(s:string):int64?
-export extern fn "fl_string_to_float_opt" string_to_float(s:string):float?
+// Convert char to single-character string
+export fn char_to_string(c:char):string {
+    return char.to_string(c)
+}
+
+// Parse string to int, returns none if invalid
+export fn string_to_int(s:string):int? {
+    let len = string.len(s)
+    if (len == 0) {
+        return none
+    }
+
+    let start:int:mut = 0
+    let negative:bool:mut = false
+    match string.char_at(s, 0) {
+        some(c): {
+            if (c == '-') {
+                negative = true
+                start = 1
+            } else if (c == '+') {
+                start = 1
+            }
+        }
+        none: { return none }
+    }
+
+    if (start >= len) {
+        return none
+    }
+
+    let result:int:mut = 0
+    let i:int:mut = start
+    while (i < len) {
+        match string.char_at(s, i) {
+            some(c): {
+                if (!char.is_digit(c)) {
+                    return none
+                }
+                let digit = char.to_code(c) - char.to_code('0')
+                result = result * 10 + digit
+            }
+            none: { return none }
+        }
+        i++
+    }
+
+    if (negative) {
+        result = 0 - result
+    }
+    return some(result)
+}
+
+// Parse string to int64, returns none if invalid
+export fn string_to_int64(s:string):int64? {
+    let len = string.len(s)
+    if (len == 0) {
+        return none
+    }
+
+    let start:int:mut = 0
+    let negative:bool:mut = false
+    match string.char_at(s, 0) {
+        some(c): {
+            if (c == '-') {
+                negative = true
+                start = 1
+            } else if (c == '+') {
+                start = 1
+            }
+        }
+        none: { return none }
+    }
+
+    if (start >= len) {
+        return none
+    }
+
+    let result:int64:mut = cast<int64>(0)
+    let i:int:mut = start
+    while (i < len) {
+        match string.char_at(s, i) {
+            some(c): {
+                if (!char.is_digit(c)) {
+                    return none
+                }
+                let digit = cast<int64>(char.to_code(c) - char.to_code('0'))
+                result = result * cast<int64>(10) + digit
+            }
+            none: { return none }
+        }
+        i++
+    }
+
+    if (negative) {
+        result = cast<int64>(0) - result
+    }
+    return some(result)
+}
+
+// Convert int64 to string
+export extern fn "fl_int64_to_string" int64_to_string(v:int64):string
+
+// Convert float to string
+export extern fn "fl_float_to_string" float_to_string(v:float):string
+
+// Parse string to float, returns none if invalid
+// Handles: [+-]digits[.digits][e[+-]digits]
+export fn string_to_float(s:string):float? {
+    let len = string.len(s)
+    if (len == 0) {
+        return none
+    }
+
+    let start:int:mut = 0
+    let negative:bool:mut = false
+    match string.char_at(s, 0) {
+        some(c): {
+            if (c == '-') {
+                negative = true
+                start = 1
+            } else if (c == '+') {
+                start = 1
+            }
+        }
+        none: { return none }
+    }
+
+    if (start >= len) {
+        return none
+    }
+
+    // Parse integer part
+    let result:float:mut = 0.0
+    let i:int:mut = start
+    let has_digits:bool:mut = false
+    while (i < len) {
+        match string.char_at(s, i) {
+            some(c): {
+                if (char.is_digit(c)) {
+                    let digit = cast<float>(char.to_code(c) - char.to_code('0'))
+                    result = result * 10.0 + digit
+                    has_digits = true
+                    i++
+                } else {
+                    // break out via setting i to trigger the next section
+                    i = i  // no-op to break
+                    // Use a goto-like pattern: set a flag
+                    return parse_float_rest(s, len, i, result, negative, has_digits)
+                }
+            }
+            none: { return none }
+        }
+    }
+
+    if (!has_digits) {
+        return none
+    }
+    if (negative) {
+        result = 0.0 - result
+    }
+    return some(result)
+}
+
+// Internal helper: continue parsing after integer digits
+fn parse_float_rest(s:string, len:int, pos:int, int_part:float, negative:bool, has_digits_before:bool):float? {
+    let result:float:mut = int_part
+    let i:int:mut = pos
+    let has_digits:bool:mut = has_digits_before
+
+    // Parse fractional part
+    let at_dot:bool:mut = false
+    if (i < len) {
+        match string.char_at(s, i) {
+            some(c): {
+                if (c == '.') {
+                    at_dot = true
+                    i++
+                }
+            }
+            none: {}
+        }
+    }
+
+    if (at_dot) {
+        let frac:float:mut = 0.0
+        let frac_div:float:mut = 1.0
+        while (i < len) {
+            match string.char_at(s, i) {
+                some(c): {
+                    if (char.is_digit(c)) {
+                        let digit = cast<float>(char.to_code(c) - char.to_code('0'))
+                        frac = frac * 10.0 + digit
+                        frac_div = frac_div * 10.0
+                        has_digits = true
+                        i++
+                    } else {
+                        // break — non-digit after decimal, check for exponent
+                        return parse_float_exp(s, len, i, result + frac / frac_div, negative, has_digits)
+                    }
+                }
+                none: { return none }
+            }
+        }
+        result = result + frac / frac_div
+    }
+
+    if (!has_digits) {
+        return none
+    }
+
+    // Parse exponent
+    if (i < len) {
+        return parse_float_exp(s, len, i, result, negative, has_digits)
+    }
+
+    if (negative) {
+        result = 0.0 - result
+    }
+    return some(result)
+}
+
+// Internal helper: parse exponent part of float
+fn parse_float_exp(s:string, len:int, pos:int, mantissa:float, negative:bool, has_digits:bool):float? {
+    let i:int:mut = pos
+
+    if (!has_digits) {
+        return none
+    }
+
+    let at_exp:bool:mut = false
+    if (i < len) {
+        match string.char_at(s, i) {
+            some(c): {
+                if (c == 'e' || c == 'E') {
+                    at_exp = true
+                    i++
+                }
+            }
+            none: {}
+        }
+    }
+
+    let result:float:mut = mantissa
+
+    if (at_exp) {
+        let exp_neg:bool:mut = false
+        if (i < len) {
+            match string.char_at(s, i) {
+                some(c): {
+                    if (c == '-') {
+                        exp_neg = true
+                        i++
+                    } else if (c == '+') {
+                        i++
+                    }
+                }
+                none: {}
+            }
+        }
+
+        let exp_val:int:mut = 0
+        let exp_digits:bool:mut = false
+        while (i < len) {
+            match string.char_at(s, i) {
+                some(c): {
+                    if (char.is_digit(c)) {
+                        exp_val = exp_val * 10 + (char.to_code(c) - char.to_code('0'))
+                        exp_digits = true
+                    } else {
+                        return none
+                    }
+                }
+                none: { return none }
+            }
+            i++
+        }
+
+        if (!exp_digits) {
+            return none
+        }
+
+        // Apply exponent: result * 10^exp_val
+        let multiplier:float:mut = 1.0
+        let e:int:mut = 0
+        while (e < exp_val) {
+            multiplier = multiplier * 10.0
+            e++
+        }
+        if (exp_neg) {
+            result = result / multiplier
+        } else {
+            result = result * multiplier
+        }
+    }
+
+    // Check we consumed all input
+    if (i != len) {
+        return none
+    }
+
+    if (negative) {
+        result = 0.0 - result
+    }
+    return some(result)
+}
