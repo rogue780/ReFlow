@@ -5,22 +5,35 @@ export fn:pure abs<T fulfills (Numeric, Comparable)>(n:T):T {
     return if (n.compare(neg) < 0) { neg } else { n }
 }
 
-export fn:pure min<T fulfills Comparable>(a:T, b:T):T {
-    return if (a.compare(b) <= 0) { a } else { b }
+export fn:pure min<T fulfills Comparable>(first:T, ..rest:T):T {
+    let result:T:mut = first
+    for(val:T in rest) {
+        if(val.compare(result) < 0) {
+            result = val
+        }
+    }
+    return result
 }
 
-export fn:pure max<T fulfills Comparable>(a:T, b:T):T {
-    return if (a.compare(b) >= 0) { a } else { b }
+export fn:pure max<T fulfills Comparable>(first:T, ..rest:T):T {
+    let result:T:mut = first
+    for(val:T in rest) {
+        if(val.compare(result) > 0) {
+            result = val
+        }
+    }
+    return result
 }
 
 export fn:pure clamp<T fulfills Comparable>(val:T, lo:T, hi:T):T {
     return if (val.compare(lo) < 0) { lo } else { if (val.compare(hi) > 0) { hi } else { val } }
 }
 
-// Float-specific operations (inherently float, no generic equivalent)
-export extern fn "fl_math_floor" floor(f:float):float
-export extern fn "fl_math_ceil" ceil(f:float):float
-export extern fn "fl_math_round" round(f:float):float
-export extern fn "fl_math_pow" pow(base:float, exp:float):float
-export extern fn "fl_math_sqrt" sqrt(f:float):float
-export extern fn "fl_math_log" log(f:float):float
+// Float-specific operations — direct libm bindings (no fl_ runtime wrappers)
+export extern fn floor(f:float):float
+export extern fn ceil(f:float):float
+export extern fn round(f:float):float
+export extern fn pow(base:float, exp:float):float
+export extern fn sqrt(f:float):float
+export extern fn log(f:float):float
+export extern fn fmod(a:float, b:float):float

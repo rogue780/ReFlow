@@ -1,13 +1,170 @@
 module path
 
-export extern fn "fl_path_join" join(a:string, b:string):string
-export extern fn "fl_path_stem" stem(p:string):string
-export extern fn "fl_path_parent" parent(p:string):string
-export extern fn "fl_path_with_suffix" with_suffix(p:string, suffix:string):string
+import string
+
+// --- Pure string operations (no runtime needed) ---
+
+export fn join(..segments:string):string {
+    let result:string:mut = ""
+    for(seg:string in segments) {
+        if(string.len(result) == 0) {
+            result = seg
+        } else if(string.len(seg) > 0) {
+            match string.char_at(result, string.len(result) - 1) {
+                some(last): {
+                    if(last == '/') {
+                        result = result + seg
+                    } else {
+                        result = result + "/" + seg
+                    }
+                }
+                none: {
+                    result = result + "/" + seg
+                }
+            }
+        }
+    }
+    return result
+}
+
+export fn stem(p:string):string {
+    let len = string.len(p)
+    // Find last '/'
+    let start:int:mut = 0
+    let i:int:mut = len - 1
+    while (i >= 0) {
+        match string.char_at(p, i) {
+            some(c): {
+                if (c == '/') {
+                    start = i + 1
+                    i = -1  // break
+                } else {
+                    i = i - 1
+                }
+            }
+            none: { i = i - 1 }
+        }
+    }
+    // Find last '.' after start
+    let end:int:mut = len
+    i = len - 1
+    while (i >= start) {
+        match string.char_at(p, i) {
+            some(c): {
+                if (c == '.') {
+                    end = i
+                    i = -1  // break
+                } else {
+                    i = i - 1
+                }
+            }
+            none: { i = i - 1 }
+        }
+    }
+    return string.substring(p, start, end)
+}
+
+export fn parent(p:string):string {
+    let len:int:mut = string.len(p)
+    // Skip trailing slash
+    if (len > 1) {
+        match string.char_at(p, len - 1) {
+            some(c): {
+                if (c == '/') {
+                    len = len - 1
+                }
+            }
+            none: {}
+        }
+    }
+    let last_slash:int:mut = 0 - 1
+    let i:int:mut = len - 1
+    while (i >= 0) {
+        match string.char_at(p, i) {
+            some(c): {
+                if (c == '/') {
+                    last_slash = i
+                    i = -1  // break
+                } else {
+                    i = i - 1
+                }
+            }
+            none: { i = i - 1 }
+        }
+    }
+    if (last_slash < 0) { return "." }
+    if (last_slash == 0) { return "/" }
+    return string.substring(p, 0, last_slash)
+}
+
+export fn with_suffix(p:string, suffix:string):string {
+    let len = string.len(p)
+    let dot:int:mut = 0 - 1
+    let last_slash:int:mut = 0 - 1
+    let i:int:mut = len - 1
+    while (i >= 0) {
+        match string.char_at(p, i) {
+            some(c): {
+                if (c == '/' && last_slash < 0) {
+                    last_slash = i
+                    i = -1  // break
+                } else if (c == '.' && dot < 0) {
+                    dot = i
+                }
+            }
+            none: {}
+        }
+        if (i >= 0) {
+            i = i - 1
+        }
+    }
+    let base_end = if (dot >= 0 && dot > last_slash) { dot } else { len }
+    return string.substring(p, 0, base_end) + suffix
+}
+
+export fn extension(p:string):string? {
+    let len = string.len(p)
+    // Find last '/' to determine basename start
+    let base_start:int:mut = 0
+    let i:int:mut = len - 1
+    while (i >= 0) {
+        match string.char_at(p, i) {
+            some(c): {
+                if (c == '/') {
+                    base_start = i + 1
+                    i = -1  // break
+                } else {
+                    i = i - 1
+                }
+            }
+            none: { i = i - 1 }
+        }
+    }
+    // Find last '.' after base_start
+    let dot:int:mut = 0 - 1
+    i = len - 1
+    while (i >= base_start) {
+        match string.char_at(p, i) {
+            some(c): {
+                if (c == '.') {
+                    dot = i
+                    i = -1  // break
+                } else {
+                    i = i - 1
+                }
+            }
+            none: { i = i - 1 }
+        }
+    }
+    if (dot < 0 || dot == base_start) { return none }
+    return some(string.substring(p, dot, len))
+}
+
+// --- Filesystem operations (require runtime) ---
+
 export extern fn "fl_path_cwd" cwd():string
 export extern fn "fl_path_resolve" resolve(p:string):string
 export extern fn "fl_path_exists" exists(p:string):bool
 export extern fn "fl_path_is_dir" is_dir(p:string):bool
 export extern fn "fl_path_is_file" is_file(p:string):bool
-export extern fn "fl_path_extension" extension(p:string):string?
 export extern fn "fl_path_list_dir" list_dir(p:string):array<string>?

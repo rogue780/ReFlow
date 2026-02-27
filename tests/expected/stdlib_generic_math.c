@@ -122,6 +122,27 @@ FL_String* fl_char_to_string(fl_char c) {
     }
 }
 
+/* From: stdlib/string.flow */
+
+/* Flow: string.join */
+FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
+    fl_int n = fl_array_len_int(parts);
+    if (n == 0) {
+        return fl_string_from_cstr("");
+    }
+    FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    fl_int i = 1;
+    while (i < n) {
+        FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        fl_int _fl_e_1;
+        FL_CHECKED_ADD(i, 1, &_fl_e_1);
+        i = _fl_e_1;
+    }
+    return result;
+}
+
 /* From: stdlib/conv.flow */
 
 FL_String* fl_conv_char_to_string(fl_char c);
@@ -468,9 +489,9 @@ fl_float fl_math_abs__float(fl_float n);
 
 FL_String* fl_conv_to_string__float(fl_float val);
 
-fl_int fl_math_min__int(fl_int a, fl_int b);
+fl_int fl_math_min__int(fl_int first, FL_Array* rest);
 
-fl_float fl_math_max__float(fl_float a, fl_float b);
+fl_float fl_math_max__float(fl_float first, FL_Array* rest);
 
 fl_int fl_math_clamp__int(fl_int val, fl_int lo, fl_int hi);
 
@@ -511,25 +532,31 @@ FL_String* fl_conv_to_string__float(fl_float val) {
 }
 
 /* Flow: math.min[mono] */
-fl_int fl_math_min__int(fl_int a, fl_int b) {
-    fl_int _fl_tmp_2;
-    if (_fl_compare(a, b) <= 0) {
-        _fl_tmp_2 = a;
-    } else {
-        _fl_tmp_2 = b;
+fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
+    fl_int result = first;
+    fl_int64 _fl_tmp_2 = 0;
+    while (_fl_tmp_2 < fl_array_len(rest)) {
+        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_2)));
+        if (_fl_compare(val, result) < 0) {
+            result = val;
+        }
+        _fl_tmp_2 = (_fl_tmp_2 + 1);
     }
-    return _fl_tmp_2;
+    return result;
 }
 
 /* Flow: math.max[mono] */
-fl_float fl_math_max__float(fl_float a, fl_float b) {
-    fl_float _fl_tmp_3;
-    if (_fl_compare(a, b) >= 0) {
-        _fl_tmp_3 = a;
-    } else {
-        _fl_tmp_3 = b;
+fl_float fl_math_max__float(fl_float first, FL_Array* rest) {
+    fl_float result = first;
+    fl_int64 _fl_tmp_3 = 0;
+    while (_fl_tmp_3 < fl_array_len(rest)) {
+        fl_float val = (*((fl_float*)fl_array_get_ptr(rest, _fl_tmp_3)));
+        if (_fl_compare(val, result) > 0) {
+            result = val;
+        }
+        _fl_tmp_3 = (_fl_tmp_3 + 1);
     }
-    return _fl_tmp_3;
+    return result;
 }
 
 /* Flow: math.clamp[mono] */
@@ -551,8 +578,8 @@ fl_int fl_math_clamp__int(fl_int val, fl_int lo, fl_int hi) {
 void fl_stdlib_generic_math_main(void) {
     fl_println(fl_conv_to_string__int(fl_math_abs__int((-5))));
     fl_println(fl_conv_to_string__float(fl_math_abs__float((-3.14))));
-    fl_println(fl_conv_to_string__int(fl_math_min__int(10, 3)));
-    fl_println(fl_conv_to_string__float(fl_math_max__float(1.0, 2.0)));
+    fl_println(fl_conv_to_string__int(fl_math_min__int(10, fl_array_new(1, sizeof(fl_int), (fl_int[]){3}))));
+    fl_println(fl_conv_to_string__float(fl_math_max__float(1.0, fl_array_new(1, sizeof(fl_float), (fl_float[]){2.0}))));
     fl_println(fl_conv_to_string__int(fl_math_clamp__int(15, 0, 10)));
 }
 

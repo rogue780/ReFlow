@@ -550,7 +550,6 @@ FL_String*    fl_string_trim(FL_String* s);
 FL_String*    fl_string_trim_left(FL_String* s);
 FL_String*    fl_string_trim_right(FL_String* s);
 FL_String*    fl_string_replace(FL_String* s, FL_String* old_s, FL_String* new_s);
-FL_String*    fl_string_join(FL_Array* parts, FL_String* sep);
 FL_String*    fl_string_to_lower(FL_String* s);
 FL_String*    fl_string_to_upper(FL_String* s);
 FL_Array*     fl_string_to_bytes(FL_String* s);

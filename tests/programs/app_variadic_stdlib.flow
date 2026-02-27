@@ -1,0 +1,39 @@
+module tests.app_variadic_stdlib
+
+import io
+import conv
+import path
+import math
+import string
+import json
+
+fn main():int {
+    // path.join with multiple segments
+    io.println(path.join("a", "b", "c"))
+    io.println(path.join("a/", "b", "c"))
+    io.println(path.join("", "b", "c"))
+    io.println(path.join("a"))
+    io.println(path.join())
+
+    // math.min with multiple args
+    io.println(conv.to_string(math.min(5, 3, 8, 1)))
+    io.println(conv.to_string(math.min(42)))
+    io.println(conv.to_string(math.min(10, 20)))
+
+    // math.max with multiple args
+    io.println(conv.to_string(math.max(5, 3, 8, 1)))
+    io.println(conv.to_string(math.max(42)))
+    io.println(conv.to_string(math.max(10, 20)))
+
+    // string.join with variadic
+    io.println(string.join(", ", "a", "b", "c"))
+    io.println(string.join("-", "x"))
+    let parts:array<string> = ["hello", "world"]
+    io.println(string.join(" ", ..parts))
+
+    // json.array_val with variadic
+    let arr = json.array_val(json.int_val(1), json.int_val(2), json.int_val(3))
+    io.println(json.to_string(arr))
+
+    return 0
+}

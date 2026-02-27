@@ -2,9 +2,30 @@
 /* Source: tests/programs/stdlib_path_test.flow */
 #include "flow_runtime.h"
 
+/* From: stdlib/string.flow */
+
+/* Flow: string.join */
+FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
+    fl_int n = fl_array_len_int(parts);
+    if (n == 0) {
+        return fl_string_from_cstr("");
+    }
+    FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    fl_int i = 1;
+    while (i < n) {
+        FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        fl_int _fl_e_1;
+        FL_CHECKED_ADD(i, 1, &_fl_e_1);
+        i = _fl_e_1;
+    }
+    return result;
+}
+
 /* From: stdlib/path.flow */
 
-FL_String* fl_path_join(FL_String* a, FL_String* b);
+FL_String* fl_path_join(FL_Array* segments);
 
 FL_String* fl_path_stem(FL_String* p);
 
@@ -15,23 +36,33 @@ FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix);
 FL_Option_ptr fl_path_extension(FL_String* p);
 
 /* Flow: path.join */
-FL_String* fl_path_join(FL_String* a, FL_String* b) {
-    if (fl_string_len(a) == 0) {
-        return b;
-    }
-    if (fl_string_len(b) == 0) {
-        return a;
-    }
-    fl_int _fl_e_1;
-    FL_CHECKED_SUB(fl_string_len(a), 1, &_fl_e_1);
-    FL_Option_char _fl_tmp_0 = fl_string_char_at(a, _fl_e_1);
-    if (_fl_tmp_0.tag == 1) {
-        fl_char last = _fl_tmp_0.value;
-        if (last == 47) {
-            return fl_string_concat(a, b);
+FL_String* fl_path_join(FL_Array* segments) {
+    FL_String* result = fl_string_from_cstr("");
+    fl_int64 _fl_tmp_0 = 0;
+    while (_fl_tmp_0 < fl_array_len(segments)) {
+        FL_String* seg = (*((FL_String**)fl_array_get_ptr(segments, _fl_tmp_0)));
+        if (fl_string_len(result) == 0) {
+            result = seg;
+        } else {
+            if (fl_string_len(seg) > 0) {
+                fl_int _fl_e_1;
+                FL_CHECKED_SUB(fl_string_len(result), 1, &_fl_e_1);
+                FL_Option_char _fl_tmp_1 = fl_string_char_at(result, _fl_e_1);
+                if (_fl_tmp_1.tag == 1) {
+                    fl_char last = _fl_tmp_1.value;
+                    if (last == 47) {
+                        result = fl_string_concat(result, seg);
+                    } else {
+                        result = fl_string_concat(fl_string_concat(result, fl_string_from_cstr("/")), seg);
+                    }
+                } else {
+                    result = fl_string_concat(fl_string_concat(result, fl_string_from_cstr("/")), seg);
+                }
+            }
         }
+        _fl_tmp_0 = (_fl_tmp_0 + 1);
     }
-    return fl_string_concat(fl_string_concat(a, fl_string_from_cstr("/")), b);
+    return result;
 }
 
 /* Flow: path.stem */
@@ -42,9 +73,9 @@ FL_String* fl_path_stem(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_1);
     fl_int i = _fl_e_1;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_1 = fl_string_char_at(p, i);
-        if (_fl_tmp_1.tag == 1) {
-            fl_char c = _fl_tmp_1.value;
+        FL_Option_char _fl_tmp_2 = fl_string_char_at(p, i);
+        if (_fl_tmp_2.tag == 1) {
+            fl_char c = _fl_tmp_2.value;
             if (c == 47) {
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -66,9 +97,9 @@ FL_String* fl_path_stem(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_5);
     i = _fl_e_5;
     while (i >= start) {
-        FL_Option_char _fl_tmp_2 = fl_string_char_at(p, i);
-        if (_fl_tmp_2.tag == 1) {
-            fl_char c = _fl_tmp_2.value;
+        FL_Option_char _fl_tmp_3 = fl_string_char_at(p, i);
+        if (_fl_tmp_3.tag == 1) {
+            fl_char c = _fl_tmp_3.value;
             if (c == 46) {
                 end = i;
                 i = (-1);
@@ -92,9 +123,9 @@ FL_String* fl_path_parent(FL_String* p) {
     if (len > 1) {
         fl_int _fl_e_1;
         FL_CHECKED_SUB(len, 1, &_fl_e_1);
-        FL_Option_char _fl_tmp_3 = fl_string_char_at(p, _fl_e_1);
-        if (_fl_tmp_3.tag == 1) {
-            fl_char c = _fl_tmp_3.value;
+        FL_Option_char _fl_tmp_4 = fl_string_char_at(p, _fl_e_1);
+        if (_fl_tmp_4.tag == 1) {
+            fl_char c = _fl_tmp_4.value;
             if (c == 47) {
                 fl_int _fl_e_2;
                 FL_CHECKED_SUB(len, 1, &_fl_e_2);
@@ -109,9 +140,9 @@ FL_String* fl_path_parent(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_4);
     fl_int i = _fl_e_4;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_4 = fl_string_char_at(p, i);
-        if (_fl_tmp_4.tag == 1) {
-            fl_char c = _fl_tmp_4.value;
+        FL_Option_char _fl_tmp_5 = fl_string_char_at(p, i);
+        if (_fl_tmp_5.tag == 1) {
+            fl_char c = _fl_tmp_5.value;
             if (c == 47) {
                 last_slash = i;
                 i = (-1);
@@ -148,9 +179,9 @@ FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix) {
     FL_CHECKED_SUB(len, 1, &_fl_e_3);
     fl_int i = _fl_e_3;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_5 = fl_string_char_at(p, i);
-        if (_fl_tmp_5.tag == 1) {
-            fl_char c = _fl_tmp_5.value;
+        FL_Option_char _fl_tmp_6 = fl_string_char_at(p, i);
+        if (_fl_tmp_6.tag == 1) {
+            fl_char c = _fl_tmp_6.value;
             if ((c == 47) && (last_slash < 0)) {
                 last_slash = i;
                 i = (-1);
@@ -166,13 +197,13 @@ FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix) {
             i = _fl_e_4;
         }
     }
-    fl_int _fl_tmp_6;
+    fl_int _fl_tmp_7;
     if ((dot >= 0) && (dot > last_slash)) {
-        _fl_tmp_6 = dot;
+        _fl_tmp_7 = dot;
     } else {
-        _fl_tmp_6 = len;
+        _fl_tmp_7 = len;
     }
-    fl_int base_end = _fl_tmp_6;
+    fl_int base_end = _fl_tmp_7;
     return fl_string_concat(fl_string_substring(p, 0, base_end), suffix);
 }
 
@@ -184,9 +215,9 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_1);
     fl_int i = _fl_e_1;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_7 = fl_string_char_at(p, i);
-        if (_fl_tmp_7.tag == 1) {
-            fl_char c = _fl_tmp_7.value;
+        FL_Option_char _fl_tmp_8 = fl_string_char_at(p, i);
+        if (_fl_tmp_8.tag == 1) {
+            fl_char c = _fl_tmp_8.value;
             if (c == 47) {
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -210,9 +241,9 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_6);
     i = _fl_e_6;
     while (i >= base_start) {
-        FL_Option_char _fl_tmp_8 = fl_string_char_at(p, i);
-        if (_fl_tmp_8.tag == 1) {
-            fl_char c = _fl_tmp_8.value;
+        FL_Option_char _fl_tmp_9 = fl_string_char_at(p, i);
+        if (_fl_tmp_9.tag == 1) {
+            fl_char c = _fl_tmp_9.value;
             if (c == 46) {
                 dot = i;
                 i = (-1);
@@ -236,7 +267,7 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
 /* Flow: tests.stdlib_path_test.main */
 void fl_tests_stdlib_path_test_main(void) {
     FL_String* _fl_tmp_0 = fl_string_from_cstr("join: ");
-    fl_println(fl_string_concat(_fl_tmp_0, fl_path_join(fl_string_from_cstr("foo"), fl_string_from_cstr("bar.txt"))));
+    fl_println(fl_string_concat(_fl_tmp_0, fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("foo"), fl_string_from_cstr("bar.txt")}))));
     FL_String* _fl_tmp_1 = fl_string_from_cstr("stem: ");
     fl_println(fl_string_concat(_fl_tmp_1, fl_path_stem(fl_string_from_cstr("foo/bar.txt"))));
     FL_String* _fl_tmp_2 = fl_string_from_cstr("parent: ");

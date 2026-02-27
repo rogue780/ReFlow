@@ -1,5 +1,7 @@
 module string
 
+import array
+
 export extern fn "fl_string_char_at" char_at(s:string, idx:int):char?
 export extern fn "fl_string_substring" substring(s:string, start:int, end_idx:int):string
 export extern fn "fl_string_index_of" index_of(s:string, needle:string):int?
@@ -11,7 +13,17 @@ export extern fn "fl_string_trim" trim(s:string):string
 export extern fn "fl_string_trim_left" trim_left(s:string):string
 export extern fn "fl_string_trim_right" trim_right(s:string):string
 export extern fn "fl_string_replace" replace(s:string, old:string, new_str:string):string
-export extern fn "fl_string_join" join(parts:array<string>, sep:string):string
+export fn join(sep:string, ..parts:string):string {
+    let n = array.size(parts)
+    if(n == 0) { return "" }
+    let result:string:mut = array.get(parts, 0) ?? ""
+    let i:int:mut = 1
+    while(i < n) {
+        result = result + sep + (array.get(parts, i) ?? "")
+        i = i + 1
+    }
+    return result
+}
 export extern fn "fl_string_to_lower" to_lower(s:string):string
 export extern fn "fl_string_to_upper" to_upper(s:string):string
 export extern fn "fl_string_len" len(s:string):int

@@ -695,6 +695,9 @@ class Lowerer:
         # while inside _lower_stream_stmts, None otherwise.
         self._stream_body_ctx: tuple[str, Type, list[int]] | None = None
 
+        # Active monomorphization type env (set during _lower_monomorphized_fn)
+        self._mono_type_env: dict[str, Type] | None = None
+
         # FFI: extern type names for lowering TNamed to void*
         self._extern_type_names: set[str] = set()
         for decl in self._module.decls:
@@ -2508,6 +2511,51 @@ class Lowerer:
                            arr_lt)
         return fixed_args + [packed_arr]
 
+    def _pack_variadic_method_args(self, fn_decl: FnDecl,
+                                     call_args: list[Expr],
+                                     lowered_args: list[LExpr],
+                                     type_env: dict | None = None) -> list[LExpr]:
+        """Pack trailing variadic args into an array for method calls."""
+        n_fixed = len(fn_decl.params) - 1
+        variadic_param = fn_decl.params[-1]
+        elem_type = self._type_of(variadic_param.type_ann) if variadic_param.type_ann else TAny()
+        if type_env:
+            elem_type = self._deep_substitute(elem_type, type_env)
+        elem_lt = self._lower_type(elem_type)
+        arr_lt = self._lower_type(TArray(elem_type))
+
+        fixed_args = lowered_args[:n_fixed]
+        variadic_lowered = lowered_args[n_fixed:]
+        variadic_raw_args = call_args[n_fixed:]
+
+        # Single spread arg — pass it directly (it's already an FL_Array*)
+        if (len(variadic_raw_args) == 1
+                and isinstance(variadic_raw_args[0], SpreadExpr)):
+            return fixed_args + [variadic_lowered[0]]
+
+        # No variadic args — empty array
+        if not variadic_lowered:
+            empty_arr = LCall("fl_array_new",
+                              [LLit("0", LInt(64, True)),
+                               LLit("0", LInt(64, True)),
+                               LLit("NULL", LPtr(LVoid()))],
+                              arr_lt)
+            return fixed_args + [empty_arr]
+
+        # Multiple literal args — pack into compound literal array
+        count = len(variadic_lowered)
+        data_expr = LArrayData(
+            elements=variadic_lowered,
+            elem_type=elem_lt,
+            c_type=LPtr(elem_lt),
+        )
+        packed_arr = LCall("fl_array_new",
+                           [LLit(str(count), LInt(64, True)),
+                            LSizeOf(elem_lt),
+                            data_expr],
+                           arr_lt)
+        return fixed_args + [packed_arr]
+
     def _get_variadic_fn_decl(self, expr: Call) -> FnDecl | None:
         """Return the FnDecl if the callee is a variadic function, else None."""
         if not isinstance(expr.callee, Ident):
@@ -2771,6 +2819,15 @@ class Lowerer:
                         param = fn_decl.params[i]
                         if param.default is not None:
                             lowered_args.append(self._lower_expr(param.default))
+            # Pack variadic args for method calls (same as _lower_call)
+            if isinstance(fn_decl, FnDecl) and fn_decl.params and fn_decl.params[-1].is_variadic:
+                # For generics, infer type env for concrete element type
+                type_env = None
+                if isinstance(fn_decl, FnDecl) and fn_decl.type_params:
+                    type_env = self._infer_type_env_from_call(
+                        fn_decl, list(expr.args), lowered_args)
+                lowered_args = self._pack_variadic_method_args(
+                    fn_decl, mc_args, lowered_args, type_env)
             # Extern fn — use literal C name, no mangling
             if isinstance(fn_decl, ExternFnDecl):
                 mc_c_name = fn_decl.c_name or fn_decl.name
@@ -5718,6 +5775,9 @@ class Lowerer:
                 builtin = _BUILTIN_TYPE_ANNS.get(name)
                 if builtin is not None:
                     return builtin
+                # In monomorphized context, substitute type variables
+                if self._mono_type_env and name in self._mono_type_env:
+                    return self._mono_type_env[name]
                 return TNamed("", name, ())
 
             case GenericType(base=base, args=args):
@@ -6333,6 +6393,8 @@ class Lowerer:
         self._current_fn_name = fn_decl.name
         saved_let_var_ltypes = self._let_var_ltypes
         self._let_var_ltypes = {}
+        saved_mono_type_env = self._mono_type_env
+        self._mono_type_env = env
 
         ret_type_raw = self._type_of_return(fn_decl)
         ret_type = self._deep_substitute(ret_type_raw, env)
@@ -6343,6 +6405,9 @@ class Lowerer:
         for p in fn_decl.params:
             p_type_raw = self._type_of(p.type_ann) if p.type_ann else TNone()
             p_type = self._deep_substitute(p_type_raw, env)
+            # Variadic params are arrays of the element type
+            if p.is_variadic:
+                p_type = TArray(p_type)
             p_lt = self._lower_type(p_type)
             params.append((p.name, p_lt))
             self._let_var_ltypes[p.name] = p_lt
@@ -6367,6 +6432,7 @@ class Lowerer:
         self._current_fn_return_type = saved_return_type
         self._current_fn_name = saved_fn_name
         self._let_var_ltypes = saved_let_var_ltypes
+        self._mono_type_env = saved_mono_type_env
 
         return LFnDef(
             c_name=site.mangled_name,

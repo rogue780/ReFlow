@@ -2111,38 +2111,6 @@ FL_String* fl_string_replace(FL_String* s, FL_String* old_s, FL_String* new_s) {
     return result;
 }
 
-FL_String* fl_string_join(FL_Array* parts, FL_String* sep) {
-    if (!parts || !sep) fl_panic("fl_string_join: NULL argument");
-    if (parts->len == 0) return fl_string_new("", 0);
-
-    /* Calculate total length. */
-    fl_int64 total = 0;
-    for (fl_int64 i = 0; i < parts->len; i++) {
-        FL_String** sp = (FL_String**)((char*)parts->data +
-                         (size_t)i * (size_t)parts->element_size);
-        total += (*sp)->len;
-    }
-    total += sep->len * (parts->len - 1);
-
-    FL_String* result = (FL_String*)malloc(sizeof(FL_String) + (size_t)total + 1);
-    if (!result) fl_panic("fl_string_join: out of memory");
-    result->refcount = 1;
-    result->len = total;
-
-    fl_int64 pos = 0;
-    for (fl_int64 i = 0; i < parts->len; i++) {
-        if (i > 0) {
-            memcpy(result->data + pos, sep->data, (size_t)sep->len);
-            pos += sep->len;
-        }
-        FL_String** sp = (FL_String**)((char*)parts->data +
-                         (size_t)i * (size_t)parts->element_size);
-        memcpy(result->data + pos, (*sp)->data, (size_t)(*sp)->len);
-        pos += (*sp)->len;
-    }
-    result->data[total] = '\0';
-    return result;
-}
 
 FL_String* fl_string_to_lower(FL_String* s) {
     if (!s) fl_panic("fl_string_to_lower: NULL pointer");

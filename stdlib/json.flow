@@ -40,7 +40,7 @@ export fn string_val(s:string):JsonValue {
     return Str(s)
 }
 
-export fn array_val(items:array<JsonValue>):JsonValue {
+export fn array_val(..items:JsonValue):JsonValue {
     return Arr(items)
 }
 
