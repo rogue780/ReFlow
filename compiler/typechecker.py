@@ -947,7 +947,7 @@ class TypeChecker:
 
     def _infer_type_env_from_call(
         self,
-        fn_decl: FnDecl,
+        fn_decl: FnDecl | ExternFnDecl,
         arg_types: list[Type],
     ) -> TypeEnv:
         """Infer concrete types for type params from call arguments."""
@@ -1031,7 +1031,7 @@ class TypeChecker:
 
     def _validate_generic_call_bounds(
         self,
-        fn_decl: FnDecl,
+        fn_decl: FnDecl | ExternFnDecl,
         arg_types: list[Type],
         node: ASTNode,
     ) -> None:
@@ -1141,12 +1141,8 @@ class TypeChecker:
                     self._scope.define(name, TAlias(name, target))
 
                 case ExternFnDecl(name=name):
-                    param_types = tuple(
-                        self._resolve_type_expr(p.type_ann)
-                        for p in decl.params)
-                    ret = (self._resolve_type_expr(decl.return_type)
-                           if decl.return_type else TNone())
-                    self._scope.define(name, TFn(param_types, ret, False))
+                    fn_type = self._extern_fn_decl_type(decl)
+                    self._scope.define(name, fn_type)
 
                 case ExternTypeDecl(name=name):
                     self._scope.define(name, TNamed("", name, ()))
@@ -1443,12 +1439,7 @@ class TypeChecker:
                     if isinstance(fn_decl, FnDecl):
                         return self._fn_decl_type(fn_decl)
                     if isinstance(fn_decl, ExternFnDecl):
-                        param_types = tuple(
-                            self._resolve_type_expr(p.type_ann)
-                            for p in fn_decl.params)
-                        ret = (self._resolve_type_expr(fn_decl.return_type)
-                               if fn_decl.return_type else TNone())
-                        return TFn(param_types, ret, False)
+                        return self._extern_fn_decl_type(fn_decl)
                 return TAny()
 
             # RT-6-2-4: Binary operators
@@ -1516,12 +1507,16 @@ class TypeChecker:
                 arg_types = [self._infer_expr(a, scope) for a in args]
 
                 if isinstance(callee_t, TFn):
-                    # Look up FnDecl for default param support
+                    # Look up FnDecl or ExternFnDecl for generic support
                     resolved_sym = self._resolved.symbols.get(callee)
                     call_fn_decl: FnDecl | None = None
+                    call_extern_decl: ExternFnDecl | None = None
                     if resolved_sym is not None and isinstance(
                             resolved_sym.decl, FnDecl):
                         call_fn_decl = resolved_sym.decl
+                    elif resolved_sym is not None and isinstance(
+                            resolved_sym.decl, ExternFnDecl):
+                        call_extern_decl = resolved_sym.decl
                     # Reorder named args to match param order
                     if call_fn_decl is not None:
                         args, arg_types = self._reorder_named_args(
@@ -1538,6 +1533,12 @@ class TypeChecker:
                             env = self._infer_type_env_from_call(
                                 resolved_sym.decl, arg_types)
                             ret_type = apply_env(ret_type, env)
+                    elif call_extern_decl is not None and call_extern_decl.type_params:
+                        self._validate_generic_call_bounds(
+                            call_extern_decl, arg_types, expr)
+                        env = self._infer_type_env_from_call(
+                            call_extern_decl, arg_types)
+                        ret_type = apply_env(ret_type, env)
                     return ret_type
                 # Calling a non-function — might be a constructor or TAny
                 if isinstance(callee_t, TAny):
@@ -1572,14 +1573,16 @@ class TypeChecker:
                             ret_type = apply_env(ret_type, env)
                         return ret_type
                     if isinstance(fn_decl, ExternFnDecl):
-                        param_types = tuple(
-                            self._resolve_type_expr(p.type_ann)
-                            for p in fn_decl.params)
-                        ret = (self._resolve_type_expr(fn_decl.return_type)
-                               if fn_decl.return_type else TNone())
-                        fn_type = TFn(param_types, ret, False)
+                        fn_type = self._extern_fn_decl_type(fn_decl)
                         self._check_call_args(fn_type, arg_types, args, expr)
-                        return ret
+                        ret_type = fn_type.ret
+                        if fn_decl.type_params:
+                            self._validate_generic_call_bounds(
+                                fn_decl, arg_types, expr)
+                            env = self._infer_type_env_from_call(
+                                fn_decl, arg_types)
+                            ret_type = apply_env(ret_type, env)
+                        return ret_type
                     return TAny()
 
                 recv_t = self._infer_expr(receiver, scope)
@@ -3093,6 +3096,24 @@ class TypeChecker:
             params.append(self._resolve_type_expr(p.type_ann))
         ret = self._resolve_type_expr(fn.return_type) if fn.return_type else TNone()
         return TFn(tuple(params), ret, fn.is_pure)
+
+    def _extern_fn_decl_type(self, fn: ExternFnDecl) -> TFn:
+        """Resolve an ExternFnDecl's parameter and return types to a TFn.
+
+        For generic extern fns, temporarily defines type vars in scope so
+        that _resolve_type_expr produces TTypeVar nodes.
+        """
+        if fn.type_params:
+            for tp in fn.type_params:
+                self._scope.define(tp.name, TTypeVar(tp.name))
+        params = []
+        for p in fn.params:
+            params.append(self._resolve_type_expr(p.type_ann))
+        ret = self._resolve_type_expr(fn.return_type) if fn.return_type else TNone()
+        if fn.type_params:
+            for tp in fn.type_params:
+                self._scope._types.pop(tp.name, None)
+        return TFn(tuple(params), ret, False)
 
     def _type_name(self, t: Type) -> str:
         match t:

@@ -617,6 +617,7 @@ class ExternTypeDecl(Decl):
 @dataclass
 class ExternFnDecl(Decl):
     name: str                   # Flow-callable name (used for symbol binding)
+    type_params: list[TypeParam] # generic type parameters (empty for non-generic)
     params: list[Param]
     return_type: TypeExpr | None
     is_export: bool

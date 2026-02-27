@@ -539,6 +539,11 @@ class Parser:
 
         name_tok = self.expect(TokenType.IDENT)
 
+        # Optional generic type parameters
+        type_params: list[TypeParam] = []
+        if self.check(TokenType.LT):
+            type_params = self._parse_type_params()
+
         self.expect(TokenType.LPAREN)
         params = self._parse_param_list()
         self.expect(TokenType.RPAREN)
@@ -551,6 +556,7 @@ class Parser:
         return ExternFnDecl(
             line=extern_tok.line, col=extern_tok.col,
             name=name_tok.value,
+            type_params=type_params,
             params=params,
             return_type=return_type,
             is_export=is_export,

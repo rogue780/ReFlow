@@ -477,6 +477,15 @@ _VALUE_TYPE_OPT_UNBOX_FN: dict[str, str] = {
 }
 
 
+def _get_c_fn_name(decl) -> str | None:
+    """Extract the C function name from a FnDecl or ExternFnDecl."""
+    if isinstance(decl, FnDecl):
+        return decl.native_name
+    if isinstance(decl, ExternFnDecl):
+        return decl.c_name or decl.name
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Builtin type annotation resolution
 # ---------------------------------------------------------------------------
@@ -710,14 +719,17 @@ class Lowerer:
                 case TypeDecl():
                     self._lower_type_decl(decl)
                 case ExternFnDecl():
-                    param_ltypes = [self._lower_extern_type(
-                        self._resolve_type_ann(p.type_ann))
-                        for p in decl.params]
-                    ret_ltype = (self._lower_extern_type(
-                        self._resolve_type_ann(decl.return_type))
-                        if decl.return_type else LVoid())
-                    extern_fn_protos.append(
-                        (decl.c_name or decl.name, param_ltypes, ret_ltype))
+                    # Skip proto generation for generic extern fns — their
+                    # C signatures use void* and are declared in runtime headers.
+                    if not decl.type_params:
+                        param_ltypes = [self._lower_extern_type(
+                            self._resolve_type_ann(p.type_ann))
+                            for p in decl.params]
+                        ret_ltype = (self._lower_extern_type(
+                            self._resolve_type_ann(decl.return_type))
+                            if decl.return_type else LVoid())
+                        extern_fn_protos.append(
+                            (decl.c_name or decl.name, param_ltypes, ret_ltype))
                 case ExternTypeDecl() | ExternLibDecl():
                     pass  # handled elsewhere
 
@@ -2440,7 +2452,7 @@ class Lowerer:
             sym = self._resolved.symbols.get(expr.callee)
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.IMPORT):
                 decl = sym.decl
-                if isinstance(decl, FnDecl) and decl.native_name == "fl_sort_array_by":
+                if _get_c_fn_name(decl) == "fl_sort_array_by":
                     arr_arg = self._lower_expr(expr.args[0])
                     arr_type = self._type_of(expr.args[0])
                     elem_type = (arr_type.element if isinstance(arr_type, TArray)
@@ -2463,10 +2475,26 @@ class Lowerer:
             # FFI extern fn — use literal C name, no mangling
             if sym is not None and isinstance(sym.decl, ExternFnDecl):
                 extern_decl: ExternFnDecl = sym.decl
-                # Rewrite function-typed args as raw C function pointers
+                c_name = extern_decl.c_name or extern_decl.name
+                if extern_decl.type_params:
+                    # Generic extern fn — apply same dispatch chain as native generics
+                    redirected = self._maybe_redirect_array_push(
+                        extern_decl, lowered_args, lt)
+                    if redirected is not None:
+                        return redirected
+                    repacked = self._maybe_repack_array_get(
+                        extern_decl, lowered_args, list(call_args), t, lt)
+                    if repacked is not None:
+                        return repacked
+                    wrapped = self._lower_native_generic_call(
+                        extern_decl, list(call_args), lowered_args, t, lt)
+                    if wrapped is not None:
+                        return wrapped
+                    return LCall(c_name, lowered_args, lt)
+                # Non-generic extern fn — rewrite function-typed args
                 final_args = self._rewrite_extern_fn_args(
                     extern_decl, call_args, lowered_args)
-                return LCall(extern_decl.c_name or extern_decl.name, final_args, lt)
+                return LCall(c_name, final_args, lt)
             # Sum type variant constructor — inline as compound literal
             if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                     and isinstance(sym.decl, SumVariantDecl)):
@@ -2522,7 +2550,22 @@ class Lowerer:
             # Named import of an extern fn from another module
             if (sym is not None and sym.kind == SymbolKind.IMPORT
                     and isinstance(sym.decl, ExternFnDecl)):
-                return LCall(sym.decl.c_name or sym.decl.name, lowered_args, lt)
+                ext_decl: ExternFnDecl = sym.decl
+                ext_c_name = ext_decl.c_name or ext_decl.name
+                if ext_decl.type_params:
+                    redirected = self._maybe_redirect_array_push(
+                        ext_decl, lowered_args, lt)
+                    if redirected is not None:
+                        return redirected
+                    repacked = self._maybe_repack_array_get(
+                        ext_decl, lowered_args, list(expr.args), t, lt)
+                    if repacked is not None:
+                        return repacked
+                    wrapped = self._lower_native_generic_call(
+                        ext_decl, list(expr.args), lowered_args, t, lt)
+                    if wrapped is not None:
+                        return wrapped
+                return LCall(ext_c_name, lowered_args, lt)
             # Named import of a native function: import io (println)
             if sym is not None and sym.kind == SymbolKind.IMPORT:
                 fn_decl = sym.decl
@@ -2700,7 +2743,30 @@ class Lowerer:
                 return LCall(fn_decl.native_name, lowered_args, lt)
             # Extern fn — use literal C name, no mangling
             if isinstance(fn_decl, ExternFnDecl):
-                return LCall(fn_decl.c_name or fn_decl.name, lowered_args, lt)
+                mc_c_name = fn_decl.c_name or fn_decl.name
+                # Sort closure wrapper interception
+                if mc_c_name == "fl_sort_array_by" and len(mc_args) >= 2:
+                    arr_arg = lowered_args[0]
+                    arr_type = self._type_of(mc_args[0])
+                    elem_type = (arr_type.element if isinstance(arr_type, TArray)
+                                 else TAny())
+                    wrapped_cmp = self._lower_sort_closure_wrapper(
+                        mc_args[1], elem_type)
+                    return LCall("fl_sort_array_by", [arr_arg, wrapped_cmp], lt)
+                if fn_decl.type_params:
+                    redirected = self._maybe_redirect_array_push(
+                        fn_decl, lowered_args, lt)
+                    if redirected is not None:
+                        return redirected
+                    repacked = self._maybe_repack_array_get(
+                        fn_decl, lowered_args, list(expr.args), t, lt)
+                    if repacked is not None:
+                        return repacked
+                    wrapped = self._lower_native_generic_call(
+                        fn_decl, list(expr.args), lowered_args, t, lt)
+                    if wrapped is not None:
+                        return wrapped
+                return LCall(mc_c_name, lowered_args, lt)
             # Non-native imported function — use mangled name from source module
             if isinstance(fn_decl, FnDecl):
                 src_module = self._resolve_import_module_path(expr.receiver)
@@ -5797,7 +5863,7 @@ class Lowerer:
 
     def _maybe_repack_array_get(
         self,
-        fn_decl: FnDecl,
+        fn_decl: FnDecl | ExternFnDecl,
         lowered_args: list[LExpr],
         arg_exprs: list[Expr],
         result_type: Type,
@@ -5810,10 +5876,11 @@ class Lowerer:
         (structs, sum types), we need to dereference that pointer and wrap in
         the correct option struct.
         """
-        if fn_decl.native_name != "fl_array_get_safe":
+        if _get_c_fn_name(fn_decl) != "fl_array_get_safe":
             return None
         if not fn_decl.type_params:
             return None
+        c_fn = _get_c_fn_name(fn_decl)
         # Infer what T is
         env = self._infer_type_env_from_call(fn_decl, arg_exprs, lowered_args)
         if not env:
@@ -5831,19 +5898,19 @@ class Lowerer:
             if c_name in _VALUE_TYPE_OPT_UNBOX_FN:
                 # Array get_safe returns a pointer to the element, not a boxed
                 # value.  Use FL_OPT_DEREF_AS to cast and dereference.
-                call = LCall(fn_decl.native_name, lowered_args,
+                call = LCall(c_fn, lowered_args,
                              LStruct("FL_Option_ptr"))
                 return LOptDerefAs(call, concrete_lt, result_lt)
             # Struct/sum types — use FL_OPT_DEREF_AS
             if isinstance(concrete_lt, LStruct):
-                call = LCall(fn_decl.native_name, lowered_args,
+                call = LCall(c_fn, lowered_args,
                              LStruct("FL_Option_ptr"))
                 return LOptDerefAs(call, concrete_lt, result_lt)
         return None
 
     def _maybe_redirect_array_push(
         self,
-        fn_decl: FnDecl,
+        fn_decl: FnDecl | ExternFnDecl,
         lowered_args: list[LExpr],
         lt: LType,
     ) -> LExpr | None:
@@ -5853,7 +5920,7 @@ class Lowerer:
         for value-type elements like sum type structs.  fl_array_push uses
         arr->element_size and takes a void* pointer to the element data.
         """
-        if fn_decl.native_name != "fl_array_push_ptr":
+        if _get_c_fn_name(fn_decl) != "fl_array_push_ptr":
             return None
         if not fn_decl.type_params or len(lowered_args) < 2:
             return None
@@ -5877,7 +5944,7 @@ class Lowerer:
 
     def _lower_native_generic_call(
         self,
-        fn_decl: FnDecl,
+        fn_decl: FnDecl | ExternFnDecl,
         arg_exprs: list[Expr],
         lowered_args: list[LExpr],
         result_type: Type,
@@ -5932,7 +5999,8 @@ class Lowerer:
             boxed_args.append(arg)
 
         # Make the call with void*-based types
-        call = LCall(fn_decl.native_name, boxed_args, LStruct("FL_Option_ptr")
+        call = LCall(_get_c_fn_name(fn_decl), boxed_args,
+                     LStruct("FL_Option_ptr")
                      if self._return_is_option_of_typevar(fn_decl, env)
                      else result_lt)
 
@@ -5958,7 +6026,7 @@ class Lowerer:
 
         return call
 
-    def _extract_type_var_name(self, declared: Type, fn_decl: FnDecl) -> str | None:
+    def _extract_type_var_name(self, declared: Type, fn_decl: FnDecl | ExternFnDecl) -> str | None:
         """If declared is a type variable matching one of fn_decl's type params, return its name."""
         tp_names = {tp.name for tp in fn_decl.type_params}
         match declared:
@@ -5968,7 +6036,7 @@ class Lowerer:
                 return name
         return None
 
-    def _return_is_option_of_typevar(self, fn_decl: FnDecl, env: dict[str, Type]) -> bool:
+    def _return_is_option_of_typevar(self, fn_decl: FnDecl | ExternFnDecl, env: dict[str, Type]) -> bool:
         """Check if the function's return type is option<T> where T is a type param."""
         if fn_decl.return_type is None:
             return False
@@ -6072,7 +6140,7 @@ class Lowerer:
 
     def _infer_type_env_from_call(
         self,
-        fn_decl: FnDecl,
+        fn_decl: FnDecl | ExternFnDecl,
         arg_exprs: list[Expr],
         lowered_args: list[LExpr] | None = None,
     ) -> dict[str, Type]:

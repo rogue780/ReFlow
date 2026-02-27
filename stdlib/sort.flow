@@ -4,5 +4,5 @@ export fn:pure sort<T fulfills Comparable>(arr:array<T>):array<T> {
     return sort_by(arr, \(a:T, b:T => a.compare(b)))
 }
 
-export fn:pure sort_by<T>(arr:array<T>, cmp:fn(T, T):int):array<T> = native "fl_sort_array_by"
-export fn:pure reverse<T>(arr:array<T>):array<T> = native "fl_array_reverse"
+export extern fn "fl_sort_array_by" sort_by<T>(arr:array<T>, cmp:fn(T, T):int):array<T>
+export extern fn "fl_array_reverse" reverse<T>(arr:array<T>):array<T>

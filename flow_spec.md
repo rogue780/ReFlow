@@ -2485,6 +2485,27 @@ extern fn SSL_CTX_new():ptr
 extern fn SSL_write(ssl:SSL, buf:ptr, n:int):int
 ```
 
+An optional alias form allows the Flow-callable name to differ from the C name:
+
+```
+extern fn "fl_sort_array_by" sort_by<T>(arr:array<T>, cmp:fn(T, T):int):array<T>
+```
+
+Generic type parameters are supported. The type parameters are used for
+type inference at call sites but erased in the C call — the underlying C
+function uses `void*` or similar type-erased signatures:
+
+```
+extern fn "fl_array_push_ptr" push<T>(arr:array<T>, val:T):array<T>
+extern fn "fl_map_get_str" get<V>(m:map<string, V>, key:string):V?
+```
+
+Bounded type parameters work the same as for regular Flow functions:
+
+```
+extern fn "fl_sort" sort<T fulfills Comparable>(arr:array<T>):array<T>
+```
+
 Parameters and return types must use Flow types that map directly to C:
 
 | Flow type | C type |

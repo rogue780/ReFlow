@@ -3,11 +3,11 @@ module map
 // Generic map with string keys — value type V is inferred from usage.
 // Values are stored as opaque pointers internally.
 
-export fn new<V>(): map<string, V> = native "fl_map_new"
-export fn set<V>(m: map<string, V>, key: string, val: V): map<string, V> = native "fl_map_set_str"
-export fn get<V>(m: map<string, V>, key: string): V? = native "fl_map_get_str"
-export fn has<V>(m: map<string, V>, key: string): bool = native "fl_map_has_str"
-export fn remove<V>(m: map<string, V>, key: string): map<string, V> = native "fl_map_remove_str"
-export fn len<V>(m: map<string, V>): int64 = native "fl_map_len"
-export fn keys<V>(m: map<string, V>): array<string> = native "fl_map_keys"
-export fn values<V>(m: map<string, V>): array<V> = native "fl_map_values"
+export extern fn "fl_map_new" new<V>():map<string, V>
+export extern fn "fl_map_set_str" set<V>(m:map<string, V>, key:string, val:V):map<string, V>
+export extern fn "fl_map_get_str" get<V>(m:map<string, V>, key:string):V?
+export extern fn "fl_map_has_str" has<V>(m:map<string, V>, key:string):bool
+export extern fn "fl_map_remove_str" remove<V>(m:map<string, V>, key:string):map<string, V>
+export extern fn "fl_map_len" len<V>(m:map<string, V>):int64
+export extern fn "fl_map_keys" keys<V>(m:map<string, V>):array<string>
+export extern fn "fl_map_values" values<V>(m:map<string, V>):array<V>

@@ -63,6 +63,20 @@ extern fn sqrt(x:float):float
 extern fn SSL_CTX_new():ptr
 ```
 
+An alias form allows the Flow name to differ from the C name:
+
+```flow
+extern fn "fl_sort_array_by" sort_by<T>(arr:array<T>, cmp:fn(T, T):int):array<T>
+```
+
+Generic type parameters are supported. They are used for type inference at
+call sites but erased in the C call:
+
+```flow
+extern fn "fl_array_push_ptr" push<T>(arr:array<T>, val:T):array<T>
+extern fn "fl_map_get_str" get<V>(m:map<string, V>, key:string):V?
+```
+
 ## Type Mapping
 
 | Flow | C | Notes |

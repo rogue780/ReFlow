@@ -11,19 +11,26 @@ functions in `runtime/flow_runtime.h` / `runtime/flow_runtime.c`.
 
 ---
 
-## Native Function Declarations
+## Extern Function Declarations
 
 Standard library modules bind Flow names to C runtime functions using the
-`native` keyword:
+`extern fn` syntax:
 
 ```
-fn println(s: string): none = native "fl_println"
-fn exit(code: int): none = native "fl_sys_exit"
+extern fn "fl_println" println(s:string):none
+extern fn "fl_sys_exit" exit(code:int):none
+```
+
+Generic stdlib functions use type parameters that are erased at the C level:
+
+```
+extern fn "fl_array_push_ptr" push<T>(arr:array<T>, val:T):array<T>
+extern fn "fl_map_get_str" get<V>(m:map<string, V>, key:string):V?
 ```
 
 ### Rules
 
-- `native` declarations may only appear in modules under `stdlib/`.
+- `extern fn` declarations may only appear in modules under `stdlib/`.
 - The declared parameter types and return type must match the C function's
   signature exactly. The compiler does not verify this — a mismatch is
   undefined behavior.
@@ -344,18 +351,33 @@ Avoids the O(n^2) cost of repeated `+` concatenation.
 
 Array access and manipulation functions.
 
-| Function | Signature | Status | Runtime |
-|----------|-----------|--------|---------|
-| `get_int` | `fn get_int(arr: array<int>, idx: int): int?` | Implemented | `fl_array_get_int` |
-| `get_int64` | `fn get_int64(arr: array<int64>, idx: int): int64?` | Implemented | `fl_array_get_int64` |
-| `get_float` | `fn get_float(arr: array<float>, idx: int): float?` | Implemented | `fl_array_get_float` |
-| `get_bool` | `fn get_bool(arr: array<bool>, idx: int): bool?` | Implemented | `fl_array_get_bool` |
-| `get` | `fn get(arr: array<string>, idx: int): string?` | Implemented | `fl_array_get_safe` |
-| `len` | `fn len(arr: array<int>): int` | Implemented | `fl_array_len_int` |
-| `len64` | `fn len64(arr: array<int>): int64` | Implemented | `fl_array_len` |
-| `concat_int` | `fn concat_int(a: array<int>, b: array<int>): array<int>` | Implemented | `fl_array_concat` |
-| `concat_string` | `fn concat_string(a: array<string>, b: array<string>): array<string>` | Implemented | `fl_array_concat` |
-| `concat_byte` | `fn concat_byte(a: array<byte>, b: array<byte>): array<byte>` | Implemented | `fl_array_concat` |
+All functions use `extern fn` declarations binding to C runtime functions.
+
+| Function | Signature | Runtime |
+|----------|-----------|---------|
+| `get_int` | `extern fn get_int(arr:array<int>, idx:int):int?` | `fl_array_get_int` |
+| `get_int64` | `extern fn get_int64(arr:array<int64>, idx:int):int64?` | `fl_array_get_int64` |
+| `get_float` | `extern fn get_float(arr:array<float>, idx:int):float?` | `fl_array_get_float` |
+| `get_bool` | `extern fn get_bool(arr:array<bool>, idx:int):bool?` | `fl_array_get_bool` |
+| `get` | `extern fn get(arr:array<string>, idx:int):string?` | `fl_array_get_safe` |
+| `get_any` | `extern fn get_any<T>(arr:array<T>, idx:int):T?` | `fl_array_get_safe` |
+| `len` | `extern fn len(arr:array<int>):int` | `fl_array_len_int` |
+| `len_string` | `extern fn len_string(arr:array<string>):int` | `fl_array_len_int` |
+| `len_float` | `extern fn len_float(arr:array<float>):int` | `fl_array_len_int` |
+| `len_bool` | `extern fn len_bool(arr:array<bool>):int` | `fl_array_len_int` |
+| `len_byte` | `extern fn len_byte(arr:array<byte>):int` | `fl_array_len_int` |
+| `len64` | `extern fn len64(arr:array<int>):int64` | `fl_array_len` |
+| `size` | `extern fn size<T>(arr:array<T>):int` | `fl_array_len_int` |
+| `concat_int` | `extern fn concat_int(a:array<int>, b:array<int>):array<int>` | `fl_array_concat` |
+| `concat_string` | `extern fn concat_string(a:array<string>, b:array<string>):array<string>` | `fl_array_concat` |
+| `concat_byte` | `extern fn concat_byte(a:array<byte>, b:array<byte>):array<byte>` | `fl_array_concat` |
+| `concat` | `extern fn concat<T>(a:array<T>, b:array<T>):array<T>` | `fl_array_concat` |
+| `push` | `extern fn push<T>(arr:array<T>, val:T):array<T>` | `fl_array_push_ptr` |
+| `push_int` | `extern fn push_int(arr:array<int>, val:int):array<int>` | `fl_array_push_int` |
+| `push_int64` | `extern fn push_int64(arr:array<int64>, val:int64):array<int64>` | `fl_array_push_int64` |
+| `push_float` | `extern fn push_float(arr:array<float>, val:float):array<float>` | `fl_array_push_float` |
+| `push_bool` | `extern fn push_bool(arr:array<bool>, val:bool):array<bool>` | `fl_array_push_bool` |
+| `push_byte` | `extern fn push_byte(arr:array<byte>, val:byte):array<byte>` | `fl_array_push_byte` |
 
 ### Behavior Notes
 
@@ -680,24 +702,24 @@ protocols, file formats, etc. All manipulation functions are `pure`.
 
 **File:** `stdlib/map.flow`
 
-Hash map operations. Currently exposed through compiler-generated code;
-this module provides a user-facing API.
+Hash map operations with string keys and generic value types. All functions
+use `extern fn` declarations binding to C runtime functions.
 
-| Function | Signature | Status | Runtime |
-|----------|-----------|--------|---------|
-| `new` | `fn new(): map<string, string>` | Implemented | `fl_map_new` |
-| `set` | `fn set(m: map<string, string>, key: string, val: string): map<string, string>` | Implemented | `fl_map_set_str` |
-| `get` | `fn get(m: map<string, string>, key: string): string?` | Implemented | `fl_map_get_str` |
-| `has` | `fn has(m: map<string, string>, key: string): bool` | Implemented | `fl_map_has_str` |
-| `remove` | `fn remove(m: map<string, string>, key: string): map<string, string>` | Implemented | `fl_map_remove_str` |
-| `len` | `fn len(m: map<string, string>): int64` | Implemented | `fl_map_len` |
-| `keys` | `fn keys(m: map<string, string>): array<string>` | Implemented | `fl_map_keys` |
-| `values` | `fn values(m: map<string, string>): array<string>` | Implemented | `fl_map_values` |
+| Function | Signature | Runtime |
+|----------|-----------|---------|
+| `new` | `extern fn new<V>():map<string, V>` | `fl_map_new` |
+| `set` | `extern fn set<V>(m:map<string, V>, key:string, val:V):map<string, V>` | `fl_map_set_str` |
+| `get` | `extern fn get<V>(m:map<string, V>, key:string):V?` | `fl_map_get_str` |
+| `has` | `extern fn has<V>(m:map<string, V>, key:string):bool` | `fl_map_has_str` |
+| `remove` | `extern fn remove<V>(m:map<string, V>, key:string):map<string, V>` | `fl_map_remove_str` |
+| `len` | `extern fn len<V>(m:map<string, V>):int64` | `fl_map_len` |
+| `keys` | `extern fn keys<V>(m:map<string, V>):array<string>` | `fl_map_keys` |
+| `values` | `extern fn values<V>(m:map<string, V>):array<V>` | `fl_map_values` |
 
 ### Behavior Notes
 
-- The current implementation is specialized for `string` keys and values.
-  Generic `map<K, V>` support requires monomorphization improvements.
+- Maps use string keys with generic value types. The value type V is
+  inferred from usage. Values are stored as opaque pointers internally.
 - Maps are persistent (immutable). `set` returns a new map. This aligns
   with Flow's ownership model.
 - Keys are compared by byte content (structural equality).
@@ -796,13 +818,14 @@ new arrays (arrays are immutable in Flow). Pure.
 
 | Function | Signature | Status | Notes |
 |----------|-----------|--------|-------|
-| `sort` | `fn:pure sort<T fulfills Comparable>(arr: array<T>): array<T>` | Planned | generic |
-| `sort_by` | `fn:pure sort_by<T>(arr: array<T>, cmp: fn(T, T): int): array<T>` | Planned | `fl_sort_array_by` |
-| `reverse` | `fn:pure reverse<T>(arr: array<T>): array<T>` | Planned | `fl_array_reverse` |
+| `sort` | `fn:pure sort<T fulfills Comparable>(arr:array<T>):array<T>` | Implemented | generic, Flow body |
+| `sort_by` | `extern fn "fl_sort_array_by" sort_by<T>(arr:array<T>, cmp:fn(T, T):int):array<T>` | Implemented | generic extern fn |
+| `reverse` | `extern fn "fl_array_reverse" reverse<T>(arr:array<T>):array<T>` | Implemented | generic extern fn |
 
-`sort` is implemented in Flow as `sort_by(arr, fn(a: T, b: T): int { a.compare(b) })`.
+`sort` is implemented in Flow as `sort_by(arr, \(a:T, b:T => a.compare(b)))`.
 The compiler monomorphizes it for each concrete element type. `sort_by` and
-`reverse` remain `native` — they are type-erased operations over `void*` elements.
+`reverse` are generic extern fns — they are type-erased operations over `void*`
+elements at the C level.
 
 ### Behavior Notes
 

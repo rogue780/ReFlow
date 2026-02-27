@@ -1971,6 +1971,34 @@ extern fn SSL_CTX_new():ptr'''
         self.assertEqual(d.c_name, "sqlite3_open")
         self.assertEqual(len(d.params), 2)
 
+    def test_extern_fn_generic_single_type_param(self) -> None:
+        mod = parse('extern fn "fl_push" push<T>(arr:array<T>, val:T):array<T>')
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "push")
+        self.assertEqual(d.c_name, "fl_push")
+        self.assertEqual(len(d.type_params), 1)
+        self.assertEqual(d.type_params[0].name, "T")
+        self.assertEqual(len(d.type_params[0].bounds), 0)
+        self.assertEqual(len(d.params), 2)
+
+    def test_extern_fn_generic_with_bounds(self) -> None:
+        mod = parse(
+            'extern fn "fl_sort" sort<T fulfills Comparable>'
+            '(arr:array<T>):array<T>')
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "sort")
+        self.assertEqual(len(d.type_params), 1)
+        self.assertEqual(d.type_params[0].name, "T")
+        self.assertEqual(len(d.type_params[0].bounds), 1)
+
+    def test_extern_fn_non_generic_has_empty_type_params(self) -> None:
+        mod = parse("extern fn free(p:ptr)")
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.type_params, [])
+
 
 if __name__ == "__main__":
     unittest.main()

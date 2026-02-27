@@ -1608,6 +1608,34 @@ fn main():none {
     let v:float = sqrt(4.0)
 }""")
 
+    def test_generic_extern_fn_return_type_inferred(self) -> None:
+        """A generic extern fn infers return type from call arguments."""
+        result = check("""
+extern fn "c_push" push<T>(arr:array<T>, val:T):array<T>
+fn main():none {
+    let a:array<int> = [1, 2, 3]
+    let b:array<int> = push(a, 4)
+}""")
+        from compiler.ast_nodes import Call
+        for node, t in result.types.items():
+            if isinstance(node, Call):
+                self.assertIsInstance(t, TArray)
+                self.assertIsInstance(t.element, TInt)
+
+    def test_generic_extern_fn_option_return(self) -> None:
+        """A generic extern fn with option<T> return infers correctly."""
+        result = check("""
+extern fn "c_get" get_any<T>(arr:array<T>, idx:int):T?
+fn main():none {
+    let a:array<string> = ["hello"]
+    let v:string? = get_any(a, 0)
+}""")
+        from compiler.ast_nodes import Call
+        for node, t in result.types.items():
+            if isinstance(node, Call):
+                self.assertIsInstance(t, TOption)
+                self.assertIsInstance(t.inner, TString)
+
 
 if __name__ == "__main__":
     unittest.main()

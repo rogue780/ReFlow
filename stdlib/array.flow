@@ -1,40 +1,40 @@
 module array
 
 // Type-specific getters
-export fn get_int(arr: array<int>, idx: int): int? = native "fl_array_get_int"
-export fn get_int64(arr: array<int64>, idx: int): int64? = native "fl_array_get_int64"
-export fn get_float(arr: array<float>, idx: int): float? = native "fl_array_get_float"
-export fn get_bool(arr: array<bool>, idx: int): bool? = native "fl_array_get_bool"
-export fn get(arr: array<string>, idx: int): string? = native "fl_array_get_safe"
+export extern fn "fl_array_get_int" get_int(arr:array<int>, idx:int):int?
+export extern fn "fl_array_get_int64" get_int64(arr:array<int64>, idx:int):int64?
+export extern fn "fl_array_get_float" get_float(arr:array<float>, idx:int):float?
+export extern fn "fl_array_get_bool" get_bool(arr:array<bool>, idx:int):bool?
+export extern fn "fl_array_get_safe" get(arr:array<string>, idx:int):string?
 
 // Generic get — works for pointer/heap types (string, Coroutine, etc.)
-export fn get_any<T>(arr: array<T>, idx: int): T? = native "fl_array_get_safe"
+export extern fn "fl_array_get_safe" get_any<T>(arr:array<T>, idx:int):T?
 
 // Type-specific lengths
-export fn len(arr: array<int>): int = native "fl_array_len_int"
-export fn len_string(arr: array<string>): int = native "fl_array_len_int"
-export fn len_float(arr: array<float>): int = native "fl_array_len_int"
-export fn len_bool(arr: array<bool>): int = native "fl_array_len_int"
-export fn len_byte(arr: array<byte>): int = native "fl_array_len_int"
-export fn len64(arr: array<int>): int64 = native "fl_array_len"
+export extern fn "fl_array_len_int" len(arr:array<int>):int
+export extern fn "fl_array_len_int" len_string(arr:array<string>):int
+export extern fn "fl_array_len_int" len_float(arr:array<float>):int
+export extern fn "fl_array_len_int" len_bool(arr:array<bool>):int
+export extern fn "fl_array_len_int" len_byte(arr:array<byte>):int
+export extern fn "fl_array_len" len64(arr:array<int>):int64
 
 // Generic len — works for any element type
-export fn size<T>(arr: array<T>): int = native "fl_array_len_int"
+export extern fn "fl_array_len_int" size<T>(arr:array<T>):int
 
 // Type-specific concat
-export fn concat_int(a: array<int>, b: array<int>): array<int> = native "fl_array_concat"
-export fn concat_string(a: array<string>, b: array<string>): array<string> = native "fl_array_concat"
-export fn concat_byte(a: array<byte>, b: array<byte>): array<byte> = native "fl_array_concat"
+export extern fn "fl_array_concat" concat_int(a:array<int>, b:array<int>):array<int>
+export extern fn "fl_array_concat" concat_string(a:array<string>, b:array<string>):array<string>
+export extern fn "fl_array_concat" concat_byte(a:array<byte>, b:array<byte>):array<byte>
 
 // Generic concat
-export fn concat<T>(a: array<T>, b: array<T>): array<T> = native "fl_array_concat"
+export extern fn "fl_array_concat" concat<T>(a:array<T>, b:array<T>):array<T>
 
 // Generic push — works for pointer/heap types (string, Coroutine, etc.)
-export fn push<T>(arr: array<T>, val: T): array<T> = native "fl_array_push_ptr"
+export extern fn "fl_array_push_ptr" push<T>(arr:array<T>, val:T):array<T>
 
 // Value-type push functions
-export fn push_int(arr: array<int>, val: int): array<int> = native "fl_array_push_int"
-export fn push_int64(arr: array<int64>, val: int64): array<int64> = native "fl_array_push_int64"
-export fn push_float(arr: array<float>, val: float): array<float> = native "fl_array_push_float"
-export fn push_bool(arr: array<bool>, val: bool): array<bool> = native "fl_array_push_bool"
-export fn push_byte(arr: array<byte>, val: byte): array<byte> = native "fl_array_push_byte"
+export extern fn "fl_array_push_int" push_int(arr:array<int>, val:int):array<int>
+export extern fn "fl_array_push_int64" push_int64(arr:array<int64>, val:int64):array<int64>
+export extern fn "fl_array_push_float" push_float(arr:array<float>, val:float):array<float>
+export extern fn "fl_array_push_bool" push_bool(arr:array<bool>, val:bool):array<bool>
+export extern fn "fl_array_push_byte" push_byte(arr:array<byte>, val:byte):array<byte>
