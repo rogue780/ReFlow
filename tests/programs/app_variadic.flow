@@ -1,0 +1,52 @@
+module tests.app_variadic
+
+import io
+import conv
+import array
+
+// Test variadic functions
+
+fn sum(..vals:int):int {
+    let total:int:mut = 0
+    for(v:int in vals) {
+        total = total + v
+    }
+    return total
+}
+
+fn count(..items:string):int {
+    return array.size(items)
+}
+
+fn first_or(fallback:string, ..items:string):string {
+    if(array.size(items) > 0) {
+        return array.get(items, 0) ?? fallback
+    }
+    return fallback
+}
+
+fn main():int {
+    // Basic variadic: multiple args
+    io.println(conv.to_string(sum(1, 2, 3)))
+
+    // Variadic with no args
+    io.println(conv.to_string(sum()))
+
+    // Variadic with single arg
+    io.println(conv.to_string(sum(42)))
+
+    // Fixed + variadic
+    io.println(first_or("none", "hello", "world"))
+
+    // Fixed + no variadic args
+    io.println(first_or("none"))
+
+    // Spread call
+    let nums:array<int> = [10, 20, 30]
+    io.println(conv.to_string(sum(..nums)))
+
+    // Count variadic args
+    io.println(conv.to_string(count("a", "b", "c", "d")))
+
+    return 0
+}

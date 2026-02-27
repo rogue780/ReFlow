@@ -342,6 +342,7 @@ let raw: int = t.value()
 | Coroutine spawn | `let x :< call()` | `let g :< produce(1)` |
 | Struct literal | `Type { f: v }` | `Point { x: 1.0, y: 2.0 }` |
 | Struct spread | `Type { f: v, ..src }` | `Point { x: 9.0, ..p }` |
+| Spread (in call) | `..expr` | `sum(..nums)` |
 | Record literal | `{ f: v, ... }` | `{ name: "A", age: 30 }` |
 
 ### A.3.2 Composition Chains
@@ -549,6 +550,23 @@ Pure function restrictions:
 - No mutable static access (even with `@`), no I/O, no randomness.
 - No `:mut` parameters accepted.
 - Local `:mut` variables are permitted if mutation does not escape.
+
+#### Variadic parameters
+
+```flow
+fn sum(..vals:int):int { ... }
+fn fmt(prefix:string, ..parts:string):string { ... }
+```
+
+The variadic parameter must be the last parameter. Inside the body, it has type `array<T>`. At call sites, arguments are packed into an array automatically. Use `..expr` to spread an existing array.
+
+```flow
+sum(1, 2, 3)        // vals = [1, 2, 3]
+sum()                // vals = []
+sum(..existing_arr)  // vals = existing_arr
+```
+
+Not available on `extern fn` declarations. Cannot have a default value.
 
 #### Generic functions
 
@@ -1266,6 +1284,8 @@ import      ::= 'import' dotted_name ( '(' name (',' name)* ')' )?
 decl        ::= fn_decl | type_decl | interface_decl | alias_decl
 fn_decl     ::= 'export'? 'fn' (':pure')? IDENT type_params? '(' params ')' ':' type_expr
                 ( '=' expr | block ) ('finally' block)?
+param       ::= IDENT ':' type_expr ('=' expr)?
+              | '..' IDENT ':' type_expr              // variadic (must be last)
 type_decl   ::= 'export'? 'type' IDENT type_params? ('fulfills' type_list)?
                 '{' field_decl* method* constructor* static_member* '}'
               | 'export'? 'type' IDENT type_params? '='
@@ -1280,6 +1300,7 @@ type_expr   ::= named_type | generic_type | fn_type | tuple_type
 
 expr        ::= literal | IDENT | expr '.' IDENT | expr '(' args ')'
               | expr '[' expr ']' | expr binop expr | unop expr
+arg         ::= expr | IDENT ':' expr | '..' expr    // positional, named, or spread
               | '\(' params '=>' expr ')' | expr '?' expr ':' expr
               | 'if' '(' expr ')' block ('else' (block | if_expr))?
               | 'match' expr '{' match_arm (',' match_arm)* '}'

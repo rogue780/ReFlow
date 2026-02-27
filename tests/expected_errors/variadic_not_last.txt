@@ -1,0 +1,2 @@
+ParseError
+variadic parameter must be the last parameter

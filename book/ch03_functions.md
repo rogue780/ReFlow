@@ -1,6 +1,6 @@
 # Chapter 3: Functions and Purity
 
-A program is a collection of functions. In Flow, every function takes typed parameters, returns exactly one value, and has a body that is either a block of statements or a single expression. There are no varargs and no overloads. Functions support default parameter values and named arguments for flexibility while keeping signatures explicit. A function's signature tells you everything about how to call it and what you get back.
+A program is a collection of functions. In Flow, every function takes typed parameters, returns exactly one value, and has a body that is either a block of statements or a single expression. There are no overloads. Functions support default parameter values, named arguments, and variadic parameters for flexibility while keeping signatures explicit. A function's signature tells you everything about how to call it and what you get back.
 
 This chapter covers how to define functions, how purity works, how lambdas and closures work, how generics work, and how to pass functions around as values.
 
@@ -135,6 +135,50 @@ fn is_odd(n: int): bool {
 ```
 
 This works for any positive `n`. (For large `n`, prefer the modulo operator. The example is pedagogical.)
+
+### 3.1.5 Variadic Parameters
+
+A function's last parameter can be variadic, accepting zero or more arguments of the same type. Use the `..` prefix before the parameter name:
+
+```flow
+fn sum(..vals:int):int {
+    let total:int:mut = 0
+    for(v:int in vals) {
+        total = total + v
+    }
+    return total
+}
+```
+
+Inside the body, `vals` has type `array<int>`. At call sites, arguments are packed automatically:
+
+```flow
+sum(1, 2, 3)    // vals = [1, 2, 3]
+sum()            // vals = []
+sum(42)          // vals = [42]
+```
+
+You can spread an existing array into a variadic parameter:
+
+```flow
+let nums = [10, 20, 30]
+sum(..nums)      // vals = nums
+```
+
+Fixed and variadic parameters can be combined. The variadic must be last:
+
+```flow
+fn log(level:string, ..parts:string):none {
+    // level is a fixed param, parts is variadic
+}
+log("INFO", "started", "server")
+```
+
+Restrictions:
+- One variadic parameter per function, must be last.
+- Cannot have a default value.
+- Not available on `extern fn` declarations.
+- At a call site: either individual arguments or a single `..spread`, not mixed.
 
 ---
 
@@ -794,6 +838,34 @@ fn:pure sorted(items: array<int>): array<int> {
     // ... create and return a new sorted array ...
 }
 ```
+
+### Variadic parameter not last
+
+```flow
+fn bad(..vals:int, extra:string):int {  // ERROR: variadic must be last
+    return 0
+}
+```
+
+The variadic parameter must be the last parameter in the list. Move it to the end:
+
+```flow
+fn good(extra:string, ..vals:int):int {
+    return 0
+}
+```
+
+### Wrong type in variadic position
+
+```flow
+fn sum(..vals:int):int { ... }
+
+fn main():none {
+    sum(1, "hello", 3)  // ERROR: variadic argument type mismatch
+}
+```
+
+All variadic arguments must match the declared element type.
 
 ---
 

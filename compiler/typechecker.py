@@ -17,7 +17,7 @@ from compiler.ast_nodes import (
     MutType, ImutType, SizedType, SumTypeExpr, SumVariantExpr,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
-    Ident, NamedArg, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
+    Ident, NamedArg, SpreadExpr, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
@@ -147,6 +147,7 @@ class TFn(Type):
     params: tuple[Type, ...]
     ret: Type
     is_pure: bool
+    is_variadic: bool = False
 
 
 @dataclass(frozen=True)
@@ -246,10 +247,10 @@ def apply_env(t: Type, env: TypeEnv) -> Type:
         case TSet(element=elem):
             return TSet(apply_env(elem, env))
 
-        case TFn(params=params, ret=ret, is_pure=pure):
+        case TFn(params=params, ret=ret, is_pure=pure, is_variadic=variadic):
             return TFn(
                 tuple(apply_env(p, env) for p in params),
-                apply_env(ret, env), pure)
+                apply_env(ret, env), pure, is_variadic=variadic)
 
         case TRecord(fields=fields):
             return TRecord(
@@ -740,7 +741,8 @@ class TypeChecker:
         """
         def _sub(t: Type) -> Type:
             return replacement if isinstance(t, TSelf) else t
-        return TFn(tuple(_sub(p) for p in sig.params), _sub(sig.ret), sig.is_pure)
+        return TFn(tuple(_sub(p) for p in sig.params), _sub(sig.ret), sig.is_pure,
+                   is_variadic=sig.is_variadic)
 
     # ------------------------------------------------------------------
     # Pre-pass: build interface registry from InterfaceDecl nodes
@@ -1206,6 +1208,8 @@ class TypeChecker:
 
         for param in fn.params:
             p_type = self._resolve_type_expr(param.type_ann)
+            if param.is_variadic:
+                p_type = TArray(p_type)
             fn_scope.define(param.name, p_type)
             # Type-check default value if present
             if param.default is not None:
@@ -1422,6 +1426,9 @@ class TypeChecker:
             # RT-6-2-3: Literals
             case NamedArg(value=value):
                 return self._infer_expr(value, scope)
+
+            case SpreadExpr(expr=inner):
+                return self._infer_expr(inner, scope)
 
             case IntLit(suffix=suffix):
                 if suffix and suffix in _INT_SUFFIXES:
@@ -2899,6 +2906,11 @@ class TypeChecker:
         n_args = len(arg_types)
         n_params = len(fn_type.params)
 
+        if fn_type.is_variadic:
+            self._check_variadic_call_args(
+                fn_type, arg_types, arg_nodes, call_node, fn_decl)
+            return
+
         if n_args < n_params:
             # Check if missing args have defaults
             if fn_decl is not None:
@@ -2935,6 +2947,71 @@ class TypeChecker:
                     f"argument {i + 1} type mismatch: expected "
                     f"{self._type_name(param_t)}, got "
                     f"{self._type_name(arg_t)}", call_node)
+
+    def _check_variadic_call_args(self, fn_type: TFn, arg_types: list[Type],
+                                   arg_nodes: list[Expr],
+                                   call_node: ASTNode,
+                                   fn_decl: FnDecl | None = None) -> None:
+        """Check arguments for a variadic function call."""
+        n_args = len(arg_types)
+        n_params = len(fn_type.params)
+        n_fixed = n_params - 1  # all params except the variadic array param
+
+        # Count required fixed params (those without defaults)
+        if fn_decl is not None:
+            n_required = sum(
+                1 for p in fn_decl.params[:n_fixed] if p.default is None
+            )
+        else:
+            n_required = n_fixed
+
+        if n_args < n_required:
+            raise self._error(
+                f"expected at least {n_required} arguments, got "
+                f"{n_args}", call_node)
+
+        # Check fixed params
+        for i in range(min(n_fixed, n_args)):
+            arg_t = arg_types[i]
+            param_t = fn_type.params[i]
+            # RT-6-4-5: auto-lift T to option<T>
+            if (isinstance(param_t, TOption)
+                    and not isinstance(arg_t, (TOption, TAny))
+                    and self._is_assignable(arg_t, param_t.inner)):
+                continue
+            if not self._is_assignable(arg_t, param_t):
+                raise self._error(
+                    f"argument {i + 1} type mismatch: expected "
+                    f"{self._type_name(param_t)}, got "
+                    f"{self._type_name(arg_t)}", call_node)
+
+        # Check variadic args
+        variadic_array_type = fn_type.params[-1]  # TArray(elem_type)
+        if not isinstance(variadic_array_type, TArray):
+            return  # defensive
+        variadic_elem_type = variadic_array_type.element
+
+        for i in range(n_fixed, n_args):
+            arg_node = arg_nodes[i] if i < len(arg_nodes) else None
+            arg_t = arg_types[i]
+            if isinstance(arg_node, SpreadExpr):
+                # Spread arg: must be array<elem_type>
+                if not isinstance(arg_t, TArray):
+                    raise self._error(
+                        f"spread argument must be an array, got "
+                        f"{self._type_name(arg_t)}", call_node)
+                if not self._is_assignable(arg_t.element, variadic_elem_type):
+                    raise self._error(
+                        f"spread argument element type mismatch: expected "
+                        f"array<{self._type_name(variadic_elem_type)}>, got "
+                        f"array<{self._type_name(arg_t.element)}>", call_node)
+            else:
+                # Regular arg: must be assignable to elem_type
+                if not self._is_assignable(arg_t, variadic_elem_type):
+                    raise self._error(
+                        f"variadic argument type mismatch: expected "
+                        f"{self._type_name(variadic_elem_type)}, got "
+                        f"{self._type_name(arg_t)}", call_node)
 
     def _check_mut_param_args(self, fn_decl: FnDecl,
                               arg_nodes: list[Expr],
@@ -3123,10 +3200,16 @@ class TypeChecker:
 
     def _fn_decl_type(self, fn: FnDecl) -> TFn:
         params = []
+        has_variadic = False
         for p in fn.params:
-            params.append(self._resolve_type_expr(p.type_ann))
+            p_type = self._resolve_type_expr(p.type_ann)
+            if p.is_variadic:
+                has_variadic = True
+                params.append(TArray(p_type))
+            else:
+                params.append(p_type)
         ret = self._resolve_type_expr(fn.return_type) if fn.return_type else TNone()
-        return TFn(tuple(params), ret, fn.is_pure)
+        return TFn(tuple(params), ret, fn.is_pure, is_variadic=has_variadic)
 
     def _extern_fn_decl_type(self, fn: ExternFnDecl) -> TFn:
         """Resolve an ExternFnDecl's parameter and return types to a TFn.

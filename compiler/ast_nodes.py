@@ -165,6 +165,11 @@ class NamedArg(Expr):
 
 
 @dataclass
+class SpreadExpr(Expr):
+    expr: Expr      # The array expression being spread
+
+
+@dataclass
 class Call(Expr):
     callee: Expr
     args: list[Expr]
@@ -540,6 +545,7 @@ class Param(ASTNode):
     name: str
     type_ann: TypeExpr
     default: Expr | None = None   # compile-time constant expression
+    is_variadic: bool = False     # ..param syntax
 
 
 @dataclass

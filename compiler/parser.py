@@ -33,6 +33,7 @@ from compiler.ast_nodes import (
     NoneLit,
     Ident,
     NamedArg,
+    SpreadExpr,
     BinOp,
     UnaryOp,
     Call,
@@ -548,6 +549,13 @@ class Parser:
         params = self._parse_param_list()
         self.expect(TokenType.RPAREN)
 
+        # Reject variadic params on extern fn
+        for p in params:
+            if p.is_variadic:
+                raise self._error(
+                    "variadic parameters are not allowed on extern fn declarations",
+                    extern_tok)
+
         return_type: TypeExpr | None = None
         if self.check(TokenType.COLON):
             self.advance()
@@ -674,23 +682,56 @@ class Parser:
             return params
 
         seen_default = False
-        params.append(self._parse_param())
-        if params[-1].default is not None:
-            seen_default = True
+        seen_variadic = False
+
+        # Check for variadic prefix (..) on first param
+        if self.check(TokenType.SPREAD):
+            spread_tok = self.advance()
+            p = self._parse_param()
+            if p.default is not None:
+                raise self._error(
+                    "variadic parameter cannot have a default value",
+                    spread_tok)
+            p = Param(line=p.line, col=p.col, name=p.name,
+                      type_ann=p.type_ann, default=None, is_variadic=True)
+            seen_variadic = True
+            params.append(p)
+        else:
+            params.append(self._parse_param())
+            if params[-1].default is not None:
+                seen_default = True
+
         while self.check(TokenType.COMMA):
             self.advance()
             if self.check(TokenType.RPAREN):
                 break  # trailing comma
-            p = self._parse_param()
-            if seen_default and p.default is None:
+            if seen_variadic:
                 raise self._error(
-                    f"parameter '{p.name}' must have a default value "
-                    f"(all parameters after a defaulted parameter must also have defaults)",
-                    self._tokens[self._pos - 1] if self._pos > 0 else None,
-                )
-            if p.default is not None:
-                seen_default = True
-            params.append(p)
+                    "variadic parameter must be the last parameter",
+                    self._tokens[self._pos] if self._pos < len(self._tokens) else None)
+            # Check for variadic prefix on subsequent param
+            if self.check(TokenType.SPREAD):
+                spread_tok = self.advance()
+                p = self._parse_param()
+                if p.default is not None:
+                    raise self._error(
+                        "variadic parameter cannot have a default value",
+                        spread_tok)
+                p = Param(line=p.line, col=p.col, name=p.name,
+                          type_ann=p.type_ann, default=None, is_variadic=True)
+                seen_variadic = True
+                params.append(p)
+            else:
+                p = self._parse_param()
+                if seen_default and p.default is None:
+                    raise self._error(
+                        f"parameter '{p.name}' must have a default value "
+                        f"(all parameters after a defaulted parameter must also have defaults)",
+                        self._tokens[self._pos - 1] if self._pos > 0 else None,
+                    )
+                if p.default is not None:
+                    seen_default = True
+                params.append(p)
         return params
 
     def _parse_param(self) -> Param:
@@ -2526,7 +2567,13 @@ class Parser:
         return args
 
     def _parse_call_arg(self, seen_named: bool) -> Expr:
-        """Parse a single call argument, detecting named args (name: expr)."""
+        """Parse a single call argument, detecting named args (name: expr) and spread args (..expr)."""
+        # Spread argument: ..expr
+        if self.check(TokenType.SPREAD):
+            spread_tok = self.advance()
+            inner = self.parse_expr()
+            return SpreadExpr(line=spread_tok.line, col=spread_tok.col,
+                              expr=inner)
         if (self.check(TokenType.IDENT)
                 and self.peek2().type == TokenType.COLON):
             # Named argument: name: expr

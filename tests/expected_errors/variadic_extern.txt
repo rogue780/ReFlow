@@ -1,0 +1,2 @@
+ParseError
+variadic parameters are not allowed on extern fn declarations

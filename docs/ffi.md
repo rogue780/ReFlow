@@ -158,3 +158,8 @@ functions — the compiler will reject this.
 4. **Group related bindings.** Put all extern declarations for one C
    library in a single module (e.g., `stdlib/ssl.flow`) with Flow
    wrappers as the public interface.
+
+5. **No variadic extern functions.** Flow's variadic parameter syntax
+   (`..name:Type`) is not available on `extern fn` declarations. C
+   variadic functions like `printf` cannot be bound directly. Wrap
+   them in a C helper with fixed arguments instead.

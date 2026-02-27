@@ -20,7 +20,7 @@ from compiler.ast_nodes import (
     NamedType, GenericType, OptionType, FnType, TupleType, MutType, ImutType, SizedType,
     # Expressions
     IntLit, FloatLit, BoolLit, StringLit, FStringExpr, CharLit, NoneLit,
-    Ident, NamedArg, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
+    Ident, NamedArg, SpreadExpr, BinOp, UnaryOp, Call, MethodCall, FieldAccess, IndexAccess,
     Lambda, TupleExpr, ArrayLit, RecordLit, TypeLit, IfExpr, MatchExpr,
     CompositionChain, ChainElement, FanOut, TernaryExpr, CopyExpr, RefExpr,
     SomeExpr, OkExpr, ErrExpr, CoerceExpr, CastExpr,
@@ -942,6 +942,8 @@ class Lowerer:
         params: list[tuple[str, LType]] = []
         for p in fn.params:
             p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
+            if p.is_variadic:
+                p_type = TArray(p_type)
             p_lt = self._lower_type(p_type)
             params.append((p.name, p_lt))
             self._let_var_ltypes[p.name] = p_lt
@@ -2035,6 +2037,9 @@ class Lowerer:
             case NamedArg(value=value):
                 return self._lower_expr(value)
 
+            case SpreadExpr(expr=inner):
+                return self._lower_expr(inner)
+
             # Literals
             case IntLit(value=v, suffix=suffix):
                 t = self._type_of(expr)
@@ -2458,6 +2463,63 @@ class Lowerer:
                 break
         return result
 
+    def _pack_variadic_call_args(self, expr: Call, call_args: list[Expr],
+                                  lowered_args: list[LExpr]) -> list[LExpr]:
+        """If calling a variadic function, pack trailing args into an array."""
+        fn_decl = self._get_variadic_fn_decl(expr)
+        if fn_decl is None:
+            return lowered_args
+
+        n_fixed = len(fn_decl.params) - 1
+        variadic_param = fn_decl.params[-1]
+        elem_type = self._type_of(variadic_param.type_ann) if variadic_param.type_ann else TAny()
+        elem_lt = self._lower_type(elem_type)
+        arr_lt = self._lower_type(TArray(elem_type))
+
+        fixed_args = lowered_args[:n_fixed]
+        variadic_lowered = lowered_args[n_fixed:]
+        variadic_raw_args = call_args[n_fixed:]
+
+        # Single spread arg — pass it directly (it's already an FL_Array*)
+        if (len(variadic_raw_args) == 1
+                and isinstance(variadic_raw_args[0], SpreadExpr)):
+            return fixed_args + [variadic_lowered[0]]
+
+        # No variadic args — empty array
+        if not variadic_lowered:
+            empty_arr = LCall("fl_array_new",
+                              [LLit("0", LInt(64, True)),
+                               LLit("0", LInt(64, True)),
+                               LLit("NULL", LPtr(LVoid()))],
+                              arr_lt)
+            return fixed_args + [empty_arr]
+
+        # Multiple literal args — pack into compound literal array
+        count = len(variadic_lowered)
+        data_expr = LArrayData(
+            elements=variadic_lowered,
+            elem_type=elem_lt,
+            c_type=LPtr(elem_lt),
+        )
+        packed_arr = LCall("fl_array_new",
+                           [LLit(str(count), LInt(64, True)),
+                            LSizeOf(elem_lt),
+                            data_expr],
+                           arr_lt)
+        return fixed_args + [packed_arr]
+
+    def _get_variadic_fn_decl(self, expr: Call) -> FnDecl | None:
+        """Return the FnDecl if the callee is a variadic function, else None."""
+        if not isinstance(expr.callee, Ident):
+            return None
+        sym = self._resolved.symbols.get(expr.callee)
+        if sym is None:
+            return None
+        decl = sym.decl
+        if isinstance(decl, FnDecl) and decl.params and decl.params[-1].is_variadic:
+            return decl
+        return None
+
     def _lower_call(self, expr: Call) -> LExpr:
         """Lower function call."""
         t = self._type_of(expr)
@@ -2485,6 +2547,9 @@ class Lowerer:
 
         # Fill in default argument values for missing trailing params
         lowered_args = self._fill_default_args(expr, lowered_args)
+
+        # Pack variadic args into an array if calling a variadic function
+        lowered_args = self._pack_variadic_call_args(expr, call_args, lowered_args)
 
         if isinstance(expr.callee, Ident):
             # Direct function call
@@ -6096,11 +6161,12 @@ class Lowerer:
                 return TSet(self._deep_substitute(elem, env))
             case TTuple(elements=elems):
                 return TTuple(tuple(self._deep_substitute(e, env) for e in elems))
-            case TFn(params=params, ret=ret, is_pure=is_pure):
+            case TFn(params=params, ret=ret, is_pure=is_pure, is_variadic=variadic):
                 return TFn(
                     tuple(self._deep_substitute(p, env) for p in params),
                     self._deep_substitute(ret, env),
                     is_pure,
+                    is_variadic=variadic,
                 )
             case TNamed(module=mod, name=name, type_args=args):
                 return TNamed(mod, name,

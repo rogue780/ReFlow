@@ -1360,6 +1360,50 @@ Errors:
 - Duplicate named arguments are a compile error.
 - Unknown parameter names are a compile error.
 
+### Variadic Parameters
+
+A function may declare its last parameter as variadic using the `..` prefix. Inside the function body, the variadic parameter has type `array<T>` where `T` is the declared element type.
+
+```
+fn sum(..vals:int):int {
+    let total:int:mut = 0
+    for (v:int in vals) {
+        total = total + v
+    }
+    return total
+}
+```
+
+At call sites, individual arguments are automatically packed into an array:
+
+```
+sum(1, 2, 3)    // vals = [1, 2, 3]
+sum()            // vals = []  (empty array)
+sum(42)          // vals = [42]
+```
+
+An existing array can be spread into a variadic position with `..`:
+
+```
+let nums = [10, 20, 30]
+sum(..nums)      // vals = nums
+```
+
+A function may have both fixed and variadic parameters. The variadic parameter must be last:
+
+```
+fn log(level:string, ..parts:string):none { ... }
+log("INFO", "started", "server")   // level="INFO", parts=["started", "server"]
+```
+
+Restrictions:
+- Only one variadic parameter per function.
+- The variadic parameter must be the last parameter.
+- A variadic parameter cannot have a default value.
+- Not available on `extern fn` declarations.
+- At a call site, either pass individual arguments or a single spread (`..arr`), not both mixed.
+- Named arguments fill fixed parameters only, not the variadic parameter.
+
 ### Lambdas
 
 ```
@@ -2573,7 +2617,9 @@ extern functions. The compiler rejects this with a clear error.
   signatures or wrap them in a separate C helper.
 - **No struct-by-value.** C structs cannot be passed or returned by value. Use
   `ptr` for struct pointers.
-- **No variadic functions.** C variadic functions like `printf` cannot be bound.
+- **No variadic extern functions.** Flow's variadic parameter syntax (`..name:Type`)
+  is not available on `extern fn` declarations. C variadic functions like `printf`
+  cannot be bound. Wrap them in a C helper with fixed arguments instead.
 
 ---
 
