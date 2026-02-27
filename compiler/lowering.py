@@ -478,9 +478,7 @@ _VALUE_TYPE_OPT_UNBOX_FN: dict[str, str] = {
 
 
 def _get_c_fn_name(decl) -> str | None:
-    """Extract the C function name from a FnDecl or ExternFnDecl."""
-    if isinstance(decl, FnDecl):
-        return decl.native_name
+    """Extract the C function name from an ExternFnDecl."""
     if isinstance(decl, ExternFnDecl):
         return decl.c_name or decl.name
     return None
@@ -893,9 +891,6 @@ class Lowerer:
 
     def _lower_fn_decl(self, fn: FnDecl) -> None:
         """Lower a function declaration. RT-7-3-1, RT-7-4-1."""
-        if fn.native_name is not None:
-            # Native functions are implemented in C — no LIR generated.
-            return
         if fn.body is None:
             return
         # Bounded generic functions are emitted only via monomorphization (SG-3-4-3).
@@ -2526,24 +2521,6 @@ class Lowerer:
                         # Substitute type env into return type for concrete LType
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
                         return LCall(mono_name, lowered_args, concrete_lt)
-                # Same-module native function — use the native C name directly
-                if fn_decl_maybe and fn_decl_maybe.native_name is not None:
-                    # Gap-1: redirect array.push for non-pointer elements
-                    redirected = self._maybe_redirect_array_push(
-                        fn_decl_maybe, lowered_args, lt)
-                    if redirected is not None:
-                        return redirected
-                    # Gap-1: repack array.get_any for non-pointer elements
-                    repacked = self._maybe_repack_array_get(
-                        fn_decl_maybe, lowered_args, list(expr.args), t, lt)
-                    if repacked is not None:
-                        return repacked
-                    # Gap-2: box/unbox for generic native calls with value-type params
-                    wrapped = self._lower_native_generic_call(
-                        fn_decl_maybe, list(expr.args), lowered_args, t, lt)
-                    if wrapped is not None:
-                        return wrapped
-                    return LCall(fn_decl_maybe.native_name, lowered_args, lt)
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, lowered_args, lt)
@@ -2566,23 +2543,6 @@ class Lowerer:
                     if wrapped is not None:
                         return wrapped
                 return LCall(ext_c_name, lowered_args, lt)
-            # Named import of a native function: import io (println)
-            if sym is not None and sym.kind == SymbolKind.IMPORT:
-                fn_decl = sym.decl
-                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
-                    redirected = self._maybe_redirect_array_push(
-                        fn_decl, lowered_args, lt)
-                    if redirected is not None:
-                        return redirected
-                    repacked = self._maybe_repack_array_get(
-                        fn_decl, lowered_args, list(expr.args), t, lt)
-                    if repacked is not None:
-                        return repacked
-                    wrapped = self._lower_native_generic_call(
-                        fn_decl, list(expr.args), lowered_args, t, lt)
-                    if wrapped is not None:
-                        return wrapped
-                    return LCall(fn_decl.native_name, lowered_args, lt)
             # Check if callee is a closure-typed variable (local var, param)
             callee_type = self._type_of(expr.callee)
             if isinstance(callee_type, TFn):
@@ -2723,24 +2683,6 @@ class Lowerer:
                         param = fn_decl.params[i]
                         if param.default is not None:
                             lowered_args.append(self._lower_expr(param.default))
-            if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
-                # Gap-1: redirect array.push for non-pointer elements
-                redirected = self._maybe_redirect_array_push(
-                    fn_decl, lowered_args, lt)
-                if redirected is not None:
-                    return redirected
-                # Gap-1: repack array.get_any for non-pointer elements
-                repacked = self._maybe_repack_array_get(
-                    fn_decl, lowered_args, list(expr.args), t, lt)
-                if repacked is not None:
-                    return repacked
-                # Gap-2: box/unbox for generic native calls with value-type params
-                wrapped = self._lower_native_generic_call(
-                    fn_decl, list(expr.args), lowered_args, t, lt)
-                if wrapped is not None:
-                    return wrapped
-                # Native function — call the C name directly
-                return LCall(fn_decl.native_name, lowered_args, lt)
             # Extern fn — use literal C name, no mangling
             if isinstance(fn_decl, ExternFnDecl):
                 mc_c_name = fn_decl.c_name or fn_decl.name
@@ -2911,18 +2853,16 @@ class Lowerer:
             sym = self._resolved.symbols.get(call.callee)
             if sym is not None and sym.kind in (SymbolKind.FN,
                                                  SymbolKind.CONSTRUCTOR):
-                fn_decl = sym.decl if isinstance(sym.decl, FnDecl) else None
-                if fn_decl and fn_decl.native_name is not None:
-                    fn_c_name = fn_decl.native_name
+                if isinstance(sym.decl, ExternFnDecl):
+                    fn_c_name = sym.decl.c_name or sym.decl.name
                 else:
                     fn_c_name = mangle(self._module_path, None,
                                        call.callee.name,
                                        file=self._file,
                                        line=call.line, col=call.col)
             elif sym is not None and sym.kind == SymbolKind.IMPORT:
-                fn_decl = sym.decl
-                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
-                    fn_c_name = fn_decl.native_name
+                if isinstance(sym.decl, ExternFnDecl):
+                    fn_c_name = sym.decl.c_name or sym.decl.name
                 else:
                     fn_c_name = mangle(
                         getattr(sym, 'module_path', self._module_path),
@@ -2931,10 +2871,8 @@ class Lowerer:
         elif isinstance(call.callee, MethodCall):
             # Namespace function call: mod.fn_name(args)
             callee_sym = self._resolved.symbols.get(call.callee)
-            if callee_sym is not None:
-                fn_decl = callee_sym.decl
-                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
-                    fn_c_name = fn_decl.native_name
+            if callee_sym is not None and isinstance(callee_sym.decl, ExternFnDecl):
+                fn_c_name = callee_sym.decl.c_name or callee_sym.decl.name
 
         if fn_c_name is None:
             # Fallback: lower the callee expr normally
@@ -3132,25 +3070,21 @@ class Lowerer:
             sym = self._resolved.symbols.get(call.callee)
             if sym is not None and sym.kind in (SymbolKind.FN,
                                                  SymbolKind.CONSTRUCTOR):
-                fn_decl = sym.decl if isinstance(sym.decl, FnDecl) else None
-                if fn_decl and fn_decl.native_name is not None:
-                    return fn_decl.native_name
+                if isinstance(sym.decl, ExternFnDecl):
+                    return sym.decl.c_name or sym.decl.name
                 return mangle(self._module_path, None, call.callee.name,
                               file=self._file, line=call.line, col=call.col)
             if sym is not None and sym.kind == SymbolKind.IMPORT:
-                fn_decl = sym.decl
-                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
-                    return fn_decl.native_name
+                if isinstance(sym.decl, ExternFnDecl):
+                    return sym.decl.c_name or sym.decl.name
                 return mangle(
                     getattr(sym, 'module_path', self._module_path),
                     None, call.callee.name,
                     file=self._file, line=call.line, col=call.col)
         elif isinstance(call.callee, MethodCall):
             callee_sym = self._resolved.symbols.get(call.callee)
-            if callee_sym is not None:
-                fn_decl = callee_sym.decl
-                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
-                    return fn_decl.native_name
+            if callee_sym is not None and isinstance(callee_sym.decl, ExternFnDecl):
+                return callee_sym.decl.c_name or callee_sym.decl.name
         # Fallback
         callee_expr = self._lower_expr(call.callee)
         return getattr(callee_expr, 'c_name',
@@ -3557,9 +3491,8 @@ class Lowerer:
                 return mangle(self._module_path, None, expr.name,
                               file=self._file, line=expr.line, col=expr.col)
             if sym is not None and sym.kind == SymbolKind.IMPORT:
-                fn_decl = sym.decl
-                if isinstance(fn_decl, FnDecl) and fn_decl.native_name is not None:
-                    return fn_decl.native_name
+                if isinstance(sym.decl, ExternFnDecl):
+                    return sym.decl.c_name or sym.decl.name
         return None
 
     # ------------------------------------------------------------------

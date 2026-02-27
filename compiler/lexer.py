@@ -52,7 +52,6 @@ class TokenType(Enum):
     CAST = auto()
     # SNAPSHOT removed — replaced by @ on mutable static access
     THROW = auto()
-    NATIVE = auto()
     EXTERN = auto()
 
     # --- Operators ---
@@ -173,7 +172,6 @@ _KEYWORDS: dict[str, TokenType] = {
     "coerce": TokenType.COERCE,
     "cast": TokenType.CAST,
     "throw": TokenType.THROW,
-    "native": TokenType.NATIVE,
     "extern": TokenType.EXTERN,
     "true": TokenType.BOOL_LIT,
     "false": TokenType.BOOL_LIT,

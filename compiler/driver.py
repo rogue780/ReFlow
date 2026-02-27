@@ -134,7 +134,7 @@ def _stdlib_needs_compilation(typed_module) -> bool:
     """Return True if the stdlib module has non-generic FnDecl with bodies that need compilation."""
     for decl in typed_module.module.decls:
         if isinstance(decl, FnDecl) and decl.body is not None:
-            if not decl.type_params and not decl.native_name:
+            if not decl.type_params:
                 return True
     return False
 

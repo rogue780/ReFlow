@@ -598,10 +598,9 @@ class Parser:
             self.advance()
             return_type = self.parse_type_expr()
 
-        # Body: block, expression, native binding, or none (interface signature)
+        # Body: block, expression, or none (interface signature)
         body: Block | Expr | None = None
         finally_block: Block | None = None
-        native_name: str | None = None
 
         if self.check(TokenType.LBRACE):
             body = self.parse_block()
@@ -610,13 +609,7 @@ class Parser:
                 finally_block = self._parse_finally_block_simple()
         elif self.check(TokenType.ASSIGN):
             self.advance()
-            if self.check(TokenType.NATIVE):
-                # Native binding: = native "c_function_name"
-                self.advance()
-                c_name_tok = self.expect(TokenType.STRING_LIT)
-                native_name = c_name_tok.value
-            else:
-                body = self.parse_expr()
+            body = self.parse_expr()
         elif allow_no_body:
             body = None
         else:
@@ -636,7 +629,6 @@ class Parser:
             is_export=is_export,
             is_static=is_static,
             finally_block=finally_block,
-            native_name=native_name,
         )
 
     def _parse_type_param(self) -> TypeParam:

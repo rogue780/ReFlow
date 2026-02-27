@@ -260,17 +260,18 @@ class TestStdlibIntegration(unittest.TestCase):
             self.assertEqual(result.returncode, 0)
             self.assertEqual(result.stdout, "Hello, World!\n")
 
-    def test_native_fn_parsing(self):
-        """Parser correctly handles the native keyword."""
+    def test_extern_fn_parsing(self):
+        """Parser correctly handles extern fn declarations."""
         from compiler.lexer import Lexer
         from compiler.parser import Parser
-        source = 'module test.lib\n\nexport fn foo(s: string): none = native "fl_foo"\n'
+        from compiler.ast_nodes import ExternFnDecl
+        source = 'module test.lib\n\nexport extern fn "fl_foo" foo(s:string):none\n'
         tokens = Lexer(source, "test.flow").tokenize()
         mod = Parser(tokens, "test.flow").parse()
         fn = mod.decls[0]
+        self.assertIsInstance(fn, ExternFnDecl)
         self.assertEqual(fn.name, "foo")
-        self.assertEqual(fn.native_name, "fl_foo")
-        self.assertIsNone(fn.body)
+        self.assertEqual(fn.c_name, "fl_foo")
 
     def test_unknown_import_raises_error(self):
         """Importing an unknown module raises ResolveError."""
