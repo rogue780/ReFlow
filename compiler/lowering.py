@@ -717,7 +717,7 @@ class Lowerer:
                         self._resolve_type_ann(decl.return_type))
                         if decl.return_type else LVoid())
                     extern_fn_protos.append(
-                        (decl.name, param_ltypes, ret_ltype))
+                        (decl.c_name or decl.name, param_ltypes, ret_ltype))
                 case ExternTypeDecl() | ExternLibDecl():
                     pass  # handled elsewhere
 
@@ -2466,7 +2466,7 @@ class Lowerer:
                 # Rewrite function-typed args as raw C function pointers
                 final_args = self._rewrite_extern_fn_args(
                     extern_decl, call_args, lowered_args)
-                return LCall(extern_decl.name, final_args, lt)
+                return LCall(extern_decl.c_name or extern_decl.name, final_args, lt)
             # Sum type variant constructor — inline as compound literal
             if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                     and isinstance(sym.decl, SumVariantDecl)):
@@ -2522,7 +2522,7 @@ class Lowerer:
             # Named import of an extern fn from another module
             if (sym is not None and sym.kind == SymbolKind.IMPORT
                     and isinstance(sym.decl, ExternFnDecl)):
-                return LCall(sym.decl.name, lowered_args, lt)
+                return LCall(sym.decl.c_name or sym.decl.name, lowered_args, lt)
             # Named import of a native function: import io (println)
             if sym is not None and sym.kind == SymbolKind.IMPORT:
                 fn_decl = sym.decl

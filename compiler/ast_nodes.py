@@ -616,10 +616,11 @@ class ExternTypeDecl(Decl):
 
 @dataclass
 class ExternFnDecl(Decl):
-    name: str                   # literal C function name (no mangling)
+    name: str                   # Flow-callable name (used for symbol binding)
     params: list[Param]
     return_type: TypeExpr | None
     is_export: bool
+    c_name: str | None = None   # explicit C name from alias syntax; None = use name
 
 
 # ---------------------------------------------------------------------------

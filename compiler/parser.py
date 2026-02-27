@@ -527,8 +527,16 @@ class Parser:
         )
 
     def _parse_extern_fn_decl(self, extern_tok: Token, is_export: bool) -> ExternFnDecl:
-        """Parse: extern fn c_name(params):RetType"""
+        """Parse: extern fn name(params):RetType
+                  extern fn "c_name" flow_name(params):RetType"""
         self.expect(TokenType.FN)
+
+        # Optional alias: extern fn "c_name" flow_name(...)
+        c_name: str | None = None
+        if self.check(TokenType.STRING_LIT):
+            c_name_tok = self.advance()
+            c_name = c_name_tok.value
+
         name_tok = self.expect(TokenType.IDENT)
 
         self.expect(TokenType.LPAREN)
@@ -546,6 +554,7 @@ class Parser:
             params=params,
             return_type=return_type,
             is_export=is_export,
+            c_name=c_name,
         )
 
     def parse_fn_decl(

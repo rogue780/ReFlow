@@ -1889,6 +1889,7 @@ class TestExternDecls(unittest.TestCase):
         d = mod.decls[0]
         self.assertIsInstance(d, ExternFnDecl)
         self.assertEqual(d.name, "free")
+        self.assertIsNone(d.c_name)
         self.assertEqual(len(d.params), 1)
         self.assertEqual(d.params[0].name, "p")
         self.assertIsNone(d.return_type)
@@ -1899,6 +1900,7 @@ class TestExternDecls(unittest.TestCase):
         d = mod.decls[0]
         self.assertIsInstance(d, ExternFnDecl)
         self.assertEqual(d.name, "strlen")
+        self.assertIsNone(d.c_name)
         self.assertEqual(len(d.params), 1)
         self.assertIsInstance(d.return_type, NamedType)
         self.assertEqual(d.return_type.name, "int")
@@ -1933,6 +1935,41 @@ extern fn SSL_CTX_new():ptr'''
         self.assertIsInstance(mod.decls[0], ExternLibDecl)
         self.assertIsInstance(mod.decls[1], ExternTypeDecl)
         self.assertIsInstance(mod.decls[2], ExternFnDecl)
+
+    def test_extern_fn_alias_syntax(self) -> None:
+        mod = parse('extern fn "fl_math_floor" floor(f:float):float')
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "floor")
+        self.assertEqual(d.c_name, "fl_math_floor")
+        self.assertEqual(len(d.params), 1)
+        self.assertEqual(d.params[0].name, "f")
+        self.assertIsInstance(d.return_type, NamedType)
+        self.assertEqual(d.return_type.name, "float")
+
+    def test_extern_fn_alias_no_return(self) -> None:
+        mod = parse('extern fn "c_free" free_ptr(p:ptr)')
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "free_ptr")
+        self.assertEqual(d.c_name, "c_free")
+        self.assertIsNone(d.return_type)
+
+    def test_extern_fn_alias_export(self) -> None:
+        mod = parse('export extern fn "SSL_connect" connect(ssl:ptr):int')
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "connect")
+        self.assertEqual(d.c_name, "SSL_connect")
+        self.assertTrue(d.is_export)
+
+    def test_extern_fn_alias_multiple_params(self) -> None:
+        mod = parse('extern fn "sqlite3_open" db_open(path:string, db:ptr):int')
+        d = mod.decls[0]
+        self.assertIsInstance(d, ExternFnDecl)
+        self.assertEqual(d.name, "db_open")
+        self.assertEqual(d.c_name, "sqlite3_open")
+        self.assertEqual(len(d.params), 2)
 
 
 if __name__ == "__main__":

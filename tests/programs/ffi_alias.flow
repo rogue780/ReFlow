@@ -1,0 +1,11 @@
+import io (println)
+import conv
+
+// Extern with alias: C name "abs" is called as "absolute" in Flow
+extern fn "abs" absolute(x:int):int
+
+fn main() {
+    println(conv.to_string(absolute(-42)))
+    println(conv.to_string(absolute(0)))
+    println(conv.to_string(absolute(7)))
+}
