@@ -536,14 +536,6 @@ FL_Option_ptr fl_env_get(FL_String* name);
 fl_int64      fl_clock_ms(void);
 
 /* ========================================================================
- * Conversion Wrappers (stdlib/conv) — option-returning variants
- * ======================================================================== */
-
-FL_Option_int   fl_string_to_int_opt(FL_String* s);
-FL_Option_int64 fl_string_to_int64_opt(FL_String* s);
-FL_Option_float fl_string_to_float_opt(FL_String* s);
-
-/* ========================================================================
  * String Operations (stdlib/string — RB-1-1)
  * ======================================================================== */
 
@@ -600,12 +592,8 @@ void              fl_sb_release(FL_StringBuilder* sb);
  * Character Utilities (stdlib/char — RB-1-2)
  * ======================================================================== */
 
-fl_bool    fl_char_is_digit(fl_char c);
-fl_bool    fl_char_is_alpha(fl_char c);
-fl_bool    fl_char_is_alphanumeric(fl_char c);
-fl_bool    fl_char_is_whitespace(fl_char c);
-fl_int     fl_char_to_int(fl_char c);
-fl_char    fl_int_to_char(fl_int n);
+/* is_digit, is_alpha, is_alphanumeric, is_whitespace, to_code, from_code
+ * are now pure Flow in stdlib/char.flow — no runtime needed. */
 FL_String* fl_char_to_string(fl_char c);
 
 /* ========================================================================
@@ -636,28 +624,15 @@ void       fl_tmpfile_remove(FL_String* path);
  * Path Utilities (stdlib/path — RB-1-6)
  * ======================================================================== */
 
-FL_String* fl_path_join(FL_String* a, FL_String* b);
-FL_String* fl_path_stem(FL_String* path);
-FL_String* fl_path_parent(FL_String* path);
-FL_String* fl_path_with_suffix(FL_String* path, FL_String* suffix);
 FL_String* fl_path_cwd(void);
 FL_String* fl_path_resolve(FL_String* path);
 fl_bool    fl_path_exists(FL_String* path);
-fl_bool       fl_path_is_dir(FL_String* path);
-fl_bool       fl_path_is_file(FL_String* path);
-FL_Option_ptr fl_path_extension(FL_String* path);
+fl_bool    fl_path_is_dir(FL_String* path);
+fl_bool    fl_path_is_file(FL_String* path);
 FL_Option_ptr fl_path_list_dir(FL_String* path);
 
-/* ========================================================================
- * Math Functions (stdlib/math)
- * ======================================================================== */
-
-fl_float fl_math_floor(fl_float f);
-fl_float fl_math_ceil(fl_float f);
-fl_float fl_math_round(fl_float f);
-fl_float fl_math_pow(fl_float base, fl_float exp);
-fl_float fl_math_sqrt(fl_float f);
-fl_float fl_math_log(fl_float f);
+/* Math functions (floor, ceil, round, pow, sqrt, log, fmod) are now
+ * direct libm extern bindings in stdlib/math.flow — no runtime needed. */
 
 /* ========================================================================
  * File Handle I/O (stdlib/file)
@@ -782,9 +757,7 @@ fl_int fl_time_second(FL_DateTime* dt);
 
 #define FL_TEST_FAILURE_TAG 9999
 
-/* Assertions — all throw with FL_TEST_FAILURE_TAG on failure */
-void fl_test_assert_true(fl_bool val, FL_String* msg);
-void fl_test_assert_false(fl_bool val, FL_String* msg);
+/* Assertions — assert_true/assert_false are now pure Flow in stdlib/testing.flow */
 void fl_test_assert_eq_float(fl_float expected, fl_float actual, fl_float epsilon, FL_String* msg);
 void* fl_test_assert_some(FL_Option_ptr opt, FL_String* msg);
 void fl_test_assert_none(FL_Option_ptr opt, FL_String* msg);
@@ -820,60 +793,17 @@ fl_int        fl_net_fd(FL_Socket* conn);
 fl_bool       fl_net_write_string_fd(fl_int fd, FL_String* s);
 
 /* ========================================================================
- * JSON (stdlib/json)
+ * FFI Memory Support (stdlib/mem)
  * ======================================================================== */
 
-typedef struct FL_JsonValue FL_JsonValue;
-
-/* JSON value type tags */
-#define FL_JSON_NULL   0
-#define FL_JSON_BOOL   1
-#define FL_JSON_INT    2
-#define FL_JSON_FLOAT  3
-#define FL_JSON_STRING 4
-#define FL_JSON_ARRAY  5
-#define FL_JSON_OBJECT 6
-
-/* Constructors */
-FL_JsonValue* fl_json_null(void);
-FL_JsonValue* fl_json_bool(fl_bool val);
-FL_JsonValue* fl_json_int(fl_int64 val);
-FL_JsonValue* fl_json_float(fl_float val);
-FL_JsonValue* fl_json_string(FL_String* val);
-FL_JsonValue* fl_json_array(FL_Array* items);
-FL_JsonValue* fl_json_object(FL_Map* entries);
-
-/* Parsing */
-FL_Option_ptr fl_json_parse(FL_String* s);
-
-/* Serializing */
-FL_String* fl_json_to_string(FL_JsonValue* val);
-FL_String* fl_json_to_string_pretty(FL_JsonValue* val, fl_int indent);
-
-/* Accessors */
-FL_Option_ptr fl_json_get(FL_JsonValue* obj, FL_String* key);
-FL_Option_ptr fl_json_get_index(FL_JsonValue* arr, fl_int64 index);
-FL_Option_ptr fl_json_as_string(FL_JsonValue* val);
-FL_Option_int64 fl_json_as_int(FL_JsonValue* val);
-FL_Option_float fl_json_as_float(FL_JsonValue* val);
-FL_Option_bool  fl_json_as_bool(FL_JsonValue* val);
-FL_Option_ptr fl_json_as_array(FL_JsonValue* val);
-fl_bool       fl_json_is_null(FL_JsonValue* val);
-fl_byte       fl_json_type_tag(FL_JsonValue* val);
-FL_Option_ptr fl_json_keys(FL_JsonValue* obj);
-
-void fl_json_release(FL_JsonValue* val);
-
-/* ========================================================================
- * CSV (stdlib/csv) — RFC 4180
- * ======================================================================== */
-
-FL_Array* fl_csv_parse(FL_String* s);
-FL_Array* fl_csv_parse_row(FL_String* s);
-FL_String* fl_csv_to_string(FL_Array* rows);
-FL_String* fl_csv_row_to_string(FL_Array* fields);
-FL_Array* fl_csv_parse_delimited(FL_String* s, fl_byte delimiter);
-FL_Array* fl_csv_with_headers(FL_Array* rows);
+void*         fl_mem_alloc(fl_int64 size);
+void          fl_mem_free(void* p);
+fl_byte       fl_mem_read_byte(void* p, fl_int64 offset);
+void          fl_mem_write_byte(void* p, fl_int64 offset, fl_byte val);
+fl_int        fl_mem_read_int(void* p, fl_int64 offset);
+fl_bool       fl_ptr_is_null(void* p);
+void*         fl_ptr_null(void);
+FL_Option_ptr fl_ptr_to_option(void* p);
 
 /* ========================================================================
  * Runtime Initialization

@@ -2,6 +2,388 @@
 /* Source: tests/programs/array_push_sum_test.flow */
 #include "flow_runtime.h"
 
+/* From: stdlib/char.flow */
+
+fl_bool fl_char_is_digit(fl_char c);
+
+fl_bool fl_char_is_alpha(fl_char c);
+
+fl_bool fl_char_is_alphanumeric(fl_char c);
+
+fl_bool fl_char_is_whitespace(fl_char c);
+
+fl_int fl_char_to_code(fl_char c);
+
+fl_char fl_char_from_code(fl_int n);
+
+/* Flow: char.is_digit */
+fl_bool fl_char_is_digit(fl_char c) {
+    return ((c >= 48) && (c <= 57));
+}
+
+/* Flow: char.is_alpha */
+fl_bool fl_char_is_alpha(fl_char c) {
+    return ((((c >= 97) && (c <= 122)) || ((c >= 65) && (c <= 90))) || (c == 95));
+}
+
+/* Flow: char.is_alphanumeric */
+fl_bool fl_char_is_alphanumeric(fl_char c) {
+    return (fl_char_is_alpha(c) || fl_char_is_digit(c));
+}
+
+/* Flow: char.is_whitespace */
+fl_bool fl_char_is_whitespace(fl_char c) {
+    return ((((c == 32) || (c == 9)) || (c == 10)) || (c == 13));
+}
+
+/* Flow: char.to_code */
+fl_int fl_char_to_code(fl_char c) {
+    return ((fl_int)c);
+}
+
+/* Flow: char.from_code */
+fl_char fl_char_from_code(fl_int n) {
+    return ((fl_char)n);
+}
+
+/* From: stdlib/conv.flow */
+
+FL_String* fl_conv_char_to_string(fl_char c);
+
+FL_Option_int fl_conv_string_to_int(FL_String* s);
+
+FL_Option_int64 fl_conv_string_to_int64(FL_String* s);
+
+FL_Option_float fl_conv_string_to_float(FL_String* s);
+
+FL_Option_float fl_conv_parse_float_rest(FL_String* s, fl_int len, fl_int pos, fl_float int_part, fl_bool negative, fl_bool has_digits_before);
+
+FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl_float mantissa, fl_bool negative, fl_bool has_digits);
+
+/* Flow: conv.char_to_string */
+FL_String* fl_conv_char_to_string(fl_char c) {
+    return fl_char_to_string(c);
+}
+
+/* Flow: conv.string_to_int */
+FL_Option_int fl_conv_string_to_int(FL_String* s) {
+    fl_int len = fl_string_len(s);
+    if (len == 0) {
+        return (FL_Option_int){.tag = 0};
+    }
+    fl_int start = 0;
+    fl_bool negative = fl_false;
+    FL_Option_char _fl_tmp_0 = fl_string_char_at(s, 0);
+    if (_fl_tmp_0.tag == 1) {
+        fl_char c = _fl_tmp_0.value;
+        if (c == 45) {
+            negative = fl_true;
+            start = 1;
+        } else {
+            if (c == 43) {
+                start = 1;
+            }
+        }
+    } else {
+        return (FL_Option_int){.tag = 0};
+    }
+    if (start >= len) {
+        return (FL_Option_int){.tag = 0};
+    }
+    fl_int result = 0;
+    fl_int i = start;
+    while (i < len) {
+        FL_Option_char _fl_tmp_1 = fl_string_char_at(s, i);
+        if (_fl_tmp_1.tag == 1) {
+            fl_char c = _fl_tmp_1.value;
+            if (!fl_char_is_digit(c)) {
+                return (FL_Option_int){.tag = 0};
+            }
+            fl_int _fl_e_1;
+            FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_1);
+            fl_int digit = _fl_e_1;
+            fl_int _fl_e_3;
+            FL_CHECKED_MUL(result, 10, &_fl_e_3);
+            fl_int _fl_e_2;
+            FL_CHECKED_ADD(_fl_e_3, digit, &_fl_e_2);
+            result = _fl_e_2;
+        } else {
+            return (FL_Option_int){.tag = 0};
+        }
+        fl_int _fl_e_4;
+        FL_CHECKED_ADD(i, 1, &_fl_e_4);
+        i = _fl_e_4;
+    }
+    if (negative) {
+        fl_int _fl_e_5;
+        FL_CHECKED_SUB(0, result, &_fl_e_5);
+        result = _fl_e_5;
+    }
+    return (FL_Option_int){.tag = 1, .value = result};
+}
+
+/* Flow: conv.string_to_int64 */
+FL_Option_int64 fl_conv_string_to_int64(FL_String* s) {
+    fl_int len = fl_string_len(s);
+    if (len == 0) {
+        return (FL_Option_int64){.tag = 0};
+    }
+    fl_int start = 0;
+    fl_bool negative = fl_false;
+    FL_Option_char _fl_tmp_2 = fl_string_char_at(s, 0);
+    if (_fl_tmp_2.tag == 1) {
+        fl_char c = _fl_tmp_2.value;
+        if (c == 45) {
+            negative = fl_true;
+            start = 1;
+        } else {
+            if (c == 43) {
+                start = 1;
+            }
+        }
+    } else {
+        return (FL_Option_int64){.tag = 0};
+    }
+    if (start >= len) {
+        return (FL_Option_int64){.tag = 0};
+    }
+    fl_int64 result = ((fl_int64)0);
+    fl_int i = start;
+    while (i < len) {
+        FL_Option_char _fl_tmp_3 = fl_string_char_at(s, i);
+        if (_fl_tmp_3.tag == 1) {
+            fl_char c = _fl_tmp_3.value;
+            if (!fl_char_is_digit(c)) {
+                return (FL_Option_int64){.tag = 0};
+            }
+            fl_int _fl_e_1;
+            FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_1);
+            fl_int64 digit = ((fl_int64)_fl_e_1);
+            fl_int64 _fl_e_3;
+            FL_CHECKED_MUL(result, ((fl_int64)10), &_fl_e_3);
+            fl_int64 _fl_e_2;
+            FL_CHECKED_ADD(_fl_e_3, digit, &_fl_e_2);
+            result = _fl_e_2;
+        } else {
+            return (FL_Option_int64){.tag = 0};
+        }
+        fl_int _fl_e_4;
+        FL_CHECKED_ADD(i, 1, &_fl_e_4);
+        i = _fl_e_4;
+    }
+    if (negative) {
+        fl_int64 _fl_e_5;
+        FL_CHECKED_SUB(((fl_int64)0), result, &_fl_e_5);
+        result = _fl_e_5;
+    }
+    return (FL_Option_int64){.tag = 1, .value = result};
+}
+
+/* Flow: conv.string_to_float */
+FL_Option_float fl_conv_string_to_float(FL_String* s) {
+    fl_int len = fl_string_len(s);
+    if (len == 0) {
+        return (FL_Option_float){.tag = 0};
+    }
+    fl_int start = 0;
+    fl_bool negative = fl_false;
+    FL_Option_char _fl_tmp_4 = fl_string_char_at(s, 0);
+    if (_fl_tmp_4.tag == 1) {
+        fl_char c = _fl_tmp_4.value;
+        if (c == 45) {
+            negative = fl_true;
+            start = 1;
+        } else {
+            if (c == 43) {
+                start = 1;
+            }
+        }
+    } else {
+        return (FL_Option_float){.tag = 0};
+    }
+    if (start >= len) {
+        return (FL_Option_float){.tag = 0};
+    }
+    fl_float result = 0.0;
+    fl_int i = start;
+    fl_bool has_digits = fl_false;
+    while (i < len) {
+        FL_Option_char _fl_tmp_5 = fl_string_char_at(s, i);
+        if (_fl_tmp_5.tag == 1) {
+            fl_char c = _fl_tmp_5.value;
+            if (fl_char_is_digit(c)) {
+                fl_int _fl_e_1;
+                FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_1);
+                fl_float digit = ((fl_float)_fl_e_1);
+                result = ((result * 10.0) + digit);
+                has_digits = fl_true;
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(i, 1, &_fl_e_2);
+                i = _fl_e_2;
+            } else {
+                i = i;
+                return fl_conv_parse_float_rest(s, len, i, result, negative, has_digits);
+            }
+        } else {
+            return (FL_Option_float){.tag = 0};
+        }
+    }
+    if (!has_digits) {
+        return (FL_Option_float){.tag = 0};
+    }
+    if (negative) {
+        result = (0.0 - result);
+    }
+    return (FL_Option_float){.tag = 1, .value = result};
+}
+
+/* Flow: conv.parse_float_rest */
+FL_Option_float fl_conv_parse_float_rest(FL_String* s, fl_int len, fl_int pos, fl_float int_part, fl_bool negative, fl_bool has_digits_before) {
+    fl_float result = int_part;
+    fl_int i = pos;
+    fl_bool has_digits = has_digits_before;
+    fl_bool at_dot = fl_false;
+    if (i < len) {
+        FL_Option_char _fl_tmp_6 = fl_string_char_at(s, i);
+        if (_fl_tmp_6.tag == 1) {
+            fl_char c = _fl_tmp_6.value;
+            if (c == 46) {
+                at_dot = fl_true;
+                fl_int _fl_e_1;
+                FL_CHECKED_ADD(i, 1, &_fl_e_1);
+                i = _fl_e_1;
+            }
+        }
+    }
+    if (at_dot) {
+        fl_float frac = 0.0;
+        fl_float frac_div = 1.0;
+        while (i < len) {
+            FL_Option_char _fl_tmp_7 = fl_string_char_at(s, i);
+            if (_fl_tmp_7.tag == 1) {
+                fl_char c = _fl_tmp_7.value;
+                if (fl_char_is_digit(c)) {
+                    fl_int _fl_e_2;
+                    FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_2);
+                    fl_float digit = ((fl_float)_fl_e_2);
+                    frac = ((frac * 10.0) + digit);
+                    frac_div = (frac_div * 10.0);
+                    has_digits = fl_true;
+                    fl_int _fl_e_3;
+                    FL_CHECKED_ADD(i, 1, &_fl_e_3);
+                    i = _fl_e_3;
+                } else {
+                    return fl_conv_parse_float_exp(s, len, i, (result + (frac / frac_div)), negative, has_digits);
+                }
+            } else {
+                return (FL_Option_float){.tag = 0};
+            }
+        }
+        result = (result + (frac / frac_div));
+    }
+    if (!has_digits) {
+        return (FL_Option_float){.tag = 0};
+    }
+    if (i < len) {
+        return fl_conv_parse_float_exp(s, len, i, result, negative, has_digits);
+    }
+    if (negative) {
+        result = (0.0 - result);
+    }
+    return (FL_Option_float){.tag = 1, .value = result};
+}
+
+/* Flow: conv.parse_float_exp */
+FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl_float mantissa, fl_bool negative, fl_bool has_digits) {
+    fl_int i = pos;
+    if (!has_digits) {
+        return (FL_Option_float){.tag = 0};
+    }
+    fl_bool at_exp = fl_false;
+    if (i < len) {
+        FL_Option_char _fl_tmp_8 = fl_string_char_at(s, i);
+        if (_fl_tmp_8.tag == 1) {
+            fl_char c = _fl_tmp_8.value;
+            if ((c == 101) || (c == 69)) {
+                at_exp = fl_true;
+                fl_int _fl_e_1;
+                FL_CHECKED_ADD(i, 1, &_fl_e_1);
+                i = _fl_e_1;
+            }
+        }
+    }
+    fl_float result = mantissa;
+    if (at_exp) {
+        fl_bool exp_neg = fl_false;
+        if (i < len) {
+            FL_Option_char _fl_tmp_9 = fl_string_char_at(s, i);
+            if (_fl_tmp_9.tag == 1) {
+                fl_char c = _fl_tmp_9.value;
+                if (c == 45) {
+                    exp_neg = fl_true;
+                    fl_int _fl_e_2;
+                    FL_CHECKED_ADD(i, 1, &_fl_e_2);
+                    i = _fl_e_2;
+                } else {
+                    if (c == 43) {
+                        fl_int _fl_e_3;
+                        FL_CHECKED_ADD(i, 1, &_fl_e_3);
+                        i = _fl_e_3;
+                    }
+                }
+            }
+        }
+        fl_int exp_val = 0;
+        fl_bool exp_digits = fl_false;
+        while (i < len) {
+            FL_Option_char _fl_tmp_10 = fl_string_char_at(s, i);
+            if (_fl_tmp_10.tag == 1) {
+                fl_char c = _fl_tmp_10.value;
+                if (fl_char_is_digit(c)) {
+                    fl_int _fl_e_5;
+                    FL_CHECKED_MUL(exp_val, 10, &_fl_e_5);
+                    fl_int _fl_e_6;
+                    FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_6);
+                    fl_int _fl_e_4;
+                    FL_CHECKED_ADD(_fl_e_5, _fl_e_6, &_fl_e_4);
+                    exp_val = _fl_e_4;
+                    exp_digits = fl_true;
+                } else {
+                    return (FL_Option_float){.tag = 0};
+                }
+            } else {
+                return (FL_Option_float){.tag = 0};
+            }
+            fl_int _fl_e_7;
+            FL_CHECKED_ADD(i, 1, &_fl_e_7);
+            i = _fl_e_7;
+        }
+        if (!exp_digits) {
+            return (FL_Option_float){.tag = 0};
+        }
+        fl_float multiplier = 1.0;
+        fl_int e = 0;
+        while (e < exp_val) {
+            multiplier = (multiplier * 10.0);
+            fl_int _fl_e_8;
+            FL_CHECKED_ADD(e, 1, &_fl_e_8);
+            e = _fl_e_8;
+        }
+        if (exp_neg) {
+            result = (result / multiplier);
+        } else {
+            result = (result * multiplier);
+        }
+    }
+    if (i != len) {
+        return (FL_Option_float){.tag = 0};
+    }
+    if (negative) {
+        result = (0.0 - result);
+    }
+    return (FL_Option_float){.tag = 1, .value = result};
+}
+
 typedef struct fl_array_push_sum_test_Shape_Circle fl_array_push_sum_test_Shape_Circle;
 
 typedef struct fl_array_push_sum_test_Shape_Rect fl_array_push_sum_test_Shape_Rect;
@@ -69,38 +451,41 @@ fl_float fl_array_push_sum_test_area(fl_array_push_sum_test_Shape s) {
 /* Flow: array_push_sum_test.main */
 void fl_array_push_sum_test_main(void) {
     FL_Array* shapes = fl_array_new(0, 0, NULL);
-    FL_Array* shapes2 = fl_array_push_sized(shapes, (&(fl_array_push_sum_test_Shape){.tag = 0, .Circle = (fl_array_push_sum_test_Shape_Circle){.radius = 5.0}}), sizeof(fl_array_push_sum_test_Shape));
-    FL_Array* shapes3 = fl_array_push_sized(shapes2, (&(fl_array_push_sum_test_Shape){.tag = 1, .Rect = (fl_array_push_sum_test_Shape_Rect){.width = 3.0, .height = 4.0}}), sizeof(fl_array_push_sum_test_Shape));
-    FL_Array* shapes4 = fl_array_push_sized(shapes3, (&(fl_array_push_sum_test_Shape){.tag = 0, .Circle = (fl_array_push_sum_test_Shape_Circle){.radius = 1.0}}), sizeof(fl_array_push_sum_test_Shape));
+    fl_array_push_sum_test_Shape _fl_tmp_1 = (fl_array_push_sum_test_Shape){.tag = 0, .Circle = (fl_array_push_sum_test_Shape_Circle){.radius = 5.0}};
+    FL_Array* shapes2 = fl_array_push_sized(shapes, (&_fl_tmp_1), sizeof(fl_array_push_sum_test_Shape));
+    fl_array_push_sum_test_Shape _fl_tmp_2 = (fl_array_push_sum_test_Shape){.tag = 1, .Rect = (fl_array_push_sum_test_Shape_Rect){.width = 3.0, .height = 4.0}};
+    FL_Array* shapes3 = fl_array_push_sized(shapes2, (&_fl_tmp_2), sizeof(fl_array_push_sum_test_Shape));
+    fl_array_push_sum_test_Shape _fl_tmp_3 = (fl_array_push_sum_test_Shape){.tag = 0, .Circle = (fl_array_push_sum_test_Shape_Circle){.radius = 1.0}};
+    FL_Array* shapes4 = fl_array_push_sized(shapes3, (&_fl_tmp_3), sizeof(fl_array_push_sum_test_Shape));
     fl_println(fl_conv_to_string__int(fl_array_len_int(shapes4)));
     FL_Option_fl_array_push_sum_test_Shape s0 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 0), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
-    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_1 = s0;
-    if (_fl_tmp_1.tag == 1) {
-        fl_array_push_sum_test_Shape s = _fl_tmp_1.value;
+    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_4 = s0;
+    if (_fl_tmp_4.tag == 1) {
+        fl_array_push_sum_test_Shape s = _fl_tmp_4.value;
         fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
     } else {
         fl_println(fl_string_from_cstr("FAIL: index 0"));
     }
     FL_Option_fl_array_push_sum_test_Shape s1 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 1), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
-    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_2 = s1;
-    if (_fl_tmp_2.tag == 1) {
-        fl_array_push_sum_test_Shape s = _fl_tmp_2.value;
+    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_5 = s1;
+    if (_fl_tmp_5.tag == 1) {
+        fl_array_push_sum_test_Shape s = _fl_tmp_5.value;
         fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
     } else {
         fl_println(fl_string_from_cstr("FAIL: index 1"));
     }
     FL_Option_fl_array_push_sum_test_Shape s2 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 2), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
-    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_3 = s2;
-    if (_fl_tmp_3.tag == 1) {
-        fl_array_push_sum_test_Shape s = _fl_tmp_3.value;
+    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_6 = s2;
+    if (_fl_tmp_6.tag == 1) {
+        fl_array_push_sum_test_Shape s = _fl_tmp_6.value;
         fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
     } else {
         fl_println(fl_string_from_cstr("FAIL: index 2"));
     }
     FL_Option_fl_array_push_sum_test_Shape s3 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 5), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
-    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_4 = s3;
-    if (_fl_tmp_4.tag == 1) {
-        fl_array_push_sum_test_Shape s = _fl_tmp_4.value;
+    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_7 = s3;
+    if (_fl_tmp_7.tag == 1) {
+        fl_array_push_sum_test_Shape s = _fl_tmp_7.value;
         fl_println(fl_string_from_cstr("FAIL: index 5 should be none"));
     } else {
         fl_println(fl_string_from_cstr("oob ok"));

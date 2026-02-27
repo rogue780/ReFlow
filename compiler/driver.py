@@ -109,8 +109,14 @@ def _get_stdlib_typed(module_name: str) -> object:
         display = f"stdlib/{module_name}.flow"
         tokens = Lexer(source, display).tokenize()
         module = Parser(tokens, display).parse()
-        resolved = Resolver(module).resolve()
-        _stdlib_typed_cache[module_name] = TypeChecker(resolved).check()
+        # Discover stdlib-to-stdlib imports so the resolver can see them.
+        imported = _discover_stdlib_imports(module)
+        imported_typed = {
+            k: _get_stdlib_typed(k) for k in imported
+        }
+        resolved = Resolver(module, imported_modules=imported).resolve()
+        _stdlib_typed_cache[module_name] = TypeChecker(
+            resolved, imported_typed=imported_typed).check()
     return _stdlib_typed_cache[module_name]
 
 
@@ -140,8 +146,16 @@ def _stdlib_needs_compilation(typed_module) -> bool:
 
 
 def _inject_compilable_stdlib(modules):
-    """Prepend stdlib modules with compilable bodies to the modules list."""
+    """Prepend stdlib modules with compilable bodies to the modules list.
+
+    Discovers transitive stdlib-to-stdlib dependencies so that if e.g.
+    csv.flow imports char.flow, both are injected in the right order.
+    Uses topological sort to ensure dependencies come before dependents.
+    """
     needed: set[str] = set()
+    deps: dict[str, list[str]] = {}  # mod_key -> list of compilable stdlib deps
+    # Seed from user module imports.
+    queue: list[str] = []
     for _, typed, _ in modules:
         for imp in typed.module.imports:
             mod_key = ".".join(imp.path)
@@ -149,9 +163,42 @@ def _inject_compilable_stdlib(modules):
                 stdlib_typed = _get_stdlib_typed(mod_key)
                 if _stdlib_needs_compilation(stdlib_typed):
                     needed.add(mod_key)
+                    queue.append(mod_key)
 
-    # Prepend stdlib modules (they must come before user modules that call them)
-    for mod_key in sorted(needed):  # sorted for deterministic output
+    # Transitively discover stdlib deps of compilable stdlib modules.
+    while queue:
+        mod_key = queue.pop()
+        stdlib_typed = _get_stdlib_typed(mod_key)
+        mod_deps: list[str] = []
+        for imp in stdlib_typed.module.imports:
+            dep_key = ".".join(imp.path)
+            if dep_key in _STDLIB_MODULES:
+                dep_typed = _get_stdlib_typed(dep_key)
+                if _stdlib_needs_compilation(dep_typed):
+                    mod_deps.append(dep_key)
+                    if dep_key not in needed:
+                        needed.add(dep_key)
+                        queue.append(dep_key)
+        deps[mod_key] = mod_deps
+
+    # Topological sort: dependencies before dependents.
+    ordered: list[str] = []
+    visited: set[str] = set()
+
+    def _visit(key: str) -> None:
+        if key in visited:
+            return
+        visited.add(key)
+        for dep in deps.get(key, []):
+            _visit(dep)
+        ordered.append(key)
+
+    for key in sorted(needed):  # sorted seed for determinism
+        _visit(key)
+
+    # Prepend stdlib modules in reverse topological order so that dependencies
+    # end up before dependents after inserting at position 0.
+    for mod_key in reversed(ordered):
         stdlib_typed = _get_stdlib_typed(mod_key)
         display = f"stdlib/{mod_key}.flow"
         modules.insert(0, (display, stdlib_typed, False))
@@ -326,8 +373,17 @@ def _run_pipeline(source_path: str) -> tuple[str, object]:
     # Load stdlib modules referenced by imports.
     imported_modules = _discover_stdlib_imports(module)
 
+    # Build imported_typed so cross-module type references resolve correctly.
+    imported_typed: dict[str, object] = {}
+    for mod_key in imported_modules:
+        if mod_key in _STDLIB_MODULES:
+            try:
+                imported_typed[mod_key] = _get_stdlib_typed(mod_key)
+            except Exception:
+                pass
+
     resolved = Resolver(module, imported_modules).resolve()
-    typed = TypeChecker(resolved).check()
+    typed = TypeChecker(resolved, imported_typed).check()
     return display_path, typed
 
 

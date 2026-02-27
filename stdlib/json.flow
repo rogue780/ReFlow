@@ -1,31 +1,708 @@
 module json
 
-extern type JsonValue
+import string
+import char
+import conv
+import array
+import map
+import string_builder as sb
 
-// Parsing
-export extern fn "fl_json_parse" parse(s:string):JsonValue?
+// --- JSON value sum type ---
 
-// Serialization
-export extern fn "fl_json_to_string" to_string(val:JsonValue):string
-export extern fn "fl_json_to_string_pretty" to_string_pretty(val:JsonValue, indent:int):string
+export type JsonValue =
+    | Null
+    | Bool(val:bool)
+    | Int(val:int64)
+    | Float(val:float)
+    | Str(val:string)
+    | Arr(items:array<JsonValue>)
+    | Obj(entries:map<string, JsonValue>)
 
-// Accessors
-export extern fn "fl_json_get" get(val:JsonValue, key:string):JsonValue?
-export extern fn "fl_json_get_index" get_index(val:JsonValue, idx:int64):JsonValue?
-export extern fn "fl_json_as_string" as_string(val:JsonValue):string?
-export extern fn "fl_json_as_int" as_int(val:JsonValue):int64?
-export extern fn "fl_json_as_float" as_float(val:JsonValue):float?
-export extern fn "fl_json_as_bool" as_bool(val:JsonValue):bool?
-export extern fn "fl_json_as_array" as_array(val:JsonValue):array<JsonValue>?
-export extern fn "fl_json_is_null" is_null(val:JsonValue):bool
-export extern fn "fl_json_type_tag" type_tag(val:JsonValue):byte
-export extern fn "fl_json_keys" keys(val:JsonValue):array<string>?
+// --- Builders ---
 
-// Builders
-export extern fn "fl_json_null" null_val():JsonValue
-export extern fn "fl_json_string" string_val(s:string):JsonValue
-export extern fn "fl_json_int" int_val(n:int64):JsonValue
-export extern fn "fl_json_float" float_val(f:float):JsonValue
-export extern fn "fl_json_bool" bool_val(b:bool):JsonValue
-export extern fn "fl_json_array" array_val(items:array<JsonValue>):JsonValue
-export extern fn "fl_json_object" object_val(entries:map<string, JsonValue>):JsonValue
+export fn null_val():JsonValue {
+    return Null
+}
+
+export fn bool_val(b:bool):JsonValue {
+    return Bool(b)
+}
+
+export fn int_val(n:int64):JsonValue {
+    return Int(n)
+}
+
+export fn float_val(f:float):JsonValue {
+    return Float(f)
+}
+
+export fn string_val(s:string):JsonValue {
+    return Str(s)
+}
+
+export fn array_val(items:array<JsonValue>):JsonValue {
+    return Arr(items)
+}
+
+export fn object_val(entries:map<string, JsonValue>):JsonValue {
+    return Obj(entries)
+}
+
+// --- Accessors ---
+
+export fn is_null(val:JsonValue):bool {
+    match val {
+        Null: { return true }
+        Bool(b): { return false }
+        Int(n): { return false }
+        Float(f): { return false }
+        Str(s): { return false }
+        Arr(items): { return false }
+        Obj(entries): { return false }
+    }
+}
+
+export fn type_tag(val:JsonValue):byte {
+    match val {
+        Null: { return cast<byte>(0) }
+        Bool(b): { return cast<byte>(1) }
+        Int(n): { return cast<byte>(2) }
+        Float(f): { return cast<byte>(3) }
+        Str(s): { return cast<byte>(4) }
+        Arr(items): { return cast<byte>(5) }
+        Obj(entries): { return cast<byte>(6) }
+    }
+}
+
+export fn as_string(val:JsonValue):string? {
+    match val {
+        Str(s): { return some(s) }
+        Null: { return none }
+        Bool(b): { return none }
+        Int(n): { return none }
+        Float(f): { return none }
+        Arr(items): { return none }
+        Obj(entries): { return none }
+    }
+}
+
+export fn as_int(val:JsonValue):int64? {
+    match val {
+        Int(n): { return some(n) }
+        Null: { return none }
+        Bool(b): { return none }
+        Float(f): { return none }
+        Str(s): { return none }
+        Arr(items): { return none }
+        Obj(entries): { return none }
+    }
+}
+
+export fn as_float(val:JsonValue):float? {
+    match val {
+        Float(f): { return some(f) }
+        Int(n): { return some(cast<float>(n)) }
+        Null: { return none }
+        Bool(b): { return none }
+        Str(s): { return none }
+        Arr(items): { return none }
+        Obj(entries): { return none }
+    }
+}
+
+export fn as_bool(val:JsonValue):bool? {
+    match val {
+        Bool(b): { return some(b) }
+        Null: { return none }
+        Int(n): { return none }
+        Float(f): { return none }
+        Str(s): { return none }
+        Arr(items): { return none }
+        Obj(entries): { return none }
+    }
+}
+
+export fn as_array(val:JsonValue):array<JsonValue>? {
+    match val {
+        Arr(items): { return some(items) }
+        Null: { return none }
+        Bool(b): { return none }
+        Int(n): { return none }
+        Float(f): { return none }
+        Str(s): { return none }
+        Obj(entries): { return none }
+    }
+}
+
+export fn get(val:JsonValue, key:string):JsonValue? {
+    match val {
+        Obj(entries): { return map.get(entries, key) }
+        Null: { return none }
+        Bool(b): { return none }
+        Int(n): { return none }
+        Float(f): { return none }
+        Str(s): { return none }
+        Arr(items): { return none }
+    }
+}
+
+export fn get_index(val:JsonValue, idx:int64):JsonValue? {
+    match val {
+        Arr(items): {
+            if (idx < 0) { return none }
+            return array.get_any(items, cast<int>(idx))
+        }
+        Null: { return none }
+        Bool(b): { return none }
+        Int(n): { return none }
+        Float(f): { return none }
+        Str(s): { return none }
+        Obj(entries): { return none }
+    }
+}
+
+export fn keys(val:JsonValue):array<string>? {
+    match val {
+        Obj(entries): { return some(map.keys(entries)) }
+        Null: { return none }
+        Bool(b): { return none }
+        Int(n): { return none }
+        Float(f): { return none }
+        Str(s): { return none }
+        Arr(items): { return none }
+    }
+}
+
+// --- Serialization ---
+
+fn escape_json_string(b:StringBuilder, s:string):none {
+    sb.append_char(b, '"')
+    let len = string.len(s)
+    let i:int:mut = 0
+    while (i < len) {
+        match string.char_at(s, i) {
+            some(c): {
+                if (c == '"') {
+                    sb.append(b, "\\\"")
+                } else if (c == '\\') {
+                    sb.append(b, "\\\\")
+                } else if (c == '\n') {
+                    sb.append(b, "\\n")
+                } else if (c == '\r') {
+                    sb.append(b, "\\r")
+                } else if (c == '\t') {
+                    sb.append(b, "\\t")
+                } else {
+                    let code = char.to_code(c)
+                    if (code < 32) {
+                        // Control character: emit \u00xx
+                        sb.append(b, "\\u00")
+                        let hi = code / 16
+                        let lo = code % 16
+                        sb.append_char(b, hex_digit(hi))
+                        sb.append_char(b, hex_digit(lo))
+                    } else {
+                        sb.append_char(b, c)
+                    }
+                }
+            }
+            none: {}
+        }
+        i++
+    }
+    sb.append_char(b, '"')
+}
+
+fn hex_digit(n:int):char {
+    if (n < 10) {
+        return char.from_code(char.to_code('0') + n)
+    }
+    return char.from_code(char.to_code('a') + n - 10)
+}
+
+fn serialize(b:StringBuilder, val:JsonValue):none {
+    match val {
+        Null: { sb.append(b, "null") }
+        Bool(v): {
+            if (v) { sb.append(b, "true") } else { sb.append(b, "false") }
+        }
+        Int(n): { sb.append_int64(b, n) }
+        Float(f): { sb.append_float(b, f) }
+        Str(s): { escape_json_string(b, s) }
+        Arr(items): {
+            sb.append_char(b, '[')
+            let len = array.size(items)
+            let i:int:mut = 0
+            while (i < len) {
+                if (i > 0) { sb.append_char(b, ',') }
+                match array.get_any(items, i) {
+                    some(item): { serialize(b, item) }
+                    none: { sb.append(b, "null") }
+                }
+                i++
+            }
+            sb.append_char(b, ']')
+        }
+        Obj(entries): {
+            sb.append_char(b, '{')
+            let ks = map.keys(entries)
+            let len = array.len_string(ks)
+            let i:int:mut = 0
+            while (i < len) {
+                if (i > 0) { sb.append_char(b, ',') }
+                let key = array.get(ks, i) ?? ""
+                escape_json_string(b, key)
+                sb.append_char(b, ':')
+                let v = map.get(entries, key) ?? Null
+                serialize(b, v)
+                i++
+            }
+            sb.append_char(b, '}')
+        }
+    }
+}
+
+export fn to_string(val:JsonValue):string {
+    let b = sb.new()
+    serialize(b, val)
+    return sb.build(b)
+}
+
+fn serialize_pretty(b:StringBuilder, val:JsonValue, indent:int, depth:int):none {
+    match val {
+        Null: { sb.append(b, "null") }
+        Bool(v): {
+            if (v) { sb.append(b, "true") } else { sb.append(b, "false") }
+        }
+        Int(n): { sb.append_int64(b, n) }
+        Float(f): { sb.append_float(b, f) }
+        Str(s): { escape_json_string(b, s) }
+        Arr(items): {
+            let len = array.size(items)
+            if (len == 0) {
+                sb.append(b, "[]")
+            } else {
+                sb.append(b, "[\n")
+                let i:int:mut = 0
+                while (i < len) {
+                    emit_indent(b, indent * (depth + 1))
+                    match array.get_any(items, i) {
+                        some(item): { serialize_pretty(b, item, indent, depth + 1) }
+                        none: { sb.append(b, "null") }
+                    }
+                    if (i + 1 < len) { sb.append_char(b, ',') }
+                    sb.append_char(b, '\n')
+                    i++
+                }
+                emit_indent(b, indent * depth)
+                sb.append_char(b, ']')
+            }
+        }
+        Obj(entries): {
+            let ks = map.keys(entries)
+            let len = array.len_string(ks)
+            if (len == 0) {
+                sb.append(b, "{}")
+            } else {
+                sb.append(b, "{\n")
+                let i:int:mut = 0
+                while (i < len) {
+                    if (i > 0) { sb.append(b, ",\n") }
+                    emit_indent(b, indent * (depth + 1))
+                    let key = array.get(ks, i) ?? ""
+                    escape_json_string(b, key)
+                    sb.append(b, ": ")
+                    let v = map.get(entries, key) ?? Null
+                    serialize_pretty(b, v, indent, depth + 1)
+                    i++
+                }
+                sb.append_char(b, '\n')
+                emit_indent(b, indent * depth)
+                sb.append_char(b, '}')
+            }
+        }
+    }
+}
+
+fn emit_indent(b:StringBuilder, n:int):none {
+    let i:int:mut = 0
+    while (i < n) {
+        sb.append_char(b, ' ')
+        i++
+    }
+}
+
+export fn to_string_pretty(val:JsonValue, indent:int):string {
+    let b = sb.new()
+    serialize_pretty(b, val, indent, 0)
+    return sb.build(b)
+}
+
+// --- Parser ---
+// Recursive descent parser. Uses string.char_at() for character access.
+// Internal parse functions return (JsonValue, int)? where int is the new position.
+
+fn skip_ws(s:string, pos:int, len:int):int {
+    let p:int:mut = pos
+    while (p < len) {
+        match string.char_at(s, p) {
+            some(c): {
+                if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+                    p++
+                } else {
+                    return p
+                }
+            }
+            none: { return p }
+        }
+    }
+    return p
+}
+
+fn parse_string_value(s:string, pos:int, len:int):(string, int)? {
+    // pos should be on the opening '"'
+    let p:int:mut = pos + 1
+    let b = sb.new()
+    while (p < len) {
+        match string.char_at(s, p) {
+            some(c): {
+                if (c == '"') {
+                    return some((sb.build(b), p + 1))
+                } else if (c == '\\') {
+                    p++
+                    if (p >= len) { return none }
+                    match string.char_at(s, p) {
+                        some(esc): {
+                            if (esc == '"') { sb.append_char(b, '"') }
+                            else if (esc == '\\') { sb.append_char(b, '\\') }
+                            else if (esc == '/') { sb.append_char(b, '/') }
+                            else if (esc == 'b') { sb.append_char(b, char.from_code(8)) }
+                            else if (esc == 'f') { sb.append_char(b, char.from_code(12)) }
+                            else if (esc == 'n') { sb.append_char(b, '\n') }
+                            else if (esc == 'r') { sb.append_char(b, '\r') }
+                            else if (esc == 't') { sb.append_char(b, '\t') }
+                            else if (esc == 'u') {
+                                // Parse 4 hex digits
+                                if (p + 4 >= len) { return none }
+                                let hex_str = string.substring(s, p + 1, p + 5)
+                                match parse_hex4(hex_str) {
+                                    some(code): {
+                                        append_utf8(b, code)
+                                        p = p + 4
+                                    }
+                                    none: { return none }
+                                }
+                            }
+                            else { return none }
+                            p++
+                        }
+                        none: { return none }
+                    }
+                } else {
+                    sb.append_char(b, c)
+                    p++
+                }
+            }
+            none: { return none }
+        }
+    }
+    return none
+}
+
+fn parse_hex4(s:string):int? {
+    if (string.len(s) != 4) { return none }
+    let result:int:mut = 0
+    let i:int:mut = 0
+    while (i < 4) {
+        result = result * 16
+        match string.char_at(s, i) {
+            some(c): {
+                let code = char.to_code(c)
+                if (code >= char.to_code('0') && code <= char.to_code('9')) {
+                    result = result + code - char.to_code('0')
+                } else if (code >= char.to_code('a') && code <= char.to_code('f')) {
+                    result = result + 10 + code - char.to_code('a')
+                } else if (code >= char.to_code('A') && code <= char.to_code('F')) {
+                    result = result + 10 + code - char.to_code('A')
+                } else {
+                    return none
+                }
+            }
+            none: { return none }
+        }
+        i++
+    }
+    return some(result)
+}
+
+fn append_utf8(b:StringBuilder, codepoint:int):none {
+    if (codepoint < 128) {
+        sb.append_char(b, char.from_code(codepoint))
+    } else if (codepoint < 2048) {
+        sb.append_char(b, char.from_code(192 + codepoint / 64))
+        sb.append_char(b, char.from_code(128 + codepoint % 64))
+    } else {
+        sb.append_char(b, char.from_code(224 + codepoint / 4096))
+        sb.append_char(b, char.from_code(128 + (codepoint / 64) % 64))
+        sb.append_char(b, char.from_code(128 + codepoint % 64))
+    }
+}
+
+fn parse_number(s:string, pos:int, len:int):(JsonValue, int)? {
+    let start = pos
+    let p:int:mut = pos
+    let is_float:bool:mut = false
+
+    // Optional minus
+    if (p < len) {
+        match string.char_at(s, p) {
+            some(c): { if (c == '-') { p++ } }
+            none: {}
+        }
+    }
+
+    // Integer digits (at least one required)
+    let digit_start = p
+    p = eat_digits(s, p, len)
+    if (p == digit_start) { return none }
+
+    // Fractional part
+    if (p < len) {
+        match string.char_at(s, p) {
+            some(c): {
+                if (c == '.') {
+                    is_float = true
+                    p++
+                    p = eat_digits(s, p, len)
+                }
+            }
+            none: {}
+        }
+    }
+
+    // Exponent
+    if (p < len) {
+        match string.char_at(s, p) {
+            some(c): {
+                if (c == 'e' || c == 'E') {
+                    is_float = true
+                    p++
+                    if (p < len) {
+                        match string.char_at(s, p) {
+                            some(sc): {
+                                if (sc == '+' || sc == '-') { p++ }
+                            }
+                            none: {}
+                        }
+                    }
+                    p = eat_digits(s, p, len)
+                }
+            }
+            none: {}
+        }
+    }
+
+    let num_str = string.substring(s, start, p)
+    if (is_float) {
+        match conv.string_to_float(num_str) {
+            some(f): { return some((Float(f), p)) }
+            none: { return none }
+        }
+    } else {
+        match conv.string_to_int64(num_str) {
+            some(n): { return some((Int(n), p)) }
+            none: { return none }
+        }
+    }
+}
+
+fn eat_digits(s:string, pos:int, len:int):int {
+    let p:int:mut = pos
+    let running:bool:mut = true
+    while (p < len && running) {
+        match string.char_at(s, p) {
+            some(c): {
+                if (char.is_digit(c)) { p++ }
+                else { running = false }
+            }
+            none: { running = false }
+        }
+    }
+    return p
+}
+
+fn parse_value(s:string, pos:int, len:int):(JsonValue, int)? {
+    let p = skip_ws(s, pos, len)
+    if (p >= len) { return none }
+
+    match string.char_at(s, p) {
+        some(c): {
+            if (c == '"') {
+                match parse_string_value(s, p, len) {
+                    some(result): { return some((Str(result.0), result.1)) }
+                    none: { return none }
+                }
+            } else if (c == '{') {
+                return parse_object(s, p, len)
+            } else if (c == '[') {
+                return parse_array(s, p, len)
+            } else if (c == 't') {
+                return parse_literal(s, p, len, "true", Bool(true))
+            } else if (c == 'f') {
+                return parse_literal(s, p, len, "false", Bool(false))
+            } else if (c == 'n') {
+                return parse_literal(s, p, len, "null", Null)
+            } else if (c == '-' || char.is_digit(c)) {
+                return parse_number(s, p, len)
+            } else {
+                return none
+            }
+        }
+        none: { return none }
+    }
+}
+
+fn parse_literal(s:string, pos:int, len:int, expected:string, val:JsonValue):(JsonValue, int)? {
+    let elen = string.len(expected)
+    if (pos + elen > len) { return none }
+    let actual = string.substring(s, pos, pos + elen)
+    if (actual == expected) {
+        return some((val, pos + elen))
+    }
+    return none
+}
+
+fn parse_array(s:string, pos:int, len:int):(JsonValue, int)? {
+    let p:int:mut = pos + 1  // skip '['
+    p = skip_ws(s, p, len)
+
+    let items:array<JsonValue>:mut = []
+
+    // Empty array
+    if (p < len) {
+        match string.char_at(s, p) {
+            some(c): {
+                if (c == ']') { return some((Arr(items), p + 1)) }
+            }
+            none: {}
+        }
+    }
+
+    let parsing:bool:mut = true
+    while (parsing && p < len) {
+        match parse_value(s, p, len) {
+            some(result): {
+                items = array.push(items, result.0)
+                p = skip_ws(s, result.1, len)
+                if (p < len) {
+                    match string.char_at(s, p) {
+                        some(c): {
+                            if (c == ',') {
+                                p++
+                            } else if (c == ']') {
+                                return some((Arr(items), p + 1))
+                            } else {
+                                return none
+                            }
+                        }
+                        none: { return none }
+                    }
+                } else {
+                    return none
+                }
+            }
+            none: { return none }
+        }
+    }
+    return none
+}
+
+fn parse_object(s:string, pos:int, len:int):(JsonValue, int)? {
+    let p:int:mut = pos + 1  // skip '{'
+    p = skip_ws(s, p, len)
+
+    let entries:map<string, JsonValue>:mut = map.new()
+
+    // Empty object
+    if (p < len) {
+        match string.char_at(s, p) {
+            some(c): {
+                if (c == '}') { return some((Obj(entries), p + 1)) }
+            }
+            none: {}
+        }
+    }
+
+    let parsing:bool:mut = true
+    while (parsing && p < len) {
+        // Parse key (must be a string)
+        p = skip_ws(s, p, len)
+        if (p >= len) { return none }
+        match string.char_at(s, p) {
+            some(c): {
+                if (c != '"') { return none }
+            }
+            none: { return none }
+        }
+
+        match parse_string_value(s, p, len) {
+            some(key_result): {
+                let key = key_result.0
+                p = skip_ws(s, key_result.1, len)
+
+                // Expect ':'
+                if (p >= len) { return none }
+                match string.char_at(s, p) {
+                    some(c): {
+                        if (c != ':') { return none }
+                    }
+                    none: { return none }
+                }
+                p++
+
+                // Parse value
+                match parse_value(s, p, len) {
+                    some(val_result): {
+                        entries = map.set(entries, key, val_result.0)
+                        p = skip_ws(s, val_result.1, len)
+
+                        if (p < len) {
+                            match string.char_at(s, p) {
+                                some(ch): {
+                                    if (ch == ',') {
+                                        p++
+                                    } else if (ch == '}') {
+                                        return some((Obj(entries), p + 1))
+                                    } else {
+                                        return none
+                                    }
+                                }
+                                none: { return none }
+                            }
+                        } else {
+                            return none
+                        }
+                    }
+                    none: { return none }
+                }
+            }
+            none: { return none }
+        }
+    }
+    return none
+}
+
+export fn parse(s:string):JsonValue? {
+    let len = string.len(s)
+    match parse_value(s, 0, len) {
+        some(result): {
+            // Ensure no trailing garbage (besides whitespace)
+            let p = skip_ws(s, result.1, len)
+            if (p == len) {
+                return some(result.0)
+            }
+            return none
+        }
+        none: { return none }
+    }
+}

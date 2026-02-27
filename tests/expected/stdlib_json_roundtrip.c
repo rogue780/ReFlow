@@ -2,6 +2,1824 @@
 /* Source: tests/programs/stdlib_json_roundtrip.flow */
 #include "flow_runtime.h"
 
+/* From: stdlib/char.flow */
+
+fl_bool fl_char_is_digit(fl_char c);
+
+fl_bool fl_char_is_alpha(fl_char c);
+
+fl_bool fl_char_is_alphanumeric(fl_char c);
+
+fl_bool fl_char_is_whitespace(fl_char c);
+
+fl_int fl_char_to_code(fl_char c);
+
+fl_char fl_char_from_code(fl_int n);
+
+/* Flow: char.is_digit */
+fl_bool fl_char_is_digit(fl_char c) {
+    return ((c >= 48) && (c <= 57));
+}
+
+/* Flow: char.is_alpha */
+fl_bool fl_char_is_alpha(fl_char c) {
+    return ((((c >= 97) && (c <= 122)) || ((c >= 65) && (c <= 90))) || (c == 95));
+}
+
+/* Flow: char.is_alphanumeric */
+fl_bool fl_char_is_alphanumeric(fl_char c) {
+    return (fl_char_is_alpha(c) || fl_char_is_digit(c));
+}
+
+/* Flow: char.is_whitespace */
+fl_bool fl_char_is_whitespace(fl_char c) {
+    return ((((c == 32) || (c == 9)) || (c == 10)) || (c == 13));
+}
+
+/* Flow: char.to_code */
+fl_int fl_char_to_code(fl_char c) {
+    return ((fl_int)c);
+}
+
+/* Flow: char.from_code */
+fl_char fl_char_from_code(fl_int n) {
+    return ((fl_char)n);
+}
+
+/* From: stdlib/conv.flow */
+
+FL_String* fl_conv_char_to_string(fl_char c);
+
+FL_Option_int fl_conv_string_to_int(FL_String* s);
+
+FL_Option_int64 fl_conv_string_to_int64(FL_String* s);
+
+FL_Option_float fl_conv_string_to_float(FL_String* s);
+
+FL_Option_float fl_conv_parse_float_rest(FL_String* s, fl_int len, fl_int pos, fl_float int_part, fl_bool negative, fl_bool has_digits_before);
+
+FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl_float mantissa, fl_bool negative, fl_bool has_digits);
+
+/* Flow: conv.char_to_string */
+FL_String* fl_conv_char_to_string(fl_char c) {
+    return fl_char_to_string(c);
+}
+
+/* Flow: conv.string_to_int */
+FL_Option_int fl_conv_string_to_int(FL_String* s) {
+    fl_int len = fl_string_len(s);
+    if (len == 0) {
+        return (FL_Option_int){.tag = 0};
+    }
+    fl_int start = 0;
+    fl_bool negative = fl_false;
+    FL_Option_char _fl_tmp_0 = fl_string_char_at(s, 0);
+    if (_fl_tmp_0.tag == 1) {
+        fl_char c = _fl_tmp_0.value;
+        if (c == 45) {
+            negative = fl_true;
+            start = 1;
+        } else {
+            if (c == 43) {
+                start = 1;
+            }
+        }
+    } else {
+        return (FL_Option_int){.tag = 0};
+    }
+    if (start >= len) {
+        return (FL_Option_int){.tag = 0};
+    }
+    fl_int result = 0;
+    fl_int i = start;
+    while (i < len) {
+        FL_Option_char _fl_tmp_1 = fl_string_char_at(s, i);
+        if (_fl_tmp_1.tag == 1) {
+            fl_char c = _fl_tmp_1.value;
+            if (!fl_char_is_digit(c)) {
+                return (FL_Option_int){.tag = 0};
+            }
+            fl_int _fl_e_1;
+            FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_1);
+            fl_int digit = _fl_e_1;
+            fl_int _fl_e_3;
+            FL_CHECKED_MUL(result, 10, &_fl_e_3);
+            fl_int _fl_e_2;
+            FL_CHECKED_ADD(_fl_e_3, digit, &_fl_e_2);
+            result = _fl_e_2;
+        } else {
+            return (FL_Option_int){.tag = 0};
+        }
+        fl_int _fl_e_4;
+        FL_CHECKED_ADD(i, 1, &_fl_e_4);
+        i = _fl_e_4;
+    }
+    if (negative) {
+        fl_int _fl_e_5;
+        FL_CHECKED_SUB(0, result, &_fl_e_5);
+        result = _fl_e_5;
+    }
+    return (FL_Option_int){.tag = 1, .value = result};
+}
+
+/* Flow: conv.string_to_int64 */
+FL_Option_int64 fl_conv_string_to_int64(FL_String* s) {
+    fl_int len = fl_string_len(s);
+    if (len == 0) {
+        return (FL_Option_int64){.tag = 0};
+    }
+    fl_int start = 0;
+    fl_bool negative = fl_false;
+    FL_Option_char _fl_tmp_2 = fl_string_char_at(s, 0);
+    if (_fl_tmp_2.tag == 1) {
+        fl_char c = _fl_tmp_2.value;
+        if (c == 45) {
+            negative = fl_true;
+            start = 1;
+        } else {
+            if (c == 43) {
+                start = 1;
+            }
+        }
+    } else {
+        return (FL_Option_int64){.tag = 0};
+    }
+    if (start >= len) {
+        return (FL_Option_int64){.tag = 0};
+    }
+    fl_int64 result = ((fl_int64)0);
+    fl_int i = start;
+    while (i < len) {
+        FL_Option_char _fl_tmp_3 = fl_string_char_at(s, i);
+        if (_fl_tmp_3.tag == 1) {
+            fl_char c = _fl_tmp_3.value;
+            if (!fl_char_is_digit(c)) {
+                return (FL_Option_int64){.tag = 0};
+            }
+            fl_int _fl_e_1;
+            FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_1);
+            fl_int64 digit = ((fl_int64)_fl_e_1);
+            fl_int64 _fl_e_3;
+            FL_CHECKED_MUL(result, ((fl_int64)10), &_fl_e_3);
+            fl_int64 _fl_e_2;
+            FL_CHECKED_ADD(_fl_e_3, digit, &_fl_e_2);
+            result = _fl_e_2;
+        } else {
+            return (FL_Option_int64){.tag = 0};
+        }
+        fl_int _fl_e_4;
+        FL_CHECKED_ADD(i, 1, &_fl_e_4);
+        i = _fl_e_4;
+    }
+    if (negative) {
+        fl_int64 _fl_e_5;
+        FL_CHECKED_SUB(((fl_int64)0), result, &_fl_e_5);
+        result = _fl_e_5;
+    }
+    return (FL_Option_int64){.tag = 1, .value = result};
+}
+
+/* Flow: conv.string_to_float */
+FL_Option_float fl_conv_string_to_float(FL_String* s) {
+    fl_int len = fl_string_len(s);
+    if (len == 0) {
+        return (FL_Option_float){.tag = 0};
+    }
+    fl_int start = 0;
+    fl_bool negative = fl_false;
+    FL_Option_char _fl_tmp_4 = fl_string_char_at(s, 0);
+    if (_fl_tmp_4.tag == 1) {
+        fl_char c = _fl_tmp_4.value;
+        if (c == 45) {
+            negative = fl_true;
+            start = 1;
+        } else {
+            if (c == 43) {
+                start = 1;
+            }
+        }
+    } else {
+        return (FL_Option_float){.tag = 0};
+    }
+    if (start >= len) {
+        return (FL_Option_float){.tag = 0};
+    }
+    fl_float result = 0.0;
+    fl_int i = start;
+    fl_bool has_digits = fl_false;
+    while (i < len) {
+        FL_Option_char _fl_tmp_5 = fl_string_char_at(s, i);
+        if (_fl_tmp_5.tag == 1) {
+            fl_char c = _fl_tmp_5.value;
+            if (fl_char_is_digit(c)) {
+                fl_int _fl_e_1;
+                FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_1);
+                fl_float digit = ((fl_float)_fl_e_1);
+                result = ((result * 10.0) + digit);
+                has_digits = fl_true;
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(i, 1, &_fl_e_2);
+                i = _fl_e_2;
+            } else {
+                i = i;
+                return fl_conv_parse_float_rest(s, len, i, result, negative, has_digits);
+            }
+        } else {
+            return (FL_Option_float){.tag = 0};
+        }
+    }
+    if (!has_digits) {
+        return (FL_Option_float){.tag = 0};
+    }
+    if (negative) {
+        result = (0.0 - result);
+    }
+    return (FL_Option_float){.tag = 1, .value = result};
+}
+
+/* Flow: conv.parse_float_rest */
+FL_Option_float fl_conv_parse_float_rest(FL_String* s, fl_int len, fl_int pos, fl_float int_part, fl_bool negative, fl_bool has_digits_before) {
+    fl_float result = int_part;
+    fl_int i = pos;
+    fl_bool has_digits = has_digits_before;
+    fl_bool at_dot = fl_false;
+    if (i < len) {
+        FL_Option_char _fl_tmp_6 = fl_string_char_at(s, i);
+        if (_fl_tmp_6.tag == 1) {
+            fl_char c = _fl_tmp_6.value;
+            if (c == 46) {
+                at_dot = fl_true;
+                fl_int _fl_e_1;
+                FL_CHECKED_ADD(i, 1, &_fl_e_1);
+                i = _fl_e_1;
+            }
+        }
+    }
+    if (at_dot) {
+        fl_float frac = 0.0;
+        fl_float frac_div = 1.0;
+        while (i < len) {
+            FL_Option_char _fl_tmp_7 = fl_string_char_at(s, i);
+            if (_fl_tmp_7.tag == 1) {
+                fl_char c = _fl_tmp_7.value;
+                if (fl_char_is_digit(c)) {
+                    fl_int _fl_e_2;
+                    FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_2);
+                    fl_float digit = ((fl_float)_fl_e_2);
+                    frac = ((frac * 10.0) + digit);
+                    frac_div = (frac_div * 10.0);
+                    has_digits = fl_true;
+                    fl_int _fl_e_3;
+                    FL_CHECKED_ADD(i, 1, &_fl_e_3);
+                    i = _fl_e_3;
+                } else {
+                    return fl_conv_parse_float_exp(s, len, i, (result + (frac / frac_div)), negative, has_digits);
+                }
+            } else {
+                return (FL_Option_float){.tag = 0};
+            }
+        }
+        result = (result + (frac / frac_div));
+    }
+    if (!has_digits) {
+        return (FL_Option_float){.tag = 0};
+    }
+    if (i < len) {
+        return fl_conv_parse_float_exp(s, len, i, result, negative, has_digits);
+    }
+    if (negative) {
+        result = (0.0 - result);
+    }
+    return (FL_Option_float){.tag = 1, .value = result};
+}
+
+/* Flow: conv.parse_float_exp */
+FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl_float mantissa, fl_bool negative, fl_bool has_digits) {
+    fl_int i = pos;
+    if (!has_digits) {
+        return (FL_Option_float){.tag = 0};
+    }
+    fl_bool at_exp = fl_false;
+    if (i < len) {
+        FL_Option_char _fl_tmp_8 = fl_string_char_at(s, i);
+        if (_fl_tmp_8.tag == 1) {
+            fl_char c = _fl_tmp_8.value;
+            if ((c == 101) || (c == 69)) {
+                at_exp = fl_true;
+                fl_int _fl_e_1;
+                FL_CHECKED_ADD(i, 1, &_fl_e_1);
+                i = _fl_e_1;
+            }
+        }
+    }
+    fl_float result = mantissa;
+    if (at_exp) {
+        fl_bool exp_neg = fl_false;
+        if (i < len) {
+            FL_Option_char _fl_tmp_9 = fl_string_char_at(s, i);
+            if (_fl_tmp_9.tag == 1) {
+                fl_char c = _fl_tmp_9.value;
+                if (c == 45) {
+                    exp_neg = fl_true;
+                    fl_int _fl_e_2;
+                    FL_CHECKED_ADD(i, 1, &_fl_e_2);
+                    i = _fl_e_2;
+                } else {
+                    if (c == 43) {
+                        fl_int _fl_e_3;
+                        FL_CHECKED_ADD(i, 1, &_fl_e_3);
+                        i = _fl_e_3;
+                    }
+                }
+            }
+        }
+        fl_int exp_val = 0;
+        fl_bool exp_digits = fl_false;
+        while (i < len) {
+            FL_Option_char _fl_tmp_10 = fl_string_char_at(s, i);
+            if (_fl_tmp_10.tag == 1) {
+                fl_char c = _fl_tmp_10.value;
+                if (fl_char_is_digit(c)) {
+                    fl_int _fl_e_5;
+                    FL_CHECKED_MUL(exp_val, 10, &_fl_e_5);
+                    fl_int _fl_e_6;
+                    FL_CHECKED_SUB(fl_char_to_code(c), fl_char_to_code(48), &_fl_e_6);
+                    fl_int _fl_e_4;
+                    FL_CHECKED_ADD(_fl_e_5, _fl_e_6, &_fl_e_4);
+                    exp_val = _fl_e_4;
+                    exp_digits = fl_true;
+                } else {
+                    return (FL_Option_float){.tag = 0};
+                }
+            } else {
+                return (FL_Option_float){.tag = 0};
+            }
+            fl_int _fl_e_7;
+            FL_CHECKED_ADD(i, 1, &_fl_e_7);
+            i = _fl_e_7;
+        }
+        if (!exp_digits) {
+            return (FL_Option_float){.tag = 0};
+        }
+        fl_float multiplier = 1.0;
+        fl_int e = 0;
+        while (e < exp_val) {
+            multiplier = (multiplier * 10.0);
+            fl_int _fl_e_8;
+            FL_CHECKED_ADD(e, 1, &_fl_e_8);
+            e = _fl_e_8;
+        }
+        if (exp_neg) {
+            result = (result / multiplier);
+        } else {
+            result = (result * multiplier);
+        }
+    }
+    if (i != len) {
+        return (FL_Option_float){.tag = 0};
+    }
+    if (negative) {
+        result = (0.0 - result);
+    }
+    return (FL_Option_float){.tag = 1, .value = result};
+}
+
+/* From: stdlib/json.flow */
+
+typedef struct fl_json_JsonValue_Bool fl_json_JsonValue_Bool;
+
+typedef struct fl_json_JsonValue_Int fl_json_JsonValue_Int;
+
+typedef struct fl_json_JsonValue_Float fl_json_JsonValue_Float;
+
+typedef struct fl_json_JsonValue_Str fl_json_JsonValue_Str;
+
+typedef struct fl_json_JsonValue_Arr fl_json_JsonValue_Arr;
+
+typedef struct fl_json_JsonValue_Obj fl_json_JsonValue_Obj;
+
+typedef struct fl_json_JsonValue fl_json_JsonValue;
+
+typedef struct FL_Option_fl_json_JsonValue FL_Option_fl_json_JsonValue;
+
+typedef struct FL_Tuple_FL_String_ptr_fl_int FL_Tuple_FL_String_ptr_fl_int;
+
+typedef struct FL_Option_FL_Tuple_FL_String_ptr_fl_int FL_Option_FL_Tuple_FL_String_ptr_fl_int;
+
+typedef struct FL_Tuple_fl_json_JsonValue_fl_int FL_Tuple_fl_json_JsonValue_fl_int;
+
+typedef struct FL_Option_FL_Tuple_fl_json_JsonValue_fl_int FL_Option_FL_Tuple_fl_json_JsonValue_fl_int;
+
+fl_json_JsonValue fl_json_null_val(void);
+
+fl_json_JsonValue fl_json_bool_val(fl_bool b);
+
+fl_json_JsonValue fl_json_int_val(fl_int64 n);
+
+fl_json_JsonValue fl_json_float_val(fl_float f);
+
+fl_json_JsonValue fl_json_string_val(FL_String* s);
+
+fl_json_JsonValue fl_json_array_val(FL_Array* items);
+
+fl_json_JsonValue fl_json_object_val(FL_Map* entries);
+
+fl_bool fl_json_is_null(fl_json_JsonValue val);
+
+fl_byte fl_json_type_tag(fl_json_JsonValue val);
+
+FL_Option_ptr fl_json_as_string(fl_json_JsonValue val);
+
+FL_Option_int64 fl_json_as_int(fl_json_JsonValue val);
+
+FL_Option_float fl_json_as_float(fl_json_JsonValue val);
+
+FL_Option_bool fl_json_as_bool(fl_json_JsonValue val);
+
+FL_Option_ptr fl_json_as_array(fl_json_JsonValue val);
+
+FL_Option_fl_json_JsonValue fl_json_get(fl_json_JsonValue val, FL_String* key);
+
+FL_Option_fl_json_JsonValue fl_json_get_index(fl_json_JsonValue val, fl_int64 idx);
+
+FL_Option_ptr fl_json_keys(fl_json_JsonValue val);
+
+void fl_json_escape_json_string(FL_StringBuilder* b, FL_String* s);
+
+fl_char fl_json_hex_digit(fl_int n);
+
+void fl_json_serialize(FL_StringBuilder* b, fl_json_JsonValue val);
+
+FL_String* fl_json_to_string(fl_json_JsonValue val);
+
+void fl_json_serialize_pretty(FL_StringBuilder* b, fl_json_JsonValue val, fl_int indent, fl_int depth);
+
+void fl_json_emit_indent(FL_StringBuilder* b, fl_int n);
+
+FL_String* fl_json_to_string_pretty(fl_json_JsonValue val, fl_int indent);
+
+fl_int fl_json_skip_ws(FL_String* s, fl_int pos, fl_int len);
+
+FL_Option_FL_Tuple_FL_String_ptr_fl_int fl_json_parse_string_value(FL_String* s, fl_int pos, fl_int len);
+
+FL_Option_int fl_json_parse_hex4(FL_String* s);
+
+void fl_json_append_utf8(FL_StringBuilder* b, fl_int codepoint);
+
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_number(FL_String* s, fl_int pos, fl_int len);
+
+fl_int fl_json_eat_digits(FL_String* s, fl_int pos, fl_int len);
+
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_value(FL_String* s, fl_int pos, fl_int len);
+
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_literal(FL_String* s, fl_int pos, fl_int len, FL_String* expected, fl_json_JsonValue val);
+
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl_int pos, fl_int len);
+
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, fl_int pos, fl_int len);
+
+FL_Option_fl_json_JsonValue fl_json_parse(FL_String* s);
+
+struct fl_json_JsonValue_Bool {
+    fl_bool val;
+};
+
+struct fl_json_JsonValue_Int {
+    fl_int64 val;
+};
+
+struct fl_json_JsonValue_Float {
+    fl_float val;
+};
+
+struct fl_json_JsonValue_Str {
+    FL_String* val;
+};
+
+struct fl_json_JsonValue_Arr {
+    FL_Array* items;
+};
+
+struct fl_json_JsonValue_Obj {
+    FL_Map* entries;
+};
+
+struct fl_json_JsonValue {
+    fl_byte tag;
+    fl_json_JsonValue_Bool Bool;
+    fl_json_JsonValue_Int Int;
+    fl_json_JsonValue_Float Float;
+    fl_json_JsonValue_Str Str;
+    fl_json_JsonValue_Arr Arr;
+    fl_json_JsonValue_Obj Obj;
+};
+
+struct FL_Option_fl_json_JsonValue {
+    fl_byte tag;
+    fl_json_JsonValue value;
+};
+
+struct FL_Tuple_FL_String_ptr_fl_int {
+    FL_String* _0;
+    fl_int _1;
+};
+
+struct FL_Option_FL_Tuple_FL_String_ptr_fl_int {
+    fl_byte tag;
+    FL_Tuple_FL_String_ptr_fl_int value;
+};
+
+struct FL_Tuple_fl_json_JsonValue_fl_int {
+    fl_json_JsonValue _0;
+    fl_int _1;
+};
+
+struct FL_Option_FL_Tuple_fl_json_JsonValue_fl_int {
+    fl_byte tag;
+    FL_Tuple_fl_json_JsonValue_fl_int value;
+};
+
+/* Flow: json.null_val */
+fl_json_JsonValue fl_json_null_val(void) {
+    return (fl_json_JsonValue){.tag = 0};
+}
+
+/* Flow: json.bool_val */
+fl_json_JsonValue fl_json_bool_val(fl_bool b) {
+    return (fl_json_JsonValue){.tag = 1, .Bool = (fl_json_JsonValue_Bool){.val = b}};
+}
+
+/* Flow: json.int_val */
+fl_json_JsonValue fl_json_int_val(fl_int64 n) {
+    return (fl_json_JsonValue){.tag = 2, .Int = (fl_json_JsonValue_Int){.val = n}};
+}
+
+/* Flow: json.float_val */
+fl_json_JsonValue fl_json_float_val(fl_float f) {
+    return (fl_json_JsonValue){.tag = 3, .Float = (fl_json_JsonValue_Float){.val = f}};
+}
+
+/* Flow: json.string_val */
+fl_json_JsonValue fl_json_string_val(FL_String* s) {
+    return (fl_json_JsonValue){.tag = 4, .Str = (fl_json_JsonValue_Str){.val = s}};
+}
+
+/* Flow: json.array_val */
+fl_json_JsonValue fl_json_array_val(FL_Array* items) {
+    return (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}};
+}
+
+/* Flow: json.object_val */
+fl_json_JsonValue fl_json_object_val(FL_Map* entries) {
+    return (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}};
+}
+
+/* Flow: json.is_null */
+fl_bool fl_json_is_null(fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_0 = val;
+    switch (_fl_tmp_0.tag) {
+        case 0: {
+            return fl_true;
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_0.Bool.val;
+            return fl_false;
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_0.Int.val;
+            return fl_false;
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_0.Float.val;
+            return fl_false;
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_0.Str.val;
+            return fl_false;
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_0.Arr.items;
+            return fl_false;
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_0.Obj.entries;
+            return fl_false;
+            break;
+        }
+    }
+}
+
+/* Flow: json.type_tag */
+fl_byte fl_json_type_tag(fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_1 = val;
+    switch (_fl_tmp_1.tag) {
+        case 0: {
+            return ((fl_byte)0);
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_1.Bool.val;
+            return ((fl_byte)1);
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_1.Int.val;
+            return ((fl_byte)2);
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_1.Float.val;
+            return ((fl_byte)3);
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_1.Str.val;
+            return ((fl_byte)4);
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_1.Arr.items;
+            return ((fl_byte)5);
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_1.Obj.entries;
+            return ((fl_byte)6);
+            break;
+        }
+    }
+}
+
+/* Flow: json.as_string */
+FL_Option_ptr fl_json_as_string(fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_2 = val;
+    switch (_fl_tmp_2.tag) {
+        case 4: {
+            FL_String* s = _fl_tmp_2.Str.val;
+            return (FL_Option_ptr){.tag = 1, .value = s};
+            break;
+        }
+        case 0: {
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_2.Bool.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_2.Int.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_2.Float.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_2.Arr.items;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_2.Obj.entries;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+    }
+}
+
+/* Flow: json.as_int */
+FL_Option_int64 fl_json_as_int(fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_3 = val;
+    switch (_fl_tmp_3.tag) {
+        case 2: {
+            fl_int64 n = _fl_tmp_3.Int.val;
+            return (FL_Option_int64){.tag = 1, .value = n};
+            break;
+        }
+        case 0: {
+            return (FL_Option_int64){.tag = 0};
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_3.Bool.val;
+            return (FL_Option_int64){.tag = 0};
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_3.Float.val;
+            return (FL_Option_int64){.tag = 0};
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_3.Str.val;
+            return (FL_Option_int64){.tag = 0};
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_3.Arr.items;
+            return (FL_Option_int64){.tag = 0};
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_3.Obj.entries;
+            return (FL_Option_int64){.tag = 0};
+            break;
+        }
+    }
+}
+
+/* Flow: json.as_float */
+FL_Option_float fl_json_as_float(fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_4 = val;
+    switch (_fl_tmp_4.tag) {
+        case 3: {
+            fl_float f = _fl_tmp_4.Float.val;
+            return (FL_Option_float){.tag = 1, .value = f};
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_4.Int.val;
+            return (FL_Option_float){.tag = 1, .value = ((fl_float)n)};
+            break;
+        }
+        case 0: {
+            return (FL_Option_float){.tag = 0};
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_4.Bool.val;
+            return (FL_Option_float){.tag = 0};
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_4.Str.val;
+            return (FL_Option_float){.tag = 0};
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_4.Arr.items;
+            return (FL_Option_float){.tag = 0};
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_4.Obj.entries;
+            return (FL_Option_float){.tag = 0};
+            break;
+        }
+    }
+}
+
+/* Flow: json.as_bool */
+FL_Option_bool fl_json_as_bool(fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_5 = val;
+    switch (_fl_tmp_5.tag) {
+        case 1: {
+            fl_bool b = _fl_tmp_5.Bool.val;
+            return (FL_Option_bool){.tag = 1, .value = b};
+            break;
+        }
+        case 0: {
+            return (FL_Option_bool){.tag = 0};
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_5.Int.val;
+            return (FL_Option_bool){.tag = 0};
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_5.Float.val;
+            return (FL_Option_bool){.tag = 0};
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_5.Str.val;
+            return (FL_Option_bool){.tag = 0};
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_5.Arr.items;
+            return (FL_Option_bool){.tag = 0};
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_5.Obj.entries;
+            return (FL_Option_bool){.tag = 0};
+            break;
+        }
+    }
+}
+
+/* Flow: json.as_array */
+FL_Option_ptr fl_json_as_array(fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_6 = val;
+    switch (_fl_tmp_6.tag) {
+        case 5: {
+            FL_Array* items = _fl_tmp_6.Arr.items;
+            return (FL_Option_ptr){.tag = 1, .value = items};
+            break;
+        }
+        case 0: {
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_6.Bool.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_6.Int.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_6.Float.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_6.Str.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_6.Obj.entries;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+    }
+}
+
+/* Flow: json.get */
+FL_Option_fl_json_JsonValue fl_json_get(fl_json_JsonValue val, FL_String* key) {
+    fl_json_JsonValue _fl_tmp_7 = val;
+    switch (_fl_tmp_7.tag) {
+        case 6: {
+            FL_Map* entries = _fl_tmp_7.Obj.entries;
+            return FL_OPT_DEREF_AS(fl_map_get_str(entries, key), fl_json_JsonValue, FL_Option_fl_json_JsonValue);
+            break;
+        }
+        case 0: {
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_7.Bool.val;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_7.Int.val;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_7.Float.val;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_7.Str.val;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_7.Arr.items;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+    }
+}
+
+/* Flow: json.get_index */
+FL_Option_fl_json_JsonValue fl_json_get_index(fl_json_JsonValue val, fl_int64 idx) {
+    fl_json_JsonValue _fl_tmp_8 = val;
+    switch (_fl_tmp_8.tag) {
+        case 5: {
+            FL_Array* items = _fl_tmp_8.Arr.items;
+            if (idx < 0) {
+                return (FL_Option_fl_json_JsonValue){.tag = 0};
+            }
+            return FL_OPT_DEREF_AS(fl_array_get_safe(items, ((fl_int)idx)), fl_json_JsonValue, FL_Option_fl_json_JsonValue);
+            break;
+        }
+        case 0: {
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_8.Bool.val;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_8.Int.val;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_8.Float.val;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_8.Str.val;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_8.Obj.entries;
+            return (FL_Option_fl_json_JsonValue){.tag = 0};
+            break;
+        }
+    }
+}
+
+/* Flow: json.keys */
+FL_Option_ptr fl_json_keys(fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_9 = val;
+    switch (_fl_tmp_9.tag) {
+        case 6: {
+            FL_Map* entries = _fl_tmp_9.Obj.entries;
+            return (FL_Option_ptr){.tag = 1, .value = fl_map_keys(entries)};
+            break;
+        }
+        case 0: {
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 1: {
+            fl_bool b = _fl_tmp_9.Bool.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_9.Int.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_9.Float.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_9.Str.val;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_9.Arr.items;
+            return (FL_Option_ptr){.tag = 0};
+            break;
+        }
+    }
+}
+
+/* Flow: json.escape_json_string */
+void fl_json_escape_json_string(FL_StringBuilder* b, FL_String* s) {
+    fl_sb_append_char(b, 34);
+    fl_int len = fl_string_len(s);
+    fl_int i = 0;
+    while (i < len) {
+        FL_Option_char _fl_tmp_10 = fl_string_char_at(s, i);
+        if (_fl_tmp_10.tag == 1) {
+            fl_char c = _fl_tmp_10.value;
+            if (c == 34) {
+                fl_sb_append(b, fl_string_from_cstr("\\\""));
+            } else {
+                if (c == 92) {
+                    fl_sb_append(b, fl_string_from_cstr("\\\\"));
+                } else {
+                    if (c == 10) {
+                        fl_sb_append(b, fl_string_from_cstr("\\n"));
+                    } else {
+                        if (c == 13) {
+                            fl_sb_append(b, fl_string_from_cstr("\\r"));
+                        } else {
+                            if (c == 9) {
+                                fl_sb_append(b, fl_string_from_cstr("\\t"));
+                            } else {
+                                fl_int code = fl_char_to_code(c);
+                                if (code < 32) {
+                                    fl_sb_append(b, fl_string_from_cstr("\\u00"));
+                                    fl_int _fl_e_1;
+                                    FL_CHECKED_DIV(code, 16, &_fl_e_1);
+                                    fl_int hi = _fl_e_1;
+                                    fl_int _fl_e_2;
+                                    FL_CHECKED_MOD(code, 16, &_fl_e_2);
+                                    fl_int lo = _fl_e_2;
+                                    fl_sb_append_char(b, fl_json_hex_digit(hi));
+                                    fl_sb_append_char(b, fl_json_hex_digit(lo));
+                                } else {
+                                    fl_sb_append_char(b, c);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        fl_int _fl_e_3;
+        FL_CHECKED_ADD(i, 1, &_fl_e_3);
+        i = _fl_e_3;
+    }
+    fl_sb_append_char(b, 34);
+}
+
+/* Flow: json.hex_digit */
+fl_char fl_json_hex_digit(fl_int n) {
+    if (n < 10) {
+        fl_int _fl_e_1;
+        FL_CHECKED_ADD(fl_char_to_code(48), n, &_fl_e_1);
+        return fl_char_from_code(_fl_e_1);
+    }
+    fl_int _fl_e_3;
+    FL_CHECKED_ADD(fl_char_to_code(97), n, &_fl_e_3);
+    fl_int _fl_e_2;
+    FL_CHECKED_SUB(_fl_e_3, 10, &_fl_e_2);
+    return fl_char_from_code(_fl_e_2);
+}
+
+/* Flow: json.serialize */
+void fl_json_serialize(FL_StringBuilder* b, fl_json_JsonValue val) {
+    fl_json_JsonValue _fl_tmp_11 = val;
+    switch (_fl_tmp_11.tag) {
+        case 0: {
+            fl_sb_append(b, fl_string_from_cstr("null"));
+            break;
+        }
+        case 1: {
+            fl_bool v = _fl_tmp_11.Bool.val;
+            if (v) {
+                fl_sb_append(b, fl_string_from_cstr("true"));
+            } else {
+                fl_sb_append(b, fl_string_from_cstr("false"));
+            }
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_11.Int.val;
+            fl_sb_append_int64(b, n);
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_11.Float.val;
+            fl_sb_append_float(b, f);
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_11.Str.val;
+            fl_json_escape_json_string(b, s);
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_11.Arr.items;
+            fl_sb_append_char(b, 91);
+            fl_int len = fl_array_len_int(items);
+            fl_int i = 0;
+            while (i < len) {
+                if (i > 0) {
+                    fl_sb_append_char(b, 44);
+                }
+                FL_Option_fl_json_JsonValue _fl_tmp_12 = FL_OPT_DEREF_AS(fl_array_get_safe(items, i), fl_json_JsonValue, FL_Option_fl_json_JsonValue);
+                if (_fl_tmp_12.tag == 1) {
+                    fl_json_JsonValue item = _fl_tmp_12.value;
+                    fl_json_serialize(b, item);
+                } else {
+                    fl_sb_append(b, fl_string_from_cstr("null"));
+                }
+                fl_int _fl_e_1;
+                FL_CHECKED_ADD(i, 1, &_fl_e_1);
+                i = _fl_e_1;
+            }
+            fl_sb_append_char(b, 93);
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_11.Obj.entries;
+            fl_sb_append_char(b, 123);
+            FL_Array* ks = fl_map_keys(entries);
+            fl_int len = fl_array_len_int(ks);
+            fl_int i = 0;
+            while (i < len) {
+                if (i > 0) {
+                    fl_sb_append_char(b, 44);
+                }
+                FL_Option_ptr _fl_tmp_13 = fl_array_get_safe(ks, i);
+                FL_String* key = ((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : fl_string_from_cstr(""));
+                fl_json_escape_json_string(b, key);
+                fl_sb_append_char(b, 58);
+                FL_Option_fl_json_JsonValue _fl_tmp_14 = FL_OPT_DEREF_AS(fl_map_get_str(entries, key), fl_json_JsonValue, FL_Option_fl_json_JsonValue);
+                fl_json_JsonValue v = ((_fl_tmp_14.tag == 1) ? _fl_tmp_14.value : (fl_json_JsonValue){.tag = 0});
+                fl_json_serialize(b, v);
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(i, 1, &_fl_e_2);
+                i = _fl_e_2;
+            }
+            fl_sb_append_char(b, 125);
+            break;
+        }
+    }
+}
+
+/* Flow: json.to_string */
+FL_String* fl_json_to_string(fl_json_JsonValue val) {
+    void* b = fl_sb_new();
+    fl_json_serialize(b, val);
+    return fl_sb_build(b);
+}
+
+/* Flow: json.serialize_pretty */
+void fl_json_serialize_pretty(FL_StringBuilder* b, fl_json_JsonValue val, fl_int indent, fl_int depth) {
+    fl_json_JsonValue _fl_tmp_15 = val;
+    switch (_fl_tmp_15.tag) {
+        case 0: {
+            fl_sb_append(b, fl_string_from_cstr("null"));
+            break;
+        }
+        case 1: {
+            fl_bool v = _fl_tmp_15.Bool.val;
+            if (v) {
+                fl_sb_append(b, fl_string_from_cstr("true"));
+            } else {
+                fl_sb_append(b, fl_string_from_cstr("false"));
+            }
+            break;
+        }
+        case 2: {
+            fl_int64 n = _fl_tmp_15.Int.val;
+            fl_sb_append_int64(b, n);
+            break;
+        }
+        case 3: {
+            fl_float f = _fl_tmp_15.Float.val;
+            fl_sb_append_float(b, f);
+            break;
+        }
+        case 4: {
+            FL_String* s = _fl_tmp_15.Str.val;
+            fl_json_escape_json_string(b, s);
+            break;
+        }
+        case 5: {
+            FL_Array* items = _fl_tmp_15.Arr.items;
+            fl_int len = fl_array_len_int(items);
+            if (len == 0) {
+                fl_sb_append(b, fl_string_from_cstr("[]"));
+            } else {
+                fl_sb_append(b, fl_string_from_cstr("[\n"));
+                fl_int i = 0;
+                while (i < len) {
+                    fl_int _fl_e_2;
+                    FL_CHECKED_ADD(depth, 1, &_fl_e_2);
+                    fl_int _fl_e_1;
+                    FL_CHECKED_MUL(indent, _fl_e_2, &_fl_e_1);
+                    fl_json_emit_indent(b, _fl_e_1);
+                    FL_Option_fl_json_JsonValue _fl_tmp_16 = FL_OPT_DEREF_AS(fl_array_get_safe(items, i), fl_json_JsonValue, FL_Option_fl_json_JsonValue);
+                    if (_fl_tmp_16.tag == 1) {
+                        fl_json_JsonValue item = _fl_tmp_16.value;
+                        fl_int _fl_e_3;
+                        FL_CHECKED_ADD(depth, 1, &_fl_e_3);
+                        fl_json_serialize_pretty(b, item, indent, _fl_e_3);
+                    } else {
+                        fl_sb_append(b, fl_string_from_cstr("null"));
+                    }
+                    fl_int _fl_e_4;
+                    FL_CHECKED_ADD(i, 1, &_fl_e_4);
+                    if (_fl_e_4 < len) {
+                        fl_sb_append_char(b, 44);
+                    }
+                    fl_sb_append_char(b, 10);
+                    fl_int _fl_e_5;
+                    FL_CHECKED_ADD(i, 1, &_fl_e_5);
+                    i = _fl_e_5;
+                }
+                fl_int _fl_e_6;
+                FL_CHECKED_MUL(indent, depth, &_fl_e_6);
+                fl_json_emit_indent(b, _fl_e_6);
+                fl_sb_append_char(b, 93);
+            }
+            break;
+        }
+        case 6: {
+            FL_Map* entries = _fl_tmp_15.Obj.entries;
+            FL_Array* ks = fl_map_keys(entries);
+            fl_int len = fl_array_len_int(ks);
+            if (len == 0) {
+                fl_sb_append(b, fl_string_from_cstr("{}"));
+            } else {
+                fl_sb_append(b, fl_string_from_cstr("{\n"));
+                fl_int i = 0;
+                while (i < len) {
+                    if (i > 0) {
+                        fl_sb_append(b, fl_string_from_cstr(",\n"));
+                    }
+                    fl_int _fl_e_8;
+                    FL_CHECKED_ADD(depth, 1, &_fl_e_8);
+                    fl_int _fl_e_7;
+                    FL_CHECKED_MUL(indent, _fl_e_8, &_fl_e_7);
+                    fl_json_emit_indent(b, _fl_e_7);
+                    FL_Option_ptr _fl_tmp_17 = fl_array_get_safe(ks, i);
+                    FL_String* key = ((_fl_tmp_17.tag == 1) ? _fl_tmp_17.value : fl_string_from_cstr(""));
+                    fl_json_escape_json_string(b, key);
+                    fl_sb_append(b, fl_string_from_cstr(": "));
+                    FL_Option_fl_json_JsonValue _fl_tmp_18 = FL_OPT_DEREF_AS(fl_map_get_str(entries, key), fl_json_JsonValue, FL_Option_fl_json_JsonValue);
+                    fl_json_JsonValue v = ((_fl_tmp_18.tag == 1) ? _fl_tmp_18.value : (fl_json_JsonValue){.tag = 0});
+                    fl_int _fl_e_9;
+                    FL_CHECKED_ADD(depth, 1, &_fl_e_9);
+                    fl_json_serialize_pretty(b, v, indent, _fl_e_9);
+                    fl_int _fl_e_10;
+                    FL_CHECKED_ADD(i, 1, &_fl_e_10);
+                    i = _fl_e_10;
+                }
+                fl_sb_append_char(b, 10);
+                fl_int _fl_e_11;
+                FL_CHECKED_MUL(indent, depth, &_fl_e_11);
+                fl_json_emit_indent(b, _fl_e_11);
+                fl_sb_append_char(b, 125);
+            }
+            break;
+        }
+    }
+}
+
+/* Flow: json.emit_indent */
+void fl_json_emit_indent(FL_StringBuilder* b, fl_int n) {
+    fl_int i = 0;
+    while (i < n) {
+        fl_sb_append_char(b, 32);
+        fl_int _fl_e_1;
+        FL_CHECKED_ADD(i, 1, &_fl_e_1);
+        i = _fl_e_1;
+    }
+}
+
+/* Flow: json.to_string_pretty */
+FL_String* fl_json_to_string_pretty(fl_json_JsonValue val, fl_int indent) {
+    void* b = fl_sb_new();
+    fl_json_serialize_pretty(b, val, indent, 0);
+    return fl_sb_build(b);
+}
+
+/* Flow: json.skip_ws */
+fl_int fl_json_skip_ws(FL_String* s, fl_int pos, fl_int len) {
+    fl_int p = pos;
+    while (p < len) {
+        FL_Option_char _fl_tmp_19 = fl_string_char_at(s, p);
+        if (_fl_tmp_19.tag == 1) {
+            fl_char c = _fl_tmp_19.value;
+            if ((((c == 32) || (c == 9)) || (c == 10)) || (c == 13)) {
+                fl_int _fl_e_1;
+                FL_CHECKED_ADD(p, 1, &_fl_e_1);
+                p = _fl_e_1;
+            } else {
+                return p;
+            }
+        } else {
+            return p;
+        }
+    }
+    return p;
+}
+
+/* Flow: json.parse_string_value */
+FL_Option_FL_Tuple_FL_String_ptr_fl_int fl_json_parse_string_value(FL_String* s, fl_int pos, fl_int len) {
+    fl_int _fl_e_1;
+    FL_CHECKED_ADD(pos, 1, &_fl_e_1);
+    fl_int p = _fl_e_1;
+    void* b = fl_sb_new();
+    while (p < len) {
+        FL_Option_char _fl_tmp_20 = fl_string_char_at(s, p);
+        if (_fl_tmp_20.tag == 1) {
+            fl_char c = _fl_tmp_20.value;
+            if (c == 34) {
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(p, 1, &_fl_e_2);
+                return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 1, .value = (FL_Tuple_FL_String_ptr_fl_int){._0 = fl_sb_build(b), ._1 = _fl_e_2}};
+            } else {
+                if (c == 92) {
+                    fl_int _fl_e_3;
+                    FL_CHECKED_ADD(p, 1, &_fl_e_3);
+                    p = _fl_e_3;
+                    if (p >= len) {
+                        return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
+                    }
+                    FL_Option_char _fl_tmp_21 = fl_string_char_at(s, p);
+                    if (_fl_tmp_21.tag == 1) {
+                        fl_char esc = _fl_tmp_21.value;
+                        if (esc == 34) {
+                            fl_sb_append_char(b, 34);
+                        } else {
+                            if (esc == 92) {
+                                fl_sb_append_char(b, 92);
+                            } else {
+                                if (esc == 47) {
+                                    fl_sb_append_char(b, 47);
+                                } else {
+                                    if (esc == 98) {
+                                        fl_sb_append_char(b, fl_char_from_code(8));
+                                    } else {
+                                        if (esc == 102) {
+                                            fl_sb_append_char(b, fl_char_from_code(12));
+                                        } else {
+                                            if (esc == 110) {
+                                                fl_sb_append_char(b, 10);
+                                            } else {
+                                                if (esc == 114) {
+                                                    fl_sb_append_char(b, 13);
+                                                } else {
+                                                    if (esc == 116) {
+                                                        fl_sb_append_char(b, 9);
+                                                    } else {
+                                                        if (esc == 117) {
+                                                            fl_int _fl_e_4;
+                                                            FL_CHECKED_ADD(p, 4, &_fl_e_4);
+                                                            if (_fl_e_4 >= len) {
+                                                                return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
+                                                            }
+                                                            fl_int _fl_e_5;
+                                                            FL_CHECKED_ADD(p, 1, &_fl_e_5);
+                                                            fl_int _fl_e_6;
+                                                            FL_CHECKED_ADD(p, 5, &_fl_e_6);
+                                                            FL_String* hex_str = fl_string_substring(s, _fl_e_5, _fl_e_6);
+                                                            FL_Option_int _fl_tmp_22 = fl_json_parse_hex4(hex_str);
+                                                            if (_fl_tmp_22.tag == 1) {
+                                                                fl_int code = _fl_tmp_22.value;
+                                                                fl_json_append_utf8(b, code);
+                                                                fl_int _fl_e_7;
+                                                                FL_CHECKED_ADD(p, 4, &_fl_e_7);
+                                                                p = _fl_e_7;
+                                                            } else {
+                                                                return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
+                                                            }
+                                                        } else {
+                                                            return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        fl_int _fl_e_8;
+                        FL_CHECKED_ADD(p, 1, &_fl_e_8);
+                        p = _fl_e_8;
+                    } else {
+                        return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
+                    }
+                } else {
+                    fl_sb_append_char(b, c);
+                    fl_int _fl_e_9;
+                    FL_CHECKED_ADD(p, 1, &_fl_e_9);
+                    p = _fl_e_9;
+                }
+            }
+        } else {
+            return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
+        }
+    }
+    return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
+}
+
+/* Flow: json.parse_hex4 */
+FL_Option_int fl_json_parse_hex4(FL_String* s) {
+    if (fl_string_len(s) != 4) {
+        return (FL_Option_int){.tag = 0};
+    }
+    fl_int result = 0;
+    fl_int i = 0;
+    while (i < 4) {
+        fl_int _fl_e_1;
+        FL_CHECKED_MUL(result, 16, &_fl_e_1);
+        result = _fl_e_1;
+        FL_Option_char _fl_tmp_23 = fl_string_char_at(s, i);
+        if (_fl_tmp_23.tag == 1) {
+            fl_char c = _fl_tmp_23.value;
+            fl_int code = fl_char_to_code(c);
+            if ((code >= fl_char_to_code(48)) && (code <= fl_char_to_code(57))) {
+                fl_int _fl_e_3;
+                FL_CHECKED_ADD(result, code, &_fl_e_3);
+                fl_int _fl_e_2;
+                FL_CHECKED_SUB(_fl_e_3, fl_char_to_code(48), &_fl_e_2);
+                result = _fl_e_2;
+            } else {
+                if ((code >= fl_char_to_code(97)) && (code <= fl_char_to_code(102))) {
+                    fl_int _fl_e_6;
+                    FL_CHECKED_ADD(result, 10, &_fl_e_6);
+                    fl_int _fl_e_5;
+                    FL_CHECKED_ADD(_fl_e_6, code, &_fl_e_5);
+                    fl_int _fl_e_4;
+                    FL_CHECKED_SUB(_fl_e_5, fl_char_to_code(97), &_fl_e_4);
+                    result = _fl_e_4;
+                } else {
+                    if ((code >= fl_char_to_code(65)) && (code <= fl_char_to_code(70))) {
+                        fl_int _fl_e_9;
+                        FL_CHECKED_ADD(result, 10, &_fl_e_9);
+                        fl_int _fl_e_8;
+                        FL_CHECKED_ADD(_fl_e_9, code, &_fl_e_8);
+                        fl_int _fl_e_7;
+                        FL_CHECKED_SUB(_fl_e_8, fl_char_to_code(65), &_fl_e_7);
+                        result = _fl_e_7;
+                    } else {
+                        return (FL_Option_int){.tag = 0};
+                    }
+                }
+            }
+        } else {
+            return (FL_Option_int){.tag = 0};
+        }
+        fl_int _fl_e_10;
+        FL_CHECKED_ADD(i, 1, &_fl_e_10);
+        i = _fl_e_10;
+    }
+    return (FL_Option_int){.tag = 1, .value = result};
+}
+
+/* Flow: json.append_utf8 */
+void fl_json_append_utf8(FL_StringBuilder* b, fl_int codepoint) {
+    if (codepoint < 128) {
+        fl_sb_append_char(b, fl_char_from_code(codepoint));
+    } else {
+        if (codepoint < 2048) {
+            fl_int _fl_e_2;
+            FL_CHECKED_DIV(codepoint, 64, &_fl_e_2);
+            fl_int _fl_e_1;
+            FL_CHECKED_ADD(192, _fl_e_2, &_fl_e_1);
+            fl_sb_append_char(b, fl_char_from_code(_fl_e_1));
+            fl_int _fl_e_4;
+            FL_CHECKED_MOD(codepoint, 64, &_fl_e_4);
+            fl_int _fl_e_3;
+            FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
+            fl_sb_append_char(b, fl_char_from_code(_fl_e_3));
+        } else {
+            fl_int _fl_e_6;
+            FL_CHECKED_DIV(codepoint, 4096, &_fl_e_6);
+            fl_int _fl_e_5;
+            FL_CHECKED_ADD(224, _fl_e_6, &_fl_e_5);
+            fl_sb_append_char(b, fl_char_from_code(_fl_e_5));
+            fl_int _fl_e_9;
+            FL_CHECKED_DIV(codepoint, 64, &_fl_e_9);
+            fl_int _fl_e_8;
+            FL_CHECKED_MOD(_fl_e_9, 64, &_fl_e_8);
+            fl_int _fl_e_7;
+            FL_CHECKED_ADD(128, _fl_e_8, &_fl_e_7);
+            fl_sb_append_char(b, fl_char_from_code(_fl_e_7));
+            fl_int _fl_e_11;
+            FL_CHECKED_MOD(codepoint, 64, &_fl_e_11);
+            fl_int _fl_e_10;
+            FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
+            fl_sb_append_char(b, fl_char_from_code(_fl_e_10));
+        }
+    }
+}
+
+/* Flow: json.parse_number */
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_number(FL_String* s, fl_int pos, fl_int len) {
+    fl_int start = pos;
+    fl_int p = pos;
+    fl_bool is_float = fl_false;
+    if (p < len) {
+        FL_Option_char _fl_tmp_24 = fl_string_char_at(s, p);
+        if (_fl_tmp_24.tag == 1) {
+            fl_char c = _fl_tmp_24.value;
+            if (c == 45) {
+                fl_int _fl_e_1;
+                FL_CHECKED_ADD(p, 1, &_fl_e_1);
+                p = _fl_e_1;
+            }
+        }
+    }
+    fl_int digit_start = p;
+    p = fl_json_eat_digits(s, p, len);
+    if (p == digit_start) {
+        return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+    }
+    if (p < len) {
+        FL_Option_char _fl_tmp_25 = fl_string_char_at(s, p);
+        if (_fl_tmp_25.tag == 1) {
+            fl_char c = _fl_tmp_25.value;
+            if (c == 46) {
+                is_float = fl_true;
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(p, 1, &_fl_e_2);
+                p = _fl_e_2;
+                p = fl_json_eat_digits(s, p, len);
+            }
+        }
+    }
+    if (p < len) {
+        FL_Option_char _fl_tmp_26 = fl_string_char_at(s, p);
+        if (_fl_tmp_26.tag == 1) {
+            fl_char c = _fl_tmp_26.value;
+            if ((c == 101) || (c == 69)) {
+                is_float = fl_true;
+                fl_int _fl_e_3;
+                FL_CHECKED_ADD(p, 1, &_fl_e_3);
+                p = _fl_e_3;
+                if (p < len) {
+                    FL_Option_char _fl_tmp_27 = fl_string_char_at(s, p);
+                    if (_fl_tmp_27.tag == 1) {
+                        fl_char sc = _fl_tmp_27.value;
+                        if ((sc == 43) || (sc == 45)) {
+                            fl_int _fl_e_4;
+                            FL_CHECKED_ADD(p, 1, &_fl_e_4);
+                            p = _fl_e_4;
+                        }
+                    }
+                }
+                p = fl_json_eat_digits(s, p, len);
+            }
+        }
+    }
+    FL_String* num_str = fl_string_substring(s, start, p);
+    if (is_float) {
+        FL_Option_float _fl_tmp_28 = fl_conv_string_to_float(num_str);
+        if (_fl_tmp_28.tag == 1) {
+            fl_float f = _fl_tmp_28.value;
+            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 3, .Float = (fl_json_JsonValue_Float){.val = f}}, ._1 = p}};
+        } else {
+            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+        }
+    } else {
+        FL_Option_int64 _fl_tmp_29 = fl_conv_string_to_int64(num_str);
+        if (_fl_tmp_29.tag == 1) {
+            fl_int64 n = _fl_tmp_29.value;
+            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 2, .Int = (fl_json_JsonValue_Int){.val = n}}, ._1 = p}};
+        } else {
+            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+        }
+    }
+}
+
+/* Flow: json.eat_digits */
+fl_int fl_json_eat_digits(FL_String* s, fl_int pos, fl_int len) {
+    fl_int p = pos;
+    fl_bool running = fl_true;
+    while ((p < len) && running) {
+        FL_Option_char _fl_tmp_30 = fl_string_char_at(s, p);
+        if (_fl_tmp_30.tag == 1) {
+            fl_char c = _fl_tmp_30.value;
+            if (fl_char_is_digit(c)) {
+                fl_int _fl_e_1;
+                FL_CHECKED_ADD(p, 1, &_fl_e_1);
+                p = _fl_e_1;
+            } else {
+                running = fl_false;
+            }
+        } else {
+            running = fl_false;
+        }
+    }
+    return p;
+}
+
+/* Flow: json.parse_value */
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_value(FL_String* s, fl_int pos, fl_int len) {
+    fl_int p = fl_json_skip_ws(s, pos, len);
+    if (p >= len) {
+        return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+    }
+    FL_Option_char _fl_tmp_31 = fl_string_char_at(s, p);
+    if (_fl_tmp_31.tag == 1) {
+        fl_char c = _fl_tmp_31.value;
+        if (c == 34) {
+            FL_Option_FL_Tuple_FL_String_ptr_fl_int _fl_tmp_32 = fl_json_parse_string_value(s, p, len);
+            if (_fl_tmp_32.tag == 1) {
+                FL_Tuple_FL_String_ptr_fl_int result = _fl_tmp_32.value;
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 4, .Str = (fl_json_JsonValue_Str){.val = result._0}}, ._1 = result._1}};
+            } else {
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+            }
+        } else {
+            if (c == 123) {
+                return fl_json_parse_object(s, p, len);
+            } else {
+                if (c == 91) {
+                    return fl_json_parse_array(s, p, len);
+                } else {
+                    if (c == 116) {
+                        return fl_json_parse_literal(s, p, len, fl_string_from_cstr("true"), (fl_json_JsonValue){.tag = 1, .Bool = (fl_json_JsonValue_Bool){.val = fl_true}});
+                    } else {
+                        if (c == 102) {
+                            return fl_json_parse_literal(s, p, len, fl_string_from_cstr("false"), (fl_json_JsonValue){.tag = 1, .Bool = (fl_json_JsonValue_Bool){.val = fl_false}});
+                        } else {
+                            if (c == 110) {
+                                return fl_json_parse_literal(s, p, len, fl_string_from_cstr("null"), (fl_json_JsonValue){.tag = 0});
+                            } else {
+                                if ((c == 45) || fl_char_is_digit(c)) {
+                                    return fl_json_parse_number(s, p, len);
+                                } else {
+                                    return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+    }
+}
+
+/* Flow: json.parse_literal */
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_literal(FL_String* s, fl_int pos, fl_int len, FL_String* expected, fl_json_JsonValue val) {
+    fl_int elen = fl_string_len(expected);
+    fl_int _fl_e_1;
+    FL_CHECKED_ADD(pos, elen, &_fl_e_1);
+    if (_fl_e_1 > len) {
+        return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+    }
+    fl_int _fl_e_2;
+    FL_CHECKED_ADD(pos, elen, &_fl_e_2);
+    FL_String* actual = fl_string_substring(s, pos, _fl_e_2);
+    if (fl_string_eq(actual, expected)) {
+        fl_int _fl_e_3;
+        FL_CHECKED_ADD(pos, elen, &_fl_e_3);
+        return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = val, ._1 = _fl_e_3}};
+    }
+    return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+}
+
+/* Flow: json.parse_array */
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl_int pos, fl_int len) {
+    fl_int _fl_e_1;
+    FL_CHECKED_ADD(pos, 1, &_fl_e_1);
+    fl_int p = _fl_e_1;
+    p = fl_json_skip_ws(s, p, len);
+    FL_Array* items = fl_array_new(0, 0, NULL);
+    if (p < len) {
+        FL_Option_char _fl_tmp_33 = fl_string_char_at(s, p);
+        if (_fl_tmp_33.tag == 1) {
+            fl_char c = _fl_tmp_33.value;
+            if (c == 93) {
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(p, 1, &_fl_e_2);
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}}, ._1 = _fl_e_2}};
+            }
+        }
+    }
+    fl_bool parsing = fl_true;
+    while (parsing && (p < len)) {
+        FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_34 = fl_json_parse_value(s, p, len);
+        if (_fl_tmp_34.tag == 1) {
+            FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_34.value;
+            fl_json_JsonValue _fl_tmp_35 = result._0;
+            items = fl_array_push_sized(items, (&_fl_tmp_35), sizeof(fl_json_JsonValue));
+            p = fl_json_skip_ws(s, result._1, len);
+            if (p < len) {
+                FL_Option_char _fl_tmp_36 = fl_string_char_at(s, p);
+                if (_fl_tmp_36.tag == 1) {
+                    fl_char c = _fl_tmp_36.value;
+                    if (c == 44) {
+                        fl_int _fl_e_3;
+                        FL_CHECKED_ADD(p, 1, &_fl_e_3);
+                        p = _fl_e_3;
+                    } else {
+                        if (c == 93) {
+                            fl_int _fl_e_4;
+                            FL_CHECKED_ADD(p, 1, &_fl_e_4);
+                            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}}, ._1 = _fl_e_4}};
+                        } else {
+                            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+                        }
+                    }
+                } else {
+                    return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+                }
+            } else {
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+            }
+        } else {
+            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+        }
+    }
+    return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+}
+
+/* Flow: json.parse_object */
+FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, fl_int pos, fl_int len) {
+    fl_int _fl_e_1;
+    FL_CHECKED_ADD(pos, 1, &_fl_e_1);
+    fl_int p = _fl_e_1;
+    p = fl_json_skip_ws(s, p, len);
+    FL_Map* entries = fl_map_new();
+    if (p < len) {
+        FL_Option_char _fl_tmp_37 = fl_string_char_at(s, p);
+        if (_fl_tmp_37.tag == 1) {
+            fl_char c = _fl_tmp_37.value;
+            if (c == 125) {
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(p, 1, &_fl_e_2);
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}}, ._1 = _fl_e_2}};
+            }
+        }
+    }
+    fl_bool parsing = fl_true;
+    while (parsing && (p < len)) {
+        p = fl_json_skip_ws(s, p, len);
+        if (p >= len) {
+            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+        }
+        FL_Option_char _fl_tmp_38 = fl_string_char_at(s, p);
+        if (_fl_tmp_38.tag == 1) {
+            fl_char c = _fl_tmp_38.value;
+            if (c != 34) {
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+            }
+        } else {
+            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+        }
+        FL_Option_FL_Tuple_FL_String_ptr_fl_int _fl_tmp_39 = fl_json_parse_string_value(s, p, len);
+        if (_fl_tmp_39.tag == 1) {
+            FL_Tuple_FL_String_ptr_fl_int key_result = _fl_tmp_39.value;
+            FL_String* key = key_result._0;
+            p = fl_json_skip_ws(s, key_result._1, len);
+            if (p >= len) {
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+            }
+            FL_Option_char _fl_tmp_40 = fl_string_char_at(s, p);
+            if (_fl_tmp_40.tag == 1) {
+                fl_char c = _fl_tmp_40.value;
+                if (c != 58) {
+                    return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+                }
+            } else {
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+            }
+            fl_int _fl_e_3;
+            FL_CHECKED_ADD(p, 1, &_fl_e_3);
+            p = _fl_e_3;
+            FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_41 = fl_json_parse_value(s, p, len);
+            if (_fl_tmp_41.tag == 1) {
+                FL_Tuple_fl_json_JsonValue_fl_int val_result = _fl_tmp_41.value;
+                fl_json_JsonValue* _fl_tmp_42 = ((fl_json_JsonValue*)malloc(sizeof(fl_json_JsonValue)));
+                (*_fl_tmp_42) = val_result._0;
+                entries = fl_map_set_str(entries, key, ((void*)_fl_tmp_42));
+                p = fl_json_skip_ws(s, val_result._1, len);
+                if (p < len) {
+                    FL_Option_char _fl_tmp_43 = fl_string_char_at(s, p);
+                    if (_fl_tmp_43.tag == 1) {
+                        fl_char ch = _fl_tmp_43.value;
+                        if (ch == 44) {
+                            fl_int _fl_e_4;
+                            FL_CHECKED_ADD(p, 1, &_fl_e_4);
+                            p = _fl_e_4;
+                        } else {
+                            if (ch == 125) {
+                                fl_int _fl_e_5;
+                                FL_CHECKED_ADD(p, 1, &_fl_e_5);
+                                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}}, ._1 = _fl_e_5}};
+                            } else {
+                                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+                            }
+                        }
+                    } else {
+                        return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+                    }
+                } else {
+                    return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+                }
+            } else {
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+            }
+        } else {
+            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+        }
+    }
+    return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
+}
+
+/* Flow: json.parse */
+FL_Option_fl_json_JsonValue fl_json_parse(FL_String* s) {
+    fl_int len = fl_string_len(s);
+    FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_44 = fl_json_parse_value(s, 0, len);
+    if (_fl_tmp_44.tag == 1) {
+        FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_44.value;
+        fl_int p = fl_json_skip_ws(s, result._1, len);
+        if (p == len) {
+            return (FL_Option_fl_json_JsonValue){.tag = 1, .value = result._0};
+        }
+        return (FL_Option_fl_json_JsonValue){.tag = 0};
+    } else {
+        return (FL_Option_fl_json_JsonValue){.tag = 0};
+    }
+}
+
 FL_String* fl_conv_to_string__int64(fl_int64 val);
 
 FL_String* fl_conv_to_string__bool(fl_bool val);
@@ -20,15 +1838,15 @@ FL_String* fl_conv_to_string__bool(fl_bool val) {
 
 /* Flow: stdlib_json_roundtrip.main */
 void fl_stdlib_json_roundtrip_main(void) {
-    FL_Option_ptr parsed = fl_json_parse(fl_string_from_cstr("{\"name\":\"Flow\",\"version\":42}"));
-    FL_Option_ptr _fl_tmp_0 = parsed;
+    FL_Option_fl_json_JsonValue parsed = fl_json_parse(fl_string_from_cstr("{\"name\":\"Flow\",\"version\":42}"));
+    FL_Option_fl_json_JsonValue _fl_tmp_0 = parsed;
     if (_fl_tmp_0.tag == 1) {
-        void* val = _fl_tmp_0.value;
+        fl_json_JsonValue val = _fl_tmp_0.value;
         fl_println(fl_json_to_string(val));
-        FL_Option_ptr name = fl_json_get(val, fl_string_from_cstr("name"));
-        FL_Option_ptr _fl_tmp_1 = name;
+        FL_Option_fl_json_JsonValue name = fl_json_get(val, fl_string_from_cstr("name"));
+        FL_Option_fl_json_JsonValue _fl_tmp_1 = name;
         if (_fl_tmp_1.tag == 1) {
-            void* n = _fl_tmp_1.value;
+            fl_json_JsonValue n = _fl_tmp_1.value;
             FL_Option_ptr _fl_tmp_2 = fl_json_as_string(n);
             if (_fl_tmp_2.tag == 1) {
                 FL_String* s = _fl_tmp_2.value;
@@ -39,10 +1857,10 @@ void fl_stdlib_json_roundtrip_main(void) {
         } else {
             fl_println(fl_string_from_cstr("no name"));
         }
-        FL_Option_ptr ver = fl_json_get(val, fl_string_from_cstr("version"));
-        FL_Option_ptr _fl_tmp_3 = ver;
+        FL_Option_fl_json_JsonValue ver = fl_json_get(val, fl_string_from_cstr("version"));
+        FL_Option_fl_json_JsonValue _fl_tmp_3 = ver;
         if (_fl_tmp_3.tag == 1) {
-            void* v = _fl_tmp_3.value;
+            fl_json_JsonValue v = _fl_tmp_3.value;
             FL_Option_int64 _fl_tmp_4 = fl_json_as_int(v);
             if (_fl_tmp_4.tag == 1) {
                 fl_int64 n = _fl_tmp_4.value;
@@ -56,9 +1874,9 @@ void fl_stdlib_json_roundtrip_main(void) {
     } else {
         fl_println(fl_string_from_cstr("parse failed"));
     }
-    void* built = fl_json_bool(fl_true);
+    fl_json_JsonValue built = fl_json_bool_val(fl_true);
     fl_println(fl_json_to_string(built));
-    fl_println(fl_conv_to_string__bool(fl_json_is_null(fl_json_null())));
+    fl_println(fl_conv_to_string__bool(fl_json_is_null(fl_json_null_val())));
 }
 
 /* Entry point */

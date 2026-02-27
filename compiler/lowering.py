@@ -415,7 +415,6 @@ def _ltype_c_name(lt: LType) -> str:
 _OPAQUE_TYPE_MAP: dict[str, str] = {
     "Socket": "FL_Socket",
     "file": "FL_File",
-    "JsonValue": "FL_JsonValue",
     "StringBuilder": "FL_StringBuilder",
     "DateTime": "FL_DateTime",
     "Instant": "FL_Instant",
@@ -719,7 +718,10 @@ class Lowerer:
                 case ExternFnDecl():
                     # Skip proto generation for generic extern fns — their
                     # C signatures use void* and are declared in runtime headers.
-                    if not decl.type_params:
+                    # Also skip for fl_* names — those are runtime functions
+                    # already declared via #include "flow_runtime.h".
+                    c_name = decl.c_name or decl.name
+                    if not decl.type_params and not c_name.startswith("fl_"):
                         param_ltypes = [self._lower_extern_type(
                             self._resolve_type_ann(p.type_ann))
                             for p in decl.params]
@@ -727,7 +729,7 @@ class Lowerer:
                             self._resolve_type_ann(decl.return_type))
                             if decl.return_type else LVoid())
                         extern_fn_protos.append(
-                            (decl.c_name or decl.name, param_ltypes, ret_ltype))
+                            (c_name, param_ltypes, ret_ltype))
                 case ExternTypeDecl() | ExternLibDecl():
                     pass  # handled elsewhere
 
@@ -802,14 +804,17 @@ class Lowerer:
                 # FFI extern types → opaque void*
                 if not mod and name in self._extern_type_names:
                     return LPtr(LVoid())
-                c_name = mangle(mod if mod else self._module_path, name,
+                # Cross-module type: find the declaring module
+                resolved_mod = mod if mod else self._find_sum_type_module(name)
+                c_name = mangle(resolved_mod, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
             case TFn():
                 # Function types lower to closure struct pointers
                 return LPtr(LStruct("FL_Closure"))
             case TSum(name=name):
-                c_name = mangle(self._module_path, name,
+                mod_path = self._find_sum_type_module(name)
+                c_name = mangle(mod_path, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
             case TRecord(fields=fields):
@@ -825,6 +830,25 @@ class Lowerer:
                 return LPtr(LVoid())
             case _:
                 return LVoid()
+
+    def _find_sum_type_module(self, name: str) -> str:
+        """Find the module path that declares a sum type.
+
+        For locally-defined sum types, returns self._module_path.
+        For cross-module sum types (imported from other modules),
+        searches _all_typed to find the originating module.
+        """
+        # Check local module first
+        for decl in self._module.decls:
+            if isinstance(decl, TypeDecl) and decl.name == name:
+                return self._module_path
+        # Search all compiled modules
+        if self._all_typed:
+            for mod_path, typed_mod in self._all_typed.items():
+                for decl in typed_mod.module.decls:
+                    if isinstance(decl, TypeDecl) and decl.name == name:
+                        return mod_path
+        return self._module_path
 
     def _lower_option_type(self, inner: Type) -> LType:
         """Lower option<T> to the appropriate option struct type."""
@@ -5866,10 +5890,41 @@ class Lowerer:
         # Non-pointer element: use fl_array_push_sized(arr, &val, sizeof(ElemType))
         # fl_array_push_sized sets element_size on the array if it was 0 (empty
         # array case), then delegates to fl_array_push for the actual copy.
-        addr_of = LAddrOf(elem_arg, LPtr(elem_lt) if elem_lt else LPtr(LVoid()))
+        # Must store in a temp first since &(fn_call()) is invalid C (rvalue).
+        if elem_lt is not None:
+            tmp = self._fresh_temp()
+            self._pending_stmts.append(LVarDecl(
+                c_name=tmp, c_type=elem_lt, init=elem_arg))
+            addr_of = LAddrOf(LVar(tmp, elem_lt),
+                              LPtr(elem_lt))
+        else:
+            addr_of = LAddrOf(elem_arg, LPtr(LVoid()))
         size_of = LSizeOf(elem_lt if elem_lt else LVoid())
         return LCall("fl_array_push_sized",
                      [lowered_args[0], addr_of, size_of], lt)
+
+    def _heap_box_struct(self, expr: LExpr, struct_lt: LStruct) -> LExpr:
+        """Heap-box a struct value for passing through void* generic params.
+
+        Generates:
+            Type* _fl_tmp_N = (Type*)malloc(sizeof(Type));
+            *_fl_tmp_N = expr;
+        Returns LVar pointing to the temp.
+        """
+        tmp = self._fresh_temp()
+        ptr_type = LPtr(struct_lt)
+        self._pending_stmts.append(LVarDecl(
+            c_name=tmp,
+            c_type=ptr_type,
+            init=LCast(
+                LCall("malloc", [LSizeOf(struct_lt)], LPtr(LVoid())),
+                ptr_type),
+        ))
+        self._pending_stmts.append(LAssign(
+            LDeref(LVar(tmp, ptr_type), struct_lt),
+            expr,
+        ))
+        return LCast(LVar(tmp, ptr_type), LPtr(LVoid()))
 
     # ------------------------------------------------------------------
     # Value-type boxing for generic native calls (Gap-2)
@@ -5904,6 +5959,13 @@ class Lowerer:
                 if c_name in _VALUE_TYPE_BOX_FN:
                     needs_boxing = True
                     break
+                # Struct types (sum types, etc.) also need boxing for void* params
+                if isinstance(concrete_lt, LStruct) and c_name not in (
+                        "FL_String", "FL_Array", "FL_Map", "FL_Set",
+                        "FL_Stream", "FL_Coroutine", "FL_Buffer",
+                        "FL_StringBuilder"):
+                    needs_boxing = True
+                    break
         if not needs_boxing:
             return None
 
@@ -5929,6 +5991,9 @@ class Lowerer:
                     box_fn = _VALUE_TYPE_BOX_FN.get(c_name)
                     if box_fn:
                         arg = LCall(box_fn, [arg], LPtr(LVoid()))
+                    elif isinstance(concrete_lt, LStruct):
+                        # Struct value type: heap-box via address-of cast
+                        arg = self._heap_box_struct(arg, concrete_lt)
             boxed_args.append(arg)
 
         # Make the call with void*-based types
@@ -5947,6 +6012,9 @@ class Lowerer:
                     opt_unbox_fn = _VALUE_TYPE_OPT_UNBOX_FN.get(c_name)
                     if opt_unbox_fn:
                         return LCall(opt_unbox_fn, [call], result_lt)
+                    # Struct value type: dereference via FL_OPT_DEREF_AS
+                    if isinstance(concrete_lt, LStruct):
+                        return LOptDerefAs(call, concrete_lt, result_lt)
             # Unbox for plain value return (not option)
             for tp in fn_decl.type_params:
                 concrete = env.get(tp.name)

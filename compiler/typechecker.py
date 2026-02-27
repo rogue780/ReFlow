@@ -526,9 +526,9 @@ class TypeChecker:
     def _register_imported_types(self) -> None:
         """Register type declarations from imported user modules.
 
-        When a user module exports a struct type (e.g., http.HttpResponse),
-        downstream modules need it in the type registry so that cross-module
-        function return types resolve correctly.
+        When a user module exports a struct or sum type (e.g., http.HttpResponse,
+        json.JsonValue), downstream modules need it in the type registry so that
+        cross-module function return types resolve correctly.
         """
         for mod_key, typed_mod in self._imported_typed.items():
             for decl in typed_mod.module.decls:
@@ -541,6 +541,37 @@ class TypeChecker:
                 for f in decl.fields:
                     fields[f.name] = self._resolve_type_expr(f.type_ann)
                     field_mut[f.name] = f.is_mut
+
+                # Build TSum for sum types so cross-module option/match works
+                sum_type: TSum | None = None
+                if decl.is_sum_type:
+                    # Pre-register preliminary so self-referential fields resolve
+                    preliminary_sum = TSum(decl.name, ())
+                    self._type_registry[decl.name] = TypeInfo(
+                        name=decl.name,
+                        type_params=decl.type_params,
+                        fields={},
+                        field_mutability={},
+                        methods={},
+                        statics={},
+                        static_mutability={},
+                        constructors={},
+                        is_sum_type=True,
+                        sum_type=preliminary_sum,
+                        interfaces=decl.interfaces,
+                        module_path=mod_key,
+                    )
+                    variants = []
+                    for v in decl.variants:
+                        if v.fields is not None:
+                            v_fields = tuple(
+                                self._resolve_type_expr(ft)
+                                for _, ft in v.fields)
+                            variants.append(TVariant(v.name, v_fields))
+                        else:
+                            variants.append(TVariant(v.name, None))
+                    sum_type = TSum(decl.name, tuple(variants))
+
                 self._type_registry[decl.name] = TypeInfo(
                     name=decl.name,
                     type_params=decl.type_params,
@@ -551,7 +582,7 @@ class TypeChecker:
                     static_mutability={},
                     constructors={},
                     is_sum_type=decl.is_sum_type,
-                    sum_type=None,
+                    sum_type=sum_type,
                     interfaces=decl.interfaces,
                     module_path=mod_key,
                 )
