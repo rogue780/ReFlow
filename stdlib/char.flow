@@ -1,9 +1,54 @@
 module char
 
-export extern fn "fl_char_is_digit" is_digit(c:char):bool
-export extern fn "fl_char_is_alpha" is_alpha(c:char):bool
-export extern fn "fl_char_is_alphanumeric" is_alphanumeric(c:char):bool
-export extern fn "fl_char_is_whitespace" is_whitespace(c:char):bool
-export extern fn "fl_char_to_int" to_code(c:char):int
-export extern fn "fl_int_to_char" from_code(n:int):char
-export extern fn "fl_char_to_string" to_string(c:char):string
+import mem
+
+export fn:pure is_digit(c:char):bool {
+    return c >= '0' && c <= '9'
+}
+
+export fn:pure is_alpha(c:char):bool {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+
+export fn:pure is_alphanumeric(c:char):bool {
+    return is_alpha(c) || is_digit(c)
+}
+
+export fn:pure is_whitespace(c:char):bool {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r'
+}
+
+export fn:pure to_code(c:char):int {
+    return cast<int>(c)
+}
+
+export fn:pure from_code(n:int):char {
+    return cast<char>(n)
+}
+
+export fn to_string(c:char):string {
+    let code = to_code(c)
+    if (code < 128) {
+        let buf = mem.alloc(cast<int64>(1))
+        mem.write_byte(buf, cast<int64>(0), cast<byte>(code))
+        return mem.to_string(buf, cast<int64>(1))
+    } else if (code < 2048) {
+        let buf = mem.alloc(cast<int64>(2))
+        mem.write_byte(buf, cast<int64>(0), cast<byte>(192 + code / 64))
+        mem.write_byte(buf, cast<int64>(1), cast<byte>(128 + code % 64))
+        return mem.to_string(buf, cast<int64>(2))
+    } else if (code < 65536) {
+        let buf = mem.alloc(cast<int64>(3))
+        mem.write_byte(buf, cast<int64>(0), cast<byte>(224 + code / 4096))
+        mem.write_byte(buf, cast<int64>(1), cast<byte>(128 + (code / 64) % 64))
+        mem.write_byte(buf, cast<int64>(2), cast<byte>(128 + code % 64))
+        return mem.to_string(buf, cast<int64>(3))
+    } else {
+        let buf = mem.alloc(cast<int64>(4))
+        mem.write_byte(buf, cast<int64>(0), cast<byte>(240 + code / 262144))
+        mem.write_byte(buf, cast<int64>(1), cast<byte>(128 + (code / 4096) % 64))
+        mem.write_byte(buf, cast<int64>(2), cast<byte>(128 + (code / 64) % 64))
+        mem.write_byte(buf, cast<int64>(3), cast<byte>(128 + code % 64))
+        return mem.to_string(buf, cast<int64>(4))
+    }
+}

@@ -2182,13 +2182,6 @@ FL_String* fl_string_from_bytes(FL_Array* data) {
  * are now pure Flow in stdlib/char.flow.
  * ======================================================================== */
 
-FL_String* fl_char_to_string(fl_char c) {
-    /* ASCII fast path (bootstrap simplification). */
-    char buf[1];
-    buf[0] = (char)c;
-    return fl_string_new(buf, 1);
-}
-
 /* ========================================================================
  * File I/O (stdlib/io — RB-1-3)
  * ======================================================================== */

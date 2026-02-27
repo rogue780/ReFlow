@@ -16,6 +16,8 @@ fl_int fl_char_to_code(fl_char c);
 
 fl_char fl_char_from_code(fl_int n);
 
+FL_String* fl_char_to_string(fl_char c);
+
 /* Flow: char.is_digit */
 fl_bool fl_char_is_digit(fl_char c) {
     return ((c >= 48) && (c <= 57));
@@ -44,6 +46,80 @@ fl_int fl_char_to_code(fl_char c) {
 /* Flow: char.from_code */
 fl_char fl_char_from_code(fl_int n) {
     return ((fl_char)n);
+}
+
+/* Flow: char.to_string */
+FL_String* fl_char_to_string(fl_char c) {
+    fl_int code = fl_char_to_code(c);
+    if (code < 128) {
+        void* buf = fl_mem_alloc(((fl_int64)1));
+        fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
+        return fl_mem_to_string(buf, ((fl_int64)1));
+    } else {
+        if (code < 2048) {
+            void* buf = fl_mem_alloc(((fl_int64)2));
+            fl_int _fl_e_2;
+            FL_CHECKED_DIV(code, 64, &_fl_e_2);
+            fl_int _fl_e_1;
+            FL_CHECKED_ADD(192, _fl_e_2, &_fl_e_1);
+            fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)_fl_e_1));
+            fl_int _fl_e_4;
+            FL_CHECKED_MOD(code, 64, &_fl_e_4);
+            fl_int _fl_e_3;
+            FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
+            fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
+            return fl_mem_to_string(buf, ((fl_int64)2));
+        } else {
+            if (code < 65536) {
+                void* buf = fl_mem_alloc(((fl_int64)3));
+                fl_int _fl_e_6;
+                FL_CHECKED_DIV(code, 4096, &_fl_e_6);
+                fl_int _fl_e_5;
+                FL_CHECKED_ADD(224, _fl_e_6, &_fl_e_5);
+                fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)_fl_e_5));
+                fl_int _fl_e_9;
+                FL_CHECKED_DIV(code, 64, &_fl_e_9);
+                fl_int _fl_e_8;
+                FL_CHECKED_MOD(_fl_e_9, 64, &_fl_e_8);
+                fl_int _fl_e_7;
+                FL_CHECKED_ADD(128, _fl_e_8, &_fl_e_7);
+                fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_7));
+                fl_int _fl_e_11;
+                FL_CHECKED_MOD(code, 64, &_fl_e_11);
+                fl_int _fl_e_10;
+                FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
+                fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
+                return fl_mem_to_string(buf, ((fl_int64)3));
+            } else {
+                void* buf = fl_mem_alloc(((fl_int64)4));
+                fl_int _fl_e_13;
+                FL_CHECKED_DIV(code, 262144, &_fl_e_13);
+                fl_int _fl_e_12;
+                FL_CHECKED_ADD(240, _fl_e_13, &_fl_e_12);
+                fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)_fl_e_12));
+                fl_int _fl_e_16;
+                FL_CHECKED_DIV(code, 4096, &_fl_e_16);
+                fl_int _fl_e_15;
+                FL_CHECKED_MOD(_fl_e_16, 64, &_fl_e_15);
+                fl_int _fl_e_14;
+                FL_CHECKED_ADD(128, _fl_e_15, &_fl_e_14);
+                fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_14));
+                fl_int _fl_e_19;
+                FL_CHECKED_DIV(code, 64, &_fl_e_19);
+                fl_int _fl_e_18;
+                FL_CHECKED_MOD(_fl_e_19, 64, &_fl_e_18);
+                fl_int _fl_e_17;
+                FL_CHECKED_ADD(128, _fl_e_18, &_fl_e_17);
+                fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_17));
+                fl_int _fl_e_21;
+                FL_CHECKED_MOD(code, 64, &_fl_e_21);
+                fl_int _fl_e_20;
+                FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
+                fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
+                return fl_mem_to_string(buf, ((fl_int64)4));
+            }
+        }
+    }
 }
 
 /* From: stdlib/crypto.flow */

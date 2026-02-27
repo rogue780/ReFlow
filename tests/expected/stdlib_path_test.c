@@ -2,6 +2,237 @@
 /* Source: tests/programs/stdlib_path_test.flow */
 #include "flow_runtime.h"
 
+/* From: stdlib/path.flow */
+
+FL_String* fl_path_join(FL_String* a, FL_String* b);
+
+FL_String* fl_path_stem(FL_String* p);
+
+FL_String* fl_path_parent(FL_String* p);
+
+FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix);
+
+FL_Option_ptr fl_path_extension(FL_String* p);
+
+/* Flow: path.join */
+FL_String* fl_path_join(FL_String* a, FL_String* b) {
+    if (fl_string_len(a) == 0) {
+        return b;
+    }
+    if (fl_string_len(b) == 0) {
+        return a;
+    }
+    fl_int _fl_e_1;
+    FL_CHECKED_SUB(fl_string_len(a), 1, &_fl_e_1);
+    FL_Option_char _fl_tmp_0 = fl_string_char_at(a, _fl_e_1);
+    if (_fl_tmp_0.tag == 1) {
+        fl_char last = _fl_tmp_0.value;
+        if (last == 47) {
+            return fl_string_concat(a, b);
+        }
+    }
+    return fl_string_concat(fl_string_concat(a, fl_string_from_cstr("/")), b);
+}
+
+/* Flow: path.stem */
+FL_String* fl_path_stem(FL_String* p) {
+    fl_int len = fl_string_len(p);
+    fl_int start = 0;
+    fl_int _fl_e_1;
+    FL_CHECKED_SUB(len, 1, &_fl_e_1);
+    fl_int i = _fl_e_1;
+    while (i >= 0) {
+        FL_Option_char _fl_tmp_1 = fl_string_char_at(p, i);
+        if (_fl_tmp_1.tag == 1) {
+            fl_char c = _fl_tmp_1.value;
+            if (c == 47) {
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(i, 1, &_fl_e_2);
+                start = _fl_e_2;
+                i = (-1);
+            } else {
+                fl_int _fl_e_3;
+                FL_CHECKED_SUB(i, 1, &_fl_e_3);
+                i = _fl_e_3;
+            }
+        } else {
+            fl_int _fl_e_4;
+            FL_CHECKED_SUB(i, 1, &_fl_e_4);
+            i = _fl_e_4;
+        }
+    }
+    fl_int end = len;
+    fl_int _fl_e_5;
+    FL_CHECKED_SUB(len, 1, &_fl_e_5);
+    i = _fl_e_5;
+    while (i >= start) {
+        FL_Option_char _fl_tmp_2 = fl_string_char_at(p, i);
+        if (_fl_tmp_2.tag == 1) {
+            fl_char c = _fl_tmp_2.value;
+            if (c == 46) {
+                end = i;
+                i = (-1);
+            } else {
+                fl_int _fl_e_6;
+                FL_CHECKED_SUB(i, 1, &_fl_e_6);
+                i = _fl_e_6;
+            }
+        } else {
+            fl_int _fl_e_7;
+            FL_CHECKED_SUB(i, 1, &_fl_e_7);
+            i = _fl_e_7;
+        }
+    }
+    return fl_string_substring(p, start, end);
+}
+
+/* Flow: path.parent */
+FL_String* fl_path_parent(FL_String* p) {
+    fl_int len = fl_string_len(p);
+    if (len > 1) {
+        fl_int _fl_e_1;
+        FL_CHECKED_SUB(len, 1, &_fl_e_1);
+        FL_Option_char _fl_tmp_3 = fl_string_char_at(p, _fl_e_1);
+        if (_fl_tmp_3.tag == 1) {
+            fl_char c = _fl_tmp_3.value;
+            if (c == 47) {
+                fl_int _fl_e_2;
+                FL_CHECKED_SUB(len, 1, &_fl_e_2);
+                len = _fl_e_2;
+            }
+        }
+    }
+    fl_int _fl_e_3;
+    FL_CHECKED_SUB(0, 1, &_fl_e_3);
+    fl_int last_slash = _fl_e_3;
+    fl_int _fl_e_4;
+    FL_CHECKED_SUB(len, 1, &_fl_e_4);
+    fl_int i = _fl_e_4;
+    while (i >= 0) {
+        FL_Option_char _fl_tmp_4 = fl_string_char_at(p, i);
+        if (_fl_tmp_4.tag == 1) {
+            fl_char c = _fl_tmp_4.value;
+            if (c == 47) {
+                last_slash = i;
+                i = (-1);
+            } else {
+                fl_int _fl_e_5;
+                FL_CHECKED_SUB(i, 1, &_fl_e_5);
+                i = _fl_e_5;
+            }
+        } else {
+            fl_int _fl_e_6;
+            FL_CHECKED_SUB(i, 1, &_fl_e_6);
+            i = _fl_e_6;
+        }
+    }
+    if (last_slash < 0) {
+        return fl_string_from_cstr(".");
+    }
+    if (last_slash == 0) {
+        return fl_string_from_cstr("/");
+    }
+    return fl_string_substring(p, 0, last_slash);
+}
+
+/* Flow: path.with_suffix */
+FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix) {
+    fl_int len = fl_string_len(p);
+    fl_int _fl_e_1;
+    FL_CHECKED_SUB(0, 1, &_fl_e_1);
+    fl_int dot = _fl_e_1;
+    fl_int _fl_e_2;
+    FL_CHECKED_SUB(0, 1, &_fl_e_2);
+    fl_int last_slash = _fl_e_2;
+    fl_int _fl_e_3;
+    FL_CHECKED_SUB(len, 1, &_fl_e_3);
+    fl_int i = _fl_e_3;
+    while (i >= 0) {
+        FL_Option_char _fl_tmp_5 = fl_string_char_at(p, i);
+        if (_fl_tmp_5.tag == 1) {
+            fl_char c = _fl_tmp_5.value;
+            if ((c == 47) && (last_slash < 0)) {
+                last_slash = i;
+                i = (-1);
+            } else {
+                if ((c == 46) && (dot < 0)) {
+                    dot = i;
+                }
+            }
+        }
+        if (i >= 0) {
+            fl_int _fl_e_4;
+            FL_CHECKED_SUB(i, 1, &_fl_e_4);
+            i = _fl_e_4;
+        }
+    }
+    fl_int _fl_tmp_6;
+    if ((dot >= 0) && (dot > last_slash)) {
+        _fl_tmp_6 = dot;
+    } else {
+        _fl_tmp_6 = len;
+    }
+    fl_int base_end = _fl_tmp_6;
+    return fl_string_concat(fl_string_substring(p, 0, base_end), suffix);
+}
+
+/* Flow: path.extension */
+FL_Option_ptr fl_path_extension(FL_String* p) {
+    fl_int len = fl_string_len(p);
+    fl_int base_start = 0;
+    fl_int _fl_e_1;
+    FL_CHECKED_SUB(len, 1, &_fl_e_1);
+    fl_int i = _fl_e_1;
+    while (i >= 0) {
+        FL_Option_char _fl_tmp_7 = fl_string_char_at(p, i);
+        if (_fl_tmp_7.tag == 1) {
+            fl_char c = _fl_tmp_7.value;
+            if (c == 47) {
+                fl_int _fl_e_2;
+                FL_CHECKED_ADD(i, 1, &_fl_e_2);
+                base_start = _fl_e_2;
+                i = (-1);
+            } else {
+                fl_int _fl_e_3;
+                FL_CHECKED_SUB(i, 1, &_fl_e_3);
+                i = _fl_e_3;
+            }
+        } else {
+            fl_int _fl_e_4;
+            FL_CHECKED_SUB(i, 1, &_fl_e_4);
+            i = _fl_e_4;
+        }
+    }
+    fl_int _fl_e_5;
+    FL_CHECKED_SUB(0, 1, &_fl_e_5);
+    fl_int dot = _fl_e_5;
+    fl_int _fl_e_6;
+    FL_CHECKED_SUB(len, 1, &_fl_e_6);
+    i = _fl_e_6;
+    while (i >= base_start) {
+        FL_Option_char _fl_tmp_8 = fl_string_char_at(p, i);
+        if (_fl_tmp_8.tag == 1) {
+            fl_char c = _fl_tmp_8.value;
+            if (c == 46) {
+                dot = i;
+                i = (-1);
+            } else {
+                fl_int _fl_e_7;
+                FL_CHECKED_SUB(i, 1, &_fl_e_7);
+                i = _fl_e_7;
+            }
+        } else {
+            fl_int _fl_e_8;
+            FL_CHECKED_SUB(i, 1, &_fl_e_8);
+            i = _fl_e_8;
+        }
+    }
+    if ((dot < 0) || (dot == base_start)) {
+        return (FL_Option_ptr){.tag = 0};
+    }
+    return (FL_Option_ptr){.tag = 1, .value = fl_string_substring(p, dot, len)};
+}
+
 /* Flow: tests.stdlib_path_test.main */
 void fl_tests_stdlib_path_test_main(void) {
     FL_String* _fl_tmp_0 = fl_string_from_cstr("join: ");

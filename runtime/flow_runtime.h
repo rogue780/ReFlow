@@ -567,9 +567,7 @@ FL_String*    fl_string_from_cptr(void* p, fl_int len);
  * Character Utilities (stdlib/char — RB-1-2)
  * ======================================================================== */
 
-/* is_digit, is_alpha, is_alphanumeric, is_whitespace, to_code, from_code
- * are now pure Flow in stdlib/char.flow — no runtime needed. */
-FL_String* fl_char_to_string(fl_char c);
+/* char functions are now pure Flow in stdlib/char.flow — no runtime needed. */
 
 /* ========================================================================
  * File I/O (stdlib/io — RB-1-3)

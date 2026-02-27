@@ -2,6 +2,126 @@
 /* Source: tests/programs/stdlib_char_test.flow */
 #include "flow_runtime.h"
 
+/* From: stdlib/char.flow */
+
+fl_bool fl_char_is_digit(fl_char c);
+
+fl_bool fl_char_is_alpha(fl_char c);
+
+fl_bool fl_char_is_alphanumeric(fl_char c);
+
+fl_bool fl_char_is_whitespace(fl_char c);
+
+fl_int fl_char_to_code(fl_char c);
+
+fl_char fl_char_from_code(fl_int n);
+
+FL_String* fl_char_to_string(fl_char c);
+
+/* Flow: char.is_digit */
+fl_bool fl_char_is_digit(fl_char c) {
+    return ((c >= 48) && (c <= 57));
+}
+
+/* Flow: char.is_alpha */
+fl_bool fl_char_is_alpha(fl_char c) {
+    return ((((c >= 97) && (c <= 122)) || ((c >= 65) && (c <= 90))) || (c == 95));
+}
+
+/* Flow: char.is_alphanumeric */
+fl_bool fl_char_is_alphanumeric(fl_char c) {
+    return (fl_char_is_alpha(c) || fl_char_is_digit(c));
+}
+
+/* Flow: char.is_whitespace */
+fl_bool fl_char_is_whitespace(fl_char c) {
+    return ((((c == 32) || (c == 9)) || (c == 10)) || (c == 13));
+}
+
+/* Flow: char.to_code */
+fl_int fl_char_to_code(fl_char c) {
+    return ((fl_int)c);
+}
+
+/* Flow: char.from_code */
+fl_char fl_char_from_code(fl_int n) {
+    return ((fl_char)n);
+}
+
+/* Flow: char.to_string */
+FL_String* fl_char_to_string(fl_char c) {
+    fl_int code = fl_char_to_code(c);
+    if (code < 128) {
+        void* buf = fl_mem_alloc(((fl_int64)1));
+        fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
+        return fl_mem_to_string(buf, ((fl_int64)1));
+    } else {
+        if (code < 2048) {
+            void* buf = fl_mem_alloc(((fl_int64)2));
+            fl_int _fl_e_2;
+            FL_CHECKED_DIV(code, 64, &_fl_e_2);
+            fl_int _fl_e_1;
+            FL_CHECKED_ADD(192, _fl_e_2, &_fl_e_1);
+            fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)_fl_e_1));
+            fl_int _fl_e_4;
+            FL_CHECKED_MOD(code, 64, &_fl_e_4);
+            fl_int _fl_e_3;
+            FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
+            fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
+            return fl_mem_to_string(buf, ((fl_int64)2));
+        } else {
+            if (code < 65536) {
+                void* buf = fl_mem_alloc(((fl_int64)3));
+                fl_int _fl_e_6;
+                FL_CHECKED_DIV(code, 4096, &_fl_e_6);
+                fl_int _fl_e_5;
+                FL_CHECKED_ADD(224, _fl_e_6, &_fl_e_5);
+                fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)_fl_e_5));
+                fl_int _fl_e_9;
+                FL_CHECKED_DIV(code, 64, &_fl_e_9);
+                fl_int _fl_e_8;
+                FL_CHECKED_MOD(_fl_e_9, 64, &_fl_e_8);
+                fl_int _fl_e_7;
+                FL_CHECKED_ADD(128, _fl_e_8, &_fl_e_7);
+                fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_7));
+                fl_int _fl_e_11;
+                FL_CHECKED_MOD(code, 64, &_fl_e_11);
+                fl_int _fl_e_10;
+                FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
+                fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
+                return fl_mem_to_string(buf, ((fl_int64)3));
+            } else {
+                void* buf = fl_mem_alloc(((fl_int64)4));
+                fl_int _fl_e_13;
+                FL_CHECKED_DIV(code, 262144, &_fl_e_13);
+                fl_int _fl_e_12;
+                FL_CHECKED_ADD(240, _fl_e_13, &_fl_e_12);
+                fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)_fl_e_12));
+                fl_int _fl_e_16;
+                FL_CHECKED_DIV(code, 4096, &_fl_e_16);
+                fl_int _fl_e_15;
+                FL_CHECKED_MOD(_fl_e_16, 64, &_fl_e_15);
+                fl_int _fl_e_14;
+                FL_CHECKED_ADD(128, _fl_e_15, &_fl_e_14);
+                fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_14));
+                fl_int _fl_e_19;
+                FL_CHECKED_DIV(code, 64, &_fl_e_19);
+                fl_int _fl_e_18;
+                FL_CHECKED_MOD(_fl_e_19, 64, &_fl_e_18);
+                fl_int _fl_e_17;
+                FL_CHECKED_ADD(128, _fl_e_18, &_fl_e_17);
+                fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_17));
+                fl_int _fl_e_21;
+                FL_CHECKED_MOD(code, 64, &_fl_e_21);
+                fl_int _fl_e_20;
+                FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
+                fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
+                return fl_mem_to_string(buf, ((fl_int64)4));
+            }
+        }
+    }
+}
+
 /* Flow: tests.stdlib_char_test.main */
 void fl_tests_stdlib_char_test_main(void) {
     FL_String* _fl_tmp_0 = fl_string_from_cstr("is_digit '5': ");
@@ -21,8 +141,8 @@ void fl_tests_stdlib_char_test_main(void) {
     FL_String* _fl_tmp_7 = fl_string_from_cstr("is_whitespace 'x': ");
     fl_println(fl_string_concat(_fl_tmp_7, fl_bool_to_string(fl_char_is_whitespace(120))));
     FL_String* _fl_tmp_8 = fl_string_from_cstr("to_code 'A': ");
-    fl_println(fl_string_concat(_fl_tmp_8, fl_int_to_string(fl_char_to_int(65))));
-    fl_char ch = fl_int_to_char(66);
+    fl_println(fl_string_concat(_fl_tmp_8, fl_int_to_string(fl_char_to_code(65))));
+    fl_char ch = fl_char_from_code(66);
     FL_String* _fl_tmp_9 = fl_string_from_cstr("from_code 66: ");
     fl_println(fl_string_concat(_fl_tmp_9, fl_char_to_string(ch)));
     FL_String* _fl_tmp_10 = fl_string_from_cstr("to_string 'R': ");
