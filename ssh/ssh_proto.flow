@@ -1,0 +1,765 @@
+module ssh.ssh_proto
+
+import ssh.ssh_buf
+import ssh.ssh_crypto
+import ssh.ssh_transport
+import ssh.ssh_term
+import mem
+import net
+import string
+import array
+import io
+import conv
+
+// --- SSH message type constants (RFC 4253, 4252, 4254) ---
+
+enum Msg {
+    DISCONNECT = 1
+    IGNORE = 2
+    DEBUG = 4
+    SERVICE_REQUEST = 5
+    SERVICE_ACCEPT = 6
+    KEXINIT = 20
+    NEWKEYS = 21
+    KEX_ECDH_INIT = 30
+    KEX_ECDH_REPLY = 31
+    USERAUTH_REQUEST = 50
+    USERAUTH_FAILURE = 51
+    USERAUTH_SUCCESS = 52
+    GLOBAL_REQUEST = 80
+    REQUEST_FAILURE = 82
+    CHANNEL_OPEN = 90
+    CHANNEL_OPEN_CONFIRM = 91
+    CHANNEL_WINDOW_ADJUST = 93
+    CHANNEL_DATA = 94
+    CHANNEL_EXTENDED_DATA = 95
+    CHANNEL_EOF = 96
+    CHANNEL_CLOSE = 97
+    CHANNEL_REQUEST = 98
+    CHANNEL_SUCCESS = 99
+    CHANNEL_FAILURE = 100
+}
+
+// --- SSH disconnect reason codes (RFC 4253 Section 11.1) ---
+
+enum DisconnectReason {
+    BY_APPLICATION = 11
+}
+
+// --- Result types ---
+
+export type KexResult {
+    session_id:ptr
+    shared_secret:ptr
+    shared_secret_len:int64
+}
+
+export type DerivedKeys {
+    iv_c2s:ptr
+    iv_s2c:ptr
+    enc_c2s:ptr
+    enc_s2c:ptr
+    mac_c2s:ptr
+    mac_s2c:ptr
+}
+
+// --- Algorithm lists ---
+
+fn KEX_ALGORITHMS():string { return "curve25519-sha256" }
+fn HOST_KEY_ALGORITHMS():string { return "ssh-ed25519" }
+fn CIPHERS():string { return "aes256-ctr" }
+fn MACS():string { return "hmac-sha2-256" }
+fn COMPRESSION():string { return "none" }
+fn CLIENT_VERSION():string { return "SSH-2.0-FlowSSH_1.0" }
+
+// --- Helper: receive a packet, skipping IGNORE/DEBUG/GLOBAL_REQUEST ---
+
+fn recv_skip_global(t:Transport):array<byte>? {
+    let attempts:int:mut = 0
+    while(attempts < 20) {
+        let pkt = ssh_transport.recv_packet(t)?
+        if(array.len_byte(pkt) < 1) { return none }
+        let rb = ssh_buf.rbuf_from_bytes(pkt)
+        let msg = cast<int>(ssh_buf.rbuf_read_byte(rb))
+        ssh_buf.rbuf_free(rb)
+
+        if(msg == Msg.IGNORE || msg == Msg.DEBUG) {
+            // Skip these transport messages
+            attempts = attempts + 1
+        } else if(msg == Msg.GLOBAL_REQUEST) {
+            // OpenSSH sends hostkeys-00@openssh.com after auth
+            // We don't want-reply, just skip it
+            io.eprintln("[ssh] skipping global request")
+            attempts = attempts + 1
+        } else if(msg == Msg.REQUEST_FAILURE) {
+            // Server's response to global requests we didn't answer
+            attempts = attempts + 1
+        } else if(msg == Msg.CHANNEL_WINDOW_ADJUST) {
+            // Server adjusting window size — can arrive at any time
+            attempts = attempts + 1
+        } else {
+            return some(pkt)
+        }
+    }
+    return none
+}
+
+// --- 1. Version exchange ---
+
+export fn version_exchange(sock:Socket):string? {
+    // Send client version
+    let ver = CLIENT_VERSION() + "\r\n"
+    if(!net.write_string(sock, ver)) { return none }
+
+    // Read lines until we get one starting with "SSH-" (RFC 4253 Section 4.2)
+    // Servers may send banner lines before the version string
+    let found:bool:mut = false
+    let version:string:mut = ""
+    while(!found) {
+        let line:string:mut = ""
+        let eol:bool:mut = false
+        while(!eol) {
+            match net.read(sock, 1) {
+                some(chunk): {
+                    let s = string.from_bytes(chunk)
+                    line = line + s
+                    if(string.ends_with(line, "\n")) {
+                        eol = true
+                    }
+                }
+                none: { return none }
+            }
+        }
+        let trimmed = string.trim(line)
+        if(string.starts_with(trimmed, "SSH-")) {
+            version = trimmed
+            found = true
+        }
+        // else: banner line, discard and continue
+    }
+
+    return some(version)
+}
+
+// --- 2. Algorithm negotiation ---
+
+export fn send_kexinit(t:Transport):array<byte>? {
+    let payload = ssh_buf.wbuf_new()
+
+    // byte: SSH_MSG_KEXINIT (20)
+    ssh_buf.wbuf_write_byte(payload, cast<byte>(Msg.KEXINIT))
+
+    // 16 bytes cookie (random)
+    let cookie = mem.alloc(cast<int64>(16))
+    ssh_crypto.random_fill(cookie, 16)
+    ssh_buf.wbuf_write_raw(payload, cookie, cast<int64>(16))
+    mem.free(cookie)
+
+    // Algorithm lists (name-lists)
+    ssh_buf.wbuf_write_name_list(payload, KEX_ALGORITHMS())
+    ssh_buf.wbuf_write_name_list(payload, HOST_KEY_ALGORITHMS())
+    ssh_buf.wbuf_write_name_list(payload, CIPHERS())        // enc c2s
+    ssh_buf.wbuf_write_name_list(payload, CIPHERS())        // enc s2c
+    ssh_buf.wbuf_write_name_list(payload, MACS())           // mac c2s
+    ssh_buf.wbuf_write_name_list(payload, MACS())           // mac s2c
+    ssh_buf.wbuf_write_name_list(payload, COMPRESSION())    // comp c2s
+    ssh_buf.wbuf_write_name_list(payload, COMPRESSION())    // comp s2c
+    ssh_buf.wbuf_write_name_list(payload, "")               // languages c2s
+    ssh_buf.wbuf_write_name_list(payload, "")               // languages s2c
+
+    // bool: first_kex_packet_follows
+    ssh_buf.wbuf_write_bool(payload, false)
+
+    // uint32: reserved (0)
+    ssh_buf.wbuf_write_u32(payload, 0)
+
+    // Save raw payload for exchange hash
+    let raw = ssh_buf.wbuf_to_bytes(payload)
+
+    // Send
+    if(!ssh_transport.send_packet(t, payload)) {
+        ssh_buf.wbuf_free(payload)
+        return none
+    }
+    ssh_buf.wbuf_free(payload)
+    return some(raw)
+}
+
+export fn recv_kexinit(t:Transport):array<byte>? {
+    let payload = ssh_transport.recv_packet(t)?
+    if(array.len_byte(payload) < 1) { return none }
+    return some(payload)
+}
+
+// --- 3. Key exchange (curve25519-sha256) ---
+
+export fn do_kex(t:Transport, client_ver:string, server_ver:string, client_kexinit:array<byte>, server_kexinit:array<byte>):KexResult? {
+    // a. Generate X25519 keypair
+    // Returns ptr: [0..32) = public key, [32..40) = EVP_PKEY*
+    let kp = ssh_crypto.x25519_keygen()
+    let kp_pkey = mem.read_ptr(kp, cast<int64>(32))
+
+    // b. Send SSH_MSG_KEX_ECDH_INIT (type 30) with client public key (32 bytes)
+    let init_pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(init_pkt, cast<byte>(Msg.KEX_ECDH_INIT))
+    ssh_buf.wbuf_write_u32(init_pkt, 32)
+    ssh_buf.wbuf_write_raw(init_pkt, kp, cast<int64>(32))
+
+    if(!ssh_transport.send_packet(t, init_pkt)) {
+        ssh_buf.wbuf_free(init_pkt)
+        return none
+    }
+    ssh_buf.wbuf_free(init_pkt)
+
+    // c. Recv SSH_MSG_KEX_ECDH_REPLY (type 31)
+    let reply = ssh_transport.recv_packet(t)?
+    let rb = ssh_buf.rbuf_from_bytes(reply)
+    let msg_type = cast<int>(ssh_buf.rbuf_read_byte(rb))
+    if(msg_type != Msg.KEX_ECDH_REPLY) {
+        io.eprintln("[ssh] expected KEX_ECDH_REPLY(31), got " + conv.to_string(msg_type))
+        ssh_buf.rbuf_free(rb)
+        return none
+    }
+
+    // Parse: host_key_blob (string), server_pub (string), signature (string)
+    let host_key_blob = ssh_buf.rbuf_read_string_bytes(rb)
+    let server_pub_bytes = ssh_buf.rbuf_read_string_bytes(rb)
+    let sig_blob = ssh_buf.rbuf_read_string_bytes(rb)
+    ssh_buf.rbuf_free(rb)
+
+    // d. Compute shared secret via X25519
+    let server_pub_str = string.from_bytes(server_pub_bytes)
+    let server_pub_ptr = string.to_cptr(server_pub_str)
+    let shared_secret = ssh_crypto.x25519_derive(kp_pkey, server_pub_ptr, cast<int64>(32))
+    if(mem.is_null(shared_secret)) {
+        io.eprintln("[ssh] X25519 derive failed")
+        return none
+    }
+
+    // e. Compute exchange hash H
+    //    H = SHA256(V_C || V_S || I_C || I_S || K_S || e || f || K)
+    let hash_ctx = ssh_crypto.hash_init()
+
+    // V_C (client version string)
+    let vc_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_string(vc_buf, client_ver)
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(vc_buf), ssh_buf.wbuf_len(vc_buf))
+    ssh_buf.wbuf_free(vc_buf)
+
+    // V_S (server version string)
+    let vs_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_string(vs_buf, server_ver)
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(vs_buf), ssh_buf.wbuf_len(vs_buf))
+    ssh_buf.wbuf_free(vs_buf)
+
+    // I_C (client KEXINIT payload as string)
+    let ic_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_u32(ic_buf, array.len_byte(client_kexinit))
+    ssh_buf.wbuf_write_bytes(ic_buf, client_kexinit)
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(ic_buf), ssh_buf.wbuf_len(ic_buf))
+    ssh_buf.wbuf_free(ic_buf)
+
+    // I_S (server KEXINIT payload as string)
+    let is_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_u32(is_buf, array.len_byte(server_kexinit))
+    ssh_buf.wbuf_write_bytes(is_buf, server_kexinit)
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(is_buf), ssh_buf.wbuf_len(is_buf))
+    ssh_buf.wbuf_free(is_buf)
+
+    // K_S (host key blob as string)
+    let ks_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_u32(ks_buf, array.len_byte(host_key_blob))
+    ssh_buf.wbuf_write_bytes(ks_buf, host_key_blob)
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(ks_buf), ssh_buf.wbuf_len(ks_buf))
+    ssh_buf.wbuf_free(ks_buf)
+
+    // e (client public key as string)
+    let e_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_u32(e_buf, 32)
+    ssh_buf.wbuf_write_raw(e_buf, kp, cast<int64>(32))
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(e_buf), ssh_buf.wbuf_len(e_buf))
+    ssh_buf.wbuf_free(e_buf)
+
+    // f (server public key as string)
+    let f_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_u32(f_buf, array.len_byte(server_pub_bytes))
+    ssh_buf.wbuf_write_bytes(f_buf, server_pub_bytes)
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(f_buf), ssh_buf.wbuf_len(f_buf))
+    ssh_buf.wbuf_free(f_buf)
+
+    // K (shared secret as mpint)
+    let k_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_mpint(k_buf, shared_secret, cast<int64>(32))
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(k_buf), ssh_buf.wbuf_len(k_buf))
+    ssh_buf.wbuf_free(k_buf)
+
+    let exchange_hash = ssh_crypto.hash_final(hash_ctx)
+
+    // f. Verify server signature over H using ed25519_verify
+    let hk_rb = ssh_buf.rbuf_from_bytes(host_key_blob)
+    let key_type = ssh_buf.rbuf_read_string(hk_rb)
+    let ed_pub = ssh_buf.rbuf_read_string_bytes(hk_rb)
+    ssh_buf.rbuf_free(hk_rb)
+
+    let sig_rb = ssh_buf.rbuf_from_bytes(sig_blob)
+    let sig_type = ssh_buf.rbuf_read_string(sig_rb)
+    let sig_data = ssh_buf.rbuf_read_string_bytes(sig_rb)
+    ssh_buf.rbuf_free(sig_rb)
+
+    let ed_pub_str = string.from_bytes(ed_pub)
+    let ed_pub_ptr = string.to_cptr(ed_pub_str)
+    let sig_data_str = string.from_bytes(sig_data)
+    let sig_data_ptr = string.to_cptr(sig_data_str)
+
+    let sig_ok = ssh_crypto.ed25519_verify(ed_pub_ptr, cast<int64>(array.len_byte(ed_pub)), sig_data_ptr, cast<int64>(array.len_byte(sig_data)), exchange_hash, cast<int64>(32))
+
+    if(!sig_ok) {
+        io.eprintln("[ssh] host key signature verification failed")
+        mem.free(exchange_hash)
+        mem.free(shared_secret)
+        ssh_crypto.free_pkey(kp_pkey)
+        mem.free(kp)
+        return none
+    }
+
+    ssh_crypto.free_pkey(kp_pkey)
+    mem.free(kp)
+
+    return some(KexResult {
+        session_id: exchange_hash,
+        shared_secret: shared_secret,
+        shared_secret_len: cast<int64>(32)
+    })
+}
+
+// --- 4. Key derivation (RFC 4253 Section 7.2) ---
+
+fn derive_single_key(shared_secret:ptr, shared_secret_len:int64, exchange_hash:ptr, letter:byte, session_id:ptr):ptr {
+    let hash_ctx = ssh_crypto.hash_init()
+
+    let k_buf = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_mpint(k_buf, shared_secret, shared_secret_len)
+    ssh_crypto.hash_update(hash_ctx, ssh_buf.wbuf_data_ptr(k_buf), ssh_buf.wbuf_len(k_buf))
+    ssh_buf.wbuf_free(k_buf)
+
+    ssh_crypto.hash_update(hash_ctx, exchange_hash, cast<int64>(32))
+
+    let letter_buf = mem.alloc(cast<int64>(1))
+    mem.write_byte(letter_buf, cast<int64>(0), letter)
+    ssh_crypto.hash_update(hash_ctx, letter_buf, cast<int64>(1))
+    mem.free(letter_buf)
+
+    ssh_crypto.hash_update(hash_ctx, session_id, cast<int64>(32))
+
+    return ssh_crypto.hash_final(hash_ctx)
+}
+
+export fn derive_keys(kex:KexResult):DerivedKeys {
+    let iv_c2s = derive_single_key(kex.shared_secret, kex.shared_secret_len, kex.session_id, cast<byte>(65), kex.session_id)
+    let iv_s2c = derive_single_key(kex.shared_secret, kex.shared_secret_len, kex.session_id, cast<byte>(66), kex.session_id)
+    let enc_c2s = derive_single_key(kex.shared_secret, kex.shared_secret_len, kex.session_id, cast<byte>(67), kex.session_id)
+    let enc_s2c = derive_single_key(kex.shared_secret, kex.shared_secret_len, kex.session_id, cast<byte>(68), kex.session_id)
+    let mac_c2s = derive_single_key(kex.shared_secret, kex.shared_secret_len, kex.session_id, cast<byte>(69), kex.session_id)
+    let mac_s2c = derive_single_key(kex.shared_secret, kex.shared_secret_len, kex.session_id, cast<byte>(70), kex.session_id)
+    return DerivedKeys {
+        iv_c2s: iv_c2s,
+        iv_s2c: iv_s2c,
+        enc_c2s: enc_c2s,
+        enc_s2c: enc_s2c,
+        mac_c2s: mac_c2s,
+        mac_s2c: mac_s2c
+    }
+}
+
+// --- 5. Activate encryption ---
+
+export fn activate_encryption(t:Transport, kex:KexResult, keys:DerivedKeys):bool {
+    let pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(pkt, cast<byte>(Msg.NEWKEYS))
+    if(!ssh_transport.send_packet(t, pkt)) {
+        ssh_buf.wbuf_free(pkt)
+        return false
+    }
+    ssh_buf.wbuf_free(pkt)
+
+    match ssh_transport.recv_packet(t) {
+        some(payload): {
+            if(array.len_byte(payload) < 1) { return false }
+            let rb = ssh_buf.rbuf_from_bytes(payload)
+            let msg = cast<int>(ssh_buf.rbuf_read_byte(rb))
+            ssh_buf.rbuf_free(rb)
+            if(msg != Msg.NEWKEYS) {
+                io.eprintln("[ssh] expected NEWKEYS(21), got " + conv.to_string(msg))
+                return false
+            }
+        }
+        none: { return false }
+    }
+
+    ssh_transport.transport_activate_keys(t, keys.enc_c2s, keys.iv_c2s, keys.enc_s2c, keys.iv_s2c, keys.mac_c2s, keys.mac_s2c)
+    return true
+}
+
+// --- 6. Authentication ---
+
+export fn authenticate(t:Transport, username:string, password:string):bool {
+    let req = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(req, cast<byte>(Msg.SERVICE_REQUEST))
+    ssh_buf.wbuf_write_string(req, "ssh-userauth")
+    if(!ssh_transport.send_packet(t, req)) {
+        ssh_buf.wbuf_free(req)
+        return false
+    }
+    ssh_buf.wbuf_free(req)
+
+    match recv_skip_global(t) {
+        some(payload): {
+            let rb = ssh_buf.rbuf_from_bytes(payload)
+            let msg = cast<int>(ssh_buf.rbuf_read_byte(rb))
+            ssh_buf.rbuf_free(rb)
+            if(msg != Msg.SERVICE_ACCEPT) {
+                io.eprintln("[ssh] expected SERVICE_ACCEPT(6), got " + conv.to_string(msg))
+                return false
+            }
+        }
+        none: { return false }
+    }
+
+    let auth = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(auth, cast<byte>(Msg.USERAUTH_REQUEST))
+    ssh_buf.wbuf_write_string(auth, username)
+    ssh_buf.wbuf_write_string(auth, "ssh-connection")
+    ssh_buf.wbuf_write_string(auth, "password")
+    ssh_buf.wbuf_write_bool(auth, false)
+    ssh_buf.wbuf_write_string(auth, password)
+    if(!ssh_transport.send_packet(t, auth)) {
+        ssh_buf.wbuf_free(auth)
+        return false
+    }
+    ssh_buf.wbuf_free(auth)
+
+    // Recv response: 52=success, 51=failure (skip global requests)
+    match recv_skip_global(t) {
+        some(payload): {
+            let rb = ssh_buf.rbuf_from_bytes(payload)
+            let msg = cast<int>(ssh_buf.rbuf_read_byte(rb))
+            ssh_buf.rbuf_free(rb)
+            if(msg == Msg.USERAUTH_SUCCESS) {
+                return true
+            }
+            io.eprintln("[ssh] auth response: " + conv.to_string(msg))
+            return false
+        }
+        none: { return false }
+    }
+}
+
+// --- 7. Execute command ---
+
+export fn exec_command(t:Transport, command:string):string? {
+    let remote_ch = open_channel(t)?
+
+    // Send SSH_MSG_CHANNEL_REQUEST ("exec")
+    let exec_pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(exec_pkt, cast<byte>(Msg.CHANNEL_REQUEST))
+    ssh_buf.wbuf_write_u32(exec_pkt, remote_ch)
+    ssh_buf.wbuf_write_string(exec_pkt, "exec")
+    ssh_buf.wbuf_write_bool(exec_pkt, true)     // want reply
+    ssh_buf.wbuf_write_string(exec_pkt, command)
+    if(!ssh_transport.send_packet(t, exec_pkt)) {
+        ssh_buf.wbuf_free(exec_pkt)
+        return none
+    }
+    ssh_buf.wbuf_free(exec_pkt)
+
+    // d. Loop receiving data packets
+    let output:string:mut = ""
+    let done:bool:mut = false
+    while(!done) {
+        match ssh_transport.recv_packet(t) {
+            some(pkt_data): {
+                let drb = ssh_buf.rbuf_from_bytes(pkt_data)
+                let msg_type = cast<int>(ssh_buf.rbuf_read_byte(drb))
+
+                if(msg_type == Msg.CHANNEL_DATA) {
+                    let ch = ssh_buf.rbuf_read_u32(drb)
+                    let data = ssh_buf.rbuf_read_string(drb)
+                    output = output + data
+                } else if(msg_type == Msg.CHANNEL_EXTENDED_DATA) {
+                    let ch2 = ssh_buf.rbuf_read_u32(drb)
+                    let data_type = ssh_buf.rbuf_read_u32(drb)
+                    let stderr_data = ssh_buf.rbuf_read_string(drb)
+                    io.eprint(stderr_data)
+                } else if(msg_type == Msg.CHANNEL_WINDOW_ADJUST) {
+                    let ch3 = ssh_buf.rbuf_read_u32(drb)
+                    let adjust = ssh_buf.rbuf_read_u32(drb)
+                } else if(msg_type == Msg.CHANNEL_SUCCESS || msg_type == Msg.CHANNEL_FAILURE) {
+                    // exec request reply — continue
+                } else if(msg_type == Msg.CHANNEL_EOF) {
+                    // Server done sending data; continue to get CLOSE
+                } else if(msg_type == Msg.CHANNEL_CLOSE) {
+                    // Send CHANNEL_CLOSE back
+                    let close_pkt = ssh_buf.wbuf_new()
+                    ssh_buf.wbuf_write_byte(close_pkt, cast<byte>(Msg.CHANNEL_CLOSE))
+                    ssh_buf.wbuf_write_u32(close_pkt, remote_ch)
+                    ssh_transport.send_packet(t, close_pkt)
+                    ssh_buf.wbuf_free(close_pkt)
+                    done = true
+                } else if(msg_type == Msg.CHANNEL_REQUEST) {
+                    // Server channel requests (exit-status, exit-signal) — ignore
+                } else if(msg_type == Msg.GLOBAL_REQUEST || msg_type == Msg.IGNORE || msg_type == Msg.DEBUG) {
+                    // Transport messages — ignore
+                } else {
+                    io.eprintln("[ssh] unexpected msg type " + conv.to_string(msg_type))
+                }
+
+                ssh_buf.rbuf_free(drb)
+            }
+            none: {
+                done = true
+            }
+        }
+    }
+
+    return some(output)
+}
+
+// --- 8. Open channel (shared between exec and interactive) ---
+
+export fn open_channel(t:Transport):int? {
+    let open_pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(open_pkt, cast<byte>(Msg.CHANNEL_OPEN))
+    ssh_buf.wbuf_write_string(open_pkt, "session")
+    ssh_buf.wbuf_write_u32(open_pkt, 0)        // local channel 0
+    ssh_buf.wbuf_write_u32(open_pkt, 1048576)   // initial window size
+    ssh_buf.wbuf_write_u32(open_pkt, 32768)     // max packet size
+    if(!ssh_transport.send_packet(t, open_pkt)) {
+        ssh_buf.wbuf_free(open_pkt)
+        return none
+    }
+    ssh_buf.wbuf_free(open_pkt)
+
+    let confirm = recv_skip_global(t)?
+    let crb = ssh_buf.rbuf_from_bytes(confirm)
+    let cmsg = cast<int>(ssh_buf.rbuf_read_byte(crb))
+    if(cmsg != Msg.CHANNEL_OPEN_CONFIRM) {
+        io.eprintln("[ssh] expected CHANNEL_OPEN_CONFIRM(91), got " + conv.to_string(cmsg))
+        ssh_buf.rbuf_free(crb)
+        return none
+    }
+    let recipient_ch = ssh_buf.rbuf_read_u32(crb)
+    let remote_ch = ssh_buf.rbuf_read_u32(crb)
+    let remote_window = ssh_buf.rbuf_read_u32(crb)
+    let remote_max_pkt = ssh_buf.rbuf_read_u32(crb)
+    ssh_buf.rbuf_free(crb)
+
+    return some(remote_ch)
+}
+
+// --- 9. Request PTY ---
+
+export fn request_pty(t:Transport, remote_ch:int, term:string, cols:int, rows:int):bool {
+    let pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(pkt, cast<byte>(Msg.CHANNEL_REQUEST))
+    ssh_buf.wbuf_write_u32(pkt, remote_ch)
+    ssh_buf.wbuf_write_string(pkt, "pty-req")
+    ssh_buf.wbuf_write_bool(pkt, true)          // want reply
+    ssh_buf.wbuf_write_string(pkt, term)        // TERM
+    ssh_buf.wbuf_write_u32(pkt, cols)           // terminal width (chars)
+    ssh_buf.wbuf_write_u32(pkt, rows)           // terminal height (rows)
+    ssh_buf.wbuf_write_u32(pkt, 0)              // terminal width (pixels)
+    ssh_buf.wbuf_write_u32(pkt, 0)              // terminal height (pixels)
+    ssh_buf.wbuf_write_string(pkt, "")          // encoded terminal modes (empty = defaults)
+
+    if(!ssh_transport.send_packet(t, pkt)) {
+        ssh_buf.wbuf_free(pkt)
+        return false
+    }
+    ssh_buf.wbuf_free(pkt)
+
+    // Wait for CHANNEL_SUCCESS or CHANNEL_FAILURE
+    match recv_skip_global(t) {
+        some(payload): {
+            let rb = ssh_buf.rbuf_from_bytes(payload)
+            let msg = cast<int>(ssh_buf.rbuf_read_byte(rb))
+            ssh_buf.rbuf_free(rb)
+            if(msg == Msg.CHANNEL_SUCCESS) {
+                return true
+            }
+            io.eprintln("[ssh] pty-req failed with msg type " + conv.to_string(msg))
+            return false
+        }
+        none: { return false }
+    }
+}
+
+// --- 10. Request shell ---
+
+export fn request_shell(t:Transport, remote_ch:int):bool {
+    let pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(pkt, cast<byte>(Msg.CHANNEL_REQUEST))
+    ssh_buf.wbuf_write_u32(pkt, remote_ch)
+    ssh_buf.wbuf_write_string(pkt, "shell")
+    ssh_buf.wbuf_write_bool(pkt, true)          // want reply
+
+    if(!ssh_transport.send_packet(t, pkt)) {
+        ssh_buf.wbuf_free(pkt)
+        return false
+    }
+    ssh_buf.wbuf_free(pkt)
+
+    // Wait for CHANNEL_SUCCESS or CHANNEL_FAILURE
+    match recv_skip_global(t) {
+        some(payload): {
+            let rb = ssh_buf.rbuf_from_bytes(payload)
+            let msg = cast<int>(ssh_buf.rbuf_read_byte(rb))
+            ssh_buf.rbuf_free(rb)
+            if(msg == Msg.CHANNEL_SUCCESS) {
+                return true
+            }
+            io.eprintln("[ssh] shell request failed with msg type " + conv.to_string(msg))
+            return false
+        }
+        none: { return false }
+    }
+}
+
+// --- 11. Send channel data ---
+
+export fn send_channel_data(t:Transport, remote_ch:int, data:ptr, len:int):bool {
+    let pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(pkt, cast<byte>(Msg.CHANNEL_DATA))
+    ssh_buf.wbuf_write_u32(pkt, remote_ch)
+    ssh_buf.wbuf_write_u32(pkt, len)
+    ssh_buf.wbuf_write_raw(pkt, data, cast<int64>(len))
+    let result = ssh_transport.send_packet(t, pkt)
+    ssh_buf.wbuf_free(pkt)
+    return result
+}
+
+// --- 12. Send window adjust ---
+
+fn send_window_adjust(t:Transport, remote_ch:int, bytes_to_add:int):bool {
+    let pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(pkt, cast<byte>(Msg.CHANNEL_WINDOW_ADJUST))
+    ssh_buf.wbuf_write_u32(pkt, remote_ch)
+    ssh_buf.wbuf_write_u32(pkt, bytes_to_add)
+    let result = ssh_transport.send_packet(t, pkt)
+    ssh_buf.wbuf_free(pkt)
+    return result
+}
+
+// --- 13. Interactive session loop ---
+// Poll-based bidirectional I/O: stdin → channel data, channel data → stdout
+
+export fn interactive_session(t:Transport, remote_ch:int, sock:Socket):none {
+    let sock_fd = net.fd(sock)
+    let buf = mem.alloc(cast<int64>(4096))
+    let done:bool:mut = false
+    let bytes_received:int:mut = 0
+    let window_size:int:mut = 1048576
+
+    // Set socket to non-blocking isn't needed — we use poll() to check readability
+    // stdin is set to non-blocking by the caller
+
+    while(!done) {
+        // Poll stdin (fd 0) and socket with 100ms timeout
+        let ready = ssh_term.poll_fds(0, sock_fd, 100)
+
+        // Check stdin
+        if(ready == 1 || ready == 3) {
+            let n = ssh_term.raw_read(0, buf, 4096)
+            if(n > 0) {
+                send_channel_data(t, remote_ch, buf, n)
+            } else if(n == 0) {
+                // EOF on stdin — send channel EOF
+                let eof_pkt = ssh_buf.wbuf_new()
+                ssh_buf.wbuf_write_byte(eof_pkt, cast<byte>(Msg.CHANNEL_EOF))
+                ssh_buf.wbuf_write_u32(eof_pkt, remote_ch)
+                ssh_transport.send_packet(t, eof_pkt)
+                ssh_buf.wbuf_free(eof_pkt)
+            }
+            // n < 0 is EAGAIN — no data available, continue
+        }
+
+        // Check socket
+        if(ready == 2 || ready == 3) {
+            match ssh_transport.recv_packet(t) {
+                some(pkt_data): {
+                    let drb = ssh_buf.rbuf_from_bytes(pkt_data)
+                    let msg_type = cast<int>(ssh_buf.rbuf_read_byte(drb))
+
+                    if(msg_type == Msg.CHANNEL_DATA) {
+                        let ch = ssh_buf.rbuf_read_u32(drb)
+                        let data_len = ssh_buf.rbuf_read_u32(drb)
+                        // Read raw data and write to stdout
+                        if(data_len > 0) {
+                            let data_ptr = ssh_buf.rbuf_read_raw(drb, cast<int64>(data_len))
+                            ssh_term.raw_write(1, data_ptr, data_len)
+                            mem.free(data_ptr)
+                            bytes_received = bytes_received + data_len
+                        }
+
+                        // Send window adjust if we've consumed half the window
+                        if(bytes_received > window_size / 2) {
+                            send_window_adjust(t, remote_ch, bytes_received)
+                            bytes_received = 0
+                        }
+                    } else if(msg_type == Msg.CHANNEL_EXTENDED_DATA) {
+                        let ch2 = ssh_buf.rbuf_read_u32(drb)
+                        let data_type = ssh_buf.rbuf_read_u32(drb)
+                        let data_len2 = ssh_buf.rbuf_read_u32(drb)
+                        // Write stderr data to stderr (fd 2)
+                        if(data_len2 > 0) {
+                            let data_ptr2 = ssh_buf.rbuf_read_raw(drb, cast<int64>(data_len2))
+                            ssh_term.raw_write(2, data_ptr2, data_len2)
+                            mem.free(data_ptr2)
+                        }
+                    } else if(msg_type == Msg.CHANNEL_WINDOW_ADJUST) {
+                        let ch3 = ssh_buf.rbuf_read_u32(drb)
+                        let adjust = ssh_buf.rbuf_read_u32(drb)
+                        // Server expanded its window — we could track this for flow control
+                    } else if(msg_type == Msg.CHANNEL_EOF) {
+                        // Server done sending data — wait for CLOSE
+                    } else if(msg_type == Msg.CHANNEL_CLOSE) {
+                        // Send CHANNEL_CLOSE back
+                        let close_pkt = ssh_buf.wbuf_new()
+                        ssh_buf.wbuf_write_byte(close_pkt, cast<byte>(Msg.CHANNEL_CLOSE))
+                        ssh_buf.wbuf_write_u32(close_pkt, remote_ch)
+                        ssh_transport.send_packet(t, close_pkt)
+                        ssh_buf.wbuf_free(close_pkt)
+                        done = true
+                    } else if(msg_type == Msg.CHANNEL_REQUEST) {
+                        // Server channel requests (exit-status, exit-signal) — ignore
+                    } else if(msg_type == Msg.CHANNEL_SUCCESS || msg_type == Msg.CHANNEL_FAILURE) {
+                        // Ignore
+                    } else if(msg_type == Msg.GLOBAL_REQUEST || msg_type == Msg.IGNORE || msg_type == Msg.DEBUG) {
+                        // Transport messages — ignore
+                    } else {
+                        // Unknown message
+                    }
+
+                    ssh_buf.rbuf_free(drb)
+                }
+                none: {
+                    // Connection lost
+                    done = true
+                }
+            }
+        }
+    }
+
+    mem.free(buf)
+}
+
+// --- 14. Disconnect ---
+
+export fn disconnect(t:Transport):none {
+    let pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_byte(pkt, cast<byte>(Msg.DISCONNECT))
+    ssh_buf.wbuf_write_u32(pkt, DisconnectReason.BY_APPLICATION)
+    ssh_buf.wbuf_write_string(pkt, "")
+    ssh_buf.wbuf_write_string(pkt, "")
+    ssh_transport.send_packet(t, pkt)
+    ssh_buf.wbuf_free(pkt)
+}
