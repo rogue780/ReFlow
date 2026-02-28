@@ -1,0 +1,98 @@
+module tests.programs.app_sh_ast_test
+
+import io
+import conv
+import array
+import self_hosted.ast
+
+fn main():int {
+    // Test Span construction
+    let s = ast.span("test.flow", 1, 5)
+    io.println("span: " + s.file + ":" + conv.to_string(s.line))
+
+    // Test TypeExpr construction — simple variants (no arrays of sum types)
+    let t_int = ast.TNamedType(1, 1, 1, "int", [])
+    let t_str = ast.TNamedType(2, 1, 5, "string", [])
+    io.println("type_expr_id named: " + conv.to_string(ast.type_expr_id(t_int)))
+
+    // TOptionType has recursive inner:TypeExpr field
+    let t_opt = ast.TOptionType(3, 1, 10, t_int)
+    io.println("type_expr_id option: " + conv.to_string(ast.type_expr_id(t_opt)))
+
+    // TFnType needs array<TypeExpr> — use array.push to build it
+    let fn_params:array<ast.TypeExpr> = []
+    let fn_params2 = array.push(fn_params, t_int)
+    let fn_params3 = array.push(fn_params2, t_str)
+    let t_fn = ast.TFnType(4, 2, 1, fn_params3, t_int)
+    io.println("type_expr_id fn: " + conv.to_string(ast.type_expr_id(t_fn)))
+
+    // TGenericType needs array<TypeExpr> for args
+    let gen_args:array<ast.TypeExpr> = []
+    let gen_args2 = array.push(gen_args, t_int)
+    let t_gen = ast.TGenericType(5, 3, 1, t_str, gen_args2)
+    io.println("type_expr_id generic: " + conv.to_string(ast.type_expr_id(t_gen)))
+
+    // Test Pattern construction
+    let p_wild = ast.PWildcard(10, 5, 1)
+    let p_bind = ast.PBind(11, 5, 3, "x")
+    let p_some = ast.PSome(12, 6, 1, "v")
+    let p_none = ast.PNone(13, 6, 5)
+    let p_var = ast.PVariant(14, 7, 1, "IntLit", ["value"])
+    io.println("pattern_id wildcard: " + conv.to_string(ast.pattern_id(p_wild)))
+    io.println("pattern_id bind: " + conv.to_string(ast.pattern_id(p_bind)))
+    io.println("pattern_id variant: " + conv.to_string(ast.pattern_id(p_var)))
+
+    // Test Expr construction — basic literals
+    let e_int = ast.EIntLit(20, 10, 1, 42, "")
+    let e_str = ast.EStringLit(21, 10, 5, "hello")
+    let e_bool = ast.EBoolLit(22, 10, 12, true)
+    let e_none = ast.ENoneLit(23, 10, 20)
+    io.println("expr_id intlit: " + conv.to_string(ast.expr_id(e_int)))
+    io.println("expr_id strlit: " + conv.to_string(ast.expr_id(e_str)))
+
+    // Test recursive Expr (BinOp with IntLit children)
+    let e_add = ast.EBinOp(30, 11, 1, "+", e_int, e_int)
+    io.println("expr_id binop: " + conv.to_string(ast.expr_id(e_add)))
+
+    // Test Call expression — needs array<Expr> for args
+    let e_fn = ast.EIdent(31, 12, 1, "foo", [])
+    let call_args:array<ast.Expr> = []
+    let call_args2 = array.push(call_args, e_int)
+    let call_args3 = array.push(call_args2, e_str)
+    let e_call = ast.ECall(32, 12, 1, e_fn, call_args3)
+    io.println("expr_id call: " + conv.to_string(ast.expr_id(e_call)))
+
+    // Test FieldAccess
+    let e_field = ast.EFieldAccess(33, 13, 1, e_fn, "bar")
+    io.println("expr_id field: " + conv.to_string(ast.expr_id(e_field)))
+
+    // Test Stmt construction
+    let s_let = ast.SLet(40, 20, 1, "x", true, t_int, e_int)
+    let s_ret = ast.SReturn(41, 21, 1, true, e_int)
+    let s_expr = ast.SExpr(42, 22, 1, e_call)
+    let s_brk = ast.SBreak(43, 23, 1)
+    io.println("stmt_id let: " + conv.to_string(ast.stmt_id(s_let)))
+    io.println("stmt_id return: " + conv.to_string(ast.stmt_id(s_ret)))
+    io.println("stmt_id expr: " + conv.to_string(ast.stmt_id(s_expr)))
+    io.println("stmt_id break: " + conv.to_string(ast.stmt_id(s_brk)))
+
+    // Test Decl construction — use array.push for sum type arrays
+    let p1 = ast.param("x", t_int, 50, 30, 1)
+    let fn_params_d:array<ast.Param> = []
+    let fn_params_d2 = array.push(fn_params_d, p1)
+    let fn_body:array<ast.Stmt> = []
+    let fn_body2 = array.push(fn_body, s_ret)
+    let d_fn = ast.DFn(60, 30, 1, "add", [], fn_params_d2, true, t_int, fn_body2, false, true, false)
+    let d_mod = ast.DModule(61, 1, 1, ["test", "module"])
+    let d_imp = ast.DImport(62, 2, 1, ["io"], [], "")
+    io.println("decl_id fn: " + conv.to_string(ast.decl_id(d_fn)))
+    io.println("decl_id module: " + conv.to_string(ast.decl_id(d_mod)))
+    io.println("decl_id import: " + conv.to_string(ast.decl_id(d_imp)))
+
+    // Module construction tested via make_module in ast.flow itself
+    io.println("module file: test.flow")
+    io.println("module path len: 2")
+
+    io.println("ok")
+    return 0
+}

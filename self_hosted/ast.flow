@@ -1,0 +1,342 @@
+module self_hosted.ast
+
+import conv
+import array
+
+// ---------------------------------------------------------------------------
+// Span — source location info shared by all nodes
+// ---------------------------------------------------------------------------
+
+export type Span {
+    file:string
+    line:int
+    col:int
+}
+
+export fn span(file:string, line:int, col:int):Span {
+    return Span{file:file, line:line, col:col}
+}
+
+export fn no_span():Span {
+    return Span{file:"<unknown>", line:0, col:0}
+}
+
+// ---------------------------------------------------------------------------
+// Helper structs used by multiple node categories
+// ---------------------------------------------------------------------------
+
+// A name:TypeExpr pair used for struct fields and sum variant fields
+export type Field {
+    name:string
+    type_expr:TypeExpr
+}
+
+// A name:TypeExpr pair for function parameters
+export type Param {
+    name:string
+    type_ann:TypeExpr
+    id:int
+    line:int
+    col:int
+    has_default:bool
+    is_variadic:bool
+}
+
+export fn param(name:string, type_ann:TypeExpr, id:int, line:int, col:int):Param {
+    return Param{name:name, type_ann:type_ann, id:id, line:line, col:col, has_default:false, is_variadic:false}
+}
+
+// Type parameter with optional bounds
+export type TypeParam {
+    name:string
+    id:int
+    line:int
+    col:int
+}
+
+// Match arm: pattern -> body
+export type MatchArm {
+    pattern:Pattern
+    body_stmts:array<Stmt>
+    id:int
+    line:int
+    col:int
+}
+
+// ---------------------------------------------------------------------------
+// TypeExpr — type annotation AST nodes (9 variants)
+// ---------------------------------------------------------------------------
+
+export type TypeExpr =
+    | TNamedType(id:int, line:int, col:int, name:string, module_path:array<string>)
+    | TGenericType(id:int, line:int, col:int, base:TypeExpr, args:array<TypeExpr>)
+    | TOptionType(id:int, line:int, col:int, inner:TypeExpr)
+    | TFnType(id:int, line:int, col:int, params:array<TypeExpr>, ret:TypeExpr)
+    | TTupleType(id:int, line:int, col:int, elements:array<TypeExpr>)
+    | TMutType(id:int, line:int, col:int, inner:TypeExpr)
+    | TImutType(id:int, line:int, col:int, inner:TypeExpr)
+    | TSizedType(id:int, line:int, col:int, inner:TypeExpr, capacity_id:int)
+    | TSumTypeExpr(id:int, line:int, col:int, variants:array<SumVariantExpr>)
+
+// Sum variant expression (used inside inline sum type annotations)
+export type SumVariantExpr {
+    name:string
+    fields:array<Field>
+    id:int
+    line:int
+    col:int
+}
+
+// ---------------------------------------------------------------------------
+// Pattern nodes (9 variants)
+// ---------------------------------------------------------------------------
+
+export type Pattern =
+    | PWildcard(id:int, line:int, col:int)
+    | PLiteral(id:int, line:int, col:int, value_id:int)
+    | PBind(id:int, line:int, col:int, name:string)
+    | PSome(id:int, line:int, col:int, inner_var:string)
+    | PNone(id:int, line:int, col:int)
+    | POk(id:int, line:int, col:int, inner_var:string)
+    | PErr(id:int, line:int, col:int, inner_var:string)
+    | PVariant(id:int, line:int, col:int, variant_name:string, bindings:array<string>)
+    | PTuple(id:int, line:int, col:int, elements:array<Pattern>)
+
+// ---------------------------------------------------------------------------
+// Expr — expression AST nodes (~35 variants)
+// ---------------------------------------------------------------------------
+
+export type Expr =
+    | EIntLit(id:int, line:int, col:int, value:int, suffix:string)
+    | EFloatLit(id:int, line:int, col:int, value:float, suffix:string)
+    | EBoolLit(id:int, line:int, col:int, value:bool)
+    | EStringLit(id:int, line:int, col:int, value:string)
+    | ECharLit(id:int, line:int, col:int, value:int)
+    | ENoneLit(id:int, line:int, col:int)
+    | EIdent(id:int, line:int, col:int, name:string, module_path:array<string>)
+    | EBinOp(id:int, line:int, col:int, op:string, left:Expr, right:Expr)
+    | EUnaryOp(id:int, line:int, col:int, op:string, operand:Expr)
+    | ENamedArg(id:int, line:int, col:int, name:string, value:Expr)
+    | ESpread(id:int, line:int, col:int, inner:Expr)
+    | ECall(id:int, line:int, col:int, callee:Expr, args:array<Expr>)
+    | EMethodCall(id:int, line:int, col:int, receiver:Expr, method:string, args:array<Expr>)
+    | EFieldAccess(id:int, line:int, col:int, receiver:Expr, field:string)
+    | EIndexAccess(id:int, line:int, col:int, receiver:Expr, index:Expr)
+    | ELambda(id:int, line:int, col:int, params:array<Param>, body:Expr)
+    | ETupleExpr(id:int, line:int, col:int, elements:array<Expr>)
+    | EArrayLit(id:int, line:int, col:int, elements:array<Expr>)
+    | ERecordLit(id:int, line:int, col:int, fields:array<ExprField>)
+    | ETypeLit(id:int, line:int, col:int, type_name:string, fields:array<ExprField>, has_spread:bool, spread:Expr)
+    | EIfExpr(id:int, line:int, col:int, condition:Expr, then_stmts:array<Stmt>, else_stmts:array<Stmt>)
+    | EMatchExpr(id:int, line:int, col:int, subject:Expr, arms:array<MatchArm>)
+    | ETernary(id:int, line:int, col:int, condition:Expr, then_expr:Expr, else_expr:Expr)
+    | ECopy(id:int, line:int, col:int, inner:Expr)
+    | ERef(id:int, line:int, col:int, inner:Expr)
+    | ESome(id:int, line:int, col:int, inner:Expr)
+    | EOk(id:int, line:int, col:int, inner:Expr)
+    | EErr(id:int, line:int, col:int, inner:Expr)
+    | EPropagate(id:int, line:int, col:int, inner:Expr)
+    | ENullCoalesce(id:int, line:int, col:int, left:Expr, right:Expr)
+    | ETypeof(id:int, line:int, col:int, inner:Expr)
+    | ECast(id:int, line:int, col:int, inner:Expr, target_id:int)
+    | ECoerce(id:int, line:int, col:int, inner:Expr)
+
+// Name-value pair used in record/type literals
+export type ExprField {
+    name:string
+    value:Expr
+}
+
+// ---------------------------------------------------------------------------
+// Stmt — statement AST nodes (~15 variants)
+// ---------------------------------------------------------------------------
+
+export type Stmt =
+    | SLet(id:int, line:int, col:int, name:string, has_type_ann:bool, type_ann:TypeExpr, value:Expr)
+    | SAssign(id:int, line:int, col:int, target:Expr, value:Expr)
+    | SUpdate(id:int, line:int, col:int, target:Expr, op:string, has_value:bool, value:Expr)
+    | SReturn(id:int, line:int, col:int, has_value:bool, value:Expr)
+    | SYield(id:int, line:int, col:int, value:Expr)
+    | SThrow(id:int, line:int, col:int, exception:Expr)
+    | SBreak(id:int, line:int, col:int)
+    | SContinue(id:int, line:int, col:int)
+    | SExpr(id:int, line:int, col:int, expr:Expr)
+    | SIf(id:int, line:int, col:int, condition:Expr, then_stmts:array<Stmt>, has_else:bool, else_stmts:array<Stmt>)
+    | SWhile(id:int, line:int, col:int, condition:Expr, body:array<Stmt>)
+    | SFor(id:int, line:int, col:int, var_name:string, has_var_type:bool, var_type:TypeExpr, iterable:Expr, body:array<Stmt>)
+    | SMatch(id:int, line:int, col:int, subject:Expr, arms:array<MatchArm>)
+    | STry(id:int, line:int, col:int, body:array<Stmt>, catches:array<CatchClause>)
+
+// Catch clause for try statements
+export type CatchClause {
+    exception_var:string
+    exception_type:TypeExpr
+    body:array<Stmt>
+    id:int
+    line:int
+    col:int
+}
+
+// ---------------------------------------------------------------------------
+// Decl — declaration AST nodes (~10 variants)
+// ---------------------------------------------------------------------------
+
+export type Decl =
+    | DModule(id:int, line:int, col:int, path:array<string>)
+    | DImport(id:int, line:int, col:int, path:array<string>, names:array<string>, import_alias:string)
+    | DFn(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, params:array<Param>, has_return_type:bool, return_type:TypeExpr, body:array<Stmt>, is_pure:bool, is_export:bool, is_static:bool)
+    | DType(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, fields:array<FieldDecl>, methods:array<Decl>, is_export:bool, is_sum_type:bool, variants:array<SumVariantDecl>)
+    | DInterface(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, methods:array<Decl>, is_export:bool)
+    | DAlias(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, target:TypeExpr, is_export:bool)
+    | DEnum(id:int, line:int, col:int, name:string, variants:array<EnumVariantDecl>, is_export:bool)
+    | DExternLib(id:int, line:int, col:int, lib_name:string)
+    | DExternType(id:int, line:int, col:int, name:string, is_export:bool)
+    | DExternFn(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, params:array<Param>, has_return_type:bool, return_type:TypeExpr, is_export:bool, c_name:string)
+
+// Field declaration in struct types
+export type FieldDecl {
+    name:string
+    type_ann:TypeExpr
+    is_mut:bool
+    id:int
+    line:int
+    col:int
+}
+
+// Sum variant declaration
+export type SumVariantDecl {
+    name:string
+    fields:array<Field>
+    id:int
+    line:int
+    col:int
+}
+
+// Enum variant declaration
+export type EnumVariantDecl {
+    name:string
+    has_value:bool
+    value:int
+    id:int
+    line:int
+    col:int
+}
+
+// ---------------------------------------------------------------------------
+// Module — the top-level AST node
+// ---------------------------------------------------------------------------
+
+export type Module {
+    path:array<string>
+    imports:array<Decl>
+    decls:array<Decl>
+    filename:string
+}
+
+export fn make_module(path:array<string>, imports:array<Decl>, decls:array<Decl>, filename:string):Module {
+    return Module{path:path, imports:imports, decls:decls, filename:filename}
+}
+
+// ---------------------------------------------------------------------------
+// Node ID accessor helpers
+// ---------------------------------------------------------------------------
+
+export fn type_expr_id(t:TypeExpr):int {
+    match t {
+        TNamedType(nid, l, c, n, mp): { return nid }
+        TGenericType(nid, l, c, b, a): { return nid }
+        TOptionType(nid, l, c, i): { return nid }
+        TFnType(nid, l, c, p, r): { return nid }
+        TTupleType(nid, l, c, e): { return nid }
+        TMutType(nid, l, c, i): { return nid }
+        TImutType(nid, l, c, i): { return nid }
+        TSizedType(nid, l, c, i, cap): { return nid }
+        TSumTypeExpr(nid, l, c, v): { return nid }
+    }
+}
+
+export fn pattern_id(p:Pattern):int {
+    match p {
+        PWildcard(nid, l, c): { return nid }
+        PLiteral(nid, l, c, vid): { return nid }
+        PBind(nid, l, c, n): { return nid }
+        PSome(nid, l, c, iv): { return nid }
+        PNone(nid, l, c): { return nid }
+        POk(nid, l, c, iv): { return nid }
+        PErr(nid, l, c, iv): { return nid }
+        PVariant(nid, l, c, vn, b): { return nid }
+        PTuple(nid, l, c, e): { return nid }
+    }
+}
+
+export fn expr_id(e:Expr):int {
+    match e {
+        EIntLit(nid, l, c, v, s): { return nid }
+        EFloatLit(nid, l, c, v, s): { return nid }
+        EBoolLit(nid, l, c, v): { return nid }
+        EStringLit(nid, l, c, v): { return nid }
+        ECharLit(nid, l, c, v): { return nid }
+        ENoneLit(nid, l, c): { return nid }
+        EIdent(nid, l, c, n, mp): { return nid }
+        EBinOp(nid, l, c, o, left, right): { return nid }
+        EUnaryOp(nid, l, c, o, op): { return nid }
+        ENamedArg(nid, l, c, n, v): { return nid }
+        ESpread(nid, l, c, i): { return nid }
+        ECall(nid, l, c, callee, args): { return nid }
+        EMethodCall(nid, l, c, recv, m, args): { return nid }
+        EFieldAccess(nid, l, c, recv, f): { return nid }
+        EIndexAccess(nid, l, c, recv, idx): { return nid }
+        ELambda(nid, l, c, params, body): { return nid }
+        ETupleExpr(nid, l, c, elems): { return nid }
+        EArrayLit(nid, l, c, elems): { return nid }
+        ERecordLit(nid, l, c, fields): { return nid }
+        ETypeLit(nid, l, c, tn, fields, hs, s): { return nid }
+        EIfExpr(nid, l, c, cond, then_b, else_b): { return nid }
+        EMatchExpr(nid, l, c, subj, arms): { return nid }
+        ETernary(nid, l, c, cond, then_e, else_e): { return nid }
+        ECopy(nid, l, c, i): { return nid }
+        ERef(nid, l, c, i): { return nid }
+        ESome(nid, l, c, i): { return nid }
+        EOk(nid, l, c, i): { return nid }
+        EErr(nid, l, c, i): { return nid }
+        EPropagate(nid, l, c, i): { return nid }
+        ENullCoalesce(nid, l, c, left, right): { return nid }
+        ETypeof(nid, l, c, i): { return nid }
+        ECast(nid, l, c, i, t): { return nid }
+        ECoerce(nid, l, c, i): { return nid }
+    }
+}
+
+export fn stmt_id(s:Stmt):int {
+    match s {
+        SLet(nid, l, c, n, ht, ta, v): { return nid }
+        SAssign(nid, l, c, t, v): { return nid }
+        SUpdate(nid, l, c, t, o, hv, v): { return nid }
+        SReturn(nid, l, c, hv, v): { return nid }
+        SYield(nid, l, c, v): { return nid }
+        SThrow(nid, l, c, e): { return nid }
+        SBreak(nid, l, c): { return nid }
+        SContinue(nid, l, c): { return nid }
+        SExpr(nid, l, c, e): { return nid }
+        SIf(nid, l, c, cond, then_b, he, else_b): { return nid }
+        SWhile(nid, l, c, cond, body): { return nid }
+        SFor(nid, l, c, vn, hvt, vt, it, body): { return nid }
+        SMatch(nid, l, c, subj, arms): { return nid }
+        STry(nid, l, c, body, catches): { return nid }
+    }
+}
+
+export fn decl_id(d:Decl):int {
+    match d {
+        DModule(nid, l, c, p): { return nid }
+        DImport(nid, l, c, p, n, ia): { return nid }
+        DFn(nid, l, c, n, tp, par, hrt, rt, body, ip, ie, is): { return nid }
+        DType(nid, l, c, n, tp, f, m, ie, ist, v): { return nid }
+        DInterface(nid, l, c, n, tp, m, ie): { return nid }
+        DAlias(nid, l, c, n, tp, t, ie): { return nid }
+        DEnum(nid, l, c, n, v, ie): { return nid }
+        DExternLib(nid, l, c, ln): { return nid }
+        DExternType(nid, l, c, n, ie): { return nid }
+        DExternFn(nid, l, c, n, tp, par, hrt, rt, ie, cn): { return nid }
+    }
+}

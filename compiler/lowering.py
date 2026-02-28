@@ -2721,6 +2721,39 @@ class Lowerer:
             # Builtin or unresolved — use name directly
             return LCall(name, lowered_args, lt)
 
+        # FieldAccess callee — check if resolved to constructor/type symbol
+        if isinstance(expr.callee, FieldAccess):
+            fa_sym = self._resolved.symbols.get(expr.callee)
+            if fa_sym is not None:
+                fa_name = expr.callee.field
+                # Sum type variant constructor via namespace: mod.Variant(...)
+                if (fa_sym.kind == SymbolKind.CONSTRUCTOR
+                        and isinstance(fa_sym.decl, SumVariantDecl)):
+                    return self._lower_variant_ctor(
+                        fa_name, fa_sym.decl, t, lt, lowered_args)
+                # Struct constructor via namespace: mod.MyStruct(...)
+                if (fa_sym.kind == SymbolKind.CONSTRUCTOR
+                        and isinstance(fa_sym.decl, ConstructorDecl)):
+                    ctor_decl: ConstructorDecl = fa_sym.decl
+                    fields = [(p.name, arg)
+                              for p, arg in zip(ctor_decl.params, lowered_args)]
+                    return LCompound(fields=fields, c_type=lt)
+                # Positional struct construction via namespace: mod.Type(a, b)
+                if (fa_sym.kind == SymbolKind.TYPE
+                        and isinstance(fa_sym.decl, TypeDecl)
+                        and not fa_sym.decl.is_sum_type):
+                    type_decl: TypeDecl = fa_sym.decl
+                    fields = [(f.name, arg)
+                              for f, arg in zip(type_decl.fields, lowered_args)]
+                    return LCompound(fields=fields, c_type=lt)
+                # Regular function via namespace: mod.func(...)
+                if fa_sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
+                    mod_path = fa_sym.module_path or self._module_path
+                    c_name = mangle(mod_path, None, fa_name,
+                                    file=self._file, line=expr.line,
+                                    col=expr.col)
+                    return LCall(c_name, lowered_args, lt)
+
         # Indirect call through expression — closure call
         callee_expr = self._lower_expr(expr.callee)
         callee_type = self._type_of(expr.callee)
@@ -2788,7 +2821,11 @@ class Lowerer:
         Circle(5.0) → (Shape){.tag = 0, .Circle = {.radius = 5.0}}
         """
         if not isinstance(t, TSum):
-            return LCall(name, lowered_args, lt)
+            # Cross-module variant ctor: typechecker returns TAny.
+            # Find the parent TypeDecl and derive TSum + LType.
+            t, lt = self._find_variant_sum_type(name, decl, t, lt)
+            if not isinstance(t, TSum):
+                return LCall(name, lowered_args, lt)
 
         # Find the tag for this variant
         tag = next((i for i, v in enumerate(t.variants) if v.name == name), 0)
@@ -2801,9 +2838,13 @@ class Lowerer:
         for i, arg in enumerate(lowered_args):
             fname = field_names[i] if i < len(field_names) else f"_{i}"
             # Recursive sum field: heap-allocate and store pointer
+            ast_field_type = (decl.fields[i][1]
+                              if decl.fields and i < len(decl.fields)
+                              else None)
             if (variant.fields is not None
                     and i < len(variant.fields)
-                    and self._is_recursive_sum_field(variant.fields[i], t.name)):
+                    and self._is_recursive_sum_field(
+                        variant.fields[i], t.name, ast_field_type)):
                 tmp = self._fresh_temp()
                 ptr_type = LPtr(lt)
                 # Type* tmp = (Type*)malloc(sizeof(Type));
@@ -2831,13 +2872,79 @@ class Lowerer:
             )))
         return LCompound(fields=fields, c_type=lt)
 
+    def _find_variant_sum_type(
+            self, variant_name: str, variant_decl: SumVariantDecl,
+            fallback_t: Type, fallback_lt: LType
+    ) -> tuple[Type, LType]:
+        """Find the parent TSum type for a cross-module variant constructor.
+
+        Scans all typed modules to find the TypeDecl containing this variant,
+        then looks up the TSum type from the typed module's type map.
+        """
+        # Search current module first, then all_typed
+        modules_to_search: list[tuple[str, TypedModule]] = [
+            (self._module_path, self._typed)]
+        if self._all_typed:
+            modules_to_search.extend(self._all_typed.items())
+        for mod_path_str, typed_mod in modules_to_search:
+            for decl in typed_mod.module.decls:
+                if (isinstance(decl, TypeDecl) and decl.is_sum_type
+                        and any(v is variant_decl for v in decl.variants)):
+                    # Found the parent TypeDecl — get its type from the typed module
+                    tsum = typed_mod.types.get(decl)
+                    if isinstance(tsum, TSum):
+                        lt = self._lower_type(tsum)
+                        return tsum, lt
+                    # Construct TSum from the decl if not in type map
+                    c_name = mangle(mod_path_str, decl.name, None,
+                                    file=self._file, line=0, col=0)
+                    lt = LStruct(c_name)
+                    # Build TSum from variants
+                    variants = []
+                    for v in decl.variants:
+                        fields = [(fn, TAny()) for fn, _ in v.fields] if v.fields else None
+                        variants.append(TVariant(v.name, fields))
+                    tsum = TSum(decl.name, variants)
+                    return tsum, lt
+        return fallback_t, fallback_lt
+
     def _lower_method_call(self, expr: MethodCall) -> LExpr:
         """Lower method call."""
         t = self._type_of(expr)
         lt = self._lower_type(t)
 
-        # Check if resolver bound this to a namespace function symbol
+        # Check if resolver bound this to a namespace function/constructor symbol
         resolved_sym = self._resolved.symbols.get(expr)
+
+        # Sum type variant constructor via namespace: mod.Variant(...)
+        if (resolved_sym is not None
+                and resolved_sym.kind == SymbolKind.CONSTRUCTOR
+                and isinstance(resolved_sym.decl, SumVariantDecl)):
+            lowered_args = [self._lower_expr(a) for a in expr.args]
+            return self._lower_variant_ctor(
+                expr.method, resolved_sym.decl, t, lt, lowered_args)
+
+        # Struct constructor via namespace: mod.MyStruct(a, b) (ConstructorDecl)
+        if (resolved_sym is not None
+                and resolved_sym.kind == SymbolKind.CONSTRUCTOR
+                and isinstance(resolved_sym.decl, ConstructorDecl)):
+            ctor_decl: ConstructorDecl = resolved_sym.decl
+            lowered_args = [self._lower_expr(a) for a in expr.args]
+            fields = [(p.name, arg)
+                      for p, arg in zip(ctor_decl.params, lowered_args)]
+            return LCompound(fields=fields, c_type=lt)
+
+        # Positional struct construction via namespace: mod.Type(a, b) (TypeDecl)
+        if (resolved_sym is not None
+                and resolved_sym.kind == SymbolKind.TYPE
+                and isinstance(resolved_sym.decl, TypeDecl)
+                and not resolved_sym.decl.is_sum_type):
+            type_decl: TypeDecl = resolved_sym.decl
+            lowered_args = [self._lower_expr(a) for a in expr.args]
+            fields = [(f.name, arg)
+                      for f, arg in zip(type_decl.fields, lowered_args)]
+            return LCompound(fields=fields, c_type=lt)
+
         if resolved_sym is not None and resolved_sym.kind in (
                 SymbolKind.FN, SymbolKind.IMPORT):
             fn_decl = resolved_sym.decl
@@ -5962,7 +6069,8 @@ class Lowerer:
                 return "unknown"
 
     def _is_recursive_sum_field(self, field_type: Type,
-                                enclosing_name: str) -> bool:
+                                enclosing_name: str,
+                                ast_type: TypeExpr | None = None) -> bool:
         """Check if a variant field type refers to its enclosing sum type."""
         match field_type:
             case TSum(name=name) if name == enclosing_name:
@@ -5970,7 +6078,13 @@ class Lowerer:
             case TNamed(name=name) if name == enclosing_name:
                 return True
             case _:
-                return False
+                pass
+        # Fallback: check AST-level type annotation (cross-module case where
+        # typechecker assigns TAny to sum type fields)
+        if ast_type is not None and isinstance(ast_type, NamedType):
+            if ast_type.name == enclosing_name:
+                return True
+        return False
 
     # ------------------------------------------------------------------
     # array.push redirect for non-pointer element types (Gap-1)

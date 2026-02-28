@@ -1,0 +1,23 @@
+span: test.flow:1
+type_expr_id named: 1
+type_expr_id option: 3
+type_expr_id fn: 4
+type_expr_id generic: 5
+pattern_id wildcard: 10
+pattern_id bind: 11
+pattern_id variant: 14
+expr_id intlit: 20
+expr_id strlit: 21
+expr_id binop: 30
+expr_id call: 32
+expr_id field: 33
+stmt_id let: 40
+stmt_id return: 41
+stmt_id expr: 42
+stmt_id break: 43
+decl_id fn: 60
+decl_id module: 61
+decl_id import: 62
+module file: test.flow
+module path len: 2
+ok

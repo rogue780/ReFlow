@@ -201,9 +201,64 @@ class Emitter:
     # Type definition emission (RT-8-2-1)
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _topo_sort_type_defs(type_defs: list[LTypeDef]) -> list[LTypeDef]:
+        """Topologically sort type definitions so that by-value dependencies
+        are emitted before the types that embed them.
+
+        A struct A depends on struct B (by-value) when A has a field of type
+        LStruct(c_name=B.c_name) — not behind a pointer.  Pointer references
+        only need the forward declaration, which is already emitted earlier.
+        """
+        names = {td.c_name for td in type_defs}
+        name_to_td = {td.c_name: td for td in type_defs}
+
+        # Collect by-value struct dependencies for each type def.
+        def _by_value_deps(td: LTypeDef) -> set[str]:
+            deps: set[str] = set()
+            for _, ft in td.fields:
+                if isinstance(ft, LStruct) and ft.c_name in names:
+                    deps.add(ft.c_name)
+            return deps
+
+        # Kahn's algorithm for topological sort.
+        in_degree: dict[str, int] = {n: 0 for n in names}
+        adj: dict[str, list[str]] = {n: [] for n in names}
+        for td in type_defs:
+            for dep in _by_value_deps(td):
+                adj[dep].append(td.c_name)
+                in_degree[td.c_name] += 1
+
+        queue = [n for n in names if in_degree[n] == 0]
+        # Maintain original relative order among zero-in-degree nodes.
+        order_idx = {td.c_name: i for i, td in enumerate(type_defs)}
+        queue.sort(key=lambda n: order_idx[n])
+
+        result: list[LTypeDef] = []
+        while queue:
+            n = queue.pop(0)
+            result.append(name_to_td[n])
+            for m in adj[n]:
+                in_degree[m] -= 1
+                if in_degree[m] == 0:
+                    queue.append(m)
+                    queue.sort(key=lambda n: order_idx[n])
+
+        # If there's a cycle (shouldn't happen with valid structs), append
+        # remaining in original order.
+        if len(result) < len(type_defs):
+            seen = {td.c_name for td in result}
+            for td in type_defs:
+                if td.c_name not in seen:
+                    result.append(td)
+
+        return result
+
     def _emit_type_defs(self) -> None:
-        """Emit all type definitions."""
-        for td in self._module.type_defs:
+        """Emit all type definitions, topologically sorted so by-value
+        struct dependencies come first."""
+        sorted_defs = self._topo_sort_type_defs(self._module.type_defs)
+        for td in sorted_defs:
             self._blank()
             self._emit_type_def(td)
 
