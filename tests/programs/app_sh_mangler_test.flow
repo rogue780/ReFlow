@@ -1,0 +1,67 @@
+module tests.programs.app_sh_mangler_test
+
+import io
+import self_hosted.mangler
+
+fn main():int {
+    // Test core mangle function
+    io.println(mangler.mangle("math.vector", "", ""))
+    io.println(mangler.mangle("math.vector", "Vec3", ""))
+    io.println(mangler.mangle("math.vector", "Vec3", "dot"))
+    io.println(mangler.mangle("pipeline.orders", "", "run"))
+    io.println(mangler.mangle("main", "", "main"))
+
+    // Test stream frame/next/free
+    io.println(mangler.mangle_stream_frame("math.vector", "generate"))
+    io.println(mangler.mangle_stream_next("math.vector", "generate"))
+    io.println(mangler.mangle_stream_free("math.vector", "generate"))
+
+    // Test closure frame/fn
+    io.println(mangler.mangle_closure_frame("pipeline.orders", "run", 0))
+    io.println(mangler.mangle_closure_fn("pipeline.orders", "run", 0))
+
+    // Test fn wrapper
+    io.println(mangler.mangle_fn_wrapper("pipeline.orders", "run"))
+
+    // Test stream wrapper
+    io.println(mangler.mangle_stream_wrapper("main", "process", 0))
+
+    // Test sort wrapper
+    io.println(mangler.mangle_sort_wrapper("sort", "sort", 0))
+
+    // Test fanout wrapper
+    io.println(mangler.mangle_fanout_wrapper("main", "process", 0, 1))
+
+    // Test exception tag/frame
+    io.println(mangler.mangle_exception_tag("domain.order", "ParseError"))
+    io.println(mangler.mangle_exception_frame(0))
+
+    // Test monomorphized
+    io.println(mangler.mangle_monomorphized("math", "min", ["int"]))
+    io.println(mangler.mangle_monomorphized("testing", "assert_eq", ["int"]))
+
+    // Test builtin type mapping
+    io.println(mangler.mangle_builtin_type("int"))
+    io.println(mangler.mangle_builtin_type("string"))
+    io.println(mangler.mangle_builtin_type("none"))
+    io.println(mangler.mangle_builtin_type("bool"))
+
+    // Test is_reserved
+    if(mangler.is_reserved("int")) {
+        io.println("int is reserved")
+    }
+    if(mangler.is_reserved("foo") == false) {
+        io.println("foo is not reserved")
+    }
+
+    // Test is_builtin_type
+    if(mangler.is_builtin_type("int")) {
+        io.println("int is builtin")
+    }
+    if(mangler.is_builtin_type("Vec3") == false) {
+        io.println("Vec3 is not builtin")
+    }
+
+    io.println("ok")
+    return 0
+}

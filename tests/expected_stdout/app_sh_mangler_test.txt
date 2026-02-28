@@ -1,0 +1,27 @@
+fl_math_vector
+fl_math_vector_Vec3
+fl_math_vector_Vec3_dot
+fl_pipeline_orders_run
+fl_main_main
+_fl_frame_math_vector_generate
+_fl_next_math_vector_generate
+_fl_free_math_vector_generate
+_fl_closure_pipeline_orders_run_0
+_fl_clfn_pipeline_orders_run_0
+_fl_wrap_pipeline_orders_run
+_fl_swrap_main_process_0
+_fl_srtwrap_sort_sort_0
+_fl_fanout_main_process_0_1
+_fl_exc_tag_domain_order_ParseError
+_fl_ef_0
+fl_math_min__int
+fl_testing_assert_eq__int
+fl_int
+FL_String*
+void
+fl_bool
+int is reserved
+foo is not reserved
+int is builtin
+Vec3 is not builtin
+ok

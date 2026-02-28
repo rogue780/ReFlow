@@ -1,0 +1,224 @@
+module self_hosted.mangler
+
+// Flow names → C identifiers.
+// Rules:
+//   Prefix:   fl_
+//   Dots:     math.vector         → fl_math_vector
+//   Type:     math.vector.Vec3    → fl_math_vector_Vec3
+//   Method:   math.vector.Vec3.dot → fl_math_vector_Vec3_dot
+//   Function: pipeline.orders.run → fl_pipeline_orders_run
+
+import string
+import conv
+import array
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+fn prefix():string {
+    return "fl_"
+}
+
+// Check if a name is a C reserved word.
+export fn is_reserved(name:string):bool {
+    if(name == "auto") { return true }
+    if(name == "break") { return true }
+    if(name == "case") { return true }
+    if(name == "char") { return true }
+    if(name == "const") { return true }
+    if(name == "continue") { return true }
+    if(name == "default") { return true }
+    if(name == "do") { return true }
+    if(name == "double") { return true }
+    if(name == "else") { return true }
+    if(name == "enum") { return true }
+    if(name == "extern") { return true }
+    if(name == "float") { return true }
+    if(name == "for") { return true }
+    if(name == "goto") { return true }
+    if(name == "if") { return true }
+    if(name == "inline") { return true }
+    if(name == "int") { return true }
+    if(name == "long") { return true }
+    if(name == "register") { return true }
+    if(name == "restrict") { return true }
+    if(name == "return") { return true }
+    if(name == "short") { return true }
+    if(name == "signed") { return true }
+    if(name == "sizeof") { return true }
+    if(name == "static") { return true }
+    if(name == "struct") { return true }
+    if(name == "switch") { return true }
+    if(name == "typedef") { return true }
+    if(name == "union") { return true }
+    if(name == "unsigned") { return true }
+    if(name == "void") { return true }
+    if(name == "volatile") { return true }
+    if(name == "while") { return true }
+    return false
+}
+
+// Check if a type name is a Flow built-in type.
+export fn is_builtin_type(name:string):bool {
+    if(name == "int") { return true }
+    if(name == "int16") { return true }
+    if(name == "int32") { return true }
+    if(name == "int64") { return true }
+    if(name == "uint") { return true }
+    if(name == "uint16") { return true }
+    if(name == "uint32") { return true }
+    if(name == "uint64") { return true }
+    if(name == "float") { return true }
+    if(name == "float32") { return true }
+    if(name == "float64") { return true }
+    if(name == "bool") { return true }
+    if(name == "byte") { return true }
+    if(name == "char") { return true }
+    if(name == "string") { return true }
+    if(name == "none") { return true }
+    return false
+}
+
+// Map a Flow built-in type name to its C typedef name.
+// Returns "" if not a built-in type.
+export fn mangle_builtin_type(name:string):string {
+    if(name == "int") { return "fl_int" }
+    if(name == "int16") { return "fl_int16" }
+    if(name == "int32") { return "fl_int32" }
+    if(name == "int64") { return "fl_int64" }
+    if(name == "uint") { return "fl_uint" }
+    if(name == "uint16") { return "fl_uint16" }
+    if(name == "uint32") { return "fl_uint32" }
+    if(name == "uint64") { return "fl_uint64" }
+    if(name == "float") { return "fl_float" }
+    if(name == "float32") { return "fl_float32" }
+    if(name == "float64") { return "fl_float64" }
+    if(name == "bool") { return "fl_bool" }
+    if(name == "byte") { return "fl_byte" }
+    if(name == "char") { return "fl_char" }
+    if(name == "string") { return "FL_String*" }
+    if(name == "none") { return "void" }
+    return ""
+}
+
+// ---------------------------------------------------------------------------
+// Core mangle function
+// ---------------------------------------------------------------------------
+
+// Mangle a Flow qualified name into a C identifier.
+//   module: dot-separated module path, e.g. "math.vector"
+//   type_name: optional type name, e.g. "Vec3" (empty string = none)
+//   fn_name: optional function/method name, e.g. "dot" (empty string = none)
+export fn mangle(mod:string, type_name:string, fn_name:string):string {
+    let parts = string.replace(mod, ".", "_")
+    let result:string:mut = prefix() + parts
+
+    if(type_name != "") {
+        result = result + "_" + type_name
+    }
+
+    if(fn_name != "") {
+        result = result + "_" + fn_name
+    }
+
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// Specialized mangle functions
+// ---------------------------------------------------------------------------
+
+// Mangle a stream function's frame struct name.
+// Example: math.vector, generate → _fl_frame_math_vector_generate
+export fn mangle_stream_frame(mod:string, fn_name:string):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_frame_" + parts + "_" + fn_name
+}
+
+// Mangle a stream function's next function name.
+// Example: math.vector, generate → _fl_next_math_vector_generate
+export fn mangle_stream_next(mod:string, fn_name:string):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_next_" + parts + "_" + fn_name
+}
+
+// Mangle a stream function's free function name.
+// Example: math.vector, generate → _fl_free_math_vector_generate
+export fn mangle_stream_free(mod:string, fn_name:string):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_free_" + parts + "_" + fn_name
+}
+
+// Mangle a closure's frame struct name.
+// Example: pipeline.orders, run, 0 → _fl_closure_pipeline_orders_run_0
+export fn mangle_closure_frame(mod:string, fn_name:string, lambda_id:int):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_closure_" + parts + "_" + fn_name + "_" + conv.to_string(lambda_id)
+}
+
+// Mangle a closure's implementation function name.
+// Example: pipeline.orders, run, 0 → _fl_clfn_pipeline_orders_run_0
+export fn mangle_closure_fn(mod:string, fn_name:string, lambda_id:int):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_clfn_" + parts + "_" + fn_name + "_" + conv.to_string(lambda_id)
+}
+
+// Mangle a named function's closure wrapper name.
+// Example: pipeline.orders, run → _fl_wrap_pipeline_orders_run
+export fn mangle_fn_wrapper(mod:string, fn_name:string):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_wrap_" + parts + "_" + fn_name
+}
+
+// Mangle a stream helper closure wrapper function name.
+// Example: main, process, 0 → _fl_swrap_main_process_0
+export fn mangle_stream_wrapper(mod:string, fn_name:string, wrapper_id:int):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_swrap_" + parts + "_" + fn_name + "_" + conv.to_string(wrapper_id)
+}
+
+// Mangle a sort comparator closure wrapper function name.
+// Example: sort, sort, 0 → _fl_srtwrap_sort_sort_0
+export fn mangle_sort_wrapper(mod:string, fn_name:string, wrapper_id:int):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_srtwrap_" + parts + "_" + fn_name + "_" + conv.to_string(wrapper_id)
+}
+
+// Mangle a parallel fan-out branch wrapper function name.
+// Example: main, process, 0, 1 → _fl_fanout_main_process_0_1
+export fn mangle_fanout_wrapper(mod:string, fn_name:string, fanout_id:int, branch_idx:int):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_fanout_" + parts + "_" + fn_name + "_" + conv.to_string(fanout_id) + "_" + conv.to_string(branch_idx)
+}
+
+// Integer constant name for exception type dispatch.
+// Example: domain.order, ParseError → _fl_exc_tag_domain_order_ParseError
+export fn mangle_exception_tag(mod:string, type_name:string):string {
+    let parts = string.replace(mod, ".", "_")
+    return "_fl_exc_tag_" + parts + "_" + type_name
+}
+
+// Local exception frame variable name.
+// Example: index 0 → _fl_ef_0
+export fn mangle_exception_frame(index:int):string {
+    return "_fl_ef_" + conv.to_string(index)
+}
+
+// Mangle a monomorphized function name.
+// Example: math, min, ["int"]   → fl_math_min__int
+// Example: math, min, ["float"] → fl_math_min__float
+// The double underscore separates the function name from the type suffix.
+export fn mangle_monomorphized(mod:string, fn_name:string, type_args:array<string>):string {
+    let parts = string.replace(mod, ".", "_")
+    let suffix:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(type_args)) {
+        if(i > 0) {
+            suffix = suffix + "_"
+        }
+        suffix = suffix + (array.get(type_args, i) ?? "")
+        i = i + 1
+    }
+    return prefix() + parts + "_" + fn_name + "__" + suffix
+}
