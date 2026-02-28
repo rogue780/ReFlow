@@ -1,6 +1,7 @@
 module http
 
 import net
+import ssl
 import string
 import conv
 import bytes
@@ -15,11 +16,17 @@ export type HttpResponse {
 }
 
 // --- URL parsing (internal) ---
-// Returns [host, port_str, path]
+// Returns [host, port_str, path, scheme]
 
 fn parse_host_port(url:string):array<string> {
     let s:string:mut = url
-    if (string.starts_with(s, "http://")) {
+    let scheme:string:mut = "http"
+    let default_port:string:mut = "80"
+    if (string.starts_with(s, "https://")) {
+        s = string.substring(s, 8, string.len(s))
+        scheme = "https"
+        default_port = "443"
+    } else if (string.starts_with(s, "http://")) {
         s = string.substring(s, 7, string.len(s))
     }
     let path:string:mut = "/"
@@ -31,7 +38,7 @@ fn parse_host_port(url:string):array<string> {
         none: {}
     }
     let host:string:mut = s
-    let port_str:string:mut = "80"
+    let port_str:string:mut = default_port
     match string.index_of(s, ":") {
         some(idx): {
             host = string.substring(s, 0, idx)
@@ -43,6 +50,7 @@ fn parse_host_port(url:string):array<string> {
     result = array.push(result, host)
     result = array.push(result, port_str)
     result = array.push(result, path)
+    result = array.push(result, scheme)
     return result
 }
 
@@ -55,6 +63,24 @@ fn read_all(sock:Socket):string {
         match net.read(sock, 4096) {
             some(chunk): {
                 buf = buf + bytes.to_string(chunk)
+            }
+            none: {
+                reading = false
+            }
+        }
+    }
+    return buf
+}
+
+// --- Read all data from SSL connection until closed ---
+
+fn read_all_ssl(conn:SslConn):string {
+    let buf:string:mut = ""
+    let reading:bool:mut = true
+    while (reading) {
+        match ssl.read(conn, 4096) {
+            some(chunk): {
+                buf = buf + chunk
             }
             none: {
                 reading = false
@@ -164,6 +190,41 @@ fn send_and_receive(sock:Socket, method:string, host:string, path:string, reques
     return parse_response(raw)
 }
 
+// --- Send request and get response on an SSL connection ---
+
+fn send_and_receive_ssl(conn:SslConn, method:string, host:string, path:string, request_body:string, hdrs:map<string, string>):HttpResponse? {
+    let req:string:mut = method + " " + path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: close\r\n"
+    if (string.len(request_body) > 0) {
+        req = req + "Content-Length: " + conv.to_string(string.len(request_body)) + "\r\n"
+    }
+    let keys = map.keys(hdrs)
+    let ki:int:mut = 0
+    let kn = array.len_string(keys)
+    while (ki < kn) {
+        match array.get(keys, ki) {
+            some(k): {
+                match map.get(hdrs, k) {
+                    some(v): {
+                        req = req + k + ": " + v + "\r\n"
+                    }
+                    none: {}
+                }
+            }
+            none: {}
+        }
+        ki++
+    }
+    req = req + "\r\n"
+    if (string.len(request_body) > 0) {
+        req = req + request_body
+    }
+
+    ssl.write_string(conn, req)
+    let raw = read_all_ssl(conn)
+    ssl.close(conn)
+    return parse_response(raw)
+}
+
 // --- Core request function ---
 
 fn do_request(method:string, url:string, request_body:string, hdrs:map<string, string>):HttpResponse? {
@@ -184,6 +245,11 @@ fn do_request(method:string, url:string, request_body:string, hdrs:map<string, s
         some(p): { path = p }
         none: {}
     }
+    let scheme:string:mut = "http"
+    match array.get(parts, 3) {
+        some(s): { scheme = s }
+        none: {}
+    }
 
     let port:int:mut = 80
     match conv.string_to_int(port_str) {
@@ -191,11 +257,20 @@ fn do_request(method:string, url:string, request_body:string, hdrs:map<string, s
         none: { return none }
     }
 
-    match net.connect(host, port) {
-        some(sock): {
-            return send_and_receive(sock, method, host, path, request_body, hdrs)
+    if (scheme == "https") {
+        match ssl.connect(host, port) {
+            some(conn): {
+                return send_and_receive_ssl(conn, method, host, path, request_body, hdrs)
+            }
+            none: { return none }
         }
-        none: { return none }
+    } else {
+        match net.connect(host, port) {
+            some(sock): {
+                return send_and_receive(sock, method, host, path, request_body, hdrs)
+            }
+            none: { return none }
+        }
     }
 }
 
