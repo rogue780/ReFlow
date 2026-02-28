@@ -307,6 +307,9 @@ let matrix: array<array<int>> = [[1, 2], [3, 4], [5, 6]]
 The `array` module provides generic and type-specific functions. The generic `push<T>` and `get_any<T>` functions work for all element types, including pointer/heap types, value types, and user-defined sum types. The compiler automatically handles the necessary boxing and dereferencing for non-pointer element types. Type-specific variants are also available for common value types.
 
 ```
+// Construction from variadic args (pure Flow, monomorphized)
+array.of<T>(..items:T): array<T>
+
 // Generic (works for all element types including sum types)
 array.push<T>(arr: array<T>, val: T): array<T>
 array.get_any<T>(arr: array<T>, idx: int): T?

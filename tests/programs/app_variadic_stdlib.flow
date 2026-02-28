@@ -6,6 +6,7 @@ import path
 import math
 import string
 import json
+import array
 
 fn main():int {
     // path.join with multiple segments
@@ -34,6 +35,18 @@ fn main():int {
     // json.array_val with variadic
     let arr = json.array_val(json.int_val(1), json.int_val(2), json.int_val(3))
     io.println(json.to_string(arr))
+
+    // array.of tests
+    let nums = array.of(10, 20, 30)
+    io.println(conv.to_string(array.size(nums)))
+    io.println(conv.to_string(array.get_int(nums, 0) ?? 0))
+    io.println(conv.to_string(array.get_int(nums, 1) ?? 0))
+    io.println(conv.to_string(array.get_int(nums, 2) ?? 0))
+
+    let strs = array.of("hello", "world")
+    io.println(conv.to_string(array.size(strs)))
+    io.println(array.get(strs, 0) ?? "")
+    io.println(array.get(strs, 1) ?? "")
 
     return 0
 }

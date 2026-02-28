@@ -2444,18 +2444,22 @@ fl_int fl_math_min__int(fl_int first, FL_Array* rest);
 
 fl_int fl_math_max__int(fl_int first, FL_Array* rest);
 
+FL_Array* fl_array_of__int(FL_Array* items);
+
+FL_Array* fl_array_of__string(FL_Array* items);
+
 fl_int fl_tests_app_variadic_stdlib_main(void);
 
 /* Flow: math.min[mono] */
 fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
     fl_int result = first;
-    fl_int64 _fl_tmp_0 = 0;
-    while (_fl_tmp_0 < fl_array_len(rest)) {
-        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_0)));
+    fl_int64 _fl_tmp_5 = 0;
+    while (_fl_tmp_5 < fl_array_len(rest)) {
+        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_5)));
         if (_fl_compare(val, result) < 0) {
             result = val;
         }
-        _fl_tmp_0 = (_fl_tmp_0 + 1);
+        _fl_tmp_5 = (_fl_tmp_5 + 1);
     }
     return result;
 }
@@ -2463,15 +2467,25 @@ fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
 /* Flow: math.max[mono] */
 fl_int fl_math_max__int(fl_int first, FL_Array* rest) {
     fl_int result = first;
-    fl_int64 _fl_tmp_1 = 0;
-    while (_fl_tmp_1 < fl_array_len(rest)) {
-        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_1)));
+    fl_int64 _fl_tmp_6 = 0;
+    while (_fl_tmp_6 < fl_array_len(rest)) {
+        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_6)));
         if (_fl_compare(val, result) > 0) {
             result = val;
         }
-        _fl_tmp_1 = (_fl_tmp_1 + 1);
+        _fl_tmp_6 = (_fl_tmp_6 + 1);
     }
     return result;
+}
+
+/* Flow: array.of[mono] */
+FL_Array* fl_array_of__int(FL_Array* items) {
+    return items;
+}
+
+/* Flow: array.of[mono] */
+FL_Array* fl_array_of__string(FL_Array* items) {
+    return items;
 }
 
 /* Flow: tests.app_variadic_stdlib.main */
@@ -2493,6 +2507,20 @@ fl_int fl_tests_app_variadic_stdlib_main(void) {
     fl_println(fl_string_join(fl_string_from_cstr(" "), parts));
     fl_json_JsonValue arr = fl_json_array_val(fl_array_new(3, sizeof(fl_json_JsonValue), (fl_json_JsonValue[]){fl_json_int_val(1), fl_json_int_val(2), fl_json_int_val(3)}));
     fl_println(fl_json_to_string(arr));
+    FL_Array* nums = fl_array_of__int(fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30}));
+    fl_println(fl_conv_to_string__int(fl_array_len_int(nums)));
+    FL_Option_int _fl_tmp_0 = fl_array_get_int(nums, 0);
+    fl_println(fl_conv_to_string__int(((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : 0)));
+    FL_Option_int _fl_tmp_1 = fl_array_get_int(nums, 1);
+    fl_println(fl_conv_to_string__int(((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : 0)));
+    FL_Option_int _fl_tmp_2 = fl_array_get_int(nums, 2);
+    fl_println(fl_conv_to_string__int(((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : 0)));
+    FL_Array* strs = fl_array_of__string(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("hello"), fl_string_from_cstr("world")}));
+    fl_println(fl_conv_to_string__int(fl_array_len_int(strs)));
+    FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(strs, 0);
+    fl_println(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr("")));
+    FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(strs, 1);
+    fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : fl_string_from_cstr("")));
     return 0;
 }
 

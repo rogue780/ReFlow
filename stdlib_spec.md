@@ -354,10 +354,11 @@ Avoids the O(n^2) cost of repeated `+` concatenation.
 
 Array access and manipulation functions.
 
-All functions use `extern fn` declarations binding to C runtime functions.
+Most functions use `extern fn` declarations binding to C runtime functions. Generic FnDecl functions are monomorphized at call sites.
 
 | Function | Signature | Runtime |
 |----------|-----------|---------|
+| `of` | `fn of<T>(..items:T):array<T>` | monomorphized (pure Flow) |
 | `get_int` | `extern fn get_int(arr:array<int>, idx:int):int?` | `fl_array_get_int` |
 | `get_int64` | `extern fn get_int64(arr:array<int64>, idx:int):int64?` | `fl_array_get_int64` |
 | `get_float` | `extern fn get_float(arr:array<float>, idx:int):float?` | `fl_array_get_float` |
@@ -384,6 +385,7 @@ All functions use `extern fn` declarations binding to C runtime functions.
 
 ### Behavior Notes
 
+- `of<T>` constructs an array from variadic arguments. It is a pure Flow function (monomorphized, no C runtime binding). The variadic `..items` parameter is packed into `array<T>` by the compiler, and the function simply returns it.
 - `get_*` functions return `none` for out-of-bounds indices (safe access).
 - `len` returns the array length as `int` (truncated from int64).
 - `concat_*` creates a new array combining both input arrays.

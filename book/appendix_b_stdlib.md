@@ -194,6 +194,17 @@ Arrays in Flow are immutable by default. Push operations return a new array.
 The module provides type-specific variants for value types and generic
 variants for pointer/heap types.
 
+**Construction:**
+
+| Signature | Description |
+|-----------|-------------|
+| `fn of<T>(..items:T):array<T>` | Create an array from variadic arguments. |
+
+```flow
+let nums = array.of(10, 20, 30)   // array<int> with 3 elements
+let strs = array.of("a", "b")     // array<string> with 2 elements
+```
+
 **Type-specific getters:**
 
 | Signature | Description |

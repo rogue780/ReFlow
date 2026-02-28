@@ -32,6 +32,11 @@ export extern fn "fl_array_concat" concat<T>(a:array<T>, b:array<T>):array<T>
 // Generic push — works for pointer/heap types (string, Coroutine, etc.)
 export extern fn "fl_array_push_ptr" push<T>(arr:array<T>, val:T):array<T>
 
+// Generic constructor from variadic args
+export fn of<T>(..items:T):array<T> {
+    return items
+}
+
 // Value-type push functions
 export extern fn "fl_array_push_int" push_int(arr:array<int>, val:int):array<int>
 export extern fn "fl_array_push_int64" push_int64(arr:array<int64>, val:int64):array<int64>

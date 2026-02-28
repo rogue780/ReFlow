@@ -2648,7 +2648,7 @@ class Lowerer:
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
                 # Check if this is a bounded generic — monomorphize it (SG-3-4-2)
                 fn_decl_maybe = sym.decl if isinstance(sym.decl, FnDecl) else None
-                if fn_decl_maybe and self._is_bounded_generic(fn_decl_maybe):
+                if fn_decl_maybe and fn_decl_maybe.type_params:
                     env = self._infer_type_env_from_call(
                         fn_decl_maybe, list(expr.args), lowered_args)
                     if env:
@@ -2857,8 +2857,8 @@ class Lowerer:
             # Non-native imported function — use mangled name from source module
             if isinstance(fn_decl, FnDecl):
                 src_module = self._resolve_import_module_path(expr.receiver)
-                # Bounded generic — monomorphize at call site (SG-3-4-2)
-                if self._is_bounded_generic(fn_decl):
+                # Generic FnDecl — monomorphize at call site (SG-3-4-2)
+                if fn_decl.type_params:
                     env = self._infer_type_env_from_call(
                         fn_decl, list(expr.args), lowered_args)
                     if env:
