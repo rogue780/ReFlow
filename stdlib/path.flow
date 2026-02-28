@@ -1,6 +1,7 @@
 module path
 
 import string
+import array
 
 // --- Pure string operations (no runtime needed) ---
 
@@ -168,3 +169,25 @@ export extern fn "fl_path_exists" exists(p:string):bool
 export extern fn "fl_path_is_dir" is_dir(p:string):bool
 export extern fn "fl_path_is_file" is_file(p:string):bool
 export extern fn "fl_path_list_dir" list_dir(p:string):array<string>?
+
+export fn walk(dir:string):array<string>? {
+    match list_dir(dir) {
+        some(entries): {
+            let result:array<string>:mut = []
+            for(entry:string in entries) {
+                let full = join(dir, entry)
+                result = array.push(result, full)
+                if(is_dir(full)) {
+                    match walk(full) {
+                        some(children): {
+                            result = array.concat(result, children)
+                        }
+                        none: {}
+                    }
+                }
+            }
+            return some(result)
+        }
+        none: { return none }
+    }
+}

@@ -481,6 +481,19 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
     return (FL_Option_float){.tag = 1, .value = result};
 }
 
+/* From: stdlib/io.flow */
+
+/* Flow: io.read_file_lines */
+FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
+    FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
+    if (_fl_tmp_0.tag == 1) {
+        FL_String* content = _fl_tmp_0.value;
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+    } else {
+        return (FL_Option_ptr){.tag = 0};
+    }
+}
+
 typedef struct _fl_frame_tests_app_prime_sieve_integers_from _fl_frame_tests_app_prime_sieve_integers_from;
 
 typedef struct _fl_frame_tests_app_prime_sieve_filter_primes _fl_frame_tests_app_prime_sieve_filter_primes;

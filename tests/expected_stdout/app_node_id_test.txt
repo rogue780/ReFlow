@@ -1,0 +1,9 @@
+binop type: int
+ident type: int
+intlit type: int
+types count: 3
+keys: 3
+node 1 -> int
+node 2 -> int
+node 3 -> int
+ok

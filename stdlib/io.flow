@@ -1,5 +1,7 @@
 module io
 
+import string
+
 export extern fn "fl_print" print(s:string):none
 export extern fn "fl_println" println(s:string):none
 export extern fn "fl_eprint" eprint(s:string):none
@@ -14,3 +16,10 @@ export extern fn "fl_tmpfile_remove" tmpfile_remove(path:string):none
 export extern fn "fl_read_file_bytes" read_file_bytes(path:string):array<byte>?
 export extern fn "fl_write_file_bytes" write_file_bytes(path:string, data:array<byte>):bool
 export extern fn "fl_append_file" append_file(path:string, contents:string):bool
+
+export fn read_file_lines(p:string):array<string>? {
+    match read_file(p) {
+        some(content): { return some(string.split(content, "\n")) }
+        none: { return none }
+    }
+}

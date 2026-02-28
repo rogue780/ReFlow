@@ -1,0 +1,67 @@
+module string_set
+
+import map
+import array
+
+export fn new():map<string, bool> {
+    return map.new()
+}
+
+export fn add(s:map<string, bool>, key:string):map<string, bool> {
+    return map.set(s, key, true)
+}
+
+export fn has(s:map<string, bool>, key:string):bool {
+    return map.has(s, key)
+}
+
+export fn remove(s:map<string, bool>, key:string):map<string, bool> {
+    return map.remove(s, key)
+}
+
+export fn size(s:map<string, bool>):int64 {
+    return map.len(s)
+}
+
+export fn to_array(s:map<string, bool>):array<string> {
+    return map.keys(s)
+}
+
+export fn from_array(arr:array<string>):map<string, bool> {
+    let s:map<string, bool>:mut = new()
+    for(item:string in arr) {
+        s = add(s, item)
+    }
+    return s
+}
+
+export fn union(a:map<string, bool>, b:map<string, bool>):map<string, bool> {
+    let result:map<string, bool>:mut = a
+    let b_keys = map.keys(b)
+    for(k:string in b_keys) {
+        result = add(result, k)
+    }
+    return result
+}
+
+export fn difference(a:map<string, bool>, b:map<string, bool>):map<string, bool> {
+    let result:map<string, bool>:mut = new()
+    let a_keys = map.keys(a)
+    for(k:string in a_keys) {
+        if(!has(b, k)) {
+            result = add(result, k)
+        }
+    }
+    return result
+}
+
+export fn intersection(a:map<string, bool>, b:map<string, bool>):map<string, bool> {
+    let result:map<string, bool>:mut = new()
+    let a_keys = map.keys(a)
+    for(k:string in a_keys) {
+        if(has(b, k)) {
+            result = add(result, k)
+        }
+    }
+    return result
+}

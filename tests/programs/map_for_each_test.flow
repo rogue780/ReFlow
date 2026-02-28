@@ -1,0 +1,32 @@
+module tests.map_for_each_test
+
+import io
+import conv
+import array
+import map
+
+fn get_or_default(m:map<string, string>, key:string):string {
+    match map.get(m, key) {
+        some(v): { return v }
+        none: { return "?" }
+    }
+}
+
+fn main():int {
+    // keys + get pattern for iterating map entries
+    let m = map.set(map.set(map.set(map.new(), "a", "1"), "b", "2"), "c", "3")
+    let ks = map.keys(m)
+
+    io.println(conv.to_string(array.size(ks)))
+    for(k:string in ks) {
+        let v = get_or_default(m, k)
+        io.println(k + "=" + v)
+    }
+
+    // empty map iteration
+    let empty:map<string, string> = map.new()
+    let empty_ks = map.keys(empty)
+    io.println(conv.to_string(array.size(empty_ks)))
+
+    return 0
+}

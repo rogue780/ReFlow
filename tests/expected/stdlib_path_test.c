@@ -23,6 +23,19 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     return result;
 }
 
+/* From: stdlib/io.flow */
+
+/* Flow: io.read_file_lines */
+FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
+    FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
+    if (_fl_tmp_0.tag == 1) {
+        FL_String* content = _fl_tmp_0.value;
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+    } else {
+        return (FL_Option_ptr){.tag = 0};
+    }
+}
+
 /* From: stdlib/path.flow */
 
 FL_String* fl_path_join(FL_Array* segments);
@@ -34,6 +47,8 @@ FL_String* fl_path_parent(FL_String* p);
 FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix);
 
 FL_Option_ptr fl_path_extension(FL_String* p);
+
+FL_Option_ptr fl_path_walk(FL_String* dir);
 
 /* Flow: path.join */
 FL_String* fl_path_join(FL_Array* segments) {
@@ -262,6 +277,32 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
         return (FL_Option_ptr){.tag = 0};
     }
     return (FL_Option_ptr){.tag = 1, .value = fl_string_substring(p, dot, len)};
+}
+
+/* Flow: path.walk */
+FL_Option_ptr fl_path_walk(FL_String* dir) {
+    FL_Option_ptr _fl_tmp_10 = fl_path_list_dir(dir);
+    if (_fl_tmp_10.tag == 1) {
+        FL_Array* entries = _fl_tmp_10.value;
+        FL_Array* result = fl_array_new(0, 0, NULL);
+        fl_int64 _fl_tmp_11 = 0;
+        while (_fl_tmp_11 < fl_array_len(entries)) {
+            FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_11)));
+            FL_String* full = fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry}));
+            result = fl_array_push_ptr(result, full);
+            if (fl_path_is_dir(full)) {
+                FL_Option_ptr _fl_tmp_12 = fl_path_walk(full);
+                if (_fl_tmp_12.tag == 1) {
+                    FL_Array* children = _fl_tmp_12.value;
+                    result = fl_array_concat(result, children);
+                }
+            }
+            _fl_tmp_11 = (_fl_tmp_11 + 1);
+        }
+        return (FL_Option_ptr){.tag = 1, .value = result};
+    } else {
+        return (FL_Option_ptr){.tag = 0};
+    }
 }
 
 /* Flow: tests.stdlib_path_test.main */

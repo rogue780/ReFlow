@@ -43,3 +43,34 @@ export extern fn "fl_array_push_int64" push_int64(arr:array<int64>, val:int64):a
 export extern fn "fl_array_push_float" push_float(arr:array<float>, val:float):array<float>
 export extern fn "fl_array_push_bool" push_bool(arr:array<bool>, val:bool):array<bool>
 export extern fn "fl_array_push_byte" push_byte(arr:array<byte>, val:byte):array<byte>
+
+// --- Pure Flow collection functions ---
+
+export fn contains<T>(arr:array<T>, val:T):bool {
+    for(item:T in arr) {
+        if(item == val) { return true }
+    }
+    return false
+}
+
+export fn index_of<T>(arr:array<T>, val:T):int? {
+    let i:int:mut = 0
+    for(item:T in arr) {
+        if(item == val) { return some(i) }
+        i = i + 1
+    }
+    return none
+}
+
+export fn slice<T>(arr:array<T>, start:int, end_idx:int):array<T> {
+    let result:array<T>:mut = []
+    let i:int:mut = start
+    while(i < end_idx) {
+        match get_any(arr, i) {
+            some(val): { result = push(result, val) }
+            none: { return result }
+        }
+        i = i + 1
+    }
+    return result
+}

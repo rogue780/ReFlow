@@ -1,0 +1,45 @@
+module tests.file_read_lines_test
+
+import io
+import conv
+import array
+import file
+
+fn main():int {
+    // Create a temp file with multiple lines
+    let tmp = io.tmpfile_create(".txt", "line1\nline2\nline3\n")
+
+    // Test file.read_lines
+    match file.open_read(tmp) {
+        some(f): {
+            let lines = file.read_lines(f)
+            io.println(conv.to_string(array.size(lines)))
+            io.println(array.get(lines, 0) ?? "?")
+            io.println(array.get(lines, 1) ?? "?")
+            io.println(array.get(lines, 2) ?? "?")
+            file.close(f)
+        }
+        none: {
+            io.println("open failed")
+        }
+    }
+
+    // Test io.read_file_lines
+    match io.read_file_lines(tmp) {
+        some(lines): {
+            io.println(conv.to_string(array.size(lines)))
+        }
+        none: {
+            io.println("read_file_lines failed")
+        }
+    }
+
+    // Test on non-existent file
+    match io.read_file_lines("/nonexistent_file_12345.txt") {
+        some(lines): { io.println("unexpected") }
+        none: { io.println("none") }
+    }
+
+    io.tmpfile_remove(tmp)
+    return 0
+}

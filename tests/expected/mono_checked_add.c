@@ -481,6 +481,19 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
     return (FL_Option_float){.tag = 1, .value = result};
 }
 
+/* From: stdlib/io.flow */
+
+/* Flow: io.read_file_lines */
+FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
+    FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
+    if (_fl_tmp_0.tag == 1) {
+        FL_String* content = _fl_tmp_0.value;
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+    } else {
+        return (FL_Option_ptr){.tag = 0};
+    }
+}
+
 fl_int fl_mono_checked_add_add_generic__int(fl_int a, fl_int b);
 
 fl_float fl_mono_checked_add_add_generic__float(fl_float a, fl_float b);

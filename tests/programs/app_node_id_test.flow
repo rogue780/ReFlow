@@ -1,0 +1,64 @@
+module tests.app_node_id_test
+
+import io
+import conv
+import map
+import array
+
+// Simulate AST node types with monotonic IDs
+type Expr =
+    | IntLit(id:int, value:int)
+    | BinOp(id:int, op:string, left:Expr, right:Expr)
+    | Ident(id:int, name:string)
+
+// Typed lookup wrapper (avoids generic V? inference issue)
+fn lookup(types:map<string, string>, id:int):string {
+    match map.get(types, conv.to_string(id)) {
+        some(v): { return v }
+        none: { return "???" }
+    }
+}
+
+fn get_id(expr:Expr):int {
+    match expr {
+        IntLit(nid, v): { return nid }
+        BinOp(nid, o, l, r): { return nid }
+        Ident(nid, n): { return nid }
+    }
+}
+
+fn main():int {
+    // Build a small AST: x + 42
+    let node_x = Ident(id: 1, name: "x")
+    let node_42 = IntLit(id: 2, value: 42)
+    let node_add = BinOp(id: 3, op: "+", left: node_x, right: node_42)
+
+    // Build a side-map: node ID -> type string (simulating TypedModule.types)
+    let types:map<string, string>:mut = map.new()
+    types = map.set(types, conv.to_string(1), "int")
+    types = map.set(types, conv.to_string(2), "int")
+    types = map.set(types, conv.to_string(3), "int")
+
+    // Verify lookups work using get_id helper
+    io.println("binop type: " + lookup(types, get_id(node_add)))
+    io.println("ident type: " + lookup(types, get_id(node_x)))
+    io.println("intlit type: " + lookup(types, get_id(node_42)))
+
+    // Verify map size
+    io.println("types count: " + conv.to_string(map.len(types)))
+
+    // Verify keys are unique
+    let keys = map.keys(types)
+    io.println("keys: " + conv.to_string(array.size(keys)))
+
+    // Verify we can look up by computed IDs
+    let all_nodes:array<Expr> = [node_x, node_42, node_add]
+    for(node:Expr in all_nodes) {
+        let nid = get_id(node)
+        let t = lookup(types, nid)
+        io.println("node " + conv.to_string(nid) + " -> " + t)
+    }
+
+    io.println("ok")
+    return 0
+}

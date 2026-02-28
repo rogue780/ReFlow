@@ -1,0 +1,16 @@
+true
+false
+true
+false
+false
+2
+none
+0
+none
+2
+bob
+charlie
+2
+alice
+0
+2

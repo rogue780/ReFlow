@@ -1,0 +1,41 @@
+module tests.path_walk_test
+
+import io
+import conv
+import array
+import path
+
+fn main():int {
+    // Create a temp directory structure for testing
+    let base = io.tmpfile_create("_walkdir", "")
+    // tmpfile_create creates a file, we need directories
+    // Use the base as a prefix for our test dir
+    let dir = base + "_dir"
+
+    // We can't create directories from Flow yet, so test with an existing dir
+    // Test walk on current directory's stdlib (known structure)
+    match path.walk("stdlib") {
+        some(files): {
+            // Verify we got results
+            let count = array.size(files)
+            io.println(conv.to_string(count > 0))
+
+            // Verify at least some known files are present
+            io.println(conv.to_string(array.contains(files, "stdlib/io.flow")))
+            io.println(conv.to_string(array.contains(files, "stdlib/path.flow")))
+            io.println(conv.to_string(array.contains(files, "stdlib/string.flow")))
+        }
+        none: {
+            io.println("walk failed")
+        }
+    }
+
+    // Test walk on non-existent directory
+    match path.walk("/nonexistent_dir_12345") {
+        some(files): { io.println("unexpected") }
+        none: { io.println("none") }
+    }
+
+    io.tmpfile_remove(base)
+    return 0
+}

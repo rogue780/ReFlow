@@ -1,0 +1,62 @@
+module tests.array_contains_test
+
+import io
+import conv
+import array
+
+fn main():int {
+    // contains — strings
+    let names = ["alice", "bob", "charlie"]
+    io.println(conv.to_string(array.contains(names, "bob")))
+    io.println(conv.to_string(array.contains(names, "dave")))
+
+    // contains — ints
+    let nums = [1, 2, 3, 4, 5]
+    io.println(conv.to_string(array.contains(nums, 3)))
+    io.println(conv.to_string(array.contains(nums, 9)))
+
+    // contains — empty array
+    let empty:array<string> = []
+    io.println(conv.to_string(array.contains(empty, "x")))
+
+    // index_of — strings
+    match array.index_of(names, "charlie") {
+        some(idx): { io.println(conv.to_string(idx)) }
+        none: { io.println("none") }
+    }
+    match array.index_of(names, "dave") {
+        some(idx): { io.println(conv.to_string(idx)) }
+        none: { io.println("none") }
+    }
+    // index_of — first element
+    match array.index_of(names, "alice") {
+        some(idx): { io.println(conv.to_string(idx)) }
+        none: { io.println("none") }
+    }
+    // index_of — empty array
+    match array.index_of(empty, "x") {
+        some(idx): { io.println(conv.to_string(idx)) }
+        none: { io.println("none") }
+    }
+
+    // slice — middle
+    let sliced = array.slice(names, 1, 3)
+    io.println(conv.to_string(array.size(sliced)))
+    io.println(array.get(sliced, 0) ?? "?")
+    io.println(array.get(sliced, 1) ?? "?")
+
+    // slice — from start
+    let from_start = array.slice(names, 0, 2)
+    io.println(conv.to_string(array.size(from_start)))
+    io.println(array.get(from_start, 0) ?? "?")
+
+    // slice — empty (start == end)
+    let empty_slice = array.slice(names, 1, 1)
+    io.println(conv.to_string(array.size(empty_slice)))
+
+    // slice — out of bounds end
+    let over = array.slice(names, 1, 100)
+    io.println(conv.to_string(array.size(over)))
+
+    return 0
+}

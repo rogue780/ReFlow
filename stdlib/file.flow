@@ -1,5 +1,7 @@
 module file
 
+import array
+
 extern type file
 
 export extern fn "fl_file_open_read" open_read(path:string):file?
@@ -19,3 +21,15 @@ export extern fn "fl_file_seek" seek(f:file, offset:int64):bool
 export extern fn "fl_file_seek_end" seek_end(f:file, offset:int64):bool
 export extern fn "fl_file_position" position(f:file):int64
 export extern fn "fl_file_size" size(f:file):int64
+
+export fn read_lines(f:file):array<string> {
+    let lines:array<string>:mut = []
+    let done:bool:mut = false
+    while(!done) {
+        match read_line(f) {
+            some(line): { lines = array.push(lines, line) }
+            none: { done = true }
+        }
+    }
+    return lines
+}

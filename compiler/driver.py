@@ -20,7 +20,7 @@ from compiler.lowering import Lowerer
 from compiler.emitter import Emitter
 
 # Stdlib module names that live in the stdlib/ directory.
-_STDLIB_MODULES = frozenset({"io", "sys", "conv", "string", "char", "path", "math", "sort", "bytes", "file", "random", "time", "testing", "net", "json", "array", "string_builder", "map", "csv", "mem", "ssl", "crypto", "http"})
+_STDLIB_MODULES = frozenset({"io", "sys", "conv", "string", "char", "path", "math", "sort", "bytes", "file", "random", "time", "testing", "net", "json", "array", "string_builder", "map", "csv", "mem", "ssl", "crypto", "http", "string_set"})
 
 
 # ---------------------------------------------------------------------------

@@ -310,6 +310,19 @@ FL_String* fl_crypto_base64_decode(FL_String* data) {
     return result;
 }
 
+/* From: stdlib/io.flow */
+
+/* Flow: io.read_file_lines */
+FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
+    FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
+    if (_fl_tmp_0.tag == 1) {
+        FL_String* content = _fl_tmp_0.value;
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+    } else {
+        return (FL_Option_ptr){.tag = 0};
+    }
+}
+
 /* Flow: tests.app_crypto_test.main */
 fl_int fl_tests_app_crypto_test_main(void) {
     FL_String* h256 = fl_crypto_sha256(fl_string_from_cstr("hello"));

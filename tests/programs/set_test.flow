@@ -1,0 +1,63 @@
+module tests.set_test
+
+import io
+import conv
+import array
+import string_set
+
+fn main():int {
+    // new + has on empty
+    let s = string_set.new()
+    io.println(conv.to_string(string_set.has(s, "x")))
+
+    // add + has
+    let s2 = string_set.add(s, "alice")
+    let s3 = string_set.add(s2, "bob")
+    io.println(conv.to_string(string_set.has(s3, "alice")))
+    io.println(conv.to_string(string_set.has(s3, "bob")))
+    io.println(conv.to_string(string_set.has(s3, "charlie")))
+
+    // size
+    io.println(conv.to_string(string_set.size(s3)))
+
+    // duplicate add is idempotent
+    let s4 = string_set.add(s3, "alice")
+    io.println(conv.to_string(string_set.size(s4)))
+
+    // remove + has
+    let s5 = string_set.remove(s4, "alice")
+    io.println(conv.to_string(string_set.has(s5, "alice")))
+    io.println(conv.to_string(string_set.has(s5, "bob")))
+    io.println(conv.to_string(string_set.size(s5)))
+
+    // to_array
+    let arr = string_set.to_array(s3)
+    io.println(conv.to_string(array.size(arr)))
+
+    // from_array with duplicates
+    let s6 = string_set.from_array(["a", "b", "c", "a", "b"])
+    io.println(conv.to_string(string_set.size(s6)))
+
+    // union
+    let sa = string_set.from_array(["x", "y"])
+    let sb = string_set.from_array(["y", "z"])
+    let u = string_set.union(sa, sb)
+    io.println(conv.to_string(string_set.size(u)))
+    io.println(conv.to_string(string_set.has(u, "x")))
+    io.println(conv.to_string(string_set.has(u, "y")))
+    io.println(conv.to_string(string_set.has(u, "z")))
+
+    // difference
+    let d = string_set.difference(sa, sb)
+    io.println(conv.to_string(string_set.size(d)))
+    io.println(conv.to_string(string_set.has(d, "x")))
+    io.println(conv.to_string(string_set.has(d, "y")))
+
+    // intersection
+    let inter = string_set.intersection(sa, sb)
+    io.println(conv.to_string(string_set.size(inter)))
+    io.println(conv.to_string(string_set.has(inter, "y")))
+    io.println(conv.to_string(string_set.has(inter, "x")))
+
+    return 0
+}

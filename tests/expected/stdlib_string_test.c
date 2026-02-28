@@ -23,6 +23,19 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     return result;
 }
 
+/* From: stdlib/io.flow */
+
+/* Flow: io.read_file_lines */
+FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
+    FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
+    if (_fl_tmp_0.tag == 1) {
+        FL_String* content = _fl_tmp_0.value;
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+    } else {
+        return (FL_Option_ptr){.tag = 0};
+    }
+}
+
 /* Flow: tests.stdlib_string_test.main */
 void fl_tests_stdlib_string_test_main(void) {
     FL_String* s = fl_string_from_cstr("Hello, World!");
