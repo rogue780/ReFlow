@@ -815,6 +815,15 @@ class Parser:
         name_tok = self.expect(TokenType.IDENT)
         name = name_tok.value
 
+        # Optional :mut on the type declaration itself
+        is_type_mut = False
+        if self.check(TokenType.COLON):
+            next_tok = self.peek2()
+            if next_tok.type == TokenType.MUT:
+                self.advance()  # consume ':'
+                self.advance()  # consume 'mut'
+                is_type_mut = True
+
         # Optional generic type params
         type_params: list[TypeParam] = []
         if self.check(TokenType.LT):
@@ -834,7 +843,7 @@ class Parser:
             return self._parse_sum_type(tok, name, type_params, interfaces, is_export)
 
         # Struct type: type Name { ... }
-        return self._parse_struct_type(tok, name, type_params, interfaces, is_export)
+        return self._parse_struct_type(tok, name, type_params, interfaces, is_export, is_type_mut)
 
     def _parse_sum_type(
         self,
@@ -909,6 +918,7 @@ class Parser:
         type_params: list[TypeParam],
         interfaces: list[TypeExpr],
         is_export: bool,
+        is_type_mut: bool = False,
     ) -> TypeDecl:
         """Parse a struct type: type Name { fields, methods, constructors, statics }"""
         self.expect(TokenType.LBRACE)
@@ -951,7 +961,7 @@ class Parser:
                 self.match_token(TokenType.COMMA)
             elif member_tok.type == TokenType.IDENT:
                 # Field: name: Type
-                field = self._parse_field_decl()
+                field = self._parse_field_decl(type_is_mut=is_type_mut)
                 fields.append(field)
                 self.match_token(TokenType.COMMA)
             else:
@@ -975,16 +985,23 @@ class Parser:
             is_export=is_export,
             is_sum_type=False,
             variants=[],
+            is_mut=is_type_mut,
         )
 
-    def _parse_field_decl(self) -> FieldDecl:
-        """Parse a struct field: name: Type or name: Type:mut"""
+    def _parse_field_decl(self, type_is_mut: bool = False) -> FieldDecl:
+        """Parse a struct field: name: Type or name: Type:mut
+        When type_is_mut is True (from type Name:mut), fields default to mutable
+        unless explicitly annotated with :imut."""
         name_tok = self.expect(TokenType.IDENT)
         self.expect(TokenType.COLON)
         type_ann = self.parse_type_expr()
 
-        # Determine mutability from type expression
-        is_mut = isinstance(type_ann, MutType)
+        # Determine mutability from type expression and type-level :mut
+        if type_is_mut:
+            # type:mut — fields are mutable unless explicitly :imut
+            is_mut = not isinstance(type_ann, ImutType)
+        else:
+            is_mut = isinstance(type_ann, MutType)
 
         return FieldDecl(
             line=name_tok.line,

@@ -1654,6 +1654,9 @@ class TypeChecker:
                             args, arg_types, call_fn_decl, expr)
                     self._check_call_args(callee_t, arg_types, args, expr,
                                           fn_decl=call_fn_decl)
+                    # Check :mut parameter passing rules
+                    if call_fn_decl is not None:
+                        self._check_mut_param_args(call_fn_decl, args, expr)
                     # BG-2-2-3: validate bounded generic call
                     ret_type = callee_t.ret
                     if call_fn_decl is not None:
@@ -1693,6 +1696,8 @@ class TypeChecker:
                             args, arg_types, fn_decl, expr)
                         self._check_call_args(fn_type, arg_types, args, expr,
                                               fn_decl=fn_decl)
+                        # Check :mut parameter passing rules
+                        self._check_mut_param_args(fn_decl, args, expr)
                         # BG-2-2-4: validate bounded generic call
                         self._validate_generic_call_bounds(
                             fn_decl, arg_types, expr)

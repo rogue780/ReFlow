@@ -894,7 +894,7 @@ fn read_only(data: array<int>:imut): int {
 
 fn will_modify(data: array<int>:mut): int {
     // caller must pass a :mut binding
-    // mutations are visible to the caller
+    // mutations are visible to the caller (pass-by-pointer for value types)
 }
 
 fn flexible(data: array<int>): int {
@@ -1015,6 +1015,23 @@ type Record {
     }
 }
 ```
+
+### Mutable Type Declarations
+
+When most fields need to be mutable, annotate the type itself with `:mut`. All fields default to mutable; use `:imut` to override individual fields:
+
+```
+type LexState:mut {
+    source:string:imut,     // override: stays immutable
+    filename:string:imut,   // override: stays immutable
+    pos:int,                // mutable (default from type:mut)
+    line:int,               // mutable
+    col:int,                // mutable
+    tokens:array<Token>,    // mutable
+}
+```
+
+This is equivalent to annotating every non-`:imut` field with `:mut` individually. The `:mut` on the type declaration affects only field defaults — it does not change ownership or parameter-passing semantics of the type itself.
 
 ### Static Members
 

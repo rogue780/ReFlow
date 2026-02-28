@@ -251,6 +251,24 @@ that do not need mutation without any conversion or copying. The more
 fields you mark `:mut`, the more tightly coupled your type becomes to
 mutable usage patterns.
 
+### 6.1.4 Mutable Type Declarations
+
+When most fields need to be mutable, annotating each one individually is
+tedious. The `type:mut` shorthand defaults all fields to mutable:
+
+```flow
+type LexState:mut {
+    source:string:imut    // override: stays immutable
+    pos:int               // mutable (default from type:mut)
+    line:int              // mutable
+    col:int               // mutable
+}
+```
+
+Individual fields can still override the default with `:imut`. This is
+purely a convenience --- the resulting type is identical to one where each
+mutable field is explicitly annotated `:mut`.
+
 ---
 
 ## 6.2 Constructors

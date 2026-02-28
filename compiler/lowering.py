@@ -707,6 +707,10 @@ class Lowerer:
         # Active monomorphization type env (set during _lower_monomorphized_fn)
         self._mono_type_env: dict[str, Type] | None = None
 
+        # :mut parameter tracking — names of params with :mut annotation
+        # that need pass-by-pointer treatment. Cleared per function.
+        self._mut_params: set[str] = set()
+
         # FFI: extern type names for lowering TNamed to void*
         self._extern_type_names: set[str] = set()
         for decl in self._module.decls:
@@ -952,6 +956,8 @@ class Lowerer:
         self._current_fn_name = fn.name
         saved_let_var_ltypes = self._let_var_ltypes
         self._let_var_ltypes = {}
+        saved_mut_params = self._mut_params
+        self._mut_params = set()
 
         c_name = mangle(self._module_path, None, fn.name,
                         file=self._file, line=fn.line, col=fn.col)
@@ -962,6 +968,9 @@ class Lowerer:
             if p.is_variadic:
                 p_type = TArray(p_type)
             p_lt = self._lower_type(p_type)
+            if isinstance(p.type_ann, MutType):
+                p_lt = LPtr(p_lt)
+                self._mut_params.add(p.name)
             params.append((p.name, p_lt))
             self._let_var_ltypes[p.name] = p_lt
 
@@ -994,6 +1003,7 @@ class Lowerer:
         self._current_fn_return_type = saved_return_type
         self._current_fn_name = saved_fn_name
         self._let_var_ltypes = saved_let_var_ltypes
+        self._mut_params = saved_mut_params
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
         """Lower a type declaration. RT-7-2-2."""
@@ -1016,13 +1026,22 @@ class Lowerer:
                 continue
             m_c_name = mangle(self._module_path, td.name, method.name,
                               file=self._file, line=method.line, col=method.col)
+            saved_mut_params = self._mut_params
+            self._mut_params = set()
+            saved_let_var_ltypes = self._let_var_ltypes
+            self._let_var_ltypes = {}
             params: list[tuple[str, LType]] = []
             for p in method.params:
                 if p.name == "self":
                     params.append(("self", LPtr(LStruct(c_name))))
                 else:
                     p_type = self._type_of(p.type_ann) if p.type_ann else TNone()
-                    params.append((p.name, self._lower_type(p_type)))
+                    p_lt = self._lower_type(p_type)
+                    if isinstance(p.type_ann, MutType):
+                        p_lt = LPtr(p_lt)
+                        self._mut_params.add(p.name)
+                    params.append((p.name, p_lt))
+                    self._let_var_ltypes[p.name] = p_lt
 
             ret_type = self._type_of_return_method(method)
             ret_lt = self._lower_type(ret_type)
@@ -1052,6 +1071,8 @@ class Lowerer:
                 source_line=method.line,
             ))
             self._current_fn_return_type = saved_return_type
+            self._mut_params = saved_mut_params
+            self._let_var_ltypes = saved_let_var_ltypes
 
         # Lower constructors
         for ctor in td.constructors:
@@ -2149,6 +2170,15 @@ class Lowerer:
                 # self is always a pointer in methods
                 if name == "self" and isinstance(lt, LStruct):
                     return LVar(name, LPtr(lt))
+                # :mut param — pass-by-pointer. For value types (non-struct),
+                # auto-deref so `x` becomes `(*x)`. For struct types, return
+                # LVar with LPtr(LStruct) c_type so field access uses LArrow.
+                if name in self._mut_params:
+                    p_lt = self._let_var_ltypes.get(name)
+                    if isinstance(p_lt, LPtr) and not isinstance(p_lt.inner, LStruct):
+                        return LDeref(LVar(name, p_lt), p_lt.inner)
+                    if isinstance(p_lt, LPtr):
+                        return LVar(name, p_lt)
                 return LVar(name, lt)
 
             # Binary operators (RT-7-3-2)
@@ -2590,6 +2620,28 @@ class Lowerer:
                            arr_lt)
         return fixed_args + [packed_arr]
 
+    def _wrap_mut_args(self, fn_decl: FnDecl | ExternFnDecl,
+                       lowered_args: list[LExpr]) -> list[LExpr]:
+        """Wrap arguments to :mut parameters in LAddrOf for pass-by-pointer."""
+        if not isinstance(fn_decl, FnDecl):
+            return lowered_args
+        result = list(lowered_args)
+        for i, param in enumerate(fn_decl.params):
+            if i >= len(result):
+                break
+            if isinstance(param.type_ann, MutType):
+                arg = result[i]
+                arg_ct = getattr(arg, 'c_type', None)
+                # If arg is already a pointer (e.g. forwarding another :mut param),
+                # pass it directly — no extra & needed
+                if isinstance(arg_ct, LPtr):
+                    continue
+                if arg_ct is not None:
+                    result[i] = LAddrOf(arg, LPtr(arg_ct))
+                else:
+                    result[i] = LAddrOf(arg, LPtr(LVoid()))
+        return result
+
     def _get_variadic_fn_decl(self, expr: Call) -> FnDecl | None:
         """Return the FnDecl if the callee is a variadic function, else None."""
         if not isinstance(expr.callee, Ident):
@@ -2678,7 +2730,12 @@ class Lowerer:
                 type_decl: TypeDecl = sym.decl
                 fields = [(f.name, arg)
                           for f, arg in zip(type_decl.fields, lowered_args)]
-                return LCompound(fields=fields, c_type=lt)
+                # Compute concrete struct type from the TypeDecl (typechecker
+                # may return TAny for constructor-like calls, so lt may be wrong)
+                struct_mod = getattr(sym, 'module_path', None) or self._module_path
+                struct_lt = LStruct(mangle(struct_mod, type_decl.name,
+                                          file=self._file, line=expr.line, col=expr.col))
+                return LCompound(fields=fields, c_type=struct_lt)
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
                 # Check if this is a bounded generic — monomorphize it (SG-3-4-2)
                 fn_decl_maybe = sym.decl if isinstance(sym.decl, FnDecl) else None
@@ -2690,7 +2747,11 @@ class Lowerer:
                             self._module_path, fn_decl_maybe, env)
                         # Substitute type env into return type for concrete LType
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
-                        return LCall(mono_name, lowered_args, concrete_lt)
+                        final = self._wrap_mut_args(fn_decl_maybe, lowered_args)
+                        return LCall(mono_name, final, concrete_lt)
+                # Wrap :mut args before emitting the call
+                if fn_decl_maybe is not None:
+                    lowered_args = self._wrap_mut_args(fn_decl_maybe, lowered_args)
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, lowered_args, lt)
@@ -2745,7 +2806,10 @@ class Lowerer:
                     type_decl: TypeDecl = fa_sym.decl
                     fields = [(f.name, arg)
                               for f, arg in zip(type_decl.fields, lowered_args)]
-                    return LCompound(fields=fields, c_type=lt)
+                    struct_mod = getattr(fa_sym, 'module_path', None) or self._module_path
+                    struct_lt = LStruct(mangle(struct_mod, type_decl.name,
+                                              file=self._file, line=expr.line, col=expr.col))
+                    return LCompound(fields=fields, c_type=struct_lt)
                 # Regular function via namespace: mod.func(...)
                 if fa_sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
                     mod_path = fa_sym.module_path or self._module_path
@@ -2943,7 +3007,10 @@ class Lowerer:
             lowered_args = [self._lower_expr(a) for a in expr.args]
             fields = [(f.name, arg)
                       for f, arg in zip(type_decl.fields, lowered_args)]
-            return LCompound(fields=fields, c_type=lt)
+            struct_mod = getattr(resolved_sym, 'module_path', None) or self._module_path
+            struct_lt = LStruct(mangle(struct_mod, type_decl.name,
+                                      file=self._file, line=expr.line, col=expr.col))
+            return LCompound(fields=fields, c_type=struct_lt)
 
         if resolved_sym is not None and resolved_sym.kind in (
                 SymbolKind.FN, SymbolKind.IMPORT):
@@ -3005,7 +3072,10 @@ class Lowerer:
                     if env:
                         mono_name = self._record_mono_site(src_module, fn_decl, env)
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
-                        return LCall(mono_name, lowered_args, concrete_lt)
+                        final = self._wrap_mut_args(fn_decl, lowered_args)
+                        return LCall(mono_name, final, concrete_lt)
+                # Wrap :mut args before emitting the call
+                lowered_args = self._wrap_mut_args(fn_decl, lowered_args)
                 c_name = mangle(src_module, None, fn_decl.name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, lowered_args, lt)

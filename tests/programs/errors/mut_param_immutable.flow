@@ -1,0 +1,15 @@
+// Error: passing an immutable binding to a :mut parameter
+type Point {
+    x:int:mut
+    y:int:mut
+}
+
+fn move_point(p:Point:mut, dx:int) {
+    p.x = p.x + dx
+}
+
+fn main():int {
+    let p:Point = Point(10, 20)
+    move_point(p, 5)
+    return 0
+}

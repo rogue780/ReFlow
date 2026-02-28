@@ -560,6 +560,7 @@ class TypeDecl(Decl):
     is_export: bool
     is_sum_type: bool
     variants: list[SumVariantDecl]
+    is_mut: bool = False
 
 
 @dataclass

@@ -1,0 +1,21 @@
+// Test: :mut parameter pass-by-pointer for structs
+import io
+import conv
+
+type Point:mut {
+    x:int
+    y:int
+}
+
+fn move_point(p:Point:mut, dx:int, dy:int) {
+    p.x = p.x + dx
+    p.y = p.y + dy
+}
+
+fn main():int {
+    let p:Point:mut = Point(10, 20)
+    move_point(p, 5, 3)
+    io.println(conv.to_string(p.x))
+    io.println(conv.to_string(p.y))
+    return 0
+}

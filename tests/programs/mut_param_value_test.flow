@@ -1,0 +1,15 @@
+// Test: :mut parameter pass-by-pointer for value types (int)
+import io
+import conv
+
+fn increment(x:int:mut) {
+    x = x + 1
+}
+
+fn main():int {
+    let val:int:mut = 10
+    increment(val)
+    increment(val)
+    io.println(conv.to_string(val))
+    return 0
+}

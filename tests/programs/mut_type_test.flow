@@ -1,0 +1,23 @@
+// Test: type:mut declaration — fields default to mutable, :imut overrides
+import io
+import conv
+
+type Counter:mut {
+    name:string:imut
+    count:int
+    active:bool
+}
+
+fn main():int {
+    let c:Counter:mut = Counter("test", 0, true)
+    c.count = 42
+    c.active = false
+    io.println(c.name)
+    io.println(conv.to_string(c.count))
+    if(c.active) {
+        io.println("active")
+    } else {
+        io.println("inactive")
+    }
+    return 0
+}

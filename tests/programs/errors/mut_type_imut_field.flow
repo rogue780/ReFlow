@@ -1,0 +1,11 @@
+// Error: assigning to :imut field on type:mut should fail
+type Counter:mut {
+    name:string:imut
+    count:int
+}
+
+fn main():int {
+    let c:Counter:mut = Counter("test", 0)
+    c.name = "changed"
+    return 0
+}
