@@ -1,0 +1,10 @@
+test.flow:10:5: LexError: unterminated string
+main.flow:42:13: ParseError: expected ')'
+lib.flow:7:1: ResolveError: undefined name 'x'
+check.flow:99:20: TypeError: type mismatch: int vs string
+emit.flow:1:0: EmitError: malformed LIR node
+LexError
+EmitError
+unterminated string
+test.flow
+ok

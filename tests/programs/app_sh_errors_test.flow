@@ -1,0 +1,33 @@
+module tests.programs.app_sh_errors_test
+
+import io
+import self_hosted.errors
+
+fn main():int {
+    // Test factory functions + format
+    let e1 = errors.lex_error("unterminated string", "test.flow", 10, 5)
+    io.println(errors.format(e1))
+
+    let e2 = errors.parse_error("expected ')'", "main.flow", 42, 13)
+    io.println(errors.format(e2))
+
+    let e3 = errors.resolve_error("undefined name 'x'", "lib.flow", 7, 1)
+    io.println(errors.format(e3))
+
+    let e4 = errors.type_error("type mismatch: int vs string", "check.flow", 99, 20)
+    io.println(errors.format(e4))
+
+    let e5 = errors.emit_error("malformed LIR node", "emit.flow", 1, 0)
+    io.println(errors.format(e5))
+
+    // Test kind_name via field access on error instances
+    io.println(errors.kind_name(e1.kind))
+    io.println(errors.kind_name(e5.kind))
+
+    // Test field access
+    io.println(e1.message)
+    io.println(e1.file)
+
+    io.println("ok")
+    return 0
+}

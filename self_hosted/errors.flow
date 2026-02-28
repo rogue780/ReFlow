@@ -1,0 +1,58 @@
+module self_hosted.errors
+
+import conv
+
+// Error kind enum — one variant per compiler pass that can fail
+export type ErrorKind =
+    | LexError
+    | ParseError
+    | ResolveError
+    | TypeError
+    | EmitError
+
+// CompileError — the single error type for the self-hosted compiler.
+// Python uses 5 exception subclasses; Flow uses one struct + kind tag.
+export type CompileError {
+    kind:ErrorKind
+    message:string
+    file:string
+    line:int
+    col:int
+}
+
+// Factory functions — one per error kind
+export fn lex_error(message:string, file:string, line:int, col:int):CompileError {
+    return CompileError{kind:LexError, message:message, file:file, line:line, col:col}
+}
+
+export fn parse_error(message:string, file:string, line:int, col:int):CompileError {
+    return CompileError{kind:ParseError, message:message, file:file, line:line, col:col}
+}
+
+export fn resolve_error(message:string, file:string, line:int, col:int):CompileError {
+    return CompileError{kind:ResolveError, message:message, file:file, line:line, col:col}
+}
+
+export fn type_error(message:string, file:string, line:int, col:int):CompileError {
+    return CompileError{kind:TypeError, message:message, file:file, line:line, col:col}
+}
+
+export fn emit_error(message:string, file:string, line:int, col:int):CompileError {
+    return CompileError{kind:EmitError, message:message, file:file, line:line, col:col}
+}
+
+// Format an error kind to its display name
+export fn kind_name(k:ErrorKind):string {
+    match k {
+        LexError: { return "LexError" }
+        ParseError: { return "ParseError" }
+        ResolveError: { return "ResolveError" }
+        TypeError: { return "TypeError" }
+        EmitError: { return "EmitError" }
+    }
+}
+
+// Format a CompileError to its display string: "file:line:col: KindName: message"
+export fn format(e:CompileError):string {
+    return e.file + ":" + conv.to_string(e.line) + ":" + conv.to_string(e.col) + ": " + kind_name(e.kind) + ": " + e.message
+}
