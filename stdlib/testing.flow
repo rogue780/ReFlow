@@ -1,7 +1,17 @@
 module testing
 
-export extern fn "fl_test_assert_true" assert_true(val:bool, msg:string):void
-export extern fn "fl_test_assert_false" assert_false(val:bool, msg:string):void
+export fn assert_true(val:bool, msg:string):void {
+    if (!val) {
+        throw "assertion failed (expected true): " + msg
+    }
+}
+
+export fn assert_false(val:bool, msg:string):void {
+    if (val) {
+        throw "assertion failed (expected false): " + msg
+    }
+}
+
 export fn fail(msg:string):void {
     throw msg
 }
