@@ -1,0 +1,38 @@
+token count: 7
+LET 'let'
+IDENT 'x'
+COLON ':'
+IDENT 'int'
+ASSIGN '='
+INT_LIT '42'
+EOF ''
+---
+IDENT 'a'
+PLUS '+'
+IDENT 'b'
+DOUBLE_EQ '=='
+IDENT 'c'
+AND '&&'
+IDENT 'd'
+NOT_EQ '!='
+IDENT 'e'
+---
+STRING_LIT 'hello world'
+---
+INT_LIT '42'
+FLOAT_LIT '3.14'
+INT_LIT '0xFF'
+---
+FN 'fn'
+IDENT 'main'
+IF 'if'
+ELSE 'else'
+RETURN 'return'
+BOOL_LIT 'true'
+BOOL_LIT 'false'
+NONE 'none'
+---
+a line:1
+b line:2
+c line:3
+ok

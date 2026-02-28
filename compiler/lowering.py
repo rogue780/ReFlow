@@ -2622,24 +2622,35 @@ class Lowerer:
 
     def _wrap_mut_args(self, fn_decl: FnDecl | ExternFnDecl,
                        lowered_args: list[LExpr]) -> list[LExpr]:
-        """Wrap arguments to :mut parameters in LAddrOf for pass-by-pointer."""
+        """Adjust arguments for :mut parameter passing.
+
+        - :mut param + value arg → wrap in LAddrOf (&arg)
+        - :mut param + pointer arg → pass directly (forwarding)
+        - non-:mut param + pointer arg from :mut local → unwrap with LDeref (*arg)
+        """
         if not isinstance(fn_decl, FnDecl):
             return lowered_args
         result = list(lowered_args)
         for i, param in enumerate(fn_decl.params):
             if i >= len(result):
                 break
+            arg = result[i]
+            arg_ct = getattr(arg, 'c_type', None)
             if isinstance(param.type_ann, MutType):
-                arg = result[i]
-                arg_ct = getattr(arg, 'c_type', None)
-                # If arg is already a pointer (e.g. forwarding another :mut param),
-                # pass it directly — no extra & needed
+                # :mut param — arg should be a pointer
                 if isinstance(arg_ct, LPtr):
+                    # Already a pointer (forwarding :mut param) — pass directly
                     continue
                 if arg_ct is not None:
                     result[i] = LAddrOf(arg, LPtr(arg_ct))
                 else:
                     result[i] = LAddrOf(arg, LPtr(LVoid()))
+            else:
+                # Non-:mut param — if arg is a pointer from a :mut local,
+                # dereference it so the callee gets a value copy
+                if (isinstance(arg_ct, LPtr) and isinstance(arg_ct.inner, LStruct)
+                        and isinstance(arg, LVar) and arg.c_name in self._mut_params):
+                    result[i] = LDeref(arg, arg_ct.inner)
         return result
 
     def _get_variadic_fn_decl(self, expr: Call) -> FnDecl | None:

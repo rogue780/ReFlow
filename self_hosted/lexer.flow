@@ -1,0 +1,659 @@
+module self_hosted.lexer
+
+// Flow source string → list of Token.
+// No semantics. Produces tokens only.
+
+import string
+import char
+import conv
+import array
+import self_hosted.errors
+
+// ---------------------------------------------------------------------------
+// TokenType — integer-backed enum for all token types
+// ---------------------------------------------------------------------------
+
+export enum TokenType {
+    TK_MODULE = 1
+    TK_IMPORT = 2
+    TK_EXPORT = 3
+    TK_AS = 4
+    TK_ALIAS = 5
+    TK_TYPE = 6
+    TK_TYPEOF = 7
+    TK_MUT = 8
+    TK_IMUT = 9
+    TK_LET = 10
+    TK_FN = 11
+    TK_RETURN = 12
+    TK_YIELD = 13
+    TK_TRY = 14
+    TK_RETRY = 15
+    TK_CATCH = 16
+    TK_FINALLY = 17
+    TK_INTERFACE = 18
+    TK_FULFILLS = 19
+    TK_CONSTRUCTOR = 20
+    TK_SELF = 21
+    TK_FOR = 22
+    TK_IN = 23
+    TK_WHILE = 24
+    TK_IF = 25
+    TK_ELSE = 26
+    TK_MATCH = 27
+    TK_NONE = 28
+    TK_BREAK = 29
+    TK_CONTINUE = 30
+    TK_STATIC = 31
+    TK_PURE = 32
+    TK_RECORD = 33
+    TK_SOME = 34
+    TK_OK = 35
+    TK_ERR = 36
+    TK_COERCE = 37
+    TK_CAST = 38
+    TK_THROW = 39
+    TK_EXTERN = 40
+    TK_ENUM = 41
+    TK_ARROW = 50
+    TK_FAT_ARROW = 51
+    TK_PARALLEL_FANOUT = 52
+    TK_PIPE = 53
+    TK_QUESTION = 54
+    TK_DOUBLE_QUESTION = 55
+    TK_TRIPLE_EQ = 56
+    TK_DOUBLE_EQ = 57
+    TK_NOT_EQ = 58
+    TK_ASSIGN = 59
+    TK_PLUS_ASSIGN = 60
+    TK_MINUS_ASSIGN = 61
+    TK_STAR_ASSIGN = 62
+    TK_SLASH_ASSIGN = 63
+    TK_INCREMENT = 64
+    TK_DECREMENT = 65
+    TK_DOUBLE_STAR = 66
+    TK_FLOOR_DIV = 67
+    TK_COROUTINE = 68
+    TK_SPREAD = 69
+    TK_AND = 70
+    TK_OR = 71
+    TK_BANG = 72
+    TK_AT = 73
+    TK_AMPERSAND = 74
+    TK_BACKSLASH = 75
+    TK_PLUS = 80
+    TK_MINUS = 81
+    TK_STAR = 82
+    TK_SLASH = 83
+    TK_PERCENT = 84
+    TK_LT = 85
+    TK_GT = 86
+    TK_LT_EQ = 87
+    TK_GT_EQ = 88
+    TK_LPAREN = 89
+    TK_RPAREN = 90
+    TK_LBRACE = 91
+    TK_RBRACE = 92
+    TK_LBRACKET = 93
+    TK_RBRACKET = 94
+    TK_COLON = 95
+    TK_COMMA = 96
+    TK_DOT = 97
+    TK_SEMICOLON = 98
+    TK_INT_LIT = 100
+    TK_FLOAT_LIT = 101
+    TK_BOOL_LIT = 102
+    TK_STRING_LIT = 103
+    TK_FSTRING_START = 104
+    TK_FSTRING_END = 105
+    TK_FSTRING_TEXT = 106
+    TK_FSTRING_EXPR_START = 107
+    TK_FSTRING_EXPR_END = 108
+    TK_CHAR_LIT = 109
+    TK_IDENT = 110
+    TK_COMMENT = 111
+    TK_NEWLINE = 112
+    TK_EOF = 113
+}
+
+// ---------------------------------------------------------------------------
+// Token struct
+// ---------------------------------------------------------------------------
+
+export type Token {
+    ttype:int
+    value:string
+    line:int
+    col:int
+    file:string
+}
+
+// ---------------------------------------------------------------------------
+// Lexer state — passed to all helper functions as :mut
+// ---------------------------------------------------------------------------
+
+type LexState:mut {
+    source:string:imut
+    filename:string:imut
+    src_len:int:imut
+    pos:int
+    line:int
+    col:int
+    tokens:array<Token>
+}
+
+// ---------------------------------------------------------------------------
+// Keyword lookup
+// ---------------------------------------------------------------------------
+
+fn keyword_type(text:string):int {
+    if(text == "module") { return TokenType.TK_MODULE }
+    if(text == "import") { return TokenType.TK_IMPORT }
+    if(text == "export") { return TokenType.TK_EXPORT }
+    if(text == "as") { return TokenType.TK_AS }
+    if(text == "alias") { return TokenType.TK_ALIAS }
+    if(text == "type") { return TokenType.TK_TYPE }
+    if(text == "typeof") { return TokenType.TK_TYPEOF }
+    if(text == "mut") { return TokenType.TK_MUT }
+    if(text == "imut") { return TokenType.TK_IMUT }
+    if(text == "let") { return TokenType.TK_LET }
+    if(text == "fn") { return TokenType.TK_FN }
+    if(text == "return") { return TokenType.TK_RETURN }
+    if(text == "yield") { return TokenType.TK_YIELD }
+    if(text == "try") { return TokenType.TK_TRY }
+    if(text == "retry") { return TokenType.TK_RETRY }
+    if(text == "catch") { return TokenType.TK_CATCH }
+    if(text == "finally") { return TokenType.TK_FINALLY }
+    if(text == "interface") { return TokenType.TK_INTERFACE }
+    if(text == "fulfills") { return TokenType.TK_FULFILLS }
+    if(text == "constructor") { return TokenType.TK_CONSTRUCTOR }
+    if(text == "self") { return TokenType.TK_SELF }
+    if(text == "for") { return TokenType.TK_FOR }
+    if(text == "in") { return TokenType.TK_IN }
+    if(text == "while") { return TokenType.TK_WHILE }
+    if(text == "if") { return TokenType.TK_IF }
+    if(text == "else") { return TokenType.TK_ELSE }
+    if(text == "match") { return TokenType.TK_MATCH }
+    if(text == "none") { return TokenType.TK_NONE }
+    if(text == "break") { return TokenType.TK_BREAK }
+    if(text == "continue") { return TokenType.TK_CONTINUE }
+    if(text == "static") { return TokenType.TK_STATIC }
+    if(text == "pure") { return TokenType.TK_PURE }
+    if(text == "record") { return TokenType.TK_RECORD }
+    if(text == "some") { return TokenType.TK_SOME }
+    if(text == "ok") { return TokenType.TK_OK }
+    if(text == "err") { return TokenType.TK_ERR }
+    if(text == "coerce") { return TokenType.TK_COERCE }
+    if(text == "cast") { return TokenType.TK_CAST }
+    if(text == "throw") { return TokenType.TK_THROW }
+    if(text == "extern") { return TokenType.TK_EXTERN }
+    if(text == "enum") { return TokenType.TK_ENUM }
+    if(text == "true") { return TokenType.TK_BOOL_LIT }
+    if(text == "false") { return TokenType.TK_BOOL_LIT }
+    return TokenType.TK_IDENT
+}
+
+// ---------------------------------------------------------------------------
+// Character helpers
+// ---------------------------------------------------------------------------
+
+fn is_hex_digit(c:char):bool {
+    if(char.is_digit(c)) { return true }
+    let code = char.to_code(c)
+    if(code >= 97 && code <= 102) { return true }
+    if(code >= 65 && code <= 70) { return true }
+    return false
+}
+
+fn char_eq(c:char, s:string):bool {
+    let sc = string.char_at(s, 0) ?? char.from_code(0)
+    return char.to_code(c) == char.to_code(sc)
+}
+
+// ---------------------------------------------------------------------------
+// State helpers — peek, advance, check, match
+// ---------------------------------------------------------------------------
+
+fn peek(s:LexState, offset:int):char {
+    let idx = s.pos + offset
+    if(idx >= s.src_len) {
+        return char.from_code(0)
+    }
+    return string.char_at(s.source, idx) ?? char.from_code(0)
+}
+
+fn advance(s:LexState:mut):char {
+    let ch = string.char_at(s.source, s.pos) ?? char.from_code(0)
+    s.pos = s.pos + 1
+    if(char_eq(ch, "\n")) {
+        s.line = s.line + 1
+        s.col = 1
+    } else {
+        s.col = s.col + 1
+    }
+    return ch
+}
+
+fn check(s:LexState, expected:string):bool {
+    let exp_len = string.len(expected)
+    let end_pos = s.pos + exp_len
+    if(end_pos > s.src_len) {
+        return false
+    }
+    return string.substring(s.source, s.pos, end_pos) == expected
+}
+
+fn match_str(s:LexState:mut, expected:string):bool {
+    let exp_len = string.len(expected)
+    let end_pos = s.pos + exp_len
+    if(end_pos > s.src_len) {
+        return false
+    }
+    if(string.substring(s.source, s.pos, end_pos) == expected) {
+        let i:int:mut = 0
+        while(i < exp_len) {
+            advance(s)
+            i = i + 1
+        }
+        return true
+    }
+    return false
+}
+
+fn make_token(s:LexState, ttype:int, value:string, tok_line:int, tok_col:int):Token {
+    return Token { ttype:ttype, value:value, line:tok_line, col:tok_col, file:s.filename }
+}
+
+fn emit(s:LexState:mut, tok:Token):none {
+    s.tokens = array.push(s.tokens, tok)
+}
+
+// ---------------------------------------------------------------------------
+// Scan escape sequence (backslash already consumed)
+// ---------------------------------------------------------------------------
+
+fn scan_escape(s:LexState:mut):string {
+    if(s.pos >= s.src_len) {
+        throw errors.lex_error("unterminated escape sequence", s.filename, s.line, s.col)
+    }
+    let ch = advance(s)
+    if(char_eq(ch, "n")) { return "\n" }
+    if(char_eq(ch, "t")) { return "\t" }
+    if(char_eq(ch, "\\")) { return "\\" }
+    if(char_eq(ch, "\"")) { return "\"" }
+    if(char_eq(ch, "'")) { return "'" }
+    if(char_eq(ch, "0")) { return "\0" }
+    if(char_eq(ch, "r")) { return "\r" }
+    if(char_eq(ch, "{")) { return "{" }
+    if(char_eq(ch, "u")) {
+        if(s.pos >= s.src_len || char_eq(peek(s, 0), "{") == false) {
+            throw errors.lex_error("expected '{' after '\\u'", s.filename, s.line, s.col)
+        }
+        advance(s)
+        let hex:string:mut = ""
+        while(s.pos < s.src_len && char_eq(peek(s, 0), "}") == false) {
+            hex = hex + char.to_string(advance(s))
+        }
+        if(s.pos >= s.src_len) {
+            throw errors.lex_error("unterminated unicode escape", s.filename, s.line, s.col)
+        }
+        advance(s)
+        if(hex == "") {
+            throw errors.lex_error("empty unicode escape", s.filename, s.line, s.col)
+        }
+        // TODO: convert hex to char code point
+        return "?"
+    }
+    throw errors.lex_error("unknown escape sequence", s.filename, s.line, s.col)
+    return ""
+}
+
+// ---------------------------------------------------------------------------
+// Scan identifier / keyword
+// ---------------------------------------------------------------------------
+
+fn scan_identifier(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    let start_pos = s.pos
+    advance(s)
+    while(s.pos < s.src_len && (char.is_alphanumeric(peek(s, 0)) || char_eq(peek(s, 0), "_"))) {
+        advance(s)
+    }
+    let text = string.substring(s.source, start_pos, s.pos)
+    let ttype = keyword_type(text)
+    emit(s, make_token(s, ttype, text, start_line, start_col))
+}
+
+// ---------------------------------------------------------------------------
+// Scan number literal
+// ---------------------------------------------------------------------------
+
+fn scan_number(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    let start_pos = s.pos
+    let is_float:bool:mut = false
+
+    // Hex prefix
+    if(char_eq(peek(s, 0), "0") && (char_eq(peek(s, 1), "x") || char_eq(peek(s, 1), "X"))) {
+        advance(s)
+        advance(s)
+        while(s.pos < s.src_len && (is_hex_digit(peek(s, 0)) || char_eq(peek(s, 0), "_"))) {
+            advance(s)
+        }
+        let raw = string.substring(s.source, start_pos, s.pos)
+        let value = string.replace(raw, "_", "")
+        emit(s, make_token(s, TokenType.TK_INT_LIT, value, start_line, start_col))
+        return
+    }
+
+    // Decimal digits with underscores
+    while(s.pos < s.src_len && (char.is_digit(peek(s, 0)) || char_eq(peek(s, 0), "_"))) {
+        advance(s)
+    }
+
+    // Fractional part: only if '.' followed by a digit (not '..' spread)
+    if(s.pos < s.src_len && char_eq(peek(s, 0), ".") && char.is_digit(peek(s, 1))) {
+        is_float = true
+        advance(s)
+        while(s.pos < s.src_len && (char.is_digit(peek(s, 0)) || char_eq(peek(s, 0), "_"))) {
+            advance(s)
+        }
+    }
+
+    // Exponent part
+    if(s.pos < s.src_len && (char_eq(peek(s, 0), "e") || char_eq(peek(s, 0), "E"))) {
+        is_float = true
+        advance(s)
+        if(s.pos < s.src_len && (char_eq(peek(s, 0), "+") || char_eq(peek(s, 0), "-"))) {
+            advance(s)
+        }
+        while(s.pos < s.src_len && (char.is_digit(peek(s, 0)) || char_eq(peek(s, 0), "_"))) {
+            advance(s)
+        }
+    }
+
+    let raw = string.substring(s.source, start_pos, s.pos)
+    let value = string.replace(raw, "_", "")
+    if(is_float) {
+        emit(s, make_token(s, TokenType.TK_FLOAT_LIT, value, start_line, start_col))
+        return
+    }
+    emit(s, make_token(s, TokenType.TK_INT_LIT, value, start_line, start_col))
+}
+
+// ---------------------------------------------------------------------------
+// Scan string literal
+// ---------------------------------------------------------------------------
+
+fn scan_string(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    advance(s)
+    let chars:string:mut = ""
+    while(s.pos < s.src_len) {
+        let ch = peek(s, 0)
+        if(char_eq(ch, "\"")) {
+            advance(s)
+            emit(s, make_token(s, TokenType.TK_STRING_LIT, chars, start_line, start_col))
+            return
+        }
+        if(char_eq(ch, "\\")) {
+            advance(s)
+            chars = chars + scan_escape(s)
+        } else {
+            chars = chars + char.to_string(advance(s))
+        }
+    }
+    throw errors.lex_error("unterminated string literal", s.filename, start_line, start_col)
+}
+
+// ---------------------------------------------------------------------------
+// Scan character literal
+// ---------------------------------------------------------------------------
+
+fn scan_char_lit(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    advance(s)
+    if(s.pos >= s.src_len) {
+        throw errors.lex_error("unterminated character literal", s.filename, start_line, start_col)
+    }
+    let ch_val:string:mut = ""
+    if(char_eq(peek(s, 0), "\\")) {
+        advance(s)
+        ch_val = scan_escape(s)
+    } else {
+        ch_val = char.to_string(advance(s))
+    }
+    if(s.pos >= s.src_len || char_eq(peek(s, 0), "'") == false) {
+        throw errors.lex_error("unterminated character literal", s.filename, start_line, start_col)
+    }
+    advance(s)
+    emit(s, make_token(s, TokenType.TK_CHAR_LIT, ch_val, start_line, start_col))
+}
+
+// ---------------------------------------------------------------------------
+// Scan comment
+// ---------------------------------------------------------------------------
+
+fn scan_comment(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    let start_pos = s.pos
+    advance(s)
+    advance(s)
+    while(s.pos < s.src_len && char_eq(peek(s, 0), "\n") == false) {
+        advance(s)
+    }
+    let text = string.substring(s.source, start_pos, s.pos)
+    emit(s, make_token(s, TokenType.TK_COMMENT, text, start_line, start_col))
+}
+
+// ---------------------------------------------------------------------------
+// Scan operator or punctuation
+// ---------------------------------------------------------------------------
+
+fn scan_operator(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    let ch = peek(s, 0)
+
+    // Three-character operators
+    if(char_eq(ch, "=") && check(s, "===")) {
+        advance(s)
+        advance(s)
+        advance(s)
+        emit(s, make_token(s, TokenType.TK_TRIPLE_EQ, "===", start_line, start_col))
+        return
+    }
+    if(char_eq(ch, "<") && check(s, "<:(")) {
+        advance(s)
+        advance(s)
+        advance(s)
+        emit(s, make_token(s, TokenType.TK_PARALLEL_FANOUT, "<:(", start_line, start_col))
+        return
+    }
+
+    // Two-character operators
+    if(check(s, "==")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_DOUBLE_EQ, "==", start_line, start_col)) return }
+    if(check(s, "!=")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_NOT_EQ, "!=", start_line, start_col)) return }
+    if(check(s, "<=")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_LT_EQ, "<=", start_line, start_col)) return }
+    if(check(s, ">=")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_GT_EQ, ">=", start_line, start_col)) return }
+    if(check(s, "->")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_ARROW, "->", start_line, start_col)) return }
+    if(check(s, "=>")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_FAT_ARROW, "=>", start_line, start_col)) return }
+    if(check(s, "++")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_INCREMENT, "++", start_line, start_col)) return }
+    if(check(s, "--")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_DECREMENT, "--", start_line, start_col)) return }
+    if(check(s, "**")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_DOUBLE_STAR, "**", start_line, start_col)) return }
+    if(check(s, "</")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_FLOOR_DIV, "</", start_line, start_col)) return }
+    if(check(s, "??")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_DOUBLE_QUESTION, "??", start_line, start_col)) return }
+    if(check(s, "&&")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_AND, "&&", start_line, start_col)) return }
+    if(check(s, "||")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_OR, "||", start_line, start_col)) return }
+    if(check(s, "..")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_SPREAD, "..", start_line, start_col)) return }
+    if(check(s, ":<")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_COROUTINE, ":<", start_line, start_col)) return }
+    if(check(s, "+=")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_PLUS_ASSIGN, "+=", start_line, start_col)) return }
+    if(check(s, "-=")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_MINUS_ASSIGN, "-=", start_line, start_col)) return }
+    if(check(s, "*=")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_STAR_ASSIGN, "*=", start_line, start_col)) return }
+    if(check(s, "/=")) { advance(s) advance(s) emit(s, make_token(s, TokenType.TK_SLASH_ASSIGN, "/=", start_line, start_col)) return }
+
+    // Single-character tokens
+    if(char_eq(ch, "+")) { advance(s) emit(s, make_token(s, TokenType.TK_PLUS, "+", start_line, start_col)) return }
+    if(char_eq(ch, "-")) { advance(s) emit(s, make_token(s, TokenType.TK_MINUS, "-", start_line, start_col)) return }
+    if(char_eq(ch, "*")) { advance(s) emit(s, make_token(s, TokenType.TK_STAR, "*", start_line, start_col)) return }
+    if(char_eq(ch, "/")) { advance(s) emit(s, make_token(s, TokenType.TK_SLASH, "/", start_line, start_col)) return }
+    if(char_eq(ch, "%")) { advance(s) emit(s, make_token(s, TokenType.TK_PERCENT, "%", start_line, start_col)) return }
+    if(char_eq(ch, "<")) { advance(s) emit(s, make_token(s, TokenType.TK_LT, "<", start_line, start_col)) return }
+    if(char_eq(ch, ">")) { advance(s) emit(s, make_token(s, TokenType.TK_GT, ">", start_line, start_col)) return }
+    if(char_eq(ch, "(")) { advance(s) emit(s, make_token(s, TokenType.TK_LPAREN, "(", start_line, start_col)) return }
+    if(char_eq(ch, ")")) { advance(s) emit(s, make_token(s, TokenType.TK_RPAREN, ")", start_line, start_col)) return }
+    if(char_eq(ch, "{")) { advance(s) emit(s, make_token(s, TokenType.TK_LBRACE, "{", start_line, start_col)) return }
+    if(char_eq(ch, "}")) { advance(s) emit(s, make_token(s, TokenType.TK_RBRACE, "}", start_line, start_col)) return }
+    if(char_eq(ch, "[")) { advance(s) emit(s, make_token(s, TokenType.TK_LBRACKET, "[", start_line, start_col)) return }
+    if(char_eq(ch, "]")) { advance(s) emit(s, make_token(s, TokenType.TK_RBRACKET, "]", start_line, start_col)) return }
+    if(char_eq(ch, ":")) { advance(s) emit(s, make_token(s, TokenType.TK_COLON, ":", start_line, start_col)) return }
+    if(char_eq(ch, ",")) { advance(s) emit(s, make_token(s, TokenType.TK_COMMA, ",", start_line, start_col)) return }
+    if(char_eq(ch, ".")) { advance(s) emit(s, make_token(s, TokenType.TK_DOT, ".", start_line, start_col)) return }
+    if(char_eq(ch, "|")) { advance(s) emit(s, make_token(s, TokenType.TK_PIPE, "|", start_line, start_col)) return }
+    if(char_eq(ch, "?")) { advance(s) emit(s, make_token(s, TokenType.TK_QUESTION, "?", start_line, start_col)) return }
+    if(char_eq(ch, "=")) { advance(s) emit(s, make_token(s, TokenType.TK_ASSIGN, "=", start_line, start_col)) return }
+    if(char_eq(ch, "!")) { advance(s) emit(s, make_token(s, TokenType.TK_BANG, "!", start_line, start_col)) return }
+    if(char_eq(ch, "@")) { advance(s) emit(s, make_token(s, TokenType.TK_AT, "@", start_line, start_col)) return }
+    if(char_eq(ch, "&")) { advance(s) emit(s, make_token(s, TokenType.TK_AMPERSAND, "&", start_line, start_col)) return }
+    if(char_eq(ch, "\\")) { advance(s) emit(s, make_token(s, TokenType.TK_BACKSLASH, "\\", start_line, start_col)) return }
+    if(char_eq(ch, ";")) { advance(s) emit(s, make_token(s, TokenType.TK_SEMICOLON, ";", start_line, start_col)) return }
+
+    throw errors.lex_error("unexpected character '" + char.to_string(ch) + "'", s.filename, s.line, s.col)
+}
+
+// ---------------------------------------------------------------------------
+// Tokenizer — main entry point
+// ---------------------------------------------------------------------------
+
+export fn tokenize(source:string, filename:string):array<Token> {
+    let s:LexState:mut = LexState {
+        source:source, filename:filename, src_len:string.len(source),
+        pos:0, line:1, col:1, tokens:[]
+    }
+
+    while(s.pos < s.src_len) {
+        let ch = peek(s, 0)
+
+        // Whitespace (not newline)
+        if(char_eq(ch, " ") || char_eq(ch, "\t") || char_eq(ch, "\r")) {
+            advance(s)
+            continue
+        }
+
+        // Newline
+        if(char_eq(ch, "\n")) {
+            let nl_line = s.line
+            let nl_col = s.col
+            advance(s)
+            emit(s, make_token(s, TokenType.TK_NEWLINE, "\n", nl_line, nl_col))
+            continue
+        }
+
+        // Comment: '//' to end of line
+        if(char_eq(ch, "/") && char_eq(peek(s, 1), "/")) {
+            scan_comment(s)
+            if(s.pos < s.src_len && char_eq(peek(s, 0), "\n")) {
+                advance(s)
+            }
+            continue
+        }
+
+        // Identifier / keyword
+        if(char.is_alpha(peek(s, 0)) || char_eq(peek(s, 0), "_")) {
+            scan_identifier(s)
+            continue
+        }
+
+        // Numeric literal
+        if(char.is_digit(peek(s, 0))) {
+            scan_number(s)
+            continue
+        }
+
+        // String literal
+        if(char_eq(ch, "\"")) {
+            scan_string(s)
+            continue
+        }
+
+        // Character literal
+        if(char_eq(ch, "'")) {
+            scan_char_lit(s)
+            continue
+        }
+
+        // Operators and punctuation
+        scan_operator(s)
+    }
+
+    emit(s, make_token(s, TokenType.TK_EOF, "", s.line, s.col))
+    return s.tokens
+}
+
+// ---------------------------------------------------------------------------
+// Token type name helper (for debugging)
+// ---------------------------------------------------------------------------
+
+export fn token_type_name(ttype:int):string {
+    if(ttype == TokenType.TK_MODULE) { return "MODULE" }
+    if(ttype == TokenType.TK_IMPORT) { return "IMPORT" }
+    if(ttype == TokenType.TK_EXPORT) { return "EXPORT" }
+    if(ttype == TokenType.TK_LET) { return "LET" }
+    if(ttype == TokenType.TK_FN) { return "FN" }
+    if(ttype == TokenType.TK_RETURN) { return "RETURN" }
+    if(ttype == TokenType.TK_IF) { return "IF" }
+    if(ttype == TokenType.TK_ELSE) { return "ELSE" }
+    if(ttype == TokenType.TK_WHILE) { return "WHILE" }
+    if(ttype == TokenType.TK_FOR) { return "FOR" }
+    if(ttype == TokenType.TK_MATCH) { return "MATCH" }
+    if(ttype == TokenType.TK_TYPE) { return "TYPE" }
+    if(ttype == TokenType.TK_INTERFACE) { return "INTERFACE" }
+    if(ttype == TokenType.TK_NONE) { return "NONE" }
+    if(ttype == TokenType.TK_SOME) { return "SOME" }
+    if(ttype == TokenType.TK_OK) { return "OK" }
+    if(ttype == TokenType.TK_ERR) { return "ERR" }
+    if(ttype == TokenType.TK_BOOL_LIT) { return "BOOL_LIT" }
+    if(ttype == TokenType.TK_INT_LIT) { return "INT_LIT" }
+    if(ttype == TokenType.TK_FLOAT_LIT) { return "FLOAT_LIT" }
+    if(ttype == TokenType.TK_STRING_LIT) { return "STRING_LIT" }
+    if(ttype == TokenType.TK_CHAR_LIT) { return "CHAR_LIT" }
+    if(ttype == TokenType.TK_IDENT) { return "IDENT" }
+    if(ttype == TokenType.TK_COMMENT) { return "COMMENT" }
+    if(ttype == TokenType.TK_NEWLINE) { return "NEWLINE" }
+    if(ttype == TokenType.TK_EOF) { return "EOF" }
+    if(ttype == TokenType.TK_PLUS) { return "PLUS" }
+    if(ttype == TokenType.TK_MINUS) { return "MINUS" }
+    if(ttype == TokenType.TK_STAR) { return "STAR" }
+    if(ttype == TokenType.TK_SLASH) { return "SLASH" }
+    if(ttype == TokenType.TK_ASSIGN) { return "ASSIGN" }
+    if(ttype == TokenType.TK_DOUBLE_EQ) { return "DOUBLE_EQ" }
+    if(ttype == TokenType.TK_NOT_EQ) { return "NOT_EQ" }
+    if(ttype == TokenType.TK_LT) { return "LT" }
+    if(ttype == TokenType.TK_GT) { return "GT" }
+    if(ttype == TokenType.TK_LPAREN) { return "LPAREN" }
+    if(ttype == TokenType.TK_RPAREN) { return "RPAREN" }
+    if(ttype == TokenType.TK_LBRACE) { return "LBRACE" }
+    if(ttype == TokenType.TK_RBRACE) { return "RBRACE" }
+    if(ttype == TokenType.TK_LBRACKET) { return "LBRACKET" }
+    if(ttype == TokenType.TK_RBRACKET) { return "RBRACKET" }
+    if(ttype == TokenType.TK_COLON) { return "COLON" }
+    if(ttype == TokenType.TK_COMMA) { return "COMMA" }
+    if(ttype == TokenType.TK_DOT) { return "DOT" }
+    if(ttype == TokenType.TK_ARROW) { return "ARROW" }
+    if(ttype == TokenType.TK_PIPE) { return "PIPE" }
+    if(ttype == TokenType.TK_QUESTION) { return "QUESTION" }
+    if(ttype == TokenType.TK_SPREAD) { return "SPREAD" }
+    if(ttype == TokenType.TK_AND) { return "AND" }
+    if(ttype == TokenType.TK_OR) { return "OR" }
+    if(ttype == TokenType.TK_COERCE) { return "COERCE" }
+    if(ttype == TokenType.TK_CAST) { return "CAST" }
+    if(ttype == TokenType.TK_THROW) { return "THROW" }
+    if(ttype == TokenType.TK_EXTERN) { return "EXTERN" }
+    if(ttype == TokenType.TK_ENUM) { return "ENUM" }
+    return "UNKNOWN(" + conv.to_string(ttype) + ")"
+}
