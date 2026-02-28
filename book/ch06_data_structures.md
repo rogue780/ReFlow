@@ -834,9 +834,30 @@ $ flow run directions.flow
 north -> opposite: south
 ```
 
-There is no separate `enum` keyword in Flow. Sum types with unit variants
-fill that role. The advantage is uniformity: the same `match` syntax works
-whether the variants carry data or not.
+Sum types with unit variants work well for this pattern, and the same
+`match` syntax works whether the variants carry data or not.
+
+For integer-backed constants, Flow also provides the `enum` keyword:
+
+```flow
+enum Color {
+    Red = 0
+    Green = 1
+    Blue = 2
+}
+
+enum Direction {
+    North       // 0 (auto-increment from 0)
+    South       // 1
+    East        // 2
+    West        // 3
+}
+```
+
+Enum values are accessed as `EnumName.Variant` and are implicitly
+assignable to `int`. Use enums when you need named integer constants
+(like protocol codes, flags, or indices); use sum types when variants
+carry data or you need exhaustiveness-checked pattern matching.
 
 ### 6.5.5 Mixed Variants
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 from compiler.errors import EmitError
 from compiler.lowering import (
     # Top-level
-    LModule, LTypeDef, LFnDef, LStaticDef,
+    LModule, LTypeDef, LFnDef, LStaticDef, LEnumDef,
     # Types
     LType, LInt, LFloat, LBool, LChar, LByte, LPtr, LStruct, LVoid, LFnPtr,
     # Expressions
@@ -85,6 +85,7 @@ class Emitter:
             self._emitln(f"/* From: {self._source_file} */")
         self._emit_extern_protos()
         self._emit_forward_decls()
+        self._emit_enum_defs()
         self._emit_type_defs()
         self._emit_static_defs()
         self._emit_fn_defs()
@@ -179,6 +180,22 @@ class Emitter:
                 self._blank()
                 proto = self._fn_prototype(fn)
                 self._emitln(f"{proto};")
+
+    # ------------------------------------------------------------------
+    # Enum definition emission
+    # ------------------------------------------------------------------
+
+    def _emit_enum_defs(self) -> None:
+        """Emit all enum type definitions."""
+        for ed in self._module.enum_defs:
+            self._blank()
+            self._emitln(f"typedef enum {{")
+            self._indent()
+            for i, (name, val) in enumerate(ed.variants):
+                comma = "," if i < len(ed.variants) - 1 else ""
+                self._emitln(f"{name} = {val}{comma}")
+            self._dedent()
+            self._emitln(f"}} {ed.c_name};")
 
     # ------------------------------------------------------------------
     # Type definition emission (RT-8-2-1)

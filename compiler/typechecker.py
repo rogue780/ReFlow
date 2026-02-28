@@ -34,6 +34,7 @@ from compiler.ast_nodes import (
     ModuleDecl, ImportDecl, FnDecl, TypeDecl, InterfaceDecl, AliasDecl,
     FieldDecl, ConstructorDecl, StaticMemberDecl, SumVariantDecl, Param,
     TypeParam, ExternLibDecl, ExternTypeDecl, ExternFnDecl,
+    EnumDecl,
     # Top-level
     Module,
 )
@@ -181,6 +182,13 @@ class TVariant:
 
 
 @dataclass(frozen=True)
+class TEnum(Type):
+    name: str
+    module: str
+    variants: tuple[tuple[str, int], ...]  # (name, int_value)
+
+
+@dataclass(frozen=True)
 class TTypeVar(Type):
     name: str
 
@@ -270,6 +278,9 @@ def apply_env(t: Type, env: TypeEnv) -> Type:
                     new_variants.append(v)
             return TSum(name, tuple(new_variants))
 
+        case TEnum():
+            return t
+
         case _:
             return t
 
@@ -326,6 +337,7 @@ class TypeInfo:
     sum_type: TSum | None
     interfaces: list[TypeExpr]
     module_path: str = ""
+    enum_type: TEnum | None = None
 
 
 @dataclass
@@ -524,6 +536,47 @@ class TypeChecker:
                 interfaces=decl.interfaces,
             )
 
+        # Register enum types
+        for decl in self._module.decls:
+            if not isinstance(decl, EnumDecl):
+                continue
+            # Resolve auto-increment values
+            resolved_variants: list[tuple[str, int]] = []
+            next_val = 0
+            seen_values: set[int] = set()
+            for v in decl.variants:
+                val = v.value if v.value is not None else next_val
+                if val in seen_values:
+                    raise self._error(
+                        f"duplicate enum value {val} in enum '{decl.name}'", v)
+                seen_values.add(val)
+                resolved_variants.append((v.name, val))
+                next_val = val + 1
+
+            module_path = ".".join(self._module.path) if self._module.path else ""
+            enum_type = TEnum(
+                name=decl.name,
+                module=module_path,
+                variants=tuple(resolved_variants),
+            )
+            statics: dict[str, Type] = {}
+            for vname, _ in resolved_variants:
+                statics[vname] = enum_type
+            self._type_registry[decl.name] = TypeInfo(
+                name=decl.name,
+                type_params=[],
+                fields={},
+                field_mutability={},
+                methods={},
+                statics=statics,
+                static_mutability={},
+                constructors={},
+                is_sum_type=False,
+                sum_type=None,
+                interfaces=[],
+                enum_type=enum_type,
+            )
+
     def _register_imported_types(self) -> None:
         """Register type declarations from imported user modules.
 
@@ -586,6 +639,42 @@ class TypeChecker:
                     sum_type=sum_type,
                     interfaces=decl.interfaces,
                     module_path=mod_key,
+                )
+
+            # Register imported enum types
+            for decl in typed_mod.module.decls:
+                if not isinstance(decl, EnumDecl) or not decl.is_export:
+                    continue
+                if decl.name in self._type_registry:
+                    continue
+                resolved_variants: list[tuple[str, int]] = []
+                next_val = 0
+                for v in decl.variants:
+                    val = v.value if v.value is not None else next_val
+                    resolved_variants.append((v.name, val))
+                    next_val = val + 1
+                enum_type = TEnum(
+                    name=decl.name,
+                    module=mod_key,
+                    variants=tuple(resolved_variants),
+                )
+                statics: dict[str, Type] = {}
+                for vname, _ in resolved_variants:
+                    statics[vname] = enum_type
+                self._type_registry[decl.name] = TypeInfo(
+                    name=decl.name,
+                    type_params=[],
+                    fields={},
+                    field_mutability={},
+                    methods={},
+                    statics=statics,
+                    static_mutability={},
+                    constructors={},
+                    is_sum_type=False,
+                    sum_type=None,
+                    interfaces=[],
+                    module_path=mod_key,
+                    enum_type=enum_type,
                 )
 
     # ------------------------------------------------------------------
@@ -1197,6 +1286,8 @@ class TypeChecker:
                     self._check_fn_body(decl)
                 case TypeDecl():
                     self._check_type_decl(decl)
+                case EnumDecl():
+                    pass  # no bodies to check
                 case ExternFnDecl() | ExternTypeDecl() | ExternLibDecl():
                     pass  # no bodies to check
 
@@ -1342,6 +1433,8 @@ class TypeChecker:
                 # User-defined type or type parameter
                 info = self._type_registry.get(name)
                 if info is not None:
+                    if info.enum_type is not None:
+                        return info.enum_type
                     if info.is_sum_type and info.sum_type:
                         return info.sum_type
                     return TNamed(info.module_path, name, ())
@@ -3131,6 +3224,14 @@ class TypeChecker:
                 and source.name == target.name):
             return True
 
+        # TEnum → TInt: enum values are always assignable to int
+        if isinstance(source, TEnum) and isinstance(target, TInt):
+            return target.width >= 32 and target.signed
+        # TEnum → same TEnum: nominal equality
+        if (isinstance(source, TEnum) and isinstance(target, TEnum)
+                and source.name == target.name):
+            return True
+
         # Implicit integer widening: int -> int64 (same signedness, wider target)
         if (isinstance(source, TInt) and isinstance(target, TInt)
                 and source.signed == target.signed
@@ -3265,6 +3366,8 @@ class TypeChecker:
             case TNamed(name=name):
                 return name
             case TSum(name=name):
+                return name
+            case TEnum(name=name):
                 return name
             case TAlias(name=name):
                 return name

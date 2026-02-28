@@ -20,6 +20,7 @@ from compiler.ast_nodes import (
     ModuleDecl, ImportDecl, FnDecl, TypeDecl, InterfaceDecl, AliasDecl,
     FieldDecl, ConstructorDecl, StaticMemberDecl, SumVariantDecl, Param,
     ExternLibDecl, ExternTypeDecl, ExternFnDecl,
+    EnumDecl, EnumVariantDecl,
     # Statements
     LetStmt, AssignStmt, UpdateStmt, ReturnStmt, YieldStmt, ThrowStmt,
     BreakStmt, ExprStmt, IfStmt, WhileStmt, ForStmt,
@@ -1998,6 +1999,59 @@ extern fn SSL_CTX_new():ptr'''
         d = mod.decls[0]
         self.assertIsInstance(d, ExternFnDecl)
         self.assertEqual(d.type_params, [])
+
+
+class TestEnumDecl(unittest.TestCase):
+    """Enum declaration parsing tests."""
+
+    def test_explicit_values(self) -> None:
+        mod = parse("enum Color {\n    Red = 0\n    Green = 1\n    Blue = 2\n}")
+        d = mod.decls[0]
+        self.assertIsInstance(d, EnumDecl)
+        self.assertEqual(d.name, "Color")
+        self.assertFalse(d.is_export)
+        self.assertEqual(len(d.variants), 3)
+        self.assertEqual(d.variants[0].name, "Red")
+        self.assertEqual(d.variants[0].value, 0)
+        self.assertEqual(d.variants[1].name, "Green")
+        self.assertEqual(d.variants[1].value, 1)
+        self.assertEqual(d.variants[2].name, "Blue")
+        self.assertEqual(d.variants[2].value, 2)
+
+    def test_auto_increment(self) -> None:
+        mod = parse("enum Dir {\n    N\n    S\n    E\n    W\n}")
+        d = mod.decls[0]
+        self.assertIsInstance(d, EnumDecl)
+        self.assertEqual(d.name, "Dir")
+        self.assertEqual(len(d.variants), 4)
+        for v in d.variants:
+            self.assertIsNone(v.value)
+
+    def test_mixed_explicit_and_auto(self) -> None:
+        mod = parse("enum M {\n    A = 10\n    B\n    C = 20\n    D\n}")
+        d = mod.decls[0]
+        self.assertIsInstance(d, EnumDecl)
+        self.assertEqual(d.variants[0].value, 10)
+        self.assertIsNone(d.variants[1].value)
+        self.assertEqual(d.variants[2].value, 20)
+        self.assertIsNone(d.variants[3].value)
+
+    def test_negative_value(self) -> None:
+        mod = parse("enum Neg {\n    A = -1\n    B = -100\n}")
+        d = mod.decls[0]
+        self.assertIsInstance(d, EnumDecl)
+        self.assertEqual(d.variants[0].value, -1)
+        self.assertEqual(d.variants[1].value, -100)
+
+    def test_export(self) -> None:
+        mod = parse("export enum Color {\n    Red\n}")
+        d = mod.decls[0]
+        self.assertIsInstance(d, EnumDecl)
+        self.assertTrue(d.is_export)
+
+    def test_empty_body_error(self) -> None:
+        with self.assertRaises(ParseError):
+            parse("enum Empty {\n}")
 
 
 if __name__ == "__main__":

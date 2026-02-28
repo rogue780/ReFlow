@@ -669,6 +669,85 @@ interface Parseable<T, E> {
 
 ---
 
+## Enums
+
+Enums define named integer constants grouped under a type name. Enums are always `int`-backed.
+
+### Defining Enums
+
+```
+enum Color {
+    Red = 0
+    Green = 1
+    Blue = 2
+}
+```
+
+Variants are newline-separated. Each variant may have an explicit integer value via `= value`, or the value is auto-incremented from the previous variant (starting at 0).
+
+```
+enum Direction {
+    North       // 0
+    South       // 1
+    East        // 2
+    West        // 3
+}
+
+enum Offset {
+    A = 10      // 10
+    B           // 11
+    C           // 12
+    D = 20      // 20
+    E           // 21
+}
+```
+
+Negative values are supported: `A = -1`.
+
+### Accessing Enum Values
+
+Enum variants are accessed as static members:
+
+```
+let c:int = Color.Red       // 0
+let d:int = Direction.West  // 3
+```
+
+### Subtyping
+
+Enum values are implicitly assignable to `int`. No cast is required:
+
+```
+fn process(code:int):string { ... }
+process(Color.Red)          // ok — Color is a subtype of int
+```
+
+Two enum values of the same enum type are comparable with `==`:
+
+```
+if(c == Color.Red) { ... }
+```
+
+### Exporting Enums
+
+```
+export enum Color {
+    Red = 0
+    Green = 1
+    Blue = 2
+}
+```
+
+Exported enums are available to importing modules.
+
+### Constraints
+
+- Enum must have at least one variant.
+- Duplicate values within the same enum are a compile-time error.
+- Enums cannot have methods, fields, or constructors.
+
+---
+
 ## Tuples
 
 Tuples are fixed-size ordered products of typed values. They are structural (no name required) and immutable.

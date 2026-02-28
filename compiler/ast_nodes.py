@@ -609,6 +609,19 @@ class SumVariantDecl(ASTNode):
 
 
 @dataclass
+class EnumVariantDecl(ASTNode):
+    name: str
+    value: int | None   # None = auto-increment
+
+
+@dataclass
+class EnumDecl(Decl):
+    name: str
+    variants: list[EnumVariantDecl]
+    is_export: bool
+
+
+@dataclass
 class ExternLibDecl(Decl):
     lib_name: str               # "ssl", "z", "sqlite3"
 

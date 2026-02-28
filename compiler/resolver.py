@@ -32,7 +32,7 @@ from compiler.ast_nodes import (
     # Declarations
     ModuleDecl, ImportDecl, FnDecl, TypeDecl, InterfaceDecl, AliasDecl,
     FieldDecl, ConstructorDecl, StaticMemberDecl, SumVariantDecl, Param,
-    ExternLibDecl, ExternTypeDecl, ExternFnDecl,
+    ExternLibDecl, ExternTypeDecl, ExternFnDecl, EnumDecl,
     # Top-level
     Module,
 )
@@ -212,6 +212,10 @@ class Resolver:
                     sym = Symbol(name, SymbolKind.TYPE, decl, None, False)
                     self._define_or_error(self._scope, name, sym, decl)
 
+                case EnumDecl(name=name):
+                    sym = Symbol(name, SymbolKind.TYPE, decl, None, False)
+                    self._define_or_error(self._scope, name, sym, decl)
+
                 case ExternLibDecl():
                     pass  # linker-only directive
 
@@ -299,6 +303,18 @@ class Resolver:
             self._type_member_scopes[decl.name] = member_scope
             self._static_member_scopes[decl.name] = static_scope
 
+        # Build static scopes for enum types (variant access via EnumName.Variant)
+        for decl in self._module.decls:
+            if not isinstance(decl, EnumDecl):
+                continue
+            static_scope = Scope()
+            for v in decl.variants:
+                type_ann = NamedType(name=decl.name, module_path=[], line=0, col=0)
+                sym = Symbol(v.name, SymbolKind.STATIC, v, type_ann, False)
+                static_scope.define(v.name, sym)
+            self._static_member_scopes[decl.name] = static_scope
+            self._type_member_scopes[decl.name] = static_scope
+
     # ------------------------------------------------------------------
     # Phase 4: Resolve all bodies (RT-5-2-4, RT-5-2-6)
     # ------------------------------------------------------------------
@@ -320,6 +336,9 @@ class Resolver:
                 case AliasDecl():
                     # Nothing to resolve in type alias bodies
                     pass
+
+                case EnumDecl():
+                    pass  # no bodies to resolve
 
                 case ExternFnDecl() | ExternTypeDecl() | ExternLibDecl():
                     pass  # no bodies to resolve
@@ -1021,6 +1040,11 @@ class Resolver:
                         mod_scope.exports[name] = sym
 
                 case ExternTypeDecl(name=name, is_export=True):
+                    sym = self._scope.lookup_local(name)
+                    if sym is not None:
+                        mod_scope.exports[name] = sym
+
+                case EnumDecl(name=name, is_export=True):
                     sym = self._scope.lookup_local(name)
                     if sym is not None:
                         mod_scope.exports[name] = sym

@@ -501,6 +501,7 @@ def _lower_and_emit_multi(
     collected_static_inits: list[tuple[str, str]] = []
     dep_type_names: set[str] = set()
     dep_fn_names: set[str] = set()
+    dep_enum_names: set[str] = set()
 
     all_typed = _build_all_typed(modules)
 
@@ -528,6 +529,14 @@ def _lower_and_emit_multi(
             ]
         for fd in lmodule.fn_defs:
             dep_fn_names.add(fd.c_name)
+        # Filter out enum defs already emitted by earlier dep modules.
+        if dep_enum_names:
+            lmodule.enum_defs = [
+                ed for ed in lmodule.enum_defs
+                if ed.c_name not in dep_enum_names
+            ]
+        for ed in lmodule.enum_defs:
+            dep_enum_names.add(ed.c_name)
         emitter = Emitter(lmodule, display_path, is_root=False,
                           line_directives=line_directives)
         dep_parts.append(emitter.emit())
@@ -549,6 +558,11 @@ def _lower_and_emit_multi(
             lmodule.fn_defs = [
                 fd for fd in lmodule.fn_defs
                 if fd.c_name not in dep_fn_names
+            ]
+        if dep_enum_names:
+            lmodule.enum_defs = [
+                ed for ed in lmodule.enum_defs
+                if ed.c_name not in dep_enum_names
             ]
         emitter = Emitter(
             lmodule, display_path, is_root=True,

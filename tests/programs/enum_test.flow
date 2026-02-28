@@ -1,0 +1,40 @@
+import io
+
+enum Color {
+    Red = 0
+    Green = 1
+    Blue = 2
+}
+
+enum Direction {
+    North
+    South
+    East
+    West
+}
+
+enum Offset {
+    A = 10
+    B
+    C
+    D = 20
+}
+
+fn color_name(c:int):string {
+    if(c == Color.Red) { return "red" }
+    if(c == Color.Green) { return "green" }
+    return "blue"
+}
+
+fn main():int {
+    io.println(color_name(Color.Red))
+    io.println(color_name(Color.Green))
+    io.println(color_name(Color.Blue))
+    let x:int = Direction.North
+    io.println(f"{x}")
+    io.println(f"{Direction.West}")
+    io.println(f"{Offset.A}")
+    io.println(f"{Offset.B}")
+    io.println(f"{Offset.D}")
+    return 0
+}

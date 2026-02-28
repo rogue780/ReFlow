@@ -14,15 +14,15 @@ Flow reserves the following identifiers. They cannot be used as variable names, 
 |---|---|---|---|---|---|
 | `alias` | `as` | `bool` | `break` | `buffer` | `byte` |
 | `cast` | `catch` | `char` | `coerce` | `constructor` | `continue` |
-| `else` | `err` | `export` | `false` | `finally` | `float` |
-| `float32` | `float64` | `fn` | `for` | `fulfills` | `if` |
-| `import` | `imut` | `in` | `int` | `int16` | `int32` |
-| `int64` | `interface` | `let` | `match` | `module` | `mut` |
-| `native` | `none` | `ok` | `option` | `pure` | `record` |
-| `result` | `retry` | `return` | `self` | `set` | |
-| `some` | `static` | `stream` | `string` | `throw` | `true` |
-| `try` | `type` | `typeof` | `uint` | `uint16` | `uint32` |
-| `uint64` | `while` | `yield` | | | |
+| `else` | `enum` | `err` | `export` | `extern` | `false` |
+| `finally` | `float` | `float32` | `float64` | `fn` | `for` |
+| `fulfills` | `if` | `import` | `imut` | `in` | `int` |
+| `int16` | `int32` | `int64` | `interface` | `let` | `match` |
+| `module` | `mut` | `native` | `none` | `ok` | `option` |
+| `pure` | `record` | `result` | `retry` | `return` | `self` |
+| `set` | `some` | `static` | `stream` | `string` | `throw` |
+| `true` | `try` | `type` | `typeof` | `uint` | `uint16` |
+| `uint32` | `uint64` | `while` | `yield` | | |
 
 The modifier `fn:pure` is written as the keyword `fn` followed by `:pure`, not as a single token. Similarly, `:mut` and `:imut` are the colon token followed by a keyword.
 
@@ -721,7 +721,31 @@ type Tree<T> =
     | Node(value: T, left: Tree<T>, right: Tree<T>)
 ```
 
-### A.5.7 Interface Declarations
+### A.5.7 Enum Declarations
+
+```flow
+enum Color {
+    Red = 0
+    Green = 1
+    Blue = 2
+}
+
+enum Direction {
+    North
+    South
+    East
+    West
+}
+```
+
+Enums define named integer constants. Variants are newline-separated. Values auto-increment from the previous variant (starting at 0) if not specified explicitly. Negative values are allowed. Enum values are accessed as `EnumName.Variant` and are implicitly assignable to `int`.
+
+```flow
+let c:int = Color.Red       // 0
+let d:int = Direction.West  // 3
+```
+
+### A.5.8 Interface Declarations
 
 ```flow
 interface Serializable {
@@ -750,7 +774,7 @@ interface SortedContainer<T fulfills Comparable> {
 }
 ```
 
-### A.5.8 Built-in Interfaces
+### A.5.9 Built-in Interfaces
 
 | Interface | Methods |
 |-----------|---------|
@@ -771,7 +795,7 @@ Built-in fulfillments:
 | `char` | Yes | -- | Yes | Yes |
 | `byte` | Yes | -- | Yes | Yes |
 
-### A.5.9 Alias Declarations
+### A.5.10 Alias Declarations
 
 ```flow
 alias Timestamp: int

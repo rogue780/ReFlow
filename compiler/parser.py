@@ -109,6 +109,8 @@ from compiler.ast_nodes import (
     InterfaceDecl,
     AliasDecl,
     SumVariantDecl,
+    EnumVariantDecl,
+    EnumDecl,
     TypeParam,
     # Top-level
     Module,
@@ -391,6 +393,8 @@ class Parser:
                 return self.parse_alias_decl(is_export=is_export)
             case TokenType.EXTERN:
                 return self._parse_extern_decl(is_export=is_export)
+            case TokenType.ENUM:
+                return self.parse_enum_decl(is_export=is_export)
             case TokenType.IMPORT:
                 # Late imports after exports — collect them
                 imp = self.parse_import_decl()
@@ -569,6 +573,46 @@ class Parser:
             return_type=return_type,
             is_export=is_export,
             c_name=c_name,
+        )
+
+    def parse_enum_decl(self, is_export: bool = False) -> EnumDecl:
+        """Parse: enum Name { Variant1 = value \\n Variant2 \\n ... }"""
+        tok = self.expect(TokenType.ENUM)
+        name_tok = self.expect(TokenType.IDENT)
+        self.expect(TokenType.LBRACE)
+        self.skip_newlines()
+
+        variants: list[EnumVariantDecl] = []
+        while not self.check(TokenType.RBRACE):
+            v_tok = self.expect(TokenType.IDENT)
+            value: int | None = None
+            if self.check(TokenType.ASSIGN):
+                self.advance()  # consume '='
+                # Parse optional negative sign + integer literal
+                negative = False
+                if self.check(TokenType.MINUS):
+                    negative = True
+                    self.advance()
+                val_tok = self.expect(TokenType.INT_LIT)
+                value = int(val_tok.value)
+                if negative:
+                    value = -value
+            variants.append(EnumVariantDecl(
+                line=v_tok.line, col=v_tok.col,
+                name=v_tok.value,
+                value=value,
+            ))
+            self.skip_newlines()
+
+        if not variants:
+            raise self._error("enum must have at least one variant", tok)
+
+        self.expect(TokenType.RBRACE)
+        return EnumDecl(
+            line=tok.line, col=tok.col,
+            name=name_tok.value,
+            variants=variants,
+            is_export=is_export,
         )
 
     def parse_fn_decl(

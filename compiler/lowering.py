@@ -36,7 +36,7 @@ from compiler.ast_nodes import (
     OkPattern, ErrPattern, VariantPattern, TuplePattern,
     # Declarations
     FnDecl, TypeDecl, Param, StaticMemberDecl, SumVariantDecl, ConstructorDecl,
-    ExternLibDecl, ExternTypeDecl, ExternFnDecl,
+    ExternLibDecl, ExternTypeDecl, ExternFnDecl, EnumDecl,
     # Top-level
     Module,
 )
@@ -45,6 +45,7 @@ from compiler.typechecker import (
     TInt, TFloat, TBool, TChar, TByte, TPtr, TString, TNone,
     TOption, TResult, TTuple, TArray, TStream, TCoroutine, TBuffer, TMap, TSet,
     TFn, TRecord, TNamed, TAlias, TSum, TVariant, TTypeVar, TAny, TSelf,
+    TEnum,
 )
 from compiler.resolver import ResolvedModule, Symbol, SymbolKind
 
@@ -370,12 +371,19 @@ class LStaticDef:
 
 
 @dataclass
+class LEnumDef:
+    c_name: str
+    variants: list[tuple[str, int]]  # (mangled_variant_c_name, int_value)
+
+
+@dataclass
 class LModule:
     type_defs: list[LTypeDef]
     fn_defs: list[LFnDef]
     static_defs: list[LStaticDef]
     entry_point: str | None = None  # mangled C name of the entry function
     extern_fn_protos: list[tuple[str, list[LType], LType]] = field(default_factory=list)
+    enum_defs: list[LEnumDef] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -646,6 +654,7 @@ class Lowerer:
         self._type_defs: list[LTypeDef] = []
         self._fn_defs: list[LFnDef] = []
         self._static_defs: list[LStaticDef] = []
+        self._enum_defs: list[LEnumDef] = []
 
         # Type registries — avoid duplicate LTypeDefs
         self._option_registry: dict[str, str] = {}   # key → c_name
@@ -732,6 +741,8 @@ class Lowerer:
                             if decl.return_type else LVoid())
                         extern_fn_protos.append(
                             (c_name, param_ltypes, ret_ltype))
+                case EnumDecl():
+                    self._lower_enum_decl(decl)
                 case ExternTypeDecl() | ExternLibDecl():
                     pass  # handled elsewhere
 
@@ -757,6 +768,7 @@ class Lowerer:
             static_defs=self._static_defs,
             entry_point=entry_point,
             extern_fn_protos=extern_fn_protos,
+            enum_defs=self._enum_defs,
         )
 
     # ------------------------------------------------------------------
@@ -819,6 +831,8 @@ class Lowerer:
                 c_name = mangle(mod_path, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
+            case TEnum():
+                return LInt(32, True)
             case TRecord(fields=fields):
                 # Anonymous records — generate a struct
                 return LStruct("fl_record")
@@ -1064,6 +1078,20 @@ class Lowerer:
         # Lower static members
         for s in td.static_members:
             self._lower_static_member(s, td.name)
+
+    def _lower_enum_decl(self, decl: EnumDecl) -> None:
+        """Lower an enum declaration to a C enum typedef."""
+        c_name = mangle(self._module_path, decl.name,
+                        file=self._file, line=decl.line, col=decl.col)
+        variants: list[tuple[str, int]] = []
+        next_val = 0
+        for v in decl.variants:
+            val = v.value if v.value is not None else next_val
+            v_c_name = mangle(self._module_path, decl.name, v.name,
+                              file=self._file, line=v.line, col=v.col)
+            variants.append((v_c_name, val))
+            next_val = val + 1
+        self._enum_defs.append(LEnumDef(c_name=c_name, variants=variants))
 
     def _lower_sum_type_decl(self, td: TypeDecl, c_name: str) -> None:
         """Lower a sum type to a tagged union struct. RT-7-2-2."""
@@ -2147,6 +2175,12 @@ class Lowerer:
                 # Static member access: Type.member → mangled global var
                 sym = self._resolved.symbols.get(expr)
                 if sym is not None and sym.kind == SymbolKind.STATIC:
+                    # Enum variant access: use the enum's own type for mangling
+                    if isinstance(t, TEnum):
+                        mod_path = t.module if t.module else self._module_path
+                        c_name = mangle(mod_path, t.name, field_name,
+                                        file=self._file, line=expr.line, col=expr.col)
+                        return LVar(c_name, lt)
                     recv_type = self._type_of(receiver)
                     type_name = recv_type.name if isinstance(recv_type, TNamed) else None
                     if type_name is None and isinstance(receiver, Ident):

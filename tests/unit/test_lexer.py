@@ -83,6 +83,7 @@ class TestKeywords(unittest.TestCase):
         ("cast",        TokenType.CAST),
         ("throw",       TokenType.THROW),
         ("extern",      TokenType.EXTERN),
+        ("enum",        TokenType.ENUM),
         ("true",        TokenType.BOOL_LIT),
         ("false",       TokenType.BOOL_LIT),
     ]
