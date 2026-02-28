@@ -153,7 +153,38 @@ The Python compiler will eventually compile itself. This means:
 - Every design decision in the compiler pipeline must have a Flow-language equivalent
 - Do not use Python-specific tricks (introspection, arbitrary-precision integer math, MRO) inside the pipeline
 - Do use Python `match` for AST node dispatch — it maps cleanly to Flow `match` on sum types
-- The runtime (`flow_runtime.h/c`) is permanent and exempt from this constraint
+- The runtime (`flow_runtime.h/c`) is **not** permanent — it must shrink over time (see Stdlib Development below)
+
+---
+
+## Stdlib Development — DO NOT ADD TO THE RUNTIME
+
+The goal is Flow → LLVM IR, self-compiling. Every `fl_*` function in `flow_runtime.c`
+is tech debt that must eventually be rewritten in Flow or replaced with an extern
+library binding. At the LLVM IR stage:
+
+- Native Flow code just works (Flow compiling Flow)
+- Extern library bindings just work (LLVM links shared libs)
+- But `fl_*` C runtime functions require a permanent C dependency
+
+**The implementation priority for all stdlib features, in strict order:**
+
+1. **Native Flow** — write it in pure Flow. If the language can't express it,
+   improve the compiler to enable it, then write it in Flow.
+2. **Extern library FFI** — bind to existing C libraries (libc, OpenSSL, SQLite,
+   etc.) via `extern fn`. If the FFI can't express it, improve the FFI system
+   to enable it, then write the binding.
+3. **Runtime `fl_*` function** — LAST RESORT. Only when (1) and (2) are genuinely
+   impossible with the current compiler AND the compiler improvement is out of
+   scope for the current work. Always add a `# RUNTIME-DEBT: <what would remove this>`
+   comment explaining what compiler feature would eliminate the need.
+
+**When reviewing existing code or adding new features, always ask:** "Can this
+be native Flow? If not, can this be an extern binding to an existing C library?
+If not, what compiler improvement would make it possible?"
+
+**Never** add new `fl_*` functions to the runtime without first confirming that
+approaches (1) and (2) are not viable for the current task.
 
 ---
 
@@ -358,3 +389,31 @@ which node     # should point to ~/.nvm/versions/node/v22.x.x/bin/node
 
 If either points somewhere unexpected, do not proceed — the environment
 is not set up correctly and commands will fail or use wrong versions.
+
+## Flow Code Style
+
+When writing Flow source code (examples, tests, or any `.flow` file), follow
+these rules exactly.
+
+**Colons are tight.** No spaces before or after `:` in type annotations,
+parameters, fields, or modifiers: `fn process(data:string, count:int:mut):bool`
+
+**Prefer `?` and `??` over nested `match` for option/result unwrapping.**
+Deeply nested `match` blocks with empty `none: {}` arms are hard to read.
+Use `?` (propagation) and `??` (null coalesce) to flatten code.
+
+```flow
+// Good — flat and readable
+let val = array.get(items, i) ?? ""
+let parsed = conv.string_to_int(s)?  // early return none if enclosing fn returns option
+
+// Bad — unnecessary nesting
+match array.get(items, i) {
+    some(v): { val = v }
+    none: {}
+}
+```
+
+Use `??` when you have a default value. Use `?` when the enclosing function
+returns an option/result type and you want to propagate failure. Only use
+`match` when you need to handle both arms with different logic.
