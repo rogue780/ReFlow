@@ -1884,6 +1884,10 @@ fl_int fl_self_hosted_ast_stmt_id(fl_self_hosted_ast_Stmt s);
 
 fl_int fl_self_hosted_ast_decl_id(fl_self_hosted_ast_Decl d);
 
+fl_bool fl_self_hosted_ast_fsp_is_expr(fl_self_hosted_ast_FStringPart p);
+
+fl_self_hosted_ast_Expr fl_self_hosted_ast_fsp_get_expr(fl_self_hosted_ast_FStringPart p);
+
 struct fl_self_hosted_ast_Span {
     FL_String* file;
     fl_int line;
@@ -4410,6 +4414,40 @@ fl_int fl_self_hosted_ast_decl_id(fl_self_hosted_ast_Decl d) {
             fl_bool hv = _fl_tmp_8.DStaticMember.has_value;
             fl_self_hosted_ast_Expr v = _fl_tmp_8.DStaticMember.value;
             return nid;
+            break;
+        }
+    }
+}
+
+/* Flow: self_hosted.ast.fsp_is_expr */
+fl_bool fl_self_hosted_ast_fsp_is_expr(fl_self_hosted_ast_FStringPart p) {
+    fl_self_hosted_ast_FStringPart _fl_tmp_9 = p;
+    switch (_fl_tmp_9.tag) {
+        case 1: {
+            fl_self_hosted_ast_Expr e = _fl_tmp_9.FPExpr.expr;
+            return fl_true;
+            break;
+        }
+        case 0: {
+            FL_String* t = _fl_tmp_9.FPText.text;
+            return fl_false;
+            break;
+        }
+    }
+}
+
+/* Flow: self_hosted.ast.fsp_get_expr */
+fl_self_hosted_ast_Expr fl_self_hosted_ast_fsp_get_expr(fl_self_hosted_ast_FStringPart p) {
+    fl_self_hosted_ast_FStringPart _fl_tmp_10 = p;
+    switch (_fl_tmp_10.tag) {
+        case 1: {
+            fl_self_hosted_ast_Expr e = _fl_tmp_10.FPExpr.expr;
+            return e;
+            break;
+        }
+        case 0: {
+            FL_String* t = _fl_tmp_10.FPText.text;
+            return (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}};
             break;
         }
     }

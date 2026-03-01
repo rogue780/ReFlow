@@ -1,0 +1,18 @@
+--- test_ident_resolves_param ---
+name: name
+kind: PARAM
+--- test_ident_resolves_local ---
+name: x
+kind: LOCAL
+--- test_exports ---
+module_path: test
+exported: public_fn (FN)
+private_fn: not exported
+--- test_undefined_error ---
+caught resolve error
+--- test_immutable_assign_error ---
+caught immutable assign error
+--- test_fn_call_resolves ---
+callee: bar
+kind: FN
+ok

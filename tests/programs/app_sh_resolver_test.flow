@@ -1,0 +1,162 @@
+module tests.programs.app_sh_resolver_test
+
+import io
+import conv
+import map
+import array
+import self_hosted.lexer
+import self_hosted.ast
+import self_hosted.parser
+import self_hosted.resolver
+import self_hosted.errors
+
+// Helper: tokenize + parse + resolve a source string
+fn resolve_source(src:string):resolver.ResolvedModule {
+    let tokens = lexer.tokenize(src, "test.flow")
+    let result = parser.parse(tokens, "test.flow")
+    let imported = map.new()
+    return resolver.resolve(result.parsed_module, "test.flow", imported)
+}
+
+// Test 1: EIdent in return statement resolves to SK_PARAM
+fn test_ident_resolves_param():none {
+    io.println("--- test_ident_resolves_param ---")
+    let src = "module test\nfn greet(name:string):string { return name }"
+    let rm = resolve_source(src)
+    // DFn is decls[0] (module stmt is parsed into module.path, not into decls)
+    let decl = array.get_any(rm.src_module.decls, 0) ?? ast.DModule(0, 0, 0, [])
+    match decl {
+        DFn(did, dl, dc, fn_name, tp, params, hr, ret, body, ip, ie, is, hf, fb): {
+            // body[0] is 'return name', value is EIdent("name")
+            let stmt = array.get_any(body, 0) ?? ast.SBreak(0, 0, 0)
+            match stmt {
+                SReturn(sid, sl, sc, hv, value): {
+                    let eid = ast.expr_id(value)
+                    match map.get(rm.symbols, conv.to_string(eid)) {
+                        some(sym): {
+                            io.println("name: " + sym.name)
+                            io.println("kind: " + resolver.kind_name(sym.kind))
+                        }
+                        none: { io.println("symbol not found for eid " + conv.to_string(eid)) }
+                    }
+                }
+                _: { io.println("expected SReturn") }
+            }
+        }
+        _: { io.println("expected DFn") }
+    }
+}
+
+// Test 2: EIdent in expression resolves to SK_LOCAL (let binding)
+fn test_ident_resolves_local():none {
+    io.println("--- test_ident_resolves_local ---")
+    let src = "module test\nfn foo():int { let x:int = 42\nreturn x }"
+    let rm = resolve_source(src)
+    let decl = array.get_any(rm.src_module.decls, 0) ?? ast.DModule(0, 0, 0, [])
+    match decl {
+        DFn(did, dl, dc, fn_name, tp, params, hr, ret, body, ip, ie, is, hf, fb): {
+            // body[1] is 'return x', value is EIdent("x")
+            let stmt = array.get_any(body, 1) ?? ast.SBreak(0, 0, 0)
+            match stmt {
+                SReturn(sid, sl, sc, hv, value): {
+                    let eid = ast.expr_id(value)
+                    match map.get(rm.symbols, conv.to_string(eid)) {
+                        some(sym): {
+                            io.println("name: " + sym.name)
+                            io.println("kind: " + resolver.kind_name(sym.kind))
+                        }
+                        none: { io.println("symbol not found for eid " + conv.to_string(eid)) }
+                    }
+                }
+                _: { io.println("expected SReturn") }
+            }
+        }
+        _: { io.println("expected DFn") }
+    }
+}
+
+// Test 3: Module scope exports
+fn test_exports():none {
+    io.println("--- test_exports ---")
+    let src = "module test\nexport fn public_fn():int { return 1 }\nfn private_fn():int { return 2 }"
+    let rm = resolve_source(src)
+    let ms = rm.mod_scope
+    io.println("module_path: " + ms.module_path)
+    match map.get(ms.exports, "public_fn") {
+        some(sym): { io.println("exported: " + sym.name + " (" + resolver.kind_name(sym.kind) + ")") }
+        none: { io.println("public_fn not exported") }
+    }
+    match map.get(ms.exports, "private_fn") {
+        some(sym): { io.println("private_fn exported (unexpected)") }
+        none: { io.println("private_fn: not exported") }
+    }
+}
+
+// Test 4: Undefined name produces error
+fn test_undefined_error():none {
+    io.println("--- test_undefined_error ---")
+    let src = "module test\nfn foo():int { return xyz }"
+    try {
+        let rm = resolve_source(src)
+        io.println("no error (unexpected)")
+    } catch(e:errors.CompileError) {
+        io.println("caught resolve error")
+    }
+}
+
+// Test 5: Immutable assignment error
+fn test_immutable_assign_error():none {
+    io.println("--- test_immutable_assign_error ---")
+    let src = "module test\nfn foo():none { let x:int = 1\nx = 2 }"
+    try {
+        let rm = resolve_source(src)
+        io.println("no error (unexpected)")
+    } catch(e:errors.CompileError) {
+        io.println("caught immutable assign error")
+    }
+}
+
+// Test 6: Function call — callee EIdent resolves to SK_FN
+fn test_fn_call_resolves():none {
+    io.println("--- test_fn_call_resolves ---")
+    let src = "module test\nfn bar():int { return 1 }\nfn foo():int { return bar() }"
+    let rm = resolve_source(src)
+    // foo is decls[1] (bar is decls[0])
+    let decl = array.get_any(rm.src_module.decls, 1) ?? ast.DModule(0, 0, 0, [])
+    match decl {
+        DFn(did, dl, dc, fn_name, tp, params, hr, ret, body, ip, ie, is, hf, fb): {
+            let stmt = array.get_any(body, 0) ?? ast.SBreak(0, 0, 0)
+            match stmt {
+                SReturn(sid, sl, sc, hv, value): {
+                    // value is ECall(callee=EIdent("bar"), args=[])
+                    match value {
+                        ECall(cid, cl, cc, callee, args): {
+                            let callee_id = ast.expr_id(callee)
+                            match map.get(rm.symbols, conv.to_string(callee_id)) {
+                                some(sym): {
+                                    io.println("callee: " + sym.name)
+                                    io.println("kind: " + resolver.kind_name(sym.kind))
+                                }
+                                none: { io.println("callee symbol not found") }
+                            }
+                        }
+                        _: { io.println("expected ECall") }
+                    }
+                }
+                _: { io.println("expected SReturn") }
+            }
+        }
+        _: { io.println("expected DFn") }
+    }
+}
+
+fn main():int {
+    test_ident_resolves_param()
+    test_ident_resolves_local()
+    test_exports()
+    test_undefined_error()
+    test_immutable_assign_error()
+    test_fn_call_resolves()
+    io.println("ok")
+    return 0
+}

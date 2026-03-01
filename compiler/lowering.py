@@ -706,6 +706,8 @@ class Lowerer:
 
         # Active monomorphization type env (set during _lower_monomorphized_fn)
         self._mono_type_env: dict[str, Type] | None = None
+        # Caller module path saved during cross-module monomorphization
+        self._mono_caller_module_path: str | None = None
 
         # :mut parameter tracking — names of params with :mut annotation
         # that need pass-by-pointer treatment. Cleared per function.
@@ -854,6 +856,22 @@ class Lowerer:
             case _:
                 return LVoid()
 
+    def _lower_type_resolving_tvars(self, t: Type) -> LType:
+        """Lower a type, resolving TTypeVar to concrete struct if possible.
+
+        This is used specifically for variant field types in match patterns,
+        where the typechecker may leave cross-module struct types as TTypeVar
+        instead of TNamed.  For genuine generic type params (T, V, etc.),
+        _find_sum_type_module returns '' and we fall back to void*.
+        """
+        if isinstance(t, TTypeVar):
+            resolved_mod = self._find_sum_type_module(t.name)
+            if resolved_mod:
+                c_name = mangle(resolved_mod, t.name,
+                                file=self._file, line=0, col=0)
+                return LStruct(c_name)
+        return self._lower_type(t)
+
     def _find_sum_type_module(self, name: str) -> str:
         """Find the module path that declares a sum type.
 
@@ -871,6 +889,9 @@ class Lowerer:
                 for decl in typed_mod.module.decls:
                     if isinstance(decl, TypeDecl) and decl.name == name:
                         return mod_path
+        # During cross-module monomorphization, the caller module has the type
+        if self._mono_caller_module_path is not None:
+            return self._mono_caller_module_path
         return self._module_path
 
     def _lower_option_type(self, inner: Type) -> LType:
@@ -4636,10 +4657,18 @@ class Lowerer:
         if isinstance(left_type, TOption):
             # opt.tag == 1 ? opt.value : default
             inner_lt = self._lower_type(left_type.inner)
+            left_lt = self._lower_type(left_type)
+
+            # When the left expr was repacked by FL_OPT_DEREF_AS (e.g., from
+            # array.get_any<StructType>), the semantic type may still be
+            # TOption(TTypeVar) → void*, but the actual C expression returns a
+            # properly-typed option struct.  Use the deref types instead.
+            if isinstance(left, LOptDerefAs):
+                inner_lt = left.val_type
+                left_lt = left.c_type
 
             # Store left in temp
             tmp = self._fresh_temp()
-            left_lt = self._lower_type(left_type)
             self._pending_stmts.append(
                 LVarDecl(c_name=tmp, c_type=left_lt, init=left))
             tmp_var = LVar(tmp, left_lt)
@@ -4809,7 +4838,7 @@ class Lowerer:
                             sum_t.name, vname)
                         for i, binding in enumerate(bindings):
                             if i < len(variant.fields):
-                                field_lt = self._lower_type(variant.fields[i])
+                                field_lt = self._lower_type_resolving_tvars(variant.fields[i])
                                 fname = field_names[i] if i < len(field_names) else f"_{i}"
                                 is_recursive = self._is_recursive_sum_field(
                                     variant.fields[i], sum_t.name)
@@ -5110,7 +5139,7 @@ class Lowerer:
                             sum_t.name, vname)
                         for i, binding in enumerate(bindings):
                             if i < len(variant.fields):
-                                field_lt = self._lower_type(variant.fields[i])
+                                field_lt = self._lower_type_resolving_tvars(variant.fields[i])
                                 fname = field_names[i] if i < len(field_names) else f"_{i}"
                                 is_recursive = self._is_recursive_sum_field(
                                     variant.fields[i], sum_t.name)
@@ -6223,10 +6252,39 @@ class Lowerer:
             concrete = env.get(tp.name)
             if concrete is None:
                 continue
-            concrete_lt = self._lower_type(concrete)
+            # TTypeVar means the typechecker didn't resolve the element type
+            # to a concrete named type.  Try to resolve it by looking up the
+            # type name as a TNamed in the current module context.
+            if isinstance(concrete, TTypeVar):
+                resolved_mod = self._find_sum_type_module(concrete.name)
+                if resolved_mod:
+                    struct_c_name = mangle(resolved_mod, concrete.name,
+                                          file=self._file, line=0, col=0)
+                    concrete_lt = LStruct(struct_c_name)
+                else:
+                    concrete_lt = self._lower_type(concrete)
+            else:
+                concrete_lt = self._lower_type(concrete)
             # Skip pointer types — FL_Option_ptr is already correct
             if isinstance(concrete_lt, LPtr):
                 return None
+            # Build the correct option type for non-pointer element types.
+            # The result_lt from the caller may be FL_Option_ptr when the
+            # typechecker left the element type as TTypeVar, so we rebuild it.
+            # Also ensure the option struct typedef is registered.
+            effective_result_lt = result_lt
+            if isinstance(concrete_lt, LStruct):
+                inner_key = _ltype_c_name(concrete_lt)
+                if inner_key in self._option_registry:
+                    opt_c_name = self._option_registry[inner_key]
+                else:
+                    opt_c_name = f"FL_Option_{concrete_lt.c_name}"
+                    self._option_registry[inner_key] = opt_c_name
+                    self._type_defs.append(LTypeDef(
+                        c_name=opt_c_name,
+                        fields=[("tag", LByte()), ("value", concrete_lt)],
+                    ))
+                effective_result_lt = LStruct(opt_c_name)
             # For value types already handled by Gap-2 opt_unbox (int, float, etc.)
             c_name = _ltype_c_name(concrete_lt)
             if c_name in _VALUE_TYPE_OPT_UNBOX_FN:
@@ -6234,12 +6292,12 @@ class Lowerer:
                 # value.  Use FL_OPT_DEREF_AS to cast and dereference.
                 call = LCall(c_fn, lowered_args,
                              LStruct("FL_Option_ptr"))
-                return LOptDerefAs(call, concrete_lt, result_lt)
+                return LOptDerefAs(call, concrete_lt, effective_result_lt)
             # Struct/sum types — use FL_OPT_DEREF_AS
             if isinstance(concrete_lt, LStruct):
                 call = LCall(c_fn, lowered_args,
                              LStruct("FL_Option_ptr"))
-                return LOptDerefAs(call, concrete_lt, result_lt)
+                return LOptDerefAs(call, concrete_lt, effective_result_lt)
         return None
 
     def _maybe_redirect_array_push(
@@ -6648,6 +6706,8 @@ class Lowerer:
         self._let_var_ltypes = {}
         saved_mono_type_env = self._mono_type_env
         self._mono_type_env = env
+        saved_mono_caller = self._mono_caller_module_path
+        self._mono_caller_module_path = saved_module_path
 
         ret_type_raw = self._type_of_return(fn_decl)
         ret_type = self._deep_substitute(ret_type_raw, env)
@@ -6686,6 +6746,7 @@ class Lowerer:
         self._current_fn_name = saved_fn_name
         self._let_var_ltypes = saved_let_var_ltypes
         self._mono_type_env = saved_mono_type_env
+        self._mono_caller_module_path = saved_mono_caller
 
         return LFnDef(
             c_name=site.mangled_name,

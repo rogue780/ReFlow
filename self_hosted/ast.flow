@@ -506,3 +506,18 @@ export fn decl_id(d:Decl):int {
         DStaticMember(nid, l, c, n, ta, im, hv, v): { return nid }
     }
 }
+
+// Check if a FStringPart is an expression part, return expr if so
+export fn fsp_is_expr(p:FStringPart):bool {
+    match p {
+        FPExpr(e): { return true }
+        FPText(t): { return false }
+    }
+}
+
+export fn fsp_get_expr(p:FStringPart):Expr {
+    match p {
+        FPExpr(e): { return e }
+        FPText(t): { return ENoneLit(0, 0, 0) }
+    }
+}

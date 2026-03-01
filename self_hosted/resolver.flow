@@ -1,0 +1,1224 @@
+module self_hosted.resolver
+
+// Self-hosted resolver: walks the AST, binds all names to Symbol objects,
+// tracks lambda captures, and exports a ModuleScope for cross-module compilation.
+// Port of compiler/resolver.py.
+
+import io
+import conv
+import array
+import map
+import string
+import self_hosted.ast
+import self_hosted.errors
+
+// ---------------------------------------------------------------------------
+// SymbolKind — integer constants for symbol categories
+// ---------------------------------------------------------------------------
+
+export enum SymbolKind {
+    SK_LOCAL = 1
+    SK_PARAM = 2
+    SK_FN = 3
+    SK_TYPE = 4
+    SK_INTERFACE = 5
+    SK_ALIAS = 6
+    SK_STATIC = 7
+    SK_IMPORT = 8
+    SK_CONSTRUCTOR = 9
+}
+
+export fn kind_name(k:int):string {
+    if(k == SymbolKind.SK_LOCAL) { return "LOCAL" }
+    if(k == SymbolKind.SK_PARAM) { return "PARAM" }
+    if(k == SymbolKind.SK_FN) { return "FN" }
+    if(k == SymbolKind.SK_TYPE) { return "TYPE" }
+    if(k == SymbolKind.SK_INTERFACE) { return "INTERFACE" }
+    if(k == SymbolKind.SK_ALIAS) { return "ALIAS" }
+    if(k == SymbolKind.SK_STATIC) { return "STATIC" }
+    if(k == SymbolKind.SK_IMPORT) { return "IMPORT" }
+    if(k == SymbolKind.SK_CONSTRUCTOR) { return "CONSTRUCTOR" }
+    return "UNKNOWN"
+}
+
+// ---------------------------------------------------------------------------
+// Symbol — a resolved name binding
+// ---------------------------------------------------------------------------
+
+export type Symbol {
+    name:string
+    kind:int
+    decl_id:int
+    has_type_ann:bool
+    type_ann:ast.TypeExpr
+    is_mut:bool
+}
+
+fn make_symbol(name:string, kind:int, decl_id:int, has_type_ann:bool, type_ann:ast.TypeExpr, is_mut:bool):Symbol {
+    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:has_type_ann, type_ann:type_ann, is_mut:is_mut}
+}
+
+fn symbol_no_type(name:string, kind:int, decl_id:int, is_mut:bool):Symbol {
+    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:false, type_ann:placeholder_type(), is_mut:is_mut}
+}
+
+fn symbol_with_type(name:string, kind:int, decl_id:int, type_ann:ast.TypeExpr, is_mut:bool):Symbol {
+    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:true, type_ann:type_ann, is_mut:is_mut}
+}
+
+// ---------------------------------------------------------------------------
+// ModuleScope — exported symbols for cross-module resolution
+// ---------------------------------------------------------------------------
+
+export type ModuleScope {
+    module_path:string
+    exports:map<string, Symbol>
+}
+
+// ---------------------------------------------------------------------------
+// ResolvedModule — result of resolution
+// ---------------------------------------------------------------------------
+
+export type ResolvedModule {
+    src_module:ast.Module
+    symbols:map<string, Symbol>
+    captures:map<string, array<Symbol>>
+    mod_scope:ModuleScope
+}
+
+// ---------------------------------------------------------------------------
+// ResolverState — mutable state passed to all functions
+// ---------------------------------------------------------------------------
+
+type ResolverState:mut {
+    src_module:ast.Module:imut
+    filename:string:imut
+    imported_modules:map<string, ModuleScope>:imut
+
+    // Binding data (parallel arrays, logical size = binding_count)
+    bind_names:array<string>
+    bind_symbols:map<string, Symbol>  // "b<idx>" -> Symbol
+    bind_depths:array<int>
+    binding_count:int
+
+    // ScopeFrame data (int arrays, logical size = frame_count)
+    frame_watermarks:array<int>
+    frame_count:int
+
+    current_depth:int
+
+    // Output
+    symbols:map<string, Symbol>
+    captures:map<string, array<Symbol>>
+
+    // Type member scopes
+    type_member_scopes:map<string, map<string, Symbol>>
+    static_member_scopes:map<string, map<string, Symbol>>
+
+    // Context flags
+    in_method:bool
+    in_constructor:bool
+    in_stream_fn:bool
+
+    // Capture stack (int arrays, logical size = cap_count)
+    cap_lambda_ids:array<int>
+    cap_entry_depths:array<int>
+    cap_sym_counts:array<int>
+    cap_sym_store:map<string, Symbol>    // "cs<stack_idx>_<cap_idx>" -> Symbol
+    cap_name_store:map<string, bool>     // "cn<stack_idx>_<name>" -> true
+    cap_count:int
+}
+
+fn placeholder_type():ast.TypeExpr {
+    return ast.TNamedType(0, 0, 0, "", [])
+}
+
+fn placeholder_expr():ast.Expr {
+    return ast.ENoneLit(0, 0, 0)
+}
+
+fn default_sum_variant():ast.SumVariantDecl {
+    return ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+}
+
+fn default_field_decl():ast.FieldDecl {
+    return ast.FieldDecl{name:"", type_ann:placeholder_type(), is_mut:false, id:0, line:0, col:0}
+}
+
+fn default_enum_variant():ast.EnumVariantDecl {
+    return ast.EnumVariantDecl{name:"", has_value:false, value:0, id:0, line:0, col:0}
+}
+
+fn default_expr_field():ast.ExprField {
+    return ast.ExprField{name:"", value:placeholder_expr()}
+}
+
+fn default_chain_element():ast.ChainElement {
+    return ast.ChainElement{expr:placeholder_expr(), id:0, line:0, col:0}
+}
+
+fn default_pipeline_stage():ast.PipelineStage {
+    return ast.PipelineStage{call:placeholder_expr(), has_pool_size:false, pool_size:placeholder_expr(), id:0, line:0, col:0}
+}
+
+fn default_param():ast.Param {
+    return ast.Param{name:"", type_ann:placeholder_type(), id:0, line:0, col:0, has_default:false, is_variadic:false}
+}
+
+fn default_match_arm():ast.MatchArm {
+    return ast.MatchArm{pattern:ast.PWildcard(0, 0, 0), body_stmts:[], id:0, line:0, col:0}
+}
+
+fn default_retry_block():ast.RetryBlock {
+    return ast.RetryBlock{target_fn:"", exception_var:"", exception_type:placeholder_type(), has_attempts:false, attempts:placeholder_expr(), body:[], id:0, line:0, col:0}
+}
+
+fn default_catch_clause():ast.CatchClause {
+    return ast.CatchClause{exception_var:"", exception_type:placeholder_type(), body:[], id:0, line:0, col:0}
+}
+
+// ---------------------------------------------------------------------------
+// Scope helpers
+// ---------------------------------------------------------------------------
+
+fn push_scope(s:ResolverState:mut, is_fn_boundary:bool):none {
+    s.current_depth = s.current_depth + 1
+    s.frame_watermarks = array.push_int(s.frame_watermarks, s.binding_count)
+    s.frame_count = s.frame_count + 1
+}
+
+fn pop_scope(s:ResolverState:mut):none {
+    if(s.frame_count == 0) { return }
+    s.frame_count = s.frame_count - 1
+    s.binding_count = array.get_int(s.frame_watermarks, s.frame_count) ?? 0
+    s.current_depth = s.current_depth - 1
+}
+
+fn define_symbol(s:ResolverState:mut, name:string, sym:Symbol):none {
+    s.bind_names = array.push(s.bind_names, name)
+    s.bind_symbols = map.set(s.bind_symbols, "b" + conv.to_string(s.binding_count), sym)
+    s.bind_depths = array.push_int(s.bind_depths, s.current_depth)
+    s.binding_count = s.binding_count + 1
+}
+
+fn has_in_current_scope(s:ResolverState:mut, name:string):bool {
+    let i:int:mut = s.binding_count - 1
+    while(i >= 0) {
+        let d = array.get_int(s.bind_depths, i) ?? 0
+        if(d < s.current_depth) { return false }
+        if((array.get(s.bind_names, i) ?? "") == name) { return true }
+        i = i - 1
+    }
+    return false
+}
+
+fn define_or_error(s:ResolverState:mut, name:string, sym:Symbol, line:int, col:int):none {
+    if(has_in_current_scope(s, name)) {
+        throw errors.resolve_error("duplicate definition of '" + name + "'", s.filename, line, col)
+    }
+    define_symbol(s, name, sym)
+}
+
+fn scope_lookup(s:ResolverState:mut, name:string):Symbol? {
+    let i:int:mut = s.binding_count - 1
+    while(i >= 0) {
+        if((array.get(s.bind_names, i) ?? "") == name) {
+            return map.get(s.bind_symbols, "b" + conv.to_string(i))
+        }
+        i = i - 1
+    }
+    return none
+}
+
+fn lookup_or_error(s:ResolverState:mut, name:string, line:int, col:int):Symbol {
+    if(name == "self") {
+        if(!s.in_method && !s.in_constructor) {
+            throw errors.resolve_error("'self' is only valid inside a method or constructor", s.filename, line, col)
+        }
+    }
+    match scope_lookup(s, name) {
+        some(sym): { return sym }
+        none: {
+            throw errors.resolve_error("undefined name '" + name + "'", s.filename, line, col)
+        }
+    }
+}
+
+fn lookup_in_map(scope_map:map<string, map<string, Symbol>>, type_name:string, member:string):Symbol? {
+    match map.get(scope_map, type_name) {
+        some(inner): { return map.get(inner, member) }
+        none: { return none }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Utility helpers
+// ---------------------------------------------------------------------------
+
+fn bind_node(s:ResolverState:mut, node_id:int, sym:Symbol):none {
+    s.symbols = map.set(s.symbols, conv.to_string(node_id), sym)
+}
+
+fn is_mut_binding(has_type_ann:bool, type_ann:ast.TypeExpr):bool {
+    if(!has_type_ann) { return false }
+    match type_ann {
+        TMutType(tid, tl, tc, inner): { return true }
+        _: { return false }
+    }
+}
+
+fn is_stream_return(has_ret:bool, type_ann:ast.TypeExpr):bool {
+    if(!has_ret) { return false }
+    match type_ann {
+        TSizedType(tid, tl, tc, inner, cap): { return is_stream_return(true, inner) }
+        TNamedType(tid, tl, tc, name, mp): { return name == "stream" }
+        TGenericType(tid, tl, tc, base, args): {
+            match base {
+                TNamedType(bid, bl, bc, bname, bmp): { return bname == "stream" }
+                _: { return false }
+            }
+        }
+        _: { return false }
+    }
+}
+
+fn join_path(parts:array<string>):string {
+    let n = array.size(parts)
+    if(n == 0) { return "" }
+    let result:string:mut = array.get(parts, 0) ?? ""
+    let i:int:mut = 1
+    while(i < n) {
+        result = result + "." + (array.get(parts, i) ?? "")
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// Phase 1: Pre-pass — forward declarations
+// ---------------------------------------------------------------------------
+
+fn pre_pass(s:ResolverState:mut):none {
+    let i:int:mut = 0
+    while(i < array.size(s.src_module.decls)) {
+        match array.get_any(s.src_module.decls, i) {
+            some(d): { pre_pass_decl(s, d) }
+            none: {}
+        }
+        i = i + 1
+    }
+}
+
+fn pre_pass_decl(s:ResolverState:mut, decl:ast.Decl):none {
+    match decl {
+        DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
+            define_or_error(s, name, make_symbol(name, SymbolKind.SK_FN, did, has_ret, ret, false), dl, dc)
+        }
+        DType(did, dl, dc, name, tp, fields, methods, constructors, static_members, ifaces, is_exp, is_sum, variants, is_mut): {
+            define_or_error(s, name, symbol_no_type(name, SymbolKind.SK_TYPE, did, false), dl, dc)
+            let ci:int:mut = 0
+            while(ci < array.size(constructors)) {
+                match array.get_any(constructors, ci) {
+                    some(cd): {
+                        match cd {
+                            DConstructor(cid, cl, cc, cname, cparams, cret, cbody): {
+                                define_or_error(s, cname, symbol_with_type(cname, SymbolKind.SK_CONSTRUCTOR, cid, cret, false), cl, cc)
+                            }
+                            _: {}
+                        }
+                    }
+                    none: {}
+                }
+                ci = ci + 1
+            }
+            if(is_sum) {
+                let vi:int:mut = 0
+                while(vi < array.size(variants)) {
+                    let v = array.get_any(variants, vi) ?? default_sum_variant()
+                    if(v.name != "") {
+                        define_or_error(s, v.name, symbol_no_type(v.name, SymbolKind.SK_CONSTRUCTOR, v.id, false), v.line, v.col)
+                    }
+                    vi = vi + 1
+                }
+            }
+        }
+        DInterface(did, dl, dc, name, tp, methods, is_exp): {
+            define_or_error(s, name, symbol_no_type(name, SymbolKind.SK_INTERFACE, did, false), dl, dc)
+        }
+        DAlias(did, dl, dc, name, tp, target, is_exp): {
+            define_or_error(s, name, symbol_with_type(name, SymbolKind.SK_ALIAS, did, target, false), dl, dc)
+        }
+        DEnum(did, dl, dc, name, variants, is_exp): {
+            define_or_error(s, name, symbol_no_type(name, SymbolKind.SK_TYPE, did, false), dl, dc)
+        }
+        DExternFn(did, dl, dc, name, tp, params, has_ret, ret, is_exp, c_name): {
+            define_or_error(s, name, make_symbol(name, SymbolKind.SK_FN, did, has_ret, ret, false), dl, dc)
+        }
+        DExternType(did, dl, dc, name, is_exp): {
+            define_or_error(s, name, symbol_no_type(name, SymbolKind.SK_TYPE, did, false), dl, dc)
+        }
+        _: {}
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Import resolution
+// ---------------------------------------------------------------------------
+
+fn resolve_imports(s:ResolverState:mut):none {
+    let i:int:mut = 0
+    while(i < array.size(s.src_module.imports)) {
+        match array.get_any(s.src_module.imports, i) {
+            some(imp): { resolve_import(s, imp) }
+            none: {}
+        }
+        i = i + 1
+    }
+}
+
+fn resolve_import(s:ResolverState:mut, imp:ast.Decl):none {
+    match imp {
+        DImport(did, dl, dc, path, names, imp_alias): {
+            let module_key = join_path(path)
+            match map.get(s.imported_modules, module_key) {
+                some(mod_scope): {
+                    if(array.size(names) > 0) {
+                        let ni:int:mut = 0
+                        while(ni < array.size(names)) {
+                            let name = array.get(names, ni) ?? ""
+                            match map.get(mod_scope.exports, name) {
+                                some(exported): {
+                                    define_or_error(s, name, make_symbol(name, SymbolKind.SK_IMPORT, exported.decl_id, exported.has_type_ann, exported.type_ann, exported.is_mut), dl, dc)
+                                }
+                                none: {
+                                    throw errors.resolve_error("name '" + name + "' is not exported by module '" + module_key + "'", s.filename, dl, dc)
+                                }
+                            }
+                            ni = ni + 1
+                        }
+                    } else {
+                        if(imp_alias != "") {
+                            define_or_error(s, imp_alias, symbol_no_type(imp_alias, SymbolKind.SK_IMPORT, did, false), dl, dc)
+                            let ns:map<string, Symbol>:mut = map.new()
+                            let ks = map.keys(mod_scope.exports)
+                            let ek:int:mut = 0
+                            while(ek < array.size(ks)) {
+                                let en = array.get(ks, ek) ?? ""
+                                match map.get(mod_scope.exports, en) {
+                                    some(es): { ns = map.set(ns, en, es) }
+                                    none: {}
+                                }
+                                ek = ek + 1
+                            }
+                            s.type_member_scopes = map.set(s.type_member_scopes, imp_alias, ns)
+                        } else {
+                            let ns_name = array.get(path, array.size(path) - 1) ?? ""
+                            define_or_error(s, ns_name, symbol_no_type(ns_name, SymbolKind.SK_IMPORT, did, false), dl, dc)
+                            let ns:map<string, Symbol>:mut = map.new()
+                            let ks = map.keys(mod_scope.exports)
+                            let ek:int:mut = 0
+                            while(ek < array.size(ks)) {
+                                let en = array.get(ks, ek) ?? ""
+                                match map.get(mod_scope.exports, en) {
+                                    some(es): { ns = map.set(ns, en, es) }
+                                    none: {}
+                                }
+                                ek = ek + 1
+                            }
+                            s.type_member_scopes = map.set(s.type_member_scopes, ns_name, ns)
+                        }
+                    }
+                }
+                none: {
+                    throw errors.resolve_error("module '" + module_key + "' not found", s.filename, dl, dc)
+                }
+            }
+        }
+        _: {}
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Build type member scopes
+// ---------------------------------------------------------------------------
+
+fn build_type_member_scopes(s:ResolverState:mut):none {
+    let i:int:mut = 0
+    while(i < array.size(s.src_module.decls)) {
+        match array.get_any(s.src_module.decls, i) {
+            some(decl): { build_member_scope(s, decl) }
+            none: {}
+        }
+        i = i + 1
+    }
+}
+
+fn build_member_scope(s:ResolverState:mut, decl:ast.Decl):none {
+    match decl {
+        DType(did, dl, dc, name, tp, fields, methods, constructors, static_members, ifaces, is_exp, is_sum, variants, is_mut): {
+            let mm:map<string, Symbol>:mut = map.new()
+            let sm:map<string, Symbol>:mut = map.new()
+            let fi:int:mut = 0
+            while(fi < array.size(fields)) {
+                let f = array.get_any(fields, fi) ?? default_field_decl()
+                if(f.name != "") {
+                    mm = map.set(mm, f.name, symbol_with_type(f.name, SymbolKind.SK_LOCAL, f.id, f.type_ann, f.is_mut))
+                }
+                fi = fi + 1
+            }
+            let mi:int:mut = 0
+            while(mi < array.size(methods)) {
+                match array.get_any(methods, mi) {
+                    some(m): {
+                        match m {
+                            DFn(mid, ml, mc, mn, mtp, mp, mhr, mr, mb, mpu, me, ms, mhf, mfb): {
+                                mm = map.set(mm, mn, make_symbol(mn, SymbolKind.SK_FN, mid, mhr, mr, false))
+                            }
+                            _: {}
+                        }
+                    }
+                    none: {}
+                }
+                mi = mi + 1
+            }
+            let si:int:mut = 0
+            while(si < array.size(static_members)) {
+                match array.get_any(static_members, si) {
+                    some(stm): {
+                        match stm {
+                            DStaticMember(sid, sl, sc, sn, sta, sim, shv, sv): {
+                                let sym = symbol_with_type(sn, SymbolKind.SK_STATIC, sid, sta, sim)
+                                sm = map.set(sm, sn, sym)
+                                mm = map.set(mm, sn, sym)
+                            }
+                            _: {}
+                        }
+                    }
+                    none: {}
+                }
+                si = si + 1
+            }
+            let ci:int:mut = 0
+            while(ci < array.size(constructors)) {
+                match array.get_any(constructors, ci) {
+                    some(ct): {
+                        match ct {
+                            DConstructor(cid, cl, cc, cn, cp, cr, cb): {
+                                mm = map.set(mm, cn, symbol_with_type(cn, SymbolKind.SK_CONSTRUCTOR, cid, cr, false))
+                            }
+                            _: {}
+                        }
+                    }
+                    none: {}
+                }
+                ci = ci + 1
+            }
+            if(is_sum) {
+                let vi:int:mut = 0
+                while(vi < array.size(variants)) {
+                    let v = array.get_any(variants, vi) ?? default_sum_variant()
+                    if(v.name != "") {
+                        mm = map.set(mm, v.name, symbol_no_type(v.name, SymbolKind.SK_CONSTRUCTOR, v.id, false))
+                    }
+                    vi = vi + 1
+                }
+            }
+            s.type_member_scopes = map.set(s.type_member_scopes, name, mm)
+            s.static_member_scopes = map.set(s.static_member_scopes, name, sm)
+        }
+        DEnum(did, dl, dc, name, variants, is_exp): {
+            let sm:map<string, Symbol>:mut = map.new()
+            let vi:int:mut = 0
+            while(vi < array.size(variants)) {
+                let v = array.get_any(variants, vi) ?? default_enum_variant()
+                if(v.name != "") {
+                    sm = map.set(sm, v.name, symbol_with_type(v.name, SymbolKind.SK_STATIC, v.id, ast.TNamedType(0, 0, 0, name, []), false))
+                }
+                vi = vi + 1
+            }
+            s.static_member_scopes = map.set(s.static_member_scopes, name, sm)
+            s.type_member_scopes = map.set(s.type_member_scopes, name, sm)
+        }
+        _: {}
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: Resolve all bodies
+// ---------------------------------------------------------------------------
+
+fn resolve_all_bodies(s:ResolverState:mut):none {
+    let i:int:mut = 0
+    while(i < array.size(s.src_module.decls)) {
+        match array.get_any(s.src_module.decls, i) {
+            some(decl): {
+                match decl {
+                    DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
+                        resolve_fn_body(s, params, has_ret, ret, body, has_fin, fin_body)
+                    }
+                    DType(did, dl, dc, name, tp, fields, methods, constructors, static_members, ifaces, is_exp, is_sum, variants, is_mut): {
+                        resolve_type_decl(s, name, methods, constructors, static_members)
+                    }
+                    _: {}
+                }
+            }
+            none: {}
+        }
+        i = i + 1
+    }
+}
+
+fn resolve_fn_body(s:ResolverState:mut, params:array<ast.Param>, has_ret:bool, ret:ast.TypeExpr, body:array<ast.Stmt>, has_fin:bool, fin_body:array<ast.Stmt>):none {
+    if(array.size(body) == 0 && !has_fin) { return }
+    push_scope(s, true)
+    bind_params(s, params)
+    let old_stream = s.in_stream_fn
+    s.in_stream_fn = is_stream_return(has_ret, ret)
+    resolve_stmts(s, body)
+    if(has_fin) { resolve_stmts(s, fin_body) }
+    s.in_stream_fn = old_stream
+    pop_scope(s)
+}
+
+fn bind_params(s:ResolverState:mut, params:array<ast.Param>):none {
+    let pi:int:mut = 0
+    while(pi < array.size(params)) {
+        let p = array.get_any(params, pi) ?? default_param()
+        if(p.name != "") {
+            define_or_error(s, p.name, symbol_with_type(p.name, SymbolKind.SK_PARAM, p.id, p.type_ann, is_mut_binding(true, p.type_ann)), p.line, p.col)
+        }
+        pi = pi + 1
+    }
+}
+
+fn resolve_type_decl(s:ResolverState:mut, name:string, methods:array<ast.Decl>, constructors:array<ast.Decl>, static_members:array<ast.Decl>):none {
+    let si:int:mut = 0
+    while(si < array.size(static_members)) {
+        match array.get_any(static_members, si) {
+            some(stm): {
+                match stm {
+                    DStaticMember(sid, sl, sc, sn, sta, sim, shv, sv): {
+                        if(shv) { resolve_expr(s, sv) }
+                    }
+                    _: {}
+                }
+            }
+            none: {}
+        }
+        si = si + 1
+    }
+    let mi:int:mut = 0
+    while(mi < array.size(methods)) {
+        match array.get_any(methods, mi) {
+            some(m): { resolve_method_body(s, m, name) }
+            none: {}
+        }
+        mi = mi + 1
+    }
+    let ci:int:mut = 0
+    while(ci < array.size(constructors)) {
+        match array.get_any(constructors, ci) {
+            some(c): { resolve_ctor_body(s, c, name) }
+            none: {}
+        }
+        ci = ci + 1
+    }
+}
+
+fn resolve_method_body(s:ResolverState:mut, method:ast.Decl, type_name:string):none {
+    match method {
+        DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
+            if(array.size(body) == 0 && !has_fin) { return }
+            push_scope(s, true)
+            bind_method_params(s, params, type_name, false)
+            let old_method = s.in_method
+            let old_stream = s.in_stream_fn
+            s.in_method = true
+            s.in_stream_fn = is_stream_return(has_ret, ret)
+            resolve_stmts(s, body)
+            if(has_fin) { resolve_stmts(s, fin_body) }
+            s.in_method = old_method
+            s.in_stream_fn = old_stream
+            pop_scope(s)
+        }
+        _: {}
+    }
+}
+
+fn resolve_ctor_body(s:ResolverState:mut, ctor:ast.Decl, type_name:string):none {
+    match ctor {
+        DConstructor(did, dl, dc, name, params, ret, body): {
+            if(array.size(body) == 0) { return }
+            push_scope(s, true)
+            bind_method_params(s, params, type_name, true)
+            let old_method = s.in_method
+            let old_ctor = s.in_constructor
+            s.in_method = true
+            s.in_constructor = true
+            resolve_stmts(s, body)
+            s.in_method = old_method
+            s.in_constructor = old_ctor
+            pop_scope(s)
+        }
+        _: {}
+    }
+}
+
+fn bind_method_params(s:ResolverState:mut, params:array<ast.Param>, type_name:string, self_mut:bool):none {
+    let pi:int:mut = 0
+    while(pi < array.size(params)) {
+        let p = array.get_any(params, pi) ?? default_param()
+        if(p.name != "") {
+            if(p.name == "self") {
+                define_or_error(s, "self", symbol_with_type("self", SymbolKind.SK_PARAM, p.id, ast.TNamedType(0, p.line, p.col, type_name, []), self_mut), p.line, p.col)
+            } else {
+                define_or_error(s, p.name, symbol_with_type(p.name, SymbolKind.SK_PARAM, p.id, p.type_ann, is_mut_binding(true, p.type_ann)), p.line, p.col)
+            }
+        }
+        pi = pi + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Lambda resolution
+// ---------------------------------------------------------------------------
+
+fn resolve_lambda(s:ResolverState:mut, lambda_id:int, params:array<ast.Param>, body:ast.Expr):none {
+    push_scope(s, false)
+    bind_params(s, params)
+    let idx = s.cap_count
+    s.cap_lambda_ids = array.push_int(s.cap_lambda_ids, lambda_id)
+    s.cap_entry_depths = array.push_int(s.cap_entry_depths, s.current_depth)
+    s.cap_sym_counts = array.push_int(s.cap_sym_counts, 0)
+    s.cap_count = s.cap_count + 1
+    resolve_expr(s, body)
+    // Pop and store captures
+    s.cap_count = s.cap_count - 1
+    let cap_n = array.get_int(s.cap_sym_counts, idx) ?? 0
+    let captured:array<Symbol>:mut = []
+    let ci:int:mut = 0
+    while(ci < cap_n) {
+        match map.get(s.cap_sym_store, "cs" + conv.to_string(idx) + "_" + conv.to_string(ci)) {
+            some(sym): { captured = array.push(captured, sym) }
+            none: {}
+        }
+        ci = ci + 1
+    }
+    s.captures = map.set(s.captures, conv.to_string(lambda_id), captured)
+    pop_scope(s)
+}
+
+// ---------------------------------------------------------------------------
+// Capture tracking
+// ---------------------------------------------------------------------------
+
+fn track_capture(s:ResolverState:mut, sym:Symbol):none {
+    if(s.cap_count == 0) { return }
+    let idx = s.cap_count - 1
+    let cn_key = "cn" + conv.to_string(idx) + "_" + sym.name
+    if(map.has(s.cap_name_store, cn_key)) { return }
+    let entry_depth = array.get_int(s.cap_entry_depths, idx) ?? 0
+    // Check if defined inside lambda
+    let bi:int:mut = s.binding_count - 1
+    while(bi >= 0) {
+        let d = array.get_int(s.bind_depths, bi) ?? 0
+        if(d < entry_depth) { break }
+        if((array.get(s.bind_names, bi) ?? "") == sym.name) { return }
+        bi = bi - 1
+    }
+    // It's a capture
+    let cap_n = array.get_int(s.cap_sym_counts, idx) ?? 0
+    s.cap_sym_store = map.set(s.cap_sym_store, "cs" + conv.to_string(idx) + "_" + conv.to_string(cap_n), sym)
+    s.cap_name_store = map.set(s.cap_name_store, cn_key, true)
+    // Update count — rebuild the int array
+    s.cap_sym_counts = array.slice(s.cap_sym_counts, 0, idx)
+    s.cap_sym_counts = array.push_int(s.cap_sym_counts, cap_n + 1)
+}
+
+// ---------------------------------------------------------------------------
+// Expression resolution
+// ---------------------------------------------------------------------------
+
+fn resolve_expr(s:ResolverState:mut, expr:ast.Expr):none {
+    match expr {
+        EIntLit(nid, l, c, v, suf): {}
+        EFloatLit(nid, l, c, v, suf): {}
+        EBoolLit(nid, l, c, v): {}
+        EStringLit(nid, l, c, v): {}
+        ECharLit(nid, l, c, v): {}
+        ENoneLit(nid, l, c): {}
+
+        EIdent(nid, l, c, name, mp): {
+            if(array.size(mp) > 0) {
+                let ns_sym = lookup_or_error(s, array.get(mp, 0) ?? "", l, c)
+                bind_node(s, nid, ns_sym)
+            } else {
+                let sym = lookup_or_error(s, name, l, c)
+                bind_node(s, nid, sym)
+                track_capture(s, sym)
+            }
+        }
+
+        EBinOp(nid, l, c, op, left, right): {
+            resolve_expr(s, left)
+            resolve_expr(s, right)
+        }
+        EUnaryOp(nid, l, c, op, operand): { resolve_expr(s, operand) }
+        ENamedArg(nid, l, c, name, value): { resolve_expr(s, value) }
+        ESpread(nid, l, c, inner): { resolve_expr(s, inner) }
+
+        ECall(nid, l, c, callee, args): {
+            resolve_expr(s, callee)
+            resolve_exprs(s, args)
+        }
+
+        EMethodCall(nid, l, c, receiver, method_name, args): {
+            resolve_expr(s, receiver)
+            match receiver {
+                EIdent(rid, rl, rc, rname, rmp): {
+                    if(array.size(rmp) == 0) {
+                        match map.get(s.symbols, conv.to_string(rid)) {
+                            some(rsym): {
+                                if(rsym.kind == SymbolKind.SK_IMPORT) {
+                                    match lookup_in_map(s.type_member_scopes, rsym.name, method_name) {
+                                        some(msym): { bind_node(s, nid, msym) }
+                                        none: { throw errors.resolve_error("name '" + method_name + "' not found in namespace '" + rsym.name + "'", s.filename, l, c) }
+                                    }
+                                }
+                            }
+                            none: {}
+                        }
+                    }
+                }
+                _: {}
+            }
+            resolve_exprs(s, args)
+        }
+
+        EFieldAccess(nid, l, c, receiver, field_name): {
+            resolve_expr(s, receiver)
+            match receiver {
+                EIdent(rid, rl, rc, rname, rmp): {
+                    if(array.size(rmp) == 0) {
+                        match map.get(s.symbols, conv.to_string(rid)) {
+                            some(rsym): {
+                                if(rsym.kind == SymbolKind.SK_TYPE) {
+                                    match lookup_in_map(s.static_member_scopes, rsym.name, field_name) {
+                                        some(msym): {
+                                            bind_node(s, nid, msym)
+                                            return
+                                        }
+                                        none: {}
+                                    }
+                                }
+                                if(rsym.kind == SymbolKind.SK_IMPORT) {
+                                    match lookup_in_map(s.type_member_scopes, rsym.name, field_name) {
+                                        some(msym): {
+                                            bind_node(s, nid, msym)
+                                            return
+                                        }
+                                        none: { throw errors.resolve_error("name '" + field_name + "' not found in namespace '" + rsym.name + "'", s.filename, l, c) }
+                                    }
+                                }
+                            }
+                            none: {}
+                        }
+                    }
+                }
+                _: {}
+            }
+            match map.get(s.symbols, conv.to_string(ast.expr_id(receiver))) {
+                some(rsym): {
+                    if(rsym.kind == SymbolKind.SK_TYPE) {
+                        match lookup_in_map(s.static_member_scopes, rsym.name, field_name) {
+                            some(msym): {
+                                bind_node(s, nid, msym)
+                                return
+                            }
+                            none: {}
+                        }
+                    }
+                }
+                none: {}
+            }
+        }
+
+        EIndexAccess(nid, l, c, receiver, index): {
+            resolve_expr(s, receiver)
+            resolve_expr(s, index)
+        }
+        ELambda(nid, l, c, params, body): { resolve_lambda(s, nid, params, body) }
+        ETupleExpr(nid, l, c, elements): { resolve_exprs(s, elements) }
+        EArrayLit(nid, l, c, elements): { resolve_exprs(s, elements) }
+
+        ERecordLit(nid, l, c, fields): {
+            let fi:int:mut = 0
+            while(fi < array.size(fields)) {
+                let f = array.get_any(fields, fi) ?? default_expr_field()
+                if(f.name != "") { resolve_expr(s, f.value) }
+                fi = fi + 1
+            }
+        }
+
+        ETypeLit(nid, l, c, type_name, fields, has_spread, spread): {
+            if(string.contains(type_name, ".")) {
+                let parts = string.split(type_name, ".")
+                let ns_name = array.get(parts, 0) ?? ""
+                match scope_lookup(s, ns_name) {
+                    some(ns_sym): {
+                        if(ns_sym.kind == SymbolKind.SK_IMPORT) {
+                            let member_name = join_path(array.slice(parts, 1, array.size(parts)))
+                            match lookup_in_map(s.type_member_scopes, ns_name, member_name) {
+                                some(msym): { bind_node(s, nid, msym) }
+                                none: { throw errors.resolve_error("name '" + member_name + "' not found in namespace '" + ns_name + "'", s.filename, l, c) }
+                            }
+                        } else {
+                            throw errors.resolve_error("undefined name '" + type_name + "'", s.filename, l, c)
+                        }
+                    }
+                    none: { throw errors.resolve_error("undefined name '" + type_name + "'", s.filename, l, c) }
+                }
+            } else {
+                bind_node(s, nid, lookup_or_error(s, type_name, l, c))
+            }
+            let fi:int:mut = 0
+            while(fi < array.size(fields)) {
+                let f = array.get_any(fields, fi) ?? default_expr_field()
+                if(f.name != "") { resolve_expr(s, f.value) }
+                fi = fi + 1
+            }
+            if(has_spread) { resolve_expr(s, spread) }
+        }
+
+        EIfExpr(nid, l, c, cond, then_stmts, else_stmts): {
+            resolve_expr(s, cond)
+            resolve_block(s, then_stmts)
+            if(array.size(else_stmts) > 0) { resolve_block(s, else_stmts) }
+        }
+        EMatchExpr(nid, l, c, subject, arms): {
+            resolve_expr(s, subject)
+            resolve_match_arms(s, arms)
+        }
+        ETernary(nid, l, c, cond, te, ee): {
+            resolve_expr(s, cond)
+            resolve_expr(s, te)
+            resolve_expr(s, ee)
+        }
+        ECopy(nid, l, c, inner): { resolve_expr(s, inner) }
+        ERef(nid, l, c, inner): { resolve_expr(s, inner) }
+        ESome(nid, l, c, inner): { resolve_expr(s, inner) }
+        EOk(nid, l, c, inner): { resolve_expr(s, inner) }
+        EErr(nid, l, c, inner): { resolve_expr(s, inner) }
+        ECoerce(nid, l, c, inner): { resolve_expr(s, inner) }
+        ECast(nid, l, c, inner, tid): { resolve_expr(s, inner) }
+        EPropagate(nid, l, c, inner): { resolve_expr(s, inner) }
+        ETypeof(nid, l, c, inner): { resolve_expr(s, inner) }
+        ENullCoalesce(nid, l, c, left, right): {
+            resolve_expr(s, left)
+            resolve_expr(s, right)
+        }
+
+        EFString(nid, l, c, parts): {
+            let pi:int:mut = 0
+            while(pi < array.size(parts)) {
+                let part = array.get_any(parts, pi) ?? ast.FPText("")
+                if(ast.fsp_is_expr(part)) {
+                    resolve_expr(s, ast.fsp_get_expr(part))
+                }
+                pi = pi + 1
+            }
+        }
+
+        ECompositionChain(nid, l, c, elements): {
+            let ei:int:mut = 0
+            while(ei < array.size(elements)) {
+                let e = array.get_any(elements, ei) ?? default_chain_element()
+                if(e.id != 0) { resolve_expr(s, e.expr) }
+                ei = ei + 1
+            }
+        }
+        EFanOut(nid, l, c, branches, ip): {
+            let bi:int:mut = 0
+            while(bi < array.size(branches)) {
+                let b = array.get_any(branches, bi) ?? default_chain_element()
+                if(b.id != 0) { resolve_expr(s, b.expr) }
+                bi = bi + 1
+            }
+        }
+        ECoroutineStart(nid, l, c, call): { resolve_expr(s, call) }
+        ECoroutinePipeline(nid, l, c, stages): {
+            let si:int:mut = 0
+            while(si < array.size(stages)) {
+                let st = array.get_any(stages, si) ?? default_pipeline_stage()
+                if(st.id != 0) {
+                    resolve_expr(s, st.call)
+                    if(st.has_pool_size) { resolve_expr(s, st.pool_size) }
+                }
+                si = si + 1
+            }
+        }
+    }
+}
+
+fn resolve_exprs(s:ResolverState:mut, exprs:array<ast.Expr>):none {
+    let i:int:mut = 0
+    while(i < array.size(exprs)) {
+        match array.get_any(exprs, i) { some(e): { resolve_expr(s, e) } none: {} }
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Statement resolution
+// ---------------------------------------------------------------------------
+
+fn resolve_stmt(s:ResolverState:mut, stmt:ast.Stmt):none {
+    match stmt {
+        SLet(nid, l, c, name, has_ta, ta, value): {
+            resolve_expr(s, value)
+            define_or_error(s, name, make_symbol(name, SymbolKind.SK_LOCAL, nid, has_ta, ta, is_mut_binding(has_ta, ta)), l, c)
+        }
+        SAssign(nid, l, c, target, value): {
+            resolve_expr(s, value)
+            resolve_expr(s, target)
+            match target {
+                EIdent(tid, tl, tc, tn, tmp): {
+                    if(array.size(tmp) == 0) {
+                        match map.get(s.symbols, conv.to_string(tid)) {
+                            some(sym): {
+                                if(!sym.is_mut) { throw errors.resolve_error("cannot assign to immutable binding '" + tn + "'", s.filename, l, c) }
+                            }
+                            none: {}
+                        }
+                    }
+                }
+                _: {}
+            }
+        }
+        SUpdate(nid, l, c, target, op, has_val, value): {
+            resolve_expr(s, target)
+            if(has_val) { resolve_expr(s, value) }
+            match target {
+                EIdent(tid, tl, tc, tn, tmp): {
+                    if(array.size(tmp) == 0) {
+                        match map.get(s.symbols, conv.to_string(tid)) {
+                            some(sym): {
+                                if(!sym.is_mut) { throw errors.resolve_error("cannot apply '" + op + "' to immutable binding '" + tn + "'", s.filename, l, c) }
+                            }
+                            none: {}
+                        }
+                    }
+                }
+                _: {}
+            }
+        }
+        SReturn(nid, l, c, hv, value): { if(hv) { resolve_expr(s, value) } }
+        SYield(nid, l, c, value): {
+            if(!s.in_stream_fn) { throw errors.resolve_error("yield is only valid inside a stream function", s.filename, l, c) }
+            resolve_expr(s, value)
+        }
+        SThrow(nid, l, c, exc): { resolve_expr(s, exc) }
+        SBreak(nid, l, c): {}
+        SContinue(nid, l, c): {}
+        SExpr(nid, l, c, inner): { resolve_expr(s, inner) }
+        SIf(nid, l, c, cond, then_b, he, else_b): {
+            resolve_expr(s, cond)
+            resolve_block(s, then_b)
+            if(he) { resolve_block(s, else_b) }
+        }
+        SWhile(nid, l, c, cond, body, hf, fb): {
+            resolve_expr(s, cond)
+            resolve_block(s, body)
+            if(hf) { resolve_block(s, fb) }
+        }
+        SFor(nid, l, c, vn, hvt, vt, iterable, body, hf, fb): {
+            resolve_expr(s, iterable)
+            push_scope(s, false)
+            define_symbol(s, vn, make_symbol(vn, SymbolKind.SK_LOCAL, nid, hvt, vt, is_mut_binding(hvt, vt)))
+            resolve_stmts(s, body)
+            pop_scope(s)
+            if(hf) { resolve_block(s, fb) }
+        }
+        SMatch(nid, l, c, subject, arms): {
+            resolve_expr(s, subject)
+            resolve_match_arms(s, arms)
+        }
+        STry(nid, l, c, body, retry_blocks, catches, hf, fb): {
+            resolve_block(s, body)
+            let ri:int:mut = 0
+            while(ri < array.size(retry_blocks)) {
+                let rb = array.get_any(retry_blocks, ri) ?? default_retry_block()
+                if(rb.id != 0) { resolve_retry_block(s, rb) }
+                ri = ri + 1
+            }
+            let ci:int:mut = 0
+            while(ci < array.size(catches)) {
+                let cc = array.get_any(catches, ci) ?? default_catch_clause()
+                if(cc.id != 0) { resolve_catch_block(s, cc) }
+                ci = ci + 1
+            }
+            if(hf) { resolve_block(s, fb) }
+        }
+    }
+}
+
+fn resolve_stmts(s:ResolverState:mut, stmts:array<ast.Stmt>):none {
+    let i:int:mut = 0
+    while(i < array.size(stmts)) {
+        match array.get_any(stmts, i) { some(st): { resolve_stmt(s, st) } none: {} }
+        i = i + 1
+    }
+}
+
+fn resolve_block(s:ResolverState:mut, stmts:array<ast.Stmt>):none {
+    push_scope(s, false)
+    resolve_stmts(s, stmts)
+    pop_scope(s)
+}
+
+fn resolve_match_arms(s:ResolverState:mut, arms:array<ast.MatchArm>):none {
+    let i:int:mut = 0
+    while(i < array.size(arms)) {
+        let arm = array.get_any(arms, i) ?? default_match_arm()
+        if(arm.id != 0) {
+            push_scope(s, false)
+            resolve_pattern(s, arm.pattern)
+            resolve_stmts(s, arm.body_stmts)
+            pop_scope(s)
+        }
+        i = i + 1
+    }
+}
+
+fn resolve_pattern(s:ResolverState:mut, pat:ast.Pattern):none {
+    match pat {
+        PWildcard(pid, pl, pc): {}
+        PLiteral(pid, pl, pc, vid): {}
+        PBind(pid, pl, pc, name): { define_symbol(s, name, symbol_no_type(name, SymbolKind.SK_LOCAL, pid, false)) }
+        PSome(pid, pl, pc, iv): { define_symbol(s, iv, symbol_no_type(iv, SymbolKind.SK_LOCAL, pid, false)) }
+        PNone(pid, pl, pc): {}
+        POk(pid, pl, pc, iv): { define_symbol(s, iv, symbol_no_type(iv, SymbolKind.SK_LOCAL, pid, false)) }
+        PErr(pid, pl, pc, iv): { define_symbol(s, iv, symbol_no_type(iv, SymbolKind.SK_LOCAL, pid, false)) }
+        PVariant(pid, pl, pc, vn, bindings): {
+            let bi:int:mut = 0
+            while(bi < array.size(bindings)) {
+                let bn = array.get(bindings, bi) ?? ""
+                if(bn != "") { define_symbol(s, bn, symbol_no_type(bn, SymbolKind.SK_LOCAL, pid, false)) }
+                bi = bi + 1
+            }
+        }
+        PTuple(pid, pl, pc, elements): {
+            let ei:int:mut = 0
+            while(ei < array.size(elements)) {
+                match array.get_any(elements, ei) { some(e): { resolve_pattern(s, e) } none: {} }
+                ei = ei + 1
+            }
+        }
+    }
+}
+
+fn resolve_retry_block(s:ResolverState:mut, rb:ast.RetryBlock):none {
+    push_scope(s, false)
+    define_symbol(s, rb.exception_var, symbol_with_type(rb.exception_var, SymbolKind.SK_LOCAL, rb.id, rb.exception_type, true))
+    resolve_stmts(s, rb.body)
+    pop_scope(s)
+}
+
+fn resolve_catch_block(s:ResolverState:mut, cc:ast.CatchClause):none {
+    push_scope(s, false)
+    define_symbol(s, cc.exception_var, symbol_with_type(cc.exception_var, SymbolKind.SK_LOCAL, cc.id, cc.exception_type, false))
+    resolve_stmts(s, cc.body)
+    pop_scope(s)
+}
+
+// ---------------------------------------------------------------------------
+// Module scope building
+// ---------------------------------------------------------------------------
+
+fn build_module_scope(s:ResolverState:mut):ModuleScope {
+    let mp = join_path(s.src_module.path)
+    let exports:map<string, Symbol>:mut = map.new()
+    let i:int:mut = 0
+    while(i < array.size(s.src_module.decls)) {
+        match array.get_any(s.src_module.decls, i) {
+            some(decl): {
+                match decl {
+                    DFn(did, dl, dc, name, tp, params, hr, ret, body, ip, ie, is, hf, fb): {
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                    }
+                    DType(did, dl, dc, name, tp, fields, methods, constructors, statics, ifaces, ie, ism, variants, imu): {
+                        if(ie) {
+                            match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} }
+                            let ci:int:mut = 0
+                            while(ci < array.size(constructors)) {
+                                match array.get_any(constructors, ci) {
+                                    some(cd): {
+                                        match cd {
+                                            DConstructor(cid, cl, cc, cn, cp, cr, cb): {
+                                                match scope_lookup(s, cn) { some(cs): { exports = map.set(exports, cn, cs) } none: {} }
+                                            }
+                                            _: {}
+                                        }
+                                    }
+                                    none: {}
+                                }
+                                ci = ci + 1
+                            }
+                            if(ism) {
+                                let vi:int:mut = 0
+                                while(vi < array.size(variants)) {
+                                    let v = array.get_any(variants, vi) ?? default_sum_variant()
+                                    if(v.name != "") {
+                                        match scope_lookup(s, v.name) { some(vs): { exports = map.set(exports, v.name, vs) } none: {} }
+                                    }
+                                    vi = vi + 1
+                                }
+                            }
+                        }
+                    }
+                    DInterface(did, dl, dc, name, tp, methods, ie): {
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                    }
+                    DAlias(did, dl, dc, name, tp, target, ie): {
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                    }
+                    DEnum(did, dl, dc, name, variants, ie): {
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                    }
+                    DExternFn(did, dl, dc, name, tp, params, hr, ret, ie, cn): {
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                    }
+                    DExternType(did, dl, dc, name, ie): {
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                    }
+                    _: {}
+                }
+            }
+            none: {}
+        }
+        i = i + 1
+    }
+    return ModuleScope{module_path:mp, exports:exports}
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+export fn resolve(mod:ast.Module, filename:string, imported_modules:map<string, ModuleScope>):ResolvedModule {
+    let state:ResolverState:mut = ResolverState{
+        src_module:mod, filename:filename, imported_modules:imported_modules,
+        bind_names:[], bind_symbols:map.new(), bind_depths:[], binding_count:0,
+        frame_watermarks:[], frame_count:0, current_depth:0,
+        symbols:map.new(), captures:map.new(),
+        type_member_scopes:map.new(), static_member_scopes:map.new(),
+        in_method:false, in_constructor:false, in_stream_fn:false,
+        cap_lambda_ids:[], cap_entry_depths:[], cap_sym_counts:[], cap_sym_store:map.new(), cap_name_store:map.new(), cap_count:0
+    }
+    pre_pass(state)
+    resolve_imports(state)
+    build_type_member_scopes(state)
+    resolve_all_bodies(state)
+    let ms = build_module_scope(state)
+    return ResolvedModule{src_module:mod, symbols:state.symbols, captures:state.captures, mod_scope:ms}
+}

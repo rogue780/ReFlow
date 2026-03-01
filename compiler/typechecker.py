@@ -3239,6 +3239,14 @@ class TypeChecker:
                 and source.name == target.name):
             return True
 
+        # TSum assignable to TNamed (cross-module sum type reference)
+        if isinstance(source, TSum) and isinstance(target, TNamed):
+            if source.name == target.name:
+                return True
+        if isinstance(source, TNamed) and isinstance(target, TSum):
+            if source.name == target.name:
+                return True
+
         # TEnum → TInt: enum values are always assignable to int
         if isinstance(source, TEnum) and isinstance(target, TInt):
             return target.width >= 32 and target.signed
