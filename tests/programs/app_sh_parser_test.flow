@@ -1,0 +1,214 @@
+module tests.programs.app_sh_parser_test
+
+import io
+import conv
+import array
+import self_hosted.lexer
+import self_hosted.ast
+import self_hosted.parser
+import self_hosted.errors
+
+fn print_decl_kind(d:ast.Decl):none {
+    match d {
+        DModule(mid, ml, mc, path): { io.println("decl: module") }
+        DImport(did, dl, dc, path, names, imp_alias): { io.println("decl: import") }
+        DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
+            io.println("decl: fn " + name)
+        }
+        DType(did, dl, dc, name, tp, fields, meths, cstrs, statics, ifaces, is_exp, is_sum, vars, is_mut): {
+            io.println("decl: type " + name)
+        }
+        DInterface(did, dl, dc, name, tp, meths, is_exp): { io.println("decl: interface " + name) }
+        DAlias(did, dl, dc, name, tp, target, is_exp): { io.println("decl: alias " + name) }
+        DEnum(did, dl, dc, name, vars, is_exp): { io.println("decl: enum " + name) }
+        DExternFn(did, dl, dc, cname, params, ret, tp): { io.println("decl: extern fn " + cname) }
+        DExternLib(did, dl, dc, lib_name): { io.println("decl: extern lib " + lib_name) }
+        DExternType(did, dl, dc, name): { io.println("decl: extern type " + name) }
+        DConstructor(did, dl, dc, name, params, body): { io.println("decl: constructor") }
+        DStaticMember(did, dl, dc, name, type_ann, has_init, init_expr, is_mut): { io.println("decl: static") }
+    }
+}
+
+fn print_stmt_kind(s:ast.Stmt):none {
+    match s {
+        SLet(sid, sl, sc, name, is_mut, type_ann, val): { io.println("  stmt: let " + name) }
+        SReturn(sid, sl, sc, has_val, val): { io.println("  stmt: return") }
+        SIf(sid, sl, sc, cond, then_body, has_else, else_body): { io.println("  stmt: if") }
+        SWhile(sid, sl, sc, cond, body, has_fin, fin_body): { io.println("  stmt: while") }
+        SFor(sid, sl, sc, var_name, iter, body, has_fin, fin_body): { io.println("  stmt: for") }
+        SMatch(sid, sl, sc, subject, arms): { io.println("  stmt: match") }
+        SExpr(sid, sl, sc, expr): { io.println("  stmt: expr") }
+        SAssign(sid, sl, sc, target, val): { io.println("  stmt: assign") }
+        SUpdate(sid, sl, sc, target, op, has_val, val): { io.println("  stmt: update") }
+        SBreak(sid, sl, sc): { io.println("  stmt: break") }
+        SContinue(sid, sl, sc): { io.println("  stmt: continue") }
+        SYield(sid, sl, sc, val): { io.println("  stmt: yield") }
+        SThrow(sid, sl, sc, val): { io.println("  stmt: throw") }
+        STry(sid, sl, sc, body, catches, retries, has_fin, fin_body): { io.println("  stmt: try") }
+    }
+}
+
+fn main():int {
+    // Test 1: Parse a simple function with let + return
+    let src1 = "module test\nfn main():int {\n    let x:int = 42\n    return x\n}"
+    let tokens1 = lexer.tokenize(src1, "test.flow")
+    let result1 = parser.parse(tokens1, "test.flow")
+
+    io.println("decl count: " + conv.to_string(array.size(result1.parsed_module.decls)))
+
+    let d0 = array.get_any(result1.parsed_module.decls, 0)
+    match d0 {
+        some(decl): { print_decl_kind(decl) }
+        none: { io.println("no decl") }
+    }
+
+    // Check fn body statements
+    match d0 {
+        some(decl): {
+            match decl {
+                DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
+                    io.println("body stmts: " + conv.to_string(array.size(body)))
+                    let i:int:mut = 0
+                    while(i < array.size(body)) {
+                        let s = array.get_any(body, i)
+                        match s {
+                            some(stmt): { print_stmt_kind(stmt) }
+                            none: {}
+                        }
+                        i = i + 1
+                    }
+                }
+                _: {}
+            }
+        }
+        none: {}
+    }
+
+    // Test 2: Parse a type declaration with sum variants
+    io.println("---")
+    let src2 = "type Color = | Red | Green | Blue(r:int, g:int, b:int)"
+    let tokens2 = lexer.tokenize(src2, "test2.flow")
+    let result2:parser.ParseResult:mut = result1
+    try {
+        result2 = parser.parse(tokens2, "test2.flow")
+    } catch(e:errors.CompileError) {
+        io.println("parse error: " + errors.format(e))
+    }
+    let td = array.get_any(result2.parsed_module.decls, 0)
+    match td {
+        some(decl): {
+            print_decl_kind(decl)
+            match decl {
+                DType(did, dl, dc, name, tp, fields, meths, cstrs, statics, ifaces, is_exp, is_sum, vars, is_mut): {
+                    io.println("is_sum: " + conv.to_string(is_sum))
+                    io.println("variants: " + conv.to_string(array.size(vars)))
+                }
+                _: {}
+            }
+        }
+        none: { io.println("no decl") }
+    }
+
+    // Test 3: Parse if/else
+    io.println("---")
+    let src3 = "fn g():int {\n    if(true) {\n        return 1\n    } else {\n        return 0\n    }\n}"
+    let tokens3 = lexer.tokenize(src3, "test3.flow")
+    let result3 = parser.parse(tokens3, "test3.flow")
+    let gd = array.get_any(result3.parsed_module.decls, 0)
+    match gd {
+        some(decl): {
+            match decl {
+                DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
+                    let s0 = array.get_any(body, 0)
+                    match s0 {
+                        some(stmt): { print_stmt_kind(stmt) }
+                        none: {}
+                    }
+                }
+                _: {}
+            }
+        }
+        none: {}
+    }
+
+    // Test 4: Parse match
+    io.println("---")
+    let src4 = "fn h(x:int):string {\n    match x {\n        1: { return \"one\" }\n        _: { return \"other\" }\n    }\n}"
+    let tokens4 = lexer.tokenize(src4, "test4.flow")
+    let result4 = parser.parse(tokens4, "test4.flow")
+    let hd = array.get_any(result4.parsed_module.decls, 0)
+    match hd {
+        some(decl): {
+            match decl {
+                DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
+                    let s0 = array.get_any(body, 0)
+                    match s0 {
+                        some(stmt): { print_stmt_kind(stmt) }
+                        none: {}
+                    }
+                }
+                _: {}
+            }
+        }
+        none: {}
+    }
+
+    // Test 5: Parse while loop
+    io.println("---")
+    let src5 = "fn loop_fn():none {\n    let i:int:mut = 0\n    while(i < 10) {\n        i = i + 1\n    }\n}"
+    let tokens5 = lexer.tokenize(src5, "test5.flow")
+    let result5 = parser.parse(tokens5, "test5.flow")
+    let ld = array.get_any(result5.parsed_module.decls, 0)
+    match ld {
+        some(decl): {
+            print_decl_kind(decl)
+            match decl {
+                DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
+                    io.println("body stmts: " + conv.to_string(array.size(body)))
+                    let i:int:mut = 0
+                    while(i < array.size(body)) {
+                        let s = array.get_any(body, i)
+                        match s {
+                            some(stmt): { print_stmt_kind(stmt) }
+                            none: {}
+                        }
+                        i = i + 1
+                    }
+                }
+                _: {}
+            }
+        }
+        none: {}
+    }
+
+    // Test 6: Parse import
+    io.println("---")
+    let src6 = "module my.app\nimport io\nimport conv\nfn start():none {}"
+    let tokens6 = lexer.tokenize(src6, "test6.flow")
+    let result6 = parser.parse(tokens6, "test6.flow")
+    io.println("imports: " + conv.to_string(array.size(result6.parsed_module.imports)))
+    io.println("decls: " + conv.to_string(array.size(result6.parsed_module.decls)))
+
+    // Test 7: Parse struct type
+    io.println("---")
+    let src7 = "type Point {\n    x:float\n    y:float\n}"
+    let tokens7 = lexer.tokenize(src7, "test7.flow")
+    let result7 = parser.parse(tokens7, "test7.flow")
+    let pd = array.get_any(result7.parsed_module.decls, 0)
+    match pd {
+        some(decl): {
+            match decl {
+                DType(did, dl, dc, name, tp, fields, meths, cstrs, statics, ifaces, is_exp, is_sum, vars, is_mut): {
+                    io.println("struct: " + name)
+                    io.println("fields: " + conv.to_string(array.size(fields)))
+                    io.println("is_sum: " + conv.to_string(is_sum))
+                }
+                _: { io.println("not type") }
+            }
+        }
+        none: {}
+    }
+
+    io.println("ok")
+    return 0
+}

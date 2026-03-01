@@ -1,0 +1,26 @@
+decl count: 1
+decl: fn main
+body stmts: 2
+  stmt: let x
+  stmt: return
+---
+decl: type Color
+is_sum: true
+variants: 3
+---
+  stmt: if
+---
+  stmt: match
+---
+decl: fn loop_fn
+body stmts: 2
+  stmt: let i
+  stmt: while
+---
+imports: 2
+decls: 1
+---
+struct: Point
+fields: 2
+is_sum: false
+ok

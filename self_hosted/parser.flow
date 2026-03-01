@@ -1,0 +1,2363 @@
+module self_hosted.parser
+
+import string
+import char
+import conv
+import array
+import self_hosted.lexer
+import self_hosted.ast
+import self_hosted.errors
+
+// ---------------------------------------------------------------------------
+// ParseResult — returned from parse()
+// ---------------------------------------------------------------------------
+
+export type ParseResult {
+    parsed_module:ast.Module
+    literal_values:array<ast.Expr>
+    cast_targets:array<ast.TypeExpr>
+    sized_capacities:array<ast.Expr>
+}
+
+// ---------------------------------------------------------------------------
+// ParserState — mutable state passed to all functions
+// ---------------------------------------------------------------------------
+
+type ParserState:mut {
+    tokens:array<lexer.Token>:imut
+    filename:string:imut
+    token_count:int:imut
+    pos:int
+    next_id:int
+    has_error:bool
+    first_error:errors.CompileError
+    literal_values:array<ast.Expr>
+    cast_targets:array<ast.TypeExpr>
+    sized_capacities:array<ast.Expr>
+}
+
+// ---------------------------------------------------------------------------
+// Precedence constants
+// ---------------------------------------------------------------------------
+
+fn PREC_NONE():int { return 0 }
+fn PREC_COMPOSITION():int { return 1 }
+fn PREC_TERNARY():int { return 2 }
+fn PREC_NULL_COALESCE():int { return 3 }
+fn PREC_OR():int { return 4 }
+fn PREC_AND():int { return 5 }
+fn PREC_EQUALITY():int { return 6 }
+fn PREC_COMPARISON():int { return 7 }
+fn PREC_ADD():int { return 8 }
+fn PREC_MUL():int { return 9 }
+fn PREC_POWER():int { return 10 }
+fn PREC_UNARY():int { return 11 }
+fn PREC_POSTFIX():int { return 12 }
+
+// ---------------------------------------------------------------------------
+// Lookup helpers (replace Python dicts with if-chains)
+// ---------------------------------------------------------------------------
+
+fn infix_precedence(ttype:int):int {
+    if(ttype == lexer.TokenType.TK_ARROW) { return PREC_COMPOSITION() }
+    if(ttype == lexer.TokenType.TK_DOUBLE_QUESTION) { return PREC_NULL_COALESCE() }
+    if(ttype == lexer.TokenType.TK_OR) { return PREC_OR() }
+    if(ttype == lexer.TokenType.TK_AND) { return PREC_AND() }
+    if(ttype == lexer.TokenType.TK_DOUBLE_EQ) { return PREC_EQUALITY() }
+    if(ttype == lexer.TokenType.TK_NOT_EQ) { return PREC_EQUALITY() }
+    if(ttype == lexer.TokenType.TK_TRIPLE_EQ) { return PREC_EQUALITY() }
+    if(ttype == lexer.TokenType.TK_LT) { return PREC_COMPARISON() }
+    if(ttype == lexer.TokenType.TK_GT) { return PREC_COMPARISON() }
+    if(ttype == lexer.TokenType.TK_LT_EQ) { return PREC_COMPARISON() }
+    if(ttype == lexer.TokenType.TK_GT_EQ) { return PREC_COMPARISON() }
+    if(ttype == lexer.TokenType.TK_PLUS) { return PREC_ADD() }
+    if(ttype == lexer.TokenType.TK_MINUS) { return PREC_ADD() }
+    if(ttype == lexer.TokenType.TK_STAR) { return PREC_MUL() }
+    if(ttype == lexer.TokenType.TK_SLASH) { return PREC_MUL() }
+    if(ttype == lexer.TokenType.TK_FLOOR_DIV) { return PREC_MUL() }
+    if(ttype == lexer.TokenType.TK_PERCENT) { return PREC_MUL() }
+    if(ttype == lexer.TokenType.TK_DOUBLE_STAR) { return PREC_POWER() }
+    return 0
+}
+
+fn binop_str(ttype:int):string {
+    if(ttype == lexer.TokenType.TK_DOUBLE_QUESTION) { return "??" }
+    if(ttype == lexer.TokenType.TK_OR) { return "||" }
+    if(ttype == lexer.TokenType.TK_AND) { return "&&" }
+    if(ttype == lexer.TokenType.TK_DOUBLE_EQ) { return "==" }
+    if(ttype == lexer.TokenType.TK_NOT_EQ) { return "!=" }
+    if(ttype == lexer.TokenType.TK_TRIPLE_EQ) { return "===" }
+    if(ttype == lexer.TokenType.TK_LT) { return "<" }
+    if(ttype == lexer.TokenType.TK_GT) { return ">" }
+    if(ttype == lexer.TokenType.TK_LT_EQ) { return "<=" }
+    if(ttype == lexer.TokenType.TK_GT_EQ) { return ">=" }
+    if(ttype == lexer.TokenType.TK_PLUS) { return "+" }
+    if(ttype == lexer.TokenType.TK_MINUS) { return "-" }
+    if(ttype == lexer.TokenType.TK_STAR) { return "*" }
+    if(ttype == lexer.TokenType.TK_SLASH) { return "/" }
+    if(ttype == lexer.TokenType.TK_FLOOR_DIV) { return "</" }
+    if(ttype == lexer.TokenType.TK_PERCENT) { return "%" }
+    if(ttype == lexer.TokenType.TK_DOUBLE_STAR) { return "**" }
+    return "?"
+}
+
+fn is_recovery_token(ttype:int):bool {
+    if(ttype == lexer.TokenType.TK_LET) { return true }
+    if(ttype == lexer.TokenType.TK_FN) { return true }
+    if(ttype == lexer.TokenType.TK_IF) { return true }
+    if(ttype == lexer.TokenType.TK_WHILE) { return true }
+    if(ttype == lexer.TokenType.TK_FOR) { return true }
+    if(ttype == lexer.TokenType.TK_MATCH) { return true }
+    if(ttype == lexer.TokenType.TK_RETURN) { return true }
+    if(ttype == lexer.TokenType.TK_YIELD) { return true }
+    if(ttype == lexer.TokenType.TK_THROW) { return true }
+    if(ttype == lexer.TokenType.TK_BREAK) { return true }
+    if(ttype == lexer.TokenType.TK_TRY) { return true }
+    if(ttype == lexer.TokenType.TK_TYPE) { return true }
+    if(ttype == lexer.TokenType.TK_INTERFACE) { return true }
+    if(ttype == lexer.TokenType.TK_ALIAS) { return true }
+    if(ttype == lexer.TokenType.TK_IMPORT) { return true }
+    if(ttype == lexer.TokenType.TK_EXPORT) { return true }
+    if(ttype == lexer.TokenType.TK_RBRACE) { return true }
+    if(ttype == lexer.TokenType.TK_EOF) { return true }
+    return false
+}
+
+fn is_toplevel_token(ttype:int):bool {
+    if(ttype == lexer.TokenType.TK_FN) { return true }
+    if(ttype == lexer.TokenType.TK_TYPE) { return true }
+    if(ttype == lexer.TokenType.TK_INTERFACE) { return true }
+    if(ttype == lexer.TokenType.TK_ALIAS) { return true }
+    if(ttype == lexer.TokenType.TK_IMPORT) { return true }
+    if(ttype == lexer.TokenType.TK_EXPORT) { return true }
+    if(ttype == lexer.TokenType.TK_MODULE) { return true }
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// Utility helpers
+// ---------------------------------------------------------------------------
+
+fn fresh_id(s:ParserState:mut):int {
+    let id = s.next_id
+    s.next_id = s.next_id + 1
+    return id
+}
+
+fn placeholder_type():ast.TypeExpr {
+    return ast.TNamedType(0, 0, 0, "", [])
+}
+
+fn placeholder_expr():ast.Expr {
+    return ast.ENoneLit(0, 0, 0)
+}
+
+fn is_first_upper(name:string):bool {
+    if(string.len(name) == 0) { return false }
+    let ch = string.char_at(name, 0) ?? char.from_code(0)
+    let code = char.to_code(ch)
+    return code >= 65 && code <= 90
+}
+
+fn hex_to_int(s:string):int {
+    // Skip "0x" or "0X" prefix
+    let start:int:mut = 0
+    if(string.len(s) >= 2) {
+        let prefix = string.substring(s, 0, 2)
+        if(prefix == "0x" || prefix == "0X") {
+            start = 2
+        }
+    }
+    let result:int:mut = 0
+    let i:int:mut = start
+    while(i < string.len(s)) {
+        let ch = string.char_at(s, i) ?? char.from_code(0)
+        let code = char.to_code(ch)
+        let digit:int:mut = 0
+        if(code >= 48 && code <= 57) {
+            digit = code - 48
+        } else if(code >= 97 && code <= 102) {
+            digit = code - 87
+        } else if(code >= 65 && code <= 70) {
+            digit = code - 55
+        }
+        result = result * 16 + digit
+        i = i + 1
+    }
+    return result
+}
+
+fn error_at(s:ParserState:mut, msg:string, line:int, col:int):errors.CompileError {
+    return errors.parse_error(msg, s.filename, line, col)
+}
+
+fn error_here(s:ParserState:mut, msg:string):errors.CompileError {
+    let tok = peek(s)
+    return errors.parse_error(msg, s.filename, tok.line, tok.col)
+}
+
+// ---------------------------------------------------------------------------
+// Token navigation
+// ---------------------------------------------------------------------------
+
+fn get_token(s:ParserState, idx:int):lexer.Token {
+    if(idx >= s.token_count) {
+        return array.get_any(s.tokens, s.token_count - 1) ?? lexer.Token{ttype:lexer.TokenType.TK_EOF, value:"", line:0, col:0, file:s.filename}
+    }
+    return array.get_any(s.tokens, idx) ?? lexer.Token{ttype:lexer.TokenType.TK_EOF, value:"", line:0, col:0, file:s.filename}
+}
+
+fn skip_comments(s:ParserState:mut):none {
+    while(s.pos < s.token_count) {
+        let t = get_token(s, s.pos)
+        if(t.ttype == lexer.TokenType.TK_COMMENT || t.ttype == lexer.TokenType.TK_NEWLINE) {
+            s.pos = s.pos + 1
+        } else {
+            return
+        }
+    }
+}
+
+fn skip_newlines(s:ParserState:mut):none {
+    while(s.pos < s.token_count) {
+        let t = get_token(s, s.pos)
+        if(t.ttype == lexer.TokenType.TK_NEWLINE) {
+            s.pos = s.pos + 1
+        } else {
+            return
+        }
+    }
+}
+
+fn peek(s:ParserState:mut):lexer.Token {
+    skip_comments(s)
+    if(s.pos >= s.token_count) {
+        return get_token(s, s.token_count - 1)
+    }
+    return get_token(s, s.pos)
+}
+
+fn peek2(s:ParserState:mut):lexer.Token {
+    let saved = s.pos
+    skip_comments(s)
+    s.pos = s.pos + 1
+    skip_comments(s)
+    let tok = get_token(s, s.pos)
+    s.pos = saved
+    return tok
+}
+
+fn peek_raw(s:ParserState):lexer.Token {
+    if(s.pos >= s.token_count) {
+        return get_token(s, s.token_count - 1)
+    }
+    return get_token(s, s.pos)
+}
+
+fn advance(s:ParserState:mut):lexer.Token {
+    skip_comments(s)
+    if(s.pos >= s.token_count) {
+        return get_token(s, s.token_count - 1)
+    }
+    let tok = get_token(s, s.pos)
+    s.pos = s.pos + 1
+    return tok
+}
+
+fn expect(s:ParserState:mut, ttype:int):lexer.Token {
+    let tok = peek(s)
+    if(tok.ttype != ttype) {
+        throw error_at(s, "expected '" + lexer.token_type_name(ttype) + "' but found '" + tok.value + "'", tok.line, tok.col)
+    }
+    return advance(s)
+}
+
+fn check(s:ParserState:mut, ttype:int):bool {
+    return peek(s).ttype == ttype
+}
+
+fn match_token(s:ParserState:mut, ttype:int):bool {
+    if(check(s, ttype)) {
+        advance(s)
+        return true
+    }
+    return false
+}
+
+fn at_end(s:ParserState:mut):bool {
+    return peek(s).ttype == lexer.TokenType.TK_EOF
+}
+
+fn synchronize(s:ParserState:mut):none {
+    while(at_end(s) == false) {
+        let tok = peek(s)
+        if(is_recovery_token(tok.ttype)) {
+            return
+        }
+        advance(s)
+    }
+}
+
+fn is_stmt_terminator(s:ParserState:mut):bool {
+    let tok = peek(s)
+    if(tok.ttype == lexer.TokenType.TK_RBRACE) { return true }
+    if(tok.ttype == lexer.TokenType.TK_EOF) { return true }
+    if(tok.ttype == lexer.TokenType.TK_ELSE) { return true }
+    if(tok.ttype == lexer.TokenType.TK_CATCH) { return true }
+    if(tok.ttype == lexer.TokenType.TK_RETRY) { return true }
+    if(tok.ttype == lexer.TokenType.TK_FINALLY) { return true }
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// Forward declarations (needed for mutual recursion)
+// ---------------------------------------------------------------------------
+// In Flow all module-level functions are visible to each other,
+// so no explicit forward declarations are needed.
+
+// ---------------------------------------------------------------------------
+// Phase 2: Type expression parsers
+// ---------------------------------------------------------------------------
+
+fn parse_type_expr(s:ParserState:mut):ast.TypeExpr {
+    let base:ast.TypeExpr:mut = parse_base_type(s)
+
+    // Optional [N] capacity
+    if(check(s, lexer.TokenType.TK_LBRACKET)) {
+        let bracket_tok = advance(s)
+        let cap_expr = parse_expr(s)
+        expect(s, lexer.TokenType.TK_RBRACKET)
+        let cap_id = array.size(s.sized_capacities)
+        s.sized_capacities = array.push(s.sized_capacities, cap_expr)
+        base = ast.TSizedType(fresh_id(s), bracket_tok.line, bracket_tok.col, base, cap_id)
+    }
+
+    // Optional ? for option type
+    if(check(s, lexer.TokenType.TK_QUESTION)) {
+        let q_tok = advance(s)
+        base = ast.TOptionType(fresh_id(s), q_tok.line, q_tok.col, base)
+    }
+
+    // Optional :mut or :imut modifier
+    if(check(s, lexer.TokenType.TK_COLON)) {
+        let saved = s.pos
+        skip_comments(s)
+        let colon_pos = s.pos
+        s.pos = s.pos + 1
+        skip_comments(s)
+        let next_tok = get_token(s, s.pos)
+        s.pos = saved
+
+        if(next_tok.ttype == lexer.TokenType.TK_MUT) {
+            advance(s)
+            let mut_tok = advance(s)
+            base = ast.TMutType(fresh_id(s), mut_tok.line, mut_tok.col, base)
+        } else if(next_tok.ttype == lexer.TokenType.TK_IMUT) {
+            advance(s)
+            let imut_tok = advance(s)
+            base = ast.TImutType(fresh_id(s), imut_tok.line, imut_tok.col, base)
+        }
+    }
+
+    return base
+}
+
+fn parse_base_type(s:ParserState:mut):ast.TypeExpr {
+    let tok = peek(s)
+
+    if(tok.ttype == lexer.TokenType.TK_FN) {
+        return parse_fn_type(s)
+    }
+
+    if(tok.ttype == lexer.TokenType.TK_LPAREN) {
+        return parse_tuple_type(s)
+    }
+
+    if(tok.ttype == lexer.TokenType.TK_NONE) {
+        advance(s)
+        return ast.TNamedType(fresh_id(s), tok.line, tok.col, "none", [])
+    }
+
+    if(tok.ttype == lexer.TokenType.TK_RECORD) {
+        advance(s)
+        return ast.TNamedType(fresh_id(s), tok.line, tok.col, "record", [])
+    }
+
+    if(tok.ttype == lexer.TokenType.TK_IDENT || tok.ttype == lexer.TokenType.TK_SELF) {
+        return parse_named_or_generic_type(s)
+    }
+
+    throw error_at(s, "expected type expression but found '" + tok.value + "'", tok.line, tok.col)
+    return placeholder_type()
+}
+
+fn parse_fn_type(s:ParserState:mut):ast.TypeExpr {
+    let tok = expect(s, lexer.TokenType.TK_FN)
+    expect(s, lexer.TokenType.TK_LPAREN)
+
+    let params:array<ast.TypeExpr>:mut = []
+    if(check(s, lexer.TokenType.TK_RPAREN) == false) {
+        params = array.push(params, parse_type_expr(s))
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_RPAREN)) { break }
+            params = array.push(params, parse_type_expr(s))
+        }
+    }
+    expect(s, lexer.TokenType.TK_RPAREN)
+    expect(s, lexer.TokenType.TK_COLON)
+    let ret = parse_type_expr(s)
+
+    return ast.TFnType(fresh_id(s), tok.line, tok.col, params, ret)
+}
+
+fn parse_tuple_type(s:ParserState:mut):ast.TypeExpr {
+    let tok = expect(s, lexer.TokenType.TK_LPAREN)
+    let elements:array<ast.TypeExpr>:mut = []
+    if(check(s, lexer.TokenType.TK_RPAREN) == false) {
+        elements = array.push(elements, parse_type_expr(s))
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_RPAREN)) { break }
+            elements = array.push(elements, parse_type_expr(s))
+        }
+    }
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.TTupleType(fresh_id(s), tok.line, tok.col, elements)
+}
+
+fn parse_named_or_generic_type(s:ParserState:mut):ast.TypeExpr {
+    let first_tok = advance(s)
+    let module_path:array<string>:mut = []
+    let name:string:mut = first_tok.value
+
+    while(check(s, lexer.TokenType.TK_DOT)) {
+        advance(s)
+        let next_tok = expect(s, lexer.TokenType.TK_IDENT)
+        module_path = array.push(module_path, name)
+        name = next_tok.value
+    }
+
+    let base:ast.TypeExpr = ast.TNamedType(fresh_id(s), first_tok.line, first_tok.col, name, module_path)
+
+    if(check(s, lexer.TokenType.TK_LT)) {
+        let args = parse_type_args(s)
+        return ast.TGenericType(fresh_id(s), first_tok.line, first_tok.col, base, args)
+    }
+
+    return base
+}
+
+fn parse_type_args(s:ParserState:mut):array<ast.TypeExpr> {
+    expect(s, lexer.TokenType.TK_LT)
+    let args:array<ast.TypeExpr>:mut = []
+    if(check(s, lexer.TokenType.TK_GT) == false) {
+        args = array.push(args, parse_type_expr(s))
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_GT)) { break }
+            args = array.push(args, parse_type_expr(s))
+        }
+    }
+    expect(s, lexer.TokenType.TK_GT)
+    return args
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Declaration parsers
+// ---------------------------------------------------------------------------
+
+fn parse_module_decl(s:ParserState:mut):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_MODULE)
+    let path = parse_dotted_name(s)
+    return ast.DModule(fresh_id(s), tok.line, tok.col, path)
+}
+
+fn parse_dotted_name(s:ParserState:mut):array<string> {
+    let parts:array<string>:mut = []
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+    parts = array.push(parts, name_tok.value)
+    while(check(s, lexer.TokenType.TK_DOT)) {
+        advance(s)
+        let next_tok = expect(s, lexer.TokenType.TK_IDENT)
+        parts = array.push(parts, next_tok.value)
+    }
+    return parts
+}
+
+fn parse_import_decl(s:ParserState:mut):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_IMPORT)
+    let path = parse_dotted_name(s)
+
+    let names:array<string>:mut = []
+    let import_alias:string:mut = ""
+
+    if(check(s, lexer.TokenType.TK_LPAREN)) {
+        advance(s)
+        if(check(s, lexer.TokenType.TK_RPAREN) == false) {
+            let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+            names = array.push(names, name_tok.value)
+            while(check(s, lexer.TokenType.TK_COMMA)) {
+                advance(s)
+                let n2 = expect(s, lexer.TokenType.TK_IDENT)
+                names = array.push(names, n2.value)
+            }
+        }
+        expect(s, lexer.TokenType.TK_RPAREN)
+    } else if(check(s, lexer.TokenType.TK_AS)) {
+        advance(s)
+        let alias_tok = expect(s, lexer.TokenType.TK_IDENT)
+        import_alias = alias_tok.value
+    }
+
+    return ast.DImport(fresh_id(s), tok.line, tok.col, path, names, import_alias)
+}
+
+fn parse_fn_modifiers(s:ParserState:mut):array<bool> {
+    // Returns [is_pure, is_static] as 2-element bool array
+    let is_pure:bool:mut = false
+    let is_static:bool:mut = false
+
+    while(check(s, lexer.TokenType.TK_COLON)) {
+        let next_tok = peek2(s)
+        if(next_tok.ttype != lexer.TokenType.TK_PURE && next_tok.ttype != lexer.TokenType.TK_STATIC) {
+            break
+        }
+        advance(s)
+        let mod_tok = advance(s)
+        if(mod_tok.ttype == lexer.TokenType.TK_PURE) {
+            if(is_pure) {
+                throw error_at(s, "duplicate modifier ':pure'", mod_tok.line, mod_tok.col)
+            }
+            if(is_static) {
+                throw error_at(s, "wrong modifier order: use 'fn:pure:static' not 'fn:static:pure'", mod_tok.line, mod_tok.col)
+            }
+            is_pure = true
+        } else if(mod_tok.ttype == lexer.TokenType.TK_STATIC) {
+            if(is_static) {
+                throw error_at(s, "duplicate modifier ':static'", mod_tok.line, mod_tok.col)
+            }
+            is_static = true
+        }
+    }
+
+    let result:array<bool>:mut = []
+    result = array.push(result, is_pure)
+    result = array.push(result, is_static)
+    return result
+}
+
+fn parse_fn_decl(s:ParserState:mut, is_export:bool, allow_no_body:bool):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_FN)
+    let mods = parse_fn_modifiers(s)
+    let is_pure = array.get_any(mods, 0) ?? false
+    let is_static = array.get_any(mods, 1) ?? false
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+
+    let type_params:array<ast.TypeParam>:mut = []
+    if(check(s, lexer.TokenType.TK_LT)) {
+        type_params = parse_type_params(s)
+    }
+
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let params = parse_param_list(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+
+    let has_return_type:bool:mut = false
+    let return_type:ast.TypeExpr:mut = placeholder_type()
+    if(check(s, lexer.TokenType.TK_COLON)) {
+        advance(s)
+        return_type = parse_type_expr(s)
+        has_return_type = true
+    }
+
+    let body:array<ast.Stmt>:mut = []
+    let has_finally:bool:mut = false
+    let finally_body:array<ast.Stmt>:mut = []
+
+    if(check(s, lexer.TokenType.TK_LBRACE)) {
+        body = parse_block(s)
+        if(check(s, lexer.TokenType.TK_FINALLY)) {
+            advance(s)
+            finally_body = parse_block(s)
+            has_finally = true
+        }
+    } else if(check(s, lexer.TokenType.TK_ASSIGN)) {
+        advance(s)
+        let expr = parse_expr(s)
+        body = array.push(body, ast.SReturn(fresh_id(s), tok.line, tok.col, true, expr))
+    }
+    // else: no body (interface signature) — body stays empty
+
+    return ast.DFn(fresh_id(s), tok.line, tok.col, name_tok.value, type_params, params, has_return_type, return_type, body, is_pure, is_export, is_static, has_finally, finally_body)
+}
+
+fn parse_type_param(s:ParserState:mut):ast.TypeParam {
+    let tok = expect(s, lexer.TokenType.TK_IDENT)
+    let bounds:array<ast.TypeExpr>:mut = []
+    if(check(s, lexer.TokenType.TK_FULFILLS)) {
+        advance(s)
+        if(check(s, lexer.TokenType.TK_LPAREN)) {
+            advance(s)
+            bounds = array.push(bounds, parse_type_expr(s))
+            while(check(s, lexer.TokenType.TK_COMMA)) {
+                advance(s)
+                bounds = array.push(bounds, parse_type_expr(s))
+            }
+            expect(s, lexer.TokenType.TK_RPAREN)
+        } else {
+            bounds = array.push(bounds, parse_type_expr(s))
+        }
+    }
+    return ast.TypeParam{name:tok.value, bounds:bounds, id:fresh_id(s), line:tok.line, col:tok.col}
+}
+
+fn parse_type_params(s:ParserState:mut):array<ast.TypeParam> {
+    expect(s, lexer.TokenType.TK_LT)
+    let params:array<ast.TypeParam>:mut = []
+    if(check(s, lexer.TokenType.TK_GT) == false) {
+        params = array.push(params, parse_type_param(s))
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            params = array.push(params, parse_type_param(s))
+        }
+    }
+    expect(s, lexer.TokenType.TK_GT)
+    return params
+}
+
+fn parse_param_list(s:ParserState:mut):array<ast.Param> {
+    let params:array<ast.Param>:mut = []
+    if(check(s, lexer.TokenType.TK_RPAREN)) {
+        return params
+    }
+
+    let seen_default:bool:mut = false
+    let seen_variadic:bool:mut = false
+
+    if(check(s, lexer.TokenType.TK_SPREAD)) {
+        let spread_tok = advance(s)
+        let p = parse_param(s)
+        let vp = ast.Param{name:p.name, type_ann:p.type_ann, id:p.id, line:p.line, col:p.col, has_default:false, is_variadic:true}
+        seen_variadic = true
+        params = array.push(params, vp)
+    } else {
+        let p = parse_param(s)
+        params = array.push(params, p)
+        if(p.has_default) { seen_default = true }
+    }
+
+    while(check(s, lexer.TokenType.TK_COMMA)) {
+        advance(s)
+        if(check(s, lexer.TokenType.TK_RPAREN)) { break }
+        if(seen_variadic) {
+            throw error_here(s, "variadic parameter must be the last parameter")
+        }
+        if(check(s, lexer.TokenType.TK_SPREAD)) {
+            let spread_tok = advance(s)
+            let p = parse_param(s)
+            let vp = ast.Param{name:p.name, type_ann:p.type_ann, id:p.id, line:p.line, col:p.col, has_default:false, is_variadic:true}
+            seen_variadic = true
+            params = array.push(params, vp)
+        } else {
+            let p = parse_param(s)
+            if(seen_default && p.has_default == false) {
+                throw error_at(s, "parameter '" + p.name + "' must have a default value", p.line, p.col)
+            }
+            if(p.has_default) { seen_default = true }
+            params = array.push(params, p)
+        }
+    }
+    return params
+}
+
+fn parse_param(s:ParserState:mut):ast.Param {
+    let tok = peek(s)
+    if(tok.ttype == lexer.TokenType.TK_SELF) {
+        advance(s)
+        let self_type = ast.TNamedType(fresh_id(s), tok.line, tok.col, "self", [])
+        return ast.Param{name:"self", type_ann:self_type, id:fresh_id(s), line:tok.line, col:tok.col, has_default:false, is_variadic:false}
+    }
+
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+    expect(s, lexer.TokenType.TK_COLON)
+    let type_ann = parse_type_expr(s)
+
+    let has_default:bool:mut = false
+    if(check(s, lexer.TokenType.TK_ASSIGN)) {
+        advance(s)
+        let default_expr = parse_expr(s)
+        has_default = true
+        // Default expression is stored in literal_values via side table
+        let def_id = array.size(s.literal_values)
+        s.literal_values = array.push(s.literal_values, default_expr)
+    }
+
+    return ast.Param{name:name_tok.value, type_ann:type_ann, id:fresh_id(s), line:name_tok.line, col:name_tok.col, has_default:has_default, is_variadic:false}
+}
+
+fn parse_type_decl(s:ParserState:mut, is_export:bool):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_TYPE)
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+
+    let is_type_mut:bool:mut = false
+    if(check(s, lexer.TokenType.TK_COLON)) {
+        let next_tok = peek2(s)
+        if(next_tok.ttype == lexer.TokenType.TK_MUT) {
+            advance(s)
+            advance(s)
+            is_type_mut = true
+        }
+    }
+
+    let type_params:array<ast.TypeParam>:mut = []
+    if(check(s, lexer.TokenType.TK_LT)) {
+        type_params = parse_type_params(s)
+    }
+
+    let interfaces:array<ast.TypeExpr>:mut = []
+    if(check(s, lexer.TokenType.TK_FULFILLS)) {
+        advance(s)
+        interfaces = array.push(interfaces, parse_type_expr(s))
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            interfaces = array.push(interfaces, parse_type_expr(s))
+        }
+    }
+
+    if(check(s, lexer.TokenType.TK_ASSIGN)) {
+        return parse_sum_type(s, tok, name_tok.value, type_params, interfaces, is_export)
+    }
+
+    return parse_struct_type(s, tok, name_tok.value, type_params, interfaces, is_export, is_type_mut)
+}
+
+fn parse_sum_type(s:ParserState:mut, tok:lexer.Token, name:string, type_params:array<ast.TypeParam>, interfaces:array<ast.TypeExpr>, is_export:bool):ast.Decl {
+    expect(s, lexer.TokenType.TK_ASSIGN)
+    let variants:array<ast.SumVariantDecl>:mut = []
+    expect(s, lexer.TokenType.TK_PIPE)
+    variants = array.push(variants, parse_sum_variant(s))
+
+    while(check(s, lexer.TokenType.TK_PIPE)) {
+        advance(s)
+        variants = array.push(variants, parse_sum_variant(s))
+    }
+
+    return ast.DType(fresh_id(s), tok.line, tok.col, name, type_params, [], [], [], [], interfaces, is_export, true, variants, false)
+}
+
+fn parse_sum_variant(s:ParserState:mut):ast.SumVariantDecl {
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+    let fields:array<ast.Field>:mut = []
+
+    if(check(s, lexer.TokenType.TK_LPAREN)) {
+        advance(s)
+        if(check(s, lexer.TokenType.TK_RPAREN) == false) {
+            let fname = expect(s, lexer.TokenType.TK_IDENT)
+            expect(s, lexer.TokenType.TK_COLON)
+            let ftype = parse_type_expr(s)
+            fields = array.push(fields, ast.Field{name:fname.value, type_expr:ftype})
+
+            while(check(s, lexer.TokenType.TK_COMMA)) {
+                advance(s)
+                if(check(s, lexer.TokenType.TK_RPAREN)) { break }
+                let fname2 = expect(s, lexer.TokenType.TK_IDENT)
+                expect(s, lexer.TokenType.TK_COLON)
+                let ftype2 = parse_type_expr(s)
+                fields = array.push(fields, ast.Field{name:fname2.value, type_expr:ftype2})
+            }
+        }
+        expect(s, lexer.TokenType.TK_RPAREN)
+    }
+
+    return ast.SumVariantDecl{name:name_tok.value, fields:fields, id:fresh_id(s), line:name_tok.line, col:name_tok.col}
+}
+
+fn parse_struct_type(s:ParserState:mut, tok:lexer.Token, name:string, type_params:array<ast.TypeParam>, interfaces:array<ast.TypeExpr>, is_export:bool, is_type_mut:bool):ast.Decl {
+    expect(s, lexer.TokenType.TK_LBRACE)
+    let fields:array<ast.FieldDecl>:mut = []
+    let methods:array<ast.Decl>:mut = []
+    let constructors:array<ast.Decl>:mut = []
+    let static_members:array<ast.Decl>:mut = []
+
+    while(check(s, lexer.TokenType.TK_RBRACE) == false && at_end(s) == false) {
+        let member_tok = peek(s)
+
+        if(member_tok.ttype == lexer.TokenType.TK_STATIC) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_FN)) {
+                throw error_here(s, "use 'fn:static' instead of 'static fn'")
+            } else if(check(s, lexer.TokenType.TK_PURE)) {
+                throw error_here(s, "use 'fn:pure:static' instead of 'static pure fn'")
+            } else {
+                let sm = parse_static_member_body(s, member_tok)
+                static_members = array.push(static_members, sm)
+            }
+            match_token(s, lexer.TokenType.TK_COMMA)
+        } else if(member_tok.ttype == lexer.TokenType.TK_FN) {
+            let fn_decl = parse_fn_decl(s, false, false)
+            methods = array.push(methods, fn_decl)
+            match_token(s, lexer.TokenType.TK_COMMA)
+        } else if(member_tok.ttype == lexer.TokenType.TK_PURE) {
+            throw error_here(s, "use 'fn:pure' instead of 'pure fn'")
+        } else if(member_tok.ttype == lexer.TokenType.TK_CONSTRUCTOR) {
+            let ctor = parse_constructor_decl(s)
+            constructors = array.push(constructors, ctor)
+            match_token(s, lexer.TokenType.TK_COMMA)
+        } else if(member_tok.ttype == lexer.TokenType.TK_IDENT) {
+            let field = parse_field_decl(s, is_type_mut)
+            fields = array.push(fields, field)
+            match_token(s, lexer.TokenType.TK_COMMA)
+        } else {
+            throw error_at(s, "expected field, method, constructor, or static member but found '" + member_tok.value + "'", member_tok.line, member_tok.col)
+        }
+    }
+
+    expect(s, lexer.TokenType.TK_RBRACE)
+    return ast.DType(fresh_id(s), tok.line, tok.col, name, type_params, fields, methods, constructors, static_members, interfaces, is_export, false, [], is_type_mut)
+}
+
+fn parse_field_decl(s:ParserState:mut, type_is_mut:bool):ast.FieldDecl {
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+    expect(s, lexer.TokenType.TK_COLON)
+    let type_ann = parse_type_expr(s)
+
+    let is_mut:bool:mut = false
+    match type_ann {
+        TMutType(nid, l, c, inner): { is_mut = true }
+        TImutType(nid, l, c, inner): { is_mut = false }
+        _: {
+            if(type_is_mut) { is_mut = true }
+        }
+    }
+
+    return ast.FieldDecl{name:name_tok.value, type_ann:type_ann, is_mut:is_mut, id:fresh_id(s), line:name_tok.line, col:name_tok.col}
+}
+
+fn parse_constructor_decl(s:ParserState:mut):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_CONSTRUCTOR)
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let params = parse_param_list(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    expect(s, lexer.TokenType.TK_COLON)
+    let return_type = parse_type_expr(s)
+    let body = parse_block(s)
+    return ast.DConstructor(fresh_id(s), tok.line, tok.col, name_tok.value, params, return_type, body)
+}
+
+fn parse_static_member_body(s:ParserState:mut, static_tok:lexer.Token):ast.Decl {
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+    expect(s, lexer.TokenType.TK_COLON)
+    let type_ann = parse_type_expr(s)
+
+    let is_mut:bool:mut = false
+    match type_ann {
+        TMutType(nid, l, c, inner): { is_mut = true }
+        _: {}
+    }
+
+    let has_value:bool:mut = false
+    let value:ast.Expr:mut = placeholder_expr()
+    if(check(s, lexer.TokenType.TK_ASSIGN)) {
+        advance(s)
+        value = parse_expr(s)
+        has_value = true
+    }
+
+    return ast.DStaticMember(fresh_id(s), static_tok.line, static_tok.col, name_tok.value, type_ann, is_mut, has_value, value)
+}
+
+fn parse_interface_decl(s:ParserState:mut, is_export:bool):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_INTERFACE)
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+
+    let type_params:array<ast.TypeParam>:mut = []
+    if(check(s, lexer.TokenType.TK_LT)) {
+        type_params = parse_type_params(s)
+    }
+
+    expect(s, lexer.TokenType.TK_LBRACE)
+    let methods:array<ast.Decl>:mut = []
+
+    while(check(s, lexer.TokenType.TK_RBRACE) == false && at_end(s) == false) {
+        let member_tok = peek(s)
+        if(member_tok.ttype == lexer.TokenType.TK_FN) {
+            let fn_decl = parse_fn_decl(s, false, true)
+            methods = array.push(methods, fn_decl)
+            match_token(s, lexer.TokenType.TK_COMMA)
+        } else if(member_tok.ttype == lexer.TokenType.TK_PURE) {
+            throw error_here(s, "use 'fn:pure' instead of 'pure fn'")
+        } else if(member_tok.ttype == lexer.TokenType.TK_CONSTRUCTOR) {
+            let ctor = parse_constructor_sig(s)
+            methods = array.push(methods, ctor)
+            match_token(s, lexer.TokenType.TK_COMMA)
+        } else {
+            throw error_at(s, "expected method signature in interface but found '" + member_tok.value + "'", member_tok.line, member_tok.col)
+        }
+    }
+
+    expect(s, lexer.TokenType.TK_RBRACE)
+    return ast.DInterface(fresh_id(s), tok.line, tok.col, name_tok.value, type_params, methods, is_export)
+}
+
+fn parse_constructor_sig(s:ParserState:mut):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_CONSTRUCTOR)
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let params = parse_param_list(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    expect(s, lexer.TokenType.TK_COLON)
+    let return_type = parse_type_expr(s)
+    return ast.DConstructor(fresh_id(s), tok.line, tok.col, name_tok.value, params, return_type, [])
+}
+
+fn parse_alias_decl(s:ParserState:mut, is_export:bool):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_ALIAS)
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+
+    let type_params:array<ast.TypeParam>:mut = []
+    if(check(s, lexer.TokenType.TK_LT)) {
+        type_params = parse_type_params(s)
+    }
+
+    expect(s, lexer.TokenType.TK_COLON)
+    let target = parse_type_expr(s)
+    return ast.DAlias(fresh_id(s), tok.line, tok.col, name_tok.value, type_params, target, is_export)
+}
+
+fn parse_enum_decl(s:ParserState:mut, is_export:bool):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_ENUM)
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+    expect(s, lexer.TokenType.TK_LBRACE)
+    skip_newlines(s)
+
+    let variants:array<ast.EnumVariantDecl>:mut = []
+    while(check(s, lexer.TokenType.TK_RBRACE) == false) {
+        let v_tok = expect(s, lexer.TokenType.TK_IDENT)
+        let has_value:bool:mut = false
+        let value:int:mut = 0
+        if(check(s, lexer.TokenType.TK_ASSIGN)) {
+            advance(s)
+            let negative:bool:mut = false
+            if(check(s, lexer.TokenType.TK_MINUS)) {
+                negative = true
+                advance(s)
+            }
+            let val_tok = expect(s, lexer.TokenType.TK_INT_LIT)
+            value = conv.string_to_int(val_tok.value) ?? 0
+            if(negative) { value = 0 - value }
+            has_value = true
+        }
+        variants = array.push(variants, ast.EnumVariantDecl{name:v_tok.value, has_value:has_value, value:value, id:fresh_id(s), line:v_tok.line, col:v_tok.col})
+        skip_newlines(s)
+    }
+
+    if(array.size(variants) == 0) {
+        throw error_at(s, "enum must have at least one variant", tok.line, tok.col)
+    }
+
+    expect(s, lexer.TokenType.TK_RBRACE)
+    return ast.DEnum(fresh_id(s), tok.line, tok.col, name_tok.value, variants, is_export)
+}
+
+fn parse_extern_decl(s:ParserState:mut, is_export:bool):ast.Decl {
+    let tok = expect(s, lexer.TokenType.TK_EXTERN)
+    let next_tok = peek(s)
+
+    if(next_tok.ttype == lexer.TokenType.TK_IDENT && next_tok.value == "lib") {
+        if(is_export) {
+            throw error_at(s, "'export extern lib' is not allowed", tok.line, tok.col)
+        }
+        advance(s)
+        let lib_tok = expect(s, lexer.TokenType.TK_STRING_LIT)
+        return ast.DExternLib(fresh_id(s), tok.line, tok.col, lib_tok.value)
+    }
+
+    if(next_tok.ttype == lexer.TokenType.TK_TYPE) {
+        advance(s)
+        let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+        return ast.DExternType(fresh_id(s), tok.line, tok.col, name_tok.value, is_export)
+    }
+
+    if(next_tok.ttype == lexer.TokenType.TK_FN) {
+        return parse_extern_fn_decl(s, tok, is_export)
+    }
+
+    throw error_at(s, "expected 'lib', 'type', or 'fn' after 'extern' but found '" + next_tok.value + "'", next_tok.line, next_tok.col)
+    return ast.DExternLib(fresh_id(s), tok.line, tok.col, "")
+}
+
+fn parse_extern_fn_decl(s:ParserState:mut, extern_tok:lexer.Token, is_export:bool):ast.Decl {
+    expect(s, lexer.TokenType.TK_FN)
+
+    let c_name:string:mut = ""
+    if(check(s, lexer.TokenType.TK_STRING_LIT)) {
+        let cn_tok = advance(s)
+        c_name = cn_tok.value
+    }
+
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+
+    let type_params:array<ast.TypeParam>:mut = []
+    if(check(s, lexer.TokenType.TK_LT)) {
+        type_params = parse_type_params(s)
+    }
+
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let params = parse_param_list(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+
+    let has_return_type:bool:mut = false
+    let return_type:ast.TypeExpr:mut = placeholder_type()
+    if(check(s, lexer.TokenType.TK_COLON)) {
+        advance(s)
+        return_type = parse_type_expr(s)
+        has_return_type = true
+    }
+
+    return ast.DExternFn(fresh_id(s), extern_tok.line, extern_tok.col, name_tok.value, type_params, params, has_return_type, return_type, is_export, c_name)
+}
+
+fn parse_top_level_decl(s:ParserState:mut):ast.Decl {
+    let tok:lexer.Token:mut = peek(s)
+
+    let is_export:bool:mut = false
+    if(tok.ttype == lexer.TokenType.TK_EXPORT) {
+        is_export = true
+        advance(s)
+        tok = peek(s)
+    }
+
+    if(tok.ttype == lexer.TokenType.TK_FN) {
+        return parse_fn_decl(s, is_export, false)
+    }
+    if(tok.ttype == lexer.TokenType.TK_PURE) {
+        throw error_here(s, "use 'fn:pure' instead of 'pure fn'")
+    }
+    if(tok.ttype == lexer.TokenType.TK_TYPE) {
+        return parse_type_decl(s, is_export)
+    }
+    if(tok.ttype == lexer.TokenType.TK_INTERFACE) {
+        return parse_interface_decl(s, is_export)
+    }
+    if(tok.ttype == lexer.TokenType.TK_ALIAS) {
+        return parse_alias_decl(s, is_export)
+    }
+    if(tok.ttype == lexer.TokenType.TK_EXTERN) {
+        return parse_extern_decl(s, is_export)
+    }
+    if(tok.ttype == lexer.TokenType.TK_ENUM) {
+        return parse_enum_decl(s, is_export)
+    }
+    if(tok.ttype == lexer.TokenType.TK_IMPORT) {
+        return parse_import_decl(s)
+    }
+    throw error_at(s, "expected top-level declaration but found '" + tok.value + "'", tok.line, tok.col)
+    return ast.DModule(0, 0, 0, [])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: Statement parsers
+// ---------------------------------------------------------------------------
+
+fn parse_block(s:ParserState:mut):array<ast.Stmt> {
+    expect(s, lexer.TokenType.TK_LBRACE)
+    let stmts:array<ast.Stmt>:mut = []
+
+    while(check(s, lexer.TokenType.TK_RBRACE) == false && at_end(s) == false) {
+        if(is_toplevel_token(peek(s).ttype)) {
+            break
+        }
+        let pos_before = s.pos
+        try {
+            let stmt = parse_stmt(s)
+            stmts = array.push(stmts, stmt)
+        } catch(e:errors.CompileError) {
+            if(s.has_error == false) {
+                s.has_error = true
+                s.first_error = errors.parse_error(e.message, s.filename, peek(s).line, peek(s).col)
+            }
+            synchronize(s)
+            if(s.pos <= pos_before) {
+                advance(s)
+            }
+        }
+    }
+
+    expect(s, lexer.TokenType.TK_RBRACE)
+    return stmts
+}
+
+fn parse_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = peek(s)
+
+    if(tok.ttype == lexer.TokenType.TK_LET) { return parse_let_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_IF) { return parse_if_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_WHILE) { return parse_while_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_FOR) { return parse_for_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_MATCH) { return parse_match_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_TRY) { return parse_try_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_RETURN) { return parse_return_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_YIELD) { return parse_yield_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_THROW) { return parse_throw_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_BREAK) { return parse_break_stmt(s) }
+    if(tok.ttype == lexer.TokenType.TK_CONTINUE) { return parse_continue_stmt(s) }
+    return parse_expr_or_assign_stmt(s)
+}
+
+fn parse_let_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_LET)
+    let name_tok = expect(s, lexer.TokenType.TK_IDENT)
+
+    // Check for coroutine start: let b :< expr
+    if(check(s, lexer.TokenType.TK_COROUTINE)) {
+        let coro_tok = advance(s)
+        let call_expr = parse_pratt(s, PREC_UNARY())
+
+        // Check for * N pool size on first stage
+        let has_pool:bool:mut = false
+        let pool_size:ast.Expr:mut = placeholder_expr()
+        if(check(s, lexer.TokenType.TK_STAR)) {
+            advance(s)
+            pool_size = parse_pratt(s, PREC_UNARY())
+            has_pool = true
+        }
+
+        // Check for pipeline: -> next_call [* N] -> ...
+        if(check(s, lexer.TokenType.TK_ARROW) || has_pool) {
+            let stages:array<ast.PipelineStage>:mut = []
+            stages = array.push(stages, ast.PipelineStage{call:call_expr, has_pool_size:has_pool, pool_size:pool_size, id:fresh_id(s), line:coro_tok.line, col:coro_tok.col})
+            while(check(s, lexer.TokenType.TK_ARROW)) {
+                advance(s)
+                let next_call = parse_pratt(s, PREC_UNARY())
+                let stage_has_pool:bool:mut = false
+                let stage_pool:ast.Expr:mut = placeholder_expr()
+                if(check(s, lexer.TokenType.TK_STAR)) {
+                    advance(s)
+                    stage_pool = parse_pratt(s, PREC_UNARY())
+                    stage_has_pool = true
+                }
+                stages = array.push(stages, ast.PipelineStage{call:next_call, has_pool_size:stage_has_pool, pool_size:stage_pool, id:fresh_id(s), line:ast.expr_line(next_call), col:ast.expr_col(next_call)})
+            }
+            let coro_expr:ast.Expr = ast.ECoroutinePipeline(fresh_id(s), coro_tok.line, coro_tok.col, stages)
+            return ast.SLet(fresh_id(s), tok.line, tok.col, name_tok.value, false, placeholder_type(), coro_expr)
+        } else {
+            let coro_expr:ast.Expr = ast.ECoroutineStart(fresh_id(s), coro_tok.line, coro_tok.col, call_expr)
+            return ast.SLet(fresh_id(s), tok.line, tok.col, name_tok.value, false, placeholder_type(), coro_expr)
+        }
+    }
+
+    // Optional type annotation
+    let has_type_ann:bool:mut = false
+    let type_ann:ast.TypeExpr:mut = placeholder_type()
+    if(check(s, lexer.TokenType.TK_COLON)) {
+        advance(s)
+        type_ann = parse_type_expr(s)
+        has_type_ann = true
+    }
+
+    expect(s, lexer.TokenType.TK_ASSIGN)
+    let value = parse_expr(s)
+    return ast.SLet(fresh_id(s), tok.line, tok.col, name_tok.value, has_type_ann, type_ann, value)
+}
+
+fn parse_if_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_IF)
+    expect(s, lexer.TokenType.TK_LPAREN)
+
+    // if (let ...) — desugar to SMatch
+    if(check(s, lexer.TokenType.TK_LET)) {
+        return parse_if_let(s, tok)
+    }
+
+    let condition = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    let then_stmts = parse_block(s)
+
+    let has_else:bool:mut = false
+    let else_stmts:array<ast.Stmt>:mut = []
+    if(check(s, lexer.TokenType.TK_ELSE)) {
+        advance(s)
+        has_else = true
+        if(check(s, lexer.TokenType.TK_IF)) {
+            let nested_if = parse_if_stmt(s)
+            else_stmts = array.push(else_stmts, nested_if)
+        } else {
+            else_stmts = parse_block(s)
+        }
+    }
+
+    return ast.SIf(fresh_id(s), tok.line, tok.col, condition, then_stmts, has_else, else_stmts)
+}
+
+fn parse_if_let(s:ParserState:mut, if_tok:lexer.Token):ast.Stmt {
+    advance(s)  // consume LET
+    let pattern = parse_pattern(s)
+    expect(s, lexer.TokenType.TK_ASSIGN)
+    let subject = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    let then_stmts = parse_block(s)
+
+    let else_stmts:array<ast.Stmt>:mut = []
+    if(check(s, lexer.TokenType.TK_ELSE)) {
+        advance(s)
+        else_stmts = parse_block(s)
+    }
+
+    let complement = complement_pattern(s, pattern, if_tok)
+
+    let arms:array<ast.MatchArm>:mut = []
+    arms = array.push(arms, ast.MatchArm{pattern:pattern, body_stmts:then_stmts, id:fresh_id(s), line:if_tok.line, col:if_tok.col})
+    arms = array.push(arms, ast.MatchArm{pattern:complement, body_stmts:else_stmts, id:fresh_id(s), line:if_tok.line, col:if_tok.col})
+
+    return ast.SMatch(fresh_id(s), if_tok.line, if_tok.col, subject, arms)
+}
+
+fn complement_pattern(s:ParserState:mut, pattern:ast.Pattern, tok:lexer.Token):ast.Pattern {
+    match pattern {
+        PSome(pid, pl, pc, iv): { return ast.PNone(fresh_id(s), tok.line, tok.col) }
+        PNone(pid, pl, pc): { return ast.PSome(fresh_id(s), tok.line, tok.col, "_") }
+        POk(pid, pl, pc, iv): { return ast.PErr(fresh_id(s), tok.line, tok.col, "_") }
+        PErr(pid, pl, pc, iv): { return ast.POk(fresh_id(s), tok.line, tok.col, "_") }
+        _: { return ast.PWildcard(fresh_id(s), tok.line, tok.col) }
+    }
+}
+
+fn parse_while_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_WHILE)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let condition = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    let body = parse_block(s)
+
+    let has_finally:bool:mut = false
+    let finally_body:array<ast.Stmt>:mut = []
+    if(check(s, lexer.TokenType.TK_FINALLY)) {
+        advance(s)
+        finally_body = parse_block(s)
+        has_finally = true
+    }
+
+    return ast.SWhile(fresh_id(s), tok.line, tok.col, condition, body, has_finally, finally_body)
+}
+
+fn parse_for_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_FOR)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let var_tok = expect(s, lexer.TokenType.TK_IDENT)
+
+    let has_var_type:bool:mut = false
+    let var_type:ast.TypeExpr:mut = placeholder_type()
+    if(check(s, lexer.TokenType.TK_COLON)) {
+        advance(s)
+        var_type = parse_type_expr(s)
+        has_var_type = true
+    }
+
+    expect(s, lexer.TokenType.TK_IN)
+    let iterable = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    let body = parse_block(s)
+
+    let has_finally:bool:mut = false
+    let finally_body:array<ast.Stmt>:mut = []
+    if(check(s, lexer.TokenType.TK_FINALLY)) {
+        advance(s)
+        finally_body = parse_block(s)
+        has_finally = true
+    }
+
+    return ast.SFor(fresh_id(s), tok.line, tok.col, var_tok.value, has_var_type, var_type, iterable, body, has_finally, finally_body)
+}
+
+fn parse_match_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_MATCH)
+    let subject = parse_expr(s)
+    expect(s, lexer.TokenType.TK_LBRACE)
+
+    let arms:array<ast.MatchArm>:mut = []
+    while(check(s, lexer.TokenType.TK_RBRACE) == false && at_end(s) == false) {
+        let arm = parse_match_arm(s)
+        arms = array.push(arms, arm)
+        match_token(s, lexer.TokenType.TK_COMMA)
+    }
+
+    expect(s, lexer.TokenType.TK_RBRACE)
+    return ast.SMatch(fresh_id(s), tok.line, tok.col, subject, arms)
+}
+
+fn parse_match_arm(s:ParserState:mut):ast.MatchArm {
+    let pattern = parse_pattern(s)
+    expect(s, lexer.TokenType.TK_COLON)
+
+    let body_stmts:array<ast.Stmt>:mut = []
+    if(check(s, lexer.TokenType.TK_LBRACE)) {
+        body_stmts = parse_block(s)
+    } else {
+        let expr = parse_expr(s)
+        body_stmts = array.push(body_stmts, ast.SExpr(fresh_id(s), ast.expr_line(expr), ast.expr_col(expr), expr))
+    }
+
+    return ast.MatchArm{pattern:pattern, body_stmts:body_stmts, id:fresh_id(s), line:ast.pattern_line(pattern), col:ast.pattern_col(pattern)}
+}
+
+fn parse_try_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_TRY)
+    let body = parse_block(s)
+
+    let retry_blocks:array<ast.RetryBlock>:mut = []
+    while(check(s, lexer.TokenType.TK_RETRY)) {
+        retry_blocks = array.push(retry_blocks, parse_retry_block(s))
+    }
+
+    let catches:array<ast.CatchClause>:mut = []
+    while(check(s, lexer.TokenType.TK_CATCH)) {
+        catches = array.push(catches, parse_catch_block(s))
+    }
+
+    let has_finally:bool:mut = false
+    let finally_body:array<ast.Stmt>:mut = []
+    if(check(s, lexer.TokenType.TK_FINALLY)) {
+        advance(s)
+        finally_body = parse_block(s)
+        has_finally = true
+    }
+
+    return ast.STry(fresh_id(s), tok.line, tok.col, body, retry_blocks, catches, has_finally, finally_body)
+}
+
+fn parse_retry_block(s:ParserState:mut):ast.RetryBlock {
+    let tok = expect(s, lexer.TokenType.TK_RETRY)
+    let target_fn_tok = expect(s, lexer.TokenType.TK_IDENT)
+
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let ex_var_tok = expect(s, lexer.TokenType.TK_IDENT)
+    expect(s, lexer.TokenType.TK_COLON)
+    let ex_type = parse_type_expr(s)
+
+    let has_attempts:bool:mut = false
+    let attempts:ast.Expr:mut = placeholder_expr()
+    if(check(s, lexer.TokenType.TK_COMMA)) {
+        advance(s)
+        expect(s, lexer.TokenType.TK_IDENT)  // "attempts"
+        expect(s, lexer.TokenType.TK_COLON)
+        attempts = parse_expr(s)
+        has_attempts = true
+    }
+
+    expect(s, lexer.TokenType.TK_RPAREN)
+    let body = parse_block(s)
+
+    return ast.RetryBlock{target_fn:target_fn_tok.value, exception_var:ex_var_tok.value, exception_type:ex_type, has_attempts:has_attempts, attempts:attempts, body:body, id:fresh_id(s), line:tok.line, col:tok.col}
+}
+
+fn parse_catch_block(s:ParserState:mut):ast.CatchClause {
+    let tok = expect(s, lexer.TokenType.TK_CATCH)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let ex_var_tok = expect(s, lexer.TokenType.TK_IDENT)
+    expect(s, lexer.TokenType.TK_COLON)
+    let ex_type = parse_type_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    let body = parse_block(s)
+    return ast.CatchClause{exception_var:ex_var_tok.value, exception_type:ex_type, body:body, id:fresh_id(s), line:tok.line, col:tok.col}
+}
+
+fn parse_return_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_RETURN)
+    if(is_stmt_terminator(s)) {
+        return ast.SReturn(fresh_id(s), tok.line, tok.col, false, placeholder_expr())
+    }
+    let value = parse_expr(s)
+    return ast.SReturn(fresh_id(s), tok.line, tok.col, true, value)
+}
+
+fn parse_yield_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_YIELD)
+    let value = parse_expr(s)
+    return ast.SYield(fresh_id(s), tok.line, tok.col, value)
+}
+
+fn parse_throw_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_THROW)
+    let exception = parse_expr(s)
+    return ast.SThrow(fresh_id(s), tok.line, tok.col, exception)
+}
+
+fn parse_break_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_BREAK)
+    return ast.SBreak(fresh_id(s), tok.line, tok.col)
+}
+
+fn parse_continue_stmt(s:ParserState:mut):ast.Stmt {
+    let tok = expect(s, lexer.TokenType.TK_CONTINUE)
+    return ast.SContinue(fresh_id(s), tok.line, tok.col)
+}
+
+fn parse_expr_or_assign_stmt(s:ParserState:mut):ast.Stmt {
+    let expr = parse_expr(s)
+    let tok = peek(s)
+
+    // Assignment: expr = value
+    if(tok.ttype == lexer.TokenType.TK_ASSIGN) {
+        advance(s)
+        let value = parse_expr(s)
+        let el = ast.expr_line(expr)
+        let ec = ast.expr_col(expr)
+        return ast.SAssign(fresh_id(s), el, ec, expr, value)
+    }
+
+    let el = ast.expr_line(expr)
+    let ec = ast.expr_col(expr)
+
+    // Update operators: +=, -=, *=, /=
+    if(tok.ttype == lexer.TokenType.TK_PLUS_ASSIGN) {
+        advance(s)
+        let value = parse_expr(s)
+        return ast.SUpdate(fresh_id(s), el, ec, expr, "+=", true, value)
+    }
+    if(tok.ttype == lexer.TokenType.TK_MINUS_ASSIGN) {
+        advance(s)
+        let value = parse_expr(s)
+        return ast.SUpdate(fresh_id(s), el, ec, expr, "-=", true, value)
+    }
+    if(tok.ttype == lexer.TokenType.TK_STAR_ASSIGN) {
+        advance(s)
+        let value = parse_expr(s)
+        return ast.SUpdate(fresh_id(s), el, ec, expr, "*=", true, value)
+    }
+    if(tok.ttype == lexer.TokenType.TK_SLASH_ASSIGN) {
+        advance(s)
+        let value = parse_expr(s)
+        return ast.SUpdate(fresh_id(s), el, ec, expr, "/=", true, value)
+    }
+
+    // Increment/decrement: ++, --
+    if(tok.ttype == lexer.TokenType.TK_INCREMENT) {
+        advance(s)
+        return ast.SUpdate(fresh_id(s), el, ec, expr, "++", false, placeholder_expr())
+    }
+    if(tok.ttype == lexer.TokenType.TK_DECREMENT) {
+        advance(s)
+        return ast.SUpdate(fresh_id(s), el, ec, expr, "--", false, placeholder_expr())
+    }
+
+    return ast.SExpr(fresh_id(s), el, ec, expr)
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5: Expression parsers — Pratt core
+// ---------------------------------------------------------------------------
+
+fn parse_expr(s:ParserState:mut):ast.Expr {
+    return parse_pratt(s, PREC_NONE())
+}
+
+fn parse_pratt(s:ParserState:mut, min_prec:int):ast.Expr {
+    let left:ast.Expr:mut = parse_prefix(s)
+
+    while(true) {
+        let tok = peek(s)
+
+        // Composition chain: ->
+        if(tok.ttype == lexer.TokenType.TK_ARROW && min_prec < PREC_COMPOSITION()) {
+            left = parse_composition_chain(s, left)
+            continue
+        }
+
+        // Ternary: expr ? then_expr : else_expr
+        if(tok.ttype == lexer.TokenType.TK_QUESTION && min_prec < PREC_TERNARY()) {
+            if(is_ternary(s)) {
+                left = parse_ternary(s, left)
+                continue
+            }
+        }
+
+        // Null coalesce: ??
+        if(tok.ttype == lexer.TokenType.TK_DOUBLE_QUESTION && min_prec < PREC_NULL_COALESCE()) {
+            advance(s)
+            let right = parse_pratt(s, PREC_NULL_COALESCE())
+            left = ast.ENullCoalesce(fresh_id(s), tok.line, tok.col, left, right)
+            continue
+        }
+
+        // Binary operators
+        let prec = infix_precedence(tok.ttype)
+        if(prec > 0 && prec > min_prec) {
+            // Right-associative for **
+            if(tok.ttype == lexer.TokenType.TK_DOUBLE_STAR) {
+                advance(s)
+                let right = parse_pratt(s, prec - 1)
+                let op_s = binop_str(tok.ttype)
+                left = ast.EBinOp(fresh_id(s), tok.line, tok.col, op_s, left, right)
+                continue
+            }
+            // Skip ARROW — handled above as composition chain
+            if(tok.ttype != lexer.TokenType.TK_ARROW) {
+                advance(s)
+                let right = parse_pratt(s, prec)
+                let op_s = binop_str(tok.ttype)
+                left = ast.EBinOp(fresh_id(s), tok.line, tok.col, op_s, left, right)
+                continue
+            }
+        }
+
+        // Postfix operators (high precedence)
+        if(min_prec < PREC_POSTFIX()) {
+            // Propagation: expr?
+            if(tok.ttype == lexer.TokenType.TK_QUESTION && is_ternary(s) == false) {
+                advance(s)
+                left = ast.EPropagate(fresh_id(s), tok.line, tok.col, left)
+                continue
+            }
+
+            // Field/method access: expr.name or expr.name(args)
+            if(tok.ttype == lexer.TokenType.TK_DOT) {
+                advance(s)
+                let field_tok = peek(s)
+                if(field_tok.ttype == lexer.TokenType.TK_INT_LIT) {
+                    // Tuple index: expr.0
+                    let idx_tok = advance(s)
+                    left = ast.EFieldAccess(fresh_id(s), tok.line, tok.col, left, idx_tok.value)
+                } else {
+                    let ft = expect(s, lexer.TokenType.TK_IDENT)
+                    if(check(s, lexer.TokenType.TK_LPAREN)) {
+                        advance(s)
+                        let args = parse_arg_list(s)
+                        expect(s, lexer.TokenType.TK_RPAREN)
+                        left = ast.EMethodCall(fresh_id(s), tok.line, tok.col, left, ft.value, args)
+                    } else {
+                        left = ast.EFieldAccess(fresh_id(s), tok.line, tok.col, left, ft.value)
+                    }
+                }
+                continue
+            }
+
+            // Function call: expr(args)
+            if(tok.ttype == lexer.TokenType.TK_LPAREN) {
+                advance(s)
+                let args = parse_arg_list(s)
+                expect(s, lexer.TokenType.TK_RPAREN)
+                left = ast.ECall(fresh_id(s), tok.line, tok.col, left, args)
+                continue
+            }
+
+            // Index access: expr[index]
+            if(tok.ttype == lexer.TokenType.TK_LBRACKET) {
+                advance(s)
+                let index = parse_expr(s)
+                expect(s, lexer.TokenType.TK_RBRACKET)
+                left = ast.EIndexAccess(fresh_id(s), tok.line, tok.col, left, index)
+                continue
+            }
+        }
+
+        break
+    }
+
+    return left
+}
+
+fn is_ternary(s:ParserState:mut):bool {
+    let saved = s.pos
+    let saved_next_id = s.next_id
+    let saved_has_error = s.has_error
+    let saved_literals = s.literal_values
+    let saved_casts = s.cast_targets
+    let saved_caps = s.sized_capacities
+
+    let result:bool:mut = false
+    try {
+        skip_comments(s)
+        s.pos = s.pos + 1  // skip ?
+        skip_comments(s)
+
+        let next_tok = get_token(s, s.pos)
+        let can_start = can_start_expr(next_tok.ttype)
+        if(can_start == false) {
+            s.pos = saved
+            s.next_id = saved_next_id
+            s.has_error = saved_has_error
+            return false
+        }
+
+        // Speculatively parse then-expression
+        parse_pratt(s, PREC_TERNARY())
+        skip_comments(s)
+        if(s.pos < s.token_count) {
+            let after = get_token(s, s.pos)
+            result = after.ttype == lexer.TokenType.TK_COLON
+        }
+    } catch(e:errors.CompileError) {
+        result = false
+    }
+
+    // Restore all state
+    s.pos = saved
+    s.next_id = saved_next_id
+    s.has_error = saved_has_error
+    // Restore side-table arrays to their saved state
+    s.literal_values = saved_literals
+    s.cast_targets = saved_casts
+    s.sized_capacities = saved_caps
+    return result
+}
+
+fn can_start_expr(ttype:int):bool {
+    if(ttype == lexer.TokenType.TK_IDENT) { return true }
+    if(ttype == lexer.TokenType.TK_INT_LIT) { return true }
+    if(ttype == lexer.TokenType.TK_FLOAT_LIT) { return true }
+    if(ttype == lexer.TokenType.TK_BOOL_LIT) { return true }
+    if(ttype == lexer.TokenType.TK_STRING_LIT) { return true }
+    if(ttype == lexer.TokenType.TK_CHAR_LIT) { return true }
+    if(ttype == lexer.TokenType.TK_NONE) { return true }
+    if(ttype == lexer.TokenType.TK_LPAREN) { return true }
+    if(ttype == lexer.TokenType.TK_LBRACKET) { return true }
+    if(ttype == lexer.TokenType.TK_MINUS) { return true }
+    if(ttype == lexer.TokenType.TK_BANG) { return true }
+    if(ttype == lexer.TokenType.TK_AT) { return true }
+    if(ttype == lexer.TokenType.TK_BACKSLASH) { return true }
+    if(ttype == lexer.TokenType.TK_SOME) { return true }
+    if(ttype == lexer.TokenType.TK_OK) { return true }
+    if(ttype == lexer.TokenType.TK_ERR) { return true }
+    if(ttype == lexer.TokenType.TK_FSTRING_START) { return true }
+    if(ttype == lexer.TokenType.TK_MATCH) { return true }
+    if(ttype == lexer.TokenType.TK_IF) { return true }
+    if(ttype == lexer.TokenType.TK_TYPEOF) { return true }
+    if(ttype == lexer.TokenType.TK_COERCE) { return true }
+    if(ttype == lexer.TokenType.TK_CAST) { return true }
+    if(ttype == lexer.TokenType.TK_SELF) { return true }
+    return false
+}
+
+fn parse_ternary(s:ParserState:mut, condition:ast.Expr):ast.Expr {
+    let q_tok = expect(s, lexer.TokenType.TK_QUESTION)
+    let then_expr = parse_pratt(s, PREC_TERNARY())
+    expect(s, lexer.TokenType.TK_COLON)
+    let else_expr = parse_pratt(s, PREC_TERNARY())
+    return ast.ETernary(fresh_id(s), q_tok.line, q_tok.col, condition, then_expr, else_expr)
+}
+
+fn parse_composition_chain(s:ParserState:mut, first:ast.Expr):ast.Expr {
+    let elements:array<ast.ChainElement>:mut = []
+    elements = array.push(elements, ast.ChainElement{expr:first, id:fresh_id(s), line:ast.expr_line(first), col:ast.expr_col(first)})
+
+    while(check(s, lexer.TokenType.TK_ARROW)) {
+        advance(s)
+
+        if(check(s, lexer.TokenType.TK_PARALLEL_FANOUT)) {
+            let pfan_tok = advance(s)
+            let fan = parse_fanout_body(s, true)
+            elements = array.push(elements, ast.ChainElement{expr:fan, id:fresh_id(s), line:pfan_tok.line, col:pfan_tok.col})
+        } else if(check(s, lexer.TokenType.TK_LPAREN)) {
+            if(is_fanout(s)) {
+                let fan_tok = advance(s)
+                let fan = parse_fanout_body(s, false)
+                elements = array.push(elements, ast.ChainElement{expr:fan, id:fresh_id(s), line:fan_tok.line, col:fan_tok.col})
+            } else {
+                let expr = parse_pratt(s, PREC_COMPOSITION())
+                elements = array.push(elements, ast.ChainElement{expr:expr, id:fresh_id(s), line:ast.expr_line(expr), col:ast.expr_col(expr)})
+            }
+        } else {
+            let expr = parse_pratt(s, PREC_COMPOSITION())
+            elements = array.push(elements, ast.ChainElement{expr:expr, id:fresh_id(s), line:ast.expr_line(expr), col:ast.expr_col(expr)})
+        }
+    }
+
+    return ast.ECompositionChain(fresh_id(s), ast.expr_line(first), ast.expr_col(first), elements)
+}
+
+fn is_fanout(s:ParserState:mut):bool {
+    let saved = s.pos
+    let depth:int:mut = 0
+    let found:bool:mut = false
+    while(s.pos < s.token_count) {
+        let tok = get_token(s, s.pos)
+        if(tok.ttype == lexer.TokenType.TK_COMMENT || tok.ttype == lexer.TokenType.TK_NEWLINE) {
+            s.pos = s.pos + 1
+            continue
+        }
+        if(tok.ttype == lexer.TokenType.TK_LPAREN) {
+            depth = depth + 1
+            s.pos = s.pos + 1
+        } else if(tok.ttype == lexer.TokenType.TK_RPAREN) {
+            depth = depth - 1
+            if(depth == 0) {
+                s.pos = saved
+                return false
+            }
+            s.pos = s.pos + 1
+        } else if(tok.ttype == lexer.TokenType.TK_PIPE && depth == 1) {
+            s.pos = saved
+            return true
+        } else if(tok.ttype == lexer.TokenType.TK_EOF) {
+            s.pos = saved
+            return false
+        } else {
+            s.pos = s.pos + 1
+        }
+    }
+    s.pos = saved
+    return false
+}
+
+fn parse_fanout_body(s:ParserState:mut, is_parallel:bool):ast.Expr {
+    let branches:array<ast.ChainElement>:mut = []
+
+    let first = parse_fanout_branch(s)
+    branches = array.push(branches, ast.ChainElement{expr:first, id:fresh_id(s), line:ast.expr_line(first), col:ast.expr_col(first)})
+
+    while(check(s, lexer.TokenType.TK_PIPE)) {
+        advance(s)
+        let branch = parse_fanout_branch(s)
+        branches = array.push(branches, ast.ChainElement{expr:branch, id:fresh_id(s), line:ast.expr_line(branch), col:ast.expr_col(branch)})
+    }
+
+    expect(s, lexer.TokenType.TK_RPAREN)
+    let line:int:mut = 0
+    let col:int:mut = 0
+    if(array.size(branches) > 0) {
+        let first_branch = array.get_any(branches, 0) ?? ast.ChainElement{expr:placeholder_expr(), id:0, line:0, col:0}
+        line = first_branch.line
+        col = first_branch.col
+    }
+    return ast.EFanOut(fresh_id(s), line, col, branches, is_parallel)
+}
+
+fn parse_fanout_branch(s:ParserState:mut):ast.Expr {
+    let expr:ast.Expr:mut = parse_pratt(s, PREC_COMPOSITION())
+
+    if(check(s, lexer.TokenType.TK_ARROW)) {
+        let elements:array<ast.ChainElement>:mut = []
+        elements = array.push(elements, ast.ChainElement{expr:expr, id:fresh_id(s), line:ast.expr_line(expr), col:ast.expr_col(expr)})
+        while(check(s, lexer.TokenType.TK_ARROW)) {
+            advance(s)
+            let next_expr = parse_pratt(s, PREC_COMPOSITION())
+            elements = array.push(elements, ast.ChainElement{expr:next_expr, id:fresh_id(s), line:ast.expr_line(next_expr), col:ast.expr_col(next_expr)})
+        }
+        return ast.ECompositionChain(fresh_id(s), ast.expr_line(expr), ast.expr_col(expr), elements)
+    }
+
+    return expr
+}
+
+fn parse_prefix(s:ParserState:mut):ast.Expr {
+    let tok = peek(s)
+
+    if(tok.ttype == lexer.TokenType.TK_MINUS) {
+        advance(s)
+        let operand = parse_pratt(s, PREC_UNARY())
+        return ast.EUnaryOp(fresh_id(s), tok.line, tok.col, "-", operand)
+    }
+
+    if(tok.ttype == lexer.TokenType.TK_BANG) {
+        advance(s)
+        let operand = parse_pratt(s, PREC_UNARY())
+        return ast.EUnaryOp(fresh_id(s), tok.line, tok.col, "!", operand)
+    }
+
+    if(tok.ttype == lexer.TokenType.TK_AT) {
+        advance(s)
+        let operand = parse_pratt(s, PREC_UNARY())
+        return ast.ECopy(fresh_id(s), tok.line, tok.col, operand)
+    }
+
+    if(tok.ttype == lexer.TokenType.TK_AMPERSAND) {
+        advance(s)
+        let operand = parse_pratt(s, PREC_UNARY())
+        return ast.ERef(fresh_id(s), tok.line, tok.col, operand)
+    }
+
+    return parse_primary(s)
+}
+
+fn parse_primary(s:ParserState:mut):ast.Expr {
+    let tok = peek(s)
+
+    if(tok.ttype == lexer.TokenType.TK_INT_LIT) { return parse_int_lit(s) }
+    if(tok.ttype == lexer.TokenType.TK_FLOAT_LIT) { return parse_float_lit(s) }
+    if(tok.ttype == lexer.TokenType.TK_BOOL_LIT) { return parse_bool_lit(s) }
+    if(tok.ttype == lexer.TokenType.TK_STRING_LIT) { return parse_string_lit(s) }
+    if(tok.ttype == lexer.TokenType.TK_CHAR_LIT) { return parse_char_lit(s) }
+    if(tok.ttype == lexer.TokenType.TK_NONE) { return parse_none_lit(s) }
+    if(tok.ttype == lexer.TokenType.TK_FSTRING_START) { return parse_fstring_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_SOME) { return parse_some_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_OK) { return parse_ok_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_ERR) { return parse_err_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_COERCE) { return parse_coerce_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_CAST) { return parse_cast_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_TYPEOF) { return parse_typeof_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_MATCH) { return parse_match_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_IF) { return parse_if_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_BACKSLASH) { return parse_lambda(s) }
+    if(tok.ttype == lexer.TokenType.TK_LBRACKET) { return parse_array_lit(s) }
+    if(tok.ttype == lexer.TokenType.TK_LPAREN) { return parse_paren_expr(s) }
+    if(tok.ttype == lexer.TokenType.TK_LBRACE) { return parse_record_lit(s) }
+    if(tok.ttype == lexer.TokenType.TK_SELF) {
+        advance(s)
+        return ast.EIdent(fresh_id(s), tok.line, tok.col, "self", [])
+    }
+    if(tok.ttype == lexer.TokenType.TK_IDENT) { return parse_ident_or_type_lit(s) }
+
+    throw error_at(s, "expected expression but found '" + tok.value + "'", tok.line, tok.col)
+    return placeholder_expr()
+}
+
+fn parse_int_lit(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    let value:int:mut = 0
+    // Check for hex prefix
+    if(string.len(tok.value) >= 2 && string.substring(tok.value, 0, 2) == "0x") {
+        value = hex_to_int(tok.value)
+    } else if(string.len(tok.value) >= 2 && string.substring(tok.value, 0, 2) == "0X") {
+        value = hex_to_int(tok.value)
+    } else {
+        value = conv.string_to_int(tok.value) ?? 0
+    }
+    return ast.EIntLit(fresh_id(s), tok.line, tok.col, value, "")
+}
+
+fn parse_float_lit(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    let value = conv.string_to_float(tok.value) ?? 0.0
+    return ast.EFloatLit(fresh_id(s), tok.line, tok.col, value, "")
+}
+
+fn parse_bool_lit(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    return ast.EBoolLit(fresh_id(s), tok.line, tok.col, tok.value == "true")
+}
+
+fn parse_string_lit(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    return ast.EStringLit(fresh_id(s), tok.line, tok.col, tok.value)
+}
+
+fn parse_char_lit(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    let ch = string.char_at(tok.value, 0) ?? char.from_code(0)
+    return ast.ECharLit(fresh_id(s), tok.line, tok.col, char.to_code(ch))
+}
+
+fn parse_none_lit(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    return ast.ENoneLit(fresh_id(s), tok.line, tok.col)
+}
+
+fn parse_fstring_expr(s:ParserState:mut):ast.Expr {
+    let start_tok = advance(s)  // FSTRING_START
+    let parts:array<ast.FStringPart>:mut = []
+
+    while(at_end(s) == false) {
+        let raw_tok = peek_raw(s)
+
+        if(raw_tok.ttype == lexer.TokenType.TK_FSTRING_END) {
+            s.pos = s.pos + 1
+            break
+        } else if(raw_tok.ttype == lexer.TokenType.TK_FSTRING_TEXT) {
+            s.pos = s.pos + 1
+            parts = array.push(parts, ast.FPText(raw_tok.value))
+        } else if(raw_tok.ttype == lexer.TokenType.TK_FSTRING_EXPR_START) {
+            s.pos = s.pos + 1
+            let expr = parse_expr(s)
+            parts = array.push(parts, ast.FPExpr(expr))
+            let raw_end = peek_raw(s)
+            if(raw_end.ttype == lexer.TokenType.TK_FSTRING_EXPR_END) {
+                s.pos = s.pos + 1
+            } else {
+                throw error_at(s, "expected FSTRING_EXPR_END", raw_end.line, raw_end.col)
+            }
+        } else if(raw_tok.ttype == lexer.TokenType.TK_COMMENT || raw_tok.ttype == lexer.TokenType.TK_NEWLINE) {
+            s.pos = s.pos + 1
+        } else {
+            throw error_at(s, "unexpected token in f-string: '" + raw_tok.value + "'", raw_tok.line, raw_tok.col)
+        }
+    }
+
+    return ast.EFString(fresh_id(s), start_tok.line, start_tok.col, parts)
+}
+
+fn parse_some_expr(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let inner = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.ESome(fresh_id(s), tok.line, tok.col, inner)
+}
+
+fn parse_ok_expr(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let inner = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.EOk(fresh_id(s), tok.line, tok.col, inner)
+}
+
+fn parse_err_expr(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let inner = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.EErr(fresh_id(s), tok.line, tok.col, inner)
+}
+
+fn parse_coerce_expr(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let inner = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.ECoerce(fresh_id(s), tok.line, tok.col, inner)
+}
+
+fn parse_cast_expr(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    expect(s, lexer.TokenType.TK_LT)
+    let target_type = parse_type_expr(s)
+    expect(s, lexer.TokenType.TK_GT)
+    let target_id = array.size(s.cast_targets)
+    s.cast_targets = array.push(s.cast_targets, target_type)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let inner = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.ECast(fresh_id(s), tok.line, tok.col, inner, target_id)
+}
+
+fn parse_typeof_expr(s:ParserState:mut):ast.Expr {
+    let tok = advance(s)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let inner = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.ETypeof(fresh_id(s), tok.line, tok.col, inner)
+}
+
+fn parse_match_expr(s:ParserState:mut):ast.Expr {
+    let tok = expect(s, lexer.TokenType.TK_MATCH)
+    let subject = parse_expr(s)
+    expect(s, lexer.TokenType.TK_LBRACE)
+
+    let arms:array<ast.MatchArm>:mut = []
+    while(check(s, lexer.TokenType.TK_RBRACE) == false && at_end(s) == false) {
+        let arm = parse_match_arm(s)
+        arms = array.push(arms, arm)
+        match_token(s, lexer.TokenType.TK_COMMA)
+    }
+
+    expect(s, lexer.TokenType.TK_RBRACE)
+    return ast.EMatchExpr(fresh_id(s), tok.line, tok.col, subject, arms)
+}
+
+fn parse_if_expr(s:ParserState:mut):ast.Expr {
+    let tok = expect(s, lexer.TokenType.TK_IF)
+    expect(s, lexer.TokenType.TK_LPAREN)
+    let condition = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    let then_stmts = parse_block(s)
+
+    let else_stmts:array<ast.Stmt>:mut = []
+    if(check(s, lexer.TokenType.TK_ELSE)) {
+        advance(s)
+        if(check(s, lexer.TokenType.TK_IF)) {
+            // else if as nested if expr wrapped in stmt
+            let nested = parse_if_expr(s)
+            else_stmts = array.push(else_stmts, ast.SExpr(fresh_id(s), ast.expr_line(nested), ast.expr_col(nested), nested))
+        } else {
+            else_stmts = parse_block(s)
+        }
+    }
+
+    return ast.EIfExpr(fresh_id(s), tok.line, tok.col, condition, then_stmts, else_stmts)
+}
+
+fn parse_lambda(s:ParserState:mut):ast.Expr {
+    let tok = expect(s, lexer.TokenType.TK_BACKSLASH)
+    expect(s, lexer.TokenType.TK_LPAREN)
+
+    let params:array<ast.Param>:mut = []
+    if(check(s, lexer.TokenType.TK_FAT_ARROW) == false) {
+        params = array.push(params, parse_param(s))
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_FAT_ARROW)) { break }
+            params = array.push(params, parse_param(s))
+        }
+    }
+
+    expect(s, lexer.TokenType.TK_FAT_ARROW)
+    let body = parse_expr(s)
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.ELambda(fresh_id(s), tok.line, tok.col, params, body)
+}
+
+fn parse_array_lit(s:ParserState:mut):ast.Expr {
+    let tok = expect(s, lexer.TokenType.TK_LBRACKET)
+    let elements:array<ast.Expr>:mut = []
+    if(check(s, lexer.TokenType.TK_RBRACKET) == false) {
+        elements = array.push(elements, parse_expr(s))
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_RBRACKET)) { break }
+            elements = array.push(elements, parse_expr(s))
+        }
+    }
+    expect(s, lexer.TokenType.TK_RBRACKET)
+    return ast.EArrayLit(fresh_id(s), tok.line, tok.col, elements)
+}
+
+fn parse_paren_expr(s:ParserState:mut):ast.Expr {
+    let tok = expect(s, lexer.TokenType.TK_LPAREN)
+
+    if(check(s, lexer.TokenType.TK_RPAREN)) {
+        advance(s)
+        return ast.ETupleExpr(fresh_id(s), tok.line, tok.col, [])
+    }
+
+    let first = parse_expr(s)
+
+    if(check(s, lexer.TokenType.TK_COMMA)) {
+        let elements:array<ast.Expr>:mut = []
+        elements = array.push(elements, first)
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_RPAREN)) { break }
+            elements = array.push(elements, parse_expr(s))
+        }
+        expect(s, lexer.TokenType.TK_RPAREN)
+        return ast.ETupleExpr(fresh_id(s), tok.line, tok.col, elements)
+    }
+
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return first
+}
+
+fn parse_record_lit(s:ParserState:mut):ast.Expr {
+    let tok = expect(s, lexer.TokenType.TK_LBRACE)
+    let fields:array<ast.ExprField>:mut = []
+
+    if(check(s, lexer.TokenType.TK_RBRACE) == false) {
+        let fname = expect(s, lexer.TokenType.TK_IDENT)
+        expect(s, lexer.TokenType.TK_COLON)
+        let fval = parse_expr(s)
+        fields = array.push(fields, ast.ExprField{name:fname.value, value:fval})
+
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_RBRACE)) { break }
+            let fname2 = expect(s, lexer.TokenType.TK_IDENT)
+            expect(s, lexer.TokenType.TK_COLON)
+            let fval2 = parse_expr(s)
+            fields = array.push(fields, ast.ExprField{name:fname2.value, value:fval2})
+        }
+    }
+
+    expect(s, lexer.TokenType.TK_RBRACE)
+    return ast.ERecordLit(fresh_id(s), tok.line, tok.col, fields)
+}
+
+fn parse_ident_or_type_lit(s:ParserState:mut):ast.Expr {
+    let first_tok = advance(s)
+    let name = first_tok.value
+
+    // Check for dotted path leading to type construction
+    if(check(s, lexer.TokenType.TK_DOT)) {
+        let saved_pos = s.pos
+        let module_path:array<string>:mut = []
+        let current_name:string:mut = name
+
+        while(check(s, lexer.TokenType.TK_DOT)) {
+            let next_after_dot = peek2(s)
+            if(next_after_dot.ttype != lexer.TokenType.TK_IDENT) {
+                break
+            }
+            advance(s)
+            let next_tok = advance(s)
+            module_path = array.push(module_path, current_name)
+            current_name = next_tok.value
+        }
+
+        if(check(s, lexer.TokenType.TK_LBRACE) && is_first_upper(current_name)) {
+            return parse_type_construction_lit(s, first_tok, current_name, module_path)
+        }
+
+        // Backtrack
+        s.pos = saved_pos
+    }
+
+    // Simple uppercase + brace
+    if(check(s, lexer.TokenType.TK_LBRACE) && is_first_upper(name)) {
+        return parse_type_construction_lit(s, first_tok, name, [])
+    }
+
+    return ast.EIdent(fresh_id(s), first_tok.line, first_tok.col, name, [])
+}
+
+fn parse_type_construction_lit(s:ParserState:mut, start_tok:lexer.Token, type_name:string, module_path:array<string>):ast.Expr {
+    expect(s, lexer.TokenType.TK_LBRACE)
+    let fields:array<ast.ExprField>:mut = []
+    let has_spread:bool:mut = false
+    let spread:ast.Expr:mut = placeholder_expr()
+
+    while(check(s, lexer.TokenType.TK_RBRACE) == false && at_end(s) == false) {
+        if(check(s, lexer.TokenType.TK_SPREAD)) {
+            advance(s)
+            spread = parse_pratt(s, PREC_POSTFIX())
+            has_spread = true
+            match_token(s, lexer.TokenType.TK_COMMA)
+            break
+        }
+
+        let fname = expect(s, lexer.TokenType.TK_IDENT)
+        expect(s, lexer.TokenType.TK_COLON)
+        let fval = parse_expr(s)
+        fields = array.push(fields, ast.ExprField{name:fname.value, value:fval})
+
+        if(check(s, lexer.TokenType.TK_RBRACE) == false) {
+            expect(s, lexer.TokenType.TK_COMMA)
+        }
+    }
+
+    expect(s, lexer.TokenType.TK_RBRACE)
+
+    let full_name:string:mut = type_name
+    if(array.size(module_path) > 0) {
+        let prefix:string:mut = ""
+        let pi:int:mut = 0
+        while(pi < array.size(module_path)) {
+            if(pi > 0) { prefix = prefix + "." }
+            prefix = prefix + (array.get_any(module_path, pi) ?? "")
+            pi = pi + 1
+        }
+        full_name = prefix + "." + type_name
+    }
+
+    return ast.ETypeLit(fresh_id(s), start_tok.line, start_tok.col, full_name, fields, has_spread, spread)
+}
+
+fn parse_arg_list(s:ParserState:mut):array<ast.Expr> {
+    let args:array<ast.Expr>:mut = []
+    let seen_named:bool:mut = false
+    if(check(s, lexer.TokenType.TK_RPAREN)) {
+        return args
+    }
+    let first = parse_call_arg(s, seen_named)
+    match first {
+        ENamedArg(nid, nl, nc, nn, nv): { seen_named = true }
+        _: {}
+    }
+    args = array.push(args, first)
+
+    while(check(s, lexer.TokenType.TK_COMMA)) {
+        advance(s)
+        if(check(s, lexer.TokenType.TK_RPAREN)) { break }
+        let arg = parse_call_arg(s, seen_named)
+        match arg {
+            ENamedArg(nid, nl, nc, nn, nv): { seen_named = true }
+            _: {
+                if(seen_named) {
+                    throw error_here(s, "positional arguments cannot follow named arguments")
+                }
+            }
+        }
+        args = array.push(args, arg)
+    }
+    return args
+}
+
+fn parse_call_arg(s:ParserState:mut, seen_named:bool):ast.Expr {
+    // Spread argument: ..expr
+    if(check(s, lexer.TokenType.TK_SPREAD)) {
+        let spread_tok = advance(s)
+        let inner = parse_expr(s)
+        return ast.ESpread(fresh_id(s), spread_tok.line, spread_tok.col, inner)
+    }
+    // Named argument: name: expr
+    if(check(s, lexer.TokenType.TK_IDENT)) {
+        let next = peek2(s)
+        if(next.ttype == lexer.TokenType.TK_COLON) {
+            let name_tok = advance(s)
+            advance(s)  // consume ':'
+            let value = parse_expr(s)
+            return ast.ENamedArg(fresh_id(s), name_tok.line, name_tok.col, name_tok.value, value)
+        }
+    }
+    if(seen_named) {
+        throw error_here(s, "positional arguments cannot follow named arguments")
+    }
+    return parse_expr(s)
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6: Pattern parsers
+// ---------------------------------------------------------------------------
+
+fn parse_pattern(s:ParserState:mut):ast.Pattern {
+    let tok = peek(s)
+
+    // Wildcard: _
+    if(tok.ttype == lexer.TokenType.TK_IDENT && tok.value == "_") {
+        advance(s)
+        return ast.PWildcard(fresh_id(s), tok.line, tok.col)
+    }
+
+    // none
+    if(tok.ttype == lexer.TokenType.TK_NONE) {
+        advance(s)
+        return ast.PNone(fresh_id(s), tok.line, tok.col)
+    }
+
+    // some(v)
+    if(tok.ttype == lexer.TokenType.TK_SOME) {
+        advance(s)
+        expect(s, lexer.TokenType.TK_LPAREN)
+        let inner_tok = expect(s, lexer.TokenType.TK_IDENT)
+        expect(s, lexer.TokenType.TK_RPAREN)
+        return ast.PSome(fresh_id(s), tok.line, tok.col, inner_tok.value)
+    }
+
+    // ok(v)
+    if(tok.ttype == lexer.TokenType.TK_OK) {
+        advance(s)
+        expect(s, lexer.TokenType.TK_LPAREN)
+        let inner_tok = expect(s, lexer.TokenType.TK_IDENT)
+        expect(s, lexer.TokenType.TK_RPAREN)
+        return ast.POk(fresh_id(s), tok.line, tok.col, inner_tok.value)
+    }
+
+    // err(e)
+    if(tok.ttype == lexer.TokenType.TK_ERR) {
+        advance(s)
+        expect(s, lexer.TokenType.TK_LPAREN)
+        let inner_tok = expect(s, lexer.TokenType.TK_IDENT)
+        expect(s, lexer.TokenType.TK_RPAREN)
+        return ast.PErr(fresh_id(s), tok.line, tok.col, inner_tok.value)
+    }
+
+    // Tuple pattern: (a, b)
+    if(tok.ttype == lexer.TokenType.TK_LPAREN) {
+        return parse_tuple_pattern(s)
+    }
+
+    // Literal patterns (numbers, strings, chars)
+    if(tok.ttype == lexer.TokenType.TK_INT_LIT || tok.ttype == lexer.TokenType.TK_FLOAT_LIT || tok.ttype == lexer.TokenType.TK_STRING_LIT || tok.ttype == lexer.TokenType.TK_CHAR_LIT) {
+        let expr = parse_primary(s)
+        let vid = array.size(s.literal_values)
+        s.literal_values = array.push(s.literal_values, expr)
+        return ast.PLiteral(fresh_id(s), tok.line, tok.col, vid)
+    }
+
+    // Negative number literal: -42
+    if(tok.ttype == lexer.TokenType.TK_MINUS) {
+        advance(s)
+        let inner = parse_primary(s)
+        let neg = ast.EUnaryOp(fresh_id(s), tok.line, tok.col, "-", inner)
+        let vid = array.size(s.literal_values)
+        s.literal_values = array.push(s.literal_values, neg)
+        return ast.PLiteral(fresh_id(s), tok.line, tok.col, vid)
+    }
+
+    // Bool literal pattern
+    if(tok.ttype == lexer.TokenType.TK_BOOL_LIT) {
+        let expr = parse_bool_lit(s)
+        let vid = array.size(s.literal_values)
+        s.literal_values = array.push(s.literal_values, expr)
+        return ast.PLiteral(fresh_id(s), tok.line, tok.col, vid)
+    }
+
+    // Identifier: variant pattern or bind pattern
+    if(tok.ttype == lexer.TokenType.TK_IDENT) {
+        let name_tok = advance(s)
+
+        // Variant pattern: Name(a, b, c)
+        if(check(s, lexer.TokenType.TK_LPAREN)) {
+            advance(s)
+            let bindings:array<string>:mut = []
+            if(check(s, lexer.TokenType.TK_RPAREN) == false) {
+                let b_tok = expect(s, lexer.TokenType.TK_IDENT)
+                bindings = array.push(bindings, b_tok.value)
+                while(check(s, lexer.TokenType.TK_COMMA)) {
+                    advance(s)
+                    if(check(s, lexer.TokenType.TK_RPAREN)) { break }
+                    let b2 = expect(s, lexer.TokenType.TK_IDENT)
+                    bindings = array.push(bindings, b2.value)
+                }
+            }
+            expect(s, lexer.TokenType.TK_RPAREN)
+            return ast.PVariant(fresh_id(s), name_tok.line, name_tok.col, name_tok.value, bindings)
+        }
+
+        // Bare identifier: bind pattern
+        return ast.PBind(fresh_id(s), name_tok.line, name_tok.col, name_tok.value)
+    }
+
+    throw error_at(s, "expected pattern but found '" + tok.value + "'", tok.line, tok.col)
+    return ast.PWildcard(0, 0, 0)
+}
+
+fn parse_tuple_pattern(s:ParserState:mut):ast.Pattern {
+    let tok = expect(s, lexer.TokenType.TK_LPAREN)
+    let elements:array<ast.Pattern>:mut = []
+    if(check(s, lexer.TokenType.TK_RPAREN) == false) {
+        elements = array.push(elements, parse_pattern(s))
+        while(check(s, lexer.TokenType.TK_COMMA)) {
+            advance(s)
+            if(check(s, lexer.TokenType.TK_RPAREN)) { break }
+            elements = array.push(elements, parse_pattern(s))
+        }
+    }
+    expect(s, lexer.TokenType.TK_RPAREN)
+    return ast.PTuple(fresh_id(s), tok.line, tok.col, elements)
+}
+
+// ---------------------------------------------------------------------------
+// Public entry point
+// ---------------------------------------------------------------------------
+
+export fn parse(tokens:array<lexer.Token>, filename:string):ParseResult {
+    let dummy_error = errors.parse_error("", filename, 0, 0)
+    let s:ParserState:mut = ParserState{
+        tokens:tokens, filename:filename, token_count:array.size(tokens),
+        pos:0, next_id:1, has_error:false, first_error:dummy_error,
+        literal_values:[], cast_targets:[], sized_capacities:[]
+    }
+
+    // Optional module declaration
+    let path:array<string>:mut = []
+    if(check(s, lexer.TokenType.TK_MODULE)) {
+        let mod_decl = parse_module_decl(s)
+        match mod_decl {
+            DModule(mid, ml, mc, mp): { path = mp }
+            _: {}
+        }
+    }
+
+    // Import declarations
+    let imports:array<ast.Decl>:mut = []
+    while(check(s, lexer.TokenType.TK_IMPORT)) {
+        imports = array.push(imports, parse_import_decl(s))
+    }
+
+    // Top-level declarations
+    let decls:array<ast.Decl>:mut = []
+    while(at_end(s) == false) {
+        let pos_before = s.pos
+        try {
+            let decl = parse_top_level_decl(s)
+            decls = array.push(decls, decl)
+        } catch(e:errors.CompileError) {
+            if(s.has_error == false) {
+                s.has_error = true
+                s.first_error = errors.parse_error(e.message, filename, peek(s).line, peek(s).col)
+            }
+            synchronize(s)
+            if(s.pos <= pos_before) {
+                advance(s)
+            }
+        }
+    }
+
+    if(s.has_error) {
+        throw s.first_error
+    }
+
+    let parsed_module = ast.make_module(path, imports, decls, filename)
+    return ParseResult{parsed_module:parsed_module, literal_values:s.literal_values, cast_targets:s.cast_targets, sized_capacities:s.sized_capacities}
+}
