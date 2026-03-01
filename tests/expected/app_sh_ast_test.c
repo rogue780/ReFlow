@@ -506,6 +506,18 @@ typedef struct fl_self_hosted_ast_TypeParam fl_self_hosted_ast_TypeParam;
 
 typedef struct fl_self_hosted_ast_MatchArm fl_self_hosted_ast_MatchArm;
 
+typedef struct fl_self_hosted_ast_FStringPart_FPText fl_self_hosted_ast_FStringPart_FPText;
+
+typedef struct fl_self_hosted_ast_FStringPart_FPExpr fl_self_hosted_ast_FStringPart_FPExpr;
+
+typedef struct fl_self_hosted_ast_FStringPart fl_self_hosted_ast_FStringPart;
+
+typedef struct fl_self_hosted_ast_ChainElement fl_self_hosted_ast_ChainElement;
+
+typedef struct fl_self_hosted_ast_PipelineStage fl_self_hosted_ast_PipelineStage;
+
+typedef struct fl_self_hosted_ast_RetryBlock fl_self_hosted_ast_RetryBlock;
+
 typedef struct fl_self_hosted_ast_TypeExpr_TNamedType fl_self_hosted_ast_TypeExpr_TNamedType;
 
 typedef struct fl_self_hosted_ast_TypeExpr_TGenericType fl_self_hosted_ast_TypeExpr_TGenericType;
@@ -614,6 +626,16 @@ typedef struct fl_self_hosted_ast_Expr_ECast fl_self_hosted_ast_Expr_ECast;
 
 typedef struct fl_self_hosted_ast_Expr_ECoerce fl_self_hosted_ast_Expr_ECoerce;
 
+typedef struct fl_self_hosted_ast_Expr_EFString fl_self_hosted_ast_Expr_EFString;
+
+typedef struct fl_self_hosted_ast_Expr_ECompositionChain fl_self_hosted_ast_Expr_ECompositionChain;
+
+typedef struct fl_self_hosted_ast_Expr_EFanOut fl_self_hosted_ast_Expr_EFanOut;
+
+typedef struct fl_self_hosted_ast_Expr_ECoroutineStart fl_self_hosted_ast_Expr_ECoroutineStart;
+
+typedef struct fl_self_hosted_ast_Expr_ECoroutinePipeline fl_self_hosted_ast_Expr_ECoroutinePipeline;
+
 typedef struct fl_self_hosted_ast_Expr fl_self_hosted_ast_Expr;
 
 typedef struct fl_self_hosted_ast_ExprField fl_self_hosted_ast_ExprField;
@@ -670,6 +692,10 @@ typedef struct fl_self_hosted_ast_Decl_DExternType fl_self_hosted_ast_Decl_DExte
 
 typedef struct fl_self_hosted_ast_Decl_DExternFn fl_self_hosted_ast_Decl_DExternFn;
 
+typedef struct fl_self_hosted_ast_Decl_DConstructor fl_self_hosted_ast_Decl_DConstructor;
+
+typedef struct fl_self_hosted_ast_Decl_DStaticMember fl_self_hosted_ast_Decl_DStaticMember;
+
 typedef struct fl_self_hosted_ast_Decl fl_self_hosted_ast_Decl;
 
 typedef struct fl_self_hosted_ast_FieldDecl fl_self_hosted_ast_FieldDecl;
@@ -706,9 +732,14 @@ struct fl_self_hosted_ast_Span {
 
 struct fl_self_hosted_ast_TypeParam {
     FL_String* name;
+    FL_Array* bounds;
     fl_int id;
     fl_int line;
     fl_int col;
+};
+
+struct fl_self_hosted_ast_FStringPart_FPText {
+    FL_String* text;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TNamedType {
@@ -1150,6 +1181,42 @@ struct fl_self_hosted_ast_Expr_ECoerce {
     fl_self_hosted_ast_Expr* inner;
 };
 
+struct fl_self_hosted_ast_Expr_EFString {
+    fl_int id;
+    fl_int line;
+    fl_int col;
+    FL_Array* parts;
+};
+
+struct fl_self_hosted_ast_Expr_ECompositionChain {
+    fl_int id;
+    fl_int line;
+    fl_int col;
+    FL_Array* elements;
+};
+
+struct fl_self_hosted_ast_Expr_EFanOut {
+    fl_int id;
+    fl_int line;
+    fl_int col;
+    FL_Array* branches;
+    fl_bool is_parallel;
+};
+
+struct fl_self_hosted_ast_Expr_ECoroutineStart {
+    fl_int id;
+    fl_int line;
+    fl_int col;
+    fl_self_hosted_ast_Expr* call;
+};
+
+struct fl_self_hosted_ast_Expr_ECoroutinePipeline {
+    fl_int id;
+    fl_int line;
+    fl_int col;
+    FL_Array* stages;
+};
+
 struct fl_self_hosted_ast_Expr {
     fl_byte tag;
     fl_self_hosted_ast_Expr_EIntLit EIntLit;
@@ -1185,6 +1252,49 @@ struct fl_self_hosted_ast_Expr {
     fl_self_hosted_ast_Expr_ETypeof ETypeof;
     fl_self_hosted_ast_Expr_ECast ECast;
     fl_self_hosted_ast_Expr_ECoerce ECoerce;
+    fl_self_hosted_ast_Expr_EFString EFString;
+    fl_self_hosted_ast_Expr_ECompositionChain ECompositionChain;
+    fl_self_hosted_ast_Expr_EFanOut EFanOut;
+    fl_self_hosted_ast_Expr_ECoroutineStart ECoroutineStart;
+    fl_self_hosted_ast_Expr_ECoroutinePipeline ECoroutinePipeline;
+};
+
+struct fl_self_hosted_ast_FStringPart_FPExpr {
+    fl_self_hosted_ast_Expr expr;
+};
+
+struct fl_self_hosted_ast_FStringPart {
+    fl_byte tag;
+    fl_self_hosted_ast_FStringPart_FPText FPText;
+    fl_self_hosted_ast_FStringPart_FPExpr FPExpr;
+};
+
+struct fl_self_hosted_ast_ChainElement {
+    fl_self_hosted_ast_Expr expr;
+    fl_int id;
+    fl_int line;
+    fl_int col;
+};
+
+struct fl_self_hosted_ast_PipelineStage {
+    fl_self_hosted_ast_Expr call;
+    fl_bool has_pool_size;
+    fl_self_hosted_ast_Expr pool_size;
+    fl_int id;
+    fl_int line;
+    fl_int col;
+};
+
+struct fl_self_hosted_ast_RetryBlock {
+    FL_String* target_fn;
+    FL_String* exception_var;
+    fl_self_hosted_ast_TypeExpr exception_type;
+    fl_bool has_attempts;
+    fl_self_hosted_ast_Expr attempts;
+    FL_Array* body;
+    fl_int id;
+    fl_int line;
+    fl_int col;
 };
 
 struct fl_self_hosted_ast_ExprField {
@@ -1277,6 +1387,8 @@ struct fl_self_hosted_ast_Stmt_SWhile {
     fl_int col;
     fl_self_hosted_ast_Expr condition;
     FL_Array* body;
+    fl_bool has_finally;
+    FL_Array* finally_body;
 };
 
 struct fl_self_hosted_ast_Stmt_SFor {
@@ -1288,6 +1400,8 @@ struct fl_self_hosted_ast_Stmt_SFor {
     fl_self_hosted_ast_TypeExpr var_type;
     fl_self_hosted_ast_Expr iterable;
     FL_Array* body;
+    fl_bool has_finally;
+    FL_Array* finally_body;
 };
 
 struct fl_self_hosted_ast_Stmt_SMatch {
@@ -1303,7 +1417,10 @@ struct fl_self_hosted_ast_Stmt_STry {
     fl_int line;
     fl_int col;
     FL_Array* body;
+    FL_Array* retry_blocks;
     FL_Array* catches;
+    fl_bool has_finally;
+    FL_Array* finally_body;
 };
 
 struct fl_self_hosted_ast_Stmt {
@@ -1362,6 +1479,8 @@ struct fl_self_hosted_ast_Decl_DFn {
     fl_bool is_pure;
     fl_bool is_export;
     fl_bool is_static;
+    fl_bool has_finally;
+    FL_Array* finally_body;
 };
 
 struct fl_self_hosted_ast_Decl_DType {
@@ -1372,9 +1491,13 @@ struct fl_self_hosted_ast_Decl_DType {
     FL_Array* type_params;
     FL_Array* fields;
     FL_Array* methods;
+    FL_Array* constructors;
+    FL_Array* static_members;
+    FL_Array* interfaces;
     fl_bool is_export;
     fl_bool is_sum_type;
     FL_Array* variants;
+    fl_bool is_mut;
 };
 
 struct fl_self_hosted_ast_Decl_DInterface {
@@ -1434,6 +1557,27 @@ struct fl_self_hosted_ast_Decl_DExternFn {
     FL_String* c_name;
 };
 
+struct fl_self_hosted_ast_Decl_DConstructor {
+    fl_int id;
+    fl_int line;
+    fl_int col;
+    FL_String* name;
+    FL_Array* params;
+    fl_self_hosted_ast_TypeExpr return_type;
+    FL_Array* body;
+};
+
+struct fl_self_hosted_ast_Decl_DStaticMember {
+    fl_int id;
+    fl_int line;
+    fl_int col;
+    FL_String* name;
+    fl_self_hosted_ast_TypeExpr type_ann;
+    fl_bool is_mut;
+    fl_bool has_value;
+    fl_self_hosted_ast_Expr value;
+};
+
 struct fl_self_hosted_ast_Decl {
     fl_byte tag;
     fl_self_hosted_ast_Decl_DModule DModule;
@@ -1446,6 +1590,8 @@ struct fl_self_hosted_ast_Decl {
     fl_self_hosted_ast_Decl_DExternLib DExternLib;
     fl_self_hosted_ast_Decl_DExternType DExternType;
     fl_self_hosted_ast_Decl_DExternFn DExternFn;
+    fl_self_hosted_ast_Decl_DConstructor DConstructor;
+    fl_self_hosted_ast_Decl_DStaticMember DStaticMember;
 };
 
 struct fl_self_hosted_ast_FieldDecl {
@@ -1952,6 +2098,47 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             return nid;
             break;
         }
+        case 33: {
+            fl_int nid = _fl_tmp_2.EFString.id;
+            fl_int l = _fl_tmp_2.EFString.line;
+            fl_int c = _fl_tmp_2.EFString.col;
+            FL_Array* parts = _fl_tmp_2.EFString.parts;
+            return nid;
+            break;
+        }
+        case 34: {
+            fl_int nid = _fl_tmp_2.ECompositionChain.id;
+            fl_int l = _fl_tmp_2.ECompositionChain.line;
+            fl_int c = _fl_tmp_2.ECompositionChain.col;
+            FL_Array* elems = _fl_tmp_2.ECompositionChain.elements;
+            return nid;
+            break;
+        }
+        case 35: {
+            fl_int nid = _fl_tmp_2.EFanOut.id;
+            fl_int l = _fl_tmp_2.EFanOut.line;
+            fl_int c = _fl_tmp_2.EFanOut.col;
+            FL_Array* branches = _fl_tmp_2.EFanOut.branches;
+            fl_bool ip = _fl_tmp_2.EFanOut.is_parallel;
+            return nid;
+            break;
+        }
+        case 36: {
+            fl_int nid = _fl_tmp_2.ECoroutineStart.id;
+            fl_int l = _fl_tmp_2.ECoroutineStart.line;
+            fl_int c = _fl_tmp_2.ECoroutineStart.col;
+            fl_self_hosted_ast_Expr call = (*_fl_tmp_2.ECoroutineStart.call);
+            return nid;
+            break;
+        }
+        case 37: {
+            fl_int nid = _fl_tmp_2.ECoroutinePipeline.id;
+            fl_int l = _fl_tmp_2.ECoroutinePipeline.line;
+            fl_int c = _fl_tmp_2.ECoroutinePipeline.col;
+            FL_Array* stages = _fl_tmp_2.ECoroutinePipeline.stages;
+            return nid;
+            break;
+        }
     }
 }
 
@@ -2054,6 +2241,8 @@ fl_int fl_self_hosted_ast_stmt_id(fl_self_hosted_ast_Stmt s) {
             fl_int c = _fl_tmp_3.SWhile.col;
             fl_self_hosted_ast_Expr cond = _fl_tmp_3.SWhile.condition;
             FL_Array* body = _fl_tmp_3.SWhile.body;
+            fl_bool hf = _fl_tmp_3.SWhile.has_finally;
+            FL_Array* fb = _fl_tmp_3.SWhile.finally_body;
             return nid;
             break;
         }
@@ -2066,6 +2255,8 @@ fl_int fl_self_hosted_ast_stmt_id(fl_self_hosted_ast_Stmt s) {
             fl_self_hosted_ast_TypeExpr vt = _fl_tmp_3.SFor.var_type;
             fl_self_hosted_ast_Expr it = _fl_tmp_3.SFor.iterable;
             FL_Array* body = _fl_tmp_3.SFor.body;
+            fl_bool hf = _fl_tmp_3.SFor.has_finally;
+            FL_Array* fb = _fl_tmp_3.SFor.finally_body;
             return nid;
             break;
         }
@@ -2083,7 +2274,10 @@ fl_int fl_self_hosted_ast_stmt_id(fl_self_hosted_ast_Stmt s) {
             fl_int l = _fl_tmp_3.STry.line;
             fl_int c = _fl_tmp_3.STry.col;
             FL_Array* body = _fl_tmp_3.STry.body;
+            FL_Array* rb = _fl_tmp_3.STry.retry_blocks;
             FL_Array* catches = _fl_tmp_3.STry.catches;
+            fl_bool hf = _fl_tmp_3.STry.has_finally;
+            FL_Array* fb = _fl_tmp_3.STry.finally_body;
             return nid;
             break;
         }
@@ -2125,6 +2319,8 @@ fl_int fl_self_hosted_ast_decl_id(fl_self_hosted_ast_Decl d) {
             fl_bool ip = _fl_tmp_4.DFn.is_pure;
             fl_bool ie = _fl_tmp_4.DFn.is_export;
             fl_bool is = _fl_tmp_4.DFn.is_static;
+            fl_bool hf = _fl_tmp_4.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_4.DFn.finally_body;
             return nid;
             break;
         }
@@ -2136,9 +2332,13 @@ fl_int fl_self_hosted_ast_decl_id(fl_self_hosted_ast_Decl d) {
             FL_Array* tp = _fl_tmp_4.DType.type_params;
             FL_Array* f = _fl_tmp_4.DType.fields;
             FL_Array* m = _fl_tmp_4.DType.methods;
+            FL_Array* cons = _fl_tmp_4.DType.constructors;
+            FL_Array* sm = _fl_tmp_4.DType.static_members;
+            FL_Array* ifaces = _fl_tmp_4.DType.interfaces;
             fl_bool ie = _fl_tmp_4.DType.is_export;
             fl_bool ist = _fl_tmp_4.DType.is_sum_type;
             FL_Array* v = _fl_tmp_4.DType.variants;
+            fl_bool im = _fl_tmp_4.DType.is_mut;
             return nid;
             break;
         }
@@ -2202,6 +2402,29 @@ fl_int fl_self_hosted_ast_decl_id(fl_self_hosted_ast_Decl d) {
             fl_self_hosted_ast_TypeExpr rt = _fl_tmp_4.DExternFn.return_type;
             fl_bool ie = _fl_tmp_4.DExternFn.is_export;
             FL_String* cn = _fl_tmp_4.DExternFn.c_name;
+            return nid;
+            break;
+        }
+        case 10: {
+            fl_int nid = _fl_tmp_4.DConstructor.id;
+            fl_int l = _fl_tmp_4.DConstructor.line;
+            fl_int c = _fl_tmp_4.DConstructor.col;
+            FL_String* n = _fl_tmp_4.DConstructor.name;
+            FL_Array* par = _fl_tmp_4.DConstructor.params;
+            fl_self_hosted_ast_TypeExpr rt = _fl_tmp_4.DConstructor.return_type;
+            FL_Array* body = _fl_tmp_4.DConstructor.body;
+            return nid;
+            break;
+        }
+        case 11: {
+            fl_int nid = _fl_tmp_4.DStaticMember.id;
+            fl_int l = _fl_tmp_4.DStaticMember.line;
+            fl_int c = _fl_tmp_4.DStaticMember.col;
+            FL_String* n = _fl_tmp_4.DStaticMember.name;
+            fl_self_hosted_ast_TypeExpr ta = _fl_tmp_4.DStaticMember.type_ann;
+            fl_bool im = _fl_tmp_4.DStaticMember.is_mut;
+            fl_bool hv = _fl_tmp_4.DStaticMember.has_value;
+            fl_self_hosted_ast_Expr v = _fl_tmp_4.DStaticMember.value;
             return nid;
             break;
         }

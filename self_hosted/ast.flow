@@ -46,9 +46,10 @@ export fn param(name:string, type_ann:TypeExpr, id:int, line:int, col:int):Param
     return Param{name:name, type_ann:type_ann, id:id, line:line, col:col, has_default:false, is_variadic:false}
 }
 
-// Type parameter with optional bounds
+// Type parameter with optional bounds (fulfills constraints)
 export type TypeParam {
     name:string
+    bounds:array<TypeExpr>
     id:int
     line:int
     col:int
@@ -58,6 +59,42 @@ export type TypeParam {
 export type MatchArm {
     pattern:Pattern
     body_stmts:array<Stmt>
+    id:int
+    line:int
+    col:int
+}
+
+// F-string part: either literal text or an interpolated expression
+export type FStringPart =
+    | FPText(text:string)
+    | FPExpr(expr:Expr)
+
+// Composition chain element
+export type ChainElement {
+    expr:Expr
+    id:int
+    line:int
+    col:int
+}
+
+// Pipeline stage for coroutine pipelines
+export type PipelineStage {
+    call:Expr
+    has_pool_size:bool
+    pool_size:Expr
+    id:int
+    line:int
+    col:int
+}
+
+// Retry block for try statements
+export type RetryBlock {
+    target_fn:string
+    exception_var:string
+    exception_type:TypeExpr
+    has_attempts:bool
+    attempts:Expr
+    body:array<Stmt>
     id:int
     line:int
     col:int
@@ -103,7 +140,7 @@ export type Pattern =
     | PTuple(id:int, line:int, col:int, elements:array<Pattern>)
 
 // ---------------------------------------------------------------------------
-// Expr — expression AST nodes (~35 variants)
+// Expr — expression AST nodes (~40 variants)
 // ---------------------------------------------------------------------------
 
 export type Expr =
@@ -140,6 +177,11 @@ export type Expr =
     | ETypeof(id:int, line:int, col:int, inner:Expr)
     | ECast(id:int, line:int, col:int, inner:Expr, target_id:int)
     | ECoerce(id:int, line:int, col:int, inner:Expr)
+    | EFString(id:int, line:int, col:int, parts:array<FStringPart>)
+    | ECompositionChain(id:int, line:int, col:int, elements:array<ChainElement>)
+    | EFanOut(id:int, line:int, col:int, branches:array<ChainElement>, is_parallel:bool)
+    | ECoroutineStart(id:int, line:int, col:int, call:Expr)
+    | ECoroutinePipeline(id:int, line:int, col:int, stages:array<PipelineStage>)
 
 // Name-value pair used in record/type literals
 export type ExprField {
@@ -162,10 +204,10 @@ export type Stmt =
     | SContinue(id:int, line:int, col:int)
     | SExpr(id:int, line:int, col:int, expr:Expr)
     | SIf(id:int, line:int, col:int, condition:Expr, then_stmts:array<Stmt>, has_else:bool, else_stmts:array<Stmt>)
-    | SWhile(id:int, line:int, col:int, condition:Expr, body:array<Stmt>)
-    | SFor(id:int, line:int, col:int, var_name:string, has_var_type:bool, var_type:TypeExpr, iterable:Expr, body:array<Stmt>)
+    | SWhile(id:int, line:int, col:int, condition:Expr, body:array<Stmt>, has_finally:bool, finally_body:array<Stmt>)
+    | SFor(id:int, line:int, col:int, var_name:string, has_var_type:bool, var_type:TypeExpr, iterable:Expr, body:array<Stmt>, has_finally:bool, finally_body:array<Stmt>)
     | SMatch(id:int, line:int, col:int, subject:Expr, arms:array<MatchArm>)
-    | STry(id:int, line:int, col:int, body:array<Stmt>, catches:array<CatchClause>)
+    | STry(id:int, line:int, col:int, body:array<Stmt>, retry_blocks:array<RetryBlock>, catches:array<CatchClause>, has_finally:bool, finally_body:array<Stmt>)
 
 // Catch clause for try statements
 export type CatchClause {
@@ -178,20 +220,22 @@ export type CatchClause {
 }
 
 // ---------------------------------------------------------------------------
-// Decl — declaration AST nodes (~10 variants)
+// Decl — declaration AST nodes (~12 variants)
 // ---------------------------------------------------------------------------
 
 export type Decl =
     | DModule(id:int, line:int, col:int, path:array<string>)
     | DImport(id:int, line:int, col:int, path:array<string>, names:array<string>, import_alias:string)
-    | DFn(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, params:array<Param>, has_return_type:bool, return_type:TypeExpr, body:array<Stmt>, is_pure:bool, is_export:bool, is_static:bool)
-    | DType(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, fields:array<FieldDecl>, methods:array<Decl>, is_export:bool, is_sum_type:bool, variants:array<SumVariantDecl>)
+    | DFn(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, params:array<Param>, has_return_type:bool, return_type:TypeExpr, body:array<Stmt>, is_pure:bool, is_export:bool, is_static:bool, has_finally:bool, finally_body:array<Stmt>)
+    | DType(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, fields:array<FieldDecl>, methods:array<Decl>, constructors:array<Decl>, static_members:array<Decl>, interfaces:array<TypeExpr>, is_export:bool, is_sum_type:bool, variants:array<SumVariantDecl>, is_mut:bool)
     | DInterface(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, methods:array<Decl>, is_export:bool)
     | DAlias(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, target:TypeExpr, is_export:bool)
     | DEnum(id:int, line:int, col:int, name:string, variants:array<EnumVariantDecl>, is_export:bool)
     | DExternLib(id:int, line:int, col:int, lib_name:string)
     | DExternType(id:int, line:int, col:int, name:string, is_export:bool)
     | DExternFn(id:int, line:int, col:int, name:string, type_params:array<TypeParam>, params:array<Param>, has_return_type:bool, return_type:TypeExpr, is_export:bool, c_name:string)
+    | DConstructor(id:int, line:int, col:int, name:string, params:array<Param>, return_type:TypeExpr, body:array<Stmt>)
+    | DStaticMember(id:int, line:int, col:int, name:string, type_ann:TypeExpr, is_mut:bool, has_value:bool, value:Expr)
 
 // Field declaration in struct types
 export type FieldDecl {
@@ -304,6 +348,11 @@ export fn expr_id(e:Expr):int {
         ETypeof(nid, l, c, i): { return nid }
         ECast(nid, l, c, i, t): { return nid }
         ECoerce(nid, l, c, i): { return nid }
+        EFString(nid, l, c, parts): { return nid }
+        ECompositionChain(nid, l, c, elems): { return nid }
+        EFanOut(nid, l, c, branches, ip): { return nid }
+        ECoroutineStart(nid, l, c, call): { return nid }
+        ECoroutinePipeline(nid, l, c, stages): { return nid }
     }
 }
 
@@ -319,10 +368,10 @@ export fn stmt_id(s:Stmt):int {
         SContinue(nid, l, c): { return nid }
         SExpr(nid, l, c, e): { return nid }
         SIf(nid, l, c, cond, then_b, he, else_b): { return nid }
-        SWhile(nid, l, c, cond, body): { return nid }
-        SFor(nid, l, c, vn, hvt, vt, it, body): { return nid }
+        SWhile(nid, l, c, cond, body, hf, fb): { return nid }
+        SFor(nid, l, c, vn, hvt, vt, it, body, hf, fb): { return nid }
         SMatch(nid, l, c, subj, arms): { return nid }
-        STry(nid, l, c, body, catches): { return nid }
+        STry(nid, l, c, body, rb, catches, hf, fb): { return nid }
     }
 }
 
@@ -330,13 +379,15 @@ export fn decl_id(d:Decl):int {
     match d {
         DModule(nid, l, c, p): { return nid }
         DImport(nid, l, c, p, n, ia): { return nid }
-        DFn(nid, l, c, n, tp, par, hrt, rt, body, ip, ie, is): { return nid }
-        DType(nid, l, c, n, tp, f, m, ie, ist, v): { return nid }
+        DFn(nid, l, c, n, tp, par, hrt, rt, body, ip, ie, is, hf, fb): { return nid }
+        DType(nid, l, c, n, tp, f, m, cons, sm, ifaces, ie, ist, v, im): { return nid }
         DInterface(nid, l, c, n, tp, m, ie): { return nid }
         DAlias(nid, l, c, n, tp, t, ie): { return nid }
         DEnum(nid, l, c, n, v, ie): { return nid }
         DExternLib(nid, l, c, ln): { return nid }
         DExternType(nid, l, c, n, ie): { return nid }
         DExternFn(nid, l, c, n, tp, par, hrt, rt, ie, cn): { return nid }
+        DConstructor(nid, l, c, n, par, rt, body): { return nid }
+        DStaticMember(nid, l, c, n, ta, im, hv, v): { return nid }
     }
 }
