@@ -597,6 +597,30 @@ class Resolver:
                             raise self._error(
                                 f"name '{field_name}' not found in "
                                 f"namespace '{recv_sym.name}'", expr)
+                # Chained access: module.Type.static_member
+                # When receiver is a FieldAccess that resolved to a TYPE,
+                # look up the field in its static/type member scope.
+                recv_sym = self._symbols.get(receiver)
+                if recv_sym is not None and recv_sym.kind == SymbolKind.TYPE:
+                    static_scope = self._static_member_scopes.get(
+                        recv_sym.name)
+                    if static_scope is not None:
+                        member_sym = static_scope.lookup_local(field_name)
+                        if member_sym is not None:
+                            self._symbols[expr] = member_sym
+                            return
+                    # Cross-module enum: look up variant directly from decl
+                    if isinstance(recv_sym.decl, EnumDecl):
+                        for v in recv_sym.decl.variants:
+                            if v.name == field_name:
+                                type_ann = NamedType(
+                                    name=recv_sym.decl.name,
+                                    module_path=[], line=0, col=0)
+                                member_sym = Symbol(
+                                    v.name, SymbolKind.STATIC, v,
+                                    type_ann, False)
+                                self._symbols[expr] = member_sym
+                                return
                 # Instance field access deferred to type checker
 
             case IndexAccess(receiver=receiver, index=index):
@@ -619,9 +643,31 @@ class Resolver:
                     self._resolve_expr(val, scope)
 
             case TypeLit(type_name=type_name, fields=fields, spread=spread):
-                # Resolve type name
-                sym = self._lookup_or_error(scope, type_name, expr)
-                self._symbols[expr] = sym
+                # Resolve type name — handle dotted names (e.g., module.Type)
+                if '.' in type_name:
+                    parts = type_name.split('.')
+                    ns_name = parts[0]
+                    member_name = '.'.join(parts[1:])
+                    ns_sym = scope.lookup(ns_name)
+                    if ns_sym is not None and ns_sym.kind == SymbolKind.IMPORT:
+                        ns_scope = self._type_member_scopes.get(ns_name)
+                        if ns_scope is not None:
+                            member_sym = ns_scope.lookup_local(member_name)
+                            if member_sym is not None:
+                                self._symbols[expr] = member_sym
+                            else:
+                                raise self._error(
+                                    f"name '{member_name}' not found in "
+                                    f"namespace '{ns_name}'", expr)
+                        else:
+                            raise self._error(
+                                f"undefined name '{type_name}'", expr)
+                    else:
+                        raise self._error(
+                            f"undefined name '{type_name}'", expr)
+                else:
+                    sym = self._lookup_or_error(scope, type_name, expr)
+                    self._symbols[expr] = sym
                 for _, val in fields:
                     self._resolve_expr(val, scope)
                 if spread is not None:

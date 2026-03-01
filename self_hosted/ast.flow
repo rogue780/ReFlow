@@ -281,6 +281,121 @@ export fn make_module(path:array<string>, imports:array<Decl>, decls:array<Decl>
     return Module{path:path, imports:imports, decls:decls, filename:filename}
 }
 
+// Line/col accessors for sum types (needed by parser)
+export fn expr_line(e:Expr):int {
+    match e {
+        EIntLit(nid, l, c, v, s): { return l }
+        EFloatLit(nid, l, c, v, s): { return l }
+        EBoolLit(nid, l, c, v): { return l }
+        EStringLit(nid, l, c, v): { return l }
+        ECharLit(nid, l, c, v): { return l }
+        ENoneLit(nid, l, c): { return l }
+        EIdent(nid, l, c, n, mp): { return l }
+        EBinOp(nid, l, c, o, left, right): { return l }
+        EUnaryOp(nid, l, c, o, op): { return l }
+        ENamedArg(nid, l, c, n, v): { return l }
+        ESpread(nid, l, c, i): { return l }
+        ECall(nid, l, c, callee, args): { return l }
+        EMethodCall(nid, l, c, recv, m, args): { return l }
+        EFieldAccess(nid, l, c, recv, f): { return l }
+        EIndexAccess(nid, l, c, recv, idx): { return l }
+        ELambda(nid, l, c, params, body): { return l }
+        ETupleExpr(nid, l, c, elems): { return l }
+        EArrayLit(nid, l, c, elems): { return l }
+        ERecordLit(nid, l, c, fields): { return l }
+        ETypeLit(nid, l, c, tn, fields, hs, sp): { return l }
+        EIfExpr(nid, l, c, cond, then_b, else_b): { return l }
+        EMatchExpr(nid, l, c, subj, arms): { return l }
+        ETernary(nid, l, c, cond, then_e, else_e): { return l }
+        ECopy(nid, l, c, i): { return l }
+        ERef(nid, l, c, i): { return l }
+        ESome(nid, l, c, i): { return l }
+        EOk(nid, l, c, i): { return l }
+        EErr(nid, l, c, i): { return l }
+        EPropagate(nid, l, c, i): { return l }
+        ENullCoalesce(nid, l, c, left, right): { return l }
+        ETypeof(nid, l, c, i): { return l }
+        ECast(nid, l, c, i, t): { return l }
+        ECoerce(nid, l, c, i): { return l }
+        EFString(nid, l, c, parts): { return l }
+        ECompositionChain(nid, l, c, elems): { return l }
+        EFanOut(nid, l, c, branches, ip): { return l }
+        ECoroutineStart(nid, l, c, call): { return l }
+        ECoroutinePipeline(nid, l, c, stages): { return l }
+    }
+}
+
+export fn expr_col(e:Expr):int {
+    match e {
+        EIntLit(nid, l, c, v, s): { return c }
+        EFloatLit(nid, l, c, v, s): { return c }
+        EBoolLit(nid, l, c, v): { return c }
+        EStringLit(nid, l, c, v): { return c }
+        ECharLit(nid, l, c, v): { return c }
+        ENoneLit(nid, l, c): { return c }
+        EIdent(nid, l, c, n, mp): { return c }
+        EBinOp(nid, l, c, o, left, right): { return c }
+        EUnaryOp(nid, l, c, o, op): { return c }
+        ENamedArg(nid, l, c, n, v): { return c }
+        ESpread(nid, l, c, i): { return c }
+        ECall(nid, l, c, callee, args): { return c }
+        EMethodCall(nid, l, c, recv, m, args): { return c }
+        EFieldAccess(nid, l, c, recv, f): { return c }
+        EIndexAccess(nid, l, c, recv, idx): { return c }
+        ELambda(nid, l, c, params, body): { return c }
+        ETupleExpr(nid, l, c, elems): { return c }
+        EArrayLit(nid, l, c, elems): { return c }
+        ERecordLit(nid, l, c, fields): { return c }
+        ETypeLit(nid, l, c, tn, fields, hs, sp): { return c }
+        EIfExpr(nid, l, c, cond, then_b, else_b): { return c }
+        EMatchExpr(nid, l, c, subj, arms): { return c }
+        ETernary(nid, l, c, cond, then_e, else_e): { return c }
+        ECopy(nid, l, c, i): { return c }
+        ERef(nid, l, c, i): { return c }
+        ESome(nid, l, c, i): { return c }
+        EOk(nid, l, c, i): { return c }
+        EErr(nid, l, c, i): { return c }
+        EPropagate(nid, l, c, i): { return c }
+        ENullCoalesce(nid, l, c, left, right): { return c }
+        ETypeof(nid, l, c, i): { return c }
+        ECast(nid, l, c, i, t): { return c }
+        ECoerce(nid, l, c, i): { return c }
+        EFString(nid, l, c, parts): { return c }
+        ECompositionChain(nid, l, c, elems): { return c }
+        EFanOut(nid, l, c, branches, ip): { return c }
+        ECoroutineStart(nid, l, c, call): { return c }
+        ECoroutinePipeline(nid, l, c, stages): { return c }
+    }
+}
+
+export fn pattern_line(p:Pattern):int {
+    match p {
+        PWildcard(nid, l, c): { return l }
+        PLiteral(nid, l, c, vid): { return l }
+        PBind(nid, l, c, n): { return l }
+        PSome(nid, l, c, iv): { return l }
+        PNone(nid, l, c): { return l }
+        POk(nid, l, c, iv): { return l }
+        PErr(nid, l, c, iv): { return l }
+        PVariant(nid, l, c, vn, b): { return l }
+        PTuple(nid, l, c, e): { return l }
+    }
+}
+
+export fn pattern_col(p:Pattern):int {
+    match p {
+        PWildcard(nid, l, c): { return c }
+        PLiteral(nid, l, c, vid): { return c }
+        PBind(nid, l, c, n): { return c }
+        PSome(nid, l, c, iv): { return c }
+        PNone(nid, l, c): { return c }
+        POk(nid, l, c, iv): { return c }
+        PErr(nid, l, c, iv): { return c }
+        PVariant(nid, l, c, vn, b): { return c }
+        PTuple(nid, l, c, e): { return c }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Node ID accessor helpers
 // ---------------------------------------------------------------------------

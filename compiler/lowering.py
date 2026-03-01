@@ -824,6 +824,9 @@ class Lowerer:
                     return LPtr(LVoid())
                 # Cross-module type: find the declaring module
                 resolved_mod = mod if mod else self._find_sum_type_module(name)
+                # Resolve namespace alias (e.g., "ast" -> "self_hosted.ast")
+                if resolved_mod and '.' not in resolved_mod:
+                    resolved_mod = self._resolve_ns_to_module_path(resolved_mod)
                 c_name = mangle(resolved_mod, name,
                                 file=self._file, line=0, col=0)
                 return LStruct(c_name)
@@ -4866,6 +4869,14 @@ class Lowerer:
                 for variant in decl.variants:
                     if variant.name == vname and variant.fields is not None:
                         return [fname for fname, _ in variant.fields]
+        # Search imported modules
+        if self._all_typed:
+            for _mod_path, typed_mod in self._all_typed.items():
+                for decl in typed_mod.module.decls:
+                    if isinstance(decl, TypeDecl) and decl.name == sum_name and decl.is_sum_type:
+                        for variant in decl.variants:
+                            if variant.name == vname and variant.fields is not None:
+                                return [fname for fname, _ in variant.fields]
         return []
 
     def _lower_match_option(self, subj: LVar, opt_t: TOption,
@@ -5487,14 +5498,18 @@ class Lowerer:
             source_name=f"{module}.{fn_name}",
         ))
 
+    def _resolve_ns_to_module_path(self, ns_name: str) -> str:
+        """Resolve a namespace alias (from import) to the full module path."""
+        for imp in self._module.imports:
+            imp_ns = imp.alias if imp.alias else imp.path[-1]
+            if imp_ns == ns_name:
+                return ".".join(imp.path)
+        return ns_name
+
     def _resolve_import_module_path(self, receiver: Expr) -> str:
         """Get the module path for a namespace import receiver."""
         if isinstance(receiver, Ident):
-            # Look up the import to find the original module path
-            for imp in self._module.imports:
-                ns_name = imp.alias if imp.alias else imp.path[-1]
-                if ns_name == receiver.name:
-                    return ".".join(imp.path)
+            return self._resolve_ns_to_module_path(receiver.name)
         return self._module_path
 
     def _collect_yields(self, body: Block | Expr | None) -> list[YieldStmt]:
@@ -5993,7 +6008,10 @@ class Lowerer:
         match te:
             case NamedType(name=name, module_path=mp):
                 if mp:
-                    return TNamed(".".join(mp), name, ())
+                    # Resolve namespace alias to full module path
+                    ns_name = mp[0] if len(mp) == 1 else ".".join(mp)
+                    full_path = self._resolve_ns_to_module_path(ns_name)
+                    return TNamed(full_path, name, ())
                 builtin = _BUILTIN_TYPE_ANNS.get(name)
                 if builtin is not None:
                     return builtin
@@ -6193,6 +6211,12 @@ class Lowerer:
         c_fn = _get_c_fn_name(fn_decl)
         # Infer what T is
         env = self._infer_type_env_from_call(fn_decl, arg_exprs, lowered_args)
+        if not env and self._mono_type_env:
+            # Inside a monomorphized function (e.g. array.slice<Expr>), the
+            # module context is swapped to stdlib so _infer_type_env_from_call
+            # can't resolve the concrete element type from argument types.
+            # Fall back to the outer monomorphization's type env.
+            env = self._mono_type_env
         if not env:
             return None
         for tp in fn_decl.type_params:

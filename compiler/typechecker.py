@@ -1423,6 +1423,14 @@ class TypeChecker:
         match te:
             case NamedType(name=name, module_path=mp):
                 if mp:
+                    # Check registry first for cross-module types
+                    info = self._type_registry.get(name)
+                    if info is not None:
+                        if info.enum_type is not None:
+                            return info.enum_type
+                        if info.is_sum_type and info.sum_type:
+                            return info.sum_type
+                        return TNamed(info.module_path, name, ())
                     return TNamed(".".join(mp), name, ())
                 builtin = _BUILTIN_TYPES.get(name)
                 if builtin is not None:
@@ -1928,8 +1936,10 @@ class TypeChecker:
                 return TRecord(tuple(f_types))
 
             case TypeLit(type_name=type_name, fields=fields, spread=spread):
-                info = self._type_registry.get(type_name)
-                named_t = TNamed("", type_name, ())
+                # Strip module prefix for registry lookup (e.g., "ast.TypeParam" -> "TypeParam")
+                bare_name = type_name.rsplit('.', 1)[-1] if '.' in type_name else type_name
+                info = self._type_registry.get(bare_name)
+                named_t = TNamed("", bare_name, ())
 
                 for _, val in fields:
                     self._infer_expr(val, scope)
