@@ -10173,6 +10173,12 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_none(void);
 
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_any(void);
 
+fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_char(void);
+
+fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_byte(void);
+
+fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_ptr(void);
+
 FL_String* fl_self_hosted_typechecker_join_path(FL_Array* parts);
 
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_apply_env(fl_self_hosted_typechecker_TCType t, FL_Map* env);
@@ -10726,6 +10732,21 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_none(void) {
 /* Flow: self_hosted.typechecker.tc_any */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_any(void) {
     return (fl_self_hosted_typechecker_TCType){.tag = 23};
+}
+
+/* Flow: self_hosted.typechecker.tc_char */
+fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_char(void) {
+    return (fl_self_hosted_typechecker_TCType){.tag = 3};
+}
+
+/* Flow: self_hosted.typechecker.tc_byte */
+fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_byte(void) {
+    return (fl_self_hosted_typechecker_TCType){.tag = 4};
+}
+
+/* Flow: self_hosted.typechecker.tc_ptr */
+fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_ptr(void) {
+    return (fl_self_hosted_typechecker_TCType){.tag = 5};
 }
 
 /* Flow: self_hosted.typechecker.join_path */

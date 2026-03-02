@@ -115,7 +115,7 @@ fn type_of(st:LowerState:mut, node_id:int):typechecker.TCType {
     let result:typechecker.TCTypeBox? = map.get(st.node_types, key)
     match(result) {
         some(box): { return typechecker.tc_unbox(box) }
-        none: { return typechecker.TCAny }
+        none: { return typechecker.tc_any() }
     }
 }
 
@@ -129,9 +129,9 @@ fn type_of_return(st:LowerState:mut, fn_decl:ast.Decl):typechecker.TCType {
             if(has_ret) {
                 return type_of(st, ast.type_expr_id(ret_type))
             }
-            return typechecker.TCNone
+            return typechecker.tc_none()
         }
-        _: { return typechecker.TCNone }
+        _: { return typechecker.tc_none() }
     }
 }
 
@@ -167,28 +167,28 @@ fn resolve_type_ann_ast(st:LowerState:mut, te:ast.TypeExpr):typechecker.TCType {
                 TNamedType(bid, bline, bcol, bname, bmod): {
                     if(bname == "option") {
                         if(array.size(args) > 0) {
-                            return typechecker.TCOption(inner:typechecker.TCAny)
+                            return typechecker.TCOption(inner:typechecker.tc_any())
                         }
                     }
                     if(bname == "result") {
-                        return typechecker.TCResult(ok_type:typechecker.TCAny, err_type:typechecker.TCAny)
+                        return typechecker.TCResult(ok_type:typechecker.tc_any(), err_type:typechecker.tc_any())
                     }
                     if(bname == "array") {
-                        return typechecker.TCArray(elem:typechecker.TCAny)
+                        return typechecker.TCArray(elem:typechecker.tc_any())
                     }
                     if(bname == "map") {
-                        return typechecker.TCMap(key:typechecker.TCAny, val:typechecker.TCAny)
+                        return typechecker.TCMap(key:typechecker.tc_any(), val:typechecker.tc_any())
                     }
                     if(bname == "stream") {
-                        return typechecker.TCStream(elem:typechecker.TCAny)
+                        return typechecker.TCStream(elem:typechecker.tc_any())
                     }
                     if(bname == "set") {
-                        return typechecker.TCSet(elem:typechecker.TCAny)
+                        return typechecker.TCSet(elem:typechecker.tc_any())
                     }
                 }
                 _: {}
             }
-            return typechecker.TCAny
+            return typechecker.tc_any()
         }
         TOptionType(id, line, col, inner): {
             let inner_t:typechecker.TCType = resolve_type_ann(st, inner)
@@ -221,7 +221,7 @@ fn resolve_type_ann_ast(st:LowerState:mut, te:ast.TypeExpr):typechecker.TCType {
             return resolve_type_ann(st, inner)
         }
         TSumTypeExpr(id, line, col, variants): {
-            return typechecker.TCAny
+            return typechecker.tc_any()
         }
     }
 }
@@ -238,13 +238,13 @@ fn resolve_builtin_type_name(name:string):typechecker.TCType {
     if(name == "float") { return typechecker.TCFloat(width:64) }
     if(name == "float32") { return typechecker.TCFloat(width:32) }
     if(name == "float64") { return typechecker.TCFloat(width:64) }
-    if(name == "bool") { return typechecker.TCBool }
-    if(name == "char") { return typechecker.TCChar }
-    if(name == "byte") { return typechecker.TCByte }
-    if(name == "ptr") { return typechecker.TCPtr }
-    if(name == "string") { return typechecker.TCString }
-    if(name == "none") { return typechecker.TCNone }
-    if(name == "void") { return typechecker.TCNone }
+    if(name == "bool") { return typechecker.tc_bool() }
+    if(name == "char") { return typechecker.tc_char() }
+    if(name == "byte") { return typechecker.tc_byte() }
+    if(name == "ptr") { return typechecker.tc_ptr() }
+    if(name == "string") { return typechecker.tc_string() }
+    if(name == "none") { return typechecker.tc_none() }
+    if(name == "void") { return typechecker.tc_none() }
     return typechecker.TCTypeVar(name:name)
 }
 
@@ -625,7 +625,7 @@ fn lower_tuple_type(st:LowerState:mut, elems:array<typechecker.TCTypeBox>):lir.L
     let fields:array<lir.LField>:mut = []
     let i:int:mut = 0
     while(i < array.size(elems)) {
-        let eb:typechecker.TCTypeBox = array.get_any(elems, i) ?? typechecker.tc_box(typechecker.TCAny)
+        let eb:typechecker.TCTypeBox = array.get_any(elems, i) ?? typechecker.tc_box(typechecker.tc_any())
         let et:lir.LType = lower_type(st, typechecker.tc_unbox(eb))
         if(i > 0) { key = key + "_" }
         key = key + lir.ltype_c_name(et)
@@ -656,7 +656,7 @@ fn lower_extern_type(st:LowerState:mut, t:typechecker.TCType):lir.LType {
             let ptypes:array<lir.LTypeBox>:mut = []
             let i:int:mut = 0
             while(i < array.size(params)) {
-                let pb:typechecker.TCTypeBox = array.get_any(params, i) ?? typechecker.tc_box(typechecker.TCAny)
+                let pb:typechecker.TCTypeBox = array.get_any(params, i) ?? typechecker.tc_box(typechecker.tc_any())
                 ptypes = array.push(ptypes, lir.lt_box(lower_extern_type(st, typechecker.tc_unbox(pb))))
                 i = i + 1
             }
@@ -706,7 +706,7 @@ fn make_lower_state(typed:typechecker.TypedModule):LowerState {
         tmp_counter:0,
         pending_stmts:[],
         has_current_ret_type:false,
-        current_ret_type:typechecker.TCNone,
+        current_ret_type:typechecker.tc_none(),
         current_fn_name:"",
         lambda_counter:0,
         fn_wrapper_registry:map.new(),
@@ -726,7 +726,7 @@ fn make_lower_state(typed:typechecker.TypedModule):LowerState {
         mono_caller_module:"",
         has_stream_ctx:false,
         stream_frame_var:"",
-        stream_elem_type:typechecker.TCNone,
+        stream_elem_type:typechecker.tc_none(),
         stream_yield_counter:0
     }
 }
@@ -902,9 +902,12 @@ fn lower_type_decl(st:LowerState:mut, decl:ast.Decl):int {
             } else {
                 // Regular struct
                 let lfields:array<lir.LField>:mut = []
-                for(f:ast.FieldDecl in fields) {
+                let fi:int:mut = 0
+                while(fi < array.size(fields)) {
+                    let f:ast.FieldDecl = array.get_any(fields, fi) ?? ast.FieldDecl{name:"", type_ann:ast.TNamedType(0,0,0,"",[]), is_mut:false, id:0, line:0, col:0}
                     let f_type:typechecker.TCType = resolve_type_ann(st, f.type_ann)
                     lfields = array.push(lfields, lir.LField{name:f.name, field_type:lower_type(st, f_type)})
+                    fi = fi + 1
                 }
                 st.type_defs = array.push(st.type_defs, lir.LTypeDef{c_name:c_name, fields:lfields})
             }
@@ -1067,7 +1070,7 @@ fn lower_constructor(st:LowerState:mut, ct:ast.Decl, type_name:string, type_c_na
             let saved_let_vars:map<string, lir.LTypeBox> = st.let_var_ltypes
             let saved_mut_params:map<string, bool> = st.mut_param_names
 
-            st.current_ret_type = typechecker.TCNone
+            st.current_ret_type = typechecker.tc_none()
             st.current_fn_name = cname
             st.let_var_ltypes = map.new()
             st.mut_param_names = map.new()
@@ -1114,7 +1117,9 @@ fn lower_enum_decl(st:LowerState:mut, decl:ast.Decl):int {
             let vnames:array<string>:mut = []
             let vvals:array<int>:mut = []
             let next_val:int:mut = 0
-            for(v:ast.EnumVariantDecl in variants) {
+            let vi:int:mut = 0
+            while(vi < array.size(variants)) {
+                let v:ast.EnumVariantDecl = array.get_any(variants, vi) ?? ast.EnumVariantDecl{name:"", has_value:false, value:0, id:0, line:0, col:0}
                 let mangled:string = mangler.mangle(st.module_path, name, v.name)
                 vnames = array.push(vnames, mangled)
                 if(v.has_value) {
@@ -1124,6 +1129,7 @@ fn lower_enum_decl(st:LowerState:mut, decl:ast.Decl):int {
                     vvals = array.push(vvals, next_val)
                     next_val = next_val + 1
                 }
+                vi = vi + 1
             }
             st.enum_defs = array.push(st.enum_defs, lir.LEnumDef{c_name:enum_c_name, variant_names:vnames, variant_values:vvals})
         }
@@ -1348,7 +1354,9 @@ fn lower_update(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
                 let rv:lir.LExpr = lower_expr(st, val)
                 let target_type:typechecker.TCType = type_of(st, ast.expr_id(target))
                 let result_lt:lir.LType = lower_type(st, target_type)
-                let binop_result:lir.LExpr = lir.LEBinOp(op:op, left:lir.le_box(lt), right:lir.le_box(rv), c_type:result_lt)
+                let lb:lir.LExprBox = lir.le_box(lt)
+                let rb:lir.LExprBox = lir.le_box(rv)
+                let binop_result:lir.LExpr = lir.LEBinOp(op:op, left:lb, right:rb, c_type:result_lt)
                 // Re-lower target for assignment (need fresh LExpr)
                 let lt2:lir.LExpr = lower_expr(st, target)
                 return [lir.LStmtBox{ls:lir.LSAssign(target:lt2, value:binop_result, source_line:line)}]
@@ -1357,7 +1365,9 @@ fn lower_update(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
                 let target_type:typechecker.TCType = type_of(st, ast.expr_id(target))
                 let result_lt:lir.LType = lower_type(st, target_type)
                 let one:lir.LExpr = lir.LELit(value:"1", c_type:result_lt)
-                let binop_result:lir.LExpr = lir.LEBinOp(op:op, left:lir.le_box(lt), right:lir.le_box(one), c_type:result_lt)
+                let lb:lir.LExprBox = lir.le_box(lt)
+                let ob:lir.LExprBox = lir.le_box(one)
+                let binop_result:lir.LExpr = lir.LEBinOp(op:op, left:lb, right:ob, c_type:result_lt)
                 let lt2:lir.LExpr = lower_expr(st, target)
                 return [lir.LStmtBox{ls:lir.LSAssign(target:lt2, value:binop_result, source_line:line)}]
             }
@@ -1445,7 +1455,7 @@ fn lower_for(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
                 }
                 _: {
                     // Fallback: treat as array with unknown element type
-                    return lower_for_array(st, s, typechecker.TCAny)
+                    return lower_for_array(st, s, typechecker.tc_any())
                 }
             }
         }
@@ -1476,17 +1486,23 @@ fn lower_for_array(st:LowerState:mut, s:ast.Stmt, elem_t:typechecker.TCType):arr
 
             // Condition: idx < fl_array_len(arr)
             let len_call:lir.LExpr = lir.LECall(fn_name:"fl_array_len", args:[lir.le_box(lir.LEVar(c_name:arr_tmp, c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Array"))))], c_type:idx_lt)
-            let cond:lir.LExpr = lir.LEBinOp(op:"<", left:lir.le_box(lir.LEVar(c_name:idx_name, c_type:idx_lt)), right:lir.le_box(len_call), c_type:lir.LBool)
+            let cond_lb:lir.LExprBox = lir.le_box(lir.LEVar(c_name:idx_name, c_type:idx_lt))
+            let cond_rb:lir.LExprBox = lir.le_box(len_call)
+            let cond:lir.LExpr = lir.LEBinOp(op:"<", left:cond_lb, right:cond_rb, c_type:lir.LBool)
 
             // Element binding: T item = *(T*)fl_array_get_ptr(arr, idx)
             let get_call:lir.LExpr = lir.LECall(fn_name:"fl_array_get_ptr", args:[lir.le_box(lir.LEVar(c_name:arr_tmp, c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Array")))), lir.le_box(lir.LEVar(c_name:idx_name, c_type:idx_lt))], c_type:lir.LPtr(inner:lir.LVoid))
-            let cast_ptr:lir.LExpr = lir.LECast(inner:lir.le_box(get_call), c_type:lir.LPtr(inner:elem_lt))
-            let deref:lir.LExpr = lir.LEDeref(inner:lir.le_box(cast_ptr), c_type:elem_lt)
+            let get_box:lir.LExprBox = lir.le_box(get_call)
+            let cast_ptr:lir.LExpr = lir.LECast(inner:get_box, c_type:lir.LPtr(inner:elem_lt))
+            let cast_box:lir.LExprBox = lir.le_box(cast_ptr)
+            let deref:lir.LExpr = lir.LEDeref(inner:cast_box, c_type:elem_lt)
 
             let item_decl:lir.LStmt = lir.LSVarDecl(c_name:var_name, c_type:elem_lt, has_init:true, init:deref, source_line:line)
 
             // Increment: idx = idx + 1
-            let inc:lir.LStmt = lir.LSAssign(target:lir.LEVar(c_name:idx_name, c_type:idx_lt), value:lir.LEBinOp(op:"+", left:lir.le_box(lir.LEVar(c_name:idx_name, c_type:idx_lt)), right:lir.le_box(lir.LELit(value:"1", c_type:idx_lt)), c_type:idx_lt), source_line:line)
+            let inc_lb:lir.LExprBox = lir.le_box(lir.LEVar(c_name:idx_name, c_type:idx_lt))
+            let inc_rb:lir.LExprBox = lir.le_box(lir.LELit(value:"1", c_type:idx_lt))
+            let inc:lir.LStmt = lir.LSAssign(target:lir.LEVar(c_name:idx_name, c_type:idx_lt), value:lir.LEBinOp(op:"+", left:inc_lb, right:inc_rb, c_type:idx_lt), source_line:line)
 
             // Body: item_decl + lowered body + increment
             let loop_body:array<lir.LStmtBox>:mut = []
@@ -1544,15 +1560,24 @@ fn lower_for_stream(st:LowerState:mut, s:ast.Stmt, elem_t:typechecker.TCType):ar
             // FL_Option_ptr next = fl_stream_next(stream)
             loop_body = array.push(loop_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:next_tmp, c_type:opt_type, has_init:true, init:next_call, source_line:line)})
             // if(next.tag == 0) break
-            let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:next_tmp, c_type:opt_type)), field:"tag", c_type:lir.LByte)), right:lir.le_box(lir.LELit(value:"0", c_type:lir.LByte)), c_type:lir.LBool)
+            let tag_fa_obj:lir.LExprBox = lir.le_box(lir.LEVar(c_name:next_tmp, c_type:opt_type))
+            let tag_fa:lir.LExpr = lir.LEFieldAccess(obj:tag_fa_obj, field:"tag", c_type:lir.LByte)
+            let tag_lb:lir.LExprBox = lir.le_box(tag_fa)
+            let tag_rb:lir.LExprBox = lir.le_box(lir.LELit(value:"0", c_type:lir.LByte))
+            let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:tag_lb, right:tag_rb, c_type:lir.LBool)
             loop_body = array.push(loop_body, lir.LStmtBox{ls:lir.LSIf(cond:tag_check, then_body:[lir.LStmtBox{ls:lir.LSBreak(source_line:line)}], else_body:[], source_line:line)})
 
             // Extract value
-            let val_field:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:next_tmp, c_type:opt_type)), field:"value", c_type:lir.LPtr(inner:lir.LVoid))
-            let cast_val:lir.LExpr:mut = lir.LECast(inner:lir.le_box(val_field), c_type:elem_lt)
+            let val_fa_obj:lir.LExprBox = lir.le_box(lir.LEVar(c_name:next_tmp, c_type:opt_type))
+            let val_field:lir.LExpr = lir.LEFieldAccess(obj:val_fa_obj, field:"value", c_type:lir.LPtr(inner:lir.LVoid))
+            let val_field_box:lir.LExprBox = lir.le_box(val_field)
+            let cast_val:lir.LExpr:mut = lir.LECast(inner:val_field_box, c_type:elem_lt)
             if(is_ptr_type(elem_lt) == false) {
                 // Value types need intermediate cast through uintptr
-                cast_val = lir.LECast(inner:lir.le_box(lir.LECast(inner:lir.le_box(val_field), c_type:lir.LInt(width:64, is_signed:false))), c_type:elem_lt)
+                let inner_box:lir.LExprBox = lir.le_box(val_field)
+                let inner_cast:lir.LExpr = lir.LECast(inner:inner_box, c_type:lir.LInt(width:64, is_signed:false))
+                let inner_cast_box:lir.LExprBox = lir.le_box(inner_cast)
+                cast_val = lir.LECast(inner:inner_cast_box, c_type:elem_lt)
             }
             loop_body = array.push(loop_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:var_name, c_type:elem_lt, has_init:true, init:cast_val, source_line:line)})
 
@@ -1742,7 +1767,7 @@ fn lower_match_sum(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCTy
                         // Get field type from variant
                         let ft:lir.LType:mut = lir.LPtr(inner:lir.LVoid)
                         if(bi < array.size(found_v.field_types_box)) {
-                            let ftbox:typechecker.TCTypeBox = array.get_any(found_v.field_types_box, bi) ?? typechecker.tc_box(typechecker.TCAny)
+                            let ftbox:typechecker.TCTypeBox = array.get_any(found_v.field_types_box, bi) ?? typechecker.tc_box(typechecker.tc_any())
                             ft = lower_type(st, typechecker.tc_unbox(ftbox))
                         }
                         // Access: subj.variant_name.field_name
@@ -1797,7 +1822,7 @@ fn lower_match_option(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.T
         match(arm.pattern) {
             PSome(pid, pline, pcol, inner_var): {
                 // Bind inner value
-                let inner_t:typechecker.TCType:mut = typechecker.TCAny
+                let inner_t:typechecker.TCType:mut = typechecker.tc_any()
                 match(subj_type) {
                     TCOption(it): { inner_t = it }
                     _: {}
@@ -1838,7 +1863,7 @@ fn lower_match_result(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.T
     for(arm:ast.MatchArm in arms) {
         match(arm.pattern) {
             POk(pid, pline, pcol, inner_var): {
-                let ok_t:typechecker.TCType:mut = typechecker.TCAny
+                let ok_t:typechecker.TCType:mut = typechecker.tc_any()
                 match(subj_type) {
                     TCResult(ot, et): { ok_t = ot }
                     _: {}
@@ -1854,7 +1879,7 @@ fn lower_match_result(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.T
                 }
             }
             PErr(pid, pline, pcol, inner_var): {
-                let err_t:typechecker.TCType:mut = typechecker.TCAny
+                let err_t:typechecker.TCType:mut = typechecker.tc_any()
                 match(subj_type) {
                     TCResult(ot, et): { err_t = et }
                     _: {}
@@ -2546,9 +2571,12 @@ fn lower_type_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let result_lt:lir.LType = lower_type(st, result_type)
             let fnames:array<string>:mut = []
             let fvals:array<lir.LExprBox>:mut = []
-            for(f:ast.ExprField in type_fields) {
+            let fi:int:mut = 0
+            while(fi < array.size(type_fields)) {
+                let f:ast.ExprField = array.get_any(type_fields, fi) ?? ast.ExprField{name:"", value:ast.ENoneLit(id:0, line:0, col:0)}
                 fnames = array.push(fnames, f.name)
                 fvals = array.push(fvals, lir.le_box(lower_expr(st, f.value)))
+                fi = fi + 1
             }
             return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
         }
@@ -2567,9 +2595,12 @@ fn lower_record_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let result_lt:lir.LType = lower_type(st, result_type)
             let fnames:array<string>:mut = []
             let fvals:array<lir.LExprBox>:mut = []
-            for(f:ast.ExprField in rec_fields) {
+            let ri:int:mut = 0
+            while(ri < array.size(rec_fields)) {
+                let f:ast.ExprField = array.get_any(rec_fields, ri) ?? ast.ExprField{name:"", value:ast.ENoneLit(id:0, line:0, col:0)}
                 fnames = array.push(fnames, f.name)
                 fvals = array.push(fvals, lir.le_box(lower_expr(st, f.value)))
+                ri = ri + 1
             }
             return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
         }

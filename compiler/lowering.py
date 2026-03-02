@@ -1190,7 +1190,7 @@ class Lowerer:
                     f_type = self._type_of(ftype_expr) if ftype_expr else TNone()
                     field_lt = self._lower_type(f_type)
                     # Recursive sum field: use pointer to avoid incomplete type
-                    if self._is_recursive_sum_field(f_type, td.name):
+                    if self._is_recursive_sum_field(f_type, td.name, ftype_expr):
                         field_lt = LPtr(field_lt)
                     variant_fields.append((fname, field_lt))
                 # Add as a sub-struct named after the variant
@@ -2289,6 +2289,30 @@ class Lowerer:
                     c_name = mangle(self._module_path, type_name, field_name,
                                     file=self._file, line=expr.line, col=expr.col)
                     return LVar(c_name, lt)
+                # Cross-module fieldless variant constructor: mod.Variant
+                if sym is not None and sym.kind == SymbolKind.CONSTRUCTOR:
+                    if (isinstance(sym.decl, SumVariantDecl)
+                            and sym.decl.fields is None):
+                        sum_t = t
+                        if not isinstance(sum_t, TSum):
+                            sum_t = self._type_of(expr)
+                        if isinstance(sum_t, TSum):
+                            tag = next((i for i, v in enumerate(sum_t.variants)
+                                        if v.name == field_name), 0)
+                            return LCompound(
+                                fields=[("tag", LLit(str(tag), LByte()))],
+                                c_type=lt,
+                            )
+                        # Fallback: typechecker returned TAny — look up TSum from decl
+                        found_t, found_lt = self._find_variant_sum_type(
+                            field_name, sym.decl, t, lt)
+                        if isinstance(found_t, TSum):
+                            tag = next((i for i, v in enumerate(found_t.variants)
+                                        if v.name == field_name), 0)
+                            return LCompound(
+                                fields=[("tag", LLit(str(tag), LByte()))],
+                                c_type=found_lt,
+                            )
                 recv = self._lower_expr(receiver)
                 # Tuple field names: .0, .1 → ._0, ._1 (numeric names are
                 # invalid C identifiers, prefix with underscore)
@@ -2992,18 +3016,42 @@ class Lowerer:
                     and self._is_recursive_sum_field(
                         variant.fields[i], t.name, ast_field_type)):
                 tmp = self._fresh_temp()
-                ptr_type = LPtr(lt)
+                # For indirect recursion (e.g. LExprBox wrapping LExpr),
+                # use the wrapper struct type. For direct recursion, use
+                # the parent sum type.
+                field_lt = self._lower_type_resolving_tvars(variant.fields[i])
+                if (isinstance(field_lt, LStruct) and isinstance(lt, LStruct)
+                        and field_lt.c_name != lt.c_name):
+                    # Indirect: wrapper struct like LExprBox (different name)
+                    alloc_lt = field_lt
+                elif (isinstance(field_lt, LPtr)
+                      and isinstance(field_lt.inner, LVoid)):
+                    # TAny — use AST field type to determine allocation type
+                    if (ast_field_type is not None
+                            and isinstance(ast_field_type, NamedType)
+                            and ast_field_type.name != t.name
+                            and isinstance(lt, LStruct)):
+                        # Indirect recursion through wrapper struct
+                        # Derive module prefix from parent sum type's c_name
+                        prefix = lt.c_name[:len(lt.c_name) - len(t.name)]
+                        alloc_lt = LStruct(prefix + ast_field_type.name)
+                    else:
+                        # Direct recursion — use parent sum type
+                        alloc_lt = lt
+                else:
+                    alloc_lt = lt
+                ptr_type = LPtr(alloc_lt)
                 # Type* tmp = (Type*)malloc(sizeof(Type));
                 self._pending_stmts.append(LVarDecl(
                     c_name=tmp,
                     c_type=ptr_type,
                     init=LCast(
-                        LCall("malloc", [LSizeOf(lt)], LPtr(LVoid())),
+                        LCall("malloc", [LSizeOf(alloc_lt)], LPtr(LVoid())),
                         ptr_type),
                 ))
                 # *tmp = arg;
                 self._pending_stmts.append(LAssign(
-                    LDeref(LVar(tmp, ptr_type), lt),
+                    LDeref(LVar(tmp, ptr_type), alloc_lt),
                     arg,
                 ))
                 inner_fields.append((fname, LVar(tmp, ptr_type)))
@@ -3048,7 +3096,7 @@ class Lowerer:
                     # Build TSum from variants
                     variants = []
                     for v in decl.variants:
-                        fields = [(fn, TAny()) for fn, _ in v.fields] if v.fields else None
+                        fields = tuple(TAny() for _ in v.fields) if v.fields else None
                         variants.append(TVariant(v.name, fields))
                     tsum = TSum(decl.name, variants)
                     return tsum, lt
@@ -4883,12 +4931,15 @@ class Lowerer:
                     if variant.fields is not None:
                         field_names = self._get_variant_field_names(
                             sum_t.name, vname)
+                        ast_field_types = self._get_variant_field_ast_types(
+                            sum_t.name, vname)
                         for i, binding in enumerate(bindings):
                             if i < len(variant.fields):
                                 field_lt = self._lower_type_resolving_tvars(variant.fields[i])
                                 fname = field_names[i] if i < len(field_names) else f"_{i}"
+                                ast_ft = ast_field_types[i] if i < len(ast_field_types) else None
                                 is_recursive = self._is_recursive_sum_field(
-                                    variant.fields[i], sum_t.name)
+                                    variant.fields[i], sum_t.name, ast_ft)
                                 if is_recursive:
                                     # Field is a pointer — dereference to get value
                                     ptr_lt = LPtr(field_lt)
@@ -4953,6 +5004,22 @@ class Lowerer:
                         for variant in decl.variants:
                             if variant.name == vname and variant.fields is not None:
                                 return [fname for fname, _ in variant.fields]
+        return []
+
+    def _get_variant_field_ast_types(self, sum_name: str, vname: str) -> list:
+        """Get AST-level type expressions for a variant's fields."""
+        for decl in self._module.decls:
+            if isinstance(decl, TypeDecl) and decl.name == sum_name and decl.is_sum_type:
+                for variant in decl.variants:
+                    if variant.name == vname and variant.fields is not None:
+                        return [ftype for _, ftype in variant.fields]
+        if self._all_typed:
+            for _mp, tmod in self._all_typed.items():
+                for decl in tmod.module.decls:
+                    if isinstance(decl, TypeDecl) and decl.name == sum_name and decl.is_sum_type:
+                        for variant in decl.variants:
+                            if variant.name == vname and variant.fields is not None:
+                                return [ftype for _, ftype in variant.fields]
         return []
 
     def _lower_match_option(self, subj: LVar, opt_t: TOption,
@@ -5184,12 +5251,15 @@ class Lowerer:
                     if variant.fields is not None:
                         field_names = self._get_variant_field_names(
                             sum_t.name, vname)
+                        ast_field_types = self._get_variant_field_ast_types(
+                            sum_t.name, vname)
                         for i, binding in enumerate(bindings):
                             if i < len(variant.fields):
                                 field_lt = self._lower_type_resolving_tvars(variant.fields[i])
                                 fname = field_names[i] if i < len(field_names) else f"_{i}"
+                                ast_ft = ast_field_types[i] if i < len(ast_field_types) else None
                                 is_recursive = self._is_recursive_sum_field(
-                                    variant.fields[i], sum_t.name)
+                                    variant.fields[i], sum_t.name, ast_ft)
                                 if is_recursive:
                                     ptr_lt = LPtr(field_lt)
                                     field_access = LFieldAccess(
@@ -6254,7 +6324,9 @@ class Lowerer:
     def _is_recursive_sum_field(self, field_type: Type,
                                 enclosing_name: str,
                                 ast_type: TypeExpr | None = None) -> bool:
-        """Check if a variant field type refers to its enclosing sum type."""
+        """Check if a variant field type refers to its enclosing sum type,
+        either directly or indirectly through a wrapper struct that embeds it
+        by value (e.g. LExprBox wrapping LExpr)."""
         match field_type:
             case TSum(name=name) if name == enclosing_name:
                 return True
@@ -6267,6 +6339,31 @@ class Lowerer:
         if ast_type is not None and isinstance(ast_type, NamedType):
             if ast_type.name == enclosing_name:
                 return True
+            # Indirect recursion: a wrapper struct (e.g. LExprBox) that
+            # by-value embeds the enclosing sum type. Only check when the
+            # AST type name differs from enclosing_name (not direct recursion).
+            wrapper_name = ast_type.name
+            if wrapper_name != enclosing_name:
+                for d in self._module.decls:
+                    if (isinstance(d, TypeDecl) and d.name == wrapper_name
+                            and not d.variants and d.fields):
+                        for fd in d.fields:
+                            if (fd.type_ann is not None
+                                    and isinstance(fd.type_ann, NamedType)
+                                    and fd.type_ann.name == enclosing_name):
+                                return True
+                        break
+                if self._all_typed:
+                    for _mp, tmod in self._all_typed.items():
+                        for d in tmod.module.decls:
+                            if (isinstance(d, TypeDecl) and d.name == wrapper_name
+                                    and not d.variants and d.fields):
+                                for fd in d.fields:
+                                    if (fd.type_ann is not None
+                                            and isinstance(fd.type_ann, NamedType)
+                                            and fd.type_ann.name == enclosing_name):
+                                        return True
+                                break
         return False
 
     # ------------------------------------------------------------------

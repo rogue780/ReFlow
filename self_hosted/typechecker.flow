@@ -391,6 +391,9 @@ export fn tc_string():TCType { return TCString() }
 export fn tc_bool():TCType { return TCBool() }
 export fn tc_none():TCType { return TCNone() }
 export fn tc_any():TCType { return TCAny() }
+export fn tc_char():TCType { return TCChar() }
+export fn tc_byte():TCType { return TCByte() }
+export fn tc_ptr():TCType { return TCPtr() }
 
 fn join_path(parts:array<string>):string {
     let n = array.size(parts)
