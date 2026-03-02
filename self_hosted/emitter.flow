@@ -1,0 +1,1181 @@
+module self_hosted.emitter
+
+// Self-hosted emitter: LModule → C source string.
+// Pure formatting pass — no semantic decisions.
+// Port of compiler/emitter.py.
+
+import array
+import conv
+import map
+import string
+import self_hosted.lir as lir
+
+// ---------------------------------------------------------------------------
+// EmitState — mutable emitter context
+// ---------------------------------------------------------------------------
+
+type EmitState:mut {
+    source_file:string
+    is_root:bool
+    out:array<string>
+    indent_level:int
+    tmp_counter:int
+    pre_stmts:array<string>
+    deferred_init_names:array<string>
+    deferred_init_exprs:array<string>
+    extra_init_names:array<string>
+    extra_init_exprs:array<string>
+    last_line_dir:int
+    line_directives:bool
+}
+
+fn make_state(source_file:string, is_root:bool, extra_init_names:array<string>, extra_init_exprs:array<string>, line_directives:bool):EmitState {
+    return EmitState{
+        source_file: source_file,
+        is_root: is_root,
+        out: [],
+        indent_level: 0,
+        tmp_counter: 0,
+        pre_stmts: [],
+        deferred_init_names: [],
+        deferred_init_exprs: [],
+        extra_init_names: extra_init_names,
+        extra_init_exprs: extra_init_exprs,
+        last_line_dir: -1,
+        line_directives: line_directives
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Buffer infrastructure
+// ---------------------------------------------------------------------------
+
+fn emit_raw(st:EmitState:mut, s:string) {
+    st.out = array.push(st.out, s)
+}
+
+fn emit_indented(st:EmitState:mut, s:string) {
+    let indent:string:mut = ""
+    let i:int:mut = 0
+    while(i < st.indent_level) {
+        indent = indent + "    "
+        i = i + 1
+    }
+    st.out = array.push(st.out, indent + s + "\n")
+}
+
+fn blank(st:EmitState:mut) {
+    st.out = array.push(st.out, "\n")
+}
+
+fn do_indent(st:EmitState:mut) {
+    st.indent_level = st.indent_level + 1
+}
+
+fn do_dedent(st:EmitState:mut) {
+    st.indent_level = st.indent_level - 1
+}
+
+fn get_output(st:EmitState:mut):string {
+    let result:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(st.out)) {
+        result = result + (array.get(st.out, i) ?? "")
+        i = i + 1
+    }
+    return result
+}
+
+fn fresh_temp(st:EmitState:mut):string {
+    st.tmp_counter = st.tmp_counter + 1
+    return "_fl_e_" + conv.to_string(st.tmp_counter)
+}
+
+fn emit_line_directive(st:EmitState:mut, source_line:int) {
+    if(st.line_directives == false) {
+        return
+    }
+    if(source_line <= 0) {
+        return
+    }
+    if(source_line == st.last_line_dir) {
+        return
+    }
+    st.last_line_dir = source_line
+    emit_raw(st, "#line " + conv.to_string(source_line) + " \"" + st.source_file + "\"\n")
+}
+
+// ---------------------------------------------------------------------------
+// Type formatting
+// ---------------------------------------------------------------------------
+
+fn emit_ltype_params(st:EmitState:mut, params:array<lir.LTypeBox>):string {
+    let result:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(params)) {
+        let pb:lir.LTypeBox = array.get_any(params, i) ?? lir.lt_box(lir.LVoid)
+        if(i > 0) {
+            result = result + ", "
+        }
+        result = result + emit_ltype(st, lir.lt_unbox(pb))
+        i = i + 1
+    }
+    if(string.len(result) == 0) {
+        result = "void"
+    }
+    return result
+}
+
+fn emit_ltype(st:EmitState:mut, lt:lir.LType):string {
+    match(lt) {
+        LInt(w, s): {
+            if(s) {
+                if(w == 32) { return "fl_int" }
+                if(w == 16) { return "fl_int16" }
+                if(w == 64) { return "fl_int64" }
+                return "fl_int" + conv.to_string(w)
+            }
+            if(w == 32) { return "fl_uint" }
+            if(w == 16) { return "fl_uint16" }
+            if(w == 64) { return "fl_uint64" }
+            return "fl_uint" + conv.to_string(w)
+        }
+        LFloat(w): {
+            if(w == 64) { return "fl_float" }
+            if(w == 32) { return "fl_float32" }
+            return "fl_float" + conv.to_string(w)
+        }
+        LBool: { return "fl_bool" }
+        LChar: { return "fl_char" }
+        LByte: { return "fl_byte" }
+        LPtr(inner): {
+            return emit_ltype(st, inner) + "*"
+        }
+        LStruct(cname): { return cname }
+        LVoid: { return "void" }
+        LFnPtr(params, ret): {
+            let ret_str:string = emit_ltype(st, ret)
+            let params_str:string = emit_ltype_params(st, params)
+            return ret_str + " (*)(" + params_str + ")"
+        }
+    }
+}
+
+fn format_decl(st:EmitState:mut, lt:lir.LType, name:string):string {
+    match(lt) {
+        LFnPtr(params, ret): {
+            let ret_str:string = emit_ltype(st, ret)
+            let params_str:string = emit_ltype_params(st, params)
+            return ret_str + " (*" + name + ")(" + params_str + ")"
+        }
+        _: {
+            return emit_ltype(st, lt) + " " + name
+        }
+    }
+}
+
+fn is_string_ptr(lt:lir.LType):bool {
+    match(lt) {
+        LPtr(inner): {
+            match(inner) {
+                LStruct(cname): {
+                    return cname == "FL_String"
+                }
+                _: { return false }
+            }
+        }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Header emission
+// ---------------------------------------------------------------------------
+
+fn emit_header(st:EmitState:mut) {
+    emit_indented(st, "/* Generated by flowc - do not edit */")
+    emit_indented(st, "/* Source: " + st.source_file + " */")
+    emit_indented(st, "#include \"flow_runtime.h\"")
+}
+
+// ---------------------------------------------------------------------------
+// Extern FFI prototypes
+// ---------------------------------------------------------------------------
+
+fn starts_with_fl(s:string):bool {
+    if(string.len(s) < 3) {
+        return false
+    }
+    return string.starts_with(s, "fl_")
+}
+
+fn emit_extern_protos(st:EmitState:mut, mod:lir.LModule) {
+    if(array.size(mod.extern_fn_protos) == 0) {
+        return
+    }
+    blank(st)
+    emit_indented(st, "/* Extern FFI declarations */")
+    let i:int:mut = 0
+    while(i < array.size(mod.extern_fn_protos)) {
+        let proto:lir.LExternFnProto = array.get_any(mod.extern_fn_protos, i) ?? lir.LExternFnProto{c_name:"", param_types:[], ret:lir.LVoid}
+        // Skip names already in flow_runtime.h
+        if(starts_with_fl(proto.c_name) == false) {
+            let ret_str:string = emit_ltype(st, proto.ret)
+            let params_str:string = emit_ltype_params(st, proto.param_types)
+            emit_indented(st, "extern " + ret_str + " " + proto.c_name + "(" + params_str + ");")
+        }
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Forward declarations
+// ---------------------------------------------------------------------------
+
+fn fn_prototype(st:EmitState:mut, fn_def:lir.LFnDef):string {
+    let ret_str:string = emit_ltype(st, fn_def.ret)
+    let params_str:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(fn_def.params)) {
+        let p:lir.LParam = array.get_any(fn_def.params, i) ?? lir.LParam{name:"", param_type:lir.LVoid}
+        if(i > 0) {
+            params_str = params_str + ", "
+        }
+        params_str = params_str + format_decl(st, p.param_type, p.name)
+        i = i + 1
+    }
+    if(string.len(params_str) == 0) {
+        params_str = "void"
+    }
+    return ret_str + " " + fn_def.c_name + "(" + params_str + ")"
+}
+
+fn emit_forward_decls(st:EmitState:mut, mod:lir.LModule) {
+    if(array.size(mod.type_defs) == 0 && array.size(mod.fn_defs) == 0) {
+        return
+    }
+    // Forward-declare struct types
+    let i:int:mut = 0
+    while(i < array.size(mod.type_defs)) {
+        let td:lir.LTypeDef = array.get_any(mod.type_defs, i) ?? lir.LTypeDef{c_name:"", fields:[]}
+        blank(st)
+        emit_indented(st, "typedef struct " + td.c_name + " " + td.c_name + ";")
+        i = i + 1
+    }
+    // Forward-declare function prototypes
+    if(array.size(mod.type_defs) > 0 || array.size(mod.fn_defs) > 1) {
+        let j:int:mut = 0
+        while(j < array.size(mod.fn_defs)) {
+            let fn_def:lir.LFnDef = array.get_any(mod.fn_defs, j) ?? lir.LFnDef{c_name:"", params:[], ret:lir.LVoid, body:[], is_pure:false, source_name:"", source_line:0}
+            blank(st)
+            emit_indented(st, fn_prototype(st, fn_def) + ";")
+            j = j + 1
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Enum definitions
+// ---------------------------------------------------------------------------
+
+fn emit_enum_defs(st:EmitState:mut, mod:lir.LModule) {
+    let i:int:mut = 0
+    while(i < array.size(mod.enum_defs)) {
+        let ed:lir.LEnumDef = array.get_any(mod.enum_defs, i) ?? lir.LEnumDef{c_name:"", variant_names:[], variant_values:[]}
+        blank(st)
+        emit_indented(st, "typedef enum {")
+        do_indent(st)
+        let j:int:mut = 0
+        while(j < array.size(ed.variant_names)) {
+            let vname:string = array.get(ed.variant_names, j) ?? ""
+            let vval:int = array.get_any(ed.variant_values, j) ?? 0
+            let comma:string:mut = ""
+            if(j < array.size(ed.variant_names) - 1) {
+                comma = ","
+            }
+            emit_indented(st, vname + " = " + conv.to_string(vval) + comma)
+            j = j + 1
+        }
+        do_dedent(st)
+        emit_indented(st, "} " + ed.c_name + ";")
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Topological sort for type definitions (Kahn's algorithm)
+// ---------------------------------------------------------------------------
+
+fn get_by_value_deps(td:lir.LTypeDef, all_names:array<string>):array<string> {
+    let deps:array<string>:mut = []
+    let i:int:mut = 0
+    while(i < array.size(td.fields)) {
+        let f:lir.LField = array.get_any(td.fields, i) ?? lir.LField{name:"", field_type:lir.LVoid}
+        match(f.field_type) {
+            LStruct(cname): {
+                // Only by-value structs (not pointers) create ordering constraints
+                if(name_in_array(cname, all_names)) {
+                    deps = array.push(deps, cname)
+                }
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+    return deps
+}
+
+fn name_in_array(name:string, arr:array<string>):bool {
+    let i:int:mut = 0
+    while(i < array.size(arr)) {
+        let n:string = array.get(arr, i) ?? ""
+        if(n == name) {
+            return true
+        }
+        i = i + 1
+    }
+    return false
+}
+
+fn get_order_idx(name:string, type_defs:array<lir.LTypeDef>):int {
+    let i:int:mut = 0
+    while(i < array.size(type_defs)) {
+        let td:lir.LTypeDef = array.get_any(type_defs, i) ?? lir.LTypeDef{c_name:"", fields:[]}
+        if(td.c_name == name) {
+            return i
+        }
+        i = i + 1
+    }
+    return 999999
+}
+
+fn get_typedef_by_name(name:string, type_defs:array<lir.LTypeDef>):lir.LTypeDef {
+    let i:int:mut = 0
+    while(i < array.size(type_defs)) {
+        let td:lir.LTypeDef = array.get_any(type_defs, i) ?? lir.LTypeDef{c_name:"", fields:[]}
+        if(td.c_name == name) {
+            return td
+        }
+        i = i + 1
+    }
+    return lir.LTypeDef{c_name:"", fields:[]}
+}
+
+// Sort array of names by their index in type_defs (insertion sort for stability)
+fn sort_by_order(names:array<string>, type_defs:array<lir.LTypeDef>):array<string> {
+    if(array.size(names) <= 1) {
+        return names
+    }
+    let result:array<string>:mut = []
+    let i:int:mut = 0
+    while(i < array.size(names)) {
+        result = array.push(result, array.get(names, i) ?? "")
+        i = i + 1
+    }
+    // Insertion sort by original index
+    let n:int = array.size(result)
+    let ii:int:mut = 1
+    while(ii < n) {
+        let key_val:string = array.get(result, ii) ?? ""
+        let key_idx:int = get_order_idx(key_val, type_defs)
+        let jj:int:mut = ii - 1
+        let done:bool:mut = false
+        while(jj >= 0 && done == false) {
+            let cur:string = array.get(result, jj) ?? ""
+            let cur_idx:int = get_order_idx(cur, type_defs)
+            if(cur_idx > key_idx) {
+                result = array.put(result, jj + 1, cur)
+                jj = jj - 1
+            } else {
+                done = true
+            }
+        }
+        result = array.put(result, jj + 1, key_val)
+        ii = ii + 1
+    }
+    return result
+}
+
+// Slice array from index start to end
+fn array_slice_from(arr:array<string>, start_idx:int):array<string> {
+    let result:array<string>:mut = []
+    let i:int:mut = start_idx
+    while(i < array.size(arr)) {
+        result = array.push(result, array.get(arr, i) ?? "")
+        i = i + 1
+    }
+    return result
+}
+
+fn topo_sort_type_defs(type_defs:array<lir.LTypeDef>):array<lir.LTypeDef> {
+    if(array.size(type_defs) == 0) {
+        return type_defs
+    }
+
+    // Collect all names
+    let all_names:array<string>:mut = []
+    let i:int:mut = 0
+    while(i < array.size(type_defs)) {
+        let td:lir.LTypeDef = array.get_any(type_defs, i) ?? lir.LTypeDef{c_name:"", fields:[]}
+        all_names = array.push(all_names, td.c_name)
+        i = i + 1
+    }
+
+    // in_degree: parallel arrays name -> degree
+    let in_degree_names:array<string>:mut = []
+    let in_degree_vals:array<int>:mut = []
+    let j:int:mut = 0
+    while(j < array.size(all_names)) {
+        in_degree_names = array.push(in_degree_names, array.get(all_names, j) ?? "")
+        in_degree_vals = array.push(in_degree_vals, 0)
+        j = j + 1
+    }
+
+    // adj: parallel arrays name -> successors list
+    let adj_keys:array<string>:mut = []
+    let adj_vals:array<array<string>>:mut = []
+    let k:int:mut = 0
+    while(k < array.size(all_names)) {
+        adj_keys = array.push(adj_keys, array.get(all_names, k) ?? "")
+        adj_vals = array.push(adj_vals, [])
+        k = k + 1
+    }
+
+    // Build edges: dep -> td.c_name (dep must come before td)
+    let m:int:mut = 0
+    while(m < array.size(type_defs)) {
+        let td:lir.LTypeDef = array.get_any(type_defs, m) ?? lir.LTypeDef{c_name:"", fields:[]}
+        let deps:array<string> = get_by_value_deps(td, all_names)
+        let di:int:mut = 0
+        while(di < array.size(deps)) {
+            let dep_name:string = array.get(deps, di) ?? ""
+            // adj[dep_name] += td.c_name
+            let ai:int:mut = 0
+            while(ai < array.size(adj_keys)) {
+                let ak:string = array.get(adj_keys, ai) ?? ""
+                if(ak == dep_name) {
+                    let cur_list:array<string> = array.get_any(adj_vals, ai) ?? []
+                    adj_vals = array.put(adj_vals, ai, array.push(cur_list, td.c_name))
+                }
+                ai = ai + 1
+            }
+            // in_degree[td.c_name] += 1
+            let ii:int:mut = 0
+            while(ii < array.size(in_degree_names)) {
+                let iname:string = array.get(in_degree_names, ii) ?? ""
+                if(iname == td.c_name) {
+                    let cur_deg:int = array.get_any(in_degree_vals, ii) ?? 0
+                    in_degree_vals = array.put(in_degree_vals, ii, cur_deg + 1)
+                }
+                ii = ii + 1
+            }
+            di = di + 1
+        }
+        m = m + 1
+    }
+
+    // Build initial queue of zero-in-degree nodes
+    let queue:array<string>:mut = []
+    let qi:int:mut = 0
+    while(qi < array.size(in_degree_names)) {
+        let deg:int = array.get_any(in_degree_vals, qi) ?? 0
+        if(deg == 0) {
+            queue = array.push(queue, array.get(in_degree_names, qi) ?? "")
+        }
+        qi = qi + 1
+    }
+
+    // Sort queue by original order index
+    queue = sort_by_order(queue, type_defs)
+
+    let result:array<lir.LTypeDef>:mut = []
+    while(array.size(queue) > 0) {
+        // Pop front
+        let n:string = array.get(queue, 0) ?? ""
+        queue = array_slice_from(queue, 1)
+        result = array.push(result, get_typedef_by_name(n, type_defs))
+
+        // Find successors of n
+        let succ_list:array<string>:mut = []
+        let si:int:mut = 0
+        while(si < array.size(adj_keys)) {
+            let ak:string = array.get(adj_keys, si) ?? ""
+            if(ak == n) {
+                succ_list = array.get_any(adj_vals, si) ?? []
+            }
+            si = si + 1
+        }
+        // Decrement in-degree of each successor
+        let sj:int:mut = 0
+        while(sj < array.size(succ_list)) {
+            let succ:string = array.get(succ_list, sj) ?? ""
+            let sk:int:mut = 0
+            while(sk < array.size(in_degree_names)) {
+                let iname:string = array.get(in_degree_names, sk) ?? ""
+                if(iname == succ) {
+                    let cur_deg:int = array.get_any(in_degree_vals, sk) ?? 0
+                    let new_deg:int = cur_deg - 1
+                    in_degree_vals = array.put(in_degree_vals, sk, new_deg)
+                    if(new_deg == 0) {
+                        queue = array.push(queue, succ)
+                        queue = sort_by_order(queue, type_defs)
+                    }
+                }
+                sk = sk + 1
+            }
+            sj = sj + 1
+        }
+    }
+
+    // If cycle detected, append remaining in original order
+    if(array.size(result) < array.size(type_defs)) {
+        let seen:array<string>:mut = []
+        let ri:int:mut = 0
+        while(ri < array.size(result)) {
+            let rtd:lir.LTypeDef = array.get_any(result, ri) ?? lir.LTypeDef{c_name:"", fields:[]}
+            seen = array.push(seen, rtd.c_name)
+            ri = ri + 1
+        }
+        let oi:int:mut = 0
+        while(oi < array.size(type_defs)) {
+            let td:lir.LTypeDef = array.get_any(type_defs, oi) ?? lir.LTypeDef{c_name:"", fields:[]}
+            if(name_in_array(td.c_name, seen) == false) {
+                result = array.push(result, td)
+            }
+            oi = oi + 1
+        }
+    }
+
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// Type definition emission
+// ---------------------------------------------------------------------------
+
+fn emit_type_def(st:EmitState:mut, td:lir.LTypeDef) {
+    emit_indented(st, "struct " + td.c_name + " {")
+    do_indent(st)
+    let i:int:mut = 0
+    while(i < array.size(td.fields)) {
+        let f:lir.LField = array.get_any(td.fields, i) ?? lir.LField{name:"", field_type:lir.LVoid}
+        emit_indented(st, format_decl(st, f.field_type, f.name) + ";")
+        i = i + 1
+    }
+    do_dedent(st)
+    emit_indented(st, "};")
+}
+
+fn emit_type_defs(st:EmitState:mut, mod:lir.LModule) {
+    let sorted:array<lir.LTypeDef> = topo_sort_type_defs(mod.type_defs)
+    let i:int:mut = 0
+    while(i < array.size(sorted)) {
+        let td:lir.LTypeDef = array.get_any(sorted, i) ?? lir.LTypeDef{c_name:"", fields:[]}
+        blank(st)
+        emit_type_def(st, td)
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Static definition emission
+// ---------------------------------------------------------------------------
+
+fn emit_static_def(st:EmitState:mut, sd:lir.LStaticDef) {
+    let type_str:string = emit_ltype(st, sd.c_type)
+    // String statics can't be initialized at compile time — defer to runtime
+    if(is_string_ptr(sd.c_type) && sd.has_init) {
+        emit_indented(st, type_str + " " + sd.c_name + " = NULL;")
+        let init_str:string = emit_expr(st, sd.init)
+        st.deferred_init_names = array.push(st.deferred_init_names, sd.c_name)
+        st.deferred_init_exprs = array.push(st.deferred_init_exprs, init_str)
+        return
+    }
+    if(sd.is_mut) {
+        if(sd.has_init) {
+            let init_str:string = emit_expr(st, sd.init)
+            emit_indented(st, type_str + " " + sd.c_name + " = " + init_str + ";")
+        } else {
+            emit_indented(st, type_str + " " + sd.c_name + ";")
+        }
+    } else {
+        if(sd.has_init) {
+            let init_str:string = emit_expr(st, sd.init)
+            emit_indented(st, "static const " + type_str + " " + sd.c_name + " = " + init_str + ";")
+        } else {
+            emit_indented(st, "static const " + type_str + " " + sd.c_name + ";")
+        }
+    }
+}
+
+fn emit_static_defs(st:EmitState:mut, mod:lir.LModule) {
+    let i:int:mut = 0
+    while(i < array.size(mod.static_defs)) {
+        let sd:lir.LStaticDef = array.get_any(mod.static_defs, i) ?? lir.LStaticDef{c_name:"", c_type:lir.LVoid, has_init:false, init:lir.placeholder_expr(), is_mut:false}
+        blank(st)
+        emit_static_def(st, sd)
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Function definition emission
+// ---------------------------------------------------------------------------
+
+fn emit_fn_def(st:EmitState:mut, fn_def:lir.LFnDef) {
+    emit_line_directive(st, fn_def.source_line)
+    if(string.len(fn_def.source_name) > 0) {
+        emit_indented(st, "/* Flow: " + fn_def.source_name + " */")
+    }
+    let proto:string = fn_prototype(st, fn_def)
+    emit_indented(st, proto + " {")
+    do_indent(st)
+    // Reset temp counter per function
+    st.tmp_counter = 0
+    let i:int:mut = 0
+    while(i < array.size(fn_def.body)) {
+        let sb:lir.LStmtBox = array.get_any(fn_def.body, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        emit_stmt(st, lir.ls_unbox(sb))
+        i = i + 1
+    }
+    do_dedent(st)
+    emit_indented(st, "}")
+}
+
+fn emit_fn_defs(st:EmitState:mut, mod:lir.LModule) {
+    let i:int:mut = 0
+    while(i < array.size(mod.fn_defs)) {
+        let fn_def:lir.LFnDef = array.get_any(mod.fn_defs, i) ?? lir.LFnDef{c_name:"", params:[], ret:lir.LVoid, body:[], is_pure:false, source_name:"", source_line:0}
+        blank(st)
+        emit_fn_def(st, fn_def)
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Entry point emission
+// ---------------------------------------------------------------------------
+
+fn emit_entry_point(st:EmitState:mut, mod:lir.LModule) {
+    if(mod.has_entry_point == false) {
+        return
+    }
+    // Merge extra static inits from dependency modules + deferred from this module
+    let all_init_names:array<string>:mut = []
+    let all_init_exprs:array<string>:mut = []
+    let ei:int:mut = 0
+    while(ei < array.size(st.extra_init_names)) {
+        all_init_names = array.push(all_init_names, array.get(st.extra_init_names, ei) ?? "")
+        all_init_exprs = array.push(all_init_exprs, array.get(st.extra_init_exprs, ei) ?? "")
+        ei = ei + 1
+    }
+    let di:int:mut = 0
+    while(di < array.size(st.deferred_init_names)) {
+        all_init_names = array.push(all_init_names, array.get(st.deferred_init_names, di) ?? "")
+        all_init_exprs = array.push(all_init_exprs, array.get(st.deferred_init_exprs, di) ?? "")
+        di = di + 1
+    }
+    let has_inits:bool = array.size(all_init_names) > 0
+    if(has_inits) {
+        blank(st)
+        emit_indented(st, "static void _fl_init_statics(void) {")
+        st.indent_level = st.indent_level + 1
+        let ii:int:mut = 0
+        while(ii < array.size(all_init_names)) {
+            let iname:string = array.get(all_init_names, ii) ?? ""
+            let iexpr:string = array.get(all_init_exprs, ii) ?? ""
+            emit_indented(st, iname + " = " + iexpr + ";")
+            ii = ii + 1
+        }
+        st.indent_level = st.indent_level - 1
+        emit_indented(st, "}")
+    }
+    blank(st)
+    emit_indented(st, "/* Entry point */")
+    emit_indented(st, "int main(int argc, char** argv) {")
+    st.indent_level = st.indent_level + 1
+    emit_indented(st, "_fl_runtime_init(argc, argv);")
+    if(has_inits) {
+        emit_indented(st, "_fl_init_statics();")
+    }
+    emit_indented(st, mod.entry_point + "();")
+    emit_indented(st, "return 0;")
+    st.indent_level = st.indent_level - 1
+    emit_indented(st, "}")
+}
+
+// ---------------------------------------------------------------------------
+// Pre-statement flushing
+// ---------------------------------------------------------------------------
+
+fn flush_pre_stmts(st:EmitState:mut) {
+    let i:int:mut = 0
+    while(i < array.size(st.pre_stmts)) {
+        let s:string = array.get(st.pre_stmts, i) ?? ""
+        emit_indented(st, s)
+        i = i + 1
+    }
+    st.pre_stmts = []
+}
+
+// ---------------------------------------------------------------------------
+// strip_outer_parens
+// ---------------------------------------------------------------------------
+
+fn strip_outer_parens(s:string):string {
+    let slen:int = string.len(s)
+    if(slen < 2) {
+        return s
+    }
+    let first:char = string.char_at(s, 0) ?? ' '
+    let last_ch:char = string.char_at(s, slen - 1) ?? ' '
+    if(first != '(' || last_ch != ')') {
+        return s
+    }
+    let depth:int:mut = 0
+    let i:int:mut = 0
+    while(i < slen) {
+        let c:char = string.char_at(s, i) ?? ' '
+        if(c == '(') {
+            depth = depth + 1
+        }
+        if(c == ')') {
+            depth = depth - 1
+        }
+        if(depth == 0) {
+            if(i == slen - 1) {
+                return string.substring(s, 1, slen - 1)
+            } else {
+                return s
+            }
+        }
+        i = i + 1
+    }
+    return s
+}
+
+// ---------------------------------------------------------------------------
+// Statement emission
+// ---------------------------------------------------------------------------
+
+fn emit_stmt(st:EmitState:mut, stmt:lir.LStmt) {
+    match(stmt) {
+        LSVarDecl(cname, ctype, has_init, init_expr, src_line): {
+            emit_line_directive(st, src_line)
+            emit_var_decl(st, cname, ctype, has_init, init_expr)
+        }
+        LSArrayDecl(cname, elem_type, count, src_line): {
+            emit_line_directive(st, src_line)
+            emit_indented(st, emit_ltype(st, elem_type) + " " + cname + "[" + conv.to_string(count) + "];")
+        }
+        LSAssign(target, value, src_line): {
+            emit_line_directive(st, src_line)
+            emit_assign(st, target, value)
+        }
+        LSReturn(has_val, val_expr, src_line): {
+            emit_line_directive(st, src_line)
+            emit_return(st, has_val, val_expr)
+        }
+        LSExprStmt(expr, src_line): {
+            emit_line_directive(st, src_line)
+            emit_expr_stmt(st, expr)
+        }
+        LSIf(cond, then_body, else_body, src_line): {
+            emit_line_directive(st, src_line)
+            emit_if(st, cond, then_body, else_body)
+        }
+        LSWhile(cond, body, src_line): {
+            emit_line_directive(st, src_line)
+            emit_while(st, cond, body)
+        }
+        LSBlock(stmts, src_line): {
+            emit_block(st, stmts)
+        }
+        LSSwitch(value, case_tags, case_bodies, default_body, src_line): {
+            emit_line_directive(st, src_line)
+            emit_switch(st, value, case_tags, case_bodies, default_body)
+        }
+        LSGoto(label, src_line): {
+            emit_indented(st, "goto " + label + ";")
+        }
+        LSLabel(label_name, src_line): {
+            // Labels go to column 0 — use raw append, no indent
+            emit_raw(st, label_name + ":;\n")
+        }
+        LSBreak(src_line): {
+            emit_indented(st, "break;")
+        }
+        LSContinue(src_line): {
+            emit_indented(st, "continue;")
+        }
+    }
+}
+
+fn emit_var_decl(st:EmitState:mut, name:string, ctype:lir.LType, has_init:bool, init_expr:lir.LExpr) {
+    if(has_init) {
+        let saved:array<string> = st.pre_stmts
+        st.pre_stmts = []
+        let init_str:string = emit_expr(st, init_expr)
+        flush_pre_stmts(st)
+        st.pre_stmts = saved
+        emit_indented(st, format_decl(st, ctype, name) + " = " + init_str + ";")
+    } else {
+        emit_indented(st, format_decl(st, ctype, name) + ";")
+    }
+}
+
+fn emit_assign(st:EmitState:mut, target:lir.LExpr, value:lir.LExpr) {
+    let saved:array<string> = st.pre_stmts
+    st.pre_stmts = []
+    let target_str:string = emit_expr(st, target)
+    let value_str:string = emit_expr(st, value)
+    flush_pre_stmts(st)
+    st.pre_stmts = saved
+    emit_indented(st, target_str + " = " + value_str + ";")
+}
+
+fn emit_return(st:EmitState:mut, has_val:bool, val_expr:lir.LExpr) {
+    if(has_val) {
+        let saved:array<string> = st.pre_stmts
+        st.pre_stmts = []
+        let value_str:string = emit_expr(st, val_expr)
+        flush_pre_stmts(st)
+        st.pre_stmts = saved
+        emit_indented(st, "return " + value_str + ";")
+    } else {
+        emit_indented(st, "return;")
+    }
+}
+
+fn emit_expr_stmt(st:EmitState:mut, expr:lir.LExpr) {
+    let saved:array<string> = st.pre_stmts
+    st.pre_stmts = []
+    let expr_str:string = emit_expr(st, expr)
+    flush_pre_stmts(st)
+    st.pre_stmts = saved
+    emit_indented(st, expr_str + ";")
+}
+
+fn emit_if(st:EmitState:mut, cond:lir.LExpr, then_body:array<lir.LStmtBox>, else_body:array<lir.LStmtBox>) {
+    let saved:array<string> = st.pre_stmts
+    st.pre_stmts = []
+    let cond_str:string = emit_expr(st, cond)
+    flush_pre_stmts(st)
+    st.pre_stmts = saved
+    emit_indented(st, "if (" + strip_outer_parens(cond_str) + ") {")
+    do_indent(st)
+    let i:int:mut = 0
+    while(i < array.size(then_body)) {
+        let sb:lir.LStmtBox = array.get_any(then_body, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        emit_stmt(st, lir.ls_unbox(sb))
+        i = i + 1
+    }
+    do_dedent(st)
+    if(array.size(else_body) > 0) {
+        emit_indented(st, "} else {")
+        do_indent(st)
+        let j:int:mut = 0
+        while(j < array.size(else_body)) {
+            let sb:lir.LStmtBox = array.get_any(else_body, j) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+            emit_stmt(st, lir.ls_unbox(sb))
+            j = j + 1
+        }
+        do_dedent(st)
+    }
+    emit_indented(st, "}")
+}
+
+fn emit_while(st:EmitState:mut, cond:lir.LExpr, body:array<lir.LStmtBox>) {
+    let saved:array<string> = st.pre_stmts
+    st.pre_stmts = []
+    let cond_str:string = emit_expr(st, cond)
+    let cond_pre:array<string> = st.pre_stmts
+    st.pre_stmts = saved
+
+    if(array.size(cond_pre) > 0) {
+        // Condition has side-effecting pre-stmts — must re-run each iteration
+        emit_indented(st, "while (1) {")
+        do_indent(st)
+        let pi:int:mut = 0
+        while(pi < array.size(cond_pre)) {
+            emit_indented(st, array.get(cond_pre, pi) ?? "")
+            pi = pi + 1
+        }
+        emit_indented(st, "if (!(" + strip_outer_parens(cond_str) + ")) break;")
+        let i:int:mut = 0
+        while(i < array.size(body)) {
+            let sb:lir.LStmtBox = array.get_any(body, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+            emit_stmt(st, lir.ls_unbox(sb))
+            i = i + 1
+        }
+        do_dedent(st)
+        emit_indented(st, "}")
+    } else {
+        emit_indented(st, "while (" + strip_outer_parens(cond_str) + ") {")
+        do_indent(st)
+        let i:int:mut = 0
+        while(i < array.size(body)) {
+            let sb:lir.LStmtBox = array.get_any(body, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+            emit_stmt(st, lir.ls_unbox(sb))
+            i = i + 1
+        }
+        do_dedent(st)
+        emit_indented(st, "}")
+    }
+}
+
+fn emit_block(st:EmitState:mut, stmts:array<lir.LStmtBox>) {
+    emit_indented(st, "{")
+    do_indent(st)
+    let i:int:mut = 0
+    while(i < array.size(stmts)) {
+        let sb:lir.LStmtBox = array.get_any(stmts, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        emit_stmt(st, lir.ls_unbox(sb))
+        i = i + 1
+    }
+    do_dedent(st)
+    emit_indented(st, "}")
+}
+
+fn emit_switch(st:EmitState:mut, value:lir.LExpr, case_tags:array<int>, case_bodies:array<lir.LStmtListBox>, default_body:array<lir.LStmtBox>) {
+    let saved:array<string> = st.pre_stmts
+    st.pre_stmts = []
+    let value_str:string = emit_expr(st, value)
+    flush_pre_stmts(st)
+    st.pre_stmts = saved
+    emit_indented(st, "switch (" + value_str + ") {")
+    do_indent(st)
+    let i:int:mut = 0
+    while(i < array.size(case_tags)) {
+        let tag:int = array.get_any(case_tags, i) ?? 0
+        let case_list_box:lir.LStmtListBox = array.get_any(case_bodies, i) ?? lir.LStmtListBox{stmts:[]}
+        emit_indented(st, "case " + conv.to_string(tag) + ": {")
+        do_indent(st)
+        let j:int:mut = 0
+        while(j < array.size(case_list_box.stmts)) {
+            let sb:lir.LStmtBox = array.get_any(case_list_box.stmts, j) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+            emit_stmt(st, lir.ls_unbox(sb))
+            j = j + 1
+        }
+        emit_indented(st, "break;")
+        do_dedent(st)
+        emit_indented(st, "}")
+        i = i + 1
+    }
+    if(array.size(default_body) > 0) {
+        emit_indented(st, "default: {")
+        do_indent(st)
+        let k:int:mut = 0
+        while(k < array.size(default_body)) {
+            let sb:lir.LStmtBox = array.get_any(default_body, k) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+            emit_stmt(st, lir.ls_unbox(sb))
+            k = k + 1
+        }
+        emit_indented(st, "break;")
+        do_dedent(st)
+        emit_indented(st, "}")
+    }
+    do_dedent(st)
+    emit_indented(st, "}")
+}
+
+// ---------------------------------------------------------------------------
+// Expression emission
+// ---------------------------------------------------------------------------
+
+fn checked_op_macro(op:string, is_float:bool):string {
+    if(op == "%" && is_float) {
+        return "FL_CHECKED_FMOD"
+    }
+    if(op == "+") { return "FL_CHECKED_ADD" }
+    if(op == "-") { return "FL_CHECKED_SUB" }
+    if(op == "*") { return "FL_CHECKED_MUL" }
+    if(op == "/") { return "FL_CHECKED_DIV" }
+    if(op == "%") { return "FL_CHECKED_MOD" }
+    if(op == "</") { return "FL_CHECKED_FLOOR_DIV" }
+    return "FL_CHECKED_UNKNOWN"
+}
+
+fn is_float_type(lt:lir.LType):bool {
+    match(lt) {
+        LFloat(w): { return true }
+        _: { return false }
+    }
+}
+
+fn emit_args(st:EmitState:mut, args:array<lir.LExprBox>):string {
+    let result:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(args)) {
+        let eb:lir.LExprBox = array.get_any(args, i) ?? lir.LExprBox{le:lir.placeholder_expr()}
+        if(i > 0) {
+            result = result + ", "
+        }
+        result = result + emit_expr(st, lir.le_unbox(eb))
+        i = i + 1
+    }
+    return result
+}
+
+fn emit_expr(st:EmitState:mut, expr:lir.LExpr):string {
+    match(expr) {
+        LELit(value, ct): {
+            return value
+        }
+        LEVar(cname, ct): {
+            return cname
+        }
+        LECall(fn_name, args, ct): {
+            let args_str:string = emit_args(st, args)
+            return fn_name + "(" + args_str + ")"
+        }
+        LEIndirectCall(fn_ptr_box, args, ct): {
+            let fn_str:string = emit_expr(st, lir.le_unbox(fn_ptr_box))
+            let args_str:string = emit_args(st, args)
+            return fn_str + "(" + args_str + ")"
+        }
+        LEBinOp(op, left_box, right_box, ct): {
+            let left_str:string = emit_expr(st, lir.le_unbox(left_box))
+            let right_str:string = emit_expr(st, lir.le_unbox(right_box))
+            return "(" + left_str + " " + op + " " + right_str + ")"
+        }
+        LEUnary(op, operand_box, ct): {
+            let operand_str:string = emit_expr(st, lir.le_unbox(operand_box))
+            return "(" + op + operand_str + ")"
+        }
+        LEFieldAccess(obj_box, field, ct): {
+            let obj_str:string = emit_expr(st, lir.le_unbox(obj_box))
+            return obj_str + "." + field
+        }
+        LEArrow(ptr_box, field, ct): {
+            let ptr_str:string = emit_expr(st, lir.le_unbox(ptr_box))
+            return ptr_str + "->" + field
+        }
+        LEIndex(arr_box, idx_box, ct): {
+            let arr_str:string = emit_expr(st, lir.le_unbox(arr_box))
+            let idx_str:string = emit_expr(st, lir.le_unbox(idx_box))
+            return arr_str + "[" + idx_str + "]"
+        }
+        LECast(inner_box, cast_type): {
+            let inner_str:string = emit_expr(st, lir.le_unbox(inner_box))
+            return "((" + emit_ltype(st, cast_type) + ")" + inner_str + ")"
+        }
+        LEAddrOf(inner_box, ct): {
+            let inner_str:string = emit_expr(st, lir.le_unbox(inner_box))
+            return "(&" + inner_str + ")"
+        }
+        LEDeref(inner_box, ct): {
+            let inner_str:string = emit_expr(st, lir.le_unbox(inner_box))
+            return "(*" + inner_str + ")"
+        }
+        LECompound(field_names, field_values, ctype): {
+            let type_str:string = emit_ltype(st, ctype)
+            let fields_str:string:mut = ""
+            let i:int:mut = 0
+            while(i < array.size(field_names)) {
+                let fname:string = array.get(field_names, i) ?? ""
+                let fvb:lir.LExprBox = array.get_any(field_values, i) ?? lir.LExprBox{le:lir.placeholder_expr()}
+                let fval:string = emit_expr(st, lir.le_unbox(fvb))
+                if(i > 0) {
+                    fields_str = fields_str + ", "
+                }
+                fields_str = fields_str + "." + fname + " = " + fval
+                i = i + 1
+            }
+            return "(" + type_str + "){" + fields_str + "}"
+        }
+        LECheckedArith(op, left_box, right_box, ctype): {
+            let tmp:string = fresh_temp(st)
+            let type_str:string = emit_ltype(st, ctype)
+            let is_fl:bool = is_float_type(ctype)
+            let macro:string = checked_op_macro(op, is_fl)
+            let left_str:string = emit_expr(st, lir.le_unbox(left_box))
+            let right_str:string = emit_expr(st, lir.le_unbox(right_box))
+            st.pre_stmts = array.push(st.pre_stmts, type_str + " " + tmp + ";")
+            st.pre_stmts = array.push(st.pre_stmts, macro + "(" + left_str + ", " + right_str + ", &" + tmp + ");")
+            return tmp
+        }
+        LESizeOf(target_type): {
+            return "sizeof(" + emit_ltype(st, target_type) + ")"
+        }
+        LEArrayData(elements, elem_type, ctype): {
+            let type_str:string = emit_ltype(st, elem_type)
+            let elems_str:string:mut = ""
+            let i:int:mut = 0
+            while(i < array.size(elements)) {
+                let eb:lir.LExprBox = array.get_any(elements, i) ?? lir.LExprBox{le:lir.placeholder_expr()}
+                if(i > 0) {
+                    elems_str = elems_str + ", "
+                }
+                elems_str = elems_str + emit_expr(st, lir.le_unbox(eb))
+                i = i + 1
+            }
+            return "(" + type_str + "[]){" + elems_str + "}"
+        }
+        LETernary(cond_box, then_box, else_box, ct): {
+            let cond_str:string = emit_expr(st, lir.le_unbox(cond_box))
+            let then_str:string = emit_expr(st, lir.le_unbox(then_box))
+            let else_str:string = emit_expr(st, lir.le_unbox(else_box))
+            return "(" + cond_str + " ? " + then_str + " : " + else_str + ")"
+        }
+        LEOptDerefAs(inner_box, val_type, opt_type): {
+            let inner_str:string = emit_expr(st, lir.le_unbox(inner_box))
+            let val_str:string = emit_ltype(st, val_type)
+            let opt_str:string = emit_ltype(st, opt_type)
+            return "FL_OPT_DEREF_AS(" + inner_str + ", " + val_str + ", " + opt_str + ")"
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Public entry point
+// ---------------------------------------------------------------------------
+
+export fn emit(mod:lir.LModule, source_file:string, is_root:bool, extra_init_names:array<string>, extra_init_exprs:array<string>, line_directives:bool):string {
+    let st:EmitState:mut = make_state(source_file, is_root, extra_init_names, extra_init_exprs, line_directives)
+    if(is_root) {
+        emit_header(st)
+    } else {
+        blank(st)
+        emit_indented(st, "/* From: " + source_file + " */")
+    }
+    emit_extern_protos(st, mod)
+    emit_forward_decls(st, mod)
+    emit_enum_defs(st, mod)
+    emit_type_defs(st, mod)
+    emit_static_defs(st, mod)
+    emit_fn_defs(st, mod)
+    if(is_root) {
+        emit_entry_point(st, mod)
+    }
+    return get_output(st)
+}
+
+// emit_with_deferred: also returns deferred static init names/exprs collected during emission.
+// Used by multi-module driver to pass dependency inits to the root module.
+export fn emit_with_deferred(mod:lir.LModule, source_file:string, is_root:bool, extra_init_names:array<string>, extra_init_exprs:array<string>, line_directives:bool, out_deferred_names:array<string>:mut, out_deferred_exprs:array<string>:mut):string {
+    let st:EmitState:mut = make_state(source_file, is_root, extra_init_names, extra_init_exprs, line_directives)
+    if(is_root) {
+        emit_header(st)
+    } else {
+        blank(st)
+        emit_indented(st, "/* From: " + source_file + " */")
+    }
+    emit_extern_protos(st, mod)
+    emit_forward_decls(st, mod)
+    emit_enum_defs(st, mod)
+    emit_type_defs(st, mod)
+    emit_static_defs(st, mod)
+    emit_fn_defs(st, mod)
+    if(is_root) {
+        emit_entry_point(st, mod)
+    }
+    // Copy deferred inits out to caller
+    let i:int:mut = 0
+    while(i < array.size(st.deferred_init_names)) {
+        out_deferred_names = array.push(out_deferred_names, array.get(st.deferred_init_names, i) ?? "")
+        out_deferred_exprs = array.push(out_deferred_exprs, array.get(st.deferred_init_exprs, i) ?? "")
+        i = i + 1
+    }
+    return get_output(st)
+}
