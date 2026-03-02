@@ -1,0 +1,1296 @@
+module self_hosted.driver
+
+// Pipeline orchestrator for the self-hosted Flow compiler.
+// Port of compiler/driver.py.
+// Coordinates lex → parse → resolve → typecheck → lower → emit → clang.
+
+import io
+import sys
+import conv
+import string
+import array
+import map
+import path
+import self_hosted.ast
+import self_hosted.errors
+import self_hosted.lexer
+import self_hosted.parser
+import self_hosted.resolver
+import self_hosted.typechecker
+import self_hosted.lowering
+import self_hosted.emitter
+import self_hosted.lir
+
+// ---------------------------------------------------------------------------
+// Stdlib module set — modules that live in stdlib/ not in user project
+// ---------------------------------------------------------------------------
+
+fn is_stdlib_module(module_key:string):bool {
+    if(module_key == "io") { return true }
+    if(module_key == "sys") { return true }
+    if(module_key == "conv") { return true }
+    if(module_key == "string") { return true }
+    if(module_key == "char") { return true }
+    if(module_key == "path") { return true }
+    if(module_key == "math") { return true }
+    if(module_key == "sort") { return true }
+    if(module_key == "bytes") { return true }
+    if(module_key == "file") { return true }
+    if(module_key == "random") { return true }
+    if(module_key == "time") { return true }
+    if(module_key == "testing") { return true }
+    if(module_key == "net") { return true }
+    if(module_key == "json") { return true }
+    if(module_key == "array") { return true }
+    if(module_key == "string_builder") { return true }
+    if(module_key == "map") { return true }
+    if(module_key == "csv") { return true }
+    if(module_key == "mem") { return true }
+    if(module_key == "ssl") { return true }
+    if(module_key == "crypto") { return true }
+    if(module_key == "http") { return true }
+    if(module_key == "string_set") { return true }
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// ParsedModule — intermediate after parsing, before resolve
+// ---------------------------------------------------------------------------
+
+type ParsedModule {
+    source_path:string
+    display_path:string
+    parsed:parser.ParseResult
+    module_key:string
+}
+
+// ---------------------------------------------------------------------------
+// ModuleEntry — a fully type-checked module with metadata
+// ---------------------------------------------------------------------------
+
+type ModuleEntry {
+    display_path:string
+    typed:typechecker.TypedModule
+    is_root:bool
+}
+
+// ---------------------------------------------------------------------------
+// DriverState — mutable state for the driver (stdlib cache)
+// ---------------------------------------------------------------------------
+
+type DriverState:mut {
+    stdlib_dir:string
+    // Cache: module_key -> TypedModule (stored as parallel arrays)
+    cache_keys:array<string>
+    cache_typed:array<typechecker.TypedModule>
+}
+
+fn make_driver_state(stdlib_dir:string):DriverState {
+    return DriverState{
+        stdlib_dir:stdlib_dir,
+        cache_keys:[],
+        cache_typed:[]
+    }
+}
+
+fn cache_get(ds:DriverState:mut, key:string):typechecker.TypedModule? {
+    let i:int:mut = 0
+    while(i < array.size(ds.cache_keys)) {
+        let k = array.get(ds.cache_keys, i) ?? ""
+        if(k == key) {
+            return some(array.get_any(ds.cache_typed, i) ?? make_dummy_typed())
+        }
+        i = i + 1
+    }
+    return none
+}
+
+fn cache_put(ds:DriverState:mut, key:string, typed:typechecker.TypedModule) {
+    ds.cache_keys = array.push(ds.cache_keys, key)
+    ds.cache_typed = array.push(ds.cache_typed, typed)
+}
+
+fn make_dummy_typed():typechecker.TypedModule {
+    let dummy_mod = ast.make_module([], [], [], "<dummy>")
+    let dummy_resolved = resolver.ResolvedModule{
+        src_module:dummy_mod,
+        symbols:map.new(),
+        captures:map.new(),
+        mod_scope:resolver.ModuleScope{module_path:"", exports:map.new()}
+    }
+    return typechecker.TypedModule{
+        src_module:dummy_mod,
+        resolved:dummy_resolved,
+        node_types:map.new(),
+        warnings:[],
+        capacity_node_ids:[],
+        capacity_expr_ids:[]
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Path helpers
+// ---------------------------------------------------------------------------
+
+// Build display path: relative to cwd if possible, else absolute
+fn display_path(p:string):string {
+    let cwd = path.cwd()
+    if(string.starts_with(p, cwd)) {
+        let rel = string.substring(p, string.len(cwd), string.len(p))
+        if(string.starts_with(rel, "/")) {
+            return string.substring(rel, 1, string.len(rel))
+        }
+        return rel
+    }
+    return p
+}
+
+// Infer project root from source path and module declaration path.
+// If module declares "a.b.c" and file is at ".../a/b/c.flow", root is "...".
+fn infer_project_root(source_path:string, module_path:array<string>):string {
+    let abs_path = path.resolve(source_path)
+    let parent_dir = path.parent(abs_path)
+    if(array.size(module_path) == 0) {
+        return parent_dir
+    }
+    // Strip the nesting directories (all but last segment of module path)
+    let nesting_len = array.size(module_path) - 1
+    let root:string:mut = parent_dir
+    let i:int:mut = nesting_len - 1
+    while(i >= 0) {
+        let part = array.get(module_path, i) ?? ""
+        let base = path.stem(root)
+        if(base == part) {
+            root = path.parent(root)
+        } else {
+            // Mismatch — fall back to parent of source file
+            return parent_dir
+        }
+        i = i - 1
+    }
+    return root
+}
+
+// Map import path array to filesystem path: ["a","b","c"] → "root/a/b/c.flow"
+fn resolve_import_path(project_root:string, import_path:array<string>):string {
+    let parts_joined:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(import_path)) {
+        let part = array.get(import_path, i) ?? ""
+        if(i == 0) {
+            parts_joined = part
+        } else {
+            parts_joined = parts_joined + "/" + part
+        }
+        i = i + 1
+    }
+    return path.join(project_root, parts_joined + ".flow")
+}
+
+// Join a path array with dots: ["a","b","c"] → "a.b.c"
+fn join_path(parts:array<string>):string {
+    let result:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(parts)) {
+        let part = array.get(parts, i) ?? ""
+        if(i == 0) {
+            result = part
+        } else {
+            result = result + "." + part
+        }
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// Stdlib loading
+// ---------------------------------------------------------------------------
+
+// Get or compute the TypedModule for a stdlib module (with caching)
+fn get_stdlib_typed(ds:DriverState:mut, module_name:string):typechecker.TypedModule {
+    match cache_get(ds, module_name) {
+        some(cached): { return cached }
+        none: {}
+    }
+
+    let stdlib_path = path.join(ds.stdlib_dir, module_name + ".flow")
+    let source = io.read_file(stdlib_path) ?? ""
+    let display = "stdlib/" + module_name + ".flow"
+
+    let tokens = lexer.tokenize(source, display)
+    let parse_result = parser.parse(tokens, display)
+    let mod = parse_result.parsed_module
+
+    // Discover stdlib-to-stdlib imports
+    let imported_modules:map<string, resolver.ModuleScope>:mut = map.new()
+    let imported_decls:map<string, ast.Module>:mut = map.new()
+
+    for(imp:ast.Decl in mod.imports) {
+        match imp {
+            DImport(did, dl, dc, ipath, inames, imp_alias): {
+                let dep_key = join_path(ipath)
+                if(is_stdlib_module(dep_key) && map.has(imported_modules, dep_key) == false) {
+                    let dep_typed = get_stdlib_typed(ds, dep_key)
+                    imported_modules = map.set(imported_modules, dep_key, dep_typed.resolved.mod_scope)
+                    imported_decls = map.set(imported_decls, dep_key, dep_typed.src_module)
+                }
+            }
+            _: {}
+        }
+    }
+
+    let resolved = resolver.resolve(mod, display, imported_modules)
+    let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
+
+    cache_put(ds, module_name, typed)
+    return typed
+}
+
+// Load stdlib ModuleScope for a given module key
+fn load_stdlib_scope(ds:DriverState:mut, module_key:string):resolver.ModuleScope {
+    let typed = get_stdlib_typed(ds, module_key)
+    return typed.resolved.mod_scope
+}
+
+// Discover stdlib imports from a parsed module, return map of key→scope
+fn discover_stdlib_imports(ds:DriverState:mut, mod:ast.Module):map<string, resolver.ModuleScope> {
+    let result:map<string, resolver.ModuleScope>:mut = map.new()
+    for(imp:ast.Decl in mod.imports) {
+        match imp {
+            DImport(did, dl, dc, ipath, inames, imp_alias): {
+                let module_key = join_path(ipath)
+                if(is_stdlib_module(module_key) && map.has(result, module_key) == false) {
+                    result = map.set(result, module_key, load_stdlib_scope(ds, module_key))
+                }
+            }
+            _: {}
+        }
+    }
+    return result
+}
+
+// Collect stdlib AST Modules for all imports (for imported_module_decls)
+fn collect_stdlib_decls(ds:DriverState:mut, mod:ast.Module):map<string, ast.Module> {
+    let result:map<string, ast.Module>:mut = map.new()
+    for(imp:ast.Decl in mod.imports) {
+        match imp {
+            DImport(did, dl, dc, ipath, inames, imp_alias): {
+                let module_key = join_path(ipath)
+                if(is_stdlib_module(module_key) && map.has(result, module_key) == false) {
+                    let stdlib_typed = get_stdlib_typed(ds, module_key)
+                    result = map.set(result, module_key, stdlib_typed.src_module)
+                }
+            }
+            _: {}
+        }
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// User import helpers
+// ---------------------------------------------------------------------------
+
+fn has_user_imports(mod:ast.Module):bool {
+    for(imp:ast.Decl in mod.imports) {
+        match imp {
+            DImport(did, dl, dc, ipath, inames, imp_alias): {
+                let module_key = join_path(ipath)
+                if(is_stdlib_module(module_key) == false) {
+                    return true
+                }
+            }
+            _: {}
+        }
+    }
+    return false
+}
+
+fn get_user_import_paths(mod:ast.Module):array<array<string>> {
+    let result:array<array<string>>:mut = []
+    for(imp:ast.Decl in mod.imports) {
+        match imp {
+            DImport(did, dl, dc, ipath, inames, imp_alias): {
+                let module_key = join_path(ipath)
+                if(is_stdlib_module(module_key) == false) {
+                    result = array.push(result, ipath)
+                }
+            }
+            _: {}
+        }
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// File parsing
+// ---------------------------------------------------------------------------
+
+fn parse_file(source_path:string):ParsedModule {
+    let abs = path.resolve(source_path)
+    let disp = display_path(abs)
+    let source = io.read_file(abs) ?? ""
+    let tokens = lexer.tokenize(source, disp)
+    let parse_result = parser.parse(tokens, disp)
+    let mod = parse_result.parsed_module
+    let module_key:string:mut = ""
+    if(array.size(mod.path) > 0) {
+        module_key = join_path(mod.path)
+    } else {
+        module_key = path.stem(abs)
+    }
+    return ParsedModule{
+        source_path:abs,
+        display_path:disp,
+        parsed:parse_result,
+        module_key:module_key
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Dependency graph — BFS discovery + topological sort
+// ---------------------------------------------------------------------------
+
+// BFS color constants for topo sort
+fn COLOR_WHITE():int { return 0 }
+fn COLOR_GRAY():int { return 1 }
+fn COLOR_BLACK():int { return 2 }
+
+// Build dependency graph: parse all transitive user imports, return
+// a topologically sorted list (leaves first, root last).
+fn build_dependency_graph(root_path:string, project_root:string):array<ParsedModule> {
+    // BFS discovery
+    let cache_keys:array<string>:mut = []
+    let cache_vals:array<ParsedModule>:mut = []
+    let adjacency_keys:array<string>:mut = []
+    let adjacency_vals:array<array<string>>:mut = []  // module_key -> dep_keys
+
+    let root_pm = parse_file(root_path)
+    cache_keys = array.push(cache_keys, root_pm.module_key)
+    cache_vals = array.push(cache_vals, root_pm)
+
+    // BFS queue (just the module keys in order)
+    let queue_keys:array<string>:mut = [root_pm.module_key]
+    let queue_head:int:mut = 0
+
+    while(queue_head < array.size(queue_keys)) {
+        let cur_key = array.get(queue_keys, queue_head) ?? ""
+        queue_head = queue_head + 1
+
+        // Find the ParsedModule for cur_key
+        let cur_pm = pm_cache_get(cache_keys, cache_vals, cur_key)
+        let mod = cur_pm.parsed.parsed_module
+
+        let dep_keys:array<string>:mut = []
+        let user_paths = get_user_import_paths(mod)
+
+        let j:int:mut = 0
+        while(j < array.size(user_paths)) {
+            let imp_path = array.get_any(user_paths, j) ?? []
+            let dep_key = join_path(imp_path)
+            dep_keys = array.push(dep_keys, dep_key)
+
+            if(pm_cache_has(cache_keys, dep_key) == false) {
+                // Resolve filesystem path
+                let dep_fspath = resolve_import_path(project_root, imp_path)
+                let actual_path:string:mut = dep_fspath
+                if(path.exists(dep_fspath) == false) {
+                    // Fallback to stdlib dir for Flow-written stdlib modules
+                    let stdlib_path = path.join(path.parent(project_root), "stdlib", join_path(imp_path) + ".flow")
+                    if(path.exists(stdlib_path)) {
+                        actual_path = stdlib_path
+                    }
+                    // If still not found, will error when we try to read it
+                }
+                let dep_pm = parse_file(actual_path)
+                cache_keys = array.push(cache_keys, dep_key)
+                cache_vals = array.push(cache_vals, dep_pm)
+                queue_keys = array.push(queue_keys, dep_key)
+            }
+            j = j + 1
+        }
+
+        adjacency_keys = array.push(adjacency_keys, cur_key)
+        adjacency_vals = array.push(adjacency_vals, dep_keys)
+    }
+
+    // DFS topological sort with 3-color cycle detection
+    let color_keys:array<string>:mut = []
+    let color_vals:array<int>:mut = []
+    let i:int:mut = 0
+    while(i < array.size(cache_keys)) {
+        let k = array.get(cache_keys, i) ?? ""
+        color_keys = array.push(color_keys, k)
+        color_vals = array.push_int(color_vals, COLOR_WHITE())
+        i = i + 1
+    }
+
+    let order:array<ParsedModule>:mut = []
+
+    // Iterative DFS with explicit stack to avoid recursion limits
+    // Using three-color marking: WHITE=0, GRAY=1, BLACK=2
+    // Stack entries: positive index = node to visit, negative = node to finish
+    let dfs_stack:array<string>:mut = [root_pm.module_key]
+    let dfs_finishing:map<string, bool>:mut = map.new()
+
+    while(array.size(dfs_stack) > 0) {
+        let top_key = array.get(dfs_stack, array.size(dfs_stack) - 1) ?? ""
+
+        // Check if this is a "finish" marker (already gray, now finishing)
+        let col = color_lookup(color_keys, color_vals, top_key)
+
+        if(col == COLOR_BLACK()) {
+            // Already processed, pop
+            dfs_stack = array.slice(dfs_stack, 0, array.size(dfs_stack) - 1)
+            continue
+        }
+
+        if(map.has(dfs_finishing, top_key)) {
+            // Finishing: mark black, add to order, pop
+            dfs_stack = array.slice(dfs_stack, 0, array.size(dfs_stack) - 1)
+            color_vals = color_set(color_keys, color_vals, top_key, COLOR_BLACK())
+            let pm = pm_cache_get(cache_keys, cache_vals, top_key)
+            order = array.push(order, pm)
+            continue
+        }
+
+        if(col == COLOR_GRAY()) {
+            // Cycle detected: this node is on the current DFS path
+            // Report the cycle (simplified: just the key involved)
+            let cycle_msg = "circular import detected involving module: " + top_key
+            throw errors.resolve_error(cycle_msg, "<driver>", 0, 0)
+        }
+
+        // First visit: mark gray, schedule finish, push deps
+        color_vals = color_set(color_keys, color_vals, top_key, COLOR_GRAY())
+        dfs_finishing = map.set(dfs_finishing, top_key, true)
+
+        // Push deps onto stack (only user deps that are in our cache)
+        let deps = adj_get(adjacency_keys, adjacency_vals, top_key)
+        let di:int:mut = 0
+        while(di < array.size(deps)) {
+            let dep_key = array.get(deps, di) ?? ""
+            if(pm_cache_has(cache_keys, dep_key)) {
+                let dep_col = color_lookup(color_keys, color_vals, dep_key)
+                if(dep_col != COLOR_BLACK()) {
+                    dfs_stack = array.push(dfs_stack, dep_key)
+                }
+            }
+            di = di + 1
+        }
+    }
+
+    return order
+}
+
+// ---------------------------------------------------------------------------
+// Parallel-array helpers for the dependency graph
+// ---------------------------------------------------------------------------
+
+fn pm_cache_has(keys:array<string>, key:string):bool {
+    let i:int:mut = 0
+    while(i < array.size(keys)) {
+        if((array.get(keys, i) ?? "") == key) { return true }
+        i = i + 1
+    }
+    return false
+}
+
+fn pm_cache_get(keys:array<string>, vals:array<ParsedModule>, key:string):ParsedModule {
+    let i:int:mut = 0
+    while(i < array.size(keys)) {
+        if((array.get(keys, i) ?? "") == key) {
+            return array.get_any(vals, i) ?? dummy_parsed_module()
+        }
+        i = i + 1
+    }
+    return dummy_parsed_module()
+}
+
+fn dummy_parsed_module():ParsedModule {
+    let dummy_mod = ast.make_module([], [], [], "<dummy>")
+    let dummy_parse = parser.ParseResult{
+        parsed_module:dummy_mod,
+        literal_values:[],
+        cast_targets:[],
+        sized_capacities:[]
+    }
+    return ParsedModule{source_path:"", display_path:"", parsed:dummy_parse, module_key:""}
+}
+
+fn color_lookup(keys:array<string>, vals:array<int>, key:string):int {
+    let i:int:mut = 0
+    while(i < array.size(keys)) {
+        if((array.get(keys, i) ?? "") == key) {
+            return array.get_int(vals, i) ?? 0
+        }
+        i = i + 1
+    }
+    return COLOR_WHITE()
+}
+
+fn color_set(keys:array<string>, vals:array<int>, key:string, new_val:int):array<int> {
+    let n = array.size(keys)
+    let result:array<int>:mut = []
+    let i:int:mut = 0
+    while(i < n) {
+        if((array.get(keys, i) ?? "") == key) {
+            result = array.push_int(result, new_val)
+        } else {
+            result = array.push_int(result, array.get_int(vals, i) ?? 0)
+        }
+        i = i + 1
+    }
+    return result
+}
+
+fn adj_get(keys:array<string>, vals:array<array<string>>, key:string):array<string> {
+    let i:int:mut = 0
+    while(i < array.size(keys)) {
+        if((array.get(keys, i) ?? "") == key) {
+            return array.get_any(vals, i) ?? []
+        }
+        i = i + 1
+    }
+    return []
+}
+
+// ---------------------------------------------------------------------------
+// Single-module pipeline
+// ---------------------------------------------------------------------------
+
+fn run_single_pipeline(ds:DriverState:mut, source_path:string):ModuleEntry {
+    let abs = path.resolve(source_path)
+    let disp = display_path(abs)
+    let source = io.read_file(abs) ?? ""
+    let tokens = lexer.tokenize(source, disp)
+    let parse_result = parser.parse(tokens, disp)
+    let mod = parse_result.parsed_module
+
+    // Collect stdlib imports
+    let imported_modules = discover_stdlib_imports(ds, mod)
+    let imported_decls = collect_stdlib_decls(ds, mod)
+
+    let resolved = resolver.resolve(mod, disp, imported_modules)
+    let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
+
+    return ModuleEntry{display_path:disp, typed:typed, is_root:true}
+}
+
+// ---------------------------------------------------------------------------
+// Multi-module pipeline
+// ---------------------------------------------------------------------------
+
+fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry> {
+    let abs = path.resolve(source_path)
+
+    // Quick parse to check for user imports (fast path)
+    let disp = display_path(abs)
+    let quick_source = io.read_file(abs) ?? ""
+    let quick_tokens = lexer.tokenize(quick_source, disp)
+    let quick_parse = parser.parse(quick_tokens, disp)
+    let quick_mod = quick_parse.parsed_module
+
+    if(has_user_imports(quick_mod) == false) {
+        // Fast path: single-file compilation
+        let entry = run_single_pipeline(ds, source_path)
+        let result:array<ModuleEntry>:mut = []
+        result = array.push(result, entry)
+        return result
+    }
+
+    // Multi-module path: build dependency graph
+    let project_root = infer_project_root(abs, quick_mod.path)
+    let topo_order = build_dependency_graph(abs, project_root)
+
+    // Resolve and typecheck each module in topological order
+    let available_scopes:map<string, resolver.ModuleScope>:mut = map.new()
+    let available_typed:map<string, typechecker.TypedModule>:mut = map.new()
+    let available_decls:map<string, ast.Module>:mut = map.new()
+    let results:array<ModuleEntry>:mut = []
+
+    let root_key:string:mut = ""
+    if(array.size(topo_order) > 0) {
+        let last_pm = array.get_any(topo_order, array.size(topo_order) - 1) ?? dummy_parsed_module()
+        root_key = last_pm.module_key
+    }
+
+    for(pm:ParsedModule in topo_order) {
+        let mod = pm.parsed.parsed_module
+
+        // Build imported_modules: stdlib + already-resolved user modules
+        let imported_modules:map<string, resolver.ModuleScope>:mut = discover_stdlib_imports(ds, mod)
+        let imported_decls:map<string, ast.Module>:mut = collect_stdlib_decls(ds, mod)
+
+        let user_paths = get_user_import_paths(mod)
+        for(imp_path:array<string> in user_paths) {
+            let dep_key = join_path(imp_path)
+            match map.get(available_scopes, dep_key) {
+                some(scope): {
+                    imported_modules = map.set(imported_modules, dep_key, scope)
+                }
+                none: {}
+            }
+            match map.get(available_typed, dep_key) {
+                some(dep_typed): {
+                    imported_decls = map.set(imported_decls, dep_key, dep_typed.src_module)
+                }
+                none: {}
+            }
+        }
+
+        let resolved = resolver.resolve(mod, pm.display_path, imported_modules)
+        let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
+
+        available_scopes = map.set(available_scopes, pm.module_key, resolved.mod_scope)
+        available_typed = map.set(available_typed, pm.module_key, typed)
+
+        let is_root = (pm.module_key == root_key)
+        results = array.push(results, ModuleEntry{display_path:pm.display_path, typed:typed, is_root:is_root})
+    }
+
+    return results
+}
+
+// ---------------------------------------------------------------------------
+// Stdlib injection — prepend compilable stdlib modules
+// ---------------------------------------------------------------------------
+
+// Returns true if a stdlib TypedModule has non-generic functions with bodies
+fn stdlib_needs_compilation(typed:typechecker.TypedModule):bool {
+    for(decl:ast.Decl in typed.src_module.decls) {
+        match decl {
+            DFn(id, line, col, name, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
+                if(array.size(body) > 0 && array.size(tparams) == 0) {
+                    return true
+                }
+            }
+            _: {}
+        }
+    }
+    return false
+}
+
+// Discover which stdlib modules a given module imports
+fn stdlib_imports_of(ds:DriverState:mut, typed:typechecker.TypedModule):array<string> {
+    let result:array<string>:mut = []
+    for(imp:ast.Decl in typed.src_module.imports) {
+        match imp {
+            DImport(did, dl, dc, ipath, inames, imp_alias): {
+                let dep_key = join_path(ipath)
+                if(is_stdlib_module(dep_key)) {
+                    result = array.push(result, dep_key)
+                }
+            }
+            _: {}
+        }
+    }
+    return result
+}
+
+// Topological sort result — both visited set and ordered list must be returned
+type TopoState {
+    visited:map<string, bool>
+    ordered:array<string>
+}
+
+// Iterative post-order DFS for topological sort
+// Returns updated TopoState with key appended to ordered (deps first)
+fn topo_visit_iter(root_key:string, deps:map<string, array<string>>, init_visited:map<string, bool>, init_ordered:array<string>):TopoState {
+    // Post-order iterative DFS using two stacks
+    let visited:map<string, bool>:mut = init_visited
+    let ordered:array<string>:mut = init_ordered
+
+    // Stack stores (key, phase): phase 0 = first visit, phase 1 = post-visit
+    let stack_keys:array<string>:mut = array.push([], root_key)
+    let stack_phase:array<int>:mut = array.push_int([], 0)
+
+    while(array.size(stack_keys) > 0) {
+        let top = array.size(stack_keys) - 1
+        let cur_key = array.get(stack_keys, top) ?? ""
+        let cur_phase = array.get_int(stack_phase, top) ?? 0
+        stack_keys = array.slice(stack_keys, 0, top)
+        stack_phase = array.slice(stack_phase, 0, top)
+
+        if(cur_phase == 1) {
+            // Post-visit: add to ordered
+            ordered = array.push(ordered, cur_key)
+            continue
+        }
+
+        // Phase 0: first visit
+        if(map.has(visited, cur_key)) {
+            continue
+        }
+        visited = map.set(visited, cur_key, true)
+
+        // Push post-visit marker
+        stack_keys = array.push(stack_keys, cur_key)
+        stack_phase = array.push_int(stack_phase, 1)
+
+        // Push all unvisited deps
+        let key_deps_opt = map.get(deps, cur_key)
+        let key_deps = key_deps_opt ?? []
+        let di:int:mut = 0
+        while(di < array.size(key_deps)) {
+            let dep = array.get(key_deps, di) ?? ""
+            if(map.has(visited, dep) == false) {
+                stack_keys = array.push(stack_keys, dep)
+                stack_phase = array.push_int(stack_phase, 0)
+            }
+            di = di + 1
+        }
+    }
+
+    return TopoState{visited:visited, ordered:ordered}
+}
+
+// Inject compilable stdlib modules before user modules, in dependency order
+fn inject_compilable_stdlib(ds:DriverState:mut, modules:array<ModuleEntry>):array<ModuleEntry> {
+    // Seed: find all stdlib modules imported by user modules
+    let needed_keys:array<string>:mut = []
+    let needed_set:map<string, bool>:mut = map.new()
+    let deps_map:map<string, array<string>>:mut = map.new()
+
+    // BFS over needed stdlib modules
+    let queue:array<string>:mut = []
+
+    // Seed from user module imports
+    for(entry:ModuleEntry in modules) {
+        let stdlib_deps = stdlib_imports_of(ds, entry.typed)
+        for(dep_key:string in stdlib_deps) {
+            if(map.has(needed_set, dep_key) == false) {
+                let stdlib_typed = get_stdlib_typed(ds, dep_key)
+                if(stdlib_needs_compilation(stdlib_typed)) {
+                    needed_set = map.set(needed_set, dep_key, true)
+                    needed_keys = array.push(needed_keys, dep_key)
+                    queue = array.push(queue, dep_key)
+                }
+            }
+        }
+    }
+
+    // Transitively discover stdlib-to-stdlib deps
+    let qi:int:mut = 0
+    while(qi < array.size(queue)) {
+        let mod_key = array.get(queue, qi) ?? ""
+        qi = qi + 1
+        let stdlib_typed = get_stdlib_typed(ds, mod_key)
+        let mod_deps:array<string>:mut = []
+
+        let dep_keys = stdlib_imports_of(ds, stdlib_typed)
+        for(dep_key:string in dep_keys) {
+            if(is_stdlib_module(dep_key)) {
+                let dep_typed = get_stdlib_typed(ds, dep_key)
+                if(stdlib_needs_compilation(dep_typed)) {
+                    mod_deps = array.push(mod_deps, dep_key)
+                    if(map.has(needed_set, dep_key) == false) {
+                        needed_set = map.set(needed_set, dep_key, true)
+                        needed_keys = array.push(needed_keys, dep_key)
+                        queue = array.push(queue, dep_key)
+                    }
+                }
+            }
+        }
+        deps_map = map.set(deps_map, mod_key, mod_deps)
+    }
+
+    if(array.size(needed_keys) == 0) {
+        return modules
+    }
+
+    // Topological sort: dependencies before dependents
+    let visited:map<string, bool>:mut = map.new()
+    let ordered:array<string>:mut = []
+
+    // Sort needed_keys for determinism
+    // (simple insertion sort since list is small)
+    let sorted_keys:array<string>:mut = sort_strings(needed_keys)
+
+    for(key:string in sorted_keys) {
+        let ts = topo_visit_iter(key, deps_map, visited, ordered)
+        visited = ts.visited
+        ordered = ts.ordered
+    }
+
+    // Build stdlib ModuleEntry list in topological order
+    let stdlib_entries:array<ModuleEntry>:mut = []
+    for(mod_key:string in ordered) {
+        let stdlib_typed = get_stdlib_typed(ds, mod_key)
+        stdlib_entries = array.push(stdlib_entries, ModuleEntry{
+            display_path:"stdlib/" + mod_key + ".flow",
+            typed:stdlib_typed,
+            is_root:false
+        })
+    }
+
+    // Prepend stdlib entries before user modules
+    return array.concat(stdlib_entries, modules)
+}
+
+// Simple string sort (insertion sort — small lists only)
+fn sort_strings(arr:array<string>):array<string> {
+    let result:array<string>:mut = arr
+    let n = array.size(result)
+    let i:int:mut = 1
+    while(i < n) {
+        let key_str = array.get(result, i) ?? ""
+        let j:int:mut = i - 1
+        while(j >= 0 && (array.get(result, j) ?? "") > key_str) {
+            let val = array.get(result, j) ?? ""
+            result = array.put(result, j + 1, val)
+            j = j - 1
+        }
+        result = array.put(result, j + 1, key_str)
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// Lowering + emitting helpers
+// ---------------------------------------------------------------------------
+
+// Check if a c_name is already in an array of strings
+fn c_name_in(names:array<string>, c_name:string):bool {
+    for(n:string in names) {
+        if(n == c_name) { return true }
+    }
+    return false
+}
+
+// Filter type_defs to exclude already-seen c_names
+fn filter_type_defs(defs:array<lir.LTypeDef>, seen:array<string>):array<lir.LTypeDef> {
+    let result:array<lir.LTypeDef>:mut = []
+    for(td:lir.LTypeDef in defs) {
+        if(c_name_in(seen, td.c_name) == false) {
+            result = array.push(result, td)
+        }
+    }
+    return result
+}
+
+// Filter fn_defs to exclude already-seen c_names
+fn filter_fn_defs(defs:array<lir.LFnDef>, seen:array<string>):array<lir.LFnDef> {
+    let result:array<lir.LFnDef>:mut = []
+    for(fd:lir.LFnDef in defs) {
+        if(c_name_in(seen, fd.c_name) == false) {
+            result = array.push(result, fd)
+        }
+    }
+    return result
+}
+
+// Filter enum_defs to exclude already-seen c_names
+fn filter_enum_defs(defs:array<lir.LEnumDef>, seen:array<string>):array<lir.LEnumDef> {
+    let result:array<lir.LEnumDef>:mut = []
+    for(ed:lir.LEnumDef in defs) {
+        if(c_name_in(seen, ed.c_name) == false) {
+            result = array.push(result, ed)
+        }
+    }
+    return result
+}
+
+// Collect c_names from type_defs
+fn collect_type_names(defs:array<lir.LTypeDef>):array<string> {
+    let result:array<string>:mut = []
+    for(td:lir.LTypeDef in defs) {
+        result = array.push(result, td.c_name)
+    }
+    return result
+}
+
+// Collect c_names from fn_defs
+fn collect_fn_names(defs:array<lir.LFnDef>):array<string> {
+    let result:array<string>:mut = []
+    for(fd:lir.LFnDef in defs) {
+        result = array.push(result, fd.c_name)
+    }
+    return result
+}
+
+// Collect c_names from enum_defs
+fn collect_enum_names(defs:array<lir.LEnumDef>):array<string> {
+    let result:array<string>:mut = []
+    for(ed:lir.LEnumDef in defs) {
+        result = array.push(result, ed.c_name)
+    }
+    return result
+}
+
+// Lower and emit C for all modules (single or multi)
+fn lower_and_emit_all(modules:array<ModuleEntry>, line_directives:bool):string {
+    if(array.size(modules) == 1) {
+        let entry = array.get_any(modules, 0) ?? dummy_entry()
+        let lmod = lowering.lower(entry.typed)
+        return emitter.emit(lmod, entry.display_path, true, [], [], line_directives)
+    }
+
+    // Multi-module: emit deps first, root last, then combine
+    let dep_parts:array<string>:mut = []
+    let dep_type_names:array<string>:mut = []
+    let dep_fn_names:array<string>:mut = []
+    let dep_enum_names:array<string>:mut = []
+    let coll_init_names:array<string>:mut = []
+    let coll_init_exprs:array<string>:mut = []
+
+    // Lower and emit dependency modules (not root)
+    for(entry:ModuleEntry in modules) {
+        if(entry.is_root) { continue }
+
+        let lmod_raw = lowering.lower(entry.typed)
+
+        // Deduplicate
+        let filtered_types = filter_type_defs(lmod_raw.type_defs, dep_type_names)
+        let filtered_fns = filter_fn_defs(lmod_raw.fn_defs, dep_fn_names)
+        let filtered_enums = filter_enum_defs(lmod_raw.enum_defs, dep_enum_names)
+
+        let lmod = lir.LModule{
+            type_defs:filtered_types,
+            fn_defs:filtered_fns,
+            static_defs:lmod_raw.static_defs,
+            enum_defs:filtered_enums,
+            extern_fn_protos:lmod_raw.extern_fn_protos,
+            has_entry_point:false,
+            entry_point:""
+        }
+
+        // Track emitted names
+        dep_type_names = array.concat(dep_type_names, collect_type_names(filtered_types))
+        dep_fn_names = array.concat(dep_fn_names, collect_fn_names(filtered_fns))
+        dep_enum_names = array.concat(dep_enum_names, collect_enum_names(filtered_enums))
+
+        // Emit with deferred statics collection
+        let deferred_names:array<string>:mut = []
+        let deferred_exprs:array<string>:mut = []
+        let dep_c = emitter.emit_with_deferred(lmod, entry.display_path, false, [], [], line_directives, deferred_names, deferred_exprs)
+        dep_parts = array.push(dep_parts, dep_c)
+        coll_init_names = array.concat(coll_init_names, deferred_names)
+        coll_init_exprs = array.concat(coll_init_exprs, deferred_exprs)
+    }
+
+    // Lower and emit root module
+    let root_c:string:mut = ""
+    for(entry:ModuleEntry in modules) {
+        if(entry.is_root == false) { continue }
+
+        let lmod_raw = lowering.lower(entry.typed)
+        let filtered_types = filter_type_defs(lmod_raw.type_defs, dep_type_names)
+        let filtered_fns = filter_fn_defs(lmod_raw.fn_defs, dep_fn_names)
+        let filtered_enums = filter_enum_defs(lmod_raw.enum_defs, dep_enum_names)
+
+        let lmod = lir.LModule{
+            type_defs:filtered_types,
+            fn_defs:filtered_fns,
+            static_defs:lmod_raw.static_defs,
+            enum_defs:filtered_enums,
+            extern_fn_protos:lmod_raw.extern_fn_protos,
+            has_entry_point:lmod_raw.has_entry_point,
+            entry_point:lmod_raw.entry_point
+        }
+
+        root_c = emitter.emit(lmod, entry.display_path, true, coll_init_names, coll_init_exprs, line_directives)
+    }
+
+    if(array.size(dep_parts) == 0) {
+        return root_c
+    }
+
+    // Split root output after 3-line header to insert dep code.
+    // Root header is: comment line, source line, #include line.
+    let header_end:int:mut = 0
+    let newlines_found:int:mut = 0
+    let rc_len = string.len(root_c)
+    while(header_end < rc_len && newlines_found < 3) {
+        let ch = string.char_at(root_c, header_end) ?? 0
+        if(ch == '\n') {
+            newlines_found = newlines_found + 1
+        }
+        header_end = header_end + 1
+    }
+    let header = string.substring(root_c, 0, header_end)
+    let root_body = string.substring(root_c, header_end, rc_len)
+
+    let dep_combined:string:mut = ""
+    for(part:string in dep_parts) {
+        dep_combined = dep_combined + part
+    }
+
+    return header + dep_combined + root_body
+}
+
+fn dummy_entry():ModuleEntry {
+    return ModuleEntry{display_path:"", typed:make_dummy_typed(), is_root:true}
+}
+
+// ---------------------------------------------------------------------------
+// Extern lib collection
+// ---------------------------------------------------------------------------
+
+fn collect_extern_libs(modules:array<ModuleEntry>):array<string> {
+    let result:array<string>:mut = []
+    let seen:map<string, bool>:mut = map.new()
+
+    for(entry:ModuleEntry in modules) {
+        for(decl:ast.Decl in entry.typed.src_module.decls) {
+            match decl {
+                DExternLib(id, line, col, lib_name): {
+                    if(map.has(seen, lib_name) == false) {
+                        result = array.push(result, lib_name)
+                        seen = map.set(seen, lib_name, true)
+                    }
+                }
+                _: {}
+            }
+        }
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+// check: run pipeline through typecheck only, return 0 on success
+export fn check(source_path:string, stdlib_dir:string):int {
+    let ds:DriverState:mut = make_driver_state(stdlib_dir)
+    let modules = run_multi_pipeline(ds, source_path)
+    return 0
+}
+
+// emit_c: run full pipeline, return C source string
+export fn emit_c(source_path:string, stdlib_dir:string):string {
+    let ds:DriverState:mut = make_driver_state(stdlib_dir)
+    let modules_raw = run_multi_pipeline(ds, source_path)
+    let modules = inject_compilable_stdlib(ds, modules_raw)
+    return lower_and_emit_all(modules, false)
+}
+
+// compile: full pipeline → C → clang → binary
+export fn compile(source_path:string, output:string, stdlib_dir:string):int {
+    let ds:DriverState:mut = make_driver_state(stdlib_dir)
+    let modules_raw = run_multi_pipeline(ds, source_path)
+    let modules = inject_compilable_stdlib(ds, modules_raw)
+    let c_source = lower_and_emit_all(modules, true)
+
+    // Collect extern lib flags
+    let extern_libs = collect_extern_libs(modules)
+
+    // Determine output binary path
+    let output_path:string:mut = output
+    if(string.len(output_path) == 0) {
+        output_path = path.with_suffix(path.resolve(source_path), "")
+    }
+
+    // Write C to temp file
+    let tmp_path = io.tmpfile_create(".c", c_source)
+
+    // Locate runtime files relative to the stdlib dir
+    // stdlib_dir is e.g. "/path/to/project/stdlib"
+    // runtime is at "/path/to/project/runtime"
+    let project_root = path.parent(stdlib_dir)
+    let runtime_c = path.join(project_root, "runtime", "flow_runtime.c")
+    let runtime_include = path.join(project_root, "runtime")
+
+    // Build clang args
+    let clang_args:array<string>:mut = [
+        "-std=c11", "-Wall", "-Wextra",
+        "-pthread",
+        "-o", output_path,
+        tmp_path,
+        runtime_c,
+        "-I", runtime_include,
+        "-lm"
+    ]
+    for(lib:string in extern_libs) {
+        clang_args = array.push(clang_args, "-l" + lib)
+    }
+
+    let rc = sys.run_process("clang", clang_args)
+    io.tmpfile_remove(tmp_path)
+
+    if(rc != 0) {
+        io.eprintln("clang compilation failed")
+        return 1
+    }
+    return 0
+}
+
+// run: compile to temp binary, execute, clean up
+export fn run(source_path:string, stdlib_dir:string, run_args:array<string>):int {
+    // Create a temp file to use as output path — clang will overwrite it
+    let tmp_bin = io.tmpfile_create("", "")
+
+    let rc = compile(source_path, tmp_bin, stdlib_dir)
+    if(rc != 0) {
+        io.tmpfile_remove(tmp_bin)
+        return rc
+    }
+
+    // Run the compiled binary
+    let exec_rc = sys.run_process(tmp_bin, run_args)
+    io.tmpfile_remove(tmp_bin)
+    return exec_rc
+}
+
+// ---------------------------------------------------------------------------
+// CLI entry point
+// ---------------------------------------------------------------------------
+
+export fn main():int {
+    let args = sys.args()
+    // args[0] = program name, args[1] = subcommand, etc.
+
+    if(array.size(args) < 2) {
+        print_usage()
+        return 1
+    }
+
+    let subcmd = array.get(args, 1) ?? ""
+
+    // Find stdlib dir: default to <exe_parent>/stdlib
+    // In practice, the driver.flow module is in self_hosted/,
+    // and stdlib is at ../stdlib relative to the compiler root.
+    // We detect it via the source file arg or use a default.
+    let stdlib_dir:string:mut = detect_stdlib_dir()
+
+    if(subcmd == "compile" || subcmd == "build") {
+        // Usage: driver compile <source.flow> [-o output] [--stdlib dir]
+        let source_path:string:mut = ""
+        let output_path:string:mut = ""
+        let i:int:mut = 2
+        while(i < array.size(args)) {
+            let arg = array.get(args, i) ?? ""
+            if(arg == "-o" && i + 1 < array.size(args)) {
+                i = i + 1
+                output_path = array.get(args, i) ?? ""
+            } else if(arg == "--stdlib" && i + 1 < array.size(args)) {
+                i = i + 1
+                stdlib_dir = array.get(args, i) ?? ""
+            } else if(string.starts_with(arg, "-") == false) {
+                source_path = arg
+            }
+            i = i + 1
+        }
+        if(string.len(source_path) == 0) {
+            io.eprintln("Error: no source file specified")
+            return 1
+        }
+        return compile(source_path, output_path, stdlib_dir)
+
+    } else if(subcmd == "run") {
+        // Usage: driver run <source.flow> [--stdlib dir] [-- run_args...]
+        let source_path:string:mut = ""
+        let run_args:array<string>:mut = []
+        let after_dashdash:bool:mut = false
+        let i:int:mut = 2
+        while(i < array.size(args)) {
+            let arg = array.get(args, i) ?? ""
+            if(after_dashdash) {
+                run_args = array.push(run_args, arg)
+            } else if(arg == "--") {
+                after_dashdash = true
+            } else if(arg == "--stdlib" && i + 1 < array.size(args)) {
+                i = i + 1
+                stdlib_dir = array.get(args, i) ?? ""
+            } else if(string.starts_with(arg, "-") == false) {
+                source_path = arg
+            }
+            i = i + 1
+        }
+        if(string.len(source_path) == 0) {
+            io.eprintln("Error: no source file specified")
+            return 1
+        }
+        return run(source_path, stdlib_dir, run_args)
+
+    } else if(subcmd == "check") {
+        // Usage: driver check <source.flow> [--stdlib dir]
+        let source_path:string:mut = ""
+        let i:int:mut = 2
+        while(i < array.size(args)) {
+            let arg = array.get(args, i) ?? ""
+            if(arg == "--stdlib" && i + 1 < array.size(args)) {
+                i = i + 1
+                stdlib_dir = array.get(args, i) ?? ""
+            } else if(string.starts_with(arg, "-") == false) {
+                source_path = arg
+            }
+            i = i + 1
+        }
+        if(string.len(source_path) == 0) {
+            io.eprintln("Error: no source file specified")
+            return 1
+        }
+        let rc = check(source_path, stdlib_dir)
+        if(rc == 0) {
+            io.println("OK")
+        }
+        return rc
+
+    } else if(subcmd == "emit" || subcmd == "emit-c") {
+        // Usage: driver emit <source.flow> [--stdlib dir] [-o output.c]
+        let source_path:string:mut = ""
+        let output_path:string:mut = ""
+        let i:int:mut = 2
+        while(i < array.size(args)) {
+            let arg = array.get(args, i) ?? ""
+            if(arg == "-o" && i + 1 < array.size(args)) {
+                i = i + 1
+                output_path = array.get(args, i) ?? ""
+            } else if(arg == "--stdlib" && i + 1 < array.size(args)) {
+                i = i + 1
+                stdlib_dir = array.get(args, i) ?? ""
+            } else if(string.starts_with(arg, "-") == false) {
+                source_path = arg
+            }
+            i = i + 1
+        }
+        if(string.len(source_path) == 0) {
+            io.eprintln("Error: no source file specified")
+            return 1
+        }
+        let c_source = emit_c(source_path, stdlib_dir)
+        if(string.len(output_path) > 0) {
+            io.write_file(output_path, c_source)
+        } else {
+            io.print(c_source)
+        }
+        return 0
+
+    } else {
+        io.eprintln("Unknown subcommand: " + subcmd)
+        print_usage()
+        return 1
+    }
+}
+
+fn print_usage() {
+    io.eprintln("Usage: driver <subcommand> [options]")
+    io.eprintln("")
+    io.eprintln("Subcommands:")
+    io.eprintln("  compile <source.flow> [-o output] [--stdlib dir]")
+    io.eprintln("  run <source.flow> [--stdlib dir] [-- args...]")
+    io.eprintln("  check <source.flow> [--stdlib dir]")
+    io.eprintln("  emit <source.flow> [-o output.c] [--stdlib dir]")
+}
+
+// Detect stdlib directory relative to running process location.
+// The self-hosted driver binary is built from the project root, so
+// stdlib/ is adjacent to wherever the binary lives — but since we
+// can't get our own exe path in Flow yet, fall back to cwd/stdlib.
+fn detect_stdlib_dir():string {
+    let cwd = path.cwd()
+    let stdlib_candidate = path.join(cwd, "stdlib")
+    if(path.exists(stdlib_candidate)) {
+        return stdlib_candidate
+    }
+    // Also try parent of cwd (in case we're running from self_hosted/)
+    let parent_stdlib = path.join(path.parent(cwd), "stdlib")
+    if(path.exists(parent_stdlib)) {
+        return parent_stdlib
+    }
+    return stdlib_candidate
+}
