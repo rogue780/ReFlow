@@ -875,14 +875,15 @@ class Lowerer:
     def _find_sum_type_module(self, name: str) -> str:
         """Find the module path that declares a sum type.
 
-        For locally-defined sum types, returns self._module_path.
+        For locally-defined sum types, returns the module's own path.
         For cross-module sum types (imported from other modules),
         searches _all_typed to find the originating module.
         """
-        # Check local module first
+        # Check local module first — use the module's own path, not
+        # self._module_path which may differ during monomorphization.
         for decl in self._module.decls:
             if isinstance(decl, TypeDecl) and decl.name == name:
-                return self._module_path
+                return ".".join(self._module.path) if self._module.path else self._module_path
         # Search all compiled modules
         if self._all_typed:
             for mod_path, typed_mod in self._all_typed.items():
@@ -893,6 +894,43 @@ class Lowerer:
         if self._mono_caller_module_path is not None:
             return self._mono_caller_module_path
         return self._module_path
+
+    def _resolve_tvar_to_sum(self, name: str) -> TSum | None:
+        """Try to resolve a TTypeVar name to a concrete TSum type.
+
+        Searches all compiled modules for a sum TypeDecl with matching name
+        and builds the TSum from the AST declaration.
+        """
+        def _build_tsum_from_decl(decl: TypeDecl) -> TSum:
+            """Build a TSum from an AST TypeDecl."""
+            variants = []
+            for v in decl.variants:
+                field_types = []
+                if v.fields:
+                    for field_name, field_type_expr in v.fields:
+                        ft = self._type_of(field_type_expr) if field_type_expr else TAny()
+                        field_types.append(ft)
+                variants.append(TVariant(v.name, tuple(field_types)))
+            return TSum(name, tuple(variants))
+
+        # Search local module
+        for decl in self._module.decls:
+            if isinstance(decl, TypeDecl) and decl.name == name and decl.is_sum_type:
+                return _build_tsum_from_decl(decl)
+        # Search all compiled modules
+        if self._all_typed:
+            for mod_path, typed_mod in self._all_typed.items():
+                for decl in typed_mod.module.decls:
+                    if isinstance(decl, TypeDecl) and decl.name == name and decl.is_sum_type:
+                        # Use the source module's types for field resolution
+                        saved_types = self._types
+                        self._types = typed_mod.types
+                        try:
+                            result = _build_tsum_from_decl(decl)
+                        finally:
+                            self._types = saved_types
+                        return result
+        return None
 
     def _lower_option_type(self, inner: Type) -> LType:
         """Lower option<T> to the appropriate option struct type."""
@@ -1503,6 +1541,15 @@ class Lowerer:
     def _lower_match_stmt(self, stmt: MatchStmt) -> list[LStmt]:
         """Lower match statement. RT-7-3-5, RT-7-3-6."""
         subj_type = self._type_of(stmt.subject)
+        # Resolve TTypeVar to concrete sum type for match lowering.
+        # The typechecker may leave cross-module struct field types as
+        # TTypeVar when the field type is a sum type defined in another
+        # module (e.g., arm.pattern where Pattern is from self_hosted.ast).
+        resolved_sum = None
+        if isinstance(subj_type, TTypeVar):
+            resolved_sum = self._resolve_tvar_to_sum(subj_type.name)
+            if resolved_sum is not None:
+                subj_type = resolved_sum
         subj_expr = self._lower_expr(stmt.subject)
 
         # Store subject in a temp to avoid re-evaluation
@@ -6189,9 +6236,17 @@ class Lowerer:
                 return f"stream_{self._type_name_str(elem)}"
             case TCoroutine(yield_type=yt):
                 return f"coroutine_{self._type_name_str(yt)}"
-            case TNamed(name=name):
+            case TNamed(module=mod, name=name):
+                resolved_mod = mod if mod else self._find_sum_type_module(name)
+                if resolved_mod and '.' not in resolved_mod:
+                    resolved_mod = self._resolve_ns_to_module_path(resolved_mod)
+                if resolved_mod:
+                    return f"{resolved_mod.replace('.', '_')}_{name}"
                 return name
             case TSum(name=name):
+                mod_path = self._find_sum_type_module(name)
+                if mod_path:
+                    return f"{mod_path.replace('.', '_')}_{name}"
                 return name
             case _:
                 return "unknown"

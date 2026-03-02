@@ -991,7 +991,7 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
     if (s->pos >= s->src_len) {
         fl_self_hosted_errors_CompileError* _fl_tmp_4 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
         (*_fl_tmp_4) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated escape sequence"), s->filename, s->line, s->col);
-        _fl_throw(((void*)_fl_tmp_4), 280314805);
+        _fl_throw(((void*)_fl_tmp_4), 461109476);
     }
     fl_char ch = fl_self_hosted_lexer_advance(s);
     if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("n"))) {
@@ -1022,7 +1022,7 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
         if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("{")) == fl_false)) {
             fl_self_hosted_errors_CompileError* _fl_tmp_5 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
             (*_fl_tmp_5) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("expected '{' after '\\u'"), s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_5), 280314805);
+            _fl_throw(((void*)_fl_tmp_5), 461109476);
         }
         fl_self_hosted_lexer_advance(s);
         FL_String* hex = fl_string_from_cstr("");
@@ -1032,19 +1032,19 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
         if (s->pos >= s->src_len) {
             fl_self_hosted_errors_CompileError* _fl_tmp_6 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
             (*_fl_tmp_6) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated unicode escape"), s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_6), 280314805);
+            _fl_throw(((void*)_fl_tmp_6), 461109476);
         }
         fl_self_hosted_lexer_advance(s);
         if (fl_string_eq(hex, fl_string_from_cstr(""))) {
             fl_self_hosted_errors_CompileError* _fl_tmp_7 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
             (*_fl_tmp_7) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("empty unicode escape"), s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_7), 280314805);
+            _fl_throw(((void*)_fl_tmp_7), 461109476);
         }
         return fl_string_from_cstr("?");
     }
     fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
     (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unknown escape sequence"), s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_8), 280314805);
+    _fl_throw(((void*)_fl_tmp_8), 461109476);
     return fl_string_from_cstr("");
 }
 
@@ -1130,7 +1130,7 @@ void fl_self_hosted_lexer_scan_string(fl_self_hosted_lexer_LexState* s) {
     }
     fl_self_hosted_errors_CompileError* _fl_tmp_9 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
     (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated string literal"), s->filename, start_line, start_col);
-    _fl_throw(((void*)_fl_tmp_9), 280314805);
+    _fl_throw(((void*)_fl_tmp_9), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_char_lit */
@@ -1141,7 +1141,7 @@ void fl_self_hosted_lexer_scan_char_lit(fl_self_hosted_lexer_LexState* s) {
     if (s->pos >= s->src_len) {
         fl_self_hosted_errors_CompileError* _fl_tmp_10 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
         (*_fl_tmp_10) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated character literal"), s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_10), 280314805);
+        _fl_throw(((void*)_fl_tmp_10), 461109476);
     }
     FL_String* ch_val = fl_string_from_cstr("");
     if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("\\"))) {
@@ -1153,7 +1153,7 @@ void fl_self_hosted_lexer_scan_char_lit(fl_self_hosted_lexer_LexState* s) {
     if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("'")) == fl_false)) {
         fl_self_hosted_errors_CompileError* _fl_tmp_11 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
         (*_fl_tmp_11) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated character literal"), s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_11), 280314805);
+        _fl_throw(((void*)_fl_tmp_11), 461109476);
     }
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_CHAR_LIT, ch_val, start_line, start_col));
@@ -1428,7 +1428,7 @@ void fl_self_hosted_lexer_scan_operator(fl_self_hosted_lexer_LexState* s) {
     }
     fl_self_hosted_errors_CompileError* _fl_tmp_12 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
     (*_fl_tmp_12) = fl_self_hosted_errors_lex_error(fl_string_concat(fl_string_concat(fl_string_from_cstr("unexpected character '"), fl_char_to_string(ch)), fl_string_from_cstr("'")), s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_12), 280314805);
+    _fl_throw(((void*)_fl_tmp_12), 461109476);
 }
 
 /* Flow: self_hosted.lexer.tokenize */

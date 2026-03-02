@@ -893,8 +893,15 @@ class Resolver:
                 self._resolve_expr(val, scope)
 
             case BindPattern(name=name):
-                sym = Symbol(name, SymbolKind.LOCAL, pat, None, False)
-                scope.define(name, sym)
+                # If the name matches a known CONSTRUCTOR (fieldless variant),
+                # this is a variant match, not a variable binding — skip defining
+                # a local that would shadow the constructor.
+                existing = scope.lookup(name)
+                if existing is not None and existing.kind == SymbolKind.CONSTRUCTOR:
+                    pass
+                else:
+                    sym = Symbol(name, SymbolKind.LOCAL, pat, None, False)
+                    scope.define(name, sym)
 
             case SomePattern(inner_var=var):
                 sym = Symbol(var, SymbolKind.LOCAL, pat, None, False)
