@@ -62,6 +62,24 @@ export fn index_of<T>(arr:array<T>, val:T):int? {
     return none
 }
 
+export fn put<T>(arr:array<T>, idx:int, val:T):array<T> {
+    let s:int = size(arr)
+    let result:array<T>:mut = []
+    let i:int:mut = 0
+    while(i < s) {
+        if(i == idx) {
+            result = push(result, val)
+        } else {
+            match get_any(arr, i) {
+                some(v): { result = push(result, v) }
+                none: {}
+            }
+        }
+        i = i + 1
+    }
+    return result
+}
+
 export fn slice<T>(arr:array<T>, start:int, end_idx:int):array<T> {
     let result:array<T>:mut = []
     let i:int:mut = start

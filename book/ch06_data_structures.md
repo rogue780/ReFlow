@@ -1220,6 +1220,7 @@ import array (push, get, len)
 
 let a: array<int> = [1, 2, 3]
 let b: array<int> = array.push(a, 4)  // [1, 2, 3, 4] — a is unchanged
+let c: array<int> = array.put(a, 1, 99)  // [1, 99, 3] — a is unchanged
 ```
 
 Element access returns `option<T>` because the index might be out of

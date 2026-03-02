@@ -382,6 +382,10 @@ Most functions use `extern fn` declarations binding to C runtime functions. Gene
 | `push_float` | `extern fn push_float(arr:array<float>, val:float):array<float>` | `fl_array_push_float` |
 | `push_bool` | `extern fn push_bool(arr:array<bool>, val:bool):array<bool>` | `fl_array_push_bool` |
 | `push_byte` | `extern fn push_byte(arr:array<byte>, val:byte):array<byte>` | `fl_array_push_byte` |
+| `put` | `fn put<T>(arr:array<T>, idx:int, val:T):array<T>` | monomorphized (pure Flow) |
+| `contains` | `fn contains<T>(arr:array<T>, val:T):bool` | monomorphized (pure Flow) |
+| `index_of` | `fn index_of<T>(arr:array<T>, val:T):int?` | monomorphized (pure Flow) |
+| `slice` | `fn slice<T>(arr:array<T>, start:int, end_idx:int):array<T>` | monomorphized (pure Flow) |
 
 ### Behavior Notes
 

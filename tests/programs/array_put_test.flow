@@ -1,0 +1,41 @@
+module tests.array_put_test
+
+import io
+import conv
+import array
+
+fn main():int {
+    // put — replace middle element in string array
+    let names = ["alice", "bob", "charlie"]
+    let updated = array.put(names, 1, "dave")
+    io.println(array.get(updated, 0) ?? "?")
+    io.println(array.get(updated, 1) ?? "?")
+    io.println(array.get(updated, 2) ?? "?")
+    io.println(conv.to_string(array.size(updated)))
+
+    // original is unchanged
+    io.println(array.get(names, 1) ?? "?")
+
+    // put — replace first element
+    let first = array.put(names, 0, "zara")
+    io.println(array.get(first, 0) ?? "?")
+    io.println(array.get(first, 1) ?? "?")
+
+    // put — replace last element
+    let last = array.put(names, 2, "eve")
+    io.println(array.get(last, 2) ?? "?")
+
+    // put — int array
+    let nums = [10, 20, 30, 40]
+    let nums2 = array.put(nums, 2, 99)
+    io.println(conv.to_string(array.get_int(nums2, 0) ?? 0))
+    io.println(conv.to_string(array.get_int(nums2, 1) ?? 0))
+    io.println(conv.to_string(array.get_int(nums2, 2) ?? 0))
+    io.println(conv.to_string(array.get_int(nums2, 3) ?? 0))
+
+    // put — out of bounds index does nothing (no crash)
+    let safe = array.put(names, 99, "ghost")
+    io.println(conv.to_string(array.size(safe)))
+
+    return 0
+}

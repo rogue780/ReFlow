@@ -239,6 +239,18 @@ let strs = array.of("a", "b")     // array<string> with 2 elements
 | `fn push_bool(arr: array<bool>, val: bool): array<bool>` | Push a `bool`. |
 | `fn push_byte(arr: array<byte>, val: byte): array<byte>` | Push a `byte`. |
 
+**Replace (returns a new array):**
+
+| Signature | Description |
+|-----------|-------------|
+| `fn put<T>(arr: array<T>, idx: int, val: T): array<T>` | Replace element at index. Returns new array. |
+
+```flow
+let names = ["alice", "bob", "charlie"]
+let updated = array.put(names, 1, "dave")  // ["alice", "dave", "charlie"]
+// names is unchanged — still ["alice", "bob", "charlie"]
+```
+
 **Concatenation:**
 
 | Signature | Description |

@@ -315,6 +315,10 @@ array.push<T>(arr: array<T>, val: T): array<T>
 array.get_any<T>(arr: array<T>, idx: int): T?
 array.size<T>(arr: array<T>): int
 array.concat<T>(a: array<T>, b: array<T>): array<T>
+array.put<T>(arr: array<T>, idx: int, val: T): array<T>
+array.contains<T>(arr: array<T>, val: T): bool
+array.index_of<T>(arr: array<T>, val: T): int?
+array.slice<T>(arr: array<T>, start: int, end_idx: int): array<T>
 
 // Value-type push variants (also work via generic push<T>)
 array.push_int(arr: array<int>, val: int): array<int>
