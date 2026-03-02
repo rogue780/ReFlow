@@ -1,0 +1,2910 @@
+module self_hosted.lowering
+
+// Self-hosted lowering pass: transforms typed AST into LIR.
+// Port of compiler/lowering.py.
+
+import io
+import conv
+import array
+import map
+import string
+import char
+import self_hosted.ast
+import self_hosted.errors
+import self_hosted.resolver
+import self_hosted.typechecker
+import self_hosted.mangler
+import self_hosted.lir
+
+// ---------------------------------------------------------------------------
+// LowerState — mutable state for the lowering pass
+// ---------------------------------------------------------------------------
+
+type LowerState:mut {
+    // Input
+    typed:typechecker.TypedModule:imut
+    src_module:ast.Module:imut
+    resolved:resolver.ResolvedModule:imut
+    node_types:map<string, typechecker.TCTypeBox>:imut
+    filename:string:imut
+    module_path:string
+
+    // Output accumulators
+    type_defs:array<lir.LTypeDef>
+    fn_defs:array<lir.LFnDef>
+    static_defs:array<lir.LStaticDef>
+    enum_defs:array<lir.LEnumDef>
+
+    // Type registries (avoid duplicates)
+    option_registry:map<string, string>
+    result_registry:map<string, string>
+    tuple_registry:map<string, string>
+
+    // Temp variable counter
+    tmp_counter:int
+
+    // Pending stmts from expr lowering
+    pending_stmts:array<lir.LStmtBox>
+
+    // Current function context
+    has_current_ret_type:bool
+    current_ret_type:typechecker.TCType
+    current_fn_name:string
+
+    // Closure support
+    lambda_counter:int
+    fn_wrapper_registry:map<string, string>
+    capture_remap_names:map<string, string>
+    capture_remap_types:map<string, lir.LTypeBox>
+
+    // Fan-out counter
+    fanout_counter:int
+
+    // Exception frame counter (per-function)
+    exception_frame_counter:int
+
+    // Per-function let-var LType tracking
+    let_var_ltypes:map<string, lir.LTypeBox>
+
+    // Mutable parameter names (per-function)
+    mut_param_names:map<string, bool>
+
+    // Extern type names
+    extern_type_names:map<string, bool>
+
+    // Monomorphization
+    mono_site_keys:array<string>
+    mono_site_vals:array<lir.MonoSite>
+    has_mono_type_env:bool
+    mono_type_env_keys:array<string>
+    mono_type_env_vals:array<typechecker.TCTypeBox>
+    has_mono_caller_module:bool
+    mono_caller_module:string
+
+    // Stream context
+    has_stream_ctx:bool
+    stream_frame_var:string
+    stream_elem_type:typechecker.TCType
+    stream_yield_counter:int
+}
+
+// ---------------------------------------------------------------------------
+// fresh_temp — generate unique temp variable names
+// ---------------------------------------------------------------------------
+
+fn fresh_temp(st:LowerState:mut):string {
+    let n:int = st.tmp_counter
+    st.tmp_counter = n + 1
+    return "_fl_tmp_" + conv.to_string(n)
+}
+
+// ---------------------------------------------------------------------------
+// node_type_key — build the key for node_types map lookup
+// ---------------------------------------------------------------------------
+
+fn nt_key(node_id:int):string {
+    return "nt_" + conv.to_string(node_id)
+}
+
+// ---------------------------------------------------------------------------
+// type_of — look up a node's inferred type
+// ---------------------------------------------------------------------------
+
+fn type_of(st:LowerState:mut, node_id:int):typechecker.TCType {
+    let key:string = nt_key(node_id)
+    let result:typechecker.TCTypeBox? = map.get(st.node_types, key)
+    match(result) {
+        some(box): { return typechecker.tc_unbox(box) }
+        none: { return typechecker.TCAny }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// type_of_return — get function return type from annotation
+// ---------------------------------------------------------------------------
+
+fn type_of_return(st:LowerState:mut, fn_decl:ast.Decl):typechecker.TCType {
+    match(fn_decl) {
+        DFn(id, line, col, name, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
+            if(has_ret) {
+                return type_of(st, ast.type_expr_id(ret_type))
+            }
+            return typechecker.TCNone
+        }
+        _: { return typechecker.TCNone }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// resolve_type_ann — resolve a TypeExpr to a TCType
+// ---------------------------------------------------------------------------
+
+fn resolve_type_ann(st:LowerState:mut, te:ast.TypeExpr):typechecker.TCType {
+    let looked:typechecker.TCType = type_of(st, ast.type_expr_id(te))
+    match(looked) {
+        TCAny: {
+            // Fallback: resolve from AST directly
+            return resolve_type_ann_ast(st, te)
+        }
+        _: { return looked }
+    }
+}
+
+fn resolve_type_ann_ast(st:LowerState:mut, te:ast.TypeExpr):typechecker.TCType {
+    match(te) {
+        TNamedType(id, line, col, name, mod_path): {
+            return resolve_builtin_type_name(name)
+        }
+        TGenericType(id, line, col, base, args): {
+            // Use type_of on the whole node — the typechecker should have resolved it
+            let resolved:typechecker.TCType = type_of(st, id)
+            match(resolved) {
+                TCAny: {}
+                _: { return resolved }
+            }
+            // Fallback: try resolving base name with arg count
+            match(base) {
+                TNamedType(bid, bline, bcol, bname, bmod): {
+                    if(bname == "option") {
+                        if(array.size(args) > 0) {
+                            return typechecker.TCOption(inner:typechecker.TCAny)
+                        }
+                    }
+                    if(bname == "result") {
+                        return typechecker.TCResult(ok_type:typechecker.TCAny, err_type:typechecker.TCAny)
+                    }
+                    if(bname == "array") {
+                        return typechecker.TCArray(elem:typechecker.TCAny)
+                    }
+                    if(bname == "map") {
+                        return typechecker.TCMap(key:typechecker.TCAny, val:typechecker.TCAny)
+                    }
+                    if(bname == "stream") {
+                        return typechecker.TCStream(elem:typechecker.TCAny)
+                    }
+                    if(bname == "set") {
+                        return typechecker.TCSet(elem:typechecker.TCAny)
+                    }
+                }
+                _: {}
+            }
+            return typechecker.TCAny
+        }
+        TOptionType(id, line, col, inner): {
+            let inner_t:typechecker.TCType = resolve_type_ann(st, inner)
+            return typechecker.TCOption(inner:inner_t)
+        }
+        TFnType(id, line, col, params, ret): {
+            let ptypes:array<typechecker.TCTypeBox>:mut = []
+            for(p:ast.TypeExpr in params) {
+                let pt:typechecker.TCType = resolve_type_ann(st, p)
+                ptypes = array.push(ptypes, typechecker.tc_box(pt))
+            }
+            let rt:typechecker.TCType = resolve_type_ann(st, ret)
+            return typechecker.TCFn(params:ptypes, ret:rt, is_pure:false, is_variadic:false)
+        }
+        TTupleType(id, line, col, elems): {
+            let etypes:array<typechecker.TCTypeBox>:mut = []
+            for(e:ast.TypeExpr in elems) {
+                let et:typechecker.TCType = resolve_type_ann(st, e)
+                etypes = array.push(etypes, typechecker.tc_box(et))
+            }
+            return typechecker.TCTuple(elements:etypes)
+        }
+        TMutType(id, line, col, inner): {
+            return resolve_type_ann(st, inner)
+        }
+        TImutType(id, line, col, inner): {
+            return resolve_type_ann(st, inner)
+        }
+        TSizedType(id, line, col, inner, cap_id): {
+            return resolve_type_ann(st, inner)
+        }
+        TSumTypeExpr(id, line, col, variants): {
+            return typechecker.TCAny
+        }
+    }
+}
+
+fn resolve_builtin_type_name(name:string):typechecker.TCType {
+    if(name == "int") { return typechecker.TCInt(width:32, is_signed:true) }
+    if(name == "int16") { return typechecker.TCInt(width:16, is_signed:true) }
+    if(name == "int32") { return typechecker.TCInt(width:32, is_signed:true) }
+    if(name == "int64") { return typechecker.TCInt(width:64, is_signed:true) }
+    if(name == "uint") { return typechecker.TCInt(width:32, is_signed:false) }
+    if(name == "uint16") { return typechecker.TCInt(width:16, is_signed:false) }
+    if(name == "uint32") { return typechecker.TCInt(width:32, is_signed:false) }
+    if(name == "uint64") { return typechecker.TCInt(width:64, is_signed:false) }
+    if(name == "float") { return typechecker.TCFloat(width:64) }
+    if(name == "float32") { return typechecker.TCFloat(width:32) }
+    if(name == "float64") { return typechecker.TCFloat(width:64) }
+    if(name == "bool") { return typechecker.TCBool }
+    if(name == "char") { return typechecker.TCChar }
+    if(name == "byte") { return typechecker.TCByte }
+    if(name == "ptr") { return typechecker.TCPtr }
+    if(name == "string") { return typechecker.TCString }
+    if(name == "none") { return typechecker.TCNone }
+    if(name == "void") { return typechecker.TCNone }
+    return typechecker.TCTypeVar(name:name)
+}
+
+// ---------------------------------------------------------------------------
+// is_bounded_generic — check if function needs monomorphization
+// ---------------------------------------------------------------------------
+
+fn is_bounded_generic(fn_decl:ast.Decl):bool {
+    match(fn_decl) {
+        DFn(id, line, col, name, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
+            if(array.size(tparams) == 0) {
+                return false
+            }
+            for(tp:ast.TypeParam in tparams) {
+                if(array.size(tp.bounds) > 0) {
+                    return true
+                }
+            }
+            return false
+        }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Opaque runtime type map (if-chain, no top-level dicts in Flow)
+// ---------------------------------------------------------------------------
+
+fn opaque_type_c_name(name:string):string {
+    if(name == "Socket") { return "FL_Socket" }
+    if(name == "file") { return "FL_File" }
+    if(name == "DateTime") { return "FL_DateTime" }
+    if(name == "Instant") { return "FL_Instant" }
+    return ""
+}
+
+// ---------------------------------------------------------------------------
+// Builtin option map
+// ---------------------------------------------------------------------------
+
+fn builtin_option_name(inner_key:string):string {
+    if(inner_key == "fl_int") { return "FL_Option_int" }
+    if(inner_key == "fl_int16") { return "FL_Option_int16" }
+    if(inner_key == "fl_int32") { return "FL_Option_int32" }
+    if(inner_key == "fl_int64") { return "FL_Option_int64" }
+    if(inner_key == "fl_uint") { return "FL_Option_uint" }
+    if(inner_key == "fl_uint16") { return "FL_Option_uint16" }
+    if(inner_key == "fl_uint32") { return "FL_Option_uint32" }
+    if(inner_key == "fl_uint64") { return "FL_Option_uint64" }
+    if(inner_key == "fl_float") { return "FL_Option_float" }
+    if(inner_key == "fl_float32") { return "FL_Option_float32" }
+    if(inner_key == "fl_float64") { return "FL_Option_float64" }
+    if(inner_key == "fl_bool") { return "FL_Option_bool" }
+    if(inner_key == "fl_byte") { return "FL_Option_byte" }
+    if(inner_key == "fl_char") { return "FL_Option_char" }
+    return ""
+}
+
+// ---------------------------------------------------------------------------
+// Value-type box/unbox function maps
+// ---------------------------------------------------------------------------
+
+fn value_type_box_fn(key:string):string {
+    if(key == "fl_int") { return "fl_box_int" }
+    if(key == "fl_int64") { return "fl_box_int64" }
+    if(key == "fl_float") { return "fl_box_float" }
+    if(key == "fl_bool") { return "fl_box_bool" }
+    if(key == "fl_byte") { return "fl_box_byte" }
+    return ""
+}
+
+fn value_type_unbox_fn(key:string):string {
+    if(key == "fl_int") { return "fl_unbox_int" }
+    if(key == "fl_int64") { return "fl_unbox_int64" }
+    if(key == "fl_float") { return "fl_unbox_float" }
+    if(key == "fl_bool") { return "fl_unbox_bool" }
+    if(key == "fl_byte") { return "fl_unbox_byte" }
+    return ""
+}
+
+fn value_type_opt_unbox_fn(key:string):string {
+    if(key == "fl_int") { return "fl_opt_unbox_int" }
+    if(key == "fl_int64") { return "fl_opt_unbox_int64" }
+    if(key == "fl_float") { return "fl_opt_unbox_float" }
+    if(key == "fl_bool") { return "fl_opt_unbox_bool" }
+    if(key == "fl_byte") { return "fl_opt_unbox_byte" }
+    return ""
+}
+
+// ---------------------------------------------------------------------------
+// is_ptr_type — check if an LType is a pointer type
+// ---------------------------------------------------------------------------
+
+fn is_ptr_type(lt:lir.LType):bool {
+    match(lt) {
+        LPtr(inner): { return true }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// join_path — join array of strings with "."
+// ---------------------------------------------------------------------------
+
+fn join_path(parts:array<string>):string {
+    let result:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(parts)) {
+        if(i > 0) {
+            result = result + "."
+        }
+        result = result + (array.get(parts, i) ?? "")
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// resolve_ns_to_module_path — resolve import alias to full module path
+// ---------------------------------------------------------------------------
+
+fn resolve_ns_to_module_path(st:LowerState:mut, ns_name:string):string {
+    let imports:array<ast.Decl> = st.src_module.imports
+    for(imp:ast.Decl in imports) {
+        match(imp) {
+            DImport(id, line, col, path, names, imp_alias): {
+                let imp_path:string = join_path(path)
+                // Check alias match
+                if(imp_alias != "") {
+                    if(imp_alias == ns_name) {
+                        return imp_path
+                    }
+                }
+                // Check last segment match
+                if(array.size(path) > 0) {
+                    let last:string = array.get(path, array.size(path) - 1) ?? ""
+                    if(last == ns_name) {
+                        return imp_path
+                    }
+                }
+            }
+            _: {}
+        }
+    }
+    return ns_name
+}
+
+// ---------------------------------------------------------------------------
+// find_sum_type_module — find which module defines a sum type
+// ---------------------------------------------------------------------------
+
+fn find_sum_type_module(st:LowerState:mut, name:string):string {
+    // Check local module first
+    let decls:array<ast.Decl> = st.src_module.decls
+    for(d:ast.Decl in decls) {
+        match(d) {
+            DType(id, line, col, tname, tparams, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut_type): {
+                if(tname == name) {
+                    if(array.size(st.src_module.path) > 0) {
+                        return join_path(st.src_module.path)
+                    }
+                    return st.module_path
+                }
+            }
+            _: {}
+        }
+    }
+    // Fallback
+    if(st.has_mono_caller_module) {
+        return st.mono_caller_module
+    }
+    return st.module_path
+}
+
+// ---------------------------------------------------------------------------
+// type_name_str — human-readable type name for typeof and exception tags
+// ---------------------------------------------------------------------------
+
+fn type_name_str(st:LowerState:mut, t:typechecker.TCType):string {
+    match(t) {
+        TCInt(w, s): {
+            if(s) {
+                if(w == 32) { return "int" }
+                return "int" + conv.to_string(w)
+            }
+            if(w == 32) { return "uint" }
+            return "uint" + conv.to_string(w)
+        }
+        TCFloat(w): {
+            if(w == 64) { return "float" }
+            return "float" + conv.to_string(w)
+        }
+        TCBool: { return "bool" }
+        TCChar: { return "char" }
+        TCByte: { return "byte" }
+        TCPtr: { return "ptr" }
+        TCString: { return "string" }
+        TCNone: { return "none" }
+        TCOption(inner): {
+            return "option_" + type_name_str(st, inner)
+        }
+        TCResult(ok_t, err_t): {
+            return "result_" + type_name_str(st, ok_t) + "_" + type_name_str(st, err_t)
+        }
+        TCArray(elem): { return "array" }
+        TCMap(k, v): { return "map" }
+        TCSet(elem): { return "set" }
+        TCStream(elem): { return "stream" }
+        TCNamed(mod_p, n, targs): { return n }
+        TCSumType(n, mod_p, vars): { return n }
+        TCEnum(n, mod_p, vn, vv): { return n }
+        TCTypeVar(n): { return n }
+        TCAny: { return "any" }
+        _: { return "unknown" }
+    }
+}
+
+// ===========================================================================
+// TYPE LOWERING
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// lower_type — TCType to LType
+// ---------------------------------------------------------------------------
+
+fn lower_type(st:LowerState:mut, t:typechecker.TCType):lir.LType {
+    match(t) {
+        TCInt(w, s): { return lir.LInt(width:w, is_signed:s) }
+        TCFloat(w): { return lir.LFloat(width:w) }
+        TCBool: { return lir.LBool }
+        TCChar: { return lir.LChar }
+        TCByte: { return lir.LByte }
+        TCPtr: { return lir.LPtr(inner:lir.LVoid) }
+        TCString: { return lir.LPtr(inner:lir.LStruct(c_name:"FL_String")) }
+        TCNone: { return lir.LVoid }
+        TCArray(elem): { return lir.LPtr(inner:lir.LStruct(c_name:"FL_Array")) }
+        TCStream(elem): { return lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream")) }
+        TCCoroutine(yt, st_inner): { return lir.LPtr(inner:lir.LStruct(c_name:"FL_Coroutine")) }
+        TCBuffer(elem): { return lir.LPtr(inner:lir.LStruct(c_name:"FL_Buffer")) }
+        TCMap(k, v): { return lir.LPtr(inner:lir.LStruct(c_name:"FL_Map")) }
+        TCSet(elem): { return lir.LPtr(inner:lir.LStruct(c_name:"FL_Set")) }
+        TCOption(inner): { return lower_option_type(st, inner) }
+        TCResult(ok_t, err_t): { return lower_result_type(st, ok_t, err_t) }
+        TCTuple(elems): { return lower_tuple_type(st, elems) }
+        TCNamed(mod_p, name, targs): {
+            return lower_named_type(st, mod_p, name)
+        }
+        TCFn(params, ret, is_pure, is_variadic): {
+            return lir.LPtr(inner:lir.LStruct(c_name:"FL_Closure"))
+        }
+        TCSumType(name, mod_p, vars): {
+            let resolved_mod:string = find_sum_type_module(st, name)
+            let c_name:string = mangler.mangle(resolved_mod, name, "")
+            return lir.LStruct(c_name:c_name)
+        }
+        TCEnum(name, mod_p, vn, vv): {
+            return lir.LInt(width:32, is_signed:true)
+        }
+        TCRecord(fn_val, ft): {
+            return lir.LStruct(c_name:"fl_record")
+        }
+        TCAlias(name, underlying): {
+            return lower_type(st, underlying)
+        }
+        TCTypeVar(name): {
+            return lir.LPtr(inner:lir.LVoid)
+        }
+        TCAny: {
+            return lir.LPtr(inner:lir.LVoid)
+        }
+        TCSelf: {
+            return lir.LPtr(inner:lir.LVoid)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_named_type — handle TNamed dispatch
+// ---------------------------------------------------------------------------
+
+fn lower_named_type(st:LowerState:mut, mod_p:string, name:string):lir.LType {
+    // Opaque runtime types
+    if(mod_p == "") {
+        let opaque:string = opaque_type_c_name(name)
+        if(opaque != "") {
+            return lir.LPtr(inner:lir.LStruct(c_name:opaque))
+        }
+        // Extern types -> void*
+        let is_extern:bool? = map.get(st.extern_type_names, name)
+        match(is_extern) {
+            some(v): { return lir.LPtr(inner:lir.LVoid) }
+            none: {}
+        }
+    }
+    // Cross-module type
+    let resolved_mod:string:mut = mod_p
+    if(resolved_mod == "") {
+        resolved_mod = find_sum_type_module(st, name)
+    }
+    if(resolved_mod != "") {
+        // Check if namespace alias needs resolution
+        if(string.contains(resolved_mod, ".") == false) {
+            resolved_mod = resolve_ns_to_module_path(st, resolved_mod)
+        }
+    }
+    let c_name:string = mangler.mangle(resolved_mod, name, "")
+    return lir.LStruct(c_name:c_name)
+}
+
+// ---------------------------------------------------------------------------
+// lower_option_type — option<T> to FL_Option_<key> struct
+// ---------------------------------------------------------------------------
+
+fn lower_option_type(st:LowerState:mut, inner:typechecker.TCType):lir.LType {
+    let inner_lt:lir.LType = lower_type(st, inner)
+    let inner_key:string = lir.ltype_c_name(inner_lt)
+
+    // Builtin option types
+    let builtin:string = builtin_option_name(inner_key)
+    if(builtin != "") {
+        return lir.LStruct(c_name:builtin)
+    }
+
+    // Heap types use FL_Option_ptr
+    if(is_ptr_type(inner_lt)) {
+        return lir.LStruct(c_name:"FL_Option_ptr")
+    }
+
+    // Check registry
+    let existing:string? = map.get(st.option_registry, inner_key)
+    match(existing) {
+        some(cname): { return lir.LStruct(c_name:cname) }
+        none: {}
+    }
+
+    // Generate new option typedef
+    let c_name:string = "FL_Option_" + inner_key
+    st.option_registry = map.set(st.option_registry, inner_key, c_name)
+    let fields:array<lir.LField>:mut = []
+    fields = array.push(fields, lir.LField{name:"tag", field_type:lir.LByte})
+    fields = array.push(fields, lir.LField{name:"value", field_type:inner_lt})
+    st.type_defs = array.push(st.type_defs, lir.LTypeDef{c_name:c_name, fields:fields})
+    return lir.LStruct(c_name:c_name)
+}
+
+// ---------------------------------------------------------------------------
+// lower_result_type — result<T,E> to FL_Result_<key> struct
+// ---------------------------------------------------------------------------
+
+fn lower_result_type(st:LowerState:mut, ok_t:typechecker.TCType, err_t:typechecker.TCType):lir.LType {
+    let ok_lt:lir.LType = lower_type(st, ok_t)
+    let err_lt:lir.LType = lower_type(st, err_t)
+    let key:string = lir.ltype_c_name(ok_lt) + "_" + lir.ltype_c_name(err_lt)
+
+    // Check registry
+    let existing:string? = map.get(st.result_registry, key)
+    match(existing) {
+        some(cname): { return lir.LStruct(c_name:cname) }
+        none: {}
+    }
+
+    let c_name:string = "FL_Result_" + key
+    st.result_registry = map.set(st.result_registry, key, c_name)
+    let fields:array<lir.LField>:mut = []
+    fields = array.push(fields, lir.LField{name:"tag", field_type:lir.LByte})
+    fields = array.push(fields, lir.LField{name:"ok_val", field_type:ok_lt})
+    fields = array.push(fields, lir.LField{name:"err_val", field_type:err_lt})
+    st.type_defs = array.push(st.type_defs, lir.LTypeDef{c_name:c_name, fields:fields})
+    return lir.LStruct(c_name:c_name)
+}
+
+// ---------------------------------------------------------------------------
+// lower_tuple_type — (T1, T2, ...) to FL_Tuple_<key> struct
+// ---------------------------------------------------------------------------
+
+fn lower_tuple_type(st:LowerState:mut, elems:array<typechecker.TCTypeBox>):lir.LType {
+    let key:string:mut = ""
+    let fields:array<lir.LField>:mut = []
+    let i:int:mut = 0
+    while(i < array.size(elems)) {
+        let eb:typechecker.TCTypeBox = array.get_any(elems, i) ?? typechecker.tc_box(typechecker.TCAny)
+        let et:lir.LType = lower_type(st, typechecker.tc_unbox(eb))
+        if(i > 0) { key = key + "_" }
+        key = key + lir.ltype_c_name(et)
+        fields = array.push(fields, lir.LField{name:"_" + conv.to_string(i), field_type:et})
+        i = i + 1
+    }
+
+    // Check registry
+    let existing:string? = map.get(st.tuple_registry, key)
+    match(existing) {
+        some(cname): { return lir.LStruct(c_name:cname) }
+        none: {}
+    }
+
+    let c_name:string = "FL_Tuple_" + key
+    st.tuple_registry = map.set(st.tuple_registry, key, c_name)
+    st.type_defs = array.push(st.type_defs, lir.LTypeDef{c_name:c_name, fields:fields})
+    return lir.LStruct(c_name:c_name)
+}
+
+// ---------------------------------------------------------------------------
+// lower_extern_type — lower types for extern fn protos (TFn -> LFnPtr)
+// ---------------------------------------------------------------------------
+
+fn lower_extern_type(st:LowerState:mut, t:typechecker.TCType):lir.LType {
+    match(t) {
+        TCFn(params, ret, is_pure, is_variadic): {
+            let ptypes:array<lir.LTypeBox>:mut = []
+            let i:int:mut = 0
+            while(i < array.size(params)) {
+                let pb:typechecker.TCTypeBox = array.get_any(params, i) ?? typechecker.tc_box(typechecker.TCAny)
+                ptypes = array.push(ptypes, lir.lt_box(lower_extern_type(st, typechecker.tc_unbox(pb))))
+                i = i + 1
+            }
+            let rl:lir.LType = lower_extern_type(st, ret)
+            return lir.LFnPtr(params:ptypes, ret:rl)
+        }
+        _: { return lower_type(st, t) }
+    }
+}
+
+// ===========================================================================
+// INIT + ENTRY POINT
+// ===========================================================================
+
+fn make_lower_state(typed:typechecker.TypedModule):LowerState {
+    let mod:ast.Module = typed.src_module
+    let mod_path:string:mut = "main"
+    if(array.size(mod.path) > 0) {
+        mod_path = join_path(mod.path)
+    }
+
+    // Collect extern type names
+    let ext_names:map<string, bool>:mut = map.new()
+    for(d:ast.Decl in mod.decls) {
+        match(d) {
+            DExternType(id, line, col, ename, is_export): {
+                ext_names = map.set(ext_names, ename, true)
+            }
+            _: {}
+        }
+    }
+
+    return LowerState{
+        typed:typed,
+        src_module:mod,
+        resolved:typed.resolved,
+        node_types:typed.node_types,
+        filename:mod.filename,
+        module_path:mod_path,
+        type_defs:[],
+        fn_defs:[],
+        static_defs:[],
+        enum_defs:[],
+        option_registry:map.new(),
+        result_registry:map.new(),
+        tuple_registry:map.new(),
+        tmp_counter:0,
+        pending_stmts:[],
+        has_current_ret_type:false,
+        current_ret_type:typechecker.TCNone,
+        current_fn_name:"",
+        lambda_counter:0,
+        fn_wrapper_registry:map.new(),
+        capture_remap_names:map.new(),
+        capture_remap_types:map.new(),
+        fanout_counter:0,
+        exception_frame_counter:0,
+        let_var_ltypes:map.new(),
+        mut_param_names:map.new(),
+        extern_type_names:ext_names,
+        mono_site_keys:[],
+        mono_site_vals:[],
+        has_mono_type_env:false,
+        mono_type_env_keys:[],
+        mono_type_env_vals:[],
+        has_mono_caller_module:false,
+        mono_caller_module:"",
+        has_stream_ctx:false,
+        stream_frame_var:"",
+        stream_elem_type:typechecker.TCNone,
+        stream_yield_counter:0
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower — public entry point
+// ---------------------------------------------------------------------------
+
+export fn lower(typed:typechecker.TypedModule):lir.LModule {
+    let st:LowerState:mut = make_lower_state(typed)
+
+    let extern_protos:array<lir.LExternFnProto>:mut = []
+
+    for(decl:ast.Decl in st.src_module.decls) {
+        match(decl) {
+            DFn(id, line, col, name, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
+                lower_fn_decl(st, decl)
+            }
+            DType(id, line, col, tname, tparams, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut_type): {
+                lower_type_decl(st, decl)
+            }
+            DExternFn(id, line, col, name, tparams, params, has_ret, ret_type, is_export, c_name_str): {
+                // Skip generic or fl_* externs
+                let cn:string:mut = c_name_str
+                if(cn == "") { cn = name }
+                if(array.size(tparams) == 0) {
+                    if(string.starts_with(cn, "fl_") == false) {
+                        let ptypes:array<lir.LTypeBox>:mut = []
+                        for(p:ast.Param in params) {
+                            let pt:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                            ptypes = array.push(ptypes, lir.lt_box(lower_extern_type(st, pt)))
+                        }
+                        let rl:lir.LType:mut = lir.LVoid
+                        if(has_ret) {
+                            rl = lower_extern_type(st, resolve_type_ann(st, ret_type))
+                        }
+                        extern_protos = array.push(extern_protos, lir.LExternFnProto{c_name:cn, param_types:ptypes, ret:rl})
+                    }
+                }
+            }
+            DEnum(id, line, col, name, variants, is_export): {
+                lower_enum_decl(st, decl)
+            }
+            _: {}
+        }
+    }
+
+    // TODO: lower monomorphized functions
+
+    // Detect entry point
+    let has_ep:bool:mut = false
+    let ep:string:mut = ""
+    let i:int:mut = 0
+    while(i < array.size(st.fn_defs)) {
+        let fd:lir.LFnDef = array.get_any(st.fn_defs, i) ?? lir.LFnDef{c_name:"", params:[], ret:lir.LVoid, body:[], is_pure:false, source_name:"", source_line:0}
+        if(string.ends_with(fd.source_name, ".main")) {
+            has_ep = true
+            ep = fd.c_name
+        }
+        i = i + 1
+    }
+
+    return lir.LModule{
+        type_defs:st.type_defs,
+        fn_defs:st.fn_defs,
+        static_defs:st.static_defs,
+        enum_defs:st.enum_defs,
+        extern_fn_protos:extern_protos,
+        has_entry_point:has_ep,
+        entry_point:ep
+    }
+}
+
+// ===========================================================================
+// DECLARATION LOWERING
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// lower_fn_decl
+// ---------------------------------------------------------------------------
+
+fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
+    match(decl) {
+        DFn(id, line, col, name, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
+            if(array.size(body) == 0) { return 0 }
+            if(is_bounded_generic(decl)) { return 0 }
+
+            // Get return type
+            let ret_t:typechecker.TCType = type_of_return(st, decl)
+
+            // Check for stream function
+            // TODO: stream fn lowering
+
+            // Save/restore context
+            let saved_ret:typechecker.TCType = st.current_ret_type
+            let saved_has_ret:bool = st.has_current_ret_type
+            let saved_fn_name:string = st.current_fn_name
+            let saved_let_vars:map<string, lir.LTypeBox> = st.let_var_ltypes
+            let saved_mut_params:map<string, bool> = st.mut_param_names
+
+            st.has_current_ret_type = true
+            st.current_ret_type = ret_t
+            st.current_fn_name = name
+            st.let_var_ltypes = map.new()
+            st.mut_param_names = map.new()
+
+            let c_name:string = mangler.mangle(st.module_path, "", name)
+
+            // Lower parameters
+            let lparams:array<lir.LParam>:mut = []
+            for(p:ast.Param in params) {
+                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                let p_lt:lir.LType:mut = lower_type(st, p_type)
+                // Check :mut
+                match(p.type_ann) {
+                    TMutType(mid, ml, mc, minner): {
+                        p_lt = lir.LPtr(inner:p_lt)
+                        st.mut_param_names = map.set(st.mut_param_names, p.name, true)
+                    }
+                    _: {}
+                }
+                lparams = array.push(lparams, lir.LParam{name:p.name, param_type:p_lt})
+                st.let_var_ltypes = map.set(st.let_var_ltypes, p.name, lir.lt_box(p_lt))
+            }
+
+            let ret_lt:lir.LType = lower_type(st, ret_t)
+
+            // Lower body
+            let lbody:array<lir.LStmtBox> = lower_block(st, body)
+
+            // Inject tail returns for non-void functions
+            let final_body:array<lir.LStmtBox>:mut = lbody
+            match(ret_lt) {
+                LVoid: {}
+                _: {
+                    final_body = inject_tail_returns(final_body)
+                }
+            }
+
+            st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
+                c_name:c_name,
+                params:lparams,
+                ret:ret_lt,
+                body:final_body,
+                is_pure:is_pure,
+                source_name:st.module_path + "." + name,
+                source_line:line
+            })
+
+            // Restore context
+            st.current_ret_type = saved_ret
+            st.has_current_ret_type = saved_has_ret
+            st.current_fn_name = saved_fn_name
+            st.let_var_ltypes = saved_let_vars
+            st.mut_param_names = saved_mut_params
+        }
+        _: {}
+    }
+    return 0
+}
+
+// ---------------------------------------------------------------------------
+// lower_type_decl
+// ---------------------------------------------------------------------------
+
+fn lower_type_decl(st:LowerState:mut, decl:ast.Decl):int {
+    match(decl) {
+        DType(id, line, col, tname, tparams, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut_type): {
+            let c_name:string = mangler.mangle(st.module_path, tname, "")
+
+            if(is_sum) {
+                lower_sum_type_decl(st, decl, c_name)
+            } else {
+                // Regular struct
+                let lfields:array<lir.LField>:mut = []
+                for(f:ast.FieldDecl in fields) {
+                    let f_type:typechecker.TCType = resolve_type_ann(st, f.type_ann)
+                    lfields = array.push(lfields, lir.LField{name:f.name, field_type:lower_type(st, f_type)})
+                }
+                st.type_defs = array.push(st.type_defs, lir.LTypeDef{c_name:c_name, fields:lfields})
+            }
+
+            // Lower methods
+            for(m:ast.Decl in methods) {
+                lower_method(st, m, tname, c_name)
+            }
+
+            // Lower constructors
+            for(ct:ast.Decl in ctors) {
+                lower_constructor(st, ct, tname, c_name)
+            }
+
+            // Lower static members
+            for(sm:ast.Decl in statics) {
+                lower_static_member(st, sm, tname)
+            }
+        }
+        _: {}
+    }
+    return 0
+}
+
+// ---------------------------------------------------------------------------
+// lower_sum_type_decl
+// ---------------------------------------------------------------------------
+
+fn lower_sum_type_decl(st:LowerState:mut, decl:ast.Decl, c_name:string):int {
+    match(decl) {
+        DType(id, line, col, tname, tparams, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut_type): {
+            // Main struct fields: tag + variant fields
+            let main_fields:array<lir.LField>:mut = []
+            main_fields = array.push(main_fields, lir.LField{name:"tag", field_type:lir.LByte})
+
+            let vi:int:mut = 0
+            while(vi < array.size(variants)) {
+                let v:ast.SumVariantDecl = array.get_any(variants, vi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                if(array.size(v.fields) > 0) {
+                    // Create nested variant struct
+                    let variant_c_name:string = c_name + "_" + v.name
+                    let vfields:array<lir.LField>:mut = []
+                    for(f:ast.Field in v.fields) {
+                        let f_type:typechecker.TCType = resolve_type_ann(st, f.type_expr)
+                        let f_lt:lir.LType:mut = lower_type(st, f_type)
+                        // Check recursive field
+                        if(is_recursive_sum_field(f_type, tname)) {
+                            f_lt = lir.LPtr(inner:f_lt)
+                        }
+                        vfields = array.push(vfields, lir.LField{name:f.name, field_type:f_lt})
+                    }
+                    st.type_defs = array.push(st.type_defs, lir.LTypeDef{c_name:variant_c_name, fields:vfields})
+                    main_fields = array.push(main_fields, lir.LField{name:v.name, field_type:lir.LStruct(c_name:variant_c_name)})
+                }
+                vi = vi + 1
+            }
+
+            st.type_defs = array.push(st.type_defs, lir.LTypeDef{c_name:c_name, fields:main_fields})
+        }
+        _: {}
+    }
+    return 0
+}
+
+// ---------------------------------------------------------------------------
+// is_recursive_sum_field — check if field type references enclosing sum
+// ---------------------------------------------------------------------------
+
+fn is_recursive_sum_field(t:typechecker.TCType, enclosing_name:string):bool {
+    match(t) {
+        TCSumType(name, mod_p, vars): { return name == enclosing_name }
+        TCNamed(mod_p, name, targs): { return name == enclosing_name }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_method — lower a method on a type
+// ---------------------------------------------------------------------------
+
+fn lower_method(st:LowerState:mut, m:ast.Decl, type_name:string, type_c_name:string):int {
+    match(m) {
+        DFn(id, line, col, mname, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
+            if(array.size(body) == 0) { return 0 }
+
+            let m_c_name:string = mangler.mangle(st.module_path, type_name, mname)
+
+            // Save/restore
+            let saved_ret:typechecker.TCType = st.current_ret_type
+            let saved_has_ret:bool = st.has_current_ret_type
+            let saved_fn_name:string = st.current_fn_name
+            let saved_let_vars:map<string, lir.LTypeBox> = st.let_var_ltypes
+            let saved_mut_params:map<string, bool> = st.mut_param_names
+
+            let ret_t:typechecker.TCType = type_of_return(st, m)
+            st.has_current_ret_type = true
+            st.current_ret_type = ret_t
+            st.current_fn_name = mname
+            st.let_var_ltypes = map.new()
+            st.mut_param_names = map.new()
+
+            // Build params: self first, then regular params
+            let lparams:array<lir.LParam>:mut = []
+            lparams = array.push(lparams, lir.LParam{name:"self", param_type:lir.LPtr(inner:lir.LStruct(c_name:type_c_name))})
+
+            for(p:ast.Param in params) {
+                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                let p_lt:lir.LType:mut = lower_type(st, p_type)
+                match(p.type_ann) {
+                    TMutType(mid, ml, mc, minner): {
+                        p_lt = lir.LPtr(inner:p_lt)
+                        st.mut_param_names = map.set(st.mut_param_names, p.name, true)
+                    }
+                    _: {}
+                }
+                lparams = array.push(lparams, lir.LParam{name:p.name, param_type:p_lt})
+                st.let_var_ltypes = map.set(st.let_var_ltypes, p.name, lir.lt_box(p_lt))
+            }
+
+            let ret_lt:lir.LType = lower_type(st, ret_t)
+            let lbody:array<lir.LStmtBox> = lower_block(st, body)
+            let final_body:array<lir.LStmtBox>:mut = lbody
+            match(ret_lt) {
+                LVoid: {}
+                _: { final_body = inject_tail_returns(final_body) }
+            }
+
+            st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
+                c_name:m_c_name,
+                params:lparams,
+                ret:ret_lt,
+                body:final_body,
+                is_pure:is_pure,
+                source_name:st.module_path + "." + type_name + "." + mname,
+                source_line:line
+            })
+
+            st.current_ret_type = saved_ret
+            st.has_current_ret_type = saved_has_ret
+            st.current_fn_name = saved_fn_name
+            st.let_var_ltypes = saved_let_vars
+            st.mut_param_names = saved_mut_params
+        }
+        _: {}
+    }
+    return 0
+}
+
+// ---------------------------------------------------------------------------
+// lower_constructor — lower a constructor on a type
+// ---------------------------------------------------------------------------
+
+fn lower_constructor(st:LowerState:mut, ct:ast.Decl, type_name:string, type_c_name:string):int {
+    match(ct) {
+        DConstructor(id, line, col, cname, params, ret_type, body): {
+            let ct_c_name:string = mangler.mangle(st.module_path, type_name, cname)
+
+            let saved_ret:typechecker.TCType = st.current_ret_type
+            let saved_fn_name:string = st.current_fn_name
+            let saved_let_vars:map<string, lir.LTypeBox> = st.let_var_ltypes
+            let saved_mut_params:map<string, bool> = st.mut_param_names
+
+            st.current_ret_type = typechecker.TCNone
+            st.current_fn_name = cname
+            st.let_var_ltypes = map.new()
+            st.mut_param_names = map.new()
+
+            let lparams:array<lir.LParam>:mut = []
+            for(p:ast.Param in params) {
+                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                let p_lt:lir.LType = lower_type(st, p_type)
+                lparams = array.push(lparams, lir.LParam{name:p.name, param_type:p_lt})
+            }
+
+            let ret_lt:lir.LType = lir.LStruct(c_name:type_c_name)
+            let lbody:array<lir.LStmtBox> = lower_block(st, body)
+            let final_body:array<lir.LStmtBox> = inject_tail_returns(lbody)
+
+            st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
+                c_name:ct_c_name,
+                params:lparams,
+                ret:ret_lt,
+                body:final_body,
+                is_pure:false,
+                source_name:st.module_path + "." + type_name + "." + cname,
+                source_line:line
+            })
+
+            st.current_ret_type = saved_ret
+            st.current_fn_name = saved_fn_name
+            st.let_var_ltypes = saved_let_vars
+            st.mut_param_names = saved_mut_params
+        }
+        _: {}
+    }
+    return 0
+}
+
+// ---------------------------------------------------------------------------
+// lower_enum_decl
+// ---------------------------------------------------------------------------
+
+fn lower_enum_decl(st:LowerState:mut, decl:ast.Decl):int {
+    match(decl) {
+        DEnum(id, line, col, name, variants, is_export): {
+            let enum_c_name:string = mangler.mangle(st.module_path, name, "")
+            let vnames:array<string>:mut = []
+            let vvals:array<int>:mut = []
+            let next_val:int:mut = 0
+            for(v:ast.EnumVariantDecl in variants) {
+                let mangled:string = mangler.mangle(st.module_path, name, v.name)
+                vnames = array.push(vnames, mangled)
+                if(v.has_value) {
+                    vvals = array.push(vvals, v.value)
+                    next_val = v.value + 1
+                } else {
+                    vvals = array.push(vvals, next_val)
+                    next_val = next_val + 1
+                }
+            }
+            st.enum_defs = array.push(st.enum_defs, lir.LEnumDef{c_name:enum_c_name, variant_names:vnames, variant_values:vvals})
+        }
+        _: {}
+    }
+    return 0
+}
+
+// ---------------------------------------------------------------------------
+// lower_static_member
+// ---------------------------------------------------------------------------
+
+fn lower_static_member(st:LowerState:mut, sm:ast.Decl, type_name:string):int {
+    match(sm) {
+        DStaticMember(id, line, col, sname, type_ann, is_mut, has_val, val_expr): {
+            let sm_c_name:string = mangler.mangle(st.module_path, type_name, sname)
+            let sm_type:typechecker.TCType = resolve_type_ann(st, type_ann)
+            let sm_lt:lir.LType = lower_type(st, sm_type)
+
+            let has_init:bool:mut = false
+            let init_expr:lir.LExpr:mut = lir.placeholder_expr()
+            if(has_val) {
+                init_expr = lower_expr(st, val_expr)
+                has_init = true
+                // Flush any pending stmts (shouldn't happen for statics, but be safe)
+                st.pending_stmts = []
+            }
+
+            st.static_defs = array.push(st.static_defs, lir.LStaticDef{
+                c_name:sm_c_name,
+                c_type:sm_lt,
+                has_init:has_init,
+                init:init_expr,
+                is_mut:is_mut
+            })
+        }
+        _: {}
+    }
+    return 0
+}
+
+// ===========================================================================
+// BLOCK + STATEMENT LOWERING (stubs, to be filled)
+// ===========================================================================
+
+fn lower_block(st:LowerState:mut, stmts:array<ast.Stmt>):array<lir.LStmtBox> {
+    let result:array<lir.LStmtBox>:mut = []
+    for(s:ast.Stmt in stmts) {
+        // Save pending stmts
+        let saved:array<lir.LStmtBox> = st.pending_stmts
+        st.pending_stmts = []
+
+        let lowered:array<lir.LStmtBox> = lower_stmt(st, s)
+
+        // Flush pending stmts first, then the statement itself
+        let pi:int:mut = 0
+        while(pi < array.size(st.pending_stmts)) {
+            let ps:lir.LStmtBox = array.get_any(st.pending_stmts, pi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+            result = array.push(result, ps)
+            pi = pi + 1
+        }
+        let si:int:mut = 0
+        while(si < array.size(lowered)) {
+            let ls:lir.LStmtBox = array.get_any(lowered, si) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+            result = array.push(result, ls)
+            si = si + 1
+        }
+
+        st.pending_stmts = saved
+    }
+    return result
+}
+
+fn inject_tail_returns(stmts:array<lir.LStmtBox>):array<lir.LStmtBox> {
+    if(array.size(stmts) == 0) { return stmts }
+
+    // Get last statement
+    let last_idx:int = array.size(stmts) - 1
+    let last:lir.LStmtBox = array.get_any(stmts, last_idx) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+
+    match(last.ls) {
+        LSExprStmt(expr, sline): {
+            let new_last:lir.LStmt = lir.LSReturn(has_value:true, value:expr, source_line:sline)
+            return array.put(stmts, last_idx, lir.LStmtBox{ls:new_last})
+        }
+        LSIf(cond, then_body, else_body, sline): {
+            let new_then:array<lir.LStmtBox> = inject_tail_returns(then_body)
+            let new_else:array<lir.LStmtBox> = inject_tail_returns(else_body)
+            let new_last:lir.LStmt = lir.LSIf(cond:cond, then_body:new_then, else_body:new_else, source_line:sline)
+            return array.put(stmts, last_idx, lir.LStmtBox{ls:new_last})
+        }
+        LSReturn(hv, v, sl): { return stmts }
+        _: { return stmts }
+    }
+}
+
+// ===========================================================================
+// STATEMENT LOWERING
+// ===========================================================================
+
+fn lower_stmt(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SLet(id, line, col, name, has_type_ann, type_ann, val): {
+            return lower_let(st, s)
+        }
+        SAssign(id, line, col, target, val): {
+            return lower_assign(st, s)
+        }
+        SReturn(id, line, col, has_val, val): {
+            return lower_return(st, s)
+        }
+        SIf(id, line, col, cond, then_stmts, has_else, else_stmts): {
+            return lower_if_stmt(st, s)
+        }
+        SWhile(id, line, col, cond, body, has_fin, fin_body): {
+            return lower_while(st, s)
+        }
+        SFor(id, line, col, var_name, has_var_type, var_type, iterable, body, has_fin, fin_body): {
+            return lower_for(st, s)
+        }
+        SMatch(id, line, col, subject, arms): {
+            return lower_match_stmt(st, s)
+        }
+        SExpr(id, line, col, expr): {
+            let le:lir.LExpr = lower_expr(st, expr)
+            return [lir.LStmtBox{ls:lir.LSExprStmt(expr:le, source_line:line)}]
+        }
+        SBreak(id, line, col): {
+            return [lir.LStmtBox{ls:lir.LSBreak(source_line:line)}]
+        }
+        SContinue(id, line, col): {
+            return [lir.LStmtBox{ls:lir.LSContinue(source_line:line)}]
+        }
+        SUpdate(id, line, col, target, op, has_val, val): {
+            return lower_update(st, s)
+        }
+        SYield(id, line, col, val): {
+            // TODO: stream yield lowering
+            return []
+        }
+        SThrow(id, line, col, exception): {
+            return lower_throw(st, s)
+        }
+        STry(id, line, col, body, retry_blocks, catches, has_fin, fin_body): {
+            // TODO: try/catch lowering
+            return lower_block(st, body)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_let
+// ---------------------------------------------------------------------------
+
+fn lower_let(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SLet(id, line, col, name, has_type_ann, type_ann, val): {
+            let init:lir.LExpr:mut = lower_expr(st, val)
+            let val_type:typechecker.TCType = type_of(st, ast.expr_id(val))
+            let c_type:lir.LType:mut = lower_type(st, val_type)
+
+            // If type annotation exists, prefer it
+            if(has_type_ann) {
+                let ann_type:typechecker.TCType = resolve_type_ann(st, type_ann)
+                let ann_lt:lir.LType = lower_type(st, ann_type)
+                // Option auto-lifting
+                match(ann_type) {
+                    TCOption(inner): {
+                        match(val_type) {
+                            TCOption(v_inner): {} // Already option, no lift
+                            _: {
+                                // Wrap in compound literal {.tag=1, .value=init}
+                                let opt_lt:lir.LType = ann_lt
+                                let fnames:array<string>:mut = []
+                                fnames = array.push(fnames, "tag")
+                                fnames = array.push(fnames, "value")
+                                let fvals:array<lir.LExprBox>:mut = []
+                                fvals = array.push(fvals, lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)))
+                                fvals = array.push(fvals, lir.le_box(init))
+                                init = lir.LECompound(field_names:fnames, field_values:fvals, c_type:opt_lt)
+                            }
+                        }
+                    }
+                    _: {}
+                }
+                c_type = ann_lt
+            }
+
+            // Track for later ident lookups
+            st.let_var_ltypes = map.set(st.let_var_ltypes, name, lir.lt_box(c_type))
+
+            return [lir.LStmtBox{ls:lir.LSVarDecl(c_name:name, c_type:c_type, has_init:true, init:init, source_line:line)}]
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_assign
+// ---------------------------------------------------------------------------
+
+fn lower_assign(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SAssign(id, line, col, target, val): {
+            let lt:lir.LExpr = lower_expr(st, target)
+            let lv:lir.LExpr = lower_expr(st, val)
+            return [lir.LStmtBox{ls:lir.LSAssign(target:lt, value:lv, source_line:line)}]
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_update — +=, -=, etc.
+// ---------------------------------------------------------------------------
+
+fn lower_update(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SUpdate(id, line, col, target, op, has_val, val): {
+            let lt:lir.LExpr = lower_expr(st, target)
+            if(has_val) {
+                let rv:lir.LExpr = lower_expr(st, val)
+                let target_type:typechecker.TCType = type_of(st, ast.expr_id(target))
+                let result_lt:lir.LType = lower_type(st, target_type)
+                let binop_result:lir.LExpr = lir.LEBinOp(op:op, left:lir.le_box(lt), right:lir.le_box(rv), c_type:result_lt)
+                // Re-lower target for assignment (need fresh LExpr)
+                let lt2:lir.LExpr = lower_expr(st, target)
+                return [lir.LStmtBox{ls:lir.LSAssign(target:lt2, value:binop_result, source_line:line)}]
+            } else {
+                // Increment/decrement (++/--)
+                let target_type:typechecker.TCType = type_of(st, ast.expr_id(target))
+                let result_lt:lir.LType = lower_type(st, target_type)
+                let one:lir.LExpr = lir.LELit(value:"1", c_type:result_lt)
+                let binop_result:lir.LExpr = lir.LEBinOp(op:op, left:lir.le_box(lt), right:lir.le_box(one), c_type:result_lt)
+                let lt2:lir.LExpr = lower_expr(st, target)
+                return [lir.LStmtBox{ls:lir.LSAssign(target:lt2, value:binop_result, source_line:line)}]
+            }
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_return
+// ---------------------------------------------------------------------------
+
+fn lower_return(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SReturn(id, line, col, has_val, val): {
+            if(has_val) {
+                let rv:lir.LExpr = lower_expr(st, val)
+                return [lir.LStmtBox{ls:lir.LSReturn(has_value:true, value:rv, source_line:line)}]
+            }
+            return [lir.LStmtBox{ls:lir.LSReturn(has_value:false, value:lir.placeholder_expr(), source_line:line)}]
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_if_stmt
+// ---------------------------------------------------------------------------
+
+fn lower_if_stmt(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SIf(id, line, col, cond, then_stmts, has_else, else_stmts): {
+            let lcond:lir.LExpr = lower_expr(st, cond)
+            let lthen:array<lir.LStmtBox> = lower_block(st, then_stmts)
+            let lelse:array<lir.LStmtBox>:mut = []
+            if(has_else) {
+                lelse = lower_block(st, else_stmts)
+            }
+            return [lir.LStmtBox{ls:lir.LSIf(cond:lcond, then_body:lthen, else_body:lelse, source_line:line)}]
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_while
+// ---------------------------------------------------------------------------
+
+fn lower_while(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SWhile(id, line, col, cond, body, has_fin, fin_body): {
+            let lcond:lir.LExpr = lower_expr(st, cond)
+            let lbody:array<lir.LStmtBox> = lower_block(st, body)
+            let result:array<lir.LStmtBox>:mut = []
+            result = array.push(result, lir.LStmtBox{ls:lir.LSWhile(cond:lcond, body:lbody, source_line:line)})
+            if(has_fin) {
+                let fin:array<lir.LStmtBox> = lower_block(st, fin_body)
+                let fi:int:mut = 0
+                while(fi < array.size(fin)) {
+                    let fs:lir.LStmtBox = array.get_any(fin, fi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+                    result = array.push(result, fs)
+                    fi = fi + 1
+                }
+            }
+            return result
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_for — dispatch to array or stream variant
+// ---------------------------------------------------------------------------
+
+fn lower_for(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SFor(id, line, col, var_name, has_var_type, var_type, iterable, body, has_fin, fin_body): {
+            let iter_type:typechecker.TCType = type_of(st, ast.expr_id(iterable))
+            match(iter_type) {
+                TCArray(elem_t): {
+                    return lower_for_array(st, s, elem_t)
+                }
+                TCStream(elem_t): {
+                    return lower_for_stream(st, s, elem_t)
+                }
+                _: {
+                    // Fallback: treat as array with unknown element type
+                    return lower_for_array(st, s, typechecker.TCAny)
+                }
+            }
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_for_array — index-based while loop
+// ---------------------------------------------------------------------------
+
+fn lower_for_array(st:LowerState:mut, s:ast.Stmt, elem_t:typechecker.TCType):array<lir.LStmtBox> {
+    match(s) {
+        SFor(id, line, col, var_name, has_var_type, var_type, iterable, body, has_fin, fin_body): {
+            let arr_expr:lir.LExpr = lower_expr(st, iterable)
+            let elem_lt:lir.LType = lower_type(st, elem_t)
+
+            let idx_name:string = fresh_temp(st)
+            let idx_lt:lir.LType = lir.LInt(width:64, is_signed:true)
+
+            let result:array<lir.LStmtBox>:mut = []
+            // Temp for array
+            let arr_tmp:string = fresh_temp(st)
+            result = array.push(result, lir.LStmtBox{ls:lir.LSVarDecl(c_name:arr_tmp, c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Array")), has_init:true, init:arr_expr, source_line:line)})
+
+            // Index decl: int64 idx = 0
+            result = array.push(result, lir.LStmtBox{ls:lir.LSVarDecl(c_name:idx_name, c_type:idx_lt, has_init:true, init:lir.LELit(value:"0", c_type:idx_lt), source_line:line)})
+
+            // Condition: idx < fl_array_len(arr)
+            let len_call:lir.LExpr = lir.LECall(fn_name:"fl_array_len", args:[lir.le_box(lir.LEVar(c_name:arr_tmp, c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Array"))))], c_type:idx_lt)
+            let cond:lir.LExpr = lir.LEBinOp(op:"<", left:lir.le_box(lir.LEVar(c_name:idx_name, c_type:idx_lt)), right:lir.le_box(len_call), c_type:lir.LBool)
+
+            // Element binding: T item = *(T*)fl_array_get_ptr(arr, idx)
+            let get_call:lir.LExpr = lir.LECall(fn_name:"fl_array_get_ptr", args:[lir.le_box(lir.LEVar(c_name:arr_tmp, c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Array")))), lir.le_box(lir.LEVar(c_name:idx_name, c_type:idx_lt))], c_type:lir.LPtr(inner:lir.LVoid))
+            let cast_ptr:lir.LExpr = lir.LECast(inner:lir.le_box(get_call), c_type:lir.LPtr(inner:elem_lt))
+            let deref:lir.LExpr = lir.LEDeref(inner:lir.le_box(cast_ptr), c_type:elem_lt)
+
+            let item_decl:lir.LStmt = lir.LSVarDecl(c_name:var_name, c_type:elem_lt, has_init:true, init:deref, source_line:line)
+
+            // Increment: idx = idx + 1
+            let inc:lir.LStmt = lir.LSAssign(target:lir.LEVar(c_name:idx_name, c_type:idx_lt), value:lir.LEBinOp(op:"+", left:lir.le_box(lir.LEVar(c_name:idx_name, c_type:idx_lt)), right:lir.le_box(lir.LELit(value:"1", c_type:idx_lt)), c_type:idx_lt), source_line:line)
+
+            // Body: item_decl + lowered body + increment
+            let loop_body:array<lir.LStmtBox>:mut = []
+            loop_body = array.push(loop_body, lir.LStmtBox{ls:item_decl})
+            let lb:array<lir.LStmtBox> = lower_block(st, body)
+            let bi:int:mut = 0
+            while(bi < array.size(lb)) {
+                let bs:lir.LStmtBox = array.get_any(lb, bi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+                loop_body = array.push(loop_body, bs)
+                bi = bi + 1
+            }
+            loop_body = array.push(loop_body, lir.LStmtBox{ls:inc})
+
+            result = array.push(result, lir.LStmtBox{ls:lir.LSWhile(cond:cond, body:loop_body, source_line:line)})
+
+            // Finally
+            if(has_fin) {
+                let fin:array<lir.LStmtBox> = lower_block(st, fin_body)
+                let fi:int:mut = 0
+                while(fi < array.size(fin)) {
+                    let fs:lir.LStmtBox = array.get_any(fin, fi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+                    result = array.push(result, fs)
+                    fi = fi + 1
+                }
+            }
+
+            return result
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_for_stream — stream next loop
+// ---------------------------------------------------------------------------
+
+fn lower_for_stream(st:LowerState:mut, s:ast.Stmt, elem_t:typechecker.TCType):array<lir.LStmtBox> {
+    match(s) {
+        SFor(id, line, col, var_name, has_var_type, var_type, iterable, body, has_fin, fin_body): {
+            let stream_expr:lir.LExpr = lower_expr(st, iterable)
+            let elem_lt:lir.LType = lower_type(st, elem_t)
+            let stream_tmp:string = fresh_temp(st)
+            let next_tmp:string = fresh_temp(st)
+
+            let result:array<lir.LStmtBox>:mut = []
+            // Store stream in temp
+            result = array.push(result, lir.LStmtBox{ls:lir.LSVarDecl(c_name:stream_tmp, c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream")), has_init:true, init:stream_expr, source_line:line)})
+
+            // Infinite loop
+            let opt_type:lir.LType = lir.LStruct(c_name:"FL_Option_ptr")
+            let next_call:lir.LExpr = lir.LECall(fn_name:"fl_stream_next", args:[lir.le_box(lir.LEVar(c_name:stream_tmp, c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))))], c_type:opt_type)
+
+            // Body of while(1):
+            let loop_body:array<lir.LStmtBox>:mut = []
+            // FL_Option_ptr next = fl_stream_next(stream)
+            loop_body = array.push(loop_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:next_tmp, c_type:opt_type, has_init:true, init:next_call, source_line:line)})
+            // if(next.tag == 0) break
+            let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:next_tmp, c_type:opt_type)), field:"tag", c_type:lir.LByte)), right:lir.le_box(lir.LELit(value:"0", c_type:lir.LByte)), c_type:lir.LBool)
+            loop_body = array.push(loop_body, lir.LStmtBox{ls:lir.LSIf(cond:tag_check, then_body:[lir.LStmtBox{ls:lir.LSBreak(source_line:line)}], else_body:[], source_line:line)})
+
+            // Extract value
+            let val_field:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:next_tmp, c_type:opt_type)), field:"value", c_type:lir.LPtr(inner:lir.LVoid))
+            let cast_val:lir.LExpr:mut = lir.LECast(inner:lir.le_box(val_field), c_type:elem_lt)
+            if(is_ptr_type(elem_lt) == false) {
+                // Value types need intermediate cast through uintptr
+                cast_val = lir.LECast(inner:lir.le_box(lir.LECast(inner:lir.le_box(val_field), c_type:lir.LInt(width:64, is_signed:false))), c_type:elem_lt)
+            }
+            loop_body = array.push(loop_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:var_name, c_type:elem_lt, has_init:true, init:cast_val, source_line:line)})
+
+            // User body
+            let lb:array<lir.LStmtBox> = lower_block(st, body)
+            let bi:int:mut = 0
+            while(bi < array.size(lb)) {
+                let bs:lir.LStmtBox = array.get_any(lb, bi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+                loop_body = array.push(loop_body, bs)
+                bi = bi + 1
+            }
+
+            let cond_true:lir.LExpr = lir.LELit(value:"1", c_type:lir.LBool)
+            result = array.push(result, lir.LStmtBox{ls:lir.LSWhile(cond:cond_true, body:loop_body, source_line:line)})
+
+            return result
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_match_stmt — stub (dispatch on subject type)
+// ---------------------------------------------------------------------------
+
+fn lower_match_stmt(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SMatch(id, line, col, subject, arms): {
+            let subj_expr:lir.LExpr = lower_expr(st, subject)
+            let subj_type:typechecker.TCType = type_of(st, ast.expr_id(subject))
+            let subj_lt:lir.LType = lower_type(st, subj_type)
+
+            // Store subject in temp
+            let tmp:string = fresh_temp(st)
+            let result:array<lir.LStmtBox>:mut = []
+            result = array.push(result, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:subj_lt, has_init:true, init:subj_expr, source_line:line)})
+
+            let subj_var:lir.LExpr = lir.LEVar(c_name:tmp, c_type:subj_lt)
+
+            match(subj_type) {
+                TCSumType(sname, smod, svars): {
+                    let match_stmts:array<lir.LStmtBox> = lower_match_sum(st, subj_var, subj_type, arms)
+                    let mi:int:mut = 0
+                    while(mi < array.size(match_stmts)) {
+                        result = array.push(result, array.get_any(match_stmts, mi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                        mi = mi + 1
+                    }
+                }
+                TCOption(inner): {
+                    let match_stmts:array<lir.LStmtBox> = lower_match_option(st, subj_var, subj_type, arms, line)
+                    let mi:int:mut = 0
+                    while(mi < array.size(match_stmts)) {
+                        result = array.push(result, array.get_any(match_stmts, mi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                        mi = mi + 1
+                    }
+                }
+                TCResult(ok_t, err_t): {
+                    let match_stmts:array<lir.LStmtBox> = lower_match_result(st, subj_var, subj_type, arms, line)
+                    let mi:int:mut = 0
+                    while(mi < array.size(match_stmts)) {
+                        result = array.push(result, array.get_any(match_stmts, mi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                        mi = mi + 1
+                    }
+                }
+                _: {
+                    // Generic match (primitives, etc)
+                    let match_stmts:array<lir.LStmtBox> = lower_match_generic(st, subj_var, subj_type, arms, line)
+                    let mi:int:mut = 0
+                    while(mi < array.size(match_stmts)) {
+                        result = array.push(result, array.get_any(match_stmts, mi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                        mi = mi + 1
+                    }
+                }
+            }
+            return result
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_throw — stub
+// ---------------------------------------------------------------------------
+
+fn lower_throw(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SThrow(id, line, col, exception): {
+            let exc:lir.LExpr = lower_expr(st, exception)
+            let exc_type:typechecker.TCType = type_of(st, ast.expr_id(exception))
+            // String exceptions: tag=0
+            match(exc_type) {
+                TCString: {
+                    let throw_call:lir.LExpr = lir.LECall(fn_name:"_fl_throw", args:[lir.le_box(lir.LECast(inner:lir.le_box(exc), c_type:lir.LPtr(inner:lir.LVoid))), lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:32, is_signed:true)))], c_type:lir.LVoid)
+                    return [lir.LStmtBox{ls:lir.LSExprStmt(expr:throw_call, source_line:line)}]
+                }
+                _: {
+                    // Typed exception — allocate on heap
+                    let exc_lt:lir.LType = lower_type(st, exc_type)
+                    let tmp:string = fresh_temp(st)
+                    let tag:int = exception_type_tag(type_name_str(st, exc_type))
+                    let malloc_call:lir.LExpr = lir.LECall(fn_name:"malloc", args:[lir.le_box(lir.LESizeOf(target_type:exc_lt))], c_type:lir.LPtr(inner:lir.LVoid))
+                    let cast_expr:lir.LExpr = lir.LECast(inner:lir.le_box(malloc_call), c_type:lir.LPtr(inner:exc_lt))
+                    let result:array<lir.LStmtBox>:mut = []
+                    result = array.push(result, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:lir.LPtr(inner:exc_lt), has_init:true, init:cast_expr, source_line:line)})
+                    result = array.push(result, lir.LStmtBox{ls:lir.LSAssign(target:lir.LEDeref(inner:lir.le_box(lir.LEVar(c_name:tmp, c_type:lir.LPtr(inner:exc_lt))), c_type:exc_lt), value:exc, source_line:line)})
+                    let throw_call:lir.LExpr = lir.LECall(fn_name:"_fl_throw", args:[lir.le_box(lir.LECast(inner:lir.le_box(lir.LEVar(c_name:tmp, c_type:lir.LPtr(inner:exc_lt))), c_type:lir.LPtr(inner:lir.LVoid))), lir.le_box(lir.LELit(value:conv.to_string(tag), c_type:lir.LInt(width:32, is_signed:true)))], c_type:lir.LVoid)
+                    result = array.push(result, lir.LStmtBox{ls:lir.LSExprStmt(expr:throw_call, source_line:line)})
+                    return result
+                }
+            }
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// exception_type_tag — deterministic hash for exception type dispatch
+// ---------------------------------------------------------------------------
+
+fn exception_type_tag(name:string):int {
+    let hash:int:mut = 5381
+    let i:int:mut = 0
+    let slen:int = string.len(name)
+    while(i < slen) {
+        match(string.char_at(name, i)) {
+            some(c): {
+                let ch:int = char.to_code(c)
+                hash = ((hash * 33) + ch)
+            }
+            none: {}
+        }
+        i = i + 1
+    }
+    // Mask to positive 31-bit value, ensure non-zero (0 reserved for strings)
+    let tag:int:mut = hash
+    if(tag < 0) { tag = 0 - tag }
+    if(tag == 0) { tag = 1 }
+    return tag
+}
+
+// ===========================================================================
+// MATCH LOWERING
+// ===========================================================================
+
+fn lower_match_sum(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCType, arms:array<ast.MatchArm>):array<lir.LStmtBox> {
+    // Build switch on tag
+    let tag_expr:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(subj), field:"tag", c_type:lir.LByte)
+    let case_tags:array<int>:mut = []
+    let case_bodies:array<lir.LStmtListBox>:mut = []
+    let default_body:array<lir.LStmtBox>:mut = []
+    let subj_lt:lir.LType = lir.lexpr_type(subj)
+
+    let variants:array<typechecker.TCSumVariant>:mut = []
+    match(subj_type) {
+        TCSumType(sname, smod, svars): { variants = svars }
+        _: {}
+    }
+
+    for(arm:ast.MatchArm in arms) {
+        match(arm.pattern) {
+            PVariant(pid, pline, pcol, vname, bindings): {
+                // Find variant index
+                let tag:int:mut = 0
+                let vi:int:mut = 0
+                while(vi < array.size(variants)) {
+                    let v:typechecker.TCSumVariant = array.get_any(variants, vi) ?? typechecker.TCSumVariant{name:"", has_fields:false, field_types_box:[]}
+                    if(v.name == vname) {
+                        tag = vi
+                    }
+                    vi = vi + 1
+                }
+
+                let arm_body:array<lir.LStmtBox>:mut = []
+                // Bind variant fields
+                let found_v:typechecker.TCSumVariant:mut = typechecker.TCSumVariant{name:"", has_fields:false, field_types_box:[]}
+                let fvi:int:mut = 0
+                while(fvi < array.size(variants)) {
+                    let fv:typechecker.TCSumVariant = array.get_any(variants, fvi) ?? typechecker.TCSumVariant{name:"", has_fields:false, field_types_box:[]}
+                    if(fv.name == vname) { found_v = fv }
+                    fvi = fvi + 1
+                }
+
+                let bi:int:mut = 0
+                while(bi < array.size(bindings)) {
+                    let bname:string = array.get(bindings, bi) ?? "_"
+                    if(bname != "_") {
+                        // Get field type from variant
+                        let ft:lir.LType:mut = lir.LPtr(inner:lir.LVoid)
+                        if(bi < array.size(found_v.field_types_box)) {
+                            let ftbox:typechecker.TCTypeBox = array.get_any(found_v.field_types_box, bi) ?? typechecker.tc_box(typechecker.TCAny)
+                            ft = lower_type(st, typechecker.tc_unbox(ftbox))
+                        }
+                        // Access: subj.variant_name.field_name
+                        // We need the field names from the AST TypeDecl, but for simplicity use positional
+                        // For now, access via the variant struct field by index
+                        let variant_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(subj), field:vname, c_type:lir.LStruct(c_name:""))
+                        let field_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(variant_access), field:bname, c_type:ft)
+                        arm_body = array.push(arm_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:bname, c_type:ft, has_init:true, init:field_access, source_line:pline)})
+                    }
+                    bi = bi + 1
+                }
+
+                // Lower arm body
+                let lbody:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                let lbi:int:mut = 0
+                while(lbi < array.size(lbody)) {
+                    arm_body = array.push(arm_body, array.get_any(lbody, lbi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                    lbi = lbi + 1
+                }
+                arm_body = array.push(arm_body, lir.LStmtBox{ls:lir.LSBreak(source_line:pline)})
+
+                case_tags = array.push(case_tags, tag)
+                case_bodies = array.push(case_bodies, lir.LStmtListBox{stmts:arm_body})
+            }
+            PBind(pid, pline, pcol, bname): {
+                // Wildcard/bind in default case
+                let lbody:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                default_body = lbody
+            }
+            PWildcard(pid, pline, pcol): {
+                let lbody:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                default_body = lbody
+            }
+            _: {
+                let lbody:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                default_body = lbody
+            }
+        }
+    }
+
+    return [lir.LStmtBox{ls:lir.LSSwitch(value:tag_expr, case_tags:case_tags, case_bodies:case_bodies, default_body:default_body, source_line:0)}]
+}
+
+fn lower_match_option(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCType, arms:array<ast.MatchArm>, line:int):array<lir.LStmtBox> {
+    let tag_expr:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(subj), field:"tag", c_type:lir.LByte)
+    let is_some:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(tag_expr), right:lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)), c_type:lir.LBool)
+
+    let some_body:array<lir.LStmtBox>:mut = []
+    let none_body:array<lir.LStmtBox>:mut = []
+
+    for(arm:ast.MatchArm in arms) {
+        match(arm.pattern) {
+            PSome(pid, pline, pcol, inner_var): {
+                // Bind inner value
+                let inner_t:typechecker.TCType:mut = typechecker.TCAny
+                match(subj_type) {
+                    TCOption(it): { inner_t = it }
+                    _: {}
+                }
+                let inner_lt:lir.LType = lower_type(st, inner_t)
+                let val_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(subj), field:"value", c_type:inner_lt)
+                some_body = array.push(some_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:inner_var, c_type:inner_lt, has_init:true, init:val_access, source_line:pline)})
+                let lb:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                let i:int:mut = 0
+                while(i < array.size(lb)) {
+                    some_body = array.push(some_body, array.get_any(lb, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                    i = i + 1
+                }
+            }
+            PNone(pid, pline, pcol): {
+                none_body = lower_block(st, arm.body_stmts)
+            }
+            PWildcard(pid, pline, pcol): {
+                none_body = lower_block(st, arm.body_stmts)
+            }
+            PBind(pid, pline, pcol, bname): {
+                none_body = lower_block(st, arm.body_stmts)
+            }
+            _: {}
+        }
+    }
+
+    return [lir.LStmtBox{ls:lir.LSIf(cond:is_some, then_body:some_body, else_body:none_body, source_line:line)}]
+}
+
+fn lower_match_result(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCType, arms:array<ast.MatchArm>, line:int):array<lir.LStmtBox> {
+    let tag_expr:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(subj), field:"tag", c_type:lir.LByte)
+    let is_ok:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(tag_expr), right:lir.le_box(lir.LELit(value:"0", c_type:lir.LByte)), c_type:lir.LBool)
+
+    let ok_body:array<lir.LStmtBox>:mut = []
+    let err_body:array<lir.LStmtBox>:mut = []
+
+    for(arm:ast.MatchArm in arms) {
+        match(arm.pattern) {
+            POk(pid, pline, pcol, inner_var): {
+                let ok_t:typechecker.TCType:mut = typechecker.TCAny
+                match(subj_type) {
+                    TCResult(ot, et): { ok_t = ot }
+                    _: {}
+                }
+                let ok_lt:lir.LType = lower_type(st, ok_t)
+                let val_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(subj), field:"ok_val", c_type:ok_lt)
+                ok_body = array.push(ok_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:inner_var, c_type:ok_lt, has_init:true, init:val_access, source_line:pline)})
+                let lb:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                let i:int:mut = 0
+                while(i < array.size(lb)) {
+                    ok_body = array.push(ok_body, array.get_any(lb, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                    i = i + 1
+                }
+            }
+            PErr(pid, pline, pcol, inner_var): {
+                let err_t:typechecker.TCType:mut = typechecker.TCAny
+                match(subj_type) {
+                    TCResult(ot, et): { err_t = et }
+                    _: {}
+                }
+                let err_lt:lir.LType = lower_type(st, err_t)
+                let val_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(subj), field:"err_val", c_type:err_lt)
+                err_body = array.push(err_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:inner_var, c_type:err_lt, has_init:true, init:val_access, source_line:pline)})
+                let lb:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                let i:int:mut = 0
+                while(i < array.size(lb)) {
+                    err_body = array.push(err_body, array.get_any(lb, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                    i = i + 1
+                }
+            }
+            _: {
+                err_body = lower_block(st, arm.body_stmts)
+            }
+        }
+    }
+
+    return [lir.LStmtBox{ls:lir.LSIf(cond:is_ok, then_body:ok_body, else_body:err_body, source_line:line)}]
+}
+
+fn lower_match_generic(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCType, arms:array<ast.MatchArm>, line:int):array<lir.LStmtBox> {
+    // Build if-else chain for literal/bind patterns
+    if(array.size(arms) == 0) { return [] }
+
+    let first_arm:ast.MatchArm = array.get_any(arms, 0) ?? ast.MatchArm{pattern:ast.PWildcard(id:0, line:0, col:0), body_stmts:[], id:0, line:0, col:0}
+    match(first_arm.pattern) {
+        PLiteral(pid, pline, pcol, val_id): {
+            // TODO: equality check on literal value
+            let lbody:array<lir.LStmtBox> = lower_block(st, first_arm.body_stmts)
+            return lbody
+        }
+        PBind(pid, pline, pcol, bname): {
+            // Bind subject to name, then body
+            let subj_lt:lir.LType = lir.lexpr_type(subj)
+            let result:array<lir.LStmtBox>:mut = []
+            if(bname != "_") {
+                result = array.push(result, lir.LStmtBox{ls:lir.LSVarDecl(c_name:bname, c_type:subj_lt, has_init:true, init:subj, source_line:pline)})
+            }
+            let lb:array<lir.LStmtBox> = lower_block(st, first_arm.body_stmts)
+            let i:int:mut = 0
+            while(i < array.size(lb)) {
+                result = array.push(result, array.get_any(lb, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                i = i + 1
+            }
+            return result
+        }
+        PWildcard(pid, pline, pcol): {
+            return lower_block(st, first_arm.body_stmts)
+        }
+        _: {
+            return lower_block(st, first_arm.body_stmts)
+        }
+    }
+}
+
+// ===========================================================================
+// EXPRESSION LOWERING
+// ===========================================================================
+
+fn lower_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EIntLit(id, line, col, value, suffix): {
+            let lt:lir.LType:mut = lir.LInt(width:32, is_signed:true)
+            if(suffix == "i64") { lt = lir.LInt(width:64, is_signed:true) }
+            if(suffix == "u32") { lt = lir.LInt(width:32, is_signed:false) }
+            if(suffix == "u64") { lt = lir.LInt(width:64, is_signed:false) }
+            return lir.LELit(value:conv.to_string(value), c_type:lt)
+        }
+        EFloatLit(id, line, col, value, suffix): {
+            let lt:lir.LType:mut = lir.LFloat(width:64)
+            if(suffix == "f32") { lt = lir.LFloat(width:32) }
+            return lir.LELit(value:conv.to_string(value), c_type:lt)
+        }
+        EBoolLit(id, line, col, value): {
+            if(value) {
+                return lir.LELit(value:"fl_true", c_type:lir.LBool)
+            }
+            return lir.LELit(value:"fl_false", c_type:lir.LBool)
+        }
+        EStringLit(id, line, col, value): {
+            let escaped:string = escape_c_string(value)
+            return lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"" + escaped + "\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_String")))
+        }
+        ECharLit(id, line, col, value): {
+            return lir.LELit(value:"'" + conv.to_string(value) + "'", c_type:lir.LChar)
+        }
+        ENoneLit(id, line, col): {
+            return lower_none_lit(st)
+        }
+        EIdent(id, line, col, name, module_path): {
+            return lower_ident(st, e)
+        }
+        EBinOp(id, line, col, op, left, right): {
+            return lower_binop(st, e)
+        }
+        EUnaryOp(id, line, col, op, operand): {
+            let lo:lir.LExpr = lower_expr(st, operand)
+            let result_lt:lir.LType = lir.lexpr_type(lo)
+            return lir.LEUnary(op:op, operand:lir.le_box(lo), c_type:result_lt)
+        }
+        ECall(id, line, col, callee, args): {
+            return lower_call(st, e)
+        }
+        EMethodCall(id, line, col, receiver, method, args): {
+            return lower_method_call(st, e)
+        }
+        EFieldAccess(id, line, col, receiver, field_name): {
+            return lower_field_access(st, e)
+        }
+        EIndexAccess(id, line, col, receiver, index): {
+            return lower_index_access(st, e)
+        }
+        ETupleExpr(id, line, col, elements): {
+            return lower_tuple_expr(st, e)
+        }
+        EArrayLit(id, line, col, elements): {
+            return lower_array_lit(st, e)
+        }
+        ETypeLit(id, line, col, type_name, type_fields, has_spread, spread): {
+            return lower_type_lit(st, e)
+        }
+        ERecordLit(id, line, col, rec_fields): {
+            return lower_record_lit(st, e)
+        }
+        EIfExpr(id, line, col, cond, then_stmts, else_stmts): {
+            return lower_if_expr(st, e)
+        }
+        EMatchExpr(id, line, col, subject, arms): {
+            return lower_match_expr(st, e)
+        }
+        ETernary(id, line, col, cond, then_expr, else_expr): {
+            let lc:lir.LExpr = lower_expr(st, cond)
+            let lt:lir.LExpr = lower_expr(st, then_expr)
+            let le:lir.LExpr = lower_expr(st, else_expr)
+            return lir.LETernary(cond:lir.le_box(lc), then_expr:lir.le_box(lt), else_expr:lir.le_box(le), c_type:lir.lexpr_type(lt))
+        }
+        ESome(id, line, col, inner): {
+            return lower_some(st, e)
+        }
+        EOk(id, line, col, inner): {
+            return lower_ok_expr(st, e)
+        }
+        EErr(id, line, col, inner): {
+            return lower_err_expr(st, e)
+        }
+        EPropagate(id, line, col, inner): {
+            return lower_propagate(st, e)
+        }
+        ENullCoalesce(id, line, col, left, right): {
+            return lower_null_coalesce(st, e)
+        }
+        ECast(id, line, col, inner, target_id): {
+            let li:lir.LExpr = lower_expr(st, inner)
+            let target_type:typechecker.TCType = type_of(st, id)
+            return lir.LECast(inner:lir.le_box(li), c_type:lower_type(st, target_type))
+        }
+        ECoerce(id, line, col, inner): {
+            return lower_expr(st, inner)
+        }
+        ECopy(id, line, col, inner): {
+            return lower_expr(st, inner)  // TODO: deep copy
+        }
+        ERef(id, line, col, inner): {
+            return lower_expr(st, inner)  // TODO: ref
+        }
+        ETypeof(id, line, col, inner): {
+            let t:typechecker.TCType = type_of(st, ast.expr_id(inner))
+            let tname:string = type_name_str(st, t)
+            return lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"" + tname + "\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_String")))
+        }
+        EFString(id, line, col, parts): {
+            return lower_fstring(st, e)
+        }
+        ELambda(id, line, col, params, lambda_body): {
+            return lower_lambda(st, e)
+        }
+        ENamedArg(id, line, col, name, val): {
+            return lower_expr(st, val)
+        }
+        ESpread(id, line, col, inner): {
+            return lower_expr(st, inner)
+        }
+        ECompositionChain(id, line, col, elements): {
+            // TODO: composition chain lowering
+            return lir.LELit(value:"0", c_type:lir.LVoid)
+        }
+        EFanOut(id, line, col, branches, is_parallel): {
+            // TODO: fan-out lowering
+            return lir.LELit(value:"0", c_type:lir.LVoid)
+        }
+        ECoroutineStart(id, line, col, call): {
+            // TODO: coroutine start lowering
+            return lir.LELit(value:"0", c_type:lir.LVoid)
+        }
+        ECoroutinePipeline(id, line, col, stages): {
+            // TODO: coroutine pipeline lowering
+            return lir.LELit(value:"0", c_type:lir.LVoid)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// escape_c_string — escape special chars for C string literals
+// ---------------------------------------------------------------------------
+
+fn escape_c_string(s:string):string {
+    let result:string:mut = ""
+    let i:int:mut = 0
+    let slen:int = string.len(s)
+    while(i < slen) {
+        match(string.char_at(s, i)) {
+            some(c): {
+                let ch:int = char.to_code(c)
+                if(ch == 10) { result = result + "\\n" }
+                else { if(ch == 13) { result = result + "\\r" }
+                else { if(ch == 9) { result = result + "\\t" }
+                else { if(ch == 34) { result = result + "\\\"" }
+                else { if(ch == 92) { result = result + "\\\\" }
+                else { result = result + char.to_string(c) }}}}}
+            }
+            none: {}
+        }
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// lower_none_lit — none literal with context-aware option type
+// ---------------------------------------------------------------------------
+
+fn lower_none_lit(st:LowerState:mut):lir.LExpr {
+    let opt_lt:lir.LType:mut = lir.LStruct(c_name:"FL_Option_ptr")
+    if(st.has_current_ret_type) {
+        match(st.current_ret_type) {
+            TCOption(inner): {
+                opt_lt = lower_option_type(st, inner)
+            }
+            _: {}
+        }
+    }
+    let fnames:array<string>:mut = []
+    fnames = array.push(fnames, "tag")
+    let fvals:array<lir.LExprBox>:mut = []
+    fvals = array.push(fvals, lir.le_box(lir.LELit(value:"0", c_type:lir.LByte)))
+    return lir.LECompound(field_names:fnames, field_values:fvals, c_type:opt_lt)
+}
+
+// ---------------------------------------------------------------------------
+// lower_ident — variable/function reference
+// ---------------------------------------------------------------------------
+
+fn lower_ident(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EIdent(id, line, col, name, module_path): {
+            // Check let_var_ltypes first for concrete type
+            let tracked:lir.LTypeBox? = map.get(st.let_var_ltypes, name)
+            match(tracked) {
+                some(tb): {
+                    let lt:lir.LType = lir.lt_unbox(tb)
+                    // Check if :mut param (needs deref)
+                    let is_mut:bool? = map.get(st.mut_param_names, name)
+                    match(is_mut) {
+                        some(v): {
+                            // Deref pointer to get value
+                            match(lt) {
+                                LPtr(inner): {
+                                    return lir.LEDeref(inner:lir.le_box(lir.LEVar(c_name:name, c_type:lt)), c_type:inner)
+                                }
+                                _: { return lir.LEVar(c_name:name, c_type:lt) }
+                            }
+                        }
+                        none: { return lir.LEVar(c_name:name, c_type:lt) }
+                    }
+                }
+                none: {}
+            }
+
+            // Fallback: use type_of
+            let t:typechecker.TCType = type_of(st, id)
+            let lt:lir.LType = lower_type(st, t)
+            return lir.LEVar(c_name:name, c_type:lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_binop
+// ---------------------------------------------------------------------------
+
+fn lower_binop(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EBinOp(id, line, col, op, left, right): {
+            let ll:lir.LExpr = lower_expr(st, left)
+            let lr:lir.LExpr = lower_expr(st, right)
+            let left_type:typechecker.TCType = type_of(st, ast.expr_id(left))
+
+            // String concatenation
+            if(op == "+") {
+                match(left_type) {
+                    TCString: {
+                        return lir.LECall(fn_name:"fl_string_concat", args:[lir.le_box(ll), lir.le_box(lr)], c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_String")))
+                    }
+                    _: {}
+                }
+            }
+
+            // String equality
+            if(op == "==" || op == "!=") {
+                match(left_type) {
+                    TCString: {
+                        let eq_call:lir.LExpr = lir.LECall(fn_name:"fl_string_eq", args:[lir.le_box(ll), lir.le_box(lr)], c_type:lir.LBool)
+                        if(op == "!=") {
+                            return lir.LEUnary(op:"!", operand:lir.le_box(eq_call), c_type:lir.LBool)
+                        }
+                        return eq_call
+                    }
+                    _: {}
+                }
+            }
+
+            // Checked arithmetic for integers
+            if(op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+                match(left_type) {
+                    TCInt(w, s): {
+                        let result_lt:lir.LType = lir.LInt(width:w, is_signed:s)
+                        return lir.LECheckedArith(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:result_lt)
+                    }
+                    TCFloat(w): {
+                        if(op == "%") {
+                            return lir.LECheckedArith(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LFloat(width:w))
+                        }
+                        return lir.LEBinOp(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LFloat(width:w))
+                    }
+                    _: {}
+                }
+            }
+
+            // Comparison operators
+            if(op == "<" || op == ">" || op == "<=" || op == ">=") {
+                return lir.LEBinOp(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LBool)
+            }
+
+            // Equality
+            if(op == "==" || op == "!=") {
+                return lir.LEBinOp(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LBool)
+            }
+
+            // Logical
+            if(op == "&&" || op == "||") {
+                return lir.LEBinOp(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LBool)
+            }
+
+            // Default
+            let result_lt:lir.LType = lower_type(st, type_of(st, id))
+            return lir.LEBinOp(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_call — function call
+// ---------------------------------------------------------------------------
+
+fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        ECall(id, line, col, callee, args): {
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+
+            // Lower arguments
+            let largs:array<lir.LExprBox>:mut = []
+            for(arg:ast.Expr in args) {
+                match(arg) {
+                    ENamedArg(nid, nl, nc, nname, nval): {
+                        largs = array.push(largs, lir.le_box(lower_expr(st, nval)))
+                    }
+                    _: {
+                        largs = array.push(largs, lir.le_box(lower_expr(st, arg)))
+                    }
+                }
+            }
+
+            // Determine callee name
+            match(callee) {
+                EIdent(cid, cline, ccol, cname, cmod): {
+                    // Check if it's a known function
+                    let sym_key:string = "s_" + conv.to_string(cid)
+                    let sym:resolver.Symbol? = map.get(st.resolved.symbols, sym_key)
+                    match(sym) {
+                        some(s): {
+                            if(s.kind == resolver.SymbolKind.SK_CONSTRUCTOR) {
+                                // Variant or struct constructor
+                                return lower_constructor_call(st, e, s, largs, result_lt)
+                            }
+                            if(s.kind == resolver.SymbolKind.SK_TYPE) {
+                                // Positional struct construction
+                                return lower_positional_ctor(st, e, s, largs, result_lt)
+                            }
+                        }
+                        none: {}
+                    }
+
+                    // Module-qualified call
+                    if(array.size(cmod) > 0) {
+                        let mod_p:string = join_path(cmod)
+                        let resolved_mod:string = resolve_ns_to_module_path(st, mod_p)
+                        let fn_c_name:string = mangler.mangle(resolved_mod, "", cname)
+                        return lir.LECall(fn_name:fn_c_name, args:largs, c_type:result_lt)
+                    }
+
+                    // Local function call
+                    let fn_c_name:string = mangler.mangle(st.module_path, "", cname)
+                    return lir.LECall(fn_name:fn_c_name, args:largs, c_type:result_lt)
+                }
+                _: {
+                    // Indirect call (closure or function pointer)
+                    let callee_expr:lir.LExpr = lower_expr(st, callee)
+                    return lir.LECall(fn_name:"_indirect", args:largs, c_type:result_lt)
+                }
+            }
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_constructor_call — variant or struct constructor via call syntax
+// ---------------------------------------------------------------------------
+
+fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, largs:array<lir.LExprBox>, result_lt:lir.LType):lir.LExpr {
+    // For now, return a compound literal
+    let fnames:array<string>:mut = []
+    let fvals:array<lir.LExprBox>:mut = largs
+    // TODO: proper variant tag + field assignment
+    return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
+}
+
+// ---------------------------------------------------------------------------
+// lower_positional_ctor — struct construction via positional args
+// ---------------------------------------------------------------------------
+
+fn lower_positional_ctor(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, largs:array<lir.LExprBox>, result_lt:lir.LType):lir.LExpr {
+    return lir.LECompound(field_names:[], field_values:largs, c_type:result_lt)
+}
+
+// ---------------------------------------------------------------------------
+// lower_method_call
+// ---------------------------------------------------------------------------
+
+fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EMethodCall(id, line, col, receiver, method_name, args): {
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+            let recv_type:typechecker.TCType = type_of(st, ast.expr_id(receiver))
+
+            let lrecv:lir.LExpr = lower_expr(st, receiver)
+            let largs:array<lir.LExprBox>:mut = [lir.le_box(lrecv)]
+            for(arg:ast.Expr in args) {
+                match(arg) {
+                    ENamedArg(nid, nl, nc, nname, nval): {
+                        largs = array.push(largs, lir.le_box(lower_expr(st, nval)))
+                    }
+                    _: {
+                        largs = array.push(largs, lir.le_box(lower_expr(st, arg)))
+                    }
+                }
+            }
+
+            // Check for namespace function call (receiver is module name)
+            match(receiver) {
+                EIdent(rid, rline, rcol, rname, rmod): {
+                    let sym_key:string = "s_" + conv.to_string(rid)
+                    let sym:resolver.Symbol? = map.get(st.resolved.symbols, sym_key)
+                    match(sym) {
+                        some(s): {
+                            if(s.kind == resolver.SymbolKind.SK_IMPORT) {
+                                // Namespace function call: module.fn()
+                                let resolved_mod:string = resolve_ns_to_module_path(st, rname)
+                                let fn_c_name:string = mangler.mangle(resolved_mod, "", method_name)
+                                // Args without receiver
+                                let fn_args:array<lir.LExprBox>:mut = []
+                                for(arg:ast.Expr in args) {
+                                    match(arg) {
+                                        ENamedArg(nid, nl, nc, nname, nval): {
+                                            fn_args = array.push(fn_args, lir.le_box(lower_expr(st, nval)))
+                                        }
+                                        _: {
+                                            fn_args = array.push(fn_args, lir.le_box(lower_expr(st, arg)))
+                                        }
+                                    }
+                                }
+                                return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
+                            }
+                            if(s.kind == resolver.SymbolKind.SK_TYPE) {
+                                // Static method call: Type.method()
+                                let fn_c_name:string = mangler.mangle(st.module_path, rname, method_name)
+                                let fn_args:array<lir.LExprBox>:mut = []
+                                for(arg:ast.Expr in args) {
+                                    match(arg) {
+                                        ENamedArg(nid, nl, nc, nname, nval): {
+                                            fn_args = array.push(fn_args, lir.le_box(lower_expr(st, nval)))
+                                        }
+                                        _: {
+                                            fn_args = array.push(fn_args, lir.le_box(lower_expr(st, arg)))
+                                        }
+                                    }
+                                }
+                                return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
+                            }
+                        }
+                        none: {}
+                    }
+                }
+                _: {}
+            }
+
+            // User-defined type method: pass &self as first arg
+            match(recv_type) {
+                TCNamed(mod_p, tname, targs): {
+                    let resolved_mod:string:mut = mod_p
+                    if(resolved_mod == "") { resolved_mod = st.module_path }
+                    let fn_c_name:string = mangler.mangle(resolved_mod, tname, method_name)
+                    let self_arg:lir.LExpr = lir.LEAddrOf(inner:lir.le_box(lrecv), c_type:lir.LPtr(inner:lir.lexpr_type(lrecv)))
+                    let method_args:array<lir.LExprBox>:mut = [lir.le_box(self_arg)]
+                    for(arg:ast.Expr in args) {
+                        match(arg) {
+                            ENamedArg(nid, nl, nc, nname, nval): {
+                                method_args = array.push(method_args, lir.le_box(lower_expr(st, nval)))
+                            }
+                            _: {
+                                method_args = array.push(method_args, lir.le_box(lower_expr(st, arg)))
+                            }
+                        }
+                    }
+                    return lir.LECall(fn_name:fn_c_name, args:method_args, c_type:result_lt)
+                }
+                _: {}
+            }
+
+            // Builtin runtime function: fl_<type>_<method>
+            let fn_name:string:mut = "fl_" + type_name_str(st, recv_type) + "_" + method_name
+            return lir.LECall(fn_name:fn_name, args:largs, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_field_access
+// ---------------------------------------------------------------------------
+
+fn lower_field_access(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EFieldAccess(id, line, col, receiver, field_name): {
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+
+            // Check for static member access
+            let sym_key:string = "s_" + conv.to_string(id)
+            let sym:resolver.Symbol? = map.get(st.resolved.symbols, sym_key)
+            match(sym) {
+                some(s): {
+                    if(s.kind == resolver.SymbolKind.SK_STATIC) {
+                        // Static field: mangled global variable name
+                        match(receiver) {
+                            EIdent(rid, rline, rcol, rname, rmod): {
+                                let static_c_name:string = mangler.mangle(st.module_path, rname, field_name)
+                                return lir.LEVar(c_name:static_c_name, c_type:result_lt)
+                            }
+                            _: {}
+                        }
+                    }
+                }
+                none: {}
+            }
+
+            let lrecv:lir.LExpr = lower_expr(st, receiver)
+            let recv_lt:lir.LType = lir.lexpr_type(lrecv)
+
+            // Pointer types use arrow access
+            match(recv_lt) {
+                LPtr(inner): {
+                    return lir.LEArrow(ptr_expr:lir.le_box(lrecv), field:field_name, c_type:result_lt)
+                }
+                _: {
+                    return lir.LEFieldAccess(obj:lir.le_box(lrecv), field:field_name, c_type:result_lt)
+                }
+            }
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_index_access
+// ---------------------------------------------------------------------------
+
+fn lower_index_access(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EIndexAccess(id, line, col, receiver, index): {
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+            let recv_type:typechecker.TCType = type_of(st, ast.expr_id(receiver))
+
+            let lrecv:lir.LExpr = lower_expr(st, receiver)
+            let lidx:lir.LExpr = lower_expr(st, index)
+
+            match(recv_type) {
+                TCArray(elem): {
+                    // fl_array_get_safe(arr, idx)
+                    return lir.LECall(fn_name:"fl_array_get_safe", args:[lir.le_box(lrecv), lir.le_box(lidx)], c_type:result_lt)
+                }
+                TCMap(k, v): {
+                    return lir.LECall(fn_name:"fl_map_get", args:[lir.le_box(lrecv), lir.le_box(lidx)], c_type:result_lt)
+                }
+                _: {
+                    return lir.LEIndex(arr_expr:lir.le_box(lrecv), idx:lir.le_box(lidx), c_type:result_lt)
+                }
+            }
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_tuple_expr
+// ---------------------------------------------------------------------------
+
+fn lower_tuple_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        ETupleExpr(id, line, col, elements): {
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+            let fnames:array<string>:mut = []
+            let fvals:array<lir.LExprBox>:mut = []
+            let i:int:mut = 0
+            for(elem:ast.Expr in elements) {
+                fnames = array.push(fnames, "_" + conv.to_string(i))
+                fvals = array.push(fvals, lir.le_box(lower_expr(st, elem)))
+                i = i + 1
+            }
+            return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_array_lit
+// ---------------------------------------------------------------------------
+
+fn lower_array_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EArrayLit(id, line, col, elements): {
+            let arr_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Array"))
+            if(array.size(elements) == 0) {
+                return lir.LECall(fn_name:"fl_array_new", args:[lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid)))], c_type:arr_lt)
+            }
+            // Non-empty: use push pattern
+            let tmp:string = fresh_temp(st)
+            let new_call:lir.LExpr = lir.LECall(fn_name:"fl_array_new", args:[lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid)))], c_type:arr_lt)
+            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:arr_lt, has_init:true, init:new_call, source_line:line)})
+            for(elem:ast.Expr in elements) {
+                let le:lir.LExpr = lower_expr(st, elem)
+                let push_call:lir.LExpr = lir.LECall(fn_name:"fl_array_push_ptr", args:[lir.le_box(lir.LEVar(c_name:tmp, c_type:arr_lt)), lir.le_box(lir.LECast(inner:lir.le_box(le), c_type:lir.LPtr(inner:lir.LVoid)))], c_type:arr_lt)
+                st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSAssign(target:lir.LEVar(c_name:tmp, c_type:arr_lt), value:push_call, source_line:line)})
+            }
+            return lir.LEVar(c_name:tmp, c_type:arr_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_type_lit — struct construction with named fields
+// ---------------------------------------------------------------------------
+
+fn lower_type_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        ETypeLit(id, line, col, type_name, type_fields, has_spread, spread): {
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+            let fnames:array<string>:mut = []
+            let fvals:array<lir.LExprBox>:mut = []
+            for(f:ast.ExprField in type_fields) {
+                fnames = array.push(fnames, f.name)
+                fvals = array.push(fvals, lir.le_box(lower_expr(st, f.value)))
+            }
+            return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_record_lit
+// ---------------------------------------------------------------------------
+
+fn lower_record_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        ERecordLit(id, line, col, rec_fields): {
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+            let fnames:array<string>:mut = []
+            let fvals:array<lir.LExprBox>:mut = []
+            for(f:ast.ExprField in rec_fields) {
+                fnames = array.push(fnames, f.name)
+                fvals = array.push(fvals, lir.le_box(lower_expr(st, f.value)))
+            }
+            return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_if_expr
+// ---------------------------------------------------------------------------
+
+fn lower_if_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EIfExpr(id, line, col, cond, then_stmts, else_stmts): {
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+            let tmp:string = fresh_temp(st)
+
+            let lcond:lir.LExpr = lower_expr(st, cond)
+            let then_block:array<lir.LStmtBox> = lower_block(st, then_stmts)
+            let else_block:array<lir.LStmtBox> = lower_block(st, else_stmts)
+
+            // Assign result from last statement of each branch
+            let then_final:array<lir.LStmtBox> = inject_assign_to_temp(then_block, tmp, result_lt)
+            let else_final:array<lir.LStmtBox> = inject_assign_to_temp(else_block, tmp, result_lt)
+
+            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:result_lt, has_init:false, init:lir.placeholder_expr(), source_line:line)})
+            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSIf(cond:lcond, then_body:then_final, else_body:else_final, source_line:line)})
+
+            return lir.LEVar(c_name:tmp, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+fn inject_assign_to_temp(stmts:array<lir.LStmtBox>, tmp:string, lt:lir.LType):array<lir.LStmtBox> {
+    if(array.size(stmts) == 0) { return stmts }
+    let last_idx:int = array.size(stmts) - 1
+    let last:lir.LStmtBox = array.get_any(stmts, last_idx) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+    match(last.ls) {
+        LSExprStmt(expr, sline): {
+            let assign:lir.LStmt = lir.LSAssign(target:lir.LEVar(c_name:tmp, c_type:lt), value:expr, source_line:sline)
+            return array.put(stmts, last_idx, lir.LStmtBox{ls:assign})
+        }
+        _: { return stmts }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_match_expr — stub
+// ---------------------------------------------------------------------------
+
+fn lower_match_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EMatchExpr(id, line, col, subject, arms): {
+            // Lower as statement match into temp variable
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+            let tmp:string = fresh_temp(st)
+
+            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:result_lt, has_init:false, init:lir.placeholder_expr(), source_line:line)})
+
+            // Build match statement and assign results
+            let match_stmt:ast.Stmt = ast.SMatch(id:id, line:line, col:col, subject:subject, arms:arms)
+            let match_stmts:array<lir.LStmtBox> = lower_match_stmt(st, match_stmt)
+            let mi:int:mut = 0
+            while(mi < array.size(match_stmts)) {
+                st.pending_stmts = array.push(st.pending_stmts, array.get_any(match_stmts, mi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                mi = mi + 1
+            }
+
+            return lir.LEVar(c_name:tmp, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_some — some(value) wrapper
+// ---------------------------------------------------------------------------
+
+fn lower_some(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        ESome(id, line, col, inner): {
+            let val:lir.LExpr = lower_expr(st, inner)
+            let result_type:typechecker.TCType = type_of(st, id)
+            let result_lt:lir.LType = lower_type(st, result_type)
+            let fnames:array<string>:mut = []
+            fnames = array.push(fnames, "tag")
+            fnames = array.push(fnames, "value")
+            let fvals:array<lir.LExprBox>:mut = []
+            fvals = array.push(fvals, lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)))
+            fvals = array.push(fvals, lir.le_box(val))
+            return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_ok_expr / lower_err_expr
+// ---------------------------------------------------------------------------
+
+fn lower_ok_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EOk(id, line, col, inner): {
+            let val:lir.LExpr = lower_expr(st, inner)
+            let result_lt:lir.LType:mut = lower_type(st, type_of(st, id))
+            if(st.has_current_ret_type) {
+                match(st.current_ret_type) {
+                    TCResult(ok_t, err_t): {
+                        result_lt = lower_result_type(st, ok_t, err_t)
+                    }
+                    _: {}
+                }
+            }
+            let fnames:array<string>:mut = []
+            fnames = array.push(fnames, "tag")
+            fnames = array.push(fnames, "ok_val")
+            let fvals:array<lir.LExprBox>:mut = []
+            fvals = array.push(fvals, lir.le_box(lir.LELit(value:"0", c_type:lir.LByte)))
+            fvals = array.push(fvals, lir.le_box(val))
+            return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+fn lower_err_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EErr(id, line, col, inner): {
+            let val:lir.LExpr = lower_expr(st, inner)
+            let result_lt:lir.LType:mut = lower_type(st, type_of(st, id))
+            if(st.has_current_ret_type) {
+                match(st.current_ret_type) {
+                    TCResult(ok_t, err_t): {
+                        result_lt = lower_result_type(st, ok_t, err_t)
+                    }
+                    _: {}
+                }
+            }
+            let fnames:array<string>:mut = []
+            fnames = array.push(fnames, "tag")
+            fnames = array.push(fnames, "err_val")
+            let fvals:array<lir.LExprBox>:mut = []
+            fvals = array.push(fvals, lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)))
+            fvals = array.push(fvals, lir.le_box(val))
+            return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_propagate — ? operator
+// ---------------------------------------------------------------------------
+
+fn lower_propagate(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EPropagate(id, line, col, inner): {
+            let inner_expr:lir.LExpr = lower_expr(st, inner)
+            let inner_type:typechecker.TCType = type_of(st, ast.expr_id(inner))
+
+            match(inner_type) {
+                TCOption(elem_t): {
+                    let tmp:string = fresh_temp(st)
+                    let inner_lt:lir.LType = lower_type(st, inner_type)
+                    let elem_lt:lir.LType = lower_type(st, elem_t)
+                    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:inner_lt, has_init:true, init:inner_expr, source_line:line)})
+
+                    // if(tmp.tag == 0) return none
+                    let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:inner_lt)), field:"tag", c_type:lir.LByte)), right:lir.le_box(lir.LELit(value:"0", c_type:lir.LByte)), c_type:lir.LBool)
+                    let none_return:lir.LExpr = lower_none_lit(st)
+                    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSIf(cond:tag_check, then_body:[lir.LStmtBox{ls:lir.LSReturn(has_value:true, value:none_return, source_line:line)}], else_body:[], source_line:line)})
+
+                    return lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:inner_lt)), field:"value", c_type:elem_lt)
+                }
+                TCResult(ok_t, err_t): {
+                    let tmp:string = fresh_temp(st)
+                    let inner_lt:lir.LType = lower_type(st, inner_type)
+                    let ok_lt:lir.LType = lower_type(st, ok_t)
+                    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:inner_lt, has_init:true, init:inner_expr, source_line:line)})
+
+                    // if(tmp.tag == 1) return tmp (propagate error)
+                    let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:inner_lt)), field:"tag", c_type:lir.LByte)), right:lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)), c_type:lir.LBool)
+                    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSIf(cond:tag_check, then_body:[lir.LStmtBox{ls:lir.LSReturn(has_value:true, value:lir.LEVar(c_name:tmp, c_type:inner_lt), source_line:line)}], else_body:[], source_line:line)})
+
+                    return lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:inner_lt)), field:"ok_val", c_type:ok_lt)
+                }
+                _: { return inner_expr }
+            }
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_null_coalesce — ?? operator
+// ---------------------------------------------------------------------------
+
+fn lower_null_coalesce(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        ENullCoalesce(id, line, col, left, right): {
+            let ll:lir.LExpr = lower_expr(st, left)
+            let lr:lir.LExpr = lower_expr(st, right)
+            let left_type:typechecker.TCType = type_of(st, ast.expr_id(left))
+
+            match(left_type) {
+                TCOption(inner_t): {
+                    let inner_lt:lir.LType = lower_type(st, inner_t)
+                    let left_lt:lir.LType = lower_type(st, left_type)
+                    let tmp:string = fresh_temp(st)
+                    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:left_lt, has_init:true, init:ll, source_line:line)})
+
+                    let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:left_lt)), field:"tag", c_type:lir.LByte)), right:lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)), c_type:lir.LBool)
+                    let some_val:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:left_lt)), field:"value", c_type:inner_lt)
+                    return lir.LETernary(cond:lir.le_box(tag_check), then_expr:lir.le_box(some_val), else_expr:lir.le_box(lr), c_type:inner_lt)
+                }
+                _: { return ll }
+            }
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_fstring
+// ---------------------------------------------------------------------------
+
+fn lower_fstring(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        EFString(id, line, col, parts): {
+            let str_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_String"))
+            let result:lir.LExpr:mut = lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:str_lt)
+
+            for(part:ast.FStringPart in parts) {
+                match(part) {
+                    FPText(text): {
+                        let escaped:string = escape_c_string(text)
+                        let text_expr:lir.LExpr = lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"" + escaped + "\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:str_lt)
+                        result = lir.LECall(fn_name:"fl_string_concat", args:[lir.le_box(result), lir.le_box(text_expr)], c_type:str_lt)
+                    }
+                    FPExpr(expr): {
+                        let le:lir.LExpr = lower_expr(st, expr)
+                        let expr_type:typechecker.TCType = type_of(st, ast.expr_id(expr))
+                        let str_expr:lir.LExpr = to_string_expr(st, le, expr_type)
+                        result = lir.LECall(fn_name:"fl_string_concat", args:[lir.le_box(result), lir.le_box(str_expr)], c_type:str_lt)
+                    }
+                }
+            }
+            return result
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}
+
+fn to_string_expr(st:LowerState:mut, e:lir.LExpr, t:typechecker.TCType):lir.LExpr {
+    let str_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_String"))
+    match(t) {
+        TCString: { return e }
+        TCInt(w, s): {
+            if(w == 64) {
+                return lir.LECall(fn_name:"fl_int64_to_string", args:[lir.le_box(e)], c_type:str_lt)
+            }
+            return lir.LECall(fn_name:"fl_int_to_string", args:[lir.le_box(e)], c_type:str_lt)
+        }
+        TCFloat(w): {
+            return lir.LECall(fn_name:"fl_float_to_string", args:[lir.le_box(e)], c_type:str_lt)
+        }
+        TCBool: {
+            return lir.LECall(fn_name:"fl_bool_to_string", args:[lir.le_box(e)], c_type:str_lt)
+        }
+        TCChar: {
+            return lir.LECall(fn_name:"fl_char_to_string", args:[lir.le_box(e)], c_type:str_lt)
+        }
+        _: {
+            // Fallback: cast to int and convert
+            return lir.LECall(fn_name:"fl_int_to_string", args:[lir.le_box(lir.LECast(inner:lir.le_box(e), c_type:lir.LInt(width:32, is_signed:true)))], c_type:str_lt)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_lambda — closure lowering (simplified)
+// ---------------------------------------------------------------------------
+
+fn lower_lambda(st:LowerState:mut, e:ast.Expr):lir.LExpr {
+    match(e) {
+        ELambda(id, line, col, params, lambda_body): {
+            let lambda_id:int = st.lambda_counter
+            st.lambda_counter = lambda_id + 1
+
+            let impl_name:string = mangler.mangle_closure_fn(st.module_path, st.current_fn_name, lambda_id)
+
+            // Determine return type from body expression
+            let ret_type:typechecker.TCType = type_of(st, ast.expr_id(lambda_body))
+            let ret_lt:lir.LType = lower_type(st, ret_type)
+
+            // Build impl function params: void* _env, then lambda params
+            let impl_params:array<lir.LParam>:mut = []
+            impl_params = array.push(impl_params, lir.LParam{name:"_env", param_type:lir.LPtr(inner:lir.LVoid)})
+            for(p:ast.Param in params) {
+                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                let p_lt:lir.LType = lower_type(st, p_type)
+                impl_params = array.push(impl_params, lir.LParam{name:p.name, param_type:p_lt})
+            }
+
+            // Lower body
+            let body_expr:lir.LExpr = lower_expr(st, lambda_body)
+            let impl_body:array<lir.LStmtBox>:mut = []
+            // Flush pending stmts into body
+            let pi:int:mut = 0
+            while(pi < array.size(st.pending_stmts)) {
+                impl_body = array.push(impl_body, array.get_any(st.pending_stmts, pi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                pi = pi + 1
+            }
+            st.pending_stmts = []
+            impl_body = array.push(impl_body, lir.LStmtBox{ls:lir.LSReturn(has_value:true, value:body_expr, source_line:line)})
+
+            st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
+                c_name:impl_name,
+                params:impl_params,
+                ret:ret_lt,
+                body:impl_body,
+                is_pure:false,
+                source_name:st.module_path + "." + st.current_fn_name + ".<lambda>",
+                source_line:line
+            })
+
+            // Allocate closure: fl_closure_new(fn, env)
+            let closure_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Closure"))
+            let fn_ptr:lir.LExpr = lir.LECast(inner:lir.le_box(lir.LEVar(c_name:impl_name, c_type:lir.LPtr(inner:lir.LVoid))), c_type:lir.LPtr(inner:lir.LVoid))
+            let null_env:lir.LExpr = lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid))
+            return lir.LECall(fn_name:"fl_closure_new", args:[lir.le_box(fn_ptr), lir.le_box(null_env)], c_type:closure_lt)
+        }
+        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+    }
+}

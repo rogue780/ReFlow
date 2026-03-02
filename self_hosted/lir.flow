@@ -1,0 +1,281 @@
+module self_hosted.lir
+
+// LIR (Lower-level IR) node definitions for the self-hosted compiler.
+// Port of the LType/LExpr/LStmt/top-level nodes from compiler/lowering.py.
+
+import array
+import conv
+import string
+
+// ---------------------------------------------------------------------------
+// LType — lowered type hierarchy
+// ---------------------------------------------------------------------------
+
+export type LType =
+    | LInt(width:int, is_signed:bool)
+    | LFloat(width:int)
+    | LBool
+    | LChar
+    | LByte
+    | LPtr(inner:LType)
+    | LStruct(c_name:string)
+    | LVoid
+    | LFnPtr(params:array<LTypeBox>, ret:LType)
+
+// Box wrapper so LType (sum type) can be stored in arrays/maps
+export type LTypeBox {
+    lt:LType
+}
+
+export fn lt_box(t:LType):LTypeBox {
+    return LTypeBox{lt:t}
+}
+
+export fn lt_unbox(b:LTypeBox):LType {
+    return b.lt
+}
+
+// ---------------------------------------------------------------------------
+// LExpr — lowered expression hierarchy
+// ---------------------------------------------------------------------------
+
+export type LExpr =
+    | LELit(value:string, c_type:LType)
+    | LEVar(c_name:string, c_type:LType)
+    | LECall(fn_name:string, args:array<LExprBox>, c_type:LType)
+    | LEIndirectCall(fn_ptr:LExprBox, args:array<LExprBox>, c_type:LType)
+    | LEBinOp(op:string, left:LExprBox, right:LExprBox, c_type:LType)
+    | LEUnary(op:string, operand:LExprBox, c_type:LType)
+    | LEFieldAccess(obj:LExprBox, field:string, c_type:LType)
+    | LEArrow(ptr_expr:LExprBox, field:string, c_type:LType)
+    | LEIndex(arr_expr:LExprBox, idx:LExprBox, c_type:LType)
+    | LECast(inner:LExprBox, c_type:LType)
+    | LEAddrOf(inner:LExprBox, c_type:LType)
+    | LEDeref(inner:LExprBox, c_type:LType)
+    | LECompound(field_names:array<string>, field_values:array<LExprBox>, c_type:LType)
+    | LECheckedArith(op:string, left:LExprBox, right:LExprBox, c_type:LType)
+    | LESizeOf(target_type:LType)
+    | LEArrayData(elements:array<LExprBox>, elem_type:LType, c_type:LType)
+    | LETernary(cond:LExprBox, then_expr:LExprBox, else_expr:LExprBox, c_type:LType)
+    | LEOptDerefAs(inner:LExprBox, val_type:LType, c_type:LType)
+
+// Box wrapper so LExpr (sum type) can be stored in arrays
+export type LExprBox {
+    le:LExpr
+}
+
+export fn le_box(e:LExpr):LExprBox {
+    return LExprBox{le:e}
+}
+
+export fn le_unbox(b:LExprBox):LExpr {
+    return b.le
+}
+
+// ---------------------------------------------------------------------------
+// LStmt — lowered statement hierarchy
+// ---------------------------------------------------------------------------
+
+export type LStmt =
+    | LSVarDecl(c_name:string, c_type:LType, has_init:bool, init:LExpr, source_line:int)
+    | LSArrayDecl(c_name:string, elem_type:LType, count:int, source_line:int)
+    | LSAssign(target:LExpr, value:LExpr, source_line:int)
+    | LSReturn(has_value:bool, value:LExpr, source_line:int)
+    | LSIf(cond:LExpr, then_body:array<LStmtBox>, else_body:array<LStmtBox>, source_line:int)
+    | LSWhile(cond:LExpr, body:array<LStmtBox>, source_line:int)
+    | LSBlock(stmts:array<LStmtBox>, source_line:int)
+    | LSExprStmt(expr:LExpr, source_line:int)
+    | LSGoto(label:string, source_line:int)
+    | LSLabel(name:string, source_line:int)
+    | LSSwitch(value:LExpr, case_tags:array<int>, case_bodies:array<LStmtListBox>, default_body:array<LStmtBox>, source_line:int)
+    | LSBreak(source_line:int)
+    | LSContinue(source_line:int)
+
+// Box wrapper so LStmt (sum type) can be stored in arrays
+export type LStmtBox {
+    ls:LStmt
+}
+
+export fn ls_box(s:LStmt):LStmtBox {
+    return LStmtBox{ls:s}
+}
+
+export fn ls_unbox(b:LStmtBox):LStmt {
+    return b.ls
+}
+
+// For switch case bodies — array of array<LStmtBox>
+export type LStmtListBox {
+    stmts:array<LStmtBox>
+}
+
+// ---------------------------------------------------------------------------
+// LField — named field for type definitions
+// ---------------------------------------------------------------------------
+
+export type LField {
+    name:string
+    field_type:LType
+}
+
+// ---------------------------------------------------------------------------
+// LParam — named parameter for function definitions
+// ---------------------------------------------------------------------------
+
+export type LParam {
+    name:string
+    param_type:LType
+}
+
+// ---------------------------------------------------------------------------
+// Top-level LIR nodes
+// ---------------------------------------------------------------------------
+
+export type LTypeDef {
+    c_name:string
+    fields:array<LField>
+}
+
+export type LFnDef {
+    c_name:string
+    params:array<LParam>
+    ret:LType
+    body:array<LStmtBox>
+    is_pure:bool
+    source_name:string
+    source_line:int
+}
+
+export type LStaticDef {
+    c_name:string
+    c_type:LType
+    has_init:bool
+    init:LExpr
+    is_mut:bool
+}
+
+export type LEnumDef {
+    c_name:string
+    variant_names:array<string>
+    variant_values:array<int>
+}
+
+export type LExternFnProto {
+    c_name:string
+    param_types:array<LTypeBox>
+    ret:LType
+}
+
+export type LModule {
+    type_defs:array<LTypeDef>
+    fn_defs:array<LFnDef>
+    static_defs:array<LStaticDef>
+    enum_defs:array<LEnumDef>
+    extern_fn_protos:array<LExternFnProto>
+    has_entry_point:bool
+    entry_point:string
+}
+
+// ---------------------------------------------------------------------------
+// MonoSite — monomorphization request
+// ---------------------------------------------------------------------------
+
+export type MonoSite {
+    fn_decl_id:int
+    type_env_keys:array<string>
+    type_env_vals:array<string>
+    mangled_name:string
+    src_module:string
+}
+
+// ---------------------------------------------------------------------------
+// BuiltinMethodOp — builtin method dispatch info
+// ---------------------------------------------------------------------------
+
+export type BuiltinMethodOp {
+    kind:string
+    op:string
+}
+
+// ---------------------------------------------------------------------------
+// Helper: get the c_type from an LExpr
+// ---------------------------------------------------------------------------
+
+export fn lexpr_type(e:LExpr):LType {
+    match(e) {
+        LELit(v, ct): { return ct }
+        LEVar(n, ct): { return ct }
+        LECall(n, a, ct): { return ct }
+        LEIndirectCall(fp, a, ct): { return ct }
+        LEBinOp(o, l, r, ct): { return ct }
+        LEUnary(o, op, ct): { return ct }
+        LEFieldAccess(obj, f, ct): { return ct }
+        LEArrow(p, f, ct): { return ct }
+        LEIndex(a, i, ct): { return ct }
+        LECast(inner, ct): { return ct }
+        LEAddrOf(inner, ct): { return ct }
+        LEDeref(inner, ct): { return ct }
+        LECompound(fn_val, fv, ct): { return ct }
+        LECheckedArith(o, l, r, ct): { return ct }
+        LESizeOf(tt): { return LInt(width:64, is_signed:false) }
+        LEArrayData(elems, et, ct): { return ct }
+        LETernary(c, t, el, ct): { return ct }
+        LEOptDerefAs(inner, vt, ct): { return ct }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Helper: _ltype_c_name — short C-friendly name for an LType
+// Used in option/result/tuple registry keys.
+// ---------------------------------------------------------------------------
+
+fn ltype_ptr_name(inner:LType):string {
+    match(inner) {
+        LStruct(sname): {
+            return sname + "_ptr"
+        }
+        _: { return "ptr" }
+    }
+}
+
+export fn ltype_c_name(lt:LType):string {
+    match(lt) {
+        LInt(w, s): {
+            let prefix:string:mut = "fl_int"
+            if(s == false) {
+                prefix = "fl_uint"
+            }
+            if(w == 32) {
+                return prefix
+            }
+            return prefix + conv.to_string(w)
+        }
+        LFloat(w): {
+            if(w == 64) {
+                return "fl_float"
+            }
+            return "fl_float" + conv.to_string(w)
+        }
+        LBool: { return "fl_bool" }
+        LChar: { return "fl_char" }
+        LByte: { return "fl_byte" }
+        LVoid: { return "void" }
+        LPtr(inner): {
+            return ltype_ptr_name(inner)
+        }
+        LStruct(sname): { return sname }
+        LFnPtr(p, r): { return "fnptr" }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Placeholder expressions/statements for has_X:bool pattern
+// ---------------------------------------------------------------------------
+
+export fn placeholder_expr():LExpr {
+    return LELit(value:"0", c_type:LVoid)
+}
+
+export fn placeholder_stmt():LStmt {
+    return LSBreak(source_line:0)
+}
