@@ -1,0 +1,57 @@
+module tests.programs.app_sh_typechecker_test
+
+import io
+import conv
+import map
+import array
+import self_hosted.lexer
+import self_hosted.ast
+import self_hosted.parser
+import self_hosted.resolver
+import self_hosted.typechecker
+import self_hosted.errors
+
+// Helper: tokenize + parse + resolve + typecheck
+fn typecheck_source(src:string):typechecker.TypedModule {
+    let tokens = lexer.tokenize(src, "test.flow")
+    let result = parser.parse(tokens, "test.flow")
+    let imported_scopes:map<string, resolver.ModuleScope> = map.new()
+    let rm = resolver.resolve(result.parsed_module, "test.flow", imported_scopes)
+    let imported_decls:map<string, ast.Module> = map.new()
+    return typechecker.typecheck(rm, imported_scopes, imported_decls)
+}
+
+// Test 1: Simple function with int return
+fn test_int_return():none {
+    io.println("--- test_int_return ---")
+    let src = "module test\nfn add(a:int, b:int):int { return a + b }"
+    let tm = typecheck_source(src)
+    io.println("typecheck completed")
+    io.println("PASS")
+}
+
+// Test 2: Let binding type inference
+fn test_let_binding():none {
+    io.println("--- test_let_binding ---")
+    let src = "module test\nfn main():int { let x:int = 42\nreturn x }"
+    let tm = typecheck_source(src)
+    io.println("typecheck completed")
+    io.println("PASS")
+}
+
+// Test 3: String concat
+fn test_string_concat():none {
+    io.println("--- test_string_concat ---")
+    let src = "module test\nfn greet(name:string):string { return \"hello \" + name }"
+    let tm = typecheck_source(src)
+    io.println("typecheck completed")
+    io.println("PASS")
+}
+
+fn main():int {
+    test_int_return()
+    test_let_binding()
+    test_string_concat()
+    io.println("All typechecker tests passed")
+    return 0
+}

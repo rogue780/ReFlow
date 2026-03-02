@@ -1,0 +1,10 @@
+--- test_int_return ---
+typecheck completed
+PASS
+--- test_let_binding ---
+typecheck completed
+PASS
+--- test_string_concat ---
+typecheck completed
+PASS
+All typechecker tests passed

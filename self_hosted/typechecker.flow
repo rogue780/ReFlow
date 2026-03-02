@@ -1,0 +1,2989 @@
+module self_hosted.typechecker
+
+// Self-hosted typechecker: infers and verifies types.
+// Port of compiler/typechecker.py.
+
+import conv
+import array
+import map
+import string
+import self_hosted.ast
+import self_hosted.errors
+import self_hosted.resolver
+
+// ---------------------------------------------------------------------------
+// TCSumVariant — one variant in a sum type
+// ---------------------------------------------------------------------------
+
+export type TCSumVariant {
+    name:string
+    has_fields:bool
+    field_types_box:array<TCTypeBox>
+}
+
+fn make_sum_variant(name:string):TCSumVariant {
+    return TCSumVariant{name:name, has_fields:false, field_types_box:[]}
+}
+
+fn make_sum_variant_with_fields(name:string, ftypes:array<TCTypeBox>):TCSumVariant {
+    return TCSumVariant{name:name, has_fields:true, field_types_box:ftypes}
+}
+
+// ---------------------------------------------------------------------------
+// TCType — type representation
+// ---------------------------------------------------------------------------
+
+export type TCType =
+    | TCInt(width:int, is_signed:bool)
+    | TCFloat(width:int)
+    | TCBool
+    | TCChar
+    | TCByte
+    | TCPtr
+    | TCString
+    | TCNone
+    | TCOption(inner:TCType)
+    | TCResult(ok_type:TCType, err_type:TCType)
+    | TCTuple(elements:array<TCTypeBox>)
+    | TCArray(elem:TCType)
+    | TCStream(elem:TCType)
+    | TCCoroutine(yield_type:TCType, send_type:TCType)
+    | TCBuffer(elem:TCType)
+    | TCMap(key:TCType, val:TCType)
+    | TCSet(elem:TCType)
+    | TCFn(params:array<TCTypeBox>, ret:TCType, is_pure:bool, is_variadic:bool)
+    | TCRecord(field_names:array<string>, field_types:array<TCTypeBox>)
+    | TCNamed(mod_path:string, name:string, type_args:array<TCTypeBox>)
+    | TCSumType(name:string, mod_path:string, variants:array<TCSumVariant>)
+    | TCEnum(name:string, mod_path:string, variant_names:array<string>, variant_values:array<int>)
+    | TCTypeVar(name:string)
+    | TCAny
+    | TCSelf
+    | TCAlias(name:string, underlying:TCType)
+
+// ---------------------------------------------------------------------------
+// TCTypeBox — wrapper so TCType can be stored in maps/arrays
+// (sum types are value types; records are heap pointers)
+// ---------------------------------------------------------------------------
+
+export type TCTypeBox {
+    tc:TCType
+}
+
+export fn tc_box(t:TCType):TCTypeBox {
+    return TCTypeBox{tc:t}
+}
+
+export fn tc_unbox(b:TCTypeBox):TCType {
+    return b.tc
+}
+
+// Convenience: get TCType from a map, defaulting to TCAny
+fn tc_map_get(m:map<string, TCTypeBox>, key:string):TCType {
+    let opt = map.get(m, key)
+    match opt {
+        some(b): { return b.tc }
+        none: { return TCAny() }
+    }
+}
+
+fn tc_map_has(m:map<string, TCTypeBox>, key:string):bool {
+    return map.has(m, key)
+}
+
+// tc_map_put inlined as: target = map.set(target, key, tc_box(val))
+
+// ---------------------------------------------------------------------------
+// TypeInfo — metadata about a user-defined type
+// ---------------------------------------------------------------------------
+
+export type TypeInfo:mut {
+    name:string
+    type_param_names:array<string>
+    field_names:array<string>
+    field_types:map<string, TCTypeBox>
+    field_muts:map<string, bool>
+    method_names:array<string>
+    method_types:map<string, TCTypeBox>
+    static_names:array<string>
+    static_types:map<string, TCTypeBox>
+    static_muts:map<string, bool>
+    ctor_names:array<string>
+    ctor_types:map<string, TCTypeBox>
+    is_sum_type:bool
+    has_sum_type:bool
+    sum_type_box:TCTypeBox
+    interface_exprs:array<ast.TypeExpr>
+    module_path:string
+    has_enum:bool
+    enum_type_box:TCTypeBox
+}
+
+fn empty_type_info(name:string):TypeInfo {
+    return TypeInfo{
+        name:name,
+        type_param_names:[],
+        field_names:[],
+        field_types:map.new(),
+        field_muts:map.new(),
+        method_names:[],
+        method_types:map.new(),
+        static_names:[],
+        static_types:map.new(),
+        static_muts:map.new(),
+        ctor_names:[],
+        ctor_types:map.new(),
+        is_sum_type:false,
+        has_sum_type:false,
+        sum_type_box:TCTypeBox{tc:TCAny()},
+        interface_exprs:[],
+        module_path:"",
+        has_enum:false,
+        enum_type_box:TCTypeBox{tc:TCAny()}
+    }
+}
+
+// ---------------------------------------------------------------------------
+// InterfaceInfo — metadata about an interface
+// ---------------------------------------------------------------------------
+
+export type InterfaceInfo:mut {
+    name:string
+    type_param_names:array<string>
+    method_names:array<string>
+    method_types:map<string, TCTypeBox>
+    has_ctor:bool
+    ctor_name:string
+    ctor_type_box:TCTypeBox
+}
+
+fn empty_iface_info(name:string):InterfaceInfo {
+    return InterfaceInfo{
+        name:name,
+        type_param_names:[],
+        method_names:[],
+        method_types:map.new(),
+        has_ctor:false,
+        ctor_name:"",
+        ctor_type_box:TCTypeBox{tc:TCAny()}
+    }
+}
+
+// ---------------------------------------------------------------------------
+// TypedModule — result of type checking
+// ---------------------------------------------------------------------------
+
+export type TypedModule {
+    src_module:ast.Module
+    resolved:resolver.ResolvedModule
+    node_types:map<string, TCTypeBox>
+    warnings:array<string>
+    capacity_node_ids:array<int>
+    capacity_expr_ids:array<int>
+}
+
+// ---------------------------------------------------------------------------
+// TCState — mutable checker state
+// ---------------------------------------------------------------------------
+
+type TCState:mut {
+    src_module:ast.Module:imut
+    filename:string:imut
+    resolved:resolver.ResolvedModule:imut
+    imported_modules:map<string, resolver.ModuleScope>:imut
+    imported_module_decls:map<string, ast.Module>:imut
+
+    // node id -> TCType associations
+    node_types:map<string, TCTypeBox>
+
+    // Type registry: name -> TypeInfo
+    type_registry:map<string, TypeInfo>
+
+    // Interface registry: name -> InterfaceInfo
+    iface_registry:map<string, InterfaceInfo>
+
+    // Scope: flat binding list with watermarks
+    scope_names:array<string>
+    scope_types:map<string, TCTypeBox>   // "s_<idx>" -> TCType
+    scope_count:int
+    scope_frames:array<int>
+
+    // Module scope watermark (scope_count after top-level types registered)
+    mod_scope_watermark:int
+
+    // Current function context
+    has_return_type:bool
+    current_return_type:TCType
+    in_pure_fn:bool
+    current_fn_id:int
+    current_fn_type_param_names:array<string>
+    current_fn_type_param_bounds:array<array<ast.TypeExpr>>
+
+    // Stream consumption tracking
+    consumed_stream_names:array<string>
+
+    // Warnings
+    warnings:array<string>
+
+    // Extern type names
+    extern_type_names:array<string>
+
+    // Capacity hints
+    capacity_node_ids:array<int>
+    capacity_expr_ids:array<int>
+
+    // Builtin method sigs: "type_name.method_name" -> TCType (TFn)
+    builtin_method_sigs:map<string, TCTypeBox>
+
+    // Builtin fulfillments: type_name -> comma-separated interface names
+    builtin_fulfillments:map<string, string>
+
+    // Purity map: fn name -> is_pure
+    purity_map:map<string, bool>
+}
+
+fn make_state(
+    src_module:ast.Module,
+    filename:string,
+    resolved:resolver.ResolvedModule,
+    imported_modules:map<string, resolver.ModuleScope>,
+    imported_module_decls:map<string, ast.Module>
+):TCState {
+    let s:TCState = TCState{
+        src_module:src_module,
+        filename:filename,
+        resolved:resolved,
+        imported_modules:imported_modules,
+        imported_module_decls:imported_module_decls,
+        node_types:map.new(),
+        type_registry:map.new(),
+        iface_registry:map.new(),
+        scope_names:[],
+        scope_types:map.new(),
+        scope_count:0,
+        scope_frames:[],
+        mod_scope_watermark:0,
+        has_return_type:false,
+        current_return_type:TCAny(),
+        in_pure_fn:false,
+        current_fn_id:-1,
+        current_fn_type_param_names:[],
+        current_fn_type_param_bounds:[],
+        consumed_stream_names:[],
+        warnings:[],
+        extern_type_names:[],
+        capacity_node_ids:[],
+        capacity_expr_ids:[],
+        builtin_method_sigs:map.new(),
+        builtin_fulfillments:map.new(),
+        purity_map:map.new()
+    }
+    return s
+}
+
+// ---------------------------------------------------------------------------
+// Scope helpers
+// ---------------------------------------------------------------------------
+
+fn scope_push_frame(s:TCState:mut) {
+    s.scope_frames = array.push_int(s.scope_frames, s.scope_count)
+}
+
+fn scope_pop_frame(s:TCState:mut) {
+    let sz:int:mut = array.size(s.scope_frames)
+    if(sz > 0) {
+        let wm:int:mut = array.get_int(s.scope_frames, sz - 1) ?? 0
+        s.scope_frames = array.slice(s.scope_frames, 0, sz - 1)
+        s.scope_count = wm
+    }
+}
+
+fn scope_define(s:TCState:mut, name:string, t:TCType) {
+    let idx = s.scope_count
+    s.scope_names = array.push(s.scope_names, name)
+    let key = "s_" + conv.to_string(idx)
+    s.scope_types = map.set(s.scope_types, key, TCTypeBox{tc:t})
+    s.scope_count = idx + 1
+}
+
+fn scope_lookup(s:TCState:mut, name:string):TCType {
+    let i:int:mut = s.scope_count - 1
+    while(i >= 0) {
+        let n = array.get(s.scope_names, i) ?? ""
+        if(n == name) {
+            let key = "s_" + conv.to_string(i)
+            return tc_map_get(s.scope_types, key)
+        }
+        i = i - 1
+    }
+    return TCAny()
+}
+
+fn scope_has(s:TCState:mut, name:string):bool {
+    let i:int:mut = s.scope_count - 1
+    while(i >= 0) {
+        let n = array.get(s.scope_names, i) ?? ""
+        if(n == name) { return true }
+        i = i - 1
+    }
+    return false
+}
+
+// Look up only within the module scope (indices 0..mod_scope_watermark-1)
+fn mod_scope_lookup(s:TCState:mut, name:string):TCType {
+    let i:int:mut = s.mod_scope_watermark - 1
+    while(i >= 0) {
+        let n = array.get(s.scope_names, i) ?? ""
+        if(n == name) {
+            let key = "s_" + conv.to_string(i)
+            return tc_map_get(s.scope_types, key)
+        }
+        i = i - 1
+    }
+    return TCAny()
+}
+
+// ---------------------------------------------------------------------------
+// Node type store
+// ---------------------------------------------------------------------------
+
+fn node_set_type(s:TCState:mut, node_id:int, t:TCType) {
+    let key = "nt_" + conv.to_string(node_id)
+    s.node_types = map.set(s.node_types, key, TCTypeBox{tc:t})
+}
+
+fn node_get_type(s:TCState:mut, node_id:int):TCType {
+    let key = "nt_" + conv.to_string(node_id)
+    return tc_map_get(s.node_types, key)
+}
+
+fn node_has_type(s:TCState:mut, node_id:int):bool {
+    let key = "nt_" + conv.to_string(node_id)
+    return map.has(s.node_types, key)
+}
+
+// ---------------------------------------------------------------------------
+// Resolver symbol lookup
+// ---------------------------------------------------------------------------
+
+fn sym_lookup_by_id(s:TCState:mut, node_id:int):resolver.Symbol {
+    let key = "node_" + conv.to_string(node_id)
+    let opt = map.get(s.resolved.symbols, key)
+    match opt {
+        some(sym): { return sym }
+        none: { return resolver.Symbol{name:"", kind:resolver.SymbolKind.SK_LOCAL, decl_id:-1, has_type_ann:false, type_ann:ast.TNamedType(0,0,0,"",[]), is_mut:false} }
+    }
+}
+
+fn sym_has_by_id(s:TCState:mut, node_id:int):bool {
+    let key = "node_" + conv.to_string(node_id)
+    return map.has(s.resolved.symbols, key)
+}
+
+// ---------------------------------------------------------------------------
+// TCType constructors
+// ---------------------------------------------------------------------------
+
+export fn tc_int32():TCType { return TCInt(32, true) }
+export fn tc_int64():TCType { return TCInt(64, true) }
+export fn tc_float64():TCType { return TCFloat(64) }
+export fn tc_string():TCType { return TCString() }
+export fn tc_bool():TCType { return TCBool() }
+export fn tc_none():TCType { return TCNone() }
+export fn tc_any():TCType { return TCAny() }
+
+fn join_path(parts:array<string>):string {
+    let n = array.size(parts)
+    if(n == 0) { return "" }
+    let result:string:mut = array.get(parts, 0) ?? ""
+    let i:int:mut = 1
+    while(i < n) {
+        result = result + "." + (array.get(parts, i) ?? "")
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// apply_env — substitute type variables in a type
+// ---------------------------------------------------------------------------
+
+fn apply_env(t:TCType, env:map<string, TCTypeBox>):TCType {
+    if(map.len(env) == 0) { return t }
+    match t {
+        TCTypeVar(name): {
+            return tc_map_get(env, name)
+        }
+        TCOption(inner): {
+            return TCOption(apply_env(inner, env))
+        }
+        TCResult(ok_type, err_type): {
+            return TCResult(apply_env(ok_type, env), apply_env(err_type, env))
+        }
+        TCTuple(elements): {
+            let new_elems:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            let n = array.size(elements)
+            while(i < n) {
+                let elem_box = array.get_any(elements, i) ?? tc_box(TCAny())
+                new_elems = array.push(new_elems, tc_box(apply_env(elem_box.tc, env)))
+                i = i + 1
+            }
+            return TCTuple(new_elems)
+        }
+        TCArray(elem): {
+            return TCArray(apply_env(elem, env))
+        }
+        TCStream(elem): {
+            return TCStream(apply_env(elem, env))
+        }
+        TCCoroutine(yield_type, send_type): {
+            return TCCoroutine(apply_env(yield_type, env), apply_env(send_type, env))
+        }
+        TCBuffer(elem): {
+            return TCBuffer(apply_env(elem, env))
+        }
+        TCMap(key, val): {
+            return TCMap(apply_env(key, env), apply_env(val, env))
+        }
+        TCSet(elem): {
+            return TCSet(apply_env(elem, env))
+        }
+        TCFn(params, ret, is_pure, is_variadic): {
+            let new_params:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            let n = array.size(params)
+            while(i < n) {
+                let pb = array.get_any(params, i) ?? tc_box(TCAny())
+                new_params = array.push(new_params, tc_box(apply_env(pb.tc, env)))
+                i = i + 1
+            }
+            return TCFn(new_params, apply_env(ret, env), is_pure, is_variadic)
+        }
+        TCNamed(mod_path, name, type_args): {
+            let new_args:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            let n = array.size(type_args)
+            while(i < n) {
+                let ab = array.get_any(type_args, i) ?? tc_box(TCAny())
+                new_args = array.push(new_args, tc_box(apply_env(ab.tc, env)))
+                i = i + 1
+            }
+            return TCNamed(mod_path, name, new_args)
+        }
+        TCSumType(name, mod_path, variants): {
+            let new_variants:array<TCSumVariant>:mut = []
+            let i:int:mut = 0
+            let n = array.size(variants)
+            while(i < n) {
+                let v = array.get_any(variants, i) ?? make_sum_variant("")
+                if(v.has_fields) {
+                    let new_fields:array<TCTypeBox>:mut = []
+                    let j:int:mut = 0
+                    let fn2 = array.size(v.field_types_box)
+                    while(j < fn2) {
+                        let fb = array.get_any(v.field_types_box, j) ?? tc_box(TCAny())
+                        new_fields = array.push(new_fields, tc_box(apply_env(fb.tc, env)))
+                        j = j + 1
+                    }
+                    new_variants = array.push(new_variants, make_sum_variant_with_fields(v.name, new_fields))
+                } else {
+                    new_variants = array.push(new_variants, make_sum_variant(v.name))
+                }
+                i = i + 1
+            }
+            return TCSumType(name, mod_path, new_variants)
+        }
+        TCAlias(name, underlying): {
+            return TCAlias(name, apply_env(underlying, env))
+        }
+        _: { return t }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// type_name — human-readable string for a type
+// ---------------------------------------------------------------------------
+
+export fn type_name(t:TCType):string {
+    match t {
+        TCInt(width, is_signed): {
+            if(is_signed) {
+                if(width == 32) { return "int" }
+                return "int" + conv.to_string(width)
+            }
+            if(width == 32) { return "uint" }
+            return "uint" + conv.to_string(width)
+        }
+        TCFloat(width): {
+            if(width == 64) { return "float" }
+            return "float" + conv.to_string(width)
+        }
+        TCBool: { return "bool" }
+        TCChar: { return "char" }
+        TCByte: { return "byte" }
+        TCPtr: { return "ptr" }
+        TCString: { return "string" }
+        TCNone: { return "none" }
+        TCOption(inner): { return "option<" + type_name(inner) + ">" }
+        TCResult(ok_type, err_type): { return "result<" + type_name(ok_type) + ", " + type_name(err_type) + ">" }
+        TCTuple(elements): {
+            let parts:string:mut = "("
+            let i:int:mut = 0
+            let n = array.size(elements)
+            while(i < n) {
+                let eb = array.get_any(elements, i) ?? tc_box(TCAny())
+                if(i > 0) { parts = parts + ", " }
+                parts = parts + type_name(eb.tc)
+                i = i + 1
+            }
+            return parts + ")"
+        }
+        TCArray(elem): { return "array<" + type_name(elem) + ">" }
+        TCStream(elem): { return "stream<" + type_name(elem) + ">" }
+        TCCoroutine(yield_type, send_type): { return "Coroutine<" + type_name(yield_type) + ", " + type_name(send_type) + ">" }
+        TCBuffer(elem): { return "buffer<" + type_name(elem) + ">" }
+        TCMap(key, val): { return "map<" + type_name(key) + ", " + type_name(val) + ">" }
+        TCSet(elem): { return "set<" + type_name(elem) + ">" }
+        TCFn(params, ret, is_pure, is_variadic): {
+            let parts:string:mut = "fn("
+            let i:int:mut = 0
+            let n = array.size(params)
+            while(i < n) {
+                let pb = array.get_any(params, i) ?? tc_box(TCAny())
+                if(i > 0) { parts = parts + ", " }
+                parts = parts + type_name(pb.tc)
+                i = i + 1
+            }
+            return parts + "): " + type_name(ret)
+        }
+        TCRecord(field_names, field_types): { return "record" }
+        TCNamed(mod_path, name, type_args): { return name }
+        TCSumType(name, mod_path, variants): { return name }
+        TCEnum(name, mod_path, variant_names, variant_values): { return name }
+        TCTypeVar(name): { return name }
+        TCAny: { return "any" }
+        TCSelf: { return "self" }
+        TCAlias(name, underlying): { return name }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// types_equal — structural equality
+// ---------------------------------------------------------------------------
+
+fn types_equal(a:TCType, b:TCType):bool {
+    match a {
+        TCInt(wa, sa): {
+            match b {
+                TCInt(wb, sb): { return wa == wb && sa == sb }
+                _: { return false }
+            }
+        }
+        TCFloat(wa): {
+            match b {
+                TCFloat(wb): { return wa == wb }
+                _: { return false }
+            }
+        }
+        TCBool: {
+            match b { TCBool: { return true } _: { return false } }
+        }
+        TCChar: {
+            match b { TCChar: { return true } _: { return false } }
+        }
+        TCByte: {
+            match b { TCByte: { return true } _: { return false } }
+        }
+        TCPtr: {
+            match b { TCPtr: { return true } _: { return false } }
+        }
+        TCString: {
+            match b { TCString: { return true } _: { return false } }
+        }
+        TCNone: {
+            match b { TCNone: { return true } _: { return false } }
+        }
+        TCOption(ia): {
+            match b {
+                TCOption(ib): { return types_equal(ia, ib) }
+                _: { return false }
+            }
+        }
+        TCResult(ok_a, err_a): {
+            match b {
+                TCResult(ok_b, err_b): { return types_equal(ok_a, ok_b) && types_equal(err_a, err_b) }
+                _: { return false }
+            }
+        }
+        TCArray(ea): {
+            match b {
+                TCArray(eb): { return types_equal(ea, eb) }
+                _: { return false }
+            }
+        }
+        TCStream(ea): {
+            match b {
+                TCStream(eb): { return types_equal(ea, eb) }
+                _: { return false }
+            }
+        }
+        TCBuffer(ea): {
+            match b {
+                TCBuffer(eb): { return types_equal(ea, eb) }
+                _: { return false }
+            }
+        }
+        TCMap(ka, va): {
+            match b {
+                TCMap(kb, vb): { return types_equal(ka, kb) && types_equal(va, vb) }
+                _: { return false }
+            }
+        }
+        TCSet(ea): {
+            match b {
+                TCSet(eb): { return types_equal(ea, eb) }
+                _: { return false }
+            }
+        }
+        TCNamed(mod_path_a, na, args_a): {
+            match b {
+                TCNamed(mod_path_b, nb, args_b): {
+                    if(na != nb) { return false }
+                    let n = array.size(args_a)
+                    if(n != array.size(args_b)) { return false }
+                    let i:int:mut = 0
+                    while(i < n) {
+                        let ab = array.get_any(args_a, i) ?? tc_box(TCAny())
+                        let bb = array.get_any(args_b, i) ?? tc_box(TCAny())
+                        if(!types_equal(ab.tc, bb.tc)) { return false }
+                        i = i + 1
+                    }
+                    return true
+                }
+                _: { return false }
+            }
+        }
+        TCSumType(na, mod_path_a, va): {
+            match b {
+                TCSumType(nb, mod_path_b, vb): { return na == nb }
+                _: { return false }
+            }
+        }
+        TCEnum(na, mod_path_a, vna, vva): {
+            match b {
+                TCEnum(nb, mod_path_b, vnb, vvb): { return na == nb }
+                _: { return false }
+            }
+        }
+        TCTypeVar(na): {
+            match b {
+                TCTypeVar(nb): { return na == nb }
+                _: { return false }
+            }
+        }
+        TCAny: { return true }
+        TCSelf: {
+            match b { TCSelf: { return true } _: { return false } }
+        }
+        TCAlias(na, ua): {
+            match b {
+                TCAlias(nb, ub): { return na == nb && types_equal(ua, ub) }
+                _: { return false }
+            }
+        }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// is_assignable — type compatibility
+// ---------------------------------------------------------------------------
+
+fn is_assignable(src:TCType, tgt:TCType):bool {
+    match src { TCAny: { return true } _: {} }
+    match tgt { TCAny: { return true } _: {} }
+
+    if(types_equal(src, tgt)) { return true }
+
+    // TNone assignable to ptr (null pointer)
+    match src {
+        TCNone: {
+            match tgt { TCPtr: { return true } TCOption(i): { return true } _: {} }
+        }
+        _: {}
+    }
+
+    // T assignable to option<T>
+    match tgt {
+        TCOption(tgt_inner): {
+            match src {
+                TCOption(src_inner): { return is_assignable(src_inner, tgt_inner) }
+                _: { return is_assignable(src, tgt_inner) }
+            }
+        }
+        _: {}
+    }
+
+    // TResult assignability
+    match src {
+        TCResult(ok_a, err_a): {
+            match tgt {
+                TCResult(ok_b, err_b): {
+                    return is_assignable(ok_a, ok_b) && is_assignable(err_a, err_b)
+                }
+                _: {}
+            }
+        }
+        _: {}
+    }
+
+    // TTypeVar accepts any type
+    match tgt { TCTypeVar(n): { return true } _: {} }
+    match src { TCTypeVar(n): { return true } _: {} }
+
+    // Structural container assignability
+    match src {
+        TCArray(ea): {
+            match tgt {
+                TCArray(eb): { return is_assignable(ea, eb) }
+                _: {}
+            }
+        }
+        TCStream(ea): {
+            match tgt {
+                TCStream(eb): { return is_assignable(ea, eb) }
+                _: {}
+            }
+        }
+        TCBuffer(ea): {
+            match tgt {
+                TCBuffer(eb): { return is_assignable(ea, eb) }
+                _: {}
+            }
+        }
+        TCMap(ka, va): {
+            match tgt {
+                TCMap(kb, vb): { return is_assignable(ka, kb) && is_assignable(va, vb) }
+                _: {}
+            }
+        }
+        TCSet(ea): {
+            match tgt {
+                TCSet(eb): { return is_assignable(ea, eb) }
+                _: {}
+            }
+        }
+        TCNamed(mod_path_a, na, args_a): {
+            match tgt {
+                TCNamed(mod_path_b, nb, args_b): {
+                    if(na != nb) { return false }
+                    let narg = array.size(args_a)
+                    if(narg != array.size(args_b)) { return false }
+                    let i:int:mut = 0
+                    while(i < narg) {
+                        let ab = array.get_any(args_a, i) ?? tc_box(TCAny())
+                        let bb = array.get_any(args_b, i) ?? tc_box(TCAny())
+                        if(!is_assignable(ab.tc, bb.tc)) { return false }
+                        i = i + 1
+                    }
+                    return true
+                }
+                _: {}
+            }
+        }
+        TCSumType(na, mod_path_a, va): {
+            match tgt {
+                TCSumType(nb, mod_path_b, vb): { return na == nb }
+                TCNamed(mod_path_b, nb, args_b): { return na == nb }
+                _: {}
+            }
+        }
+        TCEnum(na, mod_path_a, vna, vva): {
+            match tgt {
+                TCEnum(nb, mod_path_b, vnb, vvb): { return na == nb }
+                TCInt(w, sg): { return w >= 32 && sg }
+                _: {}
+            }
+        }
+        TCInt(wa, sa): {
+            match tgt {
+                TCInt(wb, sb): {
+                    if(sa == sb && wa < wb) { return true }
+                    return false
+                }
+                _: {}
+            }
+        }
+        TCAlias(na, ua): { return is_assignable(ua, tgt) }
+        _: {}
+    }
+    // TCNamed assignable to TCSumType
+    match src {
+        TCNamed(mod_path_a, na, args_a): {
+            match tgt {
+                TCSumType(nb, mod_path_b, vb): { return na == nb }
+                _: {}
+            }
+        }
+        _: {}
+    }
+    match tgt {
+        TCAlias(na, ua): { return is_assignable(src, ua) }
+        _: {}
+    }
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// resolve_type_expr — AST TypeExpr -> TCType
+// ---------------------------------------------------------------------------
+
+fn resolve_type_expr(s:TCState:mut, te:ast.TypeExpr):TCType {
+    match te {
+        TNamedType(nid, l, c, name, mp): {
+            if(array.size(mp) > 0) {
+                // Check registry first for cross-module types
+                let info_opt = map.get(s.type_registry, name)
+                match info_opt {
+                    some(info): {
+                        if(info.has_enum) { return info.enum_type_box.tc }
+                        if(info.is_sum_type && info.has_sum_type) { return info.sum_type_box.tc }
+                        return TCNamed(info.module_path, name, [])
+                    }
+                    none: {}
+                }
+                let mp_str = join_path(mp)
+                return TCNamed(mp_str, name, [])
+            }
+            // Builtin types
+            if(name == "int") { return TCInt(32, true) }
+            if(name == "int16") { return TCInt(16, true) }
+            if(name == "int32") { return TCInt(32, true) }
+            if(name == "int64") { return TCInt(64, true) }
+            if(name == "uint") { return TCInt(32, false) }
+            if(name == "uint16") { return TCInt(16, false) }
+            if(name == "uint32") { return TCInt(32, false) }
+            if(name == "uint64") { return TCInt(64, false) }
+            if(name == "float") { return TCFloat(64) }
+            if(name == "float32") { return TCFloat(32) }
+            if(name == "float64") { return TCFloat(64) }
+            if(name == "bool") { return TCBool() }
+            if(name == "char") { return TCChar() }
+            if(name == "byte") { return TCByte() }
+            if(name == "ptr") { return TCPtr() }
+            if(name == "string") { return TCString() }
+            if(name == "none") { return TCNone() }
+            // Extern type
+            let ei:int:mut = 0
+            while(ei < array.size(s.extern_type_names)) {
+                let en = array.get(s.extern_type_names, ei) ?? ""
+                if(en == name) { return TCNamed("", name, []) }
+                ei = ei + 1
+            }
+            // User-defined type
+            let info_opt2 = map.get(s.type_registry, name)
+            match info_opt2 {
+                some(info): {
+                    if(info.has_enum) { return info.enum_type_box.tc }
+                    if(info.is_sum_type && info.has_sum_type) { return info.sum_type_box.tc }
+                    return TCNamed(info.module_path, name, [])
+                }
+                none: {}
+            }
+            return TCTypeVar(name)
+        }
+        TGenericType(nid, l, c, base, args): {
+            let resolved_args:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            while(i < array.size(args)) {
+                let arg = array.get_any(args, i) ?? ast.TNamedType(0, 0, 0, "any", [])
+                resolved_args = array.push(resolved_args, tc_box(resolve_type_expr(s, arg)))
+                i = i + 1
+            }
+            let base_name = type_expr_base_name(base)
+            if(base_name == "option") {
+                let inner = (array.get_any(resolved_args, 0) ?? tc_box(TCAny())).tc
+                return TCOption(inner)
+            }
+            if(base_name == "result") {
+                let ok_t:TCType:mut = (array.get_any(resolved_args, 0) ?? tc_box(TCAny())).tc
+                let err_t:TCType:mut = (array.get_any(resolved_args, 1) ?? tc_box(TCAny())).tc
+                return TCResult(ok_t, err_t)
+            }
+            if(base_name == "array") {
+                let elem = (array.get_any(resolved_args, 0) ?? tc_box(TCAny())).tc
+                return TCArray(elem)
+            }
+            if(base_name == "stream") {
+                let elem = (array.get_any(resolved_args, 0) ?? tc_box(TCAny())).tc
+                return TCStream(elem)
+            }
+            if(base_name == "buffer") {
+                let elem = (array.get_any(resolved_args, 0) ?? tc_box(TCAny())).tc
+                return TCBuffer(elem)
+            }
+            if(base_name == "map") {
+                let k = (array.get_any(resolved_args, 0) ?? tc_box(TCAny())).tc
+                let v = (array.get_any(resolved_args, 1) ?? tc_box(TCAny())).tc
+                return TCMap(k, v)
+            }
+            if(base_name == "set") {
+                let elem = (array.get_any(resolved_args, 0) ?? tc_box(TCAny())).tc
+                return TCSet(elem)
+            }
+            if(base_name == "Coroutine") {
+                let yt = (array.get_any(resolved_args, 0) ?? tc_box(TCAny())).tc
+                let st = (array.get_any(resolved_args, 1) ?? tc_box(TCAny())).tc
+                return TCCoroutine(yt, st)
+            }
+            return TCNamed("", base_name, resolved_args)
+        }
+        TOptionType(nid, l, c, inner): {
+            return TCOption(resolve_type_expr(s, inner))
+        }
+        TFnType(nid, l, c, params, ret): {
+            let param_types:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            while(i < array.size(params)) {
+                let p = array.get_any(params, i) ?? ast.TNamedType(0, 0, 0, "any", [])
+                param_types = array.push(param_types, tc_box(resolve_type_expr(s, p)))
+                i = i + 1
+            }
+            let ret_t = resolve_type_expr(s, ret)
+            return TCFn(param_types, ret_t, false, false)
+        }
+        TTupleType(nid, l, c, elements): {
+            let elem_types:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            while(i < array.size(elements)) {
+                let e = array.get_any(elements, i) ?? ast.TNamedType(0, 0, 0, "any", [])
+                elem_types = array.push(elem_types, tc_box(resolve_type_expr(s, e)))
+                i = i + 1
+            }
+            return TCTuple(elem_types)
+        }
+        TMutType(nid, l, c, inner): {
+            return resolve_type_expr(s, inner)
+        }
+        TImutType(nid, l, c, inner): {
+            return resolve_type_expr(s, inner)
+        }
+        TSizedType(nid, l, c, inner, capacity_id): {
+            let resolved = resolve_type_expr(s, inner)
+            match resolved {
+                TCStream(elem): {
+                    s.capacity_node_ids = array.push(s.capacity_node_ids, nid)
+                    s.capacity_expr_ids = array.push(s.capacity_expr_ids, capacity_id)
+                    return resolved
+                }
+                _: {
+                    // Not a stream — ignore capacity
+                    return resolved
+                }
+            }
+        }
+        TSumTypeExpr(nid, l, c, variants): {
+            return TCAny()
+        }
+    }
+}
+
+fn type_expr_base_name(te:ast.TypeExpr):string {
+    match te {
+        TNamedType(nid, l, c, name, mp): { return name }
+        _: { return "" }
+    }
+}
+
+fn resolve_type_expr_opt(s:TCState:mut, has_te:bool, te:ast.TypeExpr):TCType {
+    if(!has_te) { return TCNone() }
+    return resolve_type_expr(s, te)
+}
+
+// ---------------------------------------------------------------------------
+// fn_decl_type — get TFn from a DFn decl
+// ---------------------------------------------------------------------------
+
+fn fn_decl_type(s:TCState:mut, decl:ast.Decl):TCType {
+    match decl {
+        DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+            let param_types:array<TCTypeBox>:mut = []
+            let has_variadic = false
+            let i:int:mut = 0
+            while(i < array.size(params)) {
+                let p = array.get_any(params, i) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                if(p.name == "self") { i = i + 1 }
+                else {
+                    let pt = resolve_type_expr(s, p.type_ann)
+                    if(p.is_variadic) {
+                        param_types = array.push(param_types, tc_box(TCArray(pt)))
+                    } else {
+                        param_types = array.push(param_types, tc_box(pt))
+                    }
+                    i = i + 1
+                }
+            }
+            let ret_t = resolve_type_expr_opt(s, hrt, ret)
+            return TCFn(param_types, ret_t, is_pure, false)
+        }
+        _: { return TCAny() }
+    }
+}
+
+fn extern_fn_decl_type(s:TCState:mut, decl:ast.Decl):TCType {
+    match decl {
+        DExternFn(nid, l, c, name, type_params, params, hrt, ret, is_export, c_name): {
+            // Temporarily register type vars in scope
+            let i:int:mut = 0
+            while(i < array.size(type_params)) {
+                let tp = array.get_any(type_params, i) ?? ast.TypeParam{name:"", bounds:[], id:0, line:0, col:0}
+                scope_define(s, tp.name, TCTypeVar(tp.name))
+                i = i + 1
+            }
+            let param_types:array<TCTypeBox>:mut = []
+            let j:int:mut = 0
+            while(j < array.size(params)) {
+                let p = array.get_any(params, j) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                let pt = resolve_type_expr(s, p.type_ann)
+                param_types = array.push(param_types, tc_box(pt))
+                j = j + 1
+            }
+            let ret_t = resolve_type_expr_opt(s, hrt, ret)
+            // Remove type vars (they are now at the end of scope)
+            let k = array.size(type_params)
+            if(k > 0) {
+                s.scope_count = s.scope_count - k
+            }
+            return TCFn(param_types, ret_t, false, false)
+        }
+        _: { return TCAny() }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// collect_extern_types
+// ---------------------------------------------------------------------------
+
+fn collect_extern_types(s:TCState:mut) {
+    let i:int:mut = 0
+    let decls = s.src_module.decls
+    while(i < array.size(decls)) {
+        let d = array.get_any(decls, i) ?? ast.DModule(0, 0, 0, [])
+        match d {
+            DExternType(nid, l, c, name, is_export): {
+                s.extern_type_names = array.push(s.extern_type_names, name)
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// build_type_registry
+// ---------------------------------------------------------------------------
+
+fn build_type_registry(s:TCState:mut) {
+    let decls = s.src_module.decls
+    // First pass: register types (with preliminary sums for self-recursion)
+    let i:int:mut = 0
+    while(i < array.size(decls)) {
+        let d = array.get_any(decls, i) ?? ast.DModule(0, 0, 0, [])
+        match d {
+            DType(nid, l, c, name, type_params, fields, methods, ctors, statics, ifaces, is_export, is_sum_type, variants, is_mut): {
+                register_type_decl(s, name, type_params, fields, methods, ctors, statics, ifaces, is_sum_type, variants, "")
+            }
+            DEnum(nid, l, c, name, variants, is_export): {
+                register_enum_decl(s, name, variants, "")
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+}
+
+fn register_type_decl(
+    s:TCState:mut,
+    name:string,
+    type_params:array<ast.TypeParam>,
+    fields:array<ast.FieldDecl>,
+    methods:array<ast.Decl>,
+    ctors:array<ast.Decl>,
+    statics:array<ast.Decl>,
+    ifaces:array<ast.TypeExpr>,
+    is_sum_type:bool,
+    variants:array<ast.SumVariantDecl>,
+    module_path:string
+) {
+    let info:TypeInfo:mut = empty_type_info(name)
+    info.module_path = module_path
+
+    // Type params
+    let i:int:mut = 0
+    while(i < array.size(type_params)) {
+        let tp = array.get_any(type_params, i) ?? ast.TypeParam{name:"", bounds:[], id:0, line:0, col:0}
+        info.type_param_names = array.push(info.type_param_names, tp.name)
+        i = i + 1
+    }
+
+    // Interface exprs
+    let ii:int:mut = 0
+    while(ii < array.size(ifaces)) {
+        let iface_te = array.get_any(ifaces, ii) ?? ast.TNamedType(0,0,0,"",[])
+        info.interface_exprs = array.push(info.interface_exprs, iface_te)
+        ii = ii + 1
+    }
+
+    if(is_sum_type) {
+        // Pre-register with empty sum so self-referential fields resolve
+        info.is_sum_type = true
+        info.has_sum_type = true
+        info.sum_type_box = tc_box(TCSumType(name, module_path, []))
+        s.type_registry = map.set(s.type_registry, name, info)
+
+        // Now build variants with proper types
+        let sum_variants:array<TCSumVariant>:mut = []
+        let vi:int:mut = 0
+        while(vi < array.size(variants)) {
+            let v = array.get_any(variants, vi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+            if(array.size(v.fields) > 0) {
+                let v_fields:array<TCTypeBox>:mut = []
+                let fi:int:mut = 0
+                while(fi < array.size(v.fields)) {
+                    let f = array.get_any(v.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(0,0,0,"any",[])}
+                    v_fields = array.push(v_fields, tc_box(resolve_type_expr(s, f.type_expr)))
+                    fi = fi + 1
+                }
+                sum_variants = array.push(sum_variants, make_sum_variant_with_fields(v.name, v_fields))
+            } else {
+                sum_variants = array.push(sum_variants, make_sum_variant(v.name))
+            }
+            vi = vi + 1
+        }
+        let final_sum = TCSumType(name, module_path, sum_variants)
+        info.sum_type_box = tc_box(final_sum)
+        s.type_registry = map.set(s.type_registry, name, info)
+    } else {
+        // Build fields
+        let fi:int:mut = 0
+        while(fi < array.size(fields)) {
+            let f = array.get_any(fields, fi) ?? ast.FieldDecl{name:"", type_ann:ast.TNamedType(0,0,0,"any",[]), is_mut:false, id:0, line:0, col:0}
+            info.field_names = array.push(info.field_names, f.name)
+            info.field_types = map.set(info.field_types, f.name, tc_box(resolve_type_expr(s, f.type_ann)))
+            info.field_muts = map.set(info.field_muts, f.name, f.is_mut)
+            fi = fi + 1
+        }
+
+        // Build methods
+        let mi:int:mut = 0
+        while(mi < array.size(methods)) {
+            let m:ast.Decl:mut = array.get_any(methods, mi) ?? ast.DModule(0,0,0,[])
+            match m {
+                DFn(nid, l, c, mname, tp, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+                    let mparams:array<TCTypeBox>:mut = []
+                    let pi:int:mut = 0
+                    while(pi < array.size(params)) {
+                        let p = array.get_any(params, pi) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                        if(p.name != "self") {
+                            mparams = array.push(mparams, tc_box(resolve_type_expr(s, p.type_ann)))
+                        }
+                        pi = pi + 1
+                    }
+                    let mret = resolve_type_expr_opt(s, hrt, ret)
+                    info.method_names = array.push(info.method_names, mname)
+                    info.method_types = map.set(info.method_types, mname, tc_box(TCFn(mparams, mret, is_pure, false)))
+                }
+                _: {}
+            }
+            mi = mi + 1
+        }
+
+        // Build statics
+        let si:int:mut = 0
+        while(si < array.size(statics)) {
+            let sm = array.get_any(statics, si) ?? ast.DModule(0,0,0,[])
+            match sm {
+                DStaticMember(nid, l, c, sname, type_ann, is_mut, hv, val): {
+                    info.static_names = array.push(info.static_names, sname)
+                    info.static_types = map.set(info.static_types, sname, tc_box(resolve_type_expr(s, type_ann)))
+                    info.static_muts = map.set(info.static_muts, sname, is_mut)
+                }
+                _: {}
+            }
+            si = si + 1
+        }
+
+        // Build constructors
+        let ci:int:mut = 0
+        while(ci < array.size(ctors)) {
+            let ctor = array.get_any(ctors, ci) ?? ast.DModule(0,0,0,[])
+            match ctor {
+                DConstructor(nid, l, c, cname, params, ret, body): {
+                    let cparams:array<TCTypeBox>:mut = []
+                    let pi:int:mut = 0
+                    while(pi < array.size(params)) {
+                        let p = array.get_any(params, pi) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                        if(p.name != "self") {
+                            cparams = array.push(cparams, tc_box(resolve_type_expr(s, p.type_ann)))
+                        }
+                        pi = pi + 1
+                    }
+                    let cret = resolve_type_expr(s, ret)
+                    info.ctor_names = array.push(info.ctor_names, cname)
+                    info.ctor_types = map.set(info.ctor_types, cname, tc_box(TCFn(cparams, cret, false, false)))
+                }
+                _: {}
+            }
+            ci = ci + 1
+        }
+
+        s.type_registry = map.set(s.type_registry, name, info)
+    }
+}
+
+fn register_enum_decl(s:TCState:mut, name:string, variants:array<ast.EnumVariantDecl>, module_path:string) {
+    let info:TypeInfo:mut = empty_type_info(name)
+    info.module_path = module_path
+
+    let resolved_variants:array<string>:mut = []
+    let resolved_values:array<int>:mut = []
+    let next_val:int:mut = 0
+    let i:int:mut = 0
+    while(i < array.size(variants)) {
+        let v = array.get_any(variants, i) ?? ast.EnumVariantDecl{name:"", has_value:false, value:0, id:0, line:0, col:0}
+        let val:int:mut = next_val
+        if(v.has_value) { val = v.value }
+        resolved_variants = array.push(resolved_variants, v.name)
+        resolved_values = array.push(resolved_values, val)
+        next_val = val + 1
+        i = i + 1
+    }
+
+    let enum_type = TCEnum(name, module_path, resolved_variants, resolved_values)
+    info.has_enum = true
+    info.enum_type_box = tc_box(enum_type)
+
+    // Register each variant as a static of the enum type
+    let j:int:mut = 0
+    while(j < array.size(resolved_variants)) {
+        let vname:string:mut = array.get(resolved_variants, j) ?? ""
+        info.static_names = array.push(info.static_names, vname)
+        info.static_types = map.set(info.static_types, vname, tc_box(enum_type))
+        j = j + 1
+    }
+
+    s.type_registry = map.set(s.type_registry, name, info)
+}
+
+// ---------------------------------------------------------------------------
+// register_imported_types
+// ---------------------------------------------------------------------------
+
+fn register_imported_types(s:TCState:mut) {
+    let imported_decl_keys:array<string> = map.keys(s.imported_module_decls)
+    let i:int:mut = 0
+    while(i < array.size(imported_decl_keys)) {
+        let mod_key = array.get(imported_decl_keys, i) ?? ""
+        let mod_opt = map.get(s.imported_module_decls, mod_key)
+        match mod_opt {
+            some(mod): {
+                register_imported_module_types(s, mod_key, mod)
+            }
+            none: {}
+        }
+        i = i + 1
+    }
+}
+
+fn register_imported_module_types(s:TCState:mut, mod_key:string, mod:ast.Module) {
+    let i:int:mut = 0
+    while(i < array.size(mod.decls)) {
+        let d = array.get_any(mod.decls, i) ?? ast.DModule(0,0,0,[])
+        match d {
+            DType(nid, l, c, name, type_params, fields, methods, ctors, statics, ifaces, is_export, is_sum_type, variants, is_mut): {
+                if(is_export && !map.has(s.type_registry, name)) {
+                    register_type_decl(s, name, type_params, fields, methods, ctors, statics, ifaces, is_sum_type, variants, mod_key)
+                }
+            }
+            DEnum(nid, l, c, name, variants, is_export): {
+                if(is_export && !map.has(s.type_registry, name)) {
+                    register_enum_decl(s, name, variants, mod_key)
+                }
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// register_builtin_interfaces
+// ---------------------------------------------------------------------------
+
+fn register_builtin_interfaces(s:TCState:mut) {
+    // Exception<T>
+    let exc_info:InterfaceInfo:mut = empty_iface_info("Exception")
+    exc_info.type_param_names = array.push(exc_info.type_param_names, "T")
+    let exc_msg_params:array<TCTypeBox> = []
+    exc_info.method_types = map.set(exc_info.method_types, "message", tc_box(TCFn(exc_msg_params, TCString(), false, false)))
+    let exc_data_params:array<TCTypeBox> = []
+    exc_info.method_types = map.set(exc_info.method_types, "data", tc_box(TCFn(exc_data_params, TCTypeVar("T"), false, false)))
+    let exc_orig_params:array<TCTypeBox> = []
+    exc_info.method_types = map.set(exc_info.method_types, "original", tc_box(TCFn(exc_orig_params, TCTypeVar("T"), false, false)))
+    exc_info.method_names = array.push(exc_info.method_names, "message")
+    exc_info.method_names = array.push(exc_info.method_names, "data")
+    exc_info.method_names = array.push(exc_info.method_names, "original")
+    s.iface_registry = map.set(s.iface_registry, "Exception", exc_info)
+
+    // Comparable
+    let cmp_info:InterfaceInfo:mut = empty_iface_info("Comparable")
+    let cmp_p:array<TCTypeBox>:mut = []
+    cmp_p = array.push(cmp_p, tc_box(TCSelf()))
+    cmp_info.method_types = map.set(cmp_info.method_types, "compare", tc_box(TCFn(cmp_p, TCInt(32, true), true, false)))
+    cmp_info.method_names = array.push(cmp_info.method_names, "compare")
+    s.iface_registry = map.set(s.iface_registry, "Comparable", cmp_info)
+
+    // Numeric
+    let num_info:InterfaceInfo:mut = empty_iface_info("Numeric")
+    let neg_p:array<TCTypeBox>:mut = []
+    num_info.method_types = map.set(num_info.method_types, "negate", tc_box(TCFn(neg_p, TCSelf(), true, false)))
+    let add_p:array<TCTypeBox>:mut = []
+    add_p = array.push(add_p, tc_box(TCSelf()))
+    num_info.method_types = map.set(num_info.method_types, "add", tc_box(TCFn(add_p, TCSelf(), true, false)))
+    let sub_p:array<TCTypeBox>:mut = []
+    sub_p = array.push(sub_p, tc_box(TCSelf()))
+    num_info.method_types = map.set(num_info.method_types, "sub", tc_box(TCFn(sub_p, TCSelf(), true, false)))
+    let mul_p:array<TCTypeBox>:mut = []
+    mul_p = array.push(mul_p, tc_box(TCSelf()))
+    num_info.method_types = map.set(num_info.method_types, "mul", tc_box(TCFn(mul_p, TCSelf(), true, false)))
+    num_info.method_names = array.push(num_info.method_names, "negate")
+    num_info.method_names = array.push(num_info.method_names, "add")
+    num_info.method_names = array.push(num_info.method_names, "sub")
+    num_info.method_names = array.push(num_info.method_names, "mul")
+    s.iface_registry = map.set(s.iface_registry, "Numeric", num_info)
+
+    // Equatable
+    let eq_info:InterfaceInfo:mut = empty_iface_info("Equatable")
+    let eq_p:array<TCTypeBox>:mut = []
+    eq_p = array.push(eq_p, tc_box(TCSelf()))
+    eq_info.method_types = map.set(eq_info.method_types, "equals", tc_box(TCFn(eq_p, TCBool(), true, false)))
+    eq_info.method_names = array.push(eq_info.method_names, "equals")
+    s.iface_registry = map.set(s.iface_registry, "Equatable", eq_info)
+
+    // Showable
+    let show_info:InterfaceInfo:mut = empty_iface_info("Showable")
+    let show_p:array<TCTypeBox>:mut = []
+    show_info.method_types = map.set(show_info.method_types, "to_string", tc_box(TCFn(show_p, TCString(), true, false)))
+    show_info.method_names = array.push(show_info.method_names, "to_string")
+    s.iface_registry = map.set(s.iface_registry, "Showable", show_info)
+}
+
+fn register_builtin_fulfillments(s:TCState:mut) {
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "int", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "int16", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "int32", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "int64", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "uint", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "uint16", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "uint32", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "uint64", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "float", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "float32", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "float64", "Comparable,Numeric,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "string", "Comparable,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "bool", "Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "char", "Comparable,Equatable,Showable")
+    s.builtin_fulfillments = map.set(s.builtin_fulfillments, "byte", "Comparable,Equatable,Showable")
+}
+
+fn is_showable(s:TCState:mut, t:TCType):bool {
+    let tname = type_name(t)
+    let ifaces_str = map.get(s.builtin_fulfillments, tname) ?? ""
+    return string.contains(ifaces_str, "Showable")
+}
+
+fn register_builtin_method_sigs(s:TCState:mut) {
+    let int_types:array<TCType>:mut = []
+    int_types = array.push(int_types, TCInt(32, true))
+    int_types = array.push(int_types, TCInt(64, true))
+    int_types = array.push(int_types, TCInt(16, true))
+    int_types = array.push(int_types, TCInt(32, false))
+    int_types = array.push(int_types, TCInt(16, false))
+    int_types = array.push(int_types, TCInt(64, false))
+
+    let i:int:mut = 0
+    while(i < array.size(int_types)) {
+        let t = array.get_any(int_types, i) ?? TCInt(32, true)
+        let tn = type_name(t)
+        let cmp_p:array<TCTypeBox>:mut = []
+        cmp_p = array.push(cmp_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".compare", tc_box(TCFn(cmp_p, TCInt(32, true), true, false)))
+        let neg_p:array<TCTypeBox>:mut = []
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".negate", tc_box(TCFn(neg_p, t, true, false)))
+        let add_p:array<TCTypeBox>:mut = []
+        add_p = array.push(add_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".add", tc_box(TCFn(add_p, t, true, false)))
+        let sub_p:array<TCTypeBox>:mut = []
+        sub_p = array.push(sub_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".sub", tc_box(TCFn(sub_p, t, true, false)))
+        let mul_p:array<TCTypeBox>:mut = []
+        mul_p = array.push(mul_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".mul", tc_box(TCFn(mul_p, t, true, false)))
+        let eq_p:array<TCTypeBox>:mut = []
+        eq_p = array.push(eq_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".equals", tc_box(TCFn(eq_p, TCBool(), true, false)))
+        let ts_p:array<TCTypeBox>:mut = []
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".to_string", tc_box(TCFn(ts_p, TCString(), true, false)))
+        i = i + 1
+    }
+
+    let float_types:array<TCType>:mut = []
+    float_types = array.push(float_types, TCFloat(64))
+    float_types = array.push(float_types, TCFloat(32))
+    let fi:int:mut = 0
+    while(fi < array.size(float_types)) {
+        let t = array.get_any(float_types, fi) ?? TCFloat(64)
+        let tn = type_name(t)
+        let cmp_p:array<TCTypeBox>:mut = []
+        cmp_p = array.push(cmp_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".compare", tc_box(TCFn(cmp_p, TCInt(32, true), true, false)))
+        let neg_p:array<TCTypeBox>:mut = []
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".negate", tc_box(TCFn(neg_p, t, true, false)))
+        let add_p:array<TCTypeBox>:mut = []
+        add_p = array.push(add_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".add", tc_box(TCFn(add_p, t, true, false)))
+        let sub_p:array<TCTypeBox>:mut = []
+        sub_p = array.push(sub_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".sub", tc_box(TCFn(sub_p, t, true, false)))
+        let mul_p:array<TCTypeBox>:mut = []
+        mul_p = array.push(mul_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".mul", tc_box(TCFn(mul_p, t, true, false)))
+        let eq_p:array<TCTypeBox>:mut = []
+        eq_p = array.push(eq_p, tc_box(t))
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".equals", tc_box(TCFn(eq_p, TCBool(), true, false)))
+        let ts_p:array<TCTypeBox>:mut = []
+        s.builtin_method_sigs = map.set(s.builtin_method_sigs, tn + ".to_string", tc_box(TCFn(ts_p, TCString(), true, false)))
+        fi = fi + 1
+    }
+
+    // string
+    let scmp_p:array<TCTypeBox>:mut = []
+    scmp_p = array.push(scmp_p, tc_box(TCString()))
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "string.compare", tc_box(TCFn(scmp_p, TCInt(32, true), true, false)))
+    let seq_p:array<TCTypeBox>:mut = []
+    seq_p = array.push(seq_p, tc_box(TCString()))
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "string.equals", tc_box(TCFn(seq_p, TCBool(), true, false)))
+    let sts_p:array<TCTypeBox> = []
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "string.to_string", tc_box(TCFn(sts_p, TCString(), true, false)))
+
+    // bool
+    let beq_p:array<TCTypeBox>:mut = []
+    beq_p = array.push(beq_p, tc_box(TCBool()))
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "bool.equals", tc_box(TCFn(beq_p, TCBool(), true, false)))
+    let bts_p:array<TCTypeBox> = []
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "bool.to_string", tc_box(TCFn(bts_p, TCString(), true, false)))
+
+    // char
+    let ccmp_p:array<TCTypeBox>:mut = []
+    ccmp_p = array.push(ccmp_p, tc_box(TCChar()))
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "char.compare", tc_box(TCFn(ccmp_p, TCInt(32, true), true, false)))
+    let ceq_p:array<TCTypeBox>:mut = []
+    ceq_p = array.push(ceq_p, tc_box(TCChar()))
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "char.equals", tc_box(TCFn(ceq_p, TCBool(), true, false)))
+    let cts_p:array<TCTypeBox> = []
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "char.to_string", tc_box(TCFn(cts_p, TCString(), true, false)))
+
+    // byte
+    let bycmp_p:array<TCTypeBox>:mut = []
+    bycmp_p = array.push(bycmp_p, tc_box(TCByte()))
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "byte.compare", tc_box(TCFn(bycmp_p, TCInt(32, true), true, false)))
+    let byeq_p:array<TCTypeBox>:mut = []
+    byeq_p = array.push(byeq_p, tc_box(TCByte()))
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "byte.equals", tc_box(TCFn(byeq_p, TCBool(), true, false)))
+    let byts_p:array<TCTypeBox> = []
+    s.builtin_method_sigs = map.set(s.builtin_method_sigs, "byte.to_string", tc_box(TCFn(byts_p, TCString(), true, false)))
+}
+
+// ---------------------------------------------------------------------------
+// build_interface_registry
+// ---------------------------------------------------------------------------
+
+fn build_interface_registry(s:TCState:mut) {
+    let i:int:mut = 0
+    let decls = s.src_module.decls
+    while(i < array.size(decls)) {
+        let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
+        match d {
+            DInterface(nid, l, c, name, type_params, methods, is_export): {
+                let iface_info:InterfaceInfo:mut = empty_iface_info(name)
+                let ti:int:mut = 0
+                while(ti < array.size(type_params)) {
+                    let tp = array.get_any(type_params, ti) ?? ast.TypeParam{name:"", bounds:[], id:0, line:0, col:0}
+                    iface_info.type_param_names = array.push(iface_info.type_param_names, tp.name)
+                    ti = ti + 1
+                }
+                let mi:int:mut = 0
+                while(mi < array.size(methods)) {
+                    let m:ast.Decl:mut = array.get_any(methods, mi) ?? ast.DModule(0,0,0,[])
+                    match m {
+                        DFn(fnid, fl, fc, mname, ftp, fparams, fhrt, fret, fbody, fip, fie, fis, fhf, ffb): {
+                            let mparams:array<TCTypeBox>:mut = []
+                            let pi:int:mut = 0
+                            while(pi < array.size(fparams)) {
+                                let p = array.get_any(fparams, pi) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                                if(p.name != "self") {
+                                    mparams = array.push(mparams, tc_box(resolve_type_expr(s, p.type_ann)))
+                                }
+                                pi = pi + 1
+                            }
+                            let mret = resolve_type_expr_opt(s, fhrt, fret)
+                            iface_info.method_names = array.push(iface_info.method_names, mname)
+                            iface_info.method_types = map.set(iface_info.method_types, mname, tc_box(TCFn(mparams, mret, fip, false)))
+                        }
+                        _: {}
+                    }
+                    mi = mi + 1
+                }
+                s.iface_registry = map.set(s.iface_registry, name, iface_info)
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
+// register_top_level_types
+// ---------------------------------------------------------------------------
+
+fn register_top_level_types(s:TCState:mut) {
+    let i:int:mut = 0
+    let decls = s.src_module.decls
+    while(i < array.size(decls)) {
+        let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
+        match d {
+            DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+                let ft = fn_decl_type(s, d)
+                scope_define(s, name, ft)
+                s.purity_map = map.set(s.purity_map, name, is_pure)
+            }
+            DType(nid, l, c, name, type_params, fields, methods, ctors, statics, ifaces, is_export, is_sum_type, variants, is_mut): {
+                let info_opt = map.get(s.type_registry, name)
+                match info_opt {
+                    some(info): {
+                        if(info.is_sum_type && info.has_sum_type) {
+                            scope_define(s, name, info.sum_type_box.tc)
+                            // Register variant constructors
+                            match info.sum_type_box.tc {
+                                TCSumType(sname, smod_path, svariants): {
+                                    let vi:int:mut = 0
+                                    while(vi < array.size(svariants)) {
+                                        let v = array.get_any(svariants, vi) ?? make_sum_variant("")
+                                        if(v.has_fields) {
+                                            scope_define(s, v.name, TCFn(v.field_types_box, info.sum_type_box.tc, false, false))
+                                        } else {
+                                            scope_define(s, v.name, info.sum_type_box.tc)
+                                        }
+                                        vi = vi + 1
+                                    }
+                                }
+                                _: {}
+                            }
+                        } else {
+                            scope_define(s, name, TCNamed(info.module_path, name, []))
+                        }
+                        // Register constructors
+                        let ci:int:mut = 0
+                        while(ci < array.size(info.ctor_names)) {
+                            let cname = array.get(info.ctor_names, ci) ?? ""
+                            let ctype = tc_map_get(info.ctor_types, cname)
+                            scope_define(s, cname, ctype)
+                            ci = ci + 1
+                        }
+                    }
+                    none: {
+                        scope_define(s, name, TCNamed("", name, []))
+                    }
+                }
+            }
+            DInterface(nid, l, c, name, type_params, methods, is_export): {
+                scope_define(s, name, TCNamed("", name, []))
+            }
+            DAlias(nid, l, c, name, type_params, target, is_export): {
+                let target_t = resolve_type_expr(s, target)
+                scope_define(s, name, TCAlias(name, target_t))
+            }
+            DExternFn(nid, l, c, name, type_params, params, hrt, ret, is_export, c_name): {
+                let ft = extern_fn_decl_type(s, d)
+                scope_define(s, name, ft)
+            }
+            DExternType(nid, l, c, name, is_export): {
+                scope_define(s, name, TCNamed("", name, []))
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+    s.mod_scope_watermark = s.scope_count
+}
+
+
+// ---------------------------------------------------------------------------
+// infer_type_env_from_call — infer type variable bindings from call args
+// ---------------------------------------------------------------------------
+
+fn infer_type_env_from_call(s:TCState:mut, decl:ast.Decl, arg_types:array<TCTypeBox>):map<string, TCTypeBox> {
+    let env:map<string, TCTypeBox>:mut = map.new()
+    match decl {
+        DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+            let i:int:mut = 0
+            while(i < array.size(params) && i < array.size(arg_types)) {
+                let p = array.get_any(params, i) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                let param_t = resolve_type_expr(s, p.type_ann)
+                let arg_b = array.get_any(arg_types, i) ?? tc_box(TCAny())
+                match_type_env(param_t, arg_b.tc, env)
+                i = i + 1
+            }
+        }
+        DExternFn(nid, l, c, name, type_params, params, hrt, ret, is_export, c_name): {
+            let i:int:mut = 0
+            while(i < array.size(params) && i < array.size(arg_types)) {
+                let p = array.get_any(params, i) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                let param_t = resolve_type_expr(s, p.type_ann)
+                let arg_b = array.get_any(arg_types, i) ?? tc_box(TCAny())
+                match_type_env(param_t, arg_b.tc, env)
+                i = i + 1
+            }
+        }
+        _: {}
+    }
+    return env
+}
+
+fn match_type_env(param_t:TCType, arg_t:TCType, env:map<string, TCTypeBox>:mut) {
+    match param_t {
+        TCTypeVar(name): {
+            if(!map.has(env, name)) {
+                env = map.set(env, name, tc_box(arg_t))
+            }
+        }
+        TCOption(inner_p): {
+            match arg_t {
+                TCOption(inner_a): { match_type_env(inner_p, inner_a, env) }
+                _: { match_type_env(inner_p, arg_t, env) }
+            }
+        }
+        TCArray(ep): {
+            match arg_t {
+                TCArray(ea): { match_type_env(ep, ea, env) }
+                _: {}
+            }
+        }
+        TCStream(ep): {
+            match arg_t {
+                TCStream(ea): { match_type_env(ep, ea, env) }
+                _: {}
+            }
+        }
+        TCMap(kp, vp): {
+            match arg_t {
+                TCMap(ka, va): {
+                    match_type_env(kp, ka, env)
+                    match_type_env(vp, va, env)
+                }
+                _: {}
+            }
+        }
+        TCFn(pp, rp, ip, ivp): {
+            match arg_t {
+                TCFn(pa, ra, ia, iva): {
+                    let i:int:mut = 0
+                    while(i < array.size(pp) && i < array.size(pa)) {
+                        let ppb = array.get_any(pp, i) ?? tc_box(TCAny())
+                        let pab = array.get_any(pa, i) ?? tc_box(TCAny())
+                        match_type_env(ppb.tc, pab.tc, env)
+                        i = i + 1
+                    }
+                    match_type_env(rp, ra, env)
+                }
+                _: {}
+            }
+        }
+        TCNamed(mod_path_p, np, args_p): {
+            match arg_t {
+                TCNamed(mod_path_a, na, args_a): {
+                    if(np == na) {
+                        let i:int:mut = 0
+                        while(i < array.size(args_p) && i < array.size(args_a)) {
+                            let apb = array.get_any(args_p, i) ?? tc_box(TCAny())
+                            let aab = array.get_any(args_a, i) ?? tc_box(TCAny())
+                            match_type_env(apb.tc, aab.tc, env)
+                            i = i + 1
+                        }
+                    }
+                }
+                _: {}
+            }
+        }
+        _: {}
+    }
+}
+
+fn get_decl_type_param_names(decl:ast.Decl):array<string> {
+    let names:array<string>:mut = []
+    match decl {
+        DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+            let i:int:mut = 0
+            while(i < array.size(type_params)) {
+                let tp = array.get_any(type_params, i) ?? ast.TypeParam{name:"", bounds:[], id:0, line:0, col:0}
+                names = array.push(names, tp.name)
+                i = i + 1
+            }
+        }
+        DExternFn(nid, l, c, name, type_params, params, hrt, ret, is_export, c_name): {
+            let i:int:mut = 0
+            while(i < array.size(type_params)) {
+                let tp = array.get_any(type_params, i) ?? ast.TypeParam{name:"", bounds:[], id:0, line:0, col:0}
+                names = array.push(names, tp.name)
+                i = i + 1
+            }
+        }
+        _: {}
+    }
+    return names
+}
+
+fn decl_has_type_params(decl:ast.Decl):bool {
+    match decl {
+        DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+            return array.size(type_params) > 0
+        }
+        DExternFn(nid, l, c, name, type_params, params, hrt, ret, is_export, c_name): {
+            return array.size(type_params) > 0
+        }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lookup_method — get method TFn for a type
+// ---------------------------------------------------------------------------
+
+fn lookup_method(s:TCState:mut, recv_t:TCType, method_name:string):TCType {
+    match recv_t {
+        TCNamed(mod_path, name, type_args): {
+            let info_opt = map.get(s.type_registry, name)
+            match info_opt {
+                some(info): {
+                    return tc_map_get(info.method_types, method_name)
+                }
+                none: {}
+            }
+        }
+        _: {}
+    }
+    // Check builtin method sigs
+    let tname = type_name(recv_t)
+    let key = tname + "." + method_name
+    return tc_map_get(s.builtin_method_sigs, key)
+}
+
+fn lookup_field(s:TCState:mut, recv_t:TCType, field_name:string):TCType {
+    match recv_t {
+        TCNamed(mod_path, name, type_args): {
+            let info_opt = map.get(s.type_registry, name)
+            match info_opt {
+                some(info): {
+                    if(tc_map_has(info.field_types, field_name)) {
+                        return tc_map_get(info.field_types, field_name)
+                    }
+                    if(tc_map_has(info.static_types, field_name)) {
+                        return tc_map_get(info.static_types, field_name)
+                    }
+                }
+                none: {}
+            }
+        }
+        TCTuple(elements): {
+            // Numeric field access
+            let idx_opt = conv.string_to_int(field_name)
+            match idx_opt {
+                some(idx): {
+                    let eb = array.get_any(elements, idx) ?? tc_box(TCAny())
+                    return eb.tc
+                }
+                none: {}
+            }
+        }
+        TCRecord(field_names, field_types): {
+            let i:int:mut = 0
+            while(i < array.size(field_names)) {
+                let fn2 = array.get(field_names, i) ?? ""
+                if(fn2 == field_name) {
+                    let fb = array.get_any(field_types, i) ?? tc_box(TCAny())
+                    return fb.tc
+                }
+                i = i + 1
+            }
+        }
+        _: {}
+    }
+    return TCAny()
+}
+
+// ---------------------------------------------------------------------------
+// infer_expr — expression type inference
+// ---------------------------------------------------------------------------
+
+fn infer_expr(s:TCState:mut, e:ast.Expr):TCType {
+    let t = infer_expr_inner(s, e)
+    node_set_type(s, ast.expr_id(e), t)
+    return t
+}
+
+fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
+    match e {
+        EIntLit(nid, l, c, v, suffix): {
+            if(suffix == "i16") { return TCInt(16, true) }
+            if(suffix == "i32") { return TCInt(32, true) }
+            if(suffix == "i64") { return TCInt(64, true) }
+            if(suffix == "u16") { return TCInt(16, false) }
+            if(suffix == "u32") { return TCInt(32, false) }
+            if(suffix == "u64") { return TCInt(64, false) }
+            return TCInt(32, true)
+        }
+        EFloatLit(nid, l, c, v, suffix): {
+            if(suffix == "f32") { return TCFloat(32) }
+            return TCFloat(64)
+        }
+        EBoolLit(nid, l, c, v): { return TCBool() }
+        EStringLit(nid, l, c, v): { return TCString() }
+        ECharLit(nid, l, c, v): { return TCChar() }
+        ENoneLit(nid, l, c): { return TCOption(TCAny()) }
+        ENamedArg(nid, l, c, name, val): {
+            return infer_expr(s, val)
+        }
+        ESpread(nid, l, c, inner): {
+            return infer_expr(s, inner)
+        }
+        EIdent(nid, l, c, name, mp): {
+            if(array.size(mp) > 0) {
+                let ns = array.get(mp, 0) ?? ""
+                let t = scope_lookup(s, ns)
+                match t {
+                    TCAny: {
+                        // check mod scope
+                        return mod_scope_lookup(s, ns)
+                    }
+                    _: { return t }
+                }
+            }
+            let t = scope_lookup(s, name)
+            match t {
+                TCStream(elem): {
+                    check_stream_consumption(s, name, nid)
+                    return t
+                }
+                _: {}
+            }
+            // Check resolver for destructured imports
+            if(sym_has_by_id(s, nid)) {
+                let sym = sym_lookup_by_id(s, nid)
+                if(sym.kind == resolver.SymbolKind.SK_IMPORT) {
+                    let decl_opt = find_decl_by_id(s, sym.decl_id)
+                    match decl_opt {
+                        some(d): { return fn_decl_type(s, d) }
+                        none: {}
+                    }
+                }
+            }
+            return t
+        }
+        EBinOp(nid, l, c, op, left, right): {
+            let lt = infer_expr(s, left)
+            let rt = infer_expr(s, right)
+            if(op == "+" || op == "-" || op == "*" || op == "/" || op == "</" || op == "%" || op == "**") {
+                if(op == "+" ) {
+                    match lt {
+                        TCString: {
+                            if(is_showable(s, rt)) { return TCString() }
+                            match rt { TCString: { return TCString() } _: {} }
+                        }
+                        _: {}
+                    }
+                    match rt {
+                        TCString: {
+                            if(is_showable(s, lt)) { return TCString() }
+                        }
+                        _: {}
+                    }
+                }
+                return lt
+            }
+            if(op == "<" || op == ">" || op == "<=" || op == ">=" || op == "==" || op == "!=" || op == "===" || op == "&&" || op == "||") {
+                return TCBool()
+            }
+            return TCAny()
+        }
+        EUnaryOp(nid, l, c, op, operand): {
+            let ot = infer_expr(s, operand)
+            return ot
+        }
+        ECall(nid, l, c, callee, args): {
+            let callee_t = infer_expr(s, callee)
+            let arg_types:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            while(i < array.size(args)) {
+                let a = array.get_any(args, i) ?? ast.ENoneLit(0, 0, 0)
+                arg_types = array.push(arg_types, tc_box(infer_expr(s, a)))
+                i = i + 1
+            }
+            match callee_t {
+                TCFn(params, ret, is_pure, is_variadic): {
+                    // Check for generic return type
+                    let callee_id = ast.expr_id(callee)
+                    if(sym_has_by_id(s, callee_id)) {
+                        let sym = sym_lookup_by_id(s, callee_id)
+                        let decl_opt = find_decl_by_id(s, sym.decl_id)
+                        match decl_opt {
+                            some(d): {
+                                if(decl_has_type_params(d)) {
+                                    let env:map<string, TCTypeBox>:mut = infer_type_env_from_call(s, d, arg_types)
+                                    return apply_env(ret, env)
+                                }
+                            }
+                            none: {}
+                        }
+                    }
+                    return ret
+                }
+                _: { return TCAny() }
+            }
+        }
+        EMethodCall(nid, l, c, recv, method_name, args): {
+            // Check if resolver bound to namespace fn
+            if(sym_has_by_id(s, nid)) {
+                let sym = sym_lookup_by_id(s, nid)
+                if(sym.kind == resolver.SymbolKind.SK_FN || sym.kind == resolver.SymbolKind.SK_IMPORT) {
+                    infer_expr(s, recv)
+                    let arg_types:array<TCTypeBox>:mut = []
+                    let i:int:mut = 0
+                    while(i < array.size(args)) {
+                        let a = array.get_any(args, i) ?? ast.ENoneLit(0, 0, 0)
+                        arg_types = array.push(arg_types, tc_box(infer_expr(s, a)))
+                        i = i + 1
+                    }
+                    let decl_opt = find_decl_by_id(s, sym.decl_id)
+                    match decl_opt {
+                        some(d): {
+                            let ft = fn_decl_type(s, d)
+                            match ft {
+                                TCFn(params, ret, is_pure, is_variadic): {
+                                    if(decl_has_type_params(d)) {
+                                        let env:map<string, TCTypeBox>:mut = infer_type_env_from_call(s, d, arg_types)
+                                        return apply_env(ret, env)
+                                    }
+                                    return ret
+                                }
+                                _: { return TCAny() }
+                            }
+                        }
+                        none: {
+                            // extern fn
+                            let ext_opt = find_extern_decl_by_id(s, sym.decl_id)
+                            match ext_opt {
+                                some(d): {
+                                    let ft = extern_fn_decl_type(s, d)
+                                    match ft {
+                                        TCFn(params, ret, is_pure, is_variadic): {
+                                            if(decl_has_type_params(d)) {
+                                                let env:map<string, TCTypeBox>:mut = infer_type_env_from_call(s, d, arg_types)
+                                                return apply_env(ret, env)
+                                            }
+                                            return ret
+                                        }
+                                        _: { return TCAny() }
+                                    }
+                                }
+                                none: { return TCAny() }
+                            }
+                        }
+                    }
+                }
+            }
+
+            let recv_t:TCType:mut = infer_expr(s, recv)
+            let arg_types2:array<TCTypeBox>:mut = []
+            let ai:int:mut = 0
+            while(ai < array.size(args)) {
+                let a = array.get_any(args, ai) ?? ast.ENoneLit(0, 0, 0)
+                arg_types2 = array.push(arg_types2, tc_box(infer_expr(s, a)))
+                ai = ai + 1
+            }
+
+            // Coroutine methods
+            match recv_t {
+                TCCoroutine(yield_type, send_type): {
+                    if(method_name == "next" || method_name == "poll") { return TCOption(yield_type) }
+                    if(method_name == "done") { return TCBool() }
+                    if(method_name == "send") { return TCNone() }
+                    if(method_name == "stop" || method_name == "kill") { return TCNone() }
+                    return TCAny()
+                }
+                TCStream(elem): {
+                    if(method_name == "take" || method_name == "skip" || method_name == "filter") { return recv_t }
+                    if(method_name == "map") {
+                        if(array.size(arg_types2) > 0) {
+                            let ab = array.get_any(arg_types2, 0) ?? tc_box(TCAny())
+                            match ab.tc {
+                                TCFn(params, ret, is_pure, is_variadic): { return TCStream(ret) }
+                                _: {}
+                            }
+                        }
+                        return recv_t
+                    }
+                    if(method_name == "collect") { return TCArray(elem) }
+                    if(method_name == "count") { return TCInt(32, true) }
+                    if(method_name == "first") { return TCOption(elem) }
+                    if(method_name == "fold") {
+                        if(array.size(arg_types2) > 0) {
+                            return (array.get_any(arg_types2, 0) ?? tc_box(TCAny())).tc
+                        }
+                        return TCAny()
+                    }
+                    if(method_name == "any" || method_name == "all") { return TCBool() }
+                    return TCAny()
+                }
+                _: {}
+            }
+
+            // User-defined methods
+            let m:TCType:mut = lookup_method(s, recv_t, method_name)
+            match m {
+                TCFn(params, ret, is_pure, is_variadic): {
+                    return ret
+                }
+                _: {}
+            }
+
+            return TCAny()
+        }
+        EFieldAccess(nid, l, c, recv, field_name): {
+            // Check for static member access
+            if(sym_has_by_id(s, nid)) {
+                let sym = sym_lookup_by_id(s, nid)
+                if(sym.kind == resolver.SymbolKind.SK_STATIC) {
+                    let recv_t2 = infer_expr(s, recv)
+                    return lookup_field(s, recv_t2, field_name)
+                }
+            }
+            let recv_t:TCType:mut = infer_expr(s, recv)
+            return lookup_field(s, recv_t, field_name)
+        }
+        EIndexAccess(nid, l, c, recv, idx): {
+            infer_expr(s, idx)
+            let recv_t:TCType:mut = infer_expr(s, recv)
+            match recv_t {
+                TCArray(elem): { return TCOption(elem) }
+                TCStream(elem): { return TCOption(elem) }
+                TCMap(key, val): { return TCOption(val) }
+                TCString: { return TCOption(TCChar()) }
+                _: { return TCAny() }
+            }
+        }
+        ELambda(nid, l, c, params, body): {
+            let param_types:array<TCTypeBox>:mut = []
+            scope_push_frame(s)
+            let i:int:mut = 0
+            while(i < array.size(params)) {
+                let p = array.get_any(params, i) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                let pt = resolve_type_expr(s, p.type_ann)
+                scope_define(s, p.name, pt)
+                param_types = array.push(param_types, tc_box(pt))
+                i = i + 1
+            }
+            let ret_t = infer_expr(s, body)
+            scope_pop_frame(s)
+            return TCFn(param_types, ret_t, false, false)
+        }
+        ETupleExpr(nid, l, c, elems): {
+            let elem_types:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            while(i < array.size(elems)) {
+                let elem = array.get_any(elems, i) ?? ast.ENoneLit(0,0,0)
+                elem_types = array.push(elem_types, tc_box(infer_expr(s, elem)))
+                i = i + 1
+            }
+            return TCTuple(elem_types)
+        }
+        EArrayLit(nid, l, c, elems): {
+            if(array.size(elems) == 0) { return TCArray(TCAny()) }
+            let first = array.get_any(elems, 0) ?? ast.ENoneLit(0,0,0)
+            let elem_t:TCType:mut = infer_expr(s, first)
+            let i:int:mut = 1
+            while(i < array.size(elems)) {
+                let e = array.get_any(elems, i) ?? ast.ENoneLit(0,0,0)
+                infer_expr(s, e)
+                i = i + 1
+            }
+            return TCArray(elem_t)
+        }
+        ERecordLit(nid, l, c, fields): {
+            let fn2s:array<string>:mut = []
+            let ftypes:array<TCTypeBox>:mut = []
+            let i:int:mut = 0
+            while(i < array.size(fields)) {
+                let f = array.get_any(fields, i) ?? ast.ExprField{name:"", value:ast.ENoneLit(0,0,0)}
+                let ft = infer_expr(s, f.value)
+                fn2s = array.push(fn2s, f.name)
+                ftypes = array.push(ftypes, tc_box(ft))
+                i = i + 1
+            }
+            return TCRecord(fn2s, ftypes)
+        }
+        ETypeLit(nid, l, c, type_name_str, fields, has_spread, spread_expr): {
+            // Struct construction — return TNamed
+            let info_opt = map.get(s.type_registry, type_name_str)
+            let i:int:mut = 0
+            while(i < array.size(fields)) {
+                let f = array.get_any(fields, i) ?? ast.ExprField{name:"", value:ast.ENoneLit(0,0,0)}
+                infer_expr(s, f.value)
+                i = i + 1
+            }
+            if(has_spread) { infer_expr(s, spread_expr) }
+            match info_opt {
+                some(info): {
+                    if(info.is_sum_type && info.has_sum_type) { return info.sum_type_box.tc }
+                    return TCNamed(info.module_path, type_name_str, [])
+                }
+                none: { return TCNamed("", type_name_str, []) }
+            }
+        }
+        EIfExpr(nid, l, c, cond, then_stmts, else_stmts): {
+            infer_expr(s, cond)
+            check_block(s, then_stmts)
+            check_block(s, else_stmts)
+            return TCAny()
+        }
+        EMatchExpr(nid, l, c, subj, arms): {
+            let subj_t = infer_expr(s, subj)
+            let result_t:TCType:mut = TCAny()
+            let i:int:mut = 0
+            while(i < array.size(arms)) {
+                let arm = array.get_any(arms, i) ?? ast.MatchArm{pattern:ast.PWildcard(0,0,0), body_stmts:[], id:0, line:0, col:0}
+                scope_push_frame(s)
+                bind_pattern_types(s, arm.pattern, subj_t)
+                let j:int:mut = 0
+                while(j < array.size(arm.body_stmts)) {
+                    let stmt = array.get_any(arm.body_stmts, j) ?? ast.SBreak(0,0,0)
+                    check_stmt(s, stmt)
+                    j = j + 1
+                }
+                scope_pop_frame(s)
+                i = i + 1
+            }
+            return result_t
+        }
+        ETernary(nid, l, c, cond, then_e, else_e): {
+            infer_expr(s, cond)
+            let tt = infer_expr(s, then_e)
+            infer_expr(s, else_e)
+            return tt
+        }
+        ECopy(nid, l, c, inner): {
+            return infer_expr(s, inner)
+        }
+        ERef(nid, l, c, inner): {
+            return infer_expr(s, inner)
+        }
+        ESome(nid, l, c, inner): {
+            let it = infer_expr(s, inner)
+            return TCOption(it)
+        }
+        EOk(nid, l, c, inner): {
+            let it = infer_expr(s, inner)
+            return TCResult(it, TCAny())
+        }
+        EErr(nid, l, c, inner): {
+            let it = infer_expr(s, inner)
+            return TCResult(TCAny(), it)
+        }
+        EPropagate(nid, l, c, inner): {
+            let it = infer_expr(s, inner)
+            match it {
+                TCOption(inner_t): { return inner_t }
+                TCResult(ok_t, err_t): { return ok_t }
+                _: { return it }
+            }
+        }
+        ENullCoalesce(nid, l, c, left, right): {
+            let lt = infer_expr(s, left)
+            infer_expr(s, right)
+            match lt {
+                TCOption(inner): { return inner }
+                _: { return lt }
+            }
+        }
+        ETypeof(nid, l, c, inner): {
+            infer_expr(s, inner)
+            return TCString()
+        }
+        ECast(nid, l, c, inner, target_id): {
+            infer_expr(s, inner)
+            // target_id is index into ParseResult.cast_targets
+            // We can't easily recover the type here, return TCAny
+            return TCAny()
+        }
+        ECoerce(nid, l, c, inner): {
+            return infer_expr(s, inner)
+        }
+        EFString(nid, l, c, parts): {
+            let i:int:mut = 0
+            while(i < array.size(parts)) {
+                let p = array.get_any(parts, i) ?? ast.FPText("")
+                if(ast.fsp_is_expr(p)) {
+                    infer_expr(s, ast.fsp_get_expr(p))
+                }
+                i = i + 1
+            }
+            return TCString()
+        }
+        ECompositionChain(nid, l, c, elems): {
+            return infer_chain(s, elems, nid)
+        }
+        EFanOut(nid, l, c, branches, is_parallel): {
+            let i:int:mut = 0
+            while(i < array.size(branches)) {
+                let br = array.get_any(branches, i) ?? ast.ChainElement{expr:ast.ENoneLit(0,0,0), id:0, line:0, col:0}
+                infer_expr(s, br.expr)
+                i = i + 1
+            }
+            return TCAny()
+        }
+        ECoroutineStart(nid, l, c, call): {
+            let call_t = infer_expr(s, call)
+            match call_t {
+                TCStream(elem): {
+                    return TCCoroutine(elem, TCAny())
+                }
+                _: { return TCAny() }
+            }
+        }
+        ECoroutinePipeline(nid, l, c, stages): {
+            let i:int:mut = 0
+            let last_t:TCType:mut = TCAny()
+            while(i < array.size(stages)) {
+                let stage = array.get_any(stages, i) ?? ast.PipelineStage{call:ast.ENoneLit(0,0,0), has_pool_size:false, pool_size:ast.ENoneLit(0,0,0), id:0, line:0, col:0}
+                let stage_t = infer_expr(s, stage.call)
+                last_t = stage_t
+                i = i + 1
+            }
+            match last_t {
+                TCStream(elem): { return TCCoroutine(elem, TCAny()) }
+                _: { return TCAny() }
+            }
+        }
+    }
+}
+
+fn infer_chain(s:TCState:mut, elems:array<ast.ChainElement>, chain_id:int):TCType {
+    if(array.size(elems) == 0) { return TCNone() }
+    let stack:array<TCTypeBox>:mut = []
+    let i:int:mut = 0
+    while(i < array.size(elems)) {
+        let elem = array.get_any(elems, i) ?? ast.ChainElement{expr:ast.ENoneLit(0,0,0), id:0, line:0, col:0}
+        let et:TCType:mut = infer_expr(s, elem.expr)
+        match et {
+            TCFn(params, ret, is_pure, is_variadic): {
+                let arity = array.size(params)
+                if(arity == 0) {
+                    stack = array.push(stack, tc_box(ret))
+                } else if(array.size(stack) >= arity) {
+                    // Pop arity items, push result
+                    let new_len = array.size(stack) - arity
+                    stack = array.slice(stack, 0, new_len)
+                    stack = array.push(stack, tc_box(ret))
+                } else {
+                    stack = array.push(stack, tc_box(ret))
+                }
+            }
+            TCTuple(elements): {
+                let j:int:mut = 0
+                while(j < array.size(elements)) {
+                    let eb = array.get_any(elements, j) ?? tc_box(TCAny())
+                    stack = array.push(stack, eb)
+                    j = j + 1
+                }
+            }
+            _: {
+                stack = array.push(stack, tc_box(et))
+            }
+        }
+        i = i + 1
+    }
+    let last = array.get_any(stack, array.size(stack) - 1) ?? tc_box(TCNone())
+    return last.tc
+}
+
+// ---------------------------------------------------------------------------
+// check_stmt — statement type checking
+// ---------------------------------------------------------------------------
+
+fn check_stmt(s:TCState:mut, stmt:ast.Stmt) {
+    match stmt {
+        SLet(nid, l, c, name, has_type_ann, type_ann, val_expr): {
+            let val_t:TCType:mut = infer_expr(s, val_expr)
+            if(has_type_ann) {
+                let expected = resolve_type_expr(s, type_ann)
+                // none -> ptr (null pointer)
+                match expected {
+                    TCPtr: {
+                        match val_expr {
+                            ENoneLit(en, el, ec): { val_t = TCPtr() }
+                            _: {}
+                        }
+                    }
+                    TCOption(inner): {
+                        // auto-lift T to option<T>
+                        match val_t {
+                            TCOption(vi): {}
+                            TCAny: {}
+                            _: {
+                                if(is_assignable(val_t, inner)) {
+                                    val_t = TCOption(val_t)
+                                }
+                            }
+                        }
+                    }
+                    _: {}
+                }
+                scope_define(s, name, expected)
+            } else {
+                scope_define(s, name, val_t)
+            }
+        }
+        SAssign(nid, l, c, target, val_expr): {
+            infer_expr(s, val_expr)
+            infer_expr(s, target)
+        }
+        SUpdate(nid, l, c, target, op, has_val, val_expr): {
+            infer_expr(s, target)
+            if(has_val) { infer_expr(s, val_expr) }
+        }
+        SReturn(nid, l, c, has_val, val_expr): {
+            if(has_val) {
+                let val_t:TCType:mut = infer_expr(s, val_expr)
+                if(s.has_return_type) {
+                    let expected = s.current_return_type
+                    match expected {
+                        TCPtr: {
+                            match val_expr {
+                                ENoneLit(en, el, ec): {}
+                                _: {}
+                            }
+                        }
+                        TCOption(inner): {
+                            // allow auto-lift
+                        }
+                        _: {}
+                    }
+                }
+            }
+        }
+        SYield(nid, l, c, val_expr): {
+            infer_expr(s, val_expr)
+        }
+        SThrow(nid, l, c, exc_expr): {
+            infer_expr(s, exc_expr)
+        }
+        SBreak(nid, l, c): {}
+        SContinue(nid, l, c): {}
+        SExpr(nid, l, c, ex): {
+            infer_expr(s, ex)
+        }
+        SIf(nid, l, c, cond, then_b, has_else, else_b): {
+            infer_expr(s, cond)
+            check_block(s, then_b)
+            if(has_else) { check_block(s, else_b) }
+        }
+        SWhile(nid, l, c, cond, body, has_finally, finally_b): {
+            infer_expr(s, cond)
+            check_block(s, body)
+            if(has_finally) { check_block(s, finally_b) }
+        }
+        SFor(nid, l, c, var_name, has_var_type, var_type, iterable, body, has_finally, finally_b): {
+            let iter_t = infer_expr(s, iterable)
+            let elem_t:TCType:mut = TCAny()
+            match iter_t {
+                TCStream(elem): { elem_t = elem }
+                TCArray(elem): { elem_t = elem }
+                _: {}
+            }
+            scope_push_frame(s)
+            if(has_var_type) {
+                elem_t = resolve_type_expr(s, var_type)
+            }
+            scope_define(s, var_name, elem_t)
+            check_block(s, body)
+            scope_pop_frame(s)
+            if(has_finally) { check_block(s, finally_b) }
+        }
+        SMatch(nid, l, c, subj, arms): {
+            let subj_t = infer_expr(s, subj)
+            check_exhaustiveness(s, subj_t, arms, l, c)
+            let i:int:mut = 0
+            while(i < array.size(arms)) {
+                let arm = array.get_any(arms, i) ?? ast.MatchArm{pattern:ast.PWildcard(0,0,0), body_stmts:[], id:0, line:0, col:0}
+                scope_push_frame(s)
+                bind_pattern_types(s, arm.pattern, subj_t)
+                let j:int:mut = 0
+                while(j < array.size(arm.body_stmts)) {
+                    let bs = array.get_any(arm.body_stmts, j) ?? ast.SBreak(0,0,0)
+                    check_stmt(s, bs)
+                    j = j + 1
+                }
+                scope_pop_frame(s)
+                i = i + 1
+            }
+        }
+        STry(nid, l, c, body, retry_blocks, catches, has_finally, finally_b): {
+            check_block(s, body)
+            let ri:int:mut = 0
+            while(ri < array.size(retry_blocks)) {
+                let rb = array.get_any(retry_blocks, ri) ?? ast.RetryBlock{target_fn:"", exception_var:"", exception_type:ast.TNamedType(0,0,0,"any",[]), has_attempts:false, attempts:ast.ENoneLit(0,0,0), body:[], id:0, line:0, col:0}
+                scope_push_frame(s)
+                let exc_t = resolve_type_expr(s, rb.exception_type)
+                scope_define(s, rb.exception_var, exc_t)
+                check_block(s, rb.body)
+                scope_pop_frame(s)
+                ri = ri + 1
+            }
+            let ci:int:mut = 0
+            while(ci < array.size(catches)) {
+                let cb = array.get_any(catches, ci) ?? ast.CatchClause{exception_var:"", exception_type:ast.TNamedType(0,0,0,"any",[]), body:[], id:0, line:0, col:0}
+                scope_push_frame(s)
+                let exc_t = resolve_type_expr(s, cb.exception_type)
+                scope_define(s, cb.exception_var, exc_t)
+                check_block(s, cb.body)
+                scope_pop_frame(s)
+                ci = ci + 1
+            }
+            if(has_finally) { check_block(s, finally_b) }
+        }
+    }
+}
+
+fn check_block(s:TCState:mut, stmts:array<ast.Stmt>) {
+    scope_push_frame(s)
+    let i:int:mut = 0
+    while(i < array.size(stmts)) {
+        let stmt = array.get_any(stmts, i) ?? ast.SBreak(0,0,0)
+        check_stmt(s, stmt)
+        i = i + 1
+    }
+    scope_pop_frame(s)
+}
+
+// ---------------------------------------------------------------------------
+// Pattern type binding
+// ---------------------------------------------------------------------------
+
+fn bind_pattern_types(s:TCState:mut, pat:ast.Pattern, subj_t:TCType) {
+    match pat {
+        PWildcard(nid, l, c): {}
+        PLiteral(nid, l, c, vid): {}
+        PBind(nid, l, c, name): {
+            scope_define(s, name, subj_t)
+        }
+        PSome(nid, l, c, inner_var): {
+            let inner_t:TCType:mut = subj_t
+            match subj_t {
+                TCOption(it): { inner_t = it }
+                _: {}
+            }
+            scope_define(s, inner_var, inner_t)
+        }
+        PNone(nid, l, c): {}
+        POk(nid, l, c, inner_var): {
+            let ok_t:TCType:mut = TCAny()
+            match subj_t {
+                TCResult(ot, et): { ok_t = ot }
+                _: {}
+            }
+            scope_define(s, inner_var, ok_t)
+        }
+        PErr(nid, l, c, inner_var): {
+            let err_t:TCType:mut = TCAny()
+            match subj_t {
+                TCResult(ot, et): { err_t = et }
+                _: {}
+            }
+            scope_define(s, inner_var, err_t)
+        }
+        PVariant(nid, l, c, variant_name, bindings): {
+            match subj_t {
+                TCSumType(sname, smod_path, svariants): {
+                    let vi:int:mut = 0
+                    let found:bool:mut = false
+                    while(vi < array.size(svariants) && !found) {
+                        let v = array.get_any(svariants, vi) ?? make_sum_variant("")
+                        if(v.name == variant_name && v.has_fields) {
+                            let bi:int:mut = 0
+                            while(bi < array.size(bindings)) {
+                                let bname = array.get(bindings, bi) ?? ""
+                                let field_t:TCType:mut = TCAny()
+                                if(bi < array.size(v.field_types_box)) {
+                                    let fb = array.get_any(v.field_types_box, bi) ?? tc_box(TCAny())
+                                    field_t = fb.tc
+                                }
+                                scope_define(s, bname, field_t)
+                                bi = bi + 1
+                            }
+                            found = true
+                        }
+                        vi = vi + 1
+                    }
+                    if(!found) {
+                        let bi:int:mut = 0
+                        while(bi < array.size(bindings)) {
+                            let bname = array.get(bindings, bi) ?? ""
+                            scope_define(s, bname, TCAny())
+                            bi = bi + 1
+                        }
+                    }
+                }
+                _: {
+                    let bi:int:mut = 0
+                    while(bi < array.size(bindings)) {
+                        let bname = array.get(bindings, bi) ?? ""
+                        scope_define(s, bname, TCAny())
+                        bi = bi + 1
+                    }
+                }
+            }
+        }
+        PTuple(nid, l, c, elements): {
+            match subj_t {
+                TCTuple(elem_types): {
+                    let i:int:mut = 0
+                    while(i < array.size(elements)) {
+                        let ep = array.get_any(elements, i) ?? ast.PWildcard(0,0,0)
+                        let et:TCType:mut = TCAny()
+                        if(i < array.size(elem_types)) {
+                            let eb = array.get_any(elem_types, i) ?? tc_box(TCAny())
+                            et = eb.tc
+                        }
+                        bind_pattern_types(s, ep, et)
+                        i = i + 1
+                    }
+                }
+                _: {
+                    let i:int:mut = 0
+                    while(i < array.size(elements)) {
+                        let ep = array.get_any(elements, i) ?? ast.PWildcard(0,0,0)
+                        bind_pattern_types(s, ep, TCAny())
+                        i = i + 1
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Exhaustiveness checking
+// ---------------------------------------------------------------------------
+
+fn check_exhaustiveness(s:TCState:mut, subj_t:TCType, arms:array<ast.MatchArm>, line:int, col:int) {
+    // Check for wildcard/bind pattern
+    let i:int:mut = 0
+    while(i < array.size(arms)) {
+        let arm = array.get_any(arms, i) ?? ast.MatchArm{pattern:ast.PWildcard(0,0,0), body_stmts:[], id:0, line:0, col:0}
+        match arm.pattern {
+            PWildcard(nid, l, c): { return }
+            PBind(nid, l, c, name): { return }
+            _: {}
+        }
+        i = i + 1
+    }
+
+    match subj_t {
+        TCSumType(sname, smod_path, svariants): {
+            // Check all variants covered
+            let vi:int:mut = 0
+            while(vi < array.size(svariants)) {
+                let v = array.get_any(svariants, vi) ?? make_sum_variant("")
+                let covered:bool:mut = false
+                let ai:int:mut = 0
+                while(ai < array.size(arms)) {
+                    let arm = array.get_any(arms, ai) ?? ast.MatchArm{pattern:ast.PWildcard(0,0,0), body_stmts:[], id:0, line:0, col:0}
+                    match arm.pattern {
+                        PVariant(nid, al, ac, vname, bindings): {
+                            if(vname == v.name) { covered = true }
+                        }
+                        _: {}
+                    }
+                    ai = ai + 1
+                }
+                if(!covered) {
+                    throw errors.type_error("match on " + sname + " is not exhaustive: missing variant " + v.name, s.filename, line, col)
+                }
+                vi = vi + 1
+            }
+        }
+        TCOption(inner): {
+            let has_some:bool:mut = false
+            let has_none:bool:mut = false
+            let i:int:mut = 0
+            while(i < array.size(arms)) {
+                let arm = array.get_any(arms, i) ?? ast.MatchArm{pattern:ast.PWildcard(0,0,0), body_stmts:[], id:0, line:0, col:0}
+                match arm.pattern {
+                    PSome(nid, l, c, iv): { has_some = true }
+                    PNone(nid, l, c): { has_none = true }
+                    _: {}
+                }
+                i = i + 1
+            }
+            if(!has_some || !has_none) {
+                throw errors.type_error("match on option is not exhaustive", s.filename, line, col)
+            }
+        }
+        TCResult(ok_t, err_t): {
+            let has_ok:bool:mut = false
+            let has_err:bool:mut = false
+            let i:int:mut = 0
+            while(i < array.size(arms)) {
+                let arm = array.get_any(arms, i) ?? ast.MatchArm{pattern:ast.PWildcard(0,0,0), body_stmts:[], id:0, line:0, col:0}
+                match arm.pattern {
+                    POk(nid, l, c, iv): { has_ok = true }
+                    PErr(nid, l, c, iv): { has_err = true }
+                    _: {}
+                }
+                i = i + 1
+            }
+            if(!has_ok || !has_err) {
+                throw errors.type_error("match on result is not exhaustive", s.filename, line, col)
+            }
+        }
+        _: {}
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Stream consumption tracking
+// ---------------------------------------------------------------------------
+
+fn check_stream_consumption(s:TCState:mut, name:string, node_id:int) {
+    let i:int:mut = 0
+    while(i < array.size(s.consumed_stream_names)) {
+        let n = array.get(s.consumed_stream_names, i) ?? ""
+        if(n == name) {
+            throw errors.type_error("stream '" + name + "' has already been consumed", s.filename, 0, 0)
+        }
+        i = i + 1
+    }
+    s.consumed_stream_names = array.push(s.consumed_stream_names, name)
+}
+
+// ---------------------------------------------------------------------------
+// check_all_bodies
+// ---------------------------------------------------------------------------
+
+fn check_all_bodies(s:TCState:mut) {
+    let i:int:mut = 0
+    let decls = s.src_module.decls
+    while(i < array.size(decls)) {
+        let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
+        match d {
+            DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+                check_fn_body(s, d)
+            }
+            DType(nid, l, c, name, type_params, fields, methods, ctors, statics, ifaces, is_export, is_sum_type, variants, is_mut): {
+                check_type_decl_bodies(s, d)
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+}
+
+fn check_fn_body(s:TCState:mut, decl:ast.Decl) {
+    match decl {
+        DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+            if(array.size(body) == 0 && !hf) { return }
+            // Push scope for function params
+            let saved_scope = s.scope_count
+            s.scope_count = s.mod_scope_watermark
+
+            // Register type params temporarily
+            let ti:int:mut = 0
+            while(ti < array.size(type_params)) {
+                let tp = array.get_any(type_params, ti) ?? ast.TypeParam{name:"", bounds:[], id:0, line:0, col:0}
+                scope_define(s, tp.name, TCTypeVar(tp.name))
+                ti = ti + 1
+            }
+
+            // Register params
+            let pi:int:mut = 0
+            while(pi < array.size(params)) {
+                let p = array.get_any(params, pi) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                if(p.name != "self") {
+                    let pt = resolve_type_expr(s, p.type_ann)
+                    if(p.is_variadic) {
+                        scope_define(s, p.name, TCArray(pt))
+                    } else {
+                        scope_define(s, p.name, pt)
+                    }
+                }
+                pi = pi + 1
+            }
+
+            let ret_t = resolve_type_expr_opt(s, hrt, ret)
+            let old_ret = s.current_return_type
+            let old_has_ret = s.has_return_type
+            let old_pure = s.in_pure_fn
+            let old_fn_id = s.current_fn_id
+            s.current_return_type = ret_t
+            s.has_return_type = true
+            s.in_pure_fn = is_pure
+            s.current_fn_id = nid
+            // Clear stream consumption for this function
+            s.consumed_stream_names = []
+
+            check_block(s, body)
+            if(hf) { check_block(s, fb) }
+
+            s.current_return_type = old_ret
+            s.has_return_type = old_has_ret
+            s.in_pure_fn = old_pure
+            s.current_fn_id = old_fn_id
+            s.scope_count = s.mod_scope_watermark
+        }
+        _: {}
+    }
+}
+
+fn check_type_decl_bodies(s:TCState:mut, decl:ast.Decl) {
+    match decl {
+        DType(nid, l, c, name, type_params, fields, methods, ctors, statics, ifaces, is_export, is_sum_type, variants, is_mut): {
+            // Check static member initializers
+            let si:int:mut = 0
+            while(si < array.size(statics)) {
+                let sm = array.get_any(statics, si) ?? ast.DModule(0,0,0,[])
+                match sm {
+                    DStaticMember(snid, sl, sc, sname, type_ann, smut, hv, val): {
+                        if(hv) { infer_expr(s, val) }
+                    }
+                    _: {}
+                }
+                si = si + 1
+            }
+            // Check method bodies
+            let mi:int:mut = 0
+            while(mi < array.size(methods)) {
+                let m:ast.Decl:mut = array.get_any(methods, mi) ?? ast.DModule(0,0,0,[])
+                check_method_body(s, m, name)
+                mi = mi + 1
+            }
+            // Check constructor bodies
+            let ci:int:mut = 0
+            while(ci < array.size(ctors)) {
+                let ctor = array.get_any(ctors, ci) ?? ast.DModule(0,0,0,[])
+                check_ctor_body(s, ctor, name)
+                ci = ci + 1
+            }
+        }
+        _: {}
+    }
+}
+
+fn check_method_body(s:TCState:mut, decl:ast.Decl, type_name_str:string) {
+    match decl {
+        DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+            if(array.size(body) == 0 && !hf) { return }
+            s.scope_count = s.mod_scope_watermark
+            // self param
+            scope_define(s, "self", TCNamed("", type_name_str, []))
+            let pi:int:mut = 0
+            while(pi < array.size(params)) {
+                let p = array.get_any(params, pi) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                if(p.name != "self") {
+                    scope_define(s, p.name, resolve_type_expr(s, p.type_ann))
+                }
+                pi = pi + 1
+            }
+            let ret_t = resolve_type_expr_opt(s, hrt, ret)
+            let old_ret = s.current_return_type
+            let old_has_ret = s.has_return_type
+            let old_pure = s.in_pure_fn
+            s.current_return_type = ret_t
+            s.has_return_type = true
+            s.in_pure_fn = is_pure
+            s.consumed_stream_names = []
+            check_block(s, body)
+            if(hf) { check_block(s, fb) }
+            s.current_return_type = old_ret
+            s.has_return_type = old_has_ret
+            s.in_pure_fn = old_pure
+            s.scope_count = s.mod_scope_watermark
+        }
+        _: {}
+    }
+}
+
+fn check_ctor_body(s:TCState:mut, decl:ast.Decl, type_name_str:string) {
+    match decl {
+        DConstructor(nid, l, c, name, params, ret, body): {
+            s.scope_count = s.mod_scope_watermark
+            scope_define(s, "self", TCNamed("", type_name_str, []))
+            let pi:int:mut = 0
+            while(pi < array.size(params)) {
+                let p = array.get_any(params, pi) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
+                if(p.name != "self") {
+                    scope_define(s, p.name, resolve_type_expr(s, p.type_ann))
+                }
+                pi = pi + 1
+            }
+            let old_ret = s.current_return_type
+            let old_has_ret = s.has_return_type
+            s.current_return_type = TCNamed("", type_name_str, [])
+            s.has_return_type = true
+            check_block(s, body)
+            s.current_return_type = old_ret
+            s.has_return_type = old_has_ret
+            s.scope_count = s.mod_scope_watermark
+        }
+        _: {}
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Decl lookup helpers
+// ---------------------------------------------------------------------------
+
+fn find_decl_by_id(s:TCState:mut, decl_id:int):option<ast.Decl> {
+    // Search current module
+    let i:int:mut = 0
+    let decls = s.src_module.decls
+    while(i < array.size(decls)) {
+        let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
+        if(ast.decl_id(d) == decl_id) { return some(d) }
+        // Also search methods/constructors within type decls
+        match d {
+            DType(nid, l, c, name, tp, fields, methods, ctors, statics, ifaces, ie, ist, v, im): {
+                let mi:int:mut = 0
+                while(mi < array.size(methods)) {
+                    let m:ast.Decl:mut = array.get_any(methods, mi) ?? ast.DModule(0,0,0,[])
+                    if(ast.decl_id(m) == decl_id) { return some(m) }
+                    mi = mi + 1
+                }
+                let ci:int:mut = 0
+                while(ci < array.size(ctors)) {
+                    let ct = array.get_any(ctors, ci) ?? ast.DModule(0,0,0,[])
+                    if(ast.decl_id(ct) == decl_id) { return some(ct) }
+                    ci = ci + 1
+                }
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+    // Search imported modules
+    let mod_keys = map.keys(s.imported_module_decls)
+    let ki:int:mut = 0
+    while(ki < array.size(mod_keys)) {
+        let mk = array.get(mod_keys, ki) ?? ""
+        let mod_opt = map.get(s.imported_module_decls, mk)
+        match mod_opt {
+            some(mod): {
+                let j:int:mut = 0
+                while(j < array.size(mod.decls)) {
+                    let d = array.get_any(mod.decls, j) ?? ast.DModule(0,0,0,[])
+                    if(ast.decl_id(d) == decl_id) { return some(d) }
+                    j = j + 1
+                }
+            }
+            none: {}
+        }
+        ki = ki + 1
+    }
+    return none
+}
+
+fn find_extern_decl_by_id(s:TCState:mut, decl_id:int):option<ast.Decl> {
+    let i:int:mut = 0
+    let decls = s.src_module.decls
+    while(i < array.size(decls)) {
+        let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
+        match d {
+            DExternFn(nid, l, c, name, tp, params, hrt, ret, ie, cn): {
+                if(nid == decl_id) { return some(d) }
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+    // Search imported modules
+    let mod_keys = map.keys(s.imported_module_decls)
+    let ki:int:mut = 0
+    while(ki < array.size(mod_keys)) {
+        let mk = array.get(mod_keys, ki) ?? ""
+        let mod_opt = map.get(s.imported_module_decls, mk)
+        match mod_opt {
+            some(mod): {
+                let j:int:mut = 0
+                while(j < array.size(mod.decls)) {
+                    let d = array.get_any(mod.decls, j) ?? ast.DModule(0,0,0,[])
+                    match d {
+                        DExternFn(nid, l, c, name, tp, params, hrt, ret, ie, cn): {
+                            if(nid == decl_id) { return some(d) }
+                        }
+                        _: {}
+                    }
+                    j = j + 1
+                }
+            }
+            none: {}
+        }
+        ki = ki + 1
+    }
+    return none
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+export fn typecheck(
+    resolved:resolver.ResolvedModule,
+    imported_modules:map<string, resolver.ModuleScope>,
+    imported_module_decls:map<string, ast.Module>
+):TypedModule {
+    let s:TCState:mut = make_state(
+        resolved.src_module,
+        resolved.src_module.filename,
+        resolved,
+        imported_modules,
+        imported_module_decls
+    )
+
+    register_builtin_interfaces(s)
+    register_builtin_fulfillments(s)
+    register_builtin_method_sigs(s)
+    collect_extern_types(s)
+    build_type_registry(s)
+    register_imported_types(s)
+    build_interface_registry(s)
+    register_top_level_types(s)
+    check_all_bodies(s)
+
+    return TypedModule{
+        src_module:s.src_module,
+        resolved:resolved,
+        node_types:s.node_types,
+        warnings:s.warnings,
+        capacity_node_ids:s.capacity_node_ids,
+        capacity_expr_ids:s.capacity_expr_ids
+    }
+}
