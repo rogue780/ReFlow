@@ -1550,6 +1550,14 @@ class Lowerer:
             resolved_sum = self._resolve_tvar_to_sum(subj_type.name)
             if resolved_sum is not None:
                 subj_type = resolved_sum
+        # Resolve TSum with empty variants (recursive cycle sentinel).
+        # The typechecker uses TSum(name, ()) to break recursive cycles
+        # in sum type definitions. Resolve to the full TSum from the
+        # module declarations so match arms can find their variant tags.
+        if isinstance(subj_type, TSum) and len(subj_type.variants) == 0:
+            resolved_sum = self._resolve_tvar_to_sum(subj_type.name)
+            if resolved_sum is not None:
+                subj_type = resolved_sum
         subj_expr = self._lower_expr(stmt.subject)
 
         # Store subject in a temp to avoid re-evaluation
@@ -4562,6 +4570,15 @@ class Lowerer:
             LVarDecl(c_name=result_tmp, c_type=result_lt, init=None))
 
         subj_type = self._type_of(expr.subject)
+        # Resolve TTypeVar or empty-variant TSum to full sum type
+        if isinstance(subj_type, TTypeVar):
+            resolved = self._resolve_tvar_to_sum(subj_type.name)
+            if resolved is not None:
+                subj_type = resolved
+        if isinstance(subj_type, TSum) and len(subj_type.variants) == 0:
+            resolved = self._resolve_tvar_to_sum(subj_type.name)
+            if resolved is not None:
+                subj_type = resolved
         subj_expr = self._lower_expr(expr.subject)
         subj_tmp = self._fresh_temp()
         subj_lt = self._lower_type(subj_type)
@@ -4936,6 +4953,8 @@ class Lowerer:
                         for i, binding in enumerate(bindings):
                             if i < len(variant.fields):
                                 field_lt = self._lower_type_resolving_tvars(variant.fields[i])
+                                # Track match binding type for monomorphization
+                                self._let_var_ltypes[binding] = field_lt
                                 fname = field_names[i] if i < len(field_names) else f"_{i}"
                                 ast_ft = ast_field_types[i] if i < len(ast_field_types) else None
                                 is_recursive = self._is_recursive_sum_field(
@@ -5256,6 +5275,8 @@ class Lowerer:
                         for i, binding in enumerate(bindings):
                             if i < len(variant.fields):
                                 field_lt = self._lower_type_resolving_tvars(variant.fields[i])
+                                # Track match binding type for monomorphization
+                                self._let_var_ltypes[binding] = field_lt
                                 fname = field_names[i] if i < len(field_names) else f"_{i}"
                                 ast_ft = ast_field_types[i] if i < len(ast_field_types) else None
                                 is_recursive = self._is_recursive_sum_field(

@@ -793,11 +793,14 @@ fn resolve_expr(s:ResolverState:mut, expr:ast.Expr):none {
             match receiver {
                 EIdent(rid, rl, rc, rname, rmp): {
                     if(array.size(rmp) == 0) {
-                        match map.get(s.symbols, conv.to_string(rid)) {
+                        let rsym_opt = map.get(s.symbols, conv.to_string(rid))
+                        match rsym_opt {
                             some(rsym): {
                                 if(rsym.kind == SymbolKind.SK_IMPORT) {
                                     match lookup_in_map(s.type_member_scopes, rsym.name, method_name) {
-                                        some(msym): { bind_node(s, nid, msym) }
+                                        some(msym): {
+                                            bind_node(s, nid, msym)
+                                        }
                                         none: { throw errors.resolve_error("name '" + method_name + "' not found in namespace '" + rsym.name + "'", s.filename, l, c) }
                                     }
                                 }
@@ -973,6 +976,7 @@ fn resolve_expr(s:ResolverState:mut, expr:ast.Expr):none {
                 si = si + 1
             }
         }
+        _: {}
     }
 }
 

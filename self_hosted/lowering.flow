@@ -72,6 +72,9 @@ type LowerState:mut {
     // Extern type names
     extern_type_names:map<string, bool>
 
+    // Extern fn c_names: decl_id_str → c_name
+    extern_fn_c_names:map<string, string>
+
     // Monomorphization
     mono_site_keys:array<string>
     mono_site_vals:array<lir.MonoSite>
@@ -671,7 +674,7 @@ fn lower_extern_type(st:LowerState:mut, t:typechecker.TCType):lir.LType {
 // INIT + ENTRY POINT
 // ===========================================================================
 
-fn make_lower_state(typed:typechecker.TypedModule):LowerState {
+fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>):LowerState {
     let mod:ast.Module = typed.src_module
     let mod_path:string:mut = "main"
     if(array.size(mod.path) > 0) {
@@ -717,6 +720,7 @@ fn make_lower_state(typed:typechecker.TypedModule):LowerState {
         let_var_ltypes:map.new(),
         mut_param_names:map.new(),
         extern_type_names:ext_names,
+        extern_fn_c_names:extern_fn_c_names,
         mono_site_keys:[],
         mono_site_vals:[],
         has_mono_type_env:false,
@@ -735,8 +739,8 @@ fn make_lower_state(typed:typechecker.TypedModule):LowerState {
 // lower — public entry point
 // ---------------------------------------------------------------------------
 
-export fn lower(typed:typechecker.TypedModule):lir.LModule {
-    let st:LowerState:mut = make_lower_state(typed)
+export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>):lir.LModule {
+    let st:LowerState:mut = make_lower_state(typed, extern_fn_c_names)
 
     let extern_protos:array<lir.LExternFnProto>:mut = []
 
@@ -2272,7 +2276,7 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             match(callee) {
                 EIdent(cid, cline, ccol, cname, cmod): {
                     // Check if it's a known function
-                    let sym_key:string = "s_" + conv.to_string(cid)
+                    let sym_key:string = conv.to_string(cid)
                     let sym:resolver.Symbol? = map.get(st.resolved.symbols, sym_key)
                     match(sym) {
                         some(s): {
@@ -2283,6 +2287,14 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                             if(s.kind == resolver.SymbolKind.SK_TYPE) {
                                 // Positional struct construction
                                 return lower_positional_ctor(st, e, s, largs, result_lt)
+                            }
+                            // Check if extern fn
+                            let extern_c:string? = map.get(st.extern_fn_c_names, conv.to_string(s.decl_id))
+                            match(extern_c) {
+                                some(ec_name): {
+                                    return lir.LECall(fn_name:ec_name, args:largs, c_type:result_lt)
+                                }
+                                none: {}
                             }
                         }
                         none: {}
@@ -2355,10 +2367,39 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                 }
             }
 
+            // Check if resolver bound this MethodCall to a symbol
+            let mc_sym_key:string = conv.to_string(id)
+            let mc_sym:resolver.Symbol? = map.get(st.resolved.symbols, mc_sym_key)
+            match(mc_sym) {
+                some(ms): {
+                    // Check if it's an extern fn (use c_name, no mangling)
+                    let extern_c:string? = map.get(st.extern_fn_c_names, conv.to_string(ms.decl_id))
+                    match(extern_c) {
+                        some(ec_name): {
+                            // Extern fn call: use literal C name
+                            let fn_args:array<lir.LExprBox>:mut = []
+                            for(arg:ast.Expr in args) {
+                                match(arg) {
+                                    ENamedArg(nid, nl, nc, nname, nval): {
+                                        fn_args = array.push(fn_args, lir.le_box(lower_expr(st, nval)))
+                                    }
+                                    _: {
+                                        fn_args = array.push(fn_args, lir.le_box(lower_expr(st, arg)))
+                                    }
+                                }
+                            }
+                            return lir.LECall(fn_name:ec_name, args:fn_args, c_type:result_lt)
+                        }
+                        none: {}
+                    }
+                }
+                none: {}
+            }
+
             // Check for namespace function call (receiver is module name)
             match(receiver) {
                 EIdent(rid, rline, rcol, rname, rmod): {
-                    let sym_key:string = "s_" + conv.to_string(rid)
+                    let sym_key:string = conv.to_string(rid)
                     let sym:resolver.Symbol? = map.get(st.resolved.symbols, sym_key)
                     match(sym) {
                         some(s): {
@@ -2445,7 +2486,7 @@ fn lower_field_access(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let result_lt:lir.LType = lower_type(st, result_type)
 
             // Check for static member access
-            let sym_key:string = "s_" + conv.to_string(id)
+            let sym_key:string = conv.to_string(id)
             let sym:resolver.Symbol? = map.get(st.resolved.symbols, sym_key)
             match(sym) {
                 some(s): {
