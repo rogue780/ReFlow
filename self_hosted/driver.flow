@@ -937,9 +937,32 @@ fn build_extern_fn_map(modules:array<ModuleEntry>):map<string, string> {
     return result
 }
 
-// Lower and emit C for all modules (single or multi)
-fn lower_and_emit_all(modules:array<ModuleEntry>, line_directives:bool):string {
-    let efn_map = build_extern_fn_map(modules)
+// Extend extern fn map with all extern fn decls from a list of TypedModules.
+// Used for non-compilable stdlib modules (e.g., array.flow which is purely extern fns)
+// that are excluded from the compilable modules list but whose extern c_names are needed
+// for correct function name resolution at call sites.
+fn extend_extern_fn_map_from_typed(efn_map:map<string, string>:mut, extra_typed:array<typechecker.TypedModule>):map<string, string> {
+    for(typed:typechecker.TypedModule in extra_typed) {
+        for(decl:ast.Decl in typed.src_module.decls) {
+            match(decl) {
+                DExternFn(id, line, col, name, tparams, params, has_ret, ret_type, is_export, c_name_str): {
+                    let cn:string:mut = c_name_str
+                    if(cn == "") { cn = name }
+                    efn_map = map.set(efn_map, conv.to_string(id), cn)
+                }
+                _: {}
+            }
+        }
+    }
+    return efn_map
+}
+
+// Lower and emit C for all modules (single or multi).
+// extra_typed: non-compilable typed modules (e.g., extern-only stdlib) whose
+// extern fn c_names must be available for call site resolution.
+fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.TypedModule>, line_directives:bool):string {
+    let efn_map:map<string, string>:mut = build_extern_fn_map(modules)
+    efn_map = extend_extern_fn_map_from_typed(efn_map, extra_typed)
 
     if(array.size(modules) == 1) {
         let entry = array.get_any(modules, 0) ?? dummy_entry()
@@ -1090,7 +1113,10 @@ export fn emit_c(source_path:string, stdlib_dir:string):string {
     let ds:DriverState:mut = make_driver_state(stdlib_dir)
     let modules_raw = run_multi_pipeline(ds, source_path)
     let modules = inject_compilable_stdlib(ds, modules_raw)
-    return lower_and_emit_all(modules, false)
+    // Pass ds.cache_typed so non-compilable stdlib extern fns (e.g., array.size → fl_array_len_int)
+    // are available in the extern fn map for call site resolution.
+    let result = lower_and_emit_all(modules, ds.cache_typed, false)
+    return result
 }
 
 // compile: full pipeline → C → clang → binary
@@ -1098,7 +1124,7 @@ export fn compile(source_path:string, output:string, stdlib_dir:string):int {
     let ds:DriverState:mut = make_driver_state(stdlib_dir)
     let modules_raw = run_multi_pipeline(ds, source_path)
     let modules = inject_compilable_stdlib(ds, modules_raw)
-    let c_source = lower_and_emit_all(modules, true)
+    let c_source = lower_and_emit_all(modules, ds.cache_typed, true)
 
     // Collect extern lib flags
     let extern_libs = collect_extern_libs(modules)

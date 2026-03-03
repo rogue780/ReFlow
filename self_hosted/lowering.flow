@@ -130,7 +130,9 @@ fn type_of_return(st:LowerState:mut, fn_decl:ast.Decl):typechecker.TCType {
     match(fn_decl) {
         DFn(id, line, col, name, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
             if(has_ret) {
-                return type_of(st, ast.type_expr_id(ret_type))
+                // TypeExpr nodes are NOT stored in node_types by the typechecker (by design).
+                // Use resolve_type_ann which has an AST-based fallback, same as for param types.
+                return resolve_type_ann(st, ret_type)
             }
             return typechecker.tc_none()
         }
@@ -156,7 +158,19 @@ fn resolve_type_ann(st:LowerState:mut, te:ast.TypeExpr):typechecker.TCType {
 fn resolve_type_ann_ast(st:LowerState:mut, te:ast.TypeExpr):typechecker.TCType {
     match(te) {
         TNamedType(id, line, col, name, mod_path): {
-            return resolve_builtin_type_name(name)
+            let builtin:typechecker.TCType = resolve_builtin_type_name(name)
+            match(builtin) {
+                TCTypeVar(tvname): {
+                    // Not a builtin — treat as user-defined named type.
+                    // TCNamed("", name) is correct; lower_named_type will look it up.
+                    if(array.size(mod_path) > 0) {
+                        let mp_str:string = join_path(mod_path)
+                        return typechecker.TCNamed(mp_str, name, [])
+                    }
+                    return typechecker.TCNamed("", name, [])
+                }
+                _: { return builtin }
+            }
         }
         TGenericType(id, line, col, base, args): {
             // Use type_of on the whole node — the typechecker should have resolved it
@@ -842,7 +856,11 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
             // Lower parameters
             let lparams:array<lir.LParam>:mut = []
             for(p:ast.Param in params) {
-                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                let p_type:typechecker.TCType:mut = resolve_type_ann(st, p.type_ann)
+                // Variadic params are typed as array<T> in the function body
+                if(p.is_variadic) {
+                    p_type = typechecker.TCArray(elem:p_type)
+                }
                 let p_lt:lir.LType:mut = lower_type(st, p_type)
                 // Check :mut
                 match(p.type_ann) {
@@ -1018,7 +1036,10 @@ fn lower_method(st:LowerState:mut, m:ast.Decl, type_name:string, type_c_name:str
             lparams = array.push(lparams, lir.LParam{name:"self", param_type:lir.LPtr(inner:lir.LStruct(c_name:type_c_name))})
 
             for(p:ast.Param in params) {
-                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                let p_type:typechecker.TCType:mut = resolve_type_ann(st, p.type_ann)
+                if(p.is_variadic) {
+                    p_type = typechecker.TCArray(elem:p_type)
+                }
                 let p_lt:lir.LType:mut = lower_type(st, p_type)
                 match(p.type_ann) {
                     TMutType(mid, ml, mc, minner): {
