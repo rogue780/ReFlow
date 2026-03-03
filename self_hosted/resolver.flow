@@ -98,11 +98,11 @@ type ResolverState:mut {
     // Binding data (parallel arrays, logical size = binding_count)
     bind_names:array<string>
     bind_symbols:map<string, Symbol>  // "b<idx>" -> Symbol
-    bind_depths:array<int>
+    bind_depths:array<string>         // string-encoded ints (array.put incompatible with int arrays)
     binding_count:int
 
-    // ScopeFrame data (int arrays, logical size = frame_count)
-    frame_watermarks:array<int>
+    // ScopeFrame data (string arrays, logical size = frame_count)
+    frame_watermarks:array<string>    // string-encoded ints (same reason)
     frame_count:int
 
     current_depth:int
@@ -183,28 +183,44 @@ fn default_catch_clause():ast.CatchClause {
 
 fn push_scope(s:ResolverState:mut, is_fn_boundary:bool):none {
     s.current_depth = s.current_depth + 1
-    s.frame_watermarks = array.push_int(s.frame_watermarks, s.binding_count)
+    let wm_str = conv.to_string(s.binding_count)
+    if(s.frame_count < array.size(s.frame_watermarks)) {
+        s.frame_watermarks = array.put(s.frame_watermarks, s.frame_count, wm_str)
+    } else {
+        s.frame_watermarks = array.push(s.frame_watermarks, wm_str)
+    }
     s.frame_count = s.frame_count + 1
 }
 
 fn pop_scope(s:ResolverState:mut):none {
     if(s.frame_count == 0) { return }
     s.frame_count = s.frame_count - 1
-    s.binding_count = array.get_int(s.frame_watermarks, s.frame_count) ?? 0
+    s.binding_count = conv.string_to_int(array.get(s.frame_watermarks, s.frame_count) ?? "0") ?? 0
     s.current_depth = s.current_depth - 1
 }
 
 fn define_symbol(s:ResolverState:mut, name:string, sym:Symbol):none {
-    s.bind_names = array.push(s.bind_names, name)
+    // After pop_scope, binding_count may be < array sizes.
+    // Write at binding_count position (put overwrites, push appends).
+    if(s.binding_count < array.size(s.bind_names)) {
+        s.bind_names = array.put(s.bind_names, s.binding_count, name)
+    } else {
+        s.bind_names = array.push(s.bind_names, name)
+    }
     s.bind_symbols = map.set(s.bind_symbols, "b" + conv.to_string(s.binding_count), sym)
-    s.bind_depths = array.push_int(s.bind_depths, s.current_depth)
+    let depth_str = conv.to_string(s.current_depth)
+    if(s.binding_count < array.size(s.bind_depths)) {
+        s.bind_depths = array.put(s.bind_depths, s.binding_count, depth_str)
+    } else {
+        s.bind_depths = array.push(s.bind_depths, depth_str)
+    }
     s.binding_count = s.binding_count + 1
 }
 
 fn has_in_current_scope(s:ResolverState:mut, name:string):bool {
     let i:int:mut = s.binding_count - 1
     while(i >= 0) {
-        let d = array.get_int(s.bind_depths, i) ?? 0
+        let d = conv.string_to_int(array.get(s.bind_depths, i) ?? "0") ?? 0
         if(d < s.current_depth) { return false }
         if((array.get(s.bind_names, i) ?? "") == name) { return true }
         i = i - 1
@@ -721,7 +737,7 @@ fn track_capture(s:ResolverState:mut, sym:Symbol):none {
     // Check if defined inside lambda
     let bi:int:mut = s.binding_count - 1
     while(bi >= 0) {
-        let d = array.get_int(s.bind_depths, bi) ?? 0
+        let d = conv.string_to_int(array.get(s.bind_depths, bi) ?? "0") ?? 0
         if(d < entry_depth) { break }
         if((array.get(s.bind_names, bi) ?? "") == sym.name) { return }
         bi = bi - 1

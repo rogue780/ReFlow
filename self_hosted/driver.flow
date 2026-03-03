@@ -239,7 +239,6 @@ fn get_stdlib_typed(ds:DriverState:mut, module_name:string):typechecker.TypedMod
             _: {}
         }
     }
-
     let resolved = resolver.resolve(mod, display, imported_modules)
     let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
 
@@ -1056,7 +1055,12 @@ fn collect_extern_libs(modules:array<ModuleEntry>):array<string> {
 // check: run pipeline through typecheck only, return 0 on success
 export fn check(source_path:string, stdlib_dir:string):int {
     let ds:DriverState:mut = make_driver_state(stdlib_dir)
-    let modules = run_multi_pipeline(ds, source_path)
+    try {
+        let modules = run_multi_pipeline(ds, source_path)
+    } catch(e:errors.CompileError) {
+        io.eprintln(errors.format(e))
+        return 1
+    }
     return 0
 }
 

@@ -527,6 +527,154 @@ fn scan_operator(s:LexState:mut):none {
 }
 
 // ---------------------------------------------------------------------------
+// F-string scanning
+// ---------------------------------------------------------------------------
+
+fn scan_fstring(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    advance(s)  // consume 'f'
+    advance(s)  // consume '"'
+    emit(s, make_token(s, TokenType.TK_FSTRING_START, "f\"", start_line, start_col))
+    scan_fstring_body(s)
+}
+
+fn scan_fstring_body(s:LexState:mut):none {
+    while(s.pos < s.src_len) {
+        let ch = peek(s, 0)
+        if(char_eq(ch, "\"")) {
+            let end_line = s.line
+            let end_col = s.col
+            advance(s)
+            emit(s, make_token(s, TokenType.TK_FSTRING_END, "\"", end_line, end_col))
+            return
+        }
+        if(char_eq(ch, "{")) {
+            scan_fstring_expr(s)
+        } else if(char_eq(ch, "\\")) {
+            let esc_line = s.line
+            let esc_col = s.col
+            advance(s)
+            let escaped = scan_escape(s)
+            emit(s, make_token(s, TokenType.TK_FSTRING_TEXT, escaped, esc_line, esc_col))
+        } else {
+            scan_fstring_text(s)
+        }
+    }
+    throw errors.lex_error("unterminated f-string", s.filename, s.line, s.col)
+}
+
+fn scan_fstring_text(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    let chars:string:mut = ""
+    while(s.pos < s.src_len) {
+        let ch = peek(s, 0)
+        if(char_eq(ch, "\"") || char_eq(ch, "{") || char_eq(ch, "\\")) {
+            break
+        }
+        chars = chars + char.to_string(advance(s))
+    }
+    if(string.len(chars) > 0) {
+        emit(s, make_token(s, TokenType.TK_FSTRING_TEXT, chars, start_line, start_col))
+    }
+}
+
+fn scan_fstring_expr(s:LexState:mut):none {
+    let start_line = s.line
+    let start_col = s.col
+    advance(s)  // consume '{'
+    emit(s, make_token(s, TokenType.TK_FSTRING_EXPR_START, "{", start_line, start_col))
+
+    let brace_depth:int:mut = 1
+    while(s.pos < s.src_len && brace_depth > 0) {
+        let ch = peek(s, 0)
+
+        // Skip whitespace
+        if(char_eq(ch, " ") || char_eq(ch, "\t") || char_eq(ch, "\r")) {
+            advance(s)
+            continue
+        }
+        if(char_eq(ch, "\n")) {
+            let nl_line = s.line
+            let nl_col = s.col
+            advance(s)
+            emit(s, make_token(s, TokenType.TK_NEWLINE, "\n", nl_line, nl_col))
+            continue
+        }
+
+        // Braces inside expression
+        if(char_eq(ch, "{")) {
+            brace_depth = brace_depth + 1
+            let t_line = s.line
+            let t_col = s.col
+            advance(s)
+            emit(s, make_token(s, TokenType.TK_LBRACE, "{", t_line, t_col))
+            continue
+        }
+        if(char_eq(ch, "}")) {
+            brace_depth = brace_depth - 1
+            if(brace_depth == 0) {
+                let end_line = s.line
+                let end_col = s.col
+                advance(s)
+                emit(s, make_token(s, TokenType.TK_FSTRING_EXPR_END, "}", end_line, end_col))
+                return
+            }
+            let t_line = s.line
+            let t_col = s.col
+            advance(s)
+            emit(s, make_token(s, TokenType.TK_RBRACE, "}", t_line, t_col))
+            continue
+        }
+
+        // Comment
+        if(char_eq(ch, "/") && char_eq(peek(s, 1), "/")) {
+            scan_comment(s)
+            if(s.pos < s.src_len && char_eq(peek(s, 0), "\n")) {
+                advance(s)
+            }
+            continue
+        }
+
+        // Identifier/keyword
+        if(char.is_alpha(ch) || char_eq(ch, "_")) {
+            // Check for nested f-string
+            if(char_eq(ch, "f") && char_eq(peek(s, 1), "\"")) {
+                scan_fstring(s)
+            } else {
+                scan_identifier(s)
+            }
+            continue
+        }
+
+        // Number
+        if(char.is_digit(ch)) {
+            scan_number(s)
+            continue
+        }
+
+        // String
+        if(char_eq(ch, "\"")) {
+            scan_string(s)
+            continue
+        }
+
+        // Char
+        if(char_eq(ch, "'")) {
+            scan_char_lit(s)
+            continue
+        }
+
+        // Other operators/punctuation
+        scan_operator(s)
+    }
+    if(brace_depth > 0) {
+        throw errors.lex_error("unterminated f-string expression", s.filename, start_line, start_col)
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Tokenizer — main entry point
 // ---------------------------------------------------------------------------
 
@@ -560,6 +708,12 @@ export fn tokenize(source:string, filename:string):array<Token> {
             if(s.pos < s.src_len && char_eq(peek(s, 0), "\n")) {
                 advance(s)
             }
+            continue
+        }
+
+        // F-string: f"..."
+        if(char_eq(ch, "f") && char_eq(peek(s, 1), "\"")) {
+            scan_fstring(s)
             continue
         }
 

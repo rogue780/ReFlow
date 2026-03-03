@@ -628,6 +628,14 @@ void fl_self_hosted_lexer_scan_comment(fl_self_hosted_lexer_LexState* s);
 
 void fl_self_hosted_lexer_scan_operator(fl_self_hosted_lexer_LexState* s);
 
+void fl_self_hosted_lexer_scan_fstring(fl_self_hosted_lexer_LexState* s);
+
+void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s);
+
+void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s);
+
+void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s);
+
 FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename);
 
 FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype);
@@ -1431,6 +1439,146 @@ void fl_self_hosted_lexer_scan_operator(fl_self_hosted_lexer_LexState* s) {
     _fl_throw(((void*)_fl_tmp_12), 461109476);
 }
 
+/* Flow: self_hosted.lexer.scan_fstring */
+void fl_self_hosted_lexer_scan_fstring(fl_self_hosted_lexer_LexState* s) {
+    fl_int start_line = s->line;
+    fl_int start_col = s->col;
+    fl_self_hosted_lexer_advance(s);
+    fl_self_hosted_lexer_advance(s);
+    fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_START, fl_string_from_cstr("f\""), start_line, start_col));
+    fl_self_hosted_lexer_scan_fstring_body(s);
+}
+
+/* Flow: self_hosted.lexer.scan_fstring_body */
+void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s) {
+    while (s->pos < s->src_len) {
+        fl_char ch = fl_self_hosted_lexer_peek((*s), 0);
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\""))) {
+            fl_int end_line = s->line;
+            fl_int end_col = s->col;
+            fl_self_hosted_lexer_advance(s);
+            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_END, fl_string_from_cstr("\""), end_line, end_col));
+            return;
+        }
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("{"))) {
+            fl_self_hosted_lexer_scan_fstring_expr(s);
+        } else {
+            if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\\"))) {
+                fl_int esc_line = s->line;
+                fl_int esc_col = s->col;
+                fl_self_hosted_lexer_advance(s);
+                FL_String* escaped = fl_self_hosted_lexer_scan_escape(s);
+                fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, escaped, esc_line, esc_col));
+            } else {
+                fl_self_hosted_lexer_scan_fstring_text(s);
+            }
+        }
+    }
+    fl_self_hosted_errors_CompileError* _fl_tmp_13 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_13) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated f-string"), s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_13), 461109476);
+}
+
+/* Flow: self_hosted.lexer.scan_fstring_text */
+void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s) {
+    fl_int start_line = s->line;
+    fl_int start_col = s->col;
+    FL_String* chars = fl_string_from_cstr("");
+    while (s->pos < s->src_len) {
+        fl_char ch = fl_self_hosted_lexer_peek((*s), 0);
+        if ((fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\"")) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("{"))) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\\"))) {
+            break;
+        }
+        chars = fl_string_concat(chars, fl_char_to_string(fl_self_hosted_lexer_advance(s)));
+    }
+    if (fl_string_len(chars) > 0) {
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, chars, start_line, start_col));
+    }
+}
+
+/* Flow: self_hosted.lexer.scan_fstring_expr */
+void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
+    fl_int start_line = s->line;
+    fl_int start_col = s->col;
+    fl_self_hosted_lexer_advance(s);
+    fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_START, fl_string_from_cstr("{"), start_line, start_col));
+    fl_int brace_depth = 1;
+    while ((s->pos < s->src_len) && (brace_depth > 0)) {
+        fl_char ch = fl_self_hosted_lexer_peek((*s), 0);
+        if ((fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr(" ")) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\t"))) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\r"))) {
+            fl_self_hosted_lexer_advance(s);
+            continue;
+        }
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\n"))) {
+            fl_int nl_line = s->line;
+            fl_int nl_col = s->col;
+            fl_self_hosted_lexer_advance(s);
+            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_NEWLINE, fl_string_from_cstr("\n"), nl_line, nl_col));
+            continue;
+        }
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("{"))) {
+            fl_int _fl_e_1;
+            FL_CHECKED_ADD(brace_depth, 1, &_fl_e_1);
+            brace_depth = _fl_e_1;
+            fl_int t_line = s->line;
+            fl_int t_col = s->col;
+            fl_self_hosted_lexer_advance(s);
+            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LBRACE, fl_string_from_cstr("{"), t_line, t_col));
+            continue;
+        }
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("}"))) {
+            fl_int _fl_e_2;
+            FL_CHECKED_SUB(brace_depth, 1, &_fl_e_2);
+            brace_depth = _fl_e_2;
+            if (brace_depth == 0) {
+                fl_int end_line = s->line;
+                fl_int end_col = s->col;
+                fl_self_hosted_lexer_advance(s);
+                fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_END, fl_string_from_cstr("}"), end_line, end_col));
+                return;
+            }
+            fl_int t_line = s->line;
+            fl_int t_col = s->col;
+            fl_self_hosted_lexer_advance(s);
+            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RBRACE, fl_string_from_cstr("}"), t_line, t_col));
+            continue;
+        }
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("/")) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), fl_string_from_cstr("/"))) {
+            fl_self_hosted_lexer_scan_comment(s);
+            if ((s->pos < s->src_len) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("\n"))) {
+                fl_self_hosted_lexer_advance(s);
+            }
+            continue;
+        }
+        if (fl_char_is_alpha(ch) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("_"))) {
+            if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("f")) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), fl_string_from_cstr("\""))) {
+                fl_self_hosted_lexer_scan_fstring(s);
+            } else {
+                fl_self_hosted_lexer_scan_identifier(s);
+            }
+            continue;
+        }
+        if (fl_char_is_digit(ch)) {
+            fl_self_hosted_lexer_scan_number(s);
+            continue;
+        }
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\""))) {
+            fl_self_hosted_lexer_scan_string(s);
+            continue;
+        }
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("'"))) {
+            fl_self_hosted_lexer_scan_char_lit(s);
+            continue;
+        }
+        fl_self_hosted_lexer_scan_operator(s);
+    }
+    if (brace_depth > 0) {
+        fl_self_hosted_errors_CompileError* _fl_tmp_14 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_14) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated f-string expression"), s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_14), 461109476);
+    }
+}
+
 /* Flow: self_hosted.lexer.tokenize */
 FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename) {
     fl_self_hosted_lexer_LexState s = (fl_self_hosted_lexer_LexState){.source = source, .filename = filename, .src_len = fl_string_len(source), .pos = 0, .line = 1, .col = 1, .tokens = fl_array_new(0, 0, NULL)};
@@ -1452,6 +1600,10 @@ FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename) 
             if ((s.pos < s.src_len) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 0), fl_string_from_cstr("\n"))) {
                 fl_self_hosted_lexer_advance((&s));
             }
+            continue;
+        }
+        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("f")) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 1), fl_string_from_cstr("\""))) {
+            fl_self_hosted_lexer_scan_fstring((&s));
             continue;
         }
         if (fl_char_is_alpha(fl_self_hosted_lexer_peek(s, 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 0), fl_string_from_cstr("_"))) {
@@ -6641,17 +6793,13 @@ fl_bool fl_self_hosted_parser_is_ternary(fl_self_hosted_parser_ParserState* s) {
         fl_self_hosted_parser_skip_comments(s);
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_get_token((*s), s->pos);
         fl_bool can_start = fl_self_hosted_parser_can_start_expr(next_tok.ttype);
-        if (can_start == fl_false) {
-            s->pos = saved;
-            s->next_id = saved_next_id;
-            s->has_error = saved_has_error;
-            return fl_false;
-        }
-        fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_TERNARY());
-        fl_self_hosted_parser_skip_comments(s);
-        if (s->pos < s->token_count) {
-            fl_self_hosted_lexer_Token after = fl_self_hosted_parser_get_token((*s), s->pos);
-            result = (after.ttype == fl_self_hosted_lexer_TokenType_TK_COLON);
+        if (can_start) {
+            fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_TERNARY());
+            fl_self_hosted_parser_skip_comments(s);
+            if (s->pos < s->token_count) {
+                fl_self_hosted_lexer_Token after = fl_self_hosted_parser_get_token((*s), s->pos);
+                result = (after.ttype == fl_self_hosted_lexer_TokenType_TK_COLON);
+            }
         }
         _fl_exception_pop();
     } else {

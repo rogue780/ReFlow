@@ -1574,19 +1574,14 @@ fn is_ternary(s:ParserState:mut):bool {
 
         let next_tok = get_token(s, s.pos)
         let can_start = can_start_expr(next_tok.ttype)
-        if(can_start == false) {
-            s.pos = saved
-            s.next_id = saved_next_id
-            s.has_error = saved_has_error
-            return false
-        }
-
-        // Speculatively parse then-expression
-        parse_pratt(s, PREC_TERNARY())
-        skip_comments(s)
-        if(s.pos < s.token_count) {
-            let after = get_token(s, s.pos)
-            result = after.ttype == lexer.TokenType.TK_COLON
+        if(can_start) {
+            // Speculatively parse then-expression
+            parse_pratt(s, PREC_TERNARY())
+            skip_comments(s)
+            if(s.pos < s.token_count) {
+                let after = get_token(s, s.pos)
+                result = after.ttype == lexer.TokenType.TK_COLON
+            }
         }
     } catch(e:errors.CompileError) {
         result = false
