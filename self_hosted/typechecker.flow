@@ -7,6 +7,7 @@ import conv
 import array
 import map
 import string
+import io
 import self_hosted.ast
 import self_hosted.errors
 import self_hosted.resolver
@@ -367,7 +368,7 @@ fn node_has_type(s:TCState:mut, node_id:int):bool {
 // ---------------------------------------------------------------------------
 
 fn sym_lookup_by_id(s:TCState:mut, node_id:int):resolver.Symbol {
-    let key = "node_" + conv.to_string(node_id)
+    let key = conv.to_string(node_id)
     let opt = map.get(s.resolved.symbols, key)
     match opt {
         some(sym): { return sym }
@@ -376,7 +377,7 @@ fn sym_lookup_by_id(s:TCState:mut, node_id:int):resolver.Symbol {
 }
 
 fn sym_has_by_id(s:TCState:mut, node_id:int):bool {
-    let key = "node_" + conv.to_string(node_id)
+    let key = conv.to_string(node_id)
     return map.has(s.resolved.symbols, key)
 }
 
@@ -1667,8 +1668,10 @@ fn infer_type_env_from_call(s:TCState:mut, decl:ast.Decl, arg_types:array<TCType
 fn match_type_env(param_t:TCType, arg_t:TCType, env:map<string, TCTypeBox>:mut) {
     match param_t {
         TCTypeVar(name): {
-            if(!map.has(env, name)) {
-                env = map.set(env, name, tc_box(arg_t))
+            let already = map.has(env, name)
+            if(!already) {
+                let boxed = tc_box(arg_t)
+                env = map.set(env, name, boxed)
             }
         }
         TCOption(inner_p): {
@@ -1968,8 +1971,11 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
             // Check if resolver bound to namespace fn
             if(sym_has_by_id(s, nid)) {
                 let sym = sym_lookup_by_id(s, nid)
+                io.eprintln(f"[TC-MC] nid={nid} method={method_name} kind={sym.kind} decl_id={sym.decl_id}")
                 if(sym.kind == resolver.SymbolKind.SK_FN || sym.kind == resolver.SymbolKind.SK_IMPORT) {
+                    io.eprintln("[TC-MC] inferring recv...")
                     infer_expr(s, recv)
+                    io.eprintln("[TC-MC] inferring args...")
                     let arg_types:array<TCTypeBox>:mut = []
                     let i:int:mut = 0
                     while(i < array.size(args)) {
@@ -1977,13 +1983,16 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
                         arg_types = array.push(arg_types, tc_box(infer_expr(s, a)))
                         i = i + 1
                     }
+                    io.eprintln("[TC-MC] finding decl...")
                     let decl_opt = find_decl_by_id(s, sym.decl_id)
                     match decl_opt {
                         some(d): {
+                            io.eprintln("[TC-MC] found DFn, getting type...")
                             let ft = fn_decl_type(s, d)
                             match ft {
                                 TCFn(params, ret, is_pure, is_variadic): {
                                     if(decl_has_type_params(d)) {
+                                        io.eprintln("[TC-MC] applying type env...")
                                         let env:map<string, TCTypeBox>:mut = infer_type_env_from_call(s, d, arg_types)
                                         return apply_env(ret, env)
                                     }
@@ -1994,13 +2003,16 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
                         }
                         none: {
                             // extern fn
+                            io.eprintln("[TC-MC] finding extern decl...")
                             let ext_opt = find_extern_decl_by_id(s, sym.decl_id)
                             match ext_opt {
                                 some(d): {
+                                    io.eprintln("[TC-MC] found extern, getting type...")
                                     let ft = extern_fn_decl_type(s, d)
                                     match ft {
                                         TCFn(params, ret, is_pure, is_variadic): {
                                             if(decl_has_type_params(d)) {
+                                                io.eprintln("[TC-MC] applying type env for extern...")
                                                 let env:map<string, TCTypeBox>:mut = infer_type_env_from_call(s, d, arg_types)
                                                 return apply_env(ret, env)
                                             }
@@ -2694,12 +2706,14 @@ fn check_stream_consumption(s:TCState:mut, name:string, node_id:int) {
 // ---------------------------------------------------------------------------
 
 fn check_all_bodies(s:TCState:mut) {
+    io.eprintln("[TC] check_all_bodies start")
     let i:int:mut = 0
     let decls = s.src_module.decls
     while(i < array.size(decls)) {
         let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
         match d {
             DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+                io.eprintln(f"[TC] checking fn: {name}")
                 check_fn_body(s, d)
             }
             DType(nid, l, c, name, type_params, fields, methods, ctors, statics, ifaces, is_export, is_sum_type, variants, is_mut): {

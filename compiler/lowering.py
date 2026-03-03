@@ -2728,7 +2728,8 @@ class Lowerer:
         """Adjust arguments for :mut parameter passing.
 
         - :mut param + value arg → wrap in LAddrOf (&arg)
-        - :mut param + pointer arg → pass directly (forwarding)
+        - :mut param + correct-pointer arg → pass directly (forwarding)
+        - :mut param + under-pointed arg → wrap in LAddrOf to reach correct level
         - non-:mut param + pointer arg from :mut local → unwrap with LDeref (*arg)
         """
         if not isinstance(fn_decl, FnDecl):
@@ -2740,18 +2741,33 @@ class Lowerer:
             arg = result[i]
             arg_ct = getattr(arg, 'c_type', None)
             if isinstance(param.type_ann, MutType):
-                # :mut param — arg should be a pointer
-                if isinstance(arg_ct, LPtr):
-                    # Already a pointer (forwarding :mut param) — pass directly
+                # :mut param — compute the expected C pointer type for this param.
+                # For a :mut map<K,V> param, the inner type is FL_Map* and the
+                # expected C type is FL_Map** (LPtr(LPtr(LStruct("FL_Map")))).
+                # A plain "is it already an LPtr?" check is not enough because
+                # a :mut map param auto-derefs in _lower_expr to FL_Map* (LPtr),
+                # which would be incorrectly passed directly when FL_Map** is needed.
+                p_type = self._type_of(param.type_ann.inner) if param.type_ann.inner else TNone()
+                p_lt = self._lower_type(p_type)
+                expected_ct = LPtr(p_lt)
+                if arg_ct == expected_ct:
+                    # Already the correct pointer type — forward directly.
                     continue
-                if arg_ct is not None:
-                    result[i] = LAddrOf(arg, LPtr(arg_ct))
+                if isinstance(arg_ct, LPtr):
+                    # Pointer, but wrong level (e.g. FL_Map* when FL_Map** needed).
+                    # Take the address to reach the expected pointer level.
+                    result[i] = LAddrOf(arg, expected_ct)
+                elif arg_ct is not None:
+                    result[i] = LAddrOf(arg, expected_ct)
                 else:
                     result[i] = LAddrOf(arg, LPtr(LVoid()))
             else:
                 # Non-:mut param — if arg is a pointer from a :mut local,
-                # dereference it so the callee gets a value copy
-                if (isinstance(arg_ct, LPtr) and isinstance(arg_ct.inner, LStruct)
+                # dereference it so the callee gets a value copy.
+                # This handles both LPtr(LStruct) (struct :mut params) and
+                # LPtr(LPtr(...)) (map/array :mut params that weren't auto-deref'd).
+                if (isinstance(arg_ct, LPtr)
+                        and isinstance(arg_ct.inner, (LStruct, LPtr))
                         and isinstance(arg, LVar) and arg.c_name in self._mut_params):
                     result[i] = LDeref(arg, arg_ct.inner)
         return result
