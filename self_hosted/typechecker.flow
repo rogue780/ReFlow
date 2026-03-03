@@ -3,6 +3,7 @@ module self_hosted.typechecker
 // Self-hosted typechecker: infers and verifies types.
 // Port of compiler/typechecker.py.
 
+import io
 import conv
 import array
 import map
@@ -1064,6 +1065,20 @@ fn extern_fn_decl_type(s:TCState:mut, decl:ast.Decl):TCType {
     }
 }
 
+// decl_fn_type — dispatch to fn_decl_type or extern_fn_decl_type based on decl kind.
+// Used by EMethodCall/ECall handlers where find_decl_by_id may return either kind.
+fn decl_fn_type(s:TCState:mut, d:ast.Decl):TCType {
+    match d {
+        DFn(nid, l, c, name, tp, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
+            return fn_decl_type(s, d)
+        }
+        DExternFn(nid, l, c, name, tp, params, hrt, ret, is_export, cn): {
+            return extern_fn_decl_type(s, d)
+        }
+        _: { return TCAny() }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // collect_extern_types
 // ---------------------------------------------------------------------------
@@ -1898,7 +1913,7 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
                 if(sym.kind == resolver.SymbolKind.SK_IMPORT) {
                     let decl_opt = find_decl_by_id(s, sym.decl_id)
                     match decl_opt {
-                        some(d): { return fn_decl_type(s, d) }
+                        some(d): { return decl_fn_type(s, d) }
                         none: {}
                     }
                 }
@@ -1982,7 +1997,8 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
                     let decl_opt = find_decl_by_id(s, sym.decl_id)
                     match decl_opt {
                         some(d): {
-                            let ft = fn_decl_type(s, d)
+                            // decl_fn_type handles both DFn and DExternFn
+                            let ft = decl_fn_type(s, d)
                             match ft {
                                 TCFn(params, ret, is_pure, is_variadic): {
                                     if(decl_has_type_params(d)) {
@@ -1995,7 +2011,7 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
                             }
                         }
                         none: {
-                            // extern fn
+                            // extern fn not found by find_decl_by_id (shouldn't happen, but fallback)
                             let ext_opt = find_extern_decl_by_id(s, sym.decl_id)
                             match ext_opt {
                                 some(d): {
