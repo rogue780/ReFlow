@@ -3,7 +3,6 @@ module self_hosted.typechecker
 // Self-hosted typechecker: infers and verifies types.
 // Port of compiler/typechecker.py.
 
-import io
 import conv
 import array
 import map
@@ -2456,11 +2455,8 @@ fn check_stmt(s:TCState:mut, stmt:ast.Stmt) {
             if(has_finally) { check_block(s, finally_b) }
         }
         SMatch(nid, l, c, subj, arms): {
-            io.eprintln("[DBG-SM] infer_expr subj")
             let subj_t = infer_expr(s, subj)
-            io.eprintln("[DBG-SM] check_exhaustiveness")
             check_exhaustiveness(s, subj_t, arms, l, c)
-            io.eprintln("[DBG-SM] exhaustiveness ok, arms=" + conv.to_string(array.size(arms)))
             let i:int:mut = 0
             while(i < array.size(arms)) {
                 let arm = array.get_any(arms, i) ?? ast.MatchArm{pattern:ast.PWildcard(0,0,0), body_stmts:[], id:0, line:0, col:0}
@@ -2625,28 +2621,24 @@ fn bind_pattern_types(s:TCState:mut, pat:ast.Pattern, subj_t:TCType) {
 // ---------------------------------------------------------------------------
 
 fn check_exhaustiveness(s:TCState:mut, subj_t:TCType, arms:array<ast.MatchArm>, line:int, col:int) {
-    io.eprintln("[DBG-EX] check_exhaustiveness arms=" + conv.to_string(array.size(arms)))
     // Check for wildcard/bind pattern
     let i:int:mut = 0
     while(i < array.size(arms)) {
         let arm = array.get_any(arms, i) ?? ast.MatchArm{pattern:ast.PWildcard(0,0,0), body_stmts:[], id:0, line:0, col:0}
         match arm.pattern {
-            PWildcard(nid, l, c): { io.eprintln("[DBG-EX] wildcard") return }
-            PBind(nid, l, c, name): { io.eprintln("[DBG-EX] PBind") return }
+            PWildcard(nid, l, c): { return }
+            PBind(nid, l, c, name): { return }
             _: {}
         }
         i = i + 1
     }
-    io.eprintln("[DBG-EX] no wildcard/bind found, checking subj_t")
 
     match subj_t {
         TCSumType(sname, smod_path, svariants): {
-            io.eprintln("[DBG-EX] TCSumType: " + sname)
             // Check all variants covered
             let vi:int:mut = 0
             while(vi < array.size(svariants)) {
                 let v = array.get_any(svariants, vi) ?? make_sum_variant("")
-                io.eprintln("[DBG-EX] checking variant: '" + v.name + "'")
                 let covered:bool:mut = false
                 let ai:int:mut = 0
                 while(ai < array.size(arms)) {
@@ -2658,15 +2650,11 @@ fn check_exhaustiveness(s:TCState:mut, subj_t:TCType, arms:array<ast.MatchArm>, 
                         }
                         _: {}
                     }
-                    io.eprintln("[DBG-EX] before ai++")
                     ai = ai + 1
-                    io.eprintln("[DBG-EX] after ai++")
                 }
                 if(!covered) {
-                    io.eprintln("[DBG-EX] NOT COVERED: " + v.name)
                     throw errors.type_error("match on " + sname + " is not exhaustive: missing variant " + v.name, s.filename, line, col)
                 }
-                io.eprintln("[DBG-EX] covered: " + v.name)
                 vi = vi + 1
             }
         }
@@ -2735,14 +2723,10 @@ fn check_all_bodies(s:TCState:mut) {
         let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
         match d {
             DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
-                io.eprintln("[DBG-CAB] fn: " + name)
                 check_fn_body(s, d)
-                io.eprintln("[DBG-CAB] fn done: " + name)
             }
             DType(nid, l, c, name, type_params, fields, methods, ctors, statics, ifaces, is_export, is_sum_type, variants, is_mut): {
-                io.eprintln("[DBG-CAB] type: " + name)
                 check_type_decl_bodies(s, d)
-                io.eprintln("[DBG-CAB] type done: " + name)
             }
             _: {}
         }
@@ -3010,25 +2994,15 @@ export fn typecheck(
         imported_module_decls
     )
 
-    io.eprintln("[DBG-TC] register_builtin_interfaces")
     register_builtin_interfaces(s)
-    io.eprintln("[DBG-TC] register_builtin_fulfillments")
     register_builtin_fulfillments(s)
-    io.eprintln("[DBG-TC] register_builtin_method_sigs")
     register_builtin_method_sigs(s)
-    io.eprintln("[DBG-TC] collect_extern_types")
     collect_extern_types(s)
-    io.eprintln("[DBG-TC] build_type_registry")
     build_type_registry(s)
-    io.eprintln("[DBG-TC] register_imported_types")
     register_imported_types(s)
-    io.eprintln("[DBG-TC] build_interface_registry")
     build_interface_registry(s)
-    io.eprintln("[DBG-TC] register_top_level_types")
     register_top_level_types(s)
-    io.eprintln("[DBG-TC] check_all_bodies")
     check_all_bodies(s)
-    io.eprintln("[DBG-TC] done")
 
     return TypedModule{
         src_module:s.src_module,

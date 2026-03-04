@@ -15170,11 +15170,8 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             fl_int c = _fl_tmp_408.SMatch.col;
             fl_self_hosted_ast_Expr subj = _fl_tmp_408.SMatch.subject;
             FL_Array* arms = _fl_tmp_408.SMatch.arms;
-            fl_eprintln(fl_string_from_cstr("[DBG-SM] infer_expr subj"));
             fl_self_hosted_typechecker_TCType subj_t = fl_self_hosted_typechecker_infer_expr(s, subj);
-            fl_eprintln(fl_string_from_cstr("[DBG-SM] check_exhaustiveness"));
             fl_self_hosted_typechecker_check_exhaustiveness(s, subj_t, arms, l, c);
-            fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-SM] exhaustiveness ok, arms="), fl_conv_to_string__int(fl_array_len_int(arms))));
             fl_int i = 0;
             while (i < fl_array_len_int(arms)) {
                 FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_416 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
@@ -15453,7 +15450,6 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
 
 /* Flow: self_hosted.typechecker.check_exhaustiveness */
 void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_typechecker_TCType subj_t, FL_Array* arms, fl_int line, fl_int col) {
-    fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-EX] check_exhaustiveness arms="), fl_conv_to_string__int(fl_array_len_int(arms))));
     fl_int i = 0;
     while (i < fl_array_len_int(arms)) {
         FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_435 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
@@ -15464,7 +15460,6 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
                 fl_int nid = _fl_tmp_436.PWildcard.id;
                 fl_int l = _fl_tmp_436.PWildcard.line;
                 fl_int c = _fl_tmp_436.PWildcard.col;
-                fl_eprintln(fl_string_from_cstr("[DBG-EX] wildcard"));
                 return;
                 break;
             }
@@ -15473,7 +15468,6 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
                 fl_int l = _fl_tmp_436.PBind.line;
                 fl_int c = _fl_tmp_436.PBind.col;
                 FL_String* name = _fl_tmp_436.PBind.name;
-                fl_eprintln(fl_string_from_cstr("[DBG-EX] PBind"));
                 return;
                 break;
             }
@@ -15482,19 +15476,16 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    fl_eprintln(fl_string_from_cstr("[DBG-EX] no wildcard/bind found, checking subj_t"));
     fl_self_hosted_typechecker_TCType _fl_tmp_437 = subj_t;
     switch (_fl_tmp_437.tag) {
         case 20: {
             FL_String* sname = _fl_tmp_437.TCSumType.name;
             FL_String* smod_path = _fl_tmp_437.TCSumType.mod_path;
             FL_Array* svariants = _fl_tmp_437.TCSumType.variants;
-            fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-EX] TCSumType: "), sname));
             fl_int vi = 0;
             while (vi < fl_array_len_int(svariants)) {
                 FL_Option_fl_self_hosted_typechecker_TCSumVariant _fl_tmp_438 = FL_OPT_DEREF_AS(fl_array_get_safe(svariants, vi), fl_self_hosted_typechecker_TCSumVariant, FL_Option_fl_self_hosted_typechecker_TCSumVariant);
                 fl_self_hosted_typechecker_TCSumVariant v = ((_fl_tmp_438.tag == 1) ? _fl_tmp_438.value : fl_self_hosted_typechecker_make_sum_variant(fl_string_from_cstr("")));
-                fl_eprintln(fl_string_concat(fl_string_concat(fl_string_from_cstr("[DBG-EX] checking variant: '"), v.name), fl_string_from_cstr("'")));
                 fl_bool covered = fl_false;
                 fl_int ai = 0;
                 while (ai < fl_array_len_int(arms)) {
@@ -15515,19 +15506,15 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
                             break;
                         }
                     }
-                    fl_eprintln(fl_string_from_cstr("[DBG-EX] before ai++"));
                     fl_int _fl_e_2;
                     FL_CHECKED_ADD(ai, 1, &_fl_e_2);
                     ai = _fl_e_2;
-                    fl_eprintln(fl_string_from_cstr("[DBG-EX] after ai++"));
                 }
                 if (!covered) {
-                    fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-EX] NOT COVERED: "), v.name));
                     fl_self_hosted_errors_CompileError* _fl_tmp_441 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
                     (*_fl_tmp_441) = fl_self_hosted_errors_type_error(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("match on "), sname), fl_string_from_cstr(" is not exhaustive: missing variant ")), v.name), s->filename, line, col);
                     _fl_throw(((void*)_fl_tmp_441), 461109476);
                 }
-                fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-EX] covered: "), v.name));
                 fl_int _fl_e_3;
                 FL_CHECKED_ADD(vi, 1, &_fl_e_3);
                 vi = _fl_e_3;
@@ -15655,9 +15642,7 @@ void fl_self_hosted_typechecker_check_all_bodies(fl_self_hosted_typechecker_TCSt
                 fl_bool is_static = _fl_tmp_451.DFn.is_static;
                 fl_bool hf = _fl_tmp_451.DFn.has_finally;
                 FL_Array* fb = _fl_tmp_451.DFn.finally_body;
-                fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-CAB] fn: "), name));
                 fl_self_hosted_typechecker_check_fn_body(s, d);
-                fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-CAB] fn done: "), name));
                 break;
             }
             case 3: {
@@ -15675,9 +15660,7 @@ void fl_self_hosted_typechecker_check_all_bodies(fl_self_hosted_typechecker_TCSt
                 fl_bool is_sum_type = _fl_tmp_451.DType.is_sum_type;
                 FL_Array* variants = _fl_tmp_451.DType.variants;
                 fl_bool is_mut = _fl_tmp_451.DType.is_mut;
-                fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-CAB] type: "), name));
                 fl_self_hosted_typechecker_check_type_decl_bodies(s, d);
-                fl_eprintln(fl_string_concat(fl_string_from_cstr("[DBG-CAB] type done: "), name));
                 break;
             }
         }
@@ -16084,25 +16067,15 @@ FL_Option_fl_self_hosted_ast_Decl fl_self_hosted_typechecker_find_extern_decl_by
 /* Flow: self_hosted.typechecker.typecheck */
 fl_self_hosted_typechecker_TypedModule fl_self_hosted_typechecker_typecheck(fl_self_hosted_resolver_ResolvedModule resolved, FL_Map* imported_modules, FL_Map* imported_module_decls) {
     fl_self_hosted_typechecker_TCState s = fl_self_hosted_typechecker_make_state(resolved.src_module, resolved.src_module.filename, resolved, imported_modules, imported_module_decls);
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] register_builtin_interfaces"));
     fl_self_hosted_typechecker_register_builtin_interfaces((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] register_builtin_fulfillments"));
     fl_self_hosted_typechecker_register_builtin_fulfillments((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] register_builtin_method_sigs"));
     fl_self_hosted_typechecker_register_builtin_method_sigs((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] collect_extern_types"));
     fl_self_hosted_typechecker_collect_extern_types((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] build_type_registry"));
     fl_self_hosted_typechecker_build_type_registry((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] register_imported_types"));
     fl_self_hosted_typechecker_register_imported_types((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] build_interface_registry"));
     fl_self_hosted_typechecker_build_interface_registry((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] register_top_level_types"));
     fl_self_hosted_typechecker_register_top_level_types((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] check_all_bodies"));
     fl_self_hosted_typechecker_check_all_bodies((&s));
-    fl_eprintln(fl_string_from_cstr("[DBG-TC] done"));
     return (fl_self_hosted_typechecker_TypedModule){.src_module = s.src_module, .resolved = resolved, .node_types = s.node_types, .warnings = s.warnings, .capacity_node_ids = s.capacity_node_ids, .capacity_expr_ids = s.capacity_expr_ids};
 }
 
