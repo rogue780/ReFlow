@@ -72,6 +72,9 @@ type LowerState:mut {
     // Extern type names
     extern_type_names:map<string, bool>
 
+    // DExternFn decl IDs from the current module (for same-module extern fn lookup)
+    local_extern_fn_ids:map<string, bool>
+
     // Extern fn c_names: decl_id_str → c_name
     extern_fn_c_names:map<string, string>
 
@@ -420,18 +423,26 @@ fn get_sum_variant_field_name(st:LowerState:mut, type_name:string, variant_name:
     for(d:ast.Decl in st.src_module.decls) {
         match(d) {
             DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
-                if(dname == type_name && is_sum) {
-                    for(sv:ast.SumVariantDecl in variants) {
-                        if(sv.name == variant_name) {
+                // Use typed locals: pattern-bound vars from cross-module sum types are TCAny
+                let dn:string = dname
+                let is_sum_b:bool = is_sum
+                if(dn == type_name && is_sum_b) {
+                    let svi:int:mut = 0
+                    while(svi < array.size(variants)) {
+                        let sv:ast.SumVariantDecl = array.get_any(variants, svi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                        let svn:string = sv.name
+                        if(svn == variant_name) {
                             let fi:int:mut = 0
                             while(fi < array.size(sv.fields)) {
                                 let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
-                                if(fi == field_idx && sf.name != "") {
-                                    return some(sf.name)
+                                let sfn:string = sf.name
+                                if(fi == field_idx && sfn != "") {
+                                    return some(sfn)
                                 }
                                 fi = fi + 1
                             }
                         }
+                        svi = svi + 1
                     }
                 }
             }
@@ -439,6 +450,29 @@ fn get_sum_variant_field_name(st:LowerState:mut, type_name:string, variant_name:
         }
     }
     return none
+}
+
+// find_fieldless_variant_tag — search src_module decls for a fieldless sum
+// variant with this name. Returns (type_c_name, tag_index) or (-1, "") if not found.
+fn find_fieldless_variant_tag(st:LowerState:mut, vname:string):int {
+    for(d:ast.Decl in st.src_module.decls) {
+        match(d) {
+            DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                if(is_sum) {
+                    let vi:int:mut = 0
+                    while(vi < array.size(variants)) {
+                        let sv:ast.SumVariantDecl = array.get_any(variants, vi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                        if(sv.name == vname && array.size(sv.fields) == 0) {
+                            return vi
+                        }
+                        vi = vi + 1
+                    }
+                }
+            }
+            _: {}
+        }
+    }
+    return -1
 }
 
 fn find_sum_type_module(st:LowerState:mut, name:string):string {
@@ -723,12 +757,16 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         mod_path = join_path(mod.path)
     }
 
-    // Collect extern type names
+    // Collect extern type names and local extern fn decl IDs
     let ext_names:map<string, bool>:mut = map.new()
+    let local_extern_fns:map<string, bool>:mut = map.new()
     for(d:ast.Decl in mod.decls) {
         match(d) {
             DExternType(id, line, col, ename, is_export): {
                 ext_names = map.set(ext_names, ename, true)
+            }
+            DExternFn(id, line, col, name, tparams, params, has_ret, ret_type, is_export, c_name_str): {
+                local_extern_fns = map.set(local_extern_fns, conv.to_string(id), true)
             }
             _: {}
         }
@@ -762,6 +800,7 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         let_var_ltypes:map.new(),
         mut_param_names:map.new(),
         extern_type_names:ext_names,
+        local_extern_fn_ids:local_extern_fns,
         extern_fn_c_names:extern_fn_c_names,
         mono_site_keys:[],
         mono_site_vals:[],
@@ -1850,15 +1889,34 @@ fn lower_match_sum(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCTy
                     arm_body = array.push(arm_body, array.get_any(lbody, lbi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
                     lbi = lbi + 1
                 }
-                arm_body = array.push(arm_body, lir.LStmtBox{ls:lir.LSBreak(source_line:pline)})
+                // NOTE: do NOT add LSBreak here — emit_switch in emitter adds break; automatically
 
                 case_tags = array.push(case_tags, tag)
                 case_bodies = array.push(case_bodies, lir.LStmtListBox{stmts:arm_body, _pad:0})
             }
             PBind(pid, pline, pcol, bname): {
-                // Wildcard/bind in default case
-                let lbody:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
-                default_body = lbody
+                // Check if this name matches a fieldless variant (unit variant pattern)
+                let is_variant:bool:mut = false
+                let variant_tag:int:mut = 0
+                let vi2:int:mut = 0
+                while(vi2 < array.size(variants)) {
+                    let v2:typechecker.TCSumVariant = array.get_any(variants, vi2) ?? typechecker.TCSumVariant{name:"", has_fields:false, field_types_box:[]}
+                    if(v2.name == bname) {
+                        is_variant = true
+                        variant_tag = vi2
+                    }
+                    vi2 = vi2 + 1
+                }
+                if(is_variant) {
+                    // Fieldless variant arm — treat as a tagged case
+                    let arm_body:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                    case_tags = array.push(case_tags, variant_tag)
+                    case_bodies = array.push(case_bodies, lir.LStmtListBox{stmts:arm_body, _pad:0})
+                } else {
+                    // True wildcard/bind — default case
+                    let lbody:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
+                    default_body = lbody
+                }
             }
             PWildcard(pid, pline, pcol): {
                 let lbody:array<lir.LStmtBox> = lower_block(st, arm.body_stmts)
@@ -2227,6 +2285,23 @@ fn lower_ident(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             // Fallback: use type_of
             let t:typechecker.TCType = type_of(st, id)
             let lt:lir.LType = lower_type(st, t)
+
+            // Fieldless variant constructor: check resolver symbol and AST
+            let sym_key2:string = conv.to_string(id)
+            let sym2:resolver.Symbol? = map.get(st.resolved.symbols, sym_key2)
+            match(sym2) {
+                some(rsym): {
+                    if(rsym.kind == resolver.SymbolKind.SK_CONSTRUCTOR) {
+                        let vtag:int = find_fieldless_variant_tag(st, name)
+                        if(vtag >= 0) {
+                            let tag_expr:lir.LExpr = lir.LELit(value:conv.to_string(vtag), c_type:lir.LByte)
+                            return lir.LECompound(field_names:["tag"], field_values:[lir.le_box(tag_expr)], c_type:lt)
+                        }
+                    }
+                }
+                none: {}
+            }
+
             return lir.LEVar(c_name:name, c_type:lt)
         }
         _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
@@ -2347,13 +2422,26 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                 // Positional struct construction
                                 return lower_positional_ctor(st, e, s, largs, result_lt)
                             }
-                            // Check if extern fn
-                            let extern_c:string? = map.get(st.extern_fn_c_names, conv.to_string(s.decl_id))
-                            match(extern_c) {
-                                some(ec_name): {
-                                    return lir.LECall(fn_name:ec_name, args:largs, c_type:result_lt)
+                            // Check if extern fn — SK_IMPORT (cross-module) or
+                            // SK_FN that's a DExternFn in this module (same-module).
+                            // We use local_extern_fn_ids to avoid cross-module ID collisions.
+                            let is_local_ext:bool:mut = false
+                            if(s.kind == resolver.SymbolKind.SK_FN) {
+                                let local_check:bool? = map.get(st.local_extern_fn_ids, conv.to_string(s.decl_id))
+                                match(local_check) {
+                                    some(v): { is_local_ext = true }
+                                    none: {}
                                 }
-                                none: {}
+                            }
+                            let is_extern_fn_sym:bool = (s.kind == resolver.SymbolKind.SK_IMPORT) || is_local_ext
+                            if(is_extern_fn_sym) {
+                                let extern_c:string? = map.get(st.extern_fn_c_names, conv.to_string(s.decl_id))
+                                match(extern_c) {
+                                    some(ec_name): {
+                                        return lir.LECall(fn_name:ec_name, args:largs, c_type:result_lt)
+                                    }
+                                    none: {}
+                                }
                             }
                         }
                         none: {}
@@ -2387,11 +2475,63 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
 // ---------------------------------------------------------------------------
 
 fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, largs:array<lir.LExprBox>, result_lt:lir.LType):lir.LExpr {
-    // For now, return a compound literal
-    let fnames:array<string>:mut = []
-    let fvals:array<lir.LExprBox>:mut = largs
-    // TODO: proper variant tag + field assignment
-    return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
+    // Extract variant name from callee EIdent
+    let vname:string:mut = ""
+    match(e) {
+        ECall(eid, el, ec, callee, args): {
+            match(callee) {
+                EIdent(cid, cl, cc, cn, cmod): { vname = cn }
+                _: {}
+            }
+        }
+        _: {}
+    }
+    if(vname == "") {
+        return lir.LECompound(field_names:[], field_values:largs, c_type:result_lt)
+    }
+
+    // Find the variant in src_module DType declarations
+    let mod_path:string:mut = join_path(st.src_module.path)
+    if(mod_path == "") { mod_path = st.module_path }
+
+    for(d:ast.Decl in st.src_module.decls) {
+        match(d) {
+            DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                if(is_sum) {
+                    let vi:int:mut = 0
+                    while(vi < array.size(variants)) {
+                        let sv:ast.SumVariantDecl = array.get_any(variants, vi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                        if(sv.name == vname) {
+                            let tag_expr:lir.LExpr = lir.LELit(value:conv.to_string(vi), c_type:lir.LByte)
+                            if(array.size(sv.fields) == 0) {
+                                // Fieldless variant: {.tag = N}
+                                return lir.LECompound(field_names:["tag"], field_values:[lir.le_box(tag_expr)], c_type:result_lt)
+                            } else {
+                                // Variant with fields: {.tag = N, .VName = {.field0 = arg0, ...}}
+                                let inner_c_name:string = mangler.mangle(mod_path, dname, vname)
+                                let inner_lt:lir.LType = lir.LStruct(c_name:inner_c_name)
+                                // Build inner field names from AST
+                                let inner_fnames:array<string>:mut = []
+                                let fi:int:mut = 0
+                                while(fi < array.size(sv.fields)) {
+                                    let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
+                                    inner_fnames = array.push(inner_fnames, sf.name)
+                                    fi = fi + 1
+                                }
+                                let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:largs, c_type:inner_lt)
+                                return lir.LECompound(field_names:["tag", vname], field_values:[lir.le_box(tag_expr), lir.le_box(inner)], c_type:result_lt)
+                            }
+                        }
+                        vi = vi + 1
+                    }
+                }
+            }
+            _: {}
+        }
+    }
+
+    // Fallback: empty compound literal
+    return lir.LECompound(field_names:[], field_values:largs, c_type:result_lt)
 }
 
 // ---------------------------------------------------------------------------

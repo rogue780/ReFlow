@@ -10932,7 +10932,7 @@ void fl_self_hosted_typechecker_scope_pop_frame(fl_self_hosted_typechecker_TCSta
 
 /* Flow: self_hosted.typechecker.scope_define */
 void fl_self_hosted_typechecker_scope_define(fl_self_hosted_typechecker_TCState* s, FL_String* name, fl_self_hosted_typechecker_TCType t) {
-    fl_int idx = s->scope_count;
+    fl_int idx = fl_array_len_int(s->scope_names);
     s->scope_names = fl_array_push_ptr(s->scope_names, name);
     FL_String* key = fl_string_concat(fl_string_from_cstr("s_"), fl_conv_to_string__int(idx));
     fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_2 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
