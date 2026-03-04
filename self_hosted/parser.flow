@@ -1814,8 +1814,7 @@ fn parse_int_lit(s:ParserState:mut):ast.Expr {
 
 fn parse_float_lit(s:ParserState:mut):ast.Expr {
     let tok = advance(s)
-    let value = conv.string_to_float(tok.value) ?? 0.0
-    return ast.EFloatLit(fresh_id(s), tok.line, tok.col, value, "")
+    return ast.EFloatLit(fresh_id(s), tok.line, tok.col, tok.value, "")
 }
 
 fn parse_bool_lit(s:ParserState:mut):ast.Expr {

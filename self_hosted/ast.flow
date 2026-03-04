@@ -145,7 +145,7 @@ export type Pattern =
 
 export type Expr =
     | EIntLit(id:int, line:int, col:int, value:int, suffix:string)
-    | EFloatLit(id:int, line:int, col:int, value:float, suffix:string)
+    | EFloatLit(id:int, line:int, col:int, value_text:string, suffix:string)
     | EBoolLit(id:int, line:int, col:int, value:bool)
     | EStringLit(id:int, line:int, col:int, value:string)
     | ECharLit(id:int, line:int, col:int, value:int)

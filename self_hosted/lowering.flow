@@ -2072,10 +2072,10 @@ fn lower_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             if(suffix == "u64") { lt = lir.LInt(width:64, is_signed:false) }
             return lir.LELit(value:conv.to_string(value), c_type:lt)
         }
-        EFloatLit(id, line, col, value, suffix): {
+        EFloatLit(id, line, col, value_text, suffix): {
             let lt:lir.LType:mut = lir.LFloat(width:64)
             if(suffix == "f32") { lt = lir.LFloat(width:32) }
-            return lir.LELit(value:conv.to_string(value), c_type:lt)
+            return lir.LELit(value:value_text, c_type:lt)
         }
         EBoolLit(id, line, col, value): {
             if(value) {
@@ -3092,23 +3092,45 @@ fn lower_fstring(st:LowerState:mut, e:ast.Expr):lir.LExpr {
     match(e) {
         EFString(id, line, col, parts): {
             let str_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_String"))
-            let result:lir.LExpr:mut = lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:str_lt)
 
+            // Collect all non-empty part exprs (match Python compiler behavior)
+            let part_exprs:array<lir.LExpr>:mut = []
             for(part:ast.FStringPart in parts) {
                 match(part) {
                     FPText(text): {
-                        let escaped:string = escape_c_string(text)
-                        let text_expr:lir.LExpr = lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"" + escaped + "\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:str_lt)
-                        result = lir.LECall(fn_name:"fl_string_concat", args:[lir.le_box(result), lir.le_box(text_expr)], c_type:str_lt)
+                        if(text != "") {
+                            let escaped:string = escape_c_string(text)
+                            let text_expr:lir.LExpr = lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"" + escaped + "\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:str_lt)
+                            part_exprs = array.push(part_exprs, text_expr)
+                        }
                     }
                     FPExpr(expr): {
                         let le:lir.LExpr = lower_expr(st, expr)
                         let expr_type:typechecker.TCType = type_of(st, ast.expr_id(expr))
                         let str_expr:lir.LExpr = to_string_expr(st, le, expr_type)
-                        result = lir.LECall(fn_name:"fl_string_concat", args:[lir.le_box(result), lir.le_box(str_expr)], c_type:str_lt)
+                        part_exprs = array.push(part_exprs, str_expr)
                     }
                 }
             }
+
+            // Empty f-string
+            if(array.size(part_exprs) == 0) {
+                return lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:str_lt)
+            }
+
+            // First part is the initial result (no empty-string prefix)
+            let result:lir.LExpr:mut = array.get_any(part_exprs, 0) ?? lir.LELit(value:"0", c_type:lir.LVoid)
+
+            // Chain concat calls with temp vars for each subsequent part
+            let i:int:mut = 1
+            while(i < array.size(part_exprs)) {
+                let part_expr:lir.LExpr = array.get_any(part_exprs, i) ?? lir.LELit(value:"0", c_type:lir.LVoid)
+                let tmp:string = fresh_temp(st)
+                st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:str_lt, has_init:true, init:result, source_line:line)})
+                result = lir.LECall(fn_name:"fl_string_concat", args:[lir.le_box(lir.LEVar(c_name:tmp, c_type:str_lt)), lir.le_box(part_expr)], c_type:str_lt)
+                i = i + 1
+            }
+
             return result
         }
         _: { return lir.LELit(value:"0", c_type:lir.LVoid) }

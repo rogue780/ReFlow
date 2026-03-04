@@ -952,7 +952,7 @@ struct fl_self_hosted_ast_Expr_EFloatLit {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_float value;
+    FL_String* value_text;
     FL_String* suffix;
 };
 
@@ -1676,7 +1676,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EFloatLit.id;
             fl_int l = _fl_tmp_0.EFloatLit.line;
             fl_int c = _fl_tmp_0.EFloatLit.col;
-            fl_float v = _fl_tmp_0.EFloatLit.value;
+            FL_String* v = _fl_tmp_0.EFloatLit.value_text;
             FL_String* s = _fl_tmp_0.EFloatLit.suffix;
             return l;
             break;
@@ -2010,7 +2010,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EFloatLit.id;
             fl_int l = _fl_tmp_1.EFloatLit.line;
             fl_int c = _fl_tmp_1.EFloatLit.col;
-            fl_float v = _fl_tmp_1.EFloatLit.value;
+            FL_String* v = _fl_tmp_1.EFloatLit.value_text;
             FL_String* s = _fl_tmp_1.EFloatLit.suffix;
             return c;
             break;
@@ -2661,7 +2661,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EFloatLit.id;
             fl_int l = _fl_tmp_6.EFloatLit.line;
             fl_int c = _fl_tmp_6.EFloatLit.col;
-            fl_float v = _fl_tmp_6.EFloatLit.value;
+            FL_String* v = _fl_tmp_6.EFloatLit.value_text;
             FL_String* s = _fl_tmp_6.EFloatLit.suffix;
             return nid;
             break;
