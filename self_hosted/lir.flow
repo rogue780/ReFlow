@@ -105,8 +105,12 @@ export fn ls_unbox(b:LStmtBox):LStmt {
 }
 
 // For switch case bodies — array of array<LStmtBox>
+// NOTE: _pad field is required to make sizeof(LStmtListBox) != sizeof(void*).
+// fl_array_get_safe dereferences elements as pointers when element_size == 8,
+// which would corrupt retrieval of structs that happen to be exactly 8 bytes.
 export type LStmtListBox {
     stmts:array<LStmtBox>
+    _pad:int
 }
 
 // ---------------------------------------------------------------------------

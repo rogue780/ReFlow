@@ -413,6 +413,34 @@ fn resolve_ns_to_module_path(st:LowerState:mut, ns_name:string):string {
 // find_sum_type_module — find which module defines a sum type
 // ---------------------------------------------------------------------------
 
+// get_sum_variant_field_name — look up actual field name from AST TypeDecl by position.
+// Needed because match arm binding names (e.g., "r" in Circle(r)) differ from
+// the actual C struct field names (e.g., "radius" in Circle(radius:float)).
+fn get_sum_variant_field_name(st:LowerState:mut, type_name:string, variant_name:string, field_idx:int):option<string> {
+    for(d:ast.Decl in st.src_module.decls) {
+        match(d) {
+            DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                if(dname == type_name && is_sum) {
+                    for(sv:ast.SumVariantDecl in variants) {
+                        if(sv.name == variant_name) {
+                            let fi:int:mut = 0
+                            while(fi < array.size(sv.fields)) {
+                                let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
+                                if(fi == field_idx && sf.name != "") {
+                                    return some(sf.name)
+                                }
+                                fi = fi + 1
+                            }
+                        }
+                    }
+                }
+            }
+            _: {}
+        }
+    }
+    return none
+}
+
 fn find_sum_type_module(st:LowerState:mut, name:string):string {
     // Check local module first
     let decls:array<ast.Decl> = st.src_module.decls
@@ -1756,8 +1784,13 @@ fn lower_match_sum(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCTy
     let subj_lt:lir.LType = lir.lexpr_type(subj)
 
     let variants:array<typechecker.TCSumVariant>:mut = []
+    let sum_type_decl_name:string:mut = ""
     match(subj_type) {
-        TCSumType(sname, smod, svars): { variants = svars }
+        TCSumType(sname, smod, svars): {
+            variants = svars
+            let sn:string = sname
+            sum_type_decl_name = sn
+        }
         _: {}
     }
 
@@ -1795,11 +1828,16 @@ fn lower_match_sum(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCTy
                             let ftbox:typechecker.TCTypeBox = array.get_any(found_v.field_types_box, bi) ?? typechecker.tc_box(typechecker.tc_any())
                             ft = lower_type(st, typechecker.tc_unbox(ftbox))
                         }
-                        // Access: subj.variant_name.field_name
-                        // We need the field names from the AST TypeDecl, but for simplicity use positional
-                        // For now, access via the variant struct field by index
+                        // Access: subj.variant_name.actual_field_name
+                        // Look up actual field name from AST TypeDecl (binding name may differ)
+                        let actual_field_name:string:mut = bname
+                        let fname_opt = get_sum_variant_field_name(st, sum_type_decl_name, vname, bi)
+                        match(fname_opt) {
+                            some(fn_actual): { actual_field_name = fn_actual }
+                            none: {}
+                        }
                         let variant_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(subj), field:vname, c_type:lir.LStruct(c_name:""))
-                        let field_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(variant_access), field:bname, c_type:ft)
+                        let field_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(variant_access), field:actual_field_name, c_type:ft)
                         arm_body = array.push(arm_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:bname, c_type:ft, has_init:true, init:field_access, source_line:pline)})
                     }
                     bi = bi + 1
@@ -1815,7 +1853,7 @@ fn lower_match_sum(st:LowerState:mut, subj:lir.LExpr, subj_type:typechecker.TCTy
                 arm_body = array.push(arm_body, lir.LStmtBox{ls:lir.LSBreak(source_line:pline)})
 
                 case_tags = array.push(case_tags, tag)
-                case_bodies = array.push(case_bodies, lir.LStmtListBox{stmts:arm_body})
+                case_bodies = array.push(case_bodies, lir.LStmtListBox{stmts:arm_body, _pad:0})
             }
             PBind(pid, pline, pcol, bname): {
                 // Wildcard/bind in default case
@@ -2880,6 +2918,24 @@ fn lower_null_coalesce(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                     let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:left_lt)), field:"tag", c_type:lir.LByte)), right:lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)), c_type:lir.LBool)
                     let some_val:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:left_lt)), field:"value", c_type:inner_lt)
                     return lir.LETernary(cond:lir.le_box(tag_check), then_expr:lir.le_box(some_val), else_expr:lir.le_box(lr), c_type:inner_lt)
+                }
+                TCAny: {
+                    // Typechecker couldn't infer the option type (e.g., generic method call
+                    // where return type is TCAny due to incomplete generic inference).
+                    // Fall back to right side's type to determine the inner type.
+                    let right_type:typechecker.TCType = type_of(st, ast.expr_id(right))
+                    match(right_type) {
+                        TCAny: { return ll }
+                        _: {
+                            let inner_lt:lir.LType = lower_type(st, right_type)
+                            let left_lt:lir.LType = lower_option_type(st, right_type)
+                            let tmp:string = fresh_temp(st)
+                            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:left_lt, has_init:true, init:ll, source_line:line)})
+                            let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:left_lt)), field:"tag", c_type:lir.LByte)), right:lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)), c_type:lir.LBool)
+                            let some_val:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:tmp, c_type:left_lt)), field:"value", c_type:inner_lt)
+                            return lir.LETernary(cond:lir.le_box(tag_check), then_expr:lir.le_box(some_val), else_expr:lir.le_box(lr), c_type:inner_lt)
+                        }
+                    }
                 }
                 _: { return ll }
             }

@@ -6,6 +6,7 @@ module self_hosted.emitter
 
 import array
 import conv
+import io
 import map
 import string
 import self_hosted.lir as lir
@@ -635,7 +636,9 @@ fn emit_fn_def(st:EmitState:mut, fn_def:lir.LFnDef) {
     let i:int:mut = 0
     while(i < array.size(fn_def.body)) {
         let sb:lir.LStmtBox = array.get_any(fn_def.body, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        io.eprintln("[DBG-EFD] stmt " + conv.to_string(i))
         emit_stmt(st, lir.ls_unbox(sb))
+        io.eprintln("[DBG-EFD] stmt done " + conv.to_string(i))
         i = i + 1
     }
     do_dedent(st)
@@ -646,8 +649,10 @@ fn emit_fn_defs(st:EmitState:mut, mod:lir.LModule) {
     let i:int:mut = 0
     while(i < array.size(mod.fn_defs)) {
         let fn_def:lir.LFnDef = array.get_any(mod.fn_defs, i) ?? lir.LFnDef{c_name:"", params:[], ret:lir.LVoid, body:[], is_pure:false, source_name:"", source_line:0}
+        io.eprintln("[DBG-EFD] fn: " + fn_def.c_name)
         blank(st)
         emit_fn_def(st, fn_def)
+        io.eprintln("[DBG-EFD] fn done: " + fn_def.c_name)
         i = i + 1
     }
 }
@@ -938,9 +943,12 @@ fn emit_block(st:EmitState:mut, stmts:array<lir.LStmtBox>) {
 }
 
 fn emit_switch(st:EmitState:mut, value:lir.LExpr, case_tags:array<int>, case_bodies:array<lir.LStmtListBox>, default_body:array<lir.LStmtBox>) {
+    io.eprintln("[DBG-SW] emit_switch cases=" + conv.to_string(array.size(case_tags)))
     let saved:array<string> = st.pre_stmts
     st.pre_stmts = []
+    io.eprintln("[DBG-SW] emit_expr value")
     let value_str:string = emit_expr(st, value)
+    io.eprintln("[DBG-SW] value_str=" + value_str)
     flush_pre_stmts(st)
     st.pre_stmts = saved
     emit_indented(st, "switch (" + value_str + ") {")
@@ -948,13 +956,17 @@ fn emit_switch(st:EmitState:mut, value:lir.LExpr, case_tags:array<int>, case_bod
     let i:int:mut = 0
     while(i < array.size(case_tags)) {
         let tag:int = array.get_any(case_tags, i) ?? 0
-        let case_list_box:lir.LStmtListBox = array.get_any(case_bodies, i) ?? lir.LStmtListBox{stmts:[]}
+        io.eprintln("[DBG-SW] case " + conv.to_string(i) + " tag=" + conv.to_string(tag))
+        let case_list_box:lir.LStmtListBox = array.get_any(case_bodies, i) ?? lir.LStmtListBox{stmts:[], _pad:0}
+        io.eprintln("[DBG-SW] case body stmts=" + conv.to_string(array.size(case_list_box.stmts)))
         emit_indented(st, "case " + conv.to_string(tag) + ": {")
         do_indent(st)
         let j:int:mut = 0
         while(j < array.size(case_list_box.stmts)) {
+            io.eprintln("[DBG-SW] case " + conv.to_string(i) + " stmt " + conv.to_string(j))
             let sb:lir.LStmtBox = array.get_any(case_list_box.stmts, j) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
             emit_stmt(st, lir.ls_unbox(sb))
+            io.eprintln("[DBG-SW] case " + conv.to_string(i) + " stmt done " + conv.to_string(j))
             j = j + 1
         }
         emit_indented(st, "break;")
@@ -1132,22 +1144,32 @@ fn emit_expr(st:EmitState:mut, expr:lir.LExpr):string {
 // ---------------------------------------------------------------------------
 
 export fn emit(mod:lir.LModule, source_file:string, is_root:bool, extra_init_names:array<string>, extra_init_exprs:array<string>, line_directives:bool):string {
+    io.eprintln("[DBG-EM] make_state")
     let st:EmitState:mut = make_state(source_file, is_root, extra_init_names, extra_init_exprs, line_directives)
     if(is_root) {
+        io.eprintln("[DBG-EM] emit_header")
         emit_header(st)
     } else {
         blank(st)
         emit_indented(st, "/* From: " + source_file + " */")
     }
+    io.eprintln("[DBG-EM] emit_extern_protos")
     emit_extern_protos(st, mod)
+    io.eprintln("[DBG-EM] emit_forward_decls")
     emit_forward_decls(st, mod)
+    io.eprintln("[DBG-EM] emit_enum_defs")
     emit_enum_defs(st, mod)
+    io.eprintln("[DBG-EM] emit_type_defs")
     emit_type_defs(st, mod)
+    io.eprintln("[DBG-EM] emit_static_defs")
     emit_static_defs(st, mod)
+    io.eprintln("[DBG-EM] emit_fn_defs")
     emit_fn_defs(st, mod)
     if(is_root) {
+        io.eprintln("[DBG-EM] emit_entry_point")
         emit_entry_point(st, mod)
     }
+    io.eprintln("[DBG-EM] get_output")
     return get_output(st)
 }
 
