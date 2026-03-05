@@ -208,6 +208,7 @@ FL_Array* fl_array_new(fl_int64 len, fl_int64 element_size, void* initial_data) 
     if (!arr) fl_panic("fl_array_new: out of memory");
     arr->refcount = 1;
     arr->len = len;
+    arr->capacity = len;
     arr->element_size = element_size;
     if (len > 0) {
         arr->data = malloc((size_t)len * (size_t)element_size);
@@ -263,22 +264,56 @@ fl_int64 fl_array_len(FL_Array* arr) {
     return arr->len;
 }
 
+/* Helper: effective capacity (0 means capacity == len for legacy arrays) */
+static inline fl_int64 fl__array_cap(FL_Array* arr) {
+    return arr->capacity > 0 ? arr->capacity : arr->len;
+}
+
 FL_Array* fl_array_push(FL_Array* arr, void* element) {
     if (!arr) fl_panic("fl_array_push: null array");
     if (!element) fl_panic("fl_array_push: null element");
     fl_int64 new_len = arr->len + 1;
+    size_t elem_sz = (size_t)arr->element_size;
+    fl_int64 cap = fl__array_cap(arr);
+
+    /* Exclusive owner with spare capacity — reuse the data buffer.
+     * We write the new element into the spare capacity, then create a new
+     * FL_Array header pointing to the same buffer with updated length.
+     * The old header is NOT modified (preserving old len for safety).
+     * Its refcount is bumped so future pushes from the old header will
+     * take the copy path instead of reusing the shared buffer. */
+    if (atomic_load(&arr->refcount) == 1 && new_len <= cap) {
+        /* Write new element into spare capacity slot */
+        memcpy((char*)arr->data + (size_t)arr->len * elem_sz, element, elem_sz);
+        /* Bump old header's refcount so it can't claim exclusive ownership */
+        atomic_fetch_add(&arr->refcount, 1);
+        FL_Array* out = (FL_Array*)malloc(sizeof(FL_Array));
+        if (!out) fl_panic("fl_array_push: out of memory");
+        out->refcount = 1;
+        out->len = new_len;
+        out->capacity = cap;
+        out->element_size = arr->element_size;
+        out->data = arr->data;
+        return out;
+    }
+
+    /* Need new data buffer — either shared or no capacity left.
+     * Use geometric growth (2x) to amortize future pushes. */
+    fl_int64 new_cap = cap > 0 ? cap : 8;
+    while (new_cap < new_len) new_cap *= 2;
+
     FL_Array* out = (FL_Array*)malloc(sizeof(FL_Array));
     if (!out) fl_panic("fl_array_push: out of memory");
     out->refcount = 1;
     out->len = new_len;
+    out->capacity = new_cap;
     out->element_size = arr->element_size;
-    out->data = malloc((size_t)new_len * (size_t)arr->element_size);
+    out->data = malloc((size_t)new_cap * elem_sz);
     if (!out->data) fl_panic("fl_array_push: out of memory");
     if (arr->len > 0) {
-        memcpy(out->data, arr->data, (size_t)arr->len * (size_t)arr->element_size);
+        memcpy(out->data, arr->data, (size_t)arr->len * elem_sz);
     }
-    memcpy((char*)out->data + (size_t)arr->len * (size_t)arr->element_size,
-           element, (size_t)arr->element_size);
+    memcpy((char*)out->data + (size_t)arr->len * elem_sz, element, elem_sz);
     return out;
 }
 
@@ -3497,7 +3532,7 @@ FL_Array* fl_array_concat(FL_Array* a, FL_Array* b) {
     if (!data) fl_panic("fl_array_concat: out of memory");
     memcpy(data, a->data, (size_t)(a->len * a->element_size));
     memcpy((char*)data + a->len * a->element_size,
-           b->data, (size_t)(b->len * b->element_size));
+           b->data, (size_t)(b->len * a->element_size));
     FL_Array* result = fl_array_new(total, a->element_size, data);
     free(data);
     return result;

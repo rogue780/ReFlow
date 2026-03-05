@@ -274,6 +274,7 @@ FL_RESULT_TYPE(void*,   void*,      FL_Result_ptr_ptr)
 typedef struct FL_Array {
     _Atomic fl_int64  refcount;
     fl_int64  len;
+    fl_int64  capacity;      /* allocated slots (>= len); 0 means capacity == len */
     void*     data;
     fl_int64  element_size;
 } FL_Array;
