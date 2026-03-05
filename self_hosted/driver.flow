@@ -571,8 +571,11 @@ fn run_single_pipeline(ds:DriverState:mut, source_path:string):ModuleEntry {
     let imported_modules = discover_stdlib_imports(ds, mod)
     let imported_decls = collect_stdlib_decls(ds, mod)
 
+    // io.eprintln("[DRV] resolving...")
     let resolved = resolver.resolve(mod, disp, imported_modules)
+    // io.eprintln("[DRV] typechecking...")
     let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
+    // io.eprintln("[DRV] typecheck done")
 
     return ModuleEntry{display_path:disp, typed:typed, is_root:true}
 }
@@ -582,6 +585,7 @@ fn run_single_pipeline(ds:DriverState:mut, source_path:string):ModuleEntry {
 // ---------------------------------------------------------------------------
 
 fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry> {
+    // io.eprintln("[DRV] run_multi_pipeline start")
     let abs = path.resolve(source_path)
 
     // Quick parse to check for user imports (fast path)
@@ -591,8 +595,10 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
     let quick_parse = parser.parse(quick_tokens, disp)
     let quick_mod = quick_parse.parsed_module
 
+    // io.eprintln("[DRV] parsed, checking user imports")
     if(has_user_imports(quick_mod) == false) {
         // Fast path: single-file compilation
+        // io.eprintln("[DRV] single-file fast path")
         let entry = run_single_pipeline(ds, source_path)
         let result:array<ModuleEntry>:mut = []
         result = array.push(result, entry)
@@ -600,8 +606,10 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
     }
 
     // Multi-module path: build dependency graph
+    // io.eprintln("[DRV] multi-module path, building dep graph")
     let project_root = infer_project_root(abs, quick_mod.path)
     let topo_order = build_dependency_graph(abs, project_root)
+    // io.eprintln("[DRV] dep graph built, " + conv.to_string(array.size(topo_order)) + " modules")
 
     // Resolve and typecheck each module in topological order
     let available_scopes:map<string, resolver.ModuleScope>:mut = map.new()
@@ -639,8 +647,11 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
             }
         }
 
+        // io.eprintln("[DRV] resolving " + pm.module_key)
         let resolved = resolver.resolve(mod, pm.display_path, imported_modules)
+        // io.eprintln("[DRV] typechecking " + pm.module_key)
         let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
+        // io.eprintln("[DRV] done " + pm.module_key)
 
         available_scopes = map.set(available_scopes, pm.module_key, resolved.mod_scope)
         available_typed = map.set(available_typed, pm.module_key, typed)
@@ -966,7 +977,9 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
 
     if(array.size(modules) == 1) {
         let entry = array.get_any(modules, 0) ?? dummy_entry()
+        // io.eprintln("[DRV] lowering...")
         let lmod = lowering.lower(entry.typed, efn_map)
+        // io.eprintln("[DRV] emitting...")
         return emitter.emit(lmod, entry.display_path, true, [], [], line_directives)
     }
 
@@ -1110,8 +1123,11 @@ export fn check(source_path:string, stdlib_dir:string):int {
 
 // emit_c: run full pipeline, return C source string
 export fn emit_c(source_path:string, stdlib_dir:string):string {
+    // io.eprintln("[DRV] starting emit_c")
     let ds:DriverState:mut = make_driver_state(stdlib_dir)
+    // io.eprintln("[DRV] driver state created")
     let modules_raw = run_multi_pipeline(ds, source_path)
+    // io.eprintln("[DRV] multi pipeline done")
     let modules = inject_compilable_stdlib(ds, modules_raw)
     // Pass ds.cache_typed so non-compilable stdlib extern fns (e.g., array.size → fl_array_len_int)
     // are available in the extern fn map for call site resolution.

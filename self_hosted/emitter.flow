@@ -77,13 +77,7 @@ fn do_dedent(st:EmitState:mut) {
 }
 
 fn get_output(st:EmitState:mut):string {
-    let result:string:mut = ""
-    let i:int:mut = 0
-    while(i < array.size(st.out)) {
-        result = result + (array.get(st.out, i) ?? "")
-        i = i + 1
-    }
-    return result
+    return string.join_array(st.out)
 }
 
 fn fresh_temp(st:EmitState:mut):string {

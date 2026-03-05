@@ -24,6 +24,7 @@ export fn join(sep:string, ..parts:string):string {
     }
     return result
 }
+export extern fn "fl_string_join_array" join_array(parts:array<string>):string
 export extern fn "fl_string_to_lower" to_lower(s:string):string
 export extern fn "fl_string_to_upper" to_upper(s:string):string
 export extern fn "fl_string_len" len(s:string):int

@@ -278,6 +278,7 @@ typedef struct FL_Array {
     fl_int64  element_size;
 } FL_Array;
 
+FL_String*    fl_string_join_array(FL_Array* parts);
 FL_Array*     fl_array_new(fl_int64 len, fl_int64 element_size, void* initial_data);
 void          fl_array_retain(FL_Array* arr);
 void          fl_array_release(FL_Array* arr);

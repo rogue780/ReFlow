@@ -93,6 +93,31 @@ FL_String* fl_string_concat(FL_String* a, FL_String* b) {
     return s;
 }
 
+// RUNTIME-DEBT: would be eliminated by mutable byte buffer type in Flow
+FL_String* fl_string_join_array(FL_Array* parts) {
+    if (!parts) return fl_string_from_cstr("");
+    void** elems = (void**)parts->data;
+    fl_int64 total = 0;
+    for (fl_int64 i = 0; i < parts->len; i++) {
+        FL_String* s = (FL_String*)elems[i];
+        if (s) total += s->len;
+    }
+    FL_String* result = (FL_String*)malloc(sizeof(FL_String) + (size_t)total + 1);
+    if (!result) fl_panic("fl_string_join_array: out of memory");
+    result->refcount = 1;
+    result->len = total;
+    fl_int64 offset = 0;
+    for (fl_int64 i = 0; i < parts->len; i++) {
+        FL_String* s = (FL_String*)elems[i];
+        if (s && s->len > 0) {
+            memcpy(result->data + offset, s->data, (size_t)s->len);
+            offset += s->len;
+        }
+    }
+    result->data[total] = '\0';
+    return result;
+}
+
 fl_bool fl_string_eq(FL_String* a, FL_String* b) {
     if (a == b) return fl_true;
     if (!a || !b) return fl_false;

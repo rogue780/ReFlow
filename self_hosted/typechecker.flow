@@ -204,12 +204,16 @@ type TCState:mut {
 
     // Scope: flat binding list with watermarks
     scope_names:array<string>
-    scope_types:map<string, TCTypeBox>   // "s_<idx>" -> TCType
+    scope_type_arr:array<TCTypeBox>   // indexed by scope index
     scope_count:int
     scope_frames:array<int>
 
     // Module scope watermark (scope_count after top-level types registered)
     mod_scope_watermark:int
+
+    // O(1) scope lookup maps: name -> index into scope_names/scope_types
+    scope_map:map<string, int>
+    mod_scope_map:map<string, int>
 
     // Current function context
     has_return_type:bool
@@ -240,6 +244,9 @@ type TCState:mut {
 
     // Purity map: fn name -> is_pure
     purity_map:map<string, bool>
+
+    // Decl cache: "module_key:decl_id" -> Decl (built once, avoids O(n) scans)
+    decl_cache:map<string, ast.Decl>
 }
 
 fn make_state(
@@ -259,10 +266,12 @@ fn make_state(
         type_registry:map.new(),
         iface_registry:map.new(),
         scope_names:[],
-        scope_types:map.new(),
+        scope_type_arr:[],
         scope_count:0,
         scope_frames:[],
         mod_scope_watermark:0,
+        scope_map:map.new(),
+        mod_scope_map:map.new(),
         has_return_type:false,
         current_return_type:TCAny(),
         in_pure_fn:false,
@@ -276,7 +285,8 @@ fn make_state(
         capacity_expr_ids:[],
         builtin_method_sigs:map.new(),
         builtin_fulfillments:map.new(),
-        purity_map:map.new()
+        purity_map:map.new(),
+        decl_cache:map.new()
     }
     return s
 }
@@ -289,61 +299,83 @@ fn scope_push_frame(s:TCState:mut) {
     s.scope_frames = array.push_int(s.scope_frames, s.scope_count)
 }
 
+fn rebuild_scope_map(s:TCState:mut) {
+    s.scope_map = map.new()
+    let i:int:mut = 0
+    while(i < s.scope_count) {
+        let n = array.get(s.scope_names, i) ?? ""
+        s.scope_map = map.set(s.scope_map, n, i)
+        i = i + 1
+    }
+}
+
 fn scope_pop_frame(s:TCState:mut) {
     let sz:int:mut = array.size(s.scope_frames)
     if(sz > 0) {
         let wm:int:mut = array.get_int(s.scope_frames, sz - 1) ?? 0
         s.scope_frames = array.slice(s.scope_frames, 0, sz - 1)
         s.scope_count = wm
+        if(array.size(s.scope_names) > wm) {
+            s.scope_names = array.slice(s.scope_names, 0, wm)
+        }
+        rebuild_scope_map(s)
     }
 }
 
 fn scope_define(s:TCState:mut, name:string, t:TCType) {
-    // Use the actual position in scope_names (not scope_count) as the key index.
-    // scope_names is append-only — after check_fn_body resets scope_count to
-    // mod_scope_watermark, the names from previous function bodies still occupy
-    // lower indices in scope_names. Using array.size ensures each new definition
-    // gets a unique slot in scope_types that matches where the name lives.
-    let idx = array.size(s.scope_names)
-    s.scope_names = array.push(s.scope_names, name)
-    let key = "s_" + conv.to_string(idx)
-    s.scope_types = map.set(s.scope_types, key, TCTypeBox{tc:t})
+    let idx = s.scope_count
+    if(idx < array.size(s.scope_names)) {
+        s.scope_names = array.put(s.scope_names, idx, name)
+    } else {
+        s.scope_names = array.push(s.scope_names, name)
+    }
+    let box = TCTypeBox{tc:t}
+    if(idx < array.size(s.scope_type_arr)) {
+        s.scope_type_arr = array.put(s.scope_type_arr, idx, box)
+    } else {
+        s.scope_type_arr = array.push(s.scope_type_arr, box)
+    }
+    s.scope_map = map.set(s.scope_map, name, idx)
     s.scope_count = idx + 1
 }
 
 fn scope_lookup(s:TCState:mut, name:string):TCType {
-    let i:int:mut = s.scope_count - 1
-    while(i >= 0) {
-        let n = array.get(s.scope_names, i) ?? ""
-        if(n == name) {
-            let key = "s_" + conv.to_string(i)
-            return tc_map_get(s.scope_types, key)
+    let idx_opt = map.get(s.scope_map, name)
+    match idx_opt {
+        some(idx): {
+            if(idx < s.scope_count) {
+                let box_opt = array.get_any(s.scope_type_arr, idx)
+                match box_opt {
+                    some(box): { return box.tc }
+                    none: {}
+                }
+            }
         }
-        i = i - 1
+        none: {}
     }
     return TCAny()
 }
 
 fn scope_has(s:TCState:mut, name:string):bool {
-    let i:int:mut = s.scope_count - 1
-    while(i >= 0) {
-        let n = array.get(s.scope_names, i) ?? ""
-        if(n == name) { return true }
-        i = i - 1
+    let idx_opt = map.get(s.scope_map, name)
+    match idx_opt {
+        some(idx): { return idx < s.scope_count }
+        none: { return false }
     }
-    return false
 }
 
 // Look up only within the module scope (indices 0..mod_scope_watermark-1)
 fn mod_scope_lookup(s:TCState:mut, name:string):TCType {
-    let i:int:mut = s.mod_scope_watermark - 1
-    while(i >= 0) {
-        let n = array.get(s.scope_names, i) ?? ""
-        if(n == name) {
-            let key = "s_" + conv.to_string(i)
-            return tc_map_get(s.scope_types, key)
+    let idx_opt = map.get(s.mod_scope_map, name)
+    match idx_opt {
+        some(idx): {
+            let box_opt = array.get_any(s.scope_type_arr, idx)
+            match box_opt {
+                some(box): { return box.tc }
+                none: {}
+            }
         }
-        i = i - 1
+        none: {}
     }
     return TCAny()
 }
@@ -1084,6 +1116,49 @@ fn decl_fn_type(s:TCState:mut, d:ast.Decl):TCType {
 }
 
 // ---------------------------------------------------------------------------
+// build_decl_cache — index all decls by "module_key:decl_id" for O(1) lookup
+// ---------------------------------------------------------------------------
+
+fn cache_decl(s:TCState:mut, mk:string, d:ast.Decl) {
+    let key = mk + ":" + conv.to_string(ast.decl_id(d))
+    s.decl_cache = map.set(s.decl_cache, key, d)
+}
+
+fn build_decl_cache(s:TCState:mut) {
+    // Current module decls (mk = "")
+    for(d:ast.Decl in s.src_module.decls) {
+        cache_decl(s, "", d)
+        match d {
+            DType(nid, l, c, name, tp, fields, methods, ctors, statics, ifaces, ie, ist, v, im): {
+                for(m:ast.Decl in methods) { cache_decl(s, "", m) }
+                for(ct:ast.Decl in ctors) { cache_decl(s, "", ct) }
+            }
+            _: {}
+        }
+    }
+    // Imported module decls
+    let mod_keys = map.keys(s.imported_module_decls)
+    for(mk:string in mod_keys) {
+        let mod_opt = map.get(s.imported_module_decls, mk)
+        match mod_opt {
+            some(mod): {
+                for(d:ast.Decl in mod.decls) {
+                    cache_decl(s, mk, d)
+                    match d {
+                        DType(nid, l, c, name, tp, fields, methods, ctors, statics, ifaces, ie, ist, v, im): {
+                            for(m:ast.Decl in methods) { cache_decl(s, mk, m) }
+                            for(ct:ast.Decl in ctors) { cache_decl(s, mk, ct) }
+                        }
+                        _: {}
+                    }
+                }
+            }
+            none: {}
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // collect_extern_types
 // ---------------------------------------------------------------------------
 
@@ -1648,6 +1723,7 @@ fn register_top_level_types(s:TCState:mut) {
         i = i + 1
     }
     s.mod_scope_watermark = s.scope_count
+    s.mod_scope_map = s.scope_map
 }
 
 
@@ -2757,9 +2833,13 @@ fn check_fn_body(s:TCState:mut, decl:ast.Decl) {
     match decl {
         DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
             if(array.size(body) == 0 && !hf) { return }
-            // Push scope for function params
+            // Push scope for function params — reset to module scope boundary
             let saved_scope = s.scope_count
             s.scope_count = s.mod_scope_watermark
+            if(array.size(s.scope_names) > s.mod_scope_watermark) {
+                s.scope_names = array.slice(s.scope_names, 0, s.mod_scope_watermark)
+            }
+            s.scope_map = s.mod_scope_map
 
             // Register type params temporarily
             let ti:int:mut = 0
@@ -2804,6 +2884,10 @@ fn check_fn_body(s:TCState:mut, decl:ast.Decl) {
             s.in_pure_fn = old_pure
             s.current_fn_id = old_fn_id
             s.scope_count = s.mod_scope_watermark
+            if(array.size(s.scope_names) > s.mod_scope_watermark) {
+                s.scope_names = array.slice(s.scope_names, 0, s.mod_scope_watermark)
+            }
+            s.scope_map = s.mod_scope_map
         }
         _: {}
     }
@@ -2848,6 +2932,10 @@ fn check_method_body(s:TCState:mut, decl:ast.Decl, type_name_str:string) {
         DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
             if(array.size(body) == 0 && !hf) { return }
             s.scope_count = s.mod_scope_watermark
+            if(array.size(s.scope_names) > s.mod_scope_watermark) {
+                s.scope_names = array.slice(s.scope_names, 0, s.mod_scope_watermark)
+            }
+            s.scope_map = s.mod_scope_map
             // self param
             scope_define(s, "self", TCNamed("", type_name_str, []))
             let pi:int:mut = 0
@@ -2872,6 +2960,10 @@ fn check_method_body(s:TCState:mut, decl:ast.Decl, type_name_str:string) {
             s.has_return_type = old_has_ret
             s.in_pure_fn = old_pure
             s.scope_count = s.mod_scope_watermark
+            if(array.size(s.scope_names) > s.mod_scope_watermark) {
+                s.scope_names = array.slice(s.scope_names, 0, s.mod_scope_watermark)
+            }
+            s.scope_map = s.mod_scope_map
         }
         _: {}
     }
@@ -2881,6 +2973,10 @@ fn check_ctor_body(s:TCState:mut, decl:ast.Decl, type_name_str:string) {
     match decl {
         DConstructor(nid, l, c, name, params, ret, body): {
             s.scope_count = s.mod_scope_watermark
+            if(array.size(s.scope_names) > s.mod_scope_watermark) {
+                s.scope_names = array.slice(s.scope_names, 0, s.mod_scope_watermark)
+            }
+            s.scope_map = s.mod_scope_map
             scope_define(s, "self", TCNamed("", type_name_str, []))
             let pi:int:mut = 0
             while(pi < array.size(params)) {
@@ -2898,6 +2994,10 @@ fn check_ctor_body(s:TCState:mut, decl:ast.Decl, type_name_str:string) {
             s.current_return_type = old_ret
             s.has_return_type = old_has_ret
             s.scope_count = s.mod_scope_watermark
+            if(array.size(s.scope_names) > s.mod_scope_watermark) {
+                s.scope_names = array.slice(s.scope_names, 0, s.mod_scope_watermark)
+            }
+            s.scope_map = s.mod_scope_map
         }
         _: {}
     }
@@ -2908,129 +3008,13 @@ fn check_ctor_body(s:TCState:mut, decl:ast.Decl, type_name_str:string) {
 // ---------------------------------------------------------------------------
 
 fn find_decl_by_id(s:TCState:mut, decl_id:int, module_key:string):option<ast.Decl> {
-    // When module_key is known, search only that module (avoids decl_id collisions across modules)
-    if(module_key != "") {
-        let mod_opt = map.get(s.imported_module_decls, module_key)
-        match mod_opt {
-            some(mod): {
-                let j:int:mut = 0
-                while(j < array.size(mod.decls)) {
-                    let d = array.get_any(mod.decls, j) ?? ast.DModule(0,0,0,[])
-                    if(ast.decl_id(d) == decl_id) { return some(d) }
-                    j = j + 1
-                }
-            }
-            none: {}
-        }
-        return none
-    }
-    // Search current module
-    let i:int:mut = 0
-    let decls = s.src_module.decls
-    while(i < array.size(decls)) {
-        let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
-        if(ast.decl_id(d) == decl_id) { return some(d) }
-        // Also search methods/constructors within type decls
-        match d {
-            DType(nid, l, c, name, tp, fields, methods, ctors, statics, ifaces, ie, ist, v, im): {
-                let mi:int:mut = 0
-                while(mi < array.size(methods)) {
-                    let m:ast.Decl:mut = array.get_any(methods, mi) ?? ast.DModule(0,0,0,[])
-                    if(ast.decl_id(m) == decl_id) { return some(m) }
-                    mi = mi + 1
-                }
-                let ci:int:mut = 0
-                while(ci < array.size(ctors)) {
-                    let ct = array.get_any(ctors, ci) ?? ast.DModule(0,0,0,[])
-                    if(ast.decl_id(ct) == decl_id) { return some(ct) }
-                    ci = ci + 1
-                }
-            }
-            _: {}
-        }
-        i = i + 1
-    }
-    // Search all imported modules (fallback when module_key is unknown)
-    let mod_keys = map.keys(s.imported_module_decls)
-    let ki:int:mut = 0
-    while(ki < array.size(mod_keys)) {
-        let mk = array.get(mod_keys, ki) ?? ""
-        let mod_opt = map.get(s.imported_module_decls, mk)
-        match mod_opt {
-            some(mod): {
-                let j:int:mut = 0
-                while(j < array.size(mod.decls)) {
-                    let d = array.get_any(mod.decls, j) ?? ast.DModule(0,0,0,[])
-                    if(ast.decl_id(d) == decl_id) { return some(d) }
-                    j = j + 1
-                }
-            }
-            none: {}
-        }
-        ki = ki + 1
-    }
-    return none
+    let key = module_key + ":" + conv.to_string(decl_id)
+    return map.get(s.decl_cache, key)
 }
 
 fn find_extern_decl_by_id(s:TCState:mut, decl_id:int, module_key:string):option<ast.Decl> {
-    // When module_key is known, search only that module (avoids decl_id collisions across modules)
-    if(module_key != "") {
-        let mod_opt = map.get(s.imported_module_decls, module_key)
-        match mod_opt {
-            some(mod): {
-                let j:int:mut = 0
-                while(j < array.size(mod.decls)) {
-                    let d = array.get_any(mod.decls, j) ?? ast.DModule(0,0,0,[])
-                    match d {
-                        DExternFn(nid, l, c, name, tp, params, hrt, ret, ie, cn): {
-                            if(nid == decl_id) { return some(d) }
-                        }
-                        _: {}
-                    }
-                    j = j + 1
-                }
-            }
-            none: {}
-        }
-        return none
-    }
-    let i:int:mut = 0
-    let decls = s.src_module.decls
-    while(i < array.size(decls)) {
-        let d = array.get_any(decls, i) ?? ast.DModule(0,0,0,[])
-        match d {
-            DExternFn(nid, l, c, name, tp, params, hrt, ret, ie, cn): {
-                if(nid == decl_id) { return some(d) }
-            }
-            _: {}
-        }
-        i = i + 1
-    }
-    // Search imported modules (fallback when module_key is unknown)
-    let mod_keys = map.keys(s.imported_module_decls)
-    let ki:int:mut = 0
-    while(ki < array.size(mod_keys)) {
-        let mk = array.get(mod_keys, ki) ?? ""
-        let mod_opt = map.get(s.imported_module_decls, mk)
-        match mod_opt {
-            some(mod): {
-                let j:int:mut = 0
-                while(j < array.size(mod.decls)) {
-                    let d = array.get_any(mod.decls, j) ?? ast.DModule(0,0,0,[])
-                    match d {
-                        DExternFn(nid, l, c, name, tp, params, hrt, ret, ie, cn): {
-                            if(nid == decl_id) { return some(d) }
-                        }
-                        _: {}
-                    }
-                    j = j + 1
-                }
-            }
-            none: {}
-        }
-        ki = ki + 1
-    }
-    return none
+    let key = module_key + ":" + conv.to_string(decl_id)
+    return map.get(s.decl_cache, key)
 }
 
 // ---------------------------------------------------------------------------
@@ -3054,6 +3038,7 @@ export fn typecheck(
     register_builtin_fulfillments(s)
     register_builtin_method_sigs(s)
     collect_extern_types(s)
+    build_decl_cache(s)
     build_type_registry(s)
     register_imported_types(s)
     build_interface_registry(s)
