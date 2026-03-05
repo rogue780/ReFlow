@@ -1915,7 +1915,7 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
             if(sym_has_by_id(s, nid)) {
                 let sym = sym_lookup_by_id(s, nid)
                 if(sym.kind == resolver.SymbolKind.SK_IMPORT) {
-                    let decl_opt = find_decl_by_id(s, sym.decl_id)
+                    let decl_opt = find_decl_by_id(s, sym.decl_id, sym.module_key)
                     match decl_opt {
                         some(d): { return decl_fn_type(s, d) }
                         none: {}
@@ -1969,7 +1969,7 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
                     let callee_id = ast.expr_id(callee)
                     if(sym_has_by_id(s, callee_id)) {
                         let sym = sym_lookup_by_id(s, callee_id)
-                        let decl_opt = find_decl_by_id(s, sym.decl_id)
+                        let decl_opt = find_decl_by_id(s, sym.decl_id, sym.module_key)
                         match decl_opt {
                             some(d): {
                                 if(decl_has_type_params(d)) {
@@ -1998,7 +1998,7 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
                         arg_types = array.push(arg_types, tc_box(infer_expr(s, a)))
                         i = i + 1
                     }
-                    let decl_opt = find_decl_by_id(s, sym.decl_id)
+                    let decl_opt = find_decl_by_id(s, sym.decl_id, sym.module_key)
                     match decl_opt {
                         some(d): {
                             // decl_fn_type handles both DFn and DExternFn
@@ -2015,8 +2015,8 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
                             }
                         }
                         none: {
-                            // extern fn not found by find_decl_by_id (shouldn't happen, but fallback)
-                            let ext_opt = find_extern_decl_by_id(s, sym.decl_id)
+                            // extern fn not found by find_decl_by_id — try extern-specific search
+                            let ext_opt = find_extern_decl_by_id(s, sym.decl_id, sym.module_key)
                             match ext_opt {
                                 some(d): {
                                     let ft = extern_fn_decl_type(s, d)
@@ -2354,6 +2354,25 @@ fn infer_chain(s:TCState:mut, elems:array<ast.ChainElement>, chain_id:int):TCTyp
 // ---------------------------------------------------------------------------
 // check_stmt — statement type checking
 // ---------------------------------------------------------------------------
+
+fn stmt_line_num(stmt:ast.Stmt):int {
+    match stmt {
+        SLet(nid,l,c,n,h,t,v): { return l }
+        SAssign(nid,l,c,t,v): { return l }
+        SUpdate(nid,l,c,t,o,h,v): { return l }
+        SReturn(nid,l,c,h,v): { return l }
+        SYield(nid,l,c,v): { return l }
+        SThrow(nid,l,c,v): { return l }
+        SBreak(nid,l,c): { return l }
+        SContinue(nid,l,c): { return l }
+        SExpr(nid,l,c,e): { return l }
+        SIf(nid,l,c,co,th,he,el): { return l }
+        SWhile(nid,l,c,co,bo,hf,fb): { return l }
+        SFor(nid,l,c,vn,hvt,vt,it,bo,hf,fb): { return l }
+        SMatch(nid,l,c,su,ar): { return l }
+        STry(nid,l,c,bo,re,ca,hf,fb): { return l }
+    }
+}
 
 fn check_stmt(s:TCState:mut, stmt:ast.Stmt) {
     match stmt {
@@ -2888,7 +2907,23 @@ fn check_ctor_body(s:TCState:mut, decl:ast.Decl, type_name_str:string) {
 // Decl lookup helpers
 // ---------------------------------------------------------------------------
 
-fn find_decl_by_id(s:TCState:mut, decl_id:int):option<ast.Decl> {
+fn find_decl_by_id(s:TCState:mut, decl_id:int, module_key:string):option<ast.Decl> {
+    // When module_key is known, search only that module (avoids decl_id collisions across modules)
+    if(module_key != "") {
+        let mod_opt = map.get(s.imported_module_decls, module_key)
+        match mod_opt {
+            some(mod): {
+                let j:int:mut = 0
+                while(j < array.size(mod.decls)) {
+                    let d = array.get_any(mod.decls, j) ?? ast.DModule(0,0,0,[])
+                    if(ast.decl_id(d) == decl_id) { return some(d) }
+                    j = j + 1
+                }
+            }
+            none: {}
+        }
+        return none
+    }
     // Search current module
     let i:int:mut = 0
     let decls = s.src_module.decls
@@ -2915,7 +2950,7 @@ fn find_decl_by_id(s:TCState:mut, decl_id:int):option<ast.Decl> {
         }
         i = i + 1
     }
-    // Search imported modules
+    // Search all imported modules (fallback when module_key is unknown)
     let mod_keys = map.keys(s.imported_module_decls)
     let ki:int:mut = 0
     while(ki < array.size(mod_keys)) {
@@ -2937,7 +2972,28 @@ fn find_decl_by_id(s:TCState:mut, decl_id:int):option<ast.Decl> {
     return none
 }
 
-fn find_extern_decl_by_id(s:TCState:mut, decl_id:int):option<ast.Decl> {
+fn find_extern_decl_by_id(s:TCState:mut, decl_id:int, module_key:string):option<ast.Decl> {
+    // When module_key is known, search only that module (avoids decl_id collisions across modules)
+    if(module_key != "") {
+        let mod_opt = map.get(s.imported_module_decls, module_key)
+        match mod_opt {
+            some(mod): {
+                let j:int:mut = 0
+                while(j < array.size(mod.decls)) {
+                    let d = array.get_any(mod.decls, j) ?? ast.DModule(0,0,0,[])
+                    match d {
+                        DExternFn(nid, l, c, name, tp, params, hrt, ret, ie, cn): {
+                            if(nid == decl_id) { return some(d) }
+                        }
+                        _: {}
+                    }
+                    j = j + 1
+                }
+            }
+            none: {}
+        }
+        return none
+    }
     let i:int:mut = 0
     let decls = s.src_module.decls
     while(i < array.size(decls)) {
@@ -2950,7 +3006,7 @@ fn find_extern_decl_by_id(s:TCState:mut, decl_id:int):option<ast.Decl> {
         }
         i = i + 1
     }
-    // Search imported modules
+    // Search imported modules (fallback when module_key is unknown)
     let mod_keys = map.keys(s.imported_module_decls)
     let ki:int:mut = 0
     while(ki < array.size(mod_keys)) {

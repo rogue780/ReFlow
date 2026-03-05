@@ -52,18 +52,24 @@ export type Symbol {
     has_type_ann:bool
     type_ann:ast.TypeExpr
     is_mut:bool
+    module_key:string  // non-empty for imported symbols; identifies which module's decl list to search
 }
 
 fn make_symbol(name:string, kind:int, decl_id:int, has_type_ann:bool, type_ann:ast.TypeExpr, is_mut:bool):Symbol {
-    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:has_type_ann, type_ann:type_ann, is_mut:is_mut}
+    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:has_type_ann, type_ann:type_ann, is_mut:is_mut, module_key:""}
 }
 
 fn symbol_no_type(name:string, kind:int, decl_id:int, is_mut:bool):Symbol {
-    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:false, type_ann:placeholder_type(), is_mut:is_mut}
+    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:false, type_ann:placeholder_type(), is_mut:is_mut, module_key:""}
 }
 
 fn symbol_with_type(name:string, kind:int, decl_id:int, type_ann:ast.TypeExpr, is_mut:bool):Symbol {
-    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:true, type_ann:type_ann, is_mut:is_mut}
+    return Symbol{name:name, kind:kind, decl_id:decl_id, has_type_ann:true, type_ann:type_ann, is_mut:is_mut, module_key:""}
+}
+
+// Copy a symbol, overriding module_key — used when re-exporting imported symbols into type_member_scopes
+fn copy_symbol_with_mk(sym:Symbol, mk:string):Symbol {
+    return Symbol{name:sym.name, kind:sym.kind, decl_id:sym.decl_id, has_type_ann:sym.has_type_ann, type_ann:sym.type_ann, is_mut:sym.is_mut, module_key:mk}
 }
 
 // ---------------------------------------------------------------------------
@@ -289,10 +295,9 @@ fn is_stream_return(has_ret:bool, type_ann:ast.TypeExpr):bool {
         TSizedType(tid, tl, tc, inner, cap): { return is_stream_return(true, inner) }
         TNamedType(tid, tl, tc, name, mp): { return name == "stream" }
         TGenericType(tid, tl, tc, base, args): {
-            match base {
-                TNamedType(bid, bl, bc, bname, bmp): { return bname == "stream" }
-                _: { return false }
-            }
+            // Use recursive call instead of nested match to avoid pointer comparison bug
+            // in Python compiler's nested match arm string equality generation
+            return is_stream_return(true, base)
         }
         _: { return false }
     }
@@ -421,7 +426,7 @@ fn resolve_import(s:ResolverState:mut, imp:ast.Decl):none {
                             while(ek < array.size(ks)) {
                                 let en = array.get(ks, ek) ?? ""
                                 match map.get(mod_scope.exports, en) {
-                                    some(es): { ns = map.set(ns, en, es) }
+                                    some(es): { ns = map.set(ns, en, copy_symbol_with_mk(es, module_key)) }
                                     none: {}
                                 }
                                 ek = ek + 1
@@ -436,7 +441,7 @@ fn resolve_import(s:ResolverState:mut, imp:ast.Decl):none {
                             while(ek < array.size(ks)) {
                                 let en = array.get(ks, ek) ?? ""
                                 match map.get(mod_scope.exports, en) {
-                                    some(es): { ns = map.set(ns, en, es) }
+                                    some(es): { ns = map.set(ns, en, copy_symbol_with_mk(es, module_key)) }
                                     none: {}
                                 }
                                 ek = ek + 1
@@ -589,7 +594,8 @@ fn resolve_fn_body(s:ResolverState:mut, params:array<ast.Param>, has_ret:bool, r
     push_scope(s, true)
     bind_params(s, params)
     let old_stream = s.in_stream_fn
-    s.in_stream_fn = is_stream_return(has_ret, ret)
+    let stream_result = is_stream_return(has_ret, ret)
+    s.in_stream_fn = stream_result
     resolve_stmts(s, body)
     if(has_fin) { resolve_stmts(s, fin_body) }
     s.in_stream_fn = old_stream

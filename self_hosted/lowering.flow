@@ -90,8 +90,10 @@ type LowerState:mut {
     // Stream context
     has_stream_ctx:bool
     stream_frame_var:string
+    stream_frame_c_name:string
     stream_elem_type:typechecker.TCType
     stream_yield_counter:int
+    stream_frame_names:map<string, bool>
 }
 
 // ---------------------------------------------------------------------------
@@ -122,6 +124,18 @@ fn type_of(st:LowerState:mut, node_id:int):typechecker.TCType {
     match(result) {
         some(box): { return typechecker.tc_unbox(box) }
         none: { return typechecker.tc_any() }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// get_named_type_name — extract name from TNamedType, else ""
+// Used to avoid nested match arm string comparison bug in Python compiler.
+// ---------------------------------------------------------------------------
+
+fn get_named_type_name(te:ast.TypeExpr):string {
+    match(te) {
+        TNamedType(id, line, col, name, mod_path): { return name }
+        _: { return "" }
     }
 }
 
@@ -182,31 +196,28 @@ fn resolve_type_ann_ast(st:LowerState:mut, te:ast.TypeExpr):typechecker.TCType {
                 TCAny: {}
                 _: { return resolved }
             }
-            // Fallback: try resolving base name with arg count
-            match(base) {
-                TNamedType(bid, bline, bcol, bname, bmod): {
-                    if(bname == "option") {
-                        if(array.size(args) > 0) {
-                            return typechecker.TCOption(inner:typechecker.tc_any())
-                        }
-                    }
-                    if(bname == "result") {
-                        return typechecker.TCResult(ok_type:typechecker.tc_any(), err_type:typechecker.tc_any())
-                    }
-                    if(bname == "array") {
-                        return typechecker.TCArray(elem:typechecker.tc_any())
-                    }
-                    if(bname == "map") {
-                        return typechecker.TCMap(key:typechecker.tc_any(), val:typechecker.tc_any())
-                    }
-                    if(bname == "stream") {
-                        return typechecker.TCStream(elem:typechecker.tc_any())
-                    }
-                    if(bname == "set") {
-                        return typechecker.TCSet(elem:typechecker.tc_any())
-                    }
+            // Fallback: resolve from base type name using helper to avoid nested match
+            // arm string comparison bug (nested match generates raw == instead of fl_string_eq)
+            let bname:string = get_named_type_name(base)
+            if(bname == "option") {
+                if(array.size(args) > 0) {
+                    return typechecker.TCOption(inner:typechecker.tc_any())
                 }
-                _: {}
+            }
+            if(bname == "result") {
+                return typechecker.TCResult(ok_type:typechecker.tc_any(), err_type:typechecker.tc_any())
+            }
+            if(bname == "array") {
+                return typechecker.TCArray(elem:typechecker.tc_any())
+            }
+            if(bname == "map") {
+                return typechecker.TCMap(key:typechecker.tc_any(), val:typechecker.tc_any())
+            }
+            if(bname == "stream") {
+                return typechecker.TCStream(elem:typechecker.tc_any())
+            }
+            if(bname == "set") {
+                return typechecker.TCSet(elem:typechecker.tc_any())
             }
             return typechecker.tc_any()
         }
@@ -811,8 +822,10 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         mono_caller_module:"",
         has_stream_ctx:false,
         stream_frame_var:"",
+        stream_frame_c_name:"",
         stream_elem_type:typechecker.tc_none(),
-        stream_yield_counter:0
+        stream_yield_counter:0,
+        stream_frame_names:map.new()
     }
 }
 
@@ -903,7 +916,13 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
             let ret_t:typechecker.TCType = type_of_return(st, decl)
 
             // Check for stream function
-            // TODO: stream fn lowering
+            match(ret_t) {
+                TCStream(elem): {
+                    lower_stream_fn(st, decl)
+                    return 0
+                }
+                _: {}
+            }
 
             // Save/restore context
             let saved_ret:typechecker.TCType = st.current_ret_type
@@ -1359,7 +1378,10 @@ fn lower_stmt(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
             return lower_update(st, s)
         }
         SYield(id, line, col, val): {
-            // TODO: stream yield lowering
+            // Should be handled by lower_stream_stmts; fallback here
+            if(st.has_stream_ctx) {
+                return lower_yield_in_stream(st, s)
+            }
             return []
         }
         SThrow(id, line, col, exception): {
@@ -1769,7 +1791,8 @@ fn lower_throw(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
                     // Typed exception — allocate on heap
                     let exc_lt:lir.LType = lower_type(st, exc_type)
                     let tmp:string = fresh_temp(st)
-                    let tag:int = exception_type_tag(type_name_str(st, exc_type))
+                    let exc_name:string = type_name_str(st, exc_type)
+                    let tag:int = exception_type_tag(exc_name)
                     let malloc_call:lir.LExpr = lir.LECall(fn_name:"malloc", args:[lir.le_box(lir.LESizeOf(target_type:exc_lt))], c_type:lir.LPtr(inner:lir.LVoid))
                     let cast_expr:lir.LExpr = lir.LECast(inner:lir.le_box(malloc_call), c_type:lir.LPtr(inner:exc_lt))
                     let result:array<lir.LStmtBox>:mut = []
@@ -1790,24 +1813,26 @@ fn lower_throw(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
 // ---------------------------------------------------------------------------
 
 fn exception_type_tag(name:string):int {
-    let hash:int:mut = 5381
+    // Flow int is 32-bit signed. We must keep intermediate values within bounds:
+    // hash < 67108864 (= 2^26) guarantees hash * 31 + 127 < 2^31 (no overflow).
+    // So we mask with % 67108864 after each step.
+    // Algorithm matches Python compiler (h=0, multiplier=31) modulo the smaller mask.
+    let hash:int:mut = 0
     let i:int:mut = 0
     let slen:int = string.len(name)
     while(i < slen) {
         match(string.char_at(name, i)) {
             some(c): {
                 let ch:int = char.to_code(c)
-                hash = ((hash * 33) + ch)
+                hash = ((hash * 31) + ch) % 67108864
             }
             none: {}
         }
         i = i + 1
     }
-    // Mask to positive 31-bit value, ensure non-zero (0 reserved for strings)
-    let tag:int:mut = hash
-    if(tag < 0) { tag = 0 - tag }
-    if(tag == 0) { tag = 1 }
-    return tag
+    // Ensure non-zero (0 reserved for untyped string exceptions)
+    if(hash == 0) { hash = 1 }
+    return hash
 }
 
 // ===========================================================================
@@ -2191,16 +2216,14 @@ fn lower_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             return lir.LELit(value:"0", c_type:lir.LVoid)
         }
         EFanOut(id, line, col, branches, is_parallel): {
-            // TODO: fan-out lowering
+            // TODO: full fan-out lowering
             return lir.LELit(value:"0", c_type:lir.LVoid)
         }
         ECoroutineStart(id, line, col, call): {
-            // TODO: coroutine start lowering
-            return lir.LELit(value:"0", c_type:lir.LVoid)
+            return lower_coroutine_start(st, call, e)
         }
         ECoroutinePipeline(id, line, col, stages): {
-            // TODO: coroutine pipeline lowering
-            return lir.LELit(value:"0", c_type:lir.LVoid)
+            return lower_coroutine_pipeline(st, stages, e)
         }
     }
 }
@@ -2662,6 +2685,22 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                         }
                     }
                     return lir.LECall(fn_name:fn_c_name, args:method_args, c_type:result_lt)
+                }
+                _: {}
+            }
+
+            // Coroutine method calls (.next, .poll, .done, .send, .stop, .kill)
+            match(recv_type) {
+                TCCoroutine(yield_type, send_type): {
+                    return lower_coroutine_method(st, lrecv, yield_type, send_type, method_name, args, result_lt, line)
+                }
+                _: {}
+            }
+
+            // Stream method calls (.next via fl_stream_next, etc.)
+            match(recv_type) {
+                TCStream(elem): {
+                    return lower_stream_method(st, lrecv, elem, method_name, args, result_lt)
                 }
                 _: {}
             }
@@ -3218,4 +3257,925 @@ fn lower_lambda(st:LowerState:mut, e:ast.Expr):lir.LExpr {
         }
         _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
     }
+}
+
+// ---------------------------------------------------------------------------
+
+// ===========================================================================
+// COROUTINE AND STREAM LOWERING
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// concat_lir_stmts — append two arrays of LStmtBox
+// ---------------------------------------------------------------------------
+
+fn concat_lir_stmts(a:array<lir.LStmtBox>, b:array<lir.LStmtBox>):array<lir.LStmtBox> {
+    let result:array<lir.LStmtBox>:mut = a
+    for(s:lir.LStmtBox in b) {
+        result = array.push(result, s)
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// StreamLocals — helper struct for collecting locals
+// ---------------------------------------------------------------------------
+
+type StreamLocals:mut {
+    seen:map<string, bool>
+    names:array<string>
+    types:array<typechecker.TCTypeBox>
+}
+
+fn stream_locals_empty():StreamLocals {
+    return StreamLocals{seen:map.new(), names:[], types:[]}
+}
+
+fn collect_stream_locals(st:LowerState:mut, stmts:array<ast.Stmt>, locs:StreamLocals):StreamLocals {
+    let result:StreamLocals:mut = locs
+    for(s:ast.Stmt in stmts) {
+        result = collect_stream_locals_stmt(st, s, result)
+    }
+    return result
+}
+
+fn collect_stream_locals_stmt(st:LowerState:mut, s:ast.Stmt, locs:StreamLocals):StreamLocals {
+    let result:StreamLocals:mut = locs
+    match(s) {
+        SLet(id, line, col, name, has_ta, ta, val): {
+            if(map.has(result.seen, name) == false) {
+                result.seen = map.set(result.seen, name, true)
+                let vt:typechecker.TCType = type_of(st, ast.expr_id(val))
+                result.names = array.push(result.names, name)
+                result.types = array.push(result.types, typechecker.tc_box(vt))
+            }
+        }
+        SWhile(id, line, col, cond, body, hf, fb): {
+            result = collect_stream_locals(st, body, result)
+        }
+        SIf(id, line, col, cond, then_body, has_else, else_body): {
+            result = collect_stream_locals(st, then_body, result)
+            if(has_else) {
+                result = collect_stream_locals(st, else_body, result)
+            }
+        }
+        SFor(id, line, col, var_name, hvt, vt, iter, body, hf, fb): {
+            if(map.has(result.seen, var_name) == false) {
+                result.seen = map.set(result.seen, var_name, true)
+                let iter_t:typechecker.TCType = type_of(st, ast.expr_id(iter))
+                let elem_t:typechecker.TCType:mut = typechecker.tc_any()
+                match(iter_t) {
+                    TCArray(elem): { elem_t = elem }
+                    TCStream(elem): { elem_t = elem }
+                    _: {}
+                }
+                result.names = array.push(result.names, var_name)
+                result.types = array.push(result.types, typechecker.tc_box(elem_t))
+            }
+            result = collect_stream_locals(st, body, result)
+        }
+        SMatch(id, line, col, subj, arms): {
+            for(arm:ast.MatchArm in arms) {
+                result = collect_stream_locals(st, arm.body_stmts, result)
+            }
+        }
+        _: {}
+    }
+    return result
+}
+
+fn count_yields_in_stmts(stmts:array<ast.Stmt>):int {
+    let count:int:mut = 0
+    for(s:ast.Stmt in stmts) {
+        count = count + count_yields_in_stmt(s)
+    }
+    return count
+}
+
+fn count_yields_in_stmt(s:ast.Stmt):int {
+    match(s) {
+        SYield(id, line, col, val): { return 1 }
+        SWhile(id, line, col, cond, body, hf, fb): { return count_yields_in_stmts(body) }
+        SIf(id, line, col, cond, then_body, has_else, else_body): {
+            let cnt:int:mut = count_yields_in_stmts(then_body)
+            if(has_else) { cnt = cnt + count_yields_in_stmts(else_body) }
+            return cnt
+        }
+        SFor(id, line, col, vn, hvt, vt, iter, body, hf, fb): { return count_yields_in_stmts(body) }
+        SMatch(id, line, col, subj, arms): {
+            let cnt:int:mut = 0
+            for(arm:ast.MatchArm in arms) { cnt = cnt + count_yields_in_stmts(arm.body_stmts) }
+            return cnt
+        }
+        _: { return 0 }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_stream_fn — lower a stream-returning function to state machine
+// ---------------------------------------------------------------------------
+
+fn lower_stream_fn(st:LowerState:mut, decl:ast.Decl):int {
+    match(decl) {
+        DFn(id, line, col, name, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
+            if(array.size(body) == 0) { return 0 }
+
+            let frame_c_name:string = mangler.mangle_stream_frame(st.module_path, name)
+            let next_c_name:string = mangler.mangle_stream_next(st.module_path, name)
+            let free_c_name:string = mangler.mangle_stream_free(st.module_path, name)
+            let factory_c_name:string = mangler.mangle(st.module_path, "", name)
+
+            // Get element type from stream<T> return type
+            let full_ret_t:typechecker.TCType = type_of_return(st, decl)
+            let elem_type:typechecker.TCType:mut = typechecker.tc_any()
+            match(full_ret_t) {
+                TCStream(elem): { elem_type = elem }
+                _: {}
+            }
+
+            // Collect locals
+            let locs:StreamLocals = collect_stream_locals(st, body, stream_locals_empty())
+
+            // Build frame struct fields: _state, params, locals
+            let frame_fields:array<lir.LField>:mut = []
+            frame_fields = array.push(frame_fields, lir.LField{name:"_state", field_type:lir.LInt(width:32, is_signed:true)})
+            for(p:ast.Param in params) {
+                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                frame_fields = array.push(frame_fields, lir.LField{name:p.name, field_type:lower_type(st, p_type)})
+            }
+            let li:int:mut = 0
+            while(li < array.size(locs.names)) {
+                let lname:string = array.get_any(locs.names, li) ?? ""
+                let ltype_box:typechecker.TCTypeBox = array.get_any(locs.types, li) ?? typechecker.tc_box(typechecker.tc_any())
+                frame_fields = array.push(frame_fields, lir.LField{name:lname, field_type:lower_type(st, typechecker.tc_unbox(ltype_box))})
+                li = li + 1
+            }
+            st.type_defs = array.push(st.type_defs, lir.LTypeDef{c_name:frame_c_name, fields:frame_fields})
+
+            // Build frame_names set (params + locals)
+            let frame_names:map<string, bool>:mut = map.new()
+            for(p:ast.Param in params) {
+                frame_names = map.set(frame_names, p.name, true)
+            }
+            let fni:int:mut = 0
+            while(fni < array.size(locs.names)) {
+                let ln:string = array.get_any(locs.names, fni) ?? ""
+                frame_names = map.set(frame_names, ln, true)
+                fni = fni + 1
+            }
+
+            // Save stream context
+            let saved_has_ctx:bool = st.has_stream_ctx
+            let saved_frame_var:string = st.stream_frame_var
+            let saved_frame_cn:string = st.stream_frame_c_name
+            let saved_elem_type:typechecker.TCType = st.stream_elem_type
+            let saved_yield_ctr:int = st.stream_yield_counter
+            let saved_frame_names:map<string, bool> = st.stream_frame_names
+
+            // Save function context
+            let saved_ret:typechecker.TCType = st.current_ret_type
+            let saved_has_ret:bool = st.has_current_ret_type
+            let saved_fn_name:string = st.current_fn_name
+            let saved_let_vars:map<string, lir.LTypeBox> = st.let_var_ltypes
+            let saved_mut_params:map<string, bool> = st.mut_param_names
+
+            // Set stream context
+            st.has_stream_ctx = true
+            st.stream_frame_var = "frame"
+            st.stream_frame_c_name = frame_c_name
+            st.stream_elem_type = elem_type
+            st.stream_yield_counter = 0
+            st.stream_frame_names = frame_names
+            st.has_current_ret_type = true
+            st.current_ret_type = full_ret_t
+            st.current_fn_name = name
+            st.let_var_ltypes = map.new()
+            st.mut_param_names = map.new()
+
+            // Track params in let_var_ltypes for lower_ident
+            for(p:ast.Param in params) {
+                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                st.let_var_ltypes = map.set(st.let_var_ltypes, p.name, lir.lt_box(lower_type(st, p_type)))
+            }
+
+            // 3. Build next function body
+            let frame_ptr_type:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:frame_c_name))
+            let opt_ptr_type:lir.LType = lir.LStruct(c_name:"FL_Option_ptr")
+            let next_body:array<lir.LStmtBox>:mut = []
+
+            // frame_type* frame = (frame_type*)self->state;
+            let self_var:lir.LExpr = lir.LEVar(c_name:"self", c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream")))
+            let state_ptr:lir.LExpr = lir.LEArrow(ptr_expr:lir.le_box(self_var), field:"state", c_type:lir.LPtr(inner:lir.LVoid))
+            let cast_frame:lir.LExpr = lir.LECast(inner:lir.le_box(state_ptr), c_type:frame_ptr_type)
+            next_body = array.push(next_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:"frame", c_type:frame_ptr_type, has_init:true, init:cast_frame, source_line:line)})
+
+            // Build state machine
+            let num_yields:int = count_yields_in_stmts(body)
+            let state_stmts:array<lir.LStmtBox> = build_stream_states(st, body, "frame", frame_c_name, elem_type, num_yields, frame_names)
+            next_body = concat_lir_stmts(next_body, state_stmts)
+
+            // Restore context
+            st.has_stream_ctx = saved_has_ctx
+            st.stream_frame_var = saved_frame_var
+            st.stream_frame_c_name = saved_frame_cn
+            st.stream_elem_type = saved_elem_type
+            st.stream_yield_counter = saved_yield_ctr
+            st.stream_frame_names = saved_frame_names
+            st.current_ret_type = saved_ret
+            st.has_current_ret_type = saved_has_ret
+            st.current_fn_name = saved_fn_name
+            st.let_var_ltypes = saved_let_vars
+            st.mut_param_names = saved_mut_params
+
+            // Add next fn def
+            let next_params:array<lir.LParam>:mut = []
+            next_params = array.push(next_params, lir.LParam{name:"self", param_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))})
+            st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
+                c_name:next_c_name, params:next_params, ret:opt_ptr_type,
+                body:next_body, is_pure:false,
+                source_name:st.module_path + "." + name + "::next",
+                source_line:line
+            })
+
+            // 4. Build free function
+            let free_body:array<lir.LStmtBox>:mut = []
+            let cast_frame2:lir.LExpr = lir.LECast(inner:lir.le_box(lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:"self", c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream")))), field:"state", c_type:lir.LPtr(inner:lir.LVoid))), c_type:frame_ptr_type)
+            free_body = array.push(free_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:"frame", c_type:frame_ptr_type, has_init:true, init:cast_frame2, source_line:line)})
+            let free_args:array<lir.LExprBox>:mut = []
+            free_args = array.push(free_args, lir.le_box(lir.LEVar(c_name:"frame", c_type:frame_ptr_type)))
+            free_body = array.push(free_body, lir.LStmtBox{ls:lir.LSExprStmt(expr:lir.LECall(fn_name:"free", args:free_args, c_type:lir.LVoid), source_line:line)})
+            let free_params:array<lir.LParam>:mut = []
+            free_params = array.push(free_params, lir.LParam{name:"self", param_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))})
+            st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
+                c_name:free_c_name, params:free_params, ret:lir.LVoid,
+                body:free_body, is_pure:false,
+                source_name:st.module_path + "." + name + "::free",
+                source_line:line
+            })
+
+            // 5. Build factory function
+            let stream_ptr_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))
+            let factory_body:array<lir.LStmtBox>:mut = []
+            let malloc_call:lir.LExpr = lir.LECast(inner:lir.le_box(lir.LECall(fn_name:"malloc", args:[lir.le_box(lir.LESizeOf(target_type:lir.LStruct(c_name:frame_c_name)))], c_type:lir.LPtr(inner:lir.LVoid))), c_type:frame_ptr_type)
+            factory_body = array.push(factory_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:"frame", c_type:frame_ptr_type, has_init:true, init:malloc_call, source_line:line)})
+            // frame->_state = 0
+            factory_body = array.push(factory_body, lir.LStmtBox{ls:lir.LSAssign(
+                target:lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:"frame", c_type:frame_ptr_type)), field:"_state", c_type:lir.LInt(width:32, is_signed:true)),
+                value:lir.LELit(value:"0", c_type:lir.LInt(width:32, is_signed:true)),
+                source_line:line)})
+            // Copy params to frame
+            for(p:ast.Param in params) {
+                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                let p_lt:lir.LType = lower_type(st, p_type)
+                factory_body = array.push(factory_body, lir.LStmtBox{ls:lir.LSAssign(
+                    target:lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:"frame", c_type:frame_ptr_type)), field:p.name, c_type:p_lt),
+                    value:lir.LEVar(c_name:p.name, c_type:p_lt),
+                    source_line:line)})
+            }
+            // return fl_stream_new(next, free, frame)
+            let sn_args:array<lir.LExprBox>:mut = []
+            sn_args = array.push(sn_args, lir.le_box(lir.LEVar(c_name:next_c_name, c_type:lir.LPtr(inner:lir.LVoid))))
+            sn_args = array.push(sn_args, lir.le_box(lir.LEVar(c_name:free_c_name, c_type:lir.LPtr(inner:lir.LVoid))))
+            sn_args = array.push(sn_args, lir.le_box(lir.LECast(inner:lir.le_box(lir.LEVar(c_name:"frame", c_type:frame_ptr_type)), c_type:lir.LPtr(inner:lir.LVoid))))
+            factory_body = array.push(factory_body, lir.LStmtBox{ls:lir.LSReturn(has_value:true, value:lir.LECall(fn_name:"fl_stream_new", args:sn_args, c_type:stream_ptr_lt), source_line:line)})
+            // Factory params
+            let factory_params:array<lir.LParam>:mut = []
+            for(p:ast.Param in params) {
+                let p_type:typechecker.TCType = resolve_type_ann(st, p.type_ann)
+                factory_params = array.push(factory_params, lir.LParam{name:p.name, param_type:lower_type(st, p_type)})
+            }
+            st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
+                c_name:factory_c_name, params:factory_params, ret:stream_ptr_lt,
+                body:factory_body, is_pure:false,
+                source_name:st.module_path + "." + name,
+                source_line:line
+            })
+        }
+        _: {}
+    }
+    return 0
+}
+
+// ---------------------------------------------------------------------------
+// build_stream_states — build goto-based state machine
+// ---------------------------------------------------------------------------
+
+fn build_stream_states(st:LowerState:mut, body:array<ast.Stmt>, frame_var:string, frame_c_name:string, elem_type:typechecker.TCType, num_yields:int, frame_names:map<string, bool>):array<lir.LStmtBox> {
+    let opt_ptr_type:lir.LType = lir.LStruct(c_name:"FL_Option_ptr")
+    let frame_ptr_type:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:frame_c_name))
+
+    // Lower body with yield-aware lowering
+    let body_stmts:array<lir.LStmtBox> = lower_stream_stmts(st, body, frame_var, frame_c_name, elem_type)
+
+    // Rewrite all frame variable references to frame->name
+    let rewritten:array<lir.LStmtBox> = rewrite_stmts_frame(body_stmts, frame_var, frame_c_name, frame_names)
+
+    // Append done label + state = -1 + return none
+    let done_stmts:array<lir.LStmtBox>:mut = rewritten
+    let done_label:string = "_fl_stream_done"
+    done_stmts = array.push(done_stmts, lir.LStmtBox{ls:lir.LSLabel(name:done_label, source_line:0)})
+    done_stmts = array.push(done_stmts, lir.LStmtBox{ls:lir.LSAssign(
+        target:lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:frame_var, c_type:frame_ptr_type)), field:"_state", c_type:lir.LInt(width:32, is_signed:true)),
+        value:lir.LELit(value:"-1", c_type:lir.LInt(width:32, is_signed:true)),
+        source_line:0)})
+    let none_fnames:array<string>:mut = []
+    none_fnames = array.push(none_fnames, "tag")
+    none_fnames = array.push(none_fnames, "value")
+    let none_fvals:array<lir.LExprBox>:mut = []
+    none_fvals = array.push(none_fvals, lir.le_box(lir.LELit(value:"0", c_type:lir.LByte)))
+    none_fvals = array.push(none_fvals, lir.le_box(lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid))))
+    done_stmts = array.push(done_stmts, lir.LStmtBox{ls:lir.LSReturn(has_value:true, value:lir.LECompound(field_names:none_fnames, field_values:none_fvals, c_type:opt_ptr_type), source_line:0)})
+
+    // Build switch dispatch: case i → goto _fl_state_i
+    let case_tags:array<int>:mut = []
+    let case_bodies:array<lir.LStmtListBox>:mut = []
+    let sw_i:int:mut = 0
+    while(sw_i <= num_yields) {
+        case_tags = array.push(case_tags, sw_i)
+        let case_stmts:array<lir.LStmtBox>:mut = []
+        case_stmts = array.push(case_stmts, lir.LStmtBox{ls:lir.LSGoto(label:"_fl_state_" + conv.to_string(sw_i), source_line:0)})
+        case_bodies = array.push(case_bodies, lir.LStmtListBox{stmts:case_stmts, _pad:0})
+        sw_i = sw_i + 1
+    }
+    let default_stmts:array<lir.LStmtBox>:mut = []
+    default_stmts = array.push(default_stmts, lir.LStmtBox{ls:lir.LSGoto(label:done_label, source_line:0)})
+
+    let frame_state_expr:lir.LExpr = lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:frame_var, c_type:frame_ptr_type)), field:"_state", c_type:lir.LInt(width:32, is_signed:true))
+
+    // Assemble: switch + _fl_state_0 label + body stmts
+    let result:array<lir.LStmtBox>:mut = []
+    result = array.push(result, lir.LStmtBox{ls:lir.LSSwitch(value:frame_state_expr, case_tags:case_tags, case_bodies:case_bodies, default_body:default_stmts, source_line:0)})
+    result = array.push(result, lir.LStmtBox{ls:lir.LSLabel(name:"_fl_state_0", source_line:0)})
+    result = concat_lir_stmts(result, done_stmts)
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// lower_stream_stmts — lower stream body with yield awareness
+// ---------------------------------------------------------------------------
+
+fn lower_stream_stmts(st:LowerState:mut, stmts:array<ast.Stmt>, frame_var:string, frame_c_name:string, elem_type:typechecker.TCType):array<lir.LStmtBox> {
+    let result:array<lir.LStmtBox>:mut = []
+    let opt_ptr_type:lir.LType = lir.LStruct(c_name:"FL_Option_ptr")
+    let frame_ptr_type:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:frame_c_name))
+
+    for(s:ast.Stmt in stmts) {
+        match(s) {
+            SYield(id, line, col, val): {
+                // Save/clear pending_stmts
+                let saved_pending:array<lir.LStmtBox> = st.pending_stmts
+                st.pending_stmts = []
+                let value_expr:lir.LExpr = lower_expr(st, val)
+                // Append any intermediate stmts from lower_expr
+                let new_pending:array<lir.LStmtBox> = st.pending_stmts
+                st.pending_stmts = saved_pending
+                result = concat_lir_stmts(result, new_pending)
+
+                // Increment yield counter
+                st.stream_yield_counter = st.stream_yield_counter + 1
+                let state_num:int = st.stream_yield_counter
+
+                // Set frame->_state = state_num
+                result = array.push(result, lir.LStmtBox{ls:lir.LSAssign(
+                    target:lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:frame_var, c_type:frame_ptr_type)), field:"_state", c_type:lir.LInt(width:32, is_signed:true)),
+                    value:lir.LELit(value:conv.to_string(state_num), c_type:lir.LInt(width:32, is_signed:true)),
+                    source_line:line)})
+
+                // Return FL_SOME(value): cast via uint64 for value types
+                let void_cast:lir.LExpr = lir.LECast(inner:lir.le_box(lir.LECast(inner:lir.le_box(value_expr), c_type:lir.LInt(width:64, is_signed:false))), c_type:lir.LPtr(inner:lir.LVoid))
+                let some_fnames:array<string>:mut = []
+                some_fnames = array.push(some_fnames, "tag")
+                some_fnames = array.push(some_fnames, "value")
+                let some_fvals:array<lir.LExprBox>:mut = []
+                some_fvals = array.push(some_fvals, lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)))
+                some_fvals = array.push(some_fvals, lir.le_box(void_cast))
+                result = array.push(result, lir.LStmtBox{ls:lir.LSReturn(has_value:true, value:lir.LECompound(field_names:some_fnames, field_values:some_fvals, c_type:opt_ptr_type), source_line:line)})
+
+                // Resume label
+                result = array.push(result, lir.LStmtBox{ls:lir.LSLabel(name:"_fl_state_" + conv.to_string(state_num), source_line:0)})
+            }
+            SReturn(id, line, col, has_val, val): {
+                // Return from stream = goto done
+                result = array.push(result, lir.LStmtBox{ls:lir.LSGoto(label:"_fl_stream_done", source_line:line)})
+            }
+            SWhile(id, line, col, cond, wbody, hf, fb): {
+                let saved_pending:array<lir.LStmtBox> = st.pending_stmts
+                st.pending_stmts = []
+                let lcond:lir.LExpr = lower_expr(st, cond)
+                let pend1:array<lir.LStmtBox> = st.pending_stmts
+                st.pending_stmts = saved_pending
+                result = concat_lir_stmts(result, pend1)
+                let loop_body:array<lir.LStmtBox> = lower_stream_stmts(st, wbody, frame_var, frame_c_name, elem_type)
+                result = array.push(result, lir.LStmtBox{ls:lir.LSWhile(cond:lcond, body:loop_body, source_line:line)})
+            }
+            SIf(id, line, col, cond, then_body, has_else, else_body): {
+                let saved_pending:array<lir.LStmtBox> = st.pending_stmts
+                st.pending_stmts = []
+                let lcond:lir.LExpr = lower_expr(st, cond)
+                let pend2:array<lir.LStmtBox> = st.pending_stmts
+                st.pending_stmts = saved_pending
+                result = concat_lir_stmts(result, pend2)
+                let then_stmts:array<lir.LStmtBox> = lower_stream_stmts(st, then_body, frame_var, frame_c_name, elem_type)
+                let else_stmts:array<lir.LStmtBox>:mut = []
+                if(has_else) {
+                    else_stmts = lower_stream_stmts(st, else_body, frame_var, frame_c_name, elem_type)
+                }
+                result = array.push(result, lir.LStmtBox{ls:lir.LSIf(cond:lcond, then_body:then_stmts, else_body:else_stmts, source_line:line)})
+            }
+            SFor(id, line, col, var_name, hvt, vt, iter, fbody, hf, fb): {
+                // Delegate to lower_for_stream with stream-aware body
+                let iter_t:typechecker.TCType = type_of(st, ast.expr_id(iter))
+                match(iter_t) {
+                    TCStream(stream_elem_t): {
+                        let saved_pending:array<lir.LStmtBox> = st.pending_stmts
+                        st.pending_stmts = []
+                        let stream_expr:lir.LExpr = lower_expr(st, iter)
+                        let pend3:array<lir.LStmtBox> = st.pending_stmts
+                        st.pending_stmts = saved_pending
+                        result = concat_lir_stmts(result, pend3)
+
+                        let stream_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))
+                        let elem_lt:lir.LType = lower_type(st, stream_elem_t)
+                        let next_var:string = fresh_temp(st)
+                        let opt_t:lir.LType = lir.LStruct(c_name:"FL_Option_ptr")
+                        let next_call:lir.LExpr = lir.LECall(fn_name:"fl_stream_next", args:[lir.le_box(stream_expr)], c_type:opt_t)
+                        let next_decl:lir.LStmt = lir.LSVarDecl(c_name:next_var, c_type:opt_t, has_init:true, init:next_call, source_line:line)
+                        let tag_cond:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:next_var, c_type:opt_t)), field:"tag", c_type:lir.LByte)), right:lir.le_box(lir.LELit(value:"0", c_type:lir.LByte)), c_type:lir.LBool)
+                        let break_stmts:array<lir.LStmtBox>:mut = []
+                        break_stmts = array.push(break_stmts, lir.LStmtBox{ls:lir.LSBreak(source_line:line)})
+                        let val_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:next_var, c_type:opt_t)), field:"value", c_type:lir.LPtr(inner:lir.LVoid))
+                        let item_init:lir.LExpr:mut = lir.LECast(inner:lir.le_box(val_access), c_type:elem_lt)
+                        if(is_ptr_type(elem_lt) == false) {
+                            item_init = lir.LECast(inner:lir.le_box(lir.LECast(inner:lir.le_box(val_access), c_type:lir.LInt(width:64, is_signed:false))), c_type:elem_lt)
+                        }
+                        let item_decl:lir.LStmt = lir.LSVarDecl(c_name:var_name, c_type:elem_lt, has_init:true, init:item_init, source_line:line)
+                        let inner_body:array<lir.LStmtBox> = lower_stream_stmts(st, fbody, frame_var, frame_c_name, elem_type)
+                        let loop_body:array<lir.LStmtBox>:mut = []
+                        loop_body = array.push(loop_body, lir.LStmtBox{ls:next_decl})
+                        loop_body = array.push(loop_body, lir.LStmtBox{ls:lir.LSIf(cond:tag_cond, then_body:break_stmts, else_body:[], source_line:line)})
+                        loop_body = array.push(loop_body, lir.LStmtBox{ls:item_decl})
+                        loop_body = concat_lir_stmts(loop_body, inner_body)
+                        result = array.push(result, lir.LStmtBox{ls:lir.LSWhile(cond:lir.LELit(value:"1", c_type:lir.LBool), body:loop_body, source_line:line)})
+                    }
+                    _: {
+                        // Array for: lower normally
+                        let saved_pending:array<lir.LStmtBox> = st.pending_stmts
+                        st.pending_stmts = []
+                        let for_stmts:array<lir.LStmtBox> = lower_for(st, s)
+                        let new_pend:array<lir.LStmtBox> = st.pending_stmts
+                        st.pending_stmts = saved_pending
+                        result = concat_lir_stmts(result, new_pend)
+                        result = concat_lir_stmts(result, for_stmts)
+                    }
+                }
+            }
+            _: {
+                // Regular statement: lower normally
+                let saved_pending:array<lir.LStmtBox> = st.pending_stmts
+                st.pending_stmts = []
+                let lstmts:array<lir.LStmtBox> = lower_stmt(st, s)
+                let new_pend:array<lir.LStmtBox> = st.pending_stmts
+                st.pending_stmts = saved_pending
+                result = concat_lir_stmts(result, new_pend)
+                result = concat_lir_stmts(result, lstmts)
+            }
+        }
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// lower_yield_in_stream — fallback yield handling (called from lower_stmt)
+// ---------------------------------------------------------------------------
+
+fn lower_yield_in_stream(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        SYield(id, line, col, val): {
+            // This is called when we're in stream context but SYield reached lower_stmt
+            // (shouldn't happen normally, but handle for robustness)
+            let stmts:array<ast.Stmt>:mut = []
+            stmts = array.push(stmts, s)
+            return lower_stream_stmts(st, stmts, st.stream_frame_var, st.stream_frame_c_name, st.stream_elem_type)
+        }
+        _: { return [] }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Frame variable rewrite pass
+// ---------------------------------------------------------------------------
+
+// Helper: rewrite case_bodies (array<LStmtListBox>) with proper type parameter
+// so the Python compiler knows the element type for for-loop codegen.
+fn rewrite_case_bodies_frame(bodies:array<lir.LStmtListBox>, frame_var:string, frame_c_name:string, frame_names:map<string, bool>):array<lir.LStmtListBox> {
+    let result:array<lir.LStmtListBox>:mut = []
+    for(cb:lir.LStmtListBox in bodies) {
+        result = array.push(result, lir.LStmtListBox{stmts:rewrite_stmts_frame(cb.stmts, frame_var, frame_c_name, frame_names), _pad:0})
+    }
+    return result
+}
+
+// Helper: rewrite args (array<LExprBox>) with proper type parameter.
+fn rewrite_expr_args_frame(args:array<lir.LExprBox>, frame_var:string, frame_c_name:string, frame_names:map<string, bool>):array<lir.LExprBox> {
+    let result:array<lir.LExprBox>:mut = []
+    for(ab:lir.LExprBox in args) {
+        result = array.push(result, lir.le_box(rewrite_expr_frame(lir.le_unbox(ab), frame_var, frame_c_name, frame_names)))
+    }
+    return result
+}
+
+fn rewrite_stmts_frame(stmts:array<lir.LStmtBox>, frame_var:string, frame_c_name:string, frame_names:map<string, bool>):array<lir.LStmtBox> {
+    let result:array<lir.LStmtBox>:mut = []
+    for(sb:lir.LStmtBox in stmts) {
+        result = array.push(result, lir.LStmtBox{ls:rewrite_stmt_frame(sb.ls, frame_var, frame_c_name, frame_names)})
+    }
+    return result
+}
+
+fn rewrite_stmt_frame(stmt:lir.LStmt, frame_var:string, frame_c_name:string, frame_names:map<string, bool>):lir.LStmt {
+    let fpt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:frame_c_name))
+    match(stmt) {
+        LSVarDecl(cname, ct, has_init, init_expr, src_line): {
+            if(map.has(frame_names, cname)) {
+                if(has_init) {
+                    // Convert to frame->name = init
+                    let rw_init:lir.LExpr = rewrite_expr_frame(init_expr, frame_var, frame_c_name, frame_names)
+                    return lir.LSAssign(
+                        target:lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:frame_var, c_type:fpt)), field:cname, c_type:ct),
+                        value:rw_init,
+                        source_line:src_line)
+                }
+                // No init: skip (frame field already allocated)
+                return lir.LSBlock(stmts:[], source_line:src_line)
+            }
+            if(has_init) {
+                return lir.LSVarDecl(c_name:cname, c_type:ct, has_init:true, init:rewrite_expr_frame(init_expr, frame_var, frame_c_name, frame_names), source_line:src_line)
+            }
+            return stmt
+        }
+        LSAssign(target, value, src_line): {
+            return lir.LSAssign(
+                target:rewrite_expr_frame(target, frame_var, frame_c_name, frame_names),
+                value:rewrite_expr_frame(value, frame_var, frame_c_name, frame_names),
+                source_line:src_line)
+        }
+        LSReturn(has_val, val, src_line): {
+            if(has_val) {
+                return lir.LSReturn(has_value:true, value:rewrite_expr_frame(val, frame_var, frame_c_name, frame_names), source_line:src_line)
+            }
+            return stmt
+        }
+        LSExprStmt(expr, src_line): {
+            return lir.LSExprStmt(expr:rewrite_expr_frame(expr, frame_var, frame_c_name, frame_names), source_line:src_line)
+        }
+        LSIf(cond, then_body, else_body, src_line): {
+            return lir.LSIf(
+                cond:rewrite_expr_frame(cond, frame_var, frame_c_name, frame_names),
+                then_body:rewrite_stmts_frame(then_body, frame_var, frame_c_name, frame_names),
+                else_body:rewrite_stmts_frame(else_body, frame_var, frame_c_name, frame_names),
+                source_line:src_line)
+        }
+        LSWhile(cond, body, src_line): {
+            return lir.LSWhile(
+                cond:rewrite_expr_frame(cond, frame_var, frame_c_name, frame_names),
+                body:rewrite_stmts_frame(body, frame_var, frame_c_name, frame_names),
+                source_line:src_line)
+        }
+        LSBlock(stmts, src_line): {
+            return lir.LSBlock(stmts:rewrite_stmts_frame(stmts, frame_var, frame_c_name, frame_names), source_line:src_line)
+        }
+        LSSwitch(value, case_tags, case_bodies, default_body, src_line): {
+            let rw_val:lir.LExpr = rewrite_expr_frame(value, frame_var, frame_c_name, frame_names)
+            let rw_bodies:array<lir.LStmtListBox> = rewrite_case_bodies_frame(case_bodies, frame_var, frame_c_name, frame_names)
+            let rw_default:array<lir.LStmtBox> = rewrite_stmts_frame(default_body, frame_var, frame_c_name, frame_names)
+            return lir.LSSwitch(value:rw_val, case_tags:case_tags, case_bodies:rw_bodies, default_body:rw_default, source_line:src_line)
+        }
+        _: { return stmt }
+    }
+}
+
+fn rewrite_expr_frame(expr:lir.LExpr, frame_var:string, frame_c_name:string, frame_names:map<string, bool>):lir.LExpr {
+    let fpt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:frame_c_name))
+    match(expr) {
+        LEVar(cname, ct): {
+            if(map.has(frame_names, cname)) {
+                return lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:frame_var, c_type:fpt)), field:cname, c_type:ct)
+            }
+            return expr
+        }
+        LECall(fn_name, args, ct): {
+            return lir.LECall(fn_name:fn_name, args:rewrite_expr_args_frame(args, frame_var, frame_c_name, frame_names), c_type:ct)
+        }
+        LEIndirectCall(fn_ptr, args, ct): {
+            return lir.LEIndirectCall(fn_ptr:lir.le_box(rewrite_expr_frame(lir.le_unbox(fn_ptr), frame_var, frame_c_name, frame_names)), args:rewrite_expr_args_frame(args, frame_var, frame_c_name, frame_names), c_type:ct)
+        }
+        LEBinOp(op, left, right, ct): {
+            return lir.LEBinOp(op:op, left:lir.le_box(rewrite_expr_frame(lir.le_unbox(left), frame_var, frame_c_name, frame_names)), right:lir.le_box(rewrite_expr_frame(lir.le_unbox(right), frame_var, frame_c_name, frame_names)), c_type:ct)
+        }
+        LEUnary(op, operand, ct): {
+            return lir.LEUnary(op:op, operand:lir.le_box(rewrite_expr_frame(lir.le_unbox(operand), frame_var, frame_c_name, frame_names)), c_type:ct)
+        }
+        LEFieldAccess(obj, field, ct): {
+            return lir.LEFieldAccess(obj:lir.le_box(rewrite_expr_frame(lir.le_unbox(obj), frame_var, frame_c_name, frame_names)), field:field, c_type:ct)
+        }
+        LEArrow(ptr_expr, field, ct): {
+            return lir.LEArrow(ptr_expr:lir.le_box(rewrite_expr_frame(lir.le_unbox(ptr_expr), frame_var, frame_c_name, frame_names)), field:field, c_type:ct)
+        }
+        LECast(inner, ct): {
+            return lir.LECast(inner:lir.le_box(rewrite_expr_frame(lir.le_unbox(inner), frame_var, frame_c_name, frame_names)), c_type:ct)
+        }
+        LEAddrOf(inner, ct): {
+            return lir.LEAddrOf(inner:lir.le_box(rewrite_expr_frame(lir.le_unbox(inner), frame_var, frame_c_name, frame_names)), c_type:ct)
+        }
+        LEDeref(inner, ct): {
+            return lir.LEDeref(inner:lir.le_box(rewrite_expr_frame(lir.le_unbox(inner), frame_var, frame_c_name, frame_names)), c_type:ct)
+        }
+        LETernary(cond, then_expr, else_expr, ct): {
+            return lir.LETernary(cond:lir.le_box(rewrite_expr_frame(lir.le_unbox(cond), frame_var, frame_c_name, frame_names)), then_expr:lir.le_box(rewrite_expr_frame(lir.le_unbox(then_expr), frame_var, frame_c_name, frame_names)), else_expr:lir.le_box(rewrite_expr_frame(lir.le_unbox(else_expr), frame_var, frame_c_name, frame_names)), c_type:ct)
+        }
+        LECompound(fnames, fvals, ct): {
+            return lir.LECompound(field_names:fnames, field_values:rewrite_expr_args_frame(fvals, frame_var, frame_c_name, frame_names), c_type:ct)
+        }
+        LECheckedArith(op, left, right, ct): {
+            return lir.LECheckedArith(op:op, left:lir.le_box(rewrite_expr_frame(lir.le_unbox(left), frame_var, frame_c_name, frame_names)), right:lir.le_box(rewrite_expr_frame(lir.le_unbox(right), frame_var, frame_c_name, frame_names)), c_type:ct)
+        }
+        _: { return expr }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_coroutine_method — .next/.poll/.done/.send/.stop/.kill on TCoroutine
+// ---------------------------------------------------------------------------
+
+fn lower_coroutine_method(st:LowerState:mut, lrecv:lir.LExpr, yield_type:typechecker.TCType, send_type:typechecker.TCType, method_name:string, args:array<ast.Expr>, result_lt:lir.LType, line:int):lir.LExpr {
+    if(method_name == "next") {
+        return lower_coroutine_next(st, lrecv, yield_type, true)
+    }
+    if(method_name == "poll") {
+        return lower_coroutine_next(st, lrecv, yield_type, false)
+    }
+    if(method_name == "done") {
+        return lir.LECall(fn_name:"fl_coroutine_done", args:[lir.le_box(lrecv)], c_type:lir.LBool)
+    }
+    if(method_name == "stop") {
+        return lir.LECall(fn_name:"fl_coroutine_stop", args:[lir.le_box(lrecv)], c_type:lir.LVoid)
+    }
+    if(method_name == "kill") {
+        return lir.LECall(fn_name:"fl_coroutine_kill", args:[lir.le_box(lrecv)], c_type:lir.LVoid)
+    }
+    if(method_name == "send") {
+        if(array.size(args) > 0) {
+            let send_val:lir.LExpr = lower_expr(st, array.get_any(args, 0) ?? ast.EBoolLit(id:0, line:0, col:0, value:false))
+            let send_lt:lir.LType = lower_type(st, send_type)
+            let cast_val:lir.LExpr:mut = lir.LECast(inner:lir.le_box(send_val), c_type:lir.LPtr(inner:lir.LVoid))
+            if(is_ptr_type(send_lt) == false) {
+                cast_val = lir.LECast(inner:lir.le_box(lir.LECast(inner:lir.le_box(send_val), c_type:lir.LInt(width:64, is_signed:false))), c_type:lir.LPtr(inner:lir.LVoid))
+            }
+            return lir.LECall(fn_name:"fl_coroutine_send", args:[lir.le_box(lrecv), lir.le_box(cast_val)], c_type:lir.LVoid)
+        }
+    }
+    // Fallback
+    return lir.LECall(fn_name:"fl_coroutine_" + method_name, args:[lir.le_box(lrecv)], c_type:result_lt)
+}
+
+// ---------------------------------------------------------------------------
+// lower_coroutine_next — .next()/.poll() → option<yield_type>
+// ---------------------------------------------------------------------------
+
+fn lower_coroutine_next(st:LowerState:mut, recv:lir.LExpr, yield_type:typechecker.TCType, blocking:bool):lir.LExpr {
+    let opt_ptr_lt:lir.LType = lir.LStruct(c_name:"FL_Option_ptr")
+    let option_type:typechecker.TCType = typechecker.TCOption(inner:yield_type)
+    let c_option_lt:lir.LType = lower_type(st, option_type)
+    let c_fn:string:mut = "fl_coroutine_next"
+    if(blocking == false) { c_fn = "fl_coroutine_try_next" }
+
+    let raw_call:lir.LExpr = lir.LECall(fn_name:c_fn, args:[lir.le_box(recv)], c_type:opt_ptr_lt)
+    let yield_lt:lir.LType = lower_type(st, yield_type)
+
+    // For pointer types, FL_Option_ptr IS the option type
+    if(is_ptr_type(yield_lt)) {
+        return raw_call
+    }
+
+    // For value types, convert FL_Option_ptr → FL_Option_<type>
+    let raw_tmp:string = fresh_temp(st)
+    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:raw_tmp, c_type:opt_ptr_lt, has_init:true, init:raw_call, source_line:0)})
+
+    let result_tmp:string = fresh_temp(st)
+    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:result_tmp, c_type:c_option_lt, has_init:false, init:lir.LELit(value:"0", c_type:lir.LVoid), source_line:0)})
+
+    // result.tag = raw.tag
+    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSAssign(
+        target:lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:result_tmp, c_type:c_option_lt)), field:"tag", c_type:lir.LByte),
+        value:lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:raw_tmp, c_type:opt_ptr_lt)), field:"tag", c_type:lir.LByte),
+        source_line:0)})
+
+    // if (raw.tag == 1) result.value = (YieldType)(int64)raw.value
+    let void_ptr_t:lir.LType = lir.LPtr(inner:lir.LVoid)
+    let raw_value:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:raw_tmp, c_type:opt_ptr_lt)), field:"value", c_type:void_ptr_t)
+    let cast_val:lir.LExpr = lir.LECast(inner:lir.le_box(lir.LECast(inner:lir.le_box(raw_value), c_type:lir.LInt(width:64, is_signed:true))), c_type:yield_lt)
+    let tag_eq:lir.LExpr = lir.LEBinOp(op:"==",
+        left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:raw_tmp, c_type:opt_ptr_lt)), field:"tag", c_type:lir.LByte)),
+        right:lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)),
+        c_type:lir.LBool)
+    let assign_val:lir.LStmt = lir.LSAssign(
+        target:lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:result_tmp, c_type:c_option_lt)), field:"value", c_type:yield_lt),
+        value:cast_val,
+        source_line:0)
+    let if_stmts:array<lir.LStmtBox>:mut = []
+    if_stmts = array.push(if_stmts, lir.LStmtBox{ls:assign_val})
+    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSIf(cond:tag_eq, then_body:if_stmts, else_body:[], source_line:0)})
+    return lir.LEVar(c_name:result_tmp, c_type:c_option_lt)
+}
+
+// ---------------------------------------------------------------------------
+// lower_stream_method — .take/.skip/etc on TCStream
+// ---------------------------------------------------------------------------
+
+fn lower_stream_method(st:LowerState:mut, lrecv:lir.LExpr, elem:typechecker.TCType, method_name:string, args:array<ast.Expr>, result_lt:lir.LType):lir.LExpr {
+    let stream_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))
+    if(method_name == "take") {
+        let n_arg:lir.LExpr = lower_expr(st, array.get_any(args, 0) ?? ast.EBoolLit(0, 0, 0, false))
+        return lir.LECall(fn_name:"fl_stream_take", args:[lir.le_box(lrecv), lir.le_box(n_arg)], c_type:stream_lt)
+    }
+    if(method_name == "skip") {
+        let n_arg:lir.LExpr = lower_expr(st, array.get_any(args, 0) ?? ast.EBoolLit(0, 0, 0, false))
+        return lir.LECall(fn_name:"fl_stream_skip", args:[lir.le_box(lrecv), lir.le_box(n_arg)], c_type:stream_lt)
+    }
+    // Generic stream method
+    return lir.LECall(fn_name:"fl_stream_" + method_name, args:[lir.le_box(lrecv)], c_type:result_lt)
+}
+
+// ---------------------------------------------------------------------------
+// lower_coroutine_start — :< operator
+// ---------------------------------------------------------------------------
+
+fn lower_coroutine_start(st:LowerState:mut, call:ast.Expr, outer_expr:ast.Expr):lir.LExpr {
+    let coro_ptr:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Coroutine"))
+    let stream_ptr:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))
+
+    // Check is_receivable: outer type is TCoroutine AND send_type != TCAny
+    let outer_id:int = ast.expr_id(outer_expr)
+    let outer_type:typechecker.TCType = type_of(st, outer_id)
+    let is_receivable:bool:mut = false
+    match(outer_type) {
+        TCCoroutine(yield_type, send_type): {
+            match(send_type) {
+                TCAny: { is_receivable = false }
+                _: { is_receivable = true }
+            }
+        }
+        _: {}
+    }
+
+    if(is_receivable) {
+        return lower_receivable_coroutine_start(st, call, outer_expr)
+    }
+
+    // Non-receivable: lower call to stream, wrap in threaded coroutine
+    let stream_expr:lir.LExpr = lower_expr(st, call)
+    let stream_tmp:string = fresh_temp(st)
+    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:stream_tmp, c_type:stream_ptr, has_init:true, init:stream_expr, source_line:0)})
+    let cap_arg:lir.LExpr = lir.LELit(value:"64", c_type:lir.LInt(width:32, is_signed:true))
+    return lir.LECall(fn_name:"fl_coroutine_new_threaded", args:[lir.le_box(lir.LEVar(c_name:stream_tmp, c_type:stream_ptr)), lir.le_box(cap_arg)], c_type:coro_ptr)
+}
+
+// ---------------------------------------------------------------------------
+// lower_receivable_coroutine_start — receivable :< operator
+// ---------------------------------------------------------------------------
+
+fn lower_receivable_coroutine_start(st:LowerState:mut, call:ast.Expr, outer_expr:ast.Expr):lir.LExpr {
+    let coro_ptr:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Coroutine"))
+    let ch_ptr:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Channel"))
+    let stream_ptr:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))
+
+    // Check if first arg is a coroutine handle (direct wiring)
+    let is_wired:bool:mut = false
+    match(call) {
+        ECall(cid, cline, ccol, callee, call_args): {
+            if(array.size(call_args) > 0) {
+                let first_arg_type:typechecker.TCType = type_of(st, ast.expr_id(array.get_any(call_args, 0) ?? ast.EBoolLit(0,0,0,false)))
+                match(first_arg_type) {
+                    TCCoroutine(yt, st_inner): { is_wired = true }
+                    _: {}
+                }
+            }
+
+            let input_ch_tmp:string = fresh_temp(st)
+            let inbox_tmp:string = fresh_temp(st)
+
+            if(is_wired) {
+                // Direct wiring: use source coroutine's output channel
+                let source_coro:lir.LExpr = lower_expr(st, array.get_any(call_args, 0) ?? ast.EBoolLit(0,0,0,false))
+                st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:input_ch_tmp, c_type:ch_ptr, has_init:true, init:lir.LECall(fn_name:"fl_coroutine_get_channel", args:[lir.le_box(source_coro)], c_type:ch_ptr), source_line:cline)})
+                st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:inbox_tmp, c_type:stream_ptr, has_init:true, init:lir.LECall(fn_name:"fl_stream_from_channel", args:[lir.le_box(lir.LEVar(c_name:input_ch_tmp, c_type:ch_ptr))], c_type:stream_ptr), source_line:cline)})
+            } else {
+                // Standard receivable: create a new input channel
+                let cap_arg:lir.LExpr = lir.LELit(value:"64", c_type:lir.LInt(width:32, is_signed:true))
+                st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:input_ch_tmp, c_type:ch_ptr, has_init:true, init:lir.LECall(fn_name:"fl_channel_new", args:[lir.le_box(cap_arg)], c_type:ch_ptr), source_line:cline)})
+                st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:inbox_tmp, c_type:stream_ptr, has_init:true, init:lir.LECall(fn_name:"fl_stream_from_channel_nonblocking", args:[lir.le_box(lir.LEVar(c_name:input_ch_tmp, c_type:ch_ptr))], c_type:stream_ptr), source_line:cline)})
+            }
+
+            // Build lowered args: inbox + remaining args
+            let lowered_args:array<lir.LExprBox>:mut = []
+            lowered_args = array.push(lowered_args, lir.le_box(lir.LEVar(c_name:inbox_tmp, c_type:stream_ptr)))
+            let arg_start:int:mut = 0
+            if(is_wired) { arg_start = 1 }
+            let ai:int:mut = arg_start
+            while(ai < array.size(call_args)) {
+                let a:ast.Expr = array.get_any(call_args, ai) ?? ast.EBoolLit(0,0,0,false)
+                lowered_args = array.push(lowered_args, lir.le_box(lower_expr(st, a)))
+                ai = ai + 1
+            }
+
+            // Resolve function c_name
+            let fn_c_name:string:mut = ""
+            let callee_sym_key:string = conv.to_string(ast.expr_id(callee))
+            let callee_sym:resolver.Symbol? = map.get(st.resolved.symbols, callee_sym_key)
+            match(callee_sym) {
+                some(cs): {
+                    let ec_name:string? = map.get(st.extern_fn_c_names, conv.to_string(cs.decl_id))
+                    match(ec_name) {
+                        some(ec): { fn_c_name = ec }
+                        none: {
+                            match(callee) {
+                                EIdent(iid, il, ic, iname, imod): { fn_c_name = mangler.mangle(st.module_path, "", iname) }
+                                _: {}
+                            }
+                        }
+                    }
+                }
+                none: {
+                    match(callee) {
+                        EIdent(iid, il, ic, iname, imod): { fn_c_name = mangler.mangle(st.module_path, "", iname) }
+                        _: {}
+                    }
+                }
+            }
+            if(fn_c_name == "") { fn_c_name = "unknown_fn" }
+
+            // Call stream factory
+            let stream_call:lir.LExpr = lir.LECall(fn_name:fn_c_name, args:lowered_args, c_type:stream_ptr)
+            let stream_tmp:string = fresh_temp(st)
+            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:stream_tmp, c_type:stream_ptr, has_init:true, init:stream_call, source_line:cline)})
+
+            // Create threaded coroutine
+            let cap_arg2:lir.LExpr = lir.LELit(value:"64", c_type:lir.LInt(width:32, is_signed:true))
+            let coro_tmp:string = fresh_temp(st)
+            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:coro_tmp, c_type:coro_ptr, has_init:true, init:lir.LECall(fn_name:"fl_coroutine_new_threaded", args:[lir.le_box(lir.LEVar(c_name:stream_tmp, c_type:stream_ptr)), lir.le_box(cap_arg2)], c_type:coro_ptr), source_line:cline)})
+
+            // Wire up input channel (non-wired case only)
+            if(is_wired == false) {
+                st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSExprStmt(expr:lir.LECall(fn_name:"fl_coroutine_set_input", args:[lir.le_box(lir.LEVar(c_name:coro_tmp, c_type:coro_ptr)), lir.le_box(lir.LEVar(c_name:input_ch_tmp, c_type:ch_ptr))], c_type:lir.LVoid), source_line:cline)})
+            }
+
+            return lir.LEVar(c_name:coro_tmp, c_type:coro_ptr)
+        }
+        _: {
+            // Fallback: lower normally
+            return lower_coroutine_start(st, call, outer_expr)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_coroutine_pipeline — a() -> b() * N -> c() pipeline
+// ---------------------------------------------------------------------------
+
+fn lower_coroutine_pipeline(st:LowerState:mut, stages:array<ast.PipelineStage>, outer_expr:ast.Expr):lir.LExpr {
+    let coro_ptr:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Coroutine"))
+    let stream_ptr:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Stream"))
+
+    if(array.size(stages) == 0) {
+        return lir.LELit(value:"NULL", c_type:coro_ptr)
+    }
+
+    // Stage 0: launch as a regular coroutine
+    let _ph:ast.Expr = ast.EBoolLit(id:0, line:0, col:0, value:false)
+    let stage0:ast.PipelineStage = array.get_any(stages, 0) ?? ast.PipelineStage{call:_ph, has_pool_size:false, pool_size:_ph, id:0, line:0, col:0}
+
+    // Treat stage 0 like a coroutine start
+    let stage0_start:ast.Expr = ast.ECoroutineStart(id:stage0.id, line:stage0.line, col:stage0.col, call:stage0.call)
+    let prev_coro_expr:lir.LExpr = lower_coroutine_start(st, stage0.call, stage0_start)
+    let prev_coro_tmp:string = fresh_temp(st)
+    st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:prev_coro_tmp, c_type:coro_ptr, has_init:true, init:prev_coro_expr, source_line:stage0.line)})
+
+    // Subsequent stages: wire from previous stage's output
+    let si:int:mut = 1
+    let last_coro_tmp:string:mut = prev_coro_tmp
+    while(si < array.size(stages)) {
+        let stage:ast.PipelineStage = array.get_any(stages, si) ?? ast.PipelineStage{call:_ph, has_pool_size:false, pool_size:_ph, id:0, line:0, col:0}
+
+        // Create a fake coroutine start with the previous coro as the first arg
+        // We'll just use lower_receivable_coroutine_start with the wiring
+        let stage_call:ast.Expr = ast.ECoroutineStart(id:stage.id, line:stage.line, col:stage.col, call:stage.call)
+        let wired_expr:lir.LExpr = lower_receivable_coroutine_start(st, stage.call, stage_call)
+
+        let coro_tmp:string = fresh_temp(st)
+        st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:coro_tmp, c_type:coro_ptr, has_init:true, init:wired_expr, source_line:stage.line)})
+        last_coro_tmp = coro_tmp
+        si = si + 1
+    }
+
+    return lir.LEVar(c_name:last_coro_tmp, c_type:coro_ptr)
 }
