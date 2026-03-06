@@ -827,50 +827,70 @@ void fl_tests_app_healthcheck_main(void) {
     fl_coroutine_set_input(_fl_tmp_19, _fl_tmp_16);
     FL_Coroutine* agg = _fl_tmp_19;
     FL_Array* urls = fl_array_new(0, 0, NULL);
+    FL_Array* _fl_old_20 = urls;
     urls = fl_array_push_ptr(urls, fl_string_concat(fl_string_concat(fl_string_from_cstr("127.0.0.1|"), fl_conv_to_string__int(port)), fl_string_from_cstr("|/api/health|200")));
+    if (_fl_old_20 != urls) {
+        fl_array_release(_fl_old_20);
+    }
+    FL_Array* _fl_old_21 = urls;
     urls = fl_array_push_ptr(urls, fl_string_concat(fl_string_concat(fl_string_from_cstr("127.0.0.1|"), fl_conv_to_string__int(port)), fl_string_from_cstr("|/api/users|200")));
+    if (_fl_old_21 != urls) {
+        fl_array_release(_fl_old_21);
+    }
+    FL_Array* _fl_old_22 = urls;
     urls = fl_array_push_ptr(urls, fl_string_concat(fl_string_concat(fl_string_from_cstr("127.0.0.1|"), fl_conv_to_string__int(port)), fl_string_from_cstr("|/api/nothing|200")));
+    if (_fl_old_22 != urls) {
+        fl_array_release(_fl_old_22);
+    }
+    FL_Array* _fl_old_23 = urls;
     urls = fl_array_push_ptr(urls, fl_string_concat(fl_string_concat(fl_string_from_cstr("127.0.0.1|"), fl_conv_to_string__int(port)), fl_string_from_cstr("|/api/nothing|404")));
+    if (_fl_old_23 != urls) {
+        fl_array_release(_fl_old_23);
+    }
+    FL_Array* _fl_old_24 = urls;
     fl_int _fl_e_1;
     FL_CHECKED_ADD(port, 1, &_fl_e_1);
     urls = fl_array_push_ptr(urls, fl_string_concat(fl_string_concat(fl_string_from_cstr("127.0.0.1|"), fl_conv_to_string__int(_fl_e_1)), fl_string_from_cstr("|/fail|200")));
+    if (_fl_old_24 != urls) {
+        fl_array_release(_fl_old_24);
+    }
     fl_int idx = 0;
     while (idx < 5) {
-        FL_Option_ptr _fl_tmp_20 = fl_array_get_safe(urls, idx);
-        FL_String* target_str = ((_fl_tmp_20.tag == 1) ? _fl_tmp_20.value : fl_string_from_cstr(""));
+        FL_Option_ptr _fl_tmp_25 = fl_array_get_safe(urls, idx);
+        FL_String* target_str = ((_fl_tmp_25.tag == 1) ? _fl_tmp_25.value : fl_string_from_cstr(""));
         FL_Array* parts = fl_string_split(target_str, fl_string_from_cstr("|"));
-        FL_Option_ptr _fl_tmp_21 = fl_array_get_safe(parts, 0);
-        FL_String* host = ((_fl_tmp_21.tag == 1) ? _fl_tmp_21.value : fl_string_from_cstr("127.0.0.1"));
-        FL_Option_ptr _fl_tmp_22 = fl_array_get_safe(parts, 1);
-        FL_Option_int _fl_tmp_23 = fl_conv_string_to_int(((_fl_tmp_22.tag == 1) ? _fl_tmp_22.value : fl_string_from_cstr("0")));
-        fl_int tport = ((_fl_tmp_23.tag == 1) ? _fl_tmp_23.value : 0);
-        FL_Option_ptr _fl_tmp_24 = fl_array_get_safe(parts, 2);
-        FL_String* url_path = ((_fl_tmp_24.tag == 1) ? _fl_tmp_24.value : fl_string_from_cstr("/"));
-        FL_Option_ptr _fl_tmp_25 = fl_array_get_safe(parts, 3);
-        FL_Option_int _fl_tmp_26 = fl_conv_string_to_int(((_fl_tmp_25.tag == 1) ? _fl_tmp_25.value : fl_string_from_cstr("200")));
-        fl_int expected = ((_fl_tmp_26.tag == 1) ? _fl_tmp_26.value : 200);
+        FL_Option_ptr _fl_tmp_26 = fl_array_get_safe(parts, 0);
+        FL_String* host = ((_fl_tmp_26.tag == 1) ? _fl_tmp_26.value : fl_string_from_cstr("127.0.0.1"));
+        FL_Option_ptr _fl_tmp_27 = fl_array_get_safe(parts, 1);
+        FL_Option_int _fl_tmp_28 = fl_conv_string_to_int(((_fl_tmp_27.tag == 1) ? _fl_tmp_27.value : fl_string_from_cstr("0")));
+        fl_int tport = ((_fl_tmp_28.tag == 1) ? _fl_tmp_28.value : 0);
+        FL_Option_ptr _fl_tmp_29 = fl_array_get_safe(parts, 2);
+        FL_String* url_path = ((_fl_tmp_29.tag == 1) ? _fl_tmp_29.value : fl_string_from_cstr("/"));
+        FL_Option_ptr _fl_tmp_30 = fl_array_get_safe(parts, 3);
+        FL_Option_int _fl_tmp_31 = fl_conv_string_to_int(((_fl_tmp_30.tag == 1) ? _fl_tmp_30.value : fl_string_from_cstr("200")));
+        fl_int expected = ((_fl_tmp_31.tag == 1) ? _fl_tmp_31.value : 200);
         fl_println(fl_string_concat(fl_string_from_cstr("[HC] Checking: "), url_path));
         FL_ExceptionFrame _fl_ef_0;
         _fl_exception_push((&_fl_ef_0));
         if (setjmp(_fl_ef_0.jmp) == 0) {
             fl_tests_app_healthcheck_CheckStatus status = fl_tests_app_healthcheck_check_url(host, tport, url_path, expected, 2000);
-            fl_tests_app_healthcheck_CheckStatus _fl_tmp_27 = status;
-            switch (_fl_tmp_27.tag) {
+            fl_tests_app_healthcheck_CheckStatus _fl_tmp_32 = status;
+            switch (_fl_tmp_32.tag) {
                 case 0: {
-                    fl_int code = _fl_tmp_27.Pass.code;
+                    fl_int code = _fl_tmp_32.Pass.code;
                     fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] OK: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(code)), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("pass")));
                     break;
                 }
                 case 2: {
-                    fl_int code = _fl_tmp_27.Warn.code;
-                    FL_String* reason = _fl_tmp_27.Warn.reason;
+                    fl_int code = _fl_tmp_32.Warn.code;
+                    FL_String* reason = _fl_tmp_32.Warn.reason;
                     fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] WARN: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(code)), fl_string_from_cstr(" - ")), reason), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("warn")));
                     break;
                 }
                 case 1: {
-                    FL_String* msg = _fl_tmp_27.Fail.msg;
+                    FL_String* msg = _fl_tmp_32.Fail.msg;
                     fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), msg), fl_string_from_cstr(")")));
                     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("fail")));
                     break;
@@ -880,38 +900,38 @@ void fl_tests_app_healthcheck_main(void) {
         } else {
             _fl_exception_pop();
             if (_fl_ef_0.exception_tag == 0) {
-                fl_int _fl_tmp_28 = 0;
+                fl_int _fl_tmp_33 = 0;
                 FL_String* ex = ((FL_String*)_fl_ef_0.exception);
-                while (_fl_tmp_28 < 2) {
-                    _fl_tmp_28 = (_fl_tmp_28 + 1);
+                while (_fl_tmp_33 < 2) {
+                    _fl_tmp_33 = (_fl_tmp_33 + 1);
                     fl_println(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] RETRY: "), ex), fl_string_from_cstr(", retrying...")));
                     _fl_exception_push((&_fl_ef_0));
                     if (setjmp(_fl_ef_0.jmp) == 0) {
                         fl_tests_app_healthcheck_CheckStatus status = fl_tests_app_healthcheck_check_url(host, tport, url_path, expected, 2000);
-                        fl_tests_app_healthcheck_CheckStatus _fl_tmp_30 = status;
-                        switch (_fl_tmp_30.tag) {
+                        fl_tests_app_healthcheck_CheckStatus _fl_tmp_35 = status;
+                        switch (_fl_tmp_35.tag) {
                             case 0: {
-                                fl_int code = _fl_tmp_30.Pass.code;
+                                fl_int code = _fl_tmp_35.Pass.code;
                                 fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] OK: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(code)), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("pass")));
                                 break;
                             }
                             case 2: {
-                                fl_int code = _fl_tmp_30.Warn.code;
-                                FL_String* reason = _fl_tmp_30.Warn.reason;
+                                fl_int code = _fl_tmp_35.Warn.code;
+                                FL_String* reason = _fl_tmp_35.Warn.reason;
                                 fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] WARN: "), url_path), fl_string_from_cstr(" (")), fl_conv_to_string__int(code)), fl_string_from_cstr(" - ")), reason), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("warn")));
                                 break;
                             }
                             case 1: {
-                                FL_String* msg = _fl_tmp_30.Fail.msg;
+                                FL_String* msg = _fl_tmp_35.Fail.msg;
                                 fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), msg), fl_string_from_cstr(")")));
                                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("fail")));
                                 break;
                             }
                         }
                         _fl_exception_pop();
-                        goto _fl_tmp_29;
+                        goto _fl_tmp_34;
                     } else {
                         _fl_exception_pop();
                         ex = ((FL_String*)_fl_ef_0.exception);
@@ -919,7 +939,7 @@ void fl_tests_app_healthcheck_main(void) {
                 }
                 fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("[HC] FAIL: "), url_path), fl_string_from_cstr(" (")), ex), fl_string_from_cstr(" after retries)")));
                 fl_coroutine_send(agg, ((void*)fl_string_from_cstr("fail")));
-_fl_tmp_29:;
+_fl_tmp_34:;
             } else {
                 _fl_throw(_fl_ef_0.exception, _fl_ef_0.exception_tag);
             }
@@ -929,19 +949,19 @@ _fl_tmp_29:;
         idx = _fl_e_2;
     }
     fl_coroutine_send(agg, ((void*)fl_string_from_cstr("done")));
-    FL_Option_ptr _fl_tmp_31 = fl_coroutine_next(agg);
-    if (_fl_tmp_31.tag == 1) {
-        FL_String* report_str = _fl_tmp_31.value;
+    FL_Option_ptr _fl_tmp_36 = fl_coroutine_next(agg);
+    if (_fl_tmp_36.tag == 1) {
+        FL_String* report_str = _fl_tmp_36.value;
         FL_Array* rparts = fl_string_split(report_str, fl_string_from_cstr(":"));
         fl_println(fl_string_from_cstr("[HC] --- Report ---"));
-        FL_Option_ptr _fl_tmp_32 = fl_array_get_safe(rparts, 0);
-        fl_println(fl_string_concat(fl_string_from_cstr("[HC] Passed: "), ((_fl_tmp_32.tag == 1) ? _fl_tmp_32.value : fl_string_from_cstr("0"))));
-        FL_Option_ptr _fl_tmp_33 = fl_array_get_safe(rparts, 1);
-        fl_println(fl_string_concat(fl_string_from_cstr("[HC] Failed: "), ((_fl_tmp_33.tag == 1) ? _fl_tmp_33.value : fl_string_from_cstr("0"))));
-        FL_Option_ptr _fl_tmp_34 = fl_array_get_safe(rparts, 2);
-        fl_println(fl_string_concat(fl_string_from_cstr("[HC] Warnings: "), ((_fl_tmp_34.tag == 1) ? _fl_tmp_34.value : fl_string_from_cstr("0"))));
-        FL_Option_ptr _fl_tmp_35 = fl_array_get_safe(rparts, 3);
-        fl_println(fl_string_concat(fl_string_from_cstr("[HC] Total: "), ((_fl_tmp_35.tag == 1) ? _fl_tmp_35.value : fl_string_from_cstr("0"))));
+        FL_Option_ptr _fl_tmp_37 = fl_array_get_safe(rparts, 0);
+        fl_println(fl_string_concat(fl_string_from_cstr("[HC] Passed: "), ((_fl_tmp_37.tag == 1) ? _fl_tmp_37.value : fl_string_from_cstr("0"))));
+        FL_Option_ptr _fl_tmp_38 = fl_array_get_safe(rparts, 1);
+        fl_println(fl_string_concat(fl_string_from_cstr("[HC] Failed: "), ((_fl_tmp_38.tag == 1) ? _fl_tmp_38.value : fl_string_from_cstr("0"))));
+        FL_Option_ptr _fl_tmp_39 = fl_array_get_safe(rparts, 2);
+        fl_println(fl_string_concat(fl_string_from_cstr("[HC] Warnings: "), ((_fl_tmp_39.tag == 1) ? _fl_tmp_39.value : fl_string_from_cstr("0"))));
+        FL_Option_ptr _fl_tmp_40 = fl_array_get_safe(rparts, 3);
+        fl_println(fl_string_concat(fl_string_from_cstr("[HC] Total: "), ((_fl_tmp_40.tag == 1) ? _fl_tmp_40.value : fl_string_from_cstr("0"))));
     } else {
         fl_println(fl_string_from_cstr("[HC] No report available"));
     }

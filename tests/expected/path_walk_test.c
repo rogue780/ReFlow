@@ -747,12 +747,20 @@ FL_Option_ptr fl_path_walk(FL_String* dir) {
         while (_fl_tmp_11 < fl_array_len(entries)) {
             FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_11)));
             FL_String* full = fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry}));
+            FL_Array* _fl_old_12 = result;
             result = fl_array_push_ptr(result, full);
+            if (_fl_old_12 != result) {
+                fl_array_release(_fl_old_12);
+            }
             if (fl_path_is_dir(full)) {
-                FL_Option_ptr _fl_tmp_12 = fl_path_walk(full);
-                if (_fl_tmp_12.tag == 1) {
-                    FL_Array* children = _fl_tmp_12.value;
+                FL_Option_ptr _fl_tmp_13 = fl_path_walk(full);
+                if (_fl_tmp_13.tag == 1) {
+                    FL_Array* children = _fl_tmp_13.value;
+                    FL_Array* _fl_old_14 = result;
                     result = fl_array_concat(result, children);
+                    if (_fl_old_14 != result) {
+                        fl_array_release(_fl_old_14);
+                    }
                 }
             }
             _fl_tmp_11 = (_fl_tmp_11 + 1);

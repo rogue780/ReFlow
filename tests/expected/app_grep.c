@@ -491,7 +491,11 @@ FL_Array* fl_file_read_lines(FL_File* f) {
         FL_Option_ptr _fl_tmp_0 = fl_file_read_line(f);
         if (_fl_tmp_0.tag == 1) {
             FL_String* line = _fl_tmp_0.value;
+            FL_Array* _fl_old_1 = lines;
             lines = fl_array_push_ptr(lines, line);
+            if (_fl_old_1 != lines) {
+                fl_array_release(_fl_old_1);
+            }
         } else {
             done = fl_true;
         }
@@ -573,7 +577,11 @@ FL_Array* fl_tests_app_grep_read_lines(FL_String* filepath) {
             FL_Option_ptr _fl_tmp_1 = line_opt;
             if (_fl_tmp_1.tag == 1) {
                 FL_String* line = _fl_tmp_1.value;
+                FL_Array* _fl_old_2 = lines;
                 lines = fl_array_push_ptr(lines, line);
+                if (_fl_old_2 != lines) {
+                    fl_array_release(_fl_old_2);
+                }
             } else {
                 break;
             }
@@ -590,8 +598,8 @@ fl_int fl_tests_app_grep_search_and_print(FL_String* filepath, FL_String* patter
     fl_int match_count = 0;
     fl_int idx = 0;
     while (idx < num_lines) {
-        FL_Option_ptr _fl_tmp_2 = fl_array_get_safe(lines, idx);
-        FL_String* line = ((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : fl_string_from_cstr(""));
+        FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(lines, idx);
+        FL_String* line = ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr(""));
         if (fl_tests_app_grep_matches_line(line, pattern, case_i, invert)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(match_count, 1, &_fl_e_1);
@@ -614,10 +622,14 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
     FL_Array* match_indices = fl_array_new(0, 0, NULL);
     fl_int idx = 0;
     while (idx < num_lines) {
-        FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(lines, idx);
-        FL_String* line = ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr(""));
+        FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(lines, idx);
+        FL_String* line = ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : fl_string_from_cstr(""));
         if (fl_tests_app_grep_matches_line(line, pattern, fl_false, fl_false)) {
+            FL_Array* _fl_old_5 = match_indices;
             match_indices = fl_array_push_int(match_indices, idx);
+            if (_fl_old_5 != match_indices) {
+                fl_array_release(_fl_old_5);
+            }
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(idx, 1, &_fl_e_1);
@@ -628,9 +640,9 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
     fl_bool first_group = fl_true;
     fl_int mi = 0;
     while (mi < match_count) {
-        FL_Option_int _fl_tmp_4 = fl_array_get_int(match_indices, mi);
-        if (_fl_tmp_4.tag == 1) {
-            fl_int line_idx = _fl_tmp_4.value;
+        FL_Option_int _fl_tmp_6 = fl_array_get_int(match_indices, mi);
+        if (_fl_tmp_6.tag == 1) {
+            fl_int line_idx = _fl_tmp_6.value;
             fl_int _fl_e_2;
             FL_CHECKED_SUB(line_idx, before, &_fl_e_2);
             fl_int range_start = _fl_e_2;
@@ -659,8 +671,8 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
             }
             fl_int li = start;
             while (li <= range_end) {
-                FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(lines, li);
-                FL_String* line = ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : fl_string_from_cstr(""));
+                FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(lines, li);
+                FL_String* line = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : fl_string_from_cstr(""));
                 if (li == line_idx) {
                     fl_int _fl_e_7;
                     FL_CHECKED_ADD(li, 1, &_fl_e_7);

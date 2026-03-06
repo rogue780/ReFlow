@@ -254,7 +254,11 @@ FL_Array* fl_crypto_random_bytes(fl_int n) {
     FL_Array* result = fl_array_new(0, 0, NULL);
     fl_int i = 0;
     while (i < n) {
+        FL_Array* _fl_old_2 = result;
         result = fl_array_push_byte(result, fl_mem_read_byte(buf, ((fl_int64)i)));
+        if (_fl_old_2 != result) {
+            fl_array_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;

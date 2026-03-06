@@ -569,7 +569,11 @@ FL_Array* fl_array_slice__string(FL_Array* arr, fl_int start, fl_int end_idx) {
         FL_Option_ptr _fl_tmp_10 = fl_array_get_safe(arr, i);
         if (_fl_tmp_10.tag == 1) {
             FL_String* val = _fl_tmp_10.value;
+            FL_Array* _fl_old_11 = result;
             result = fl_array_push_ptr(result, val);
+            if (_fl_old_11 != result) {
+                fl_array_release(_fl_old_11);
+            }
         } else {
             return result;
         }

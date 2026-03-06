@@ -1353,9 +1353,59 @@ class Lowerer:
         self._let_var_ltypes[stmt.name] = c_type
         return [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
 
+    # Type → release function mapping for reassignment.
+    # Only arrays: fl_array_push with capacity sharing bumps the old
+    # array's refcount to 2 before returning, so releasing the old header
+    # just decrements (never frees while data is shared).  Without
+    # capacity sharing (full copy), old and new are independent.
+    # Maps are excluded: callee functions receiving &map can release the
+    # old map internally, causing double-free if the caller also releases.
+    # Strings are excluded: they are stored by reference in containers
+    # (arrays, maps) which do NOT retain their elements.
+    _RELEASE_FN: dict[type, str] = {
+        TArray:  "fl_array_release",
+    }
+
+    def _get_release_fn(self, t: Type) -> str | None:
+        """Return the release function name for a container type, or None."""
+        return self._RELEASE_FN.get(type(t))
+
+    @staticmethod
+    def _is_allocating_expr(expr: Expr) -> bool:
+        """Check if an expression is guaranteed to produce a fresh allocation."""
+        return isinstance(expr, (Call, MethodCall, BinOp, SomeExpr, OkExpr,
+                                 ErrExpr, ArrayLit, RecordLit, FStringExpr,
+                                 CopyExpr))
+
     def _lower_assign(self, stmt: AssignStmt) -> list[LStmt]:
         target = self._lower_expr(stmt.target)
         value = self._lower_expr(stmt.value)
+
+        # Release-on-reassignment for container-typed :mut variables.
+        # Only for allocating RHS (call, literal) so the old value is
+        # guaranteed to be from a previous allocation, not a borrow.
+        # Guard: old != new handles functions like map.remove that return self.
+        if (isinstance(stmt.target, Ident)
+                and self._is_allocating_expr(stmt.value)):
+            target_type = self._type_of(stmt.target)
+            release_fn = self._get_release_fn(target_type)
+            if release_fn is not None:
+                old_tmp = f"_fl_old_{self._tmp_counter}"
+                self._tmp_counter += 1
+                old_c_type = target.c_type
+                old_var = LVar(old_tmp, old_c_type)
+                return [
+                    LVarDecl(c_name=old_tmp, c_type=old_c_type, init=target),
+                    LAssign(target=target, value=value),
+                    LIf(
+                        cond=LBinOp("!=", old_var, target,
+                                    c_type=LBool()),
+                        then=[LExprStmt(LCall(release_fn, [old_var],
+                                              c_type=LVoid()))],
+                        else_=[],
+                    ),
+                ]
+
         return [LAssign(target=target, value=value)]
 
     def _lower_update(self, stmt: UpdateStmt) -> list[LStmt]:

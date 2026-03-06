@@ -509,12 +509,20 @@ FL_Array* fl_array_put__string(FL_Array* arr, fl_int idx, FL_String* val) {
     fl_int i = 0;
     while (i < s) {
         if (i == idx) {
+            FL_Array* _fl_old_11 = result;
             result = fl_array_push_ptr(result, val);
+            if (_fl_old_11 != result) {
+                fl_array_release(_fl_old_11);
+            }
         } else {
-            FL_Option_ptr _fl_tmp_11 = fl_array_get_safe(arr, i);
-            if (_fl_tmp_11.tag == 1) {
-                FL_String* v = _fl_tmp_11.value;
+            FL_Option_ptr _fl_tmp_12 = fl_array_get_safe(arr, i);
+            if (_fl_tmp_12.tag == 1) {
+                FL_String* v = _fl_tmp_12.value;
+                FL_Array* _fl_old_13 = result;
                 result = fl_array_push_ptr(result, v);
+                if (_fl_old_13 != result) {
+                    fl_array_release(_fl_old_13);
+                }
             }
         }
         fl_int _fl_e_1;
@@ -536,14 +544,22 @@ FL_Array* fl_array_put__int(FL_Array* arr, fl_int idx, fl_int val) {
     fl_int i = 0;
     while (i < s) {
         if (i == idx) {
-            fl_int _fl_tmp_12 = val;
-            result = fl_array_push_sized(result, (&_fl_tmp_12), sizeof(fl_int));
+            fl_int _fl_tmp_14 = val;
+            FL_Array* _fl_old_15 = result;
+            result = fl_array_push_sized(result, (&_fl_tmp_14), sizeof(fl_int));
+            if (_fl_old_15 != result) {
+                fl_array_release(_fl_old_15);
+            }
         } else {
-            FL_Option_int _fl_tmp_13 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_int, FL_Option_int);
-            if (_fl_tmp_13.tag == 1) {
-                fl_int v = _fl_tmp_13.value;
-                fl_int _fl_tmp_14 = v;
-                result = fl_array_push_sized(result, (&_fl_tmp_14), sizeof(fl_int));
+            FL_Option_int _fl_tmp_16 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_int, FL_Option_int);
+            if (_fl_tmp_16.tag == 1) {
+                fl_int v = _fl_tmp_16.value;
+                fl_int _fl_tmp_17 = v;
+                FL_Array* _fl_old_18 = result;
+                result = fl_array_push_sized(result, (&_fl_tmp_17), sizeof(fl_int));
+                if (_fl_old_18 != result) {
+                    fl_array_release(_fl_old_18);
+                }
             }
         }
         fl_int _fl_e_1;

@@ -491,7 +491,11 @@ FL_Array* fl_file_read_lines(FL_File* f) {
         FL_Option_ptr _fl_tmp_0 = fl_file_read_line(f);
         if (_fl_tmp_0.tag == 1) {
             FL_String* line = _fl_tmp_0.value;
+            FL_Array* _fl_old_1 = lines;
             lines = fl_array_push_ptr(lines, line);
+            if (_fl_old_1 != lines) {
+                fl_array_release(_fl_old_1);
+            }
         } else {
             done = fl_true;
         }
