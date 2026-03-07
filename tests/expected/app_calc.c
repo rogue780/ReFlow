@@ -138,11 +138,13 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        FL_String* _fl_old_2 = result;
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
-        if (_fl_old_2 != result) {
-            fl_string_release(_fl_old_2);
+        FL_String* _fl_tmp_2 = fl_string_concat(result, sep);
+        FL_String* _fl_old_3 = result;
+        result = fl_string_concat(_fl_tmp_2, ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_3 != result) {
+            fl_string_release(_fl_old_3);
         }
+        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -1017,7 +1019,11 @@ FL_String* fl_tests_app_calc_format_result(fl_float value) {
 void fl_tests_app_calc_eval_and_print(FL_String* label, FL_String* input, FL_Map* env) {
     FL_Tuple_fl_tests_app_calc_Expr_fl_int parsed = fl_tests_app_calc_parse_expr(input, 0);
     fl_float result = fl_tests_app_calc_eval(parsed._0, env);
-    fl_println(fl_string_concat(fl_string_concat(label, _fl_str_tests_app_calc_11), fl_tests_app_calc_format_result(result)));
+    FL_String* _fl_tmp_26 = fl_string_concat(label, _fl_str_tests_app_calc_11);
+    FL_String* _fl_tmp_27 = fl_string_concat(_fl_tmp_26, fl_tests_app_calc_format_result(result));
+    fl_println(_fl_tmp_27);
+    fl_string_release(_fl_tmp_26);
+    fl_string_release(_fl_tmp_27);
 }
 
 /* Flow: tests.app_calc.main */
@@ -1036,15 +1042,15 @@ void fl_tests_app_calc_main(void) {
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_22, _fl_str_tests_app_calc_22, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_23, _fl_str_tests_app_calc_23, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_24, _fl_str_tests_app_calc_24, env);
-    FL_Map* _fl_old_26 = env;
+    FL_Map* _fl_old_28 = env;
     env = fl_map_set_str(env, _fl_str_tests_app_calc_25, fl_box_float(10.0));
-    if (_fl_old_26 != env) {
-        fl_map_release(_fl_old_26);
+    if (_fl_old_28 != env) {
+        fl_map_release(_fl_old_28);
     }
-    FL_Map* _fl_old_27 = env;
+    FL_Map* _fl_old_29 = env;
     env = fl_map_set_str(env, _fl_str_tests_app_calc_26, fl_box_float(5.0));
-    if (_fl_old_27 != env) {
-        fl_map_release(_fl_old_27);
+    if (_fl_old_29 != env) {
+        fl_map_release(_fl_old_29);
     }
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_27, _fl_str_tests_app_calc_27, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_28, _fl_str_tests_app_calc_28, env);

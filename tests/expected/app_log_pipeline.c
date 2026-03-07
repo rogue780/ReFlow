@@ -138,11 +138,13 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        FL_String* _fl_old_2 = result;
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
-        if (_fl_old_2 != result) {
-            fl_string_release(_fl_old_2);
+        FL_String* _fl_tmp_2 = fl_string_concat(result, sep);
+        FL_String* _fl_old_3 = result;
+        result = fl_string_concat(_fl_tmp_2, ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_3 != result) {
+            fl_string_release(_fl_old_3);
         }
+        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -665,25 +667,32 @@ fl_tests_app_log_pipeline_LogEntry fl_tests_app_log_pipeline_detect_and_parse(FL
 
 /* Flow: tests.app_log_pipeline.write_archive */
 FL_String* fl_tests_app_log_pipeline_write_archive(fl_tests_app_log_pipeline_LogEntry entry) {
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_log_pipeline_11, entry.timestamp), _fl_str_tests_app_log_pipeline_12), entry.source), _fl_str_tests_app_log_pipeline_4), entry.message);
+    FL_String* _fl_tmp_12 = fl_string_concat(_fl_str_tests_app_log_pipeline_11, entry.timestamp);
+    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, _fl_str_tests_app_log_pipeline_12);
+    FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, entry.source);
+    FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, _fl_str_tests_app_log_pipeline_4);
+    return fl_string_concat(_fl_tmp_15, entry.message);
 }
 
 /* Flow: tests.app_log_pipeline.update_stats */
 FL_String* fl_tests_app_log_pipeline_update_stats(fl_tests_app_log_pipeline_LogEntry entry) {
-    return fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_log_pipeline_13, entry.severity.name), _fl_str_tests_app_log_pipeline_14), entry.source);
+    FL_String* _fl_tmp_16 = fl_string_concat(_fl_str_tests_app_log_pipeline_13, entry.severity.name);
+    FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, _fl_str_tests_app_log_pipeline_14);
+    return fl_string_concat(_fl_tmp_17, entry.source);
 }
 
 /* Flow: tests.app_log_pipeline.combine_output */
 FL_String* fl_tests_app_log_pipeline_combine_output(FL_String* archived, FL_String* stats) {
-    return fl_string_concat(fl_string_concat(archived, _fl_str_tests_app_log_pipeline_15), stats);
+    FL_String* _fl_tmp_18 = fl_string_concat(archived, _fl_str_tests_app_log_pipeline_15);
+    return fl_string_concat(_fl_tmp_18, stats);
 }
 
 /* Flow: tests.app_log_pipeline.main */
 void fl_tests_app_log_pipeline_main(void) {
     FL_Array* lines = fl_array_new(5, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_log_pipeline_16, _fl_str_tests_app_log_pipeline_17, _fl_str_tests_app_log_pipeline_18, _fl_str_tests_app_log_pipeline_19, _fl_str_tests_app_log_pipeline_20});
-    fl_int64 _fl_tmp_12 = 0;
-    while (_fl_tmp_12 < fl_array_len(lines)) {
-        FL_String* line = (*((FL_String**)fl_array_get_ptr(lines, _fl_tmp_12)));
+    fl_int64 _fl_tmp_19 = 0;
+    while (_fl_tmp_19 < fl_array_len(lines)) {
+        FL_String* line = (*((FL_String**)fl_array_get_ptr(lines, _fl_tmp_19)));
         FL_ExceptionFrame _fl_ef_0;
         _fl_exception_push((&_fl_ef_0));
         if (setjmp(_fl_ef_0.jmp) == 0) {
@@ -694,14 +703,22 @@ void fl_tests_app_log_pipeline_main(void) {
             if (fl_string_len(entry.source) == 0) {
                 _fl_throw(((void*)_fl_str_tests_app_log_pipeline_22), 0);
             }
-            fl_tests_app_log_pipeline_LogEntry _fl_tmp_13 = entry;
-            FL_String* _fl_tmp_14 = fl_tests_app_log_pipeline_write_archive(_fl_tmp_13);
-            FL_String* _fl_tmp_15 = fl_tests_app_log_pipeline_update_stats(_fl_tmp_13);
-            FL_String* output = fl_tests_app_log_pipeline_combine_output(_fl_tmp_14, _fl_tmp_15);
+            fl_tests_app_log_pipeline_LogEntry _fl_tmp_20 = entry;
+            FL_String* _fl_tmp_21 = fl_tests_app_log_pipeline_write_archive(_fl_tmp_20);
+            FL_String* _fl_tmp_22 = fl_tests_app_log_pipeline_update_stats(_fl_tmp_20);
+            FL_String* output = fl_tests_app_log_pipeline_combine_output(_fl_tmp_21, _fl_tmp_22);
             fl_string_retain(output);
             fl_println(output);
             if (entry.severity.level <= 1) {
-                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_log_pipeline_23, entry.severity.name), _fl_str_tests_app_log_pipeline_24), entry.source), _fl_str_tests_app_log_pipeline_25), entry.message));
+                FL_String* _fl_tmp_23 = fl_string_concat(_fl_str_tests_app_log_pipeline_23, entry.severity.name);
+                FL_String* _fl_tmp_24 = fl_string_concat(_fl_tmp_23, _fl_str_tests_app_log_pipeline_24);
+                FL_String* _fl_tmp_25 = fl_string_concat(_fl_tmp_24, entry.source);
+                FL_String* _fl_tmp_26 = fl_string_concat(_fl_tmp_25, _fl_str_tests_app_log_pipeline_25);
+                fl_println(fl_string_concat(_fl_tmp_26, entry.message));
+                fl_string_release(_fl_tmp_23);
+                fl_string_release(_fl_tmp_24);
+                fl_string_release(_fl_tmp_25);
+                fl_string_release(_fl_tmp_26);
             }
             _fl_exception_pop();
         } else {
@@ -713,7 +730,7 @@ void fl_tests_app_log_pipeline_main(void) {
                 _fl_throw(_fl_ef_0.exception, _fl_ef_0.exception_tag);
             }
         }
-        _fl_tmp_12 = (_fl_tmp_12 + 1);
+        _fl_tmp_19 = (_fl_tmp_19 + 1);
     }
 }
 

@@ -668,6 +668,10 @@ class Lowerer:
 
         # Pending statements generated during expression lowering
         self._pending_stmts: list[LStmt] = []
+        # Post-statements: emitted AFTER the enclosing statement completes.
+        # Used to release temporary string expressions that were hoisted
+        # to temps for use as function arguments.
+        self._post_stmts: list[LStmt] = []
 
         # Current function's return type — used by ok/err/none to pick correct struct
         self._current_fn_return_type: Type | None = None
@@ -1292,11 +1296,32 @@ class Lowerer:
         result: list[LStmt] = []
         for stmt in block.stmts:
             saved = self._pending_stmts
+            saved_post = self._post_stmts
             self._pending_stmts = []
+            self._post_stmts = []
             lowered = self._lower_stmt(stmt)
             result.extend(self._pending_stmts)
-            result.extend(lowered)
+            # Don't emit post_stmts after terminal control flow.
+            # - return: temps may be part of the returned expression; the
+            #   function is exiting anyway so leaking here is acceptable.
+            # - throw: never returns, cleanup is unreachable.
+            if self._post_stmts and lowered:
+                last = lowered[-1]
+                is_terminal = (isinstance(last, LReturn)
+                               or (isinstance(last, LExprStmt)
+                                   and isinstance(last.expr, LCall)
+                                   and last.expr.fn_name == "_fl_throw"))
+                if is_terminal:
+                    result.extend(lowered)
+                    # Drop post_stmts — cannot safely release before return/throw
+                else:
+                    result.extend(lowered)
+                    result.extend(self._post_stmts)
+            else:
+                result.extend(lowered)
+                result.extend(self._post_stmts)
             self._pending_stmts = saved
+            self._post_stmts = saved_post
         return result
 
     def _inject_tail_returns(self, stmts: list[LStmt]) -> None:
@@ -1566,6 +1591,65 @@ class Lowerer:
             self._intern_counter += 1
             self._interned_strings[c_literal] = name
         return LVar(name, LPtr(LStruct("FL_String")))
+
+    _STRING_LTYPE = LPtr(LStruct("FL_String"))
+
+    # String functions known to return freshly allocated (owned) strings.
+    # Only these are safe to hoist-and-release; user-defined functions may
+    # return borrowed references (e.g. struct fields) whose release would
+    # cause use-after-free.
+    _OWNED_STRING_FNS = frozenset({
+        "fl_string_concat",
+        "fl_string_substring",
+        "fl_string_replace",
+        "fl_string_trim",
+        "fl_string_to_lower",
+        "fl_string_to_upper",
+        "fl_string_join",
+        "fl_string_from_cstr",
+        "fl_int_to_string",
+        "fl_int64_to_string",
+        "fl_float_to_string",
+        "fl_bool_to_string",
+        "fl_char_to_string",
+    })
+
+    def _hoist_string_temp(self, expr: LExpr) -> LExpr:
+        """If expr is a known-allocating string call, hoist to temp and schedule release.
+
+        Only hoists calls to runtime functions that are guaranteed to return
+        freshly allocated strings.  User-defined functions may return borrowed
+        references (struct fields, match bindings, etc.) so releasing their
+        return values would cause use-after-free.
+
+        Returns the temp LVar if hoisted, or the original expr if not eligible.
+        """
+        if not isinstance(expr, LCall):
+            return expr
+        if expr.fn_name not in self._OWNED_STRING_FNS:
+            return expr
+        tmp = self._fresh_temp()
+        self._pending_stmts.append(
+            LVarDecl(c_name=tmp, c_type=self._STRING_LTYPE, init=expr))
+        self._post_stmts.append(
+            LExprStmt(LCall("fl_string_release",
+                            [LVar(tmp, self._STRING_LTYPE)], LVoid())))
+        return LVar(tmp, self._STRING_LTYPE)
+
+    def _hoist_string_args(self, fn_name: str, args: list[LExpr]) -> list[LExpr]:
+        """Hoist string-returning call arguments for non-storing functions.
+
+        Only hoists (and schedules release) for functions known NOT to store
+        their arguments.  Functions like array.push, map.set, etc. store the
+        pointer so releasing the temp would cause use-after-free.
+        """
+        # Functions that store string arguments — never hoist for these
+        if fn_name in ("fl_array_push_ptr", "fl_array_push_sized",
+                        "fl_map_set_str", "fl_map_set",
+                        "fl_array_put__string", "_fl_throw",
+                        "fl_string_retain", "fl_string_release"):
+            return args
+        return [self._hoist_string_temp(a) for a in args]
 
     @staticmethod
     def _is_allocating_expr(expr: Expr) -> bool:
@@ -2876,7 +2960,8 @@ class Lowerer:
         if op == "+" and isinstance(t, TString):
             l_str = left_expr if isinstance(left_type, TString) else self._to_string_expr(left_expr, left_type)
             r_str = right_expr if isinstance(right_type, TString) else self._to_string_expr(right_expr, right_type)
-            return LCall("fl_string_concat", [l_str, r_str],
+            args = self._hoist_string_args("fl_string_concat", [l_str, r_str])
+            return LCall("fl_string_concat", args,
                          LPtr(LStruct("FL_String")))
 
         # String equality
@@ -3267,14 +3352,14 @@ class Lowerer:
                         ext_decl, list(expr.args), lowered_args, t, lt)
                     if wrapped is not None:
                         return wrapped
-                return LCall(ext_c_name, lowered_args, lt)
+                return LCall(ext_c_name, self._hoist_string_args(ext_c_name, lowered_args), lt)
             # Check if callee is a closure-typed variable (local var, param)
             callee_type = self._type_of(expr.callee)
             if isinstance(callee_type, TFn):
                 callee_expr = self._lower_expr(expr.callee)
                 return self._make_closure_call(callee_expr, callee_type, lowered_args, lt)
             # Builtin or unresolved — use name directly
-            return LCall(name, lowered_args, lt)
+            return LCall(name, self._hoist_string_args(name, lowered_args), lt)
 
         # FieldAccess callee — check if resolved to constructor/type symbol
         if isinstance(expr.callee, FieldAccess):
@@ -3310,7 +3395,7 @@ class Lowerer:
                     c_name = mangle(mod_path, None, fa_name,
                                     file=self._file, line=expr.line,
                                     col=expr.col)
-                    return LCall(c_name, lowered_args, lt)
+                    return LCall(c_name, self._hoist_string_args(c_name, lowered_args), lt)
 
         # Indirect call through expression — closure call
         callee_expr = self._lower_expr(expr.callee)
@@ -3579,7 +3664,7 @@ class Lowerer:
                         fn_decl, list(expr.args), lowered_args, t, lt)
                     if wrapped is not None:
                         return wrapped
-                return LCall(mc_c_name, lowered_args, lt)
+                return LCall(mc_c_name, self._hoist_string_args(mc_c_name, lowered_args), lt)
             # Non-native imported function — use mangled name from source module
             if isinstance(fn_decl, FnDecl):
                 src_module = self._resolve_import_module_path(expr.receiver)
@@ -3591,12 +3676,12 @@ class Lowerer:
                         mono_name = self._record_mono_site(src_module, fn_decl, env)
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
                         final = self._wrap_mut_args(fn_decl, lowered_args)
-                        return LCall(mono_name, final, concrete_lt)
+                        return LCall(mono_name, self._hoist_string_args(mono_name, final), concrete_lt)
                 # Wrap :mut args before emitting the call
                 lowered_args = self._wrap_mut_args(fn_decl, lowered_args)
                 c_name = mangle(src_module, None, fn_decl.name,
                                 file=self._file, line=expr.line, col=expr.col)
-                return LCall(c_name, lowered_args, lt)
+                return LCall(c_name, self._hoist_string_args(c_name, lowered_args), lt)
 
         recv = self._lower_expr(expr.receiver)
         lowered_args = [self._lower_expr(a) for a in expr.args]
@@ -3614,7 +3699,8 @@ class Lowerer:
             # User-defined type method
             c_name = mangle(self._module_path, recv_type.name, expr.method,
                             file=self._file, line=expr.line, col=expr.col)
-            return LCall(c_name, [LAddrOf(recv, LPtr(self._lower_type(recv_type)))] + lowered_args, lt)
+            all_args = [LAddrOf(recv, LPtr(self._lower_type(recv_type)))] + lowered_args
+            return LCall(c_name, self._hoist_string_args(c_name, all_args), lt)
 
         # Built-in type methods — check interface method dispatch table first (SG-3-5-1)
         type_name = self._type_name_str(recv_type)
@@ -3631,7 +3717,8 @@ class Lowerer:
 
         # Fallthrough: plain built-in type method (fl_<type>_<method>)
         method_c_name = f"fl_{type_name}_{expr.method}"
-        return LCall(method_c_name, [recv] + lowered_args, lt)
+        all_args = [recv] + lowered_args
+        return LCall(method_c_name, self._hoist_string_args(method_c_name, all_args), lt)
 
     def _get_callee_fn_decl(self, call: Call) -> FnDecl | None:
         """Look up the FnDecl for a call's callee from the resolver symbols."""
@@ -5293,6 +5380,19 @@ class Lowerer:
         if not stmts:
             return stmts
         last = stmts[-1]
+        # Detect discarded-value-release pattern from _lower_expr_stmt:
+        #   VarDecl(tmp, init=allocating_call)
+        #   ExprStmt(release(tmp))
+        # The value is NOT discarded — it's the block result. Undo the
+        # release and use the VarDecl init as the value.
+        if (len(stmts) >= 2
+                and isinstance(last, LExprStmt)
+                and isinstance(last.expr, LCall)
+                and last.expr.fn_name in self._RELEASE_FN.values()
+                and isinstance(stmts[-2], LVarDecl)
+                and stmts[-2].init is not None):
+            decl = stmts[-2]
+            return stmts[:-2] + [LAssign(result_var, decl.init)]
         if isinstance(last, LExprStmt):
             return stmts[:-1] + [LAssign(result_var, last.expr)]
         if isinstance(last, LReturn) and last.value is not None:
@@ -5909,6 +6009,16 @@ class Lowerer:
         match arm.body:
             case Block():
                 block_stmts = self._lower_inner_block(arm.body)
+                # Detect discarded-value-release pattern: VarDecl + release call
+                if (len(block_stmts) >= 2
+                        and isinstance(block_stmts[-1], LExprStmt)
+                        and isinstance(block_stmts[-1].expr, LCall)
+                        and block_stmts[-1].expr.fn_name in self._RELEASE_FN.values()
+                        and isinstance(block_stmts[-2], LVarDecl)
+                        and block_stmts[-2].init is not None):
+                    decl = block_stmts[-2]
+                    self._pending_stmts.extend(block_stmts[:-2])
+                    return decl.init
                 # Find the last expression
                 if block_stmts and isinstance(block_stmts[-1], LExprStmt):
                     self._pending_stmts.extend(block_stmts[:-1])

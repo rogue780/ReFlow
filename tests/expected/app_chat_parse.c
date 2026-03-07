@@ -18,11 +18,13 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        FL_String* _fl_old_2 = result;
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
-        if (_fl_old_2 != result) {
-            fl_string_release(_fl_old_2);
+        FL_String* _fl_tmp_2 = fl_string_concat(result, sep);
+        FL_String* _fl_old_3 = result;
+        result = fl_string_concat(_fl_tmp_2, ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_3 != result) {
+            fl_string_release(_fl_old_3);
         }
+        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -159,7 +161,9 @@ FL_Tuple_FL_String_ptr_FL_String_ptr fl_tests_app_chat_parse_parse_message(FL_St
             FL_String* cmd = fl_string_substring(trimmed, 0, idx);
             fl_int _fl_e_1;
             FL_CHECKED_ADD(idx, 1, &_fl_e_1);
-            FL_String* arg = fl_string_trim(fl_string_substring(trimmed, _fl_e_1, fl_string_len(trimmed)));
+            FL_String* _fl_tmp_1 = fl_string_substring(trimmed, _fl_e_1, fl_string_len(trimmed));
+            FL_String* arg = fl_string_trim(_fl_tmp_1);
+            fl_string_release(_fl_tmp_1);
             return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = cmd, ._1 = arg};
         } else {
             return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = trimmed, ._1 = _fl_str_tests_app_chat_parse_1};
@@ -189,27 +193,67 @@ FL_Option_ptr fl_tests_app_chat_parse_validate_nick(FL_String* name) {
 void fl_tests_app_chat_parse_test_parse(FL_String* input, FL_String* expected_cmd, FL_String* expected_arg) {
     FL_Tuple_FL_String_ptr_FL_String_ptr result = fl_tests_app_chat_parse_parse_message(input);
     if (fl_string_eq(result._0, expected_cmd) && fl_string_eq(result._1, expected_arg)) {
-        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_8, input), _fl_str_tests_app_chat_parse_9), result._0), _fl_str_tests_app_chat_parse_10), result._1), _fl_str_tests_app_chat_parse_11));
+        FL_String* _fl_tmp_2 = fl_string_concat(_fl_str_tests_app_chat_parse_8, input);
+        FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, _fl_str_tests_app_chat_parse_9);
+        FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, result._0);
+        FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_str_tests_app_chat_parse_10);
+        FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, result._1);
+        fl_println(fl_string_concat(_fl_tmp_6, _fl_str_tests_app_chat_parse_11));
+        fl_string_release(_fl_tmp_2);
+        fl_string_release(_fl_tmp_3);
+        fl_string_release(_fl_tmp_4);
+        fl_string_release(_fl_tmp_5);
+        fl_string_release(_fl_tmp_6);
     } else {
-        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_12, input), _fl_str_tests_app_chat_parse_13), expected_cmd), _fl_str_tests_app_chat_parse_10), expected_arg), _fl_str_tests_app_chat_parse_14), result._0), _fl_str_tests_app_chat_parse_10), result._1), _fl_str_tests_app_chat_parse_11));
+        FL_String* _fl_tmp_7 = fl_string_concat(_fl_str_tests_app_chat_parse_12, input);
+        FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, _fl_str_tests_app_chat_parse_13);
+        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, expected_cmd);
+        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_str_tests_app_chat_parse_10);
+        FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, expected_arg);
+        FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, _fl_str_tests_app_chat_parse_14);
+        FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, result._0);
+        FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, _fl_str_tests_app_chat_parse_10);
+        FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, result._1);
+        fl_println(fl_string_concat(_fl_tmp_15, _fl_str_tests_app_chat_parse_11));
+        fl_string_release(_fl_tmp_7);
+        fl_string_release(_fl_tmp_8);
+        fl_string_release(_fl_tmp_9);
+        fl_string_release(_fl_tmp_10);
+        fl_string_release(_fl_tmp_11);
+        fl_string_release(_fl_tmp_12);
+        fl_string_release(_fl_tmp_13);
+        fl_string_release(_fl_tmp_14);
+        fl_string_release(_fl_tmp_15);
     }
 }
 
 /* Flow: tests.app_chat_parse.test_nick */
 void fl_tests_app_chat_parse_test_nick(FL_String* input, fl_bool expect_ok) {
-    FL_Option_ptr _fl_tmp_1 = fl_tests_app_chat_parse_validate_nick(input);
-    if (_fl_tmp_1.tag == 1) {
-        FL_String* reason = _fl_tmp_1.value;
+    FL_Option_ptr _fl_tmp_16 = fl_tests_app_chat_parse_validate_nick(input);
+    if (_fl_tmp_16.tag == 1) {
+        FL_String* reason = _fl_tmp_16.value;
         if (!expect_ok) {
-            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_15, input), _fl_str_tests_app_chat_parse_16), reason));
+            FL_String* _fl_tmp_17 = fl_string_concat(_fl_str_tests_app_chat_parse_15, input);
+            FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, _fl_str_tests_app_chat_parse_16);
+            fl_println(fl_string_concat(_fl_tmp_18, reason));
+            fl_string_release(_fl_tmp_17);
+            fl_string_release(_fl_tmp_18);
         } else {
-            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_17, input), _fl_str_tests_app_chat_parse_18), reason));
+            FL_String* _fl_tmp_19 = fl_string_concat(_fl_str_tests_app_chat_parse_17, input);
+            FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, _fl_str_tests_app_chat_parse_18);
+            fl_println(fl_string_concat(_fl_tmp_20, reason));
+            fl_string_release(_fl_tmp_19);
+            fl_string_release(_fl_tmp_20);
         }
     } else {
         if (expect_ok) {
-            fl_println(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_15, input), _fl_str_tests_app_chat_parse_19));
+            FL_String* _fl_tmp_21 = fl_string_concat(_fl_str_tests_app_chat_parse_15, input);
+            fl_println(fl_string_concat(_fl_tmp_21, _fl_str_tests_app_chat_parse_19));
+            fl_string_release(_fl_tmp_21);
         } else {
-            fl_println(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_17, input), _fl_str_tests_app_chat_parse_20));
+            FL_String* _fl_tmp_22 = fl_string_concat(_fl_str_tests_app_chat_parse_17, input);
+            fl_println(fl_string_concat(_fl_tmp_22, _fl_str_tests_app_chat_parse_20));
+            fl_string_release(_fl_tmp_22);
         }
     }
 }

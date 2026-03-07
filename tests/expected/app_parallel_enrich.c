@@ -138,11 +138,13 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        FL_String* _fl_old_2 = result;
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
-        if (_fl_old_2 != result) {
-            fl_string_release(_fl_old_2);
+        FL_String* _fl_tmp_2 = fl_string_concat(result, sep);
+        FL_String* _fl_old_3 = result;
+        result = fl_string_concat(_fl_tmp_2, ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_3 != result) {
+            fl_string_release(_fl_old_3);
         }
+        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -607,7 +609,11 @@ fl_int fl_tests_app_parallel_enrich_compute_hash(fl_int value) {
 
 /* Flow: tests.app_parallel_enrich.format_result */
 FL_String* fl_tests_app_parallel_enrich_format_result(fl_int score, FL_String* category, fl_int hash) {
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_parallel_enrich_3, fl_conv_to_string__int(score)), _fl_str_tests_app_parallel_enrich_4), category), _fl_str_tests_app_parallel_enrich_5), fl_conv_to_string__int(hash));
+    FL_String* _fl_tmp_0 = fl_string_concat(_fl_str_tests_app_parallel_enrich_3, fl_conv_to_string__int(score));
+    FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, _fl_str_tests_app_parallel_enrich_4);
+    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, category);
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, _fl_str_tests_app_parallel_enrich_5);
+    return fl_string_concat(_fl_tmp_3, fl_conv_to_string__int(hash));
 }
 
 /* Flow: tests.app_parallel_enrich.produce_values::next */
@@ -691,56 +697,68 @@ void fl_tests_app_parallel_enrich_main(void) {
     FL_Array* values = fl_array_new(4, sizeof(fl_int), (fl_int[]){90, 45, 20, 75});
     fl_println(_fl_str_tests_app_parallel_enrich_10);
     fl_int idx = 0;
-    fl_int64 _fl_tmp_0 = 0;
-    while (_fl_tmp_0 < fl_array_len(values)) {
-        fl_int v = (*((fl_int*)fl_array_get_ptr(values, _fl_tmp_0)));
-        fl_int _fl_tmp_1 = v;
-        FL_FanoutBranch _fl_tmp_2[3];
-        _fl_tmp_2[0].fn = _fl_fanout_tests_app_parallel_enrich_main_0_0;
-        _fl_tmp_2[0].arg = ((void*)((fl_int64)_fl_tmp_1));
-        _fl_tmp_2[1].fn = _fl_fanout_tests_app_parallel_enrich_main_0_1;
-        _fl_tmp_2[1].arg = ((void*)((fl_int64)_fl_tmp_1));
-        _fl_tmp_2[2].fn = _fl_fanout_tests_app_parallel_enrich_main_0_2;
-        _fl_tmp_2[2].arg = ((void*)((fl_int64)_fl_tmp_1));
-        fl_fanout_run(_fl_tmp_2, 3);
-        fl_int _fl_tmp_3 = ((fl_int)((fl_int64)_fl_tmp_2[0].result));
-        FL_String* _fl_tmp_4 = ((FL_String*)_fl_tmp_2[1].result);
-        fl_int _fl_tmp_5 = ((fl_int)((fl_int64)_fl_tmp_2[2].result));
-        fl_int _fl_tmp_6 = _fl_tmp_3;
-        FL_String* _fl_tmp_7 = _fl_tmp_4;
-        fl_int _fl_tmp_8 = _fl_tmp_5;
-        FL_String* output = fl_tests_app_parallel_enrich_format_result(_fl_tmp_6, _fl_tmp_7, _fl_tmp_8);
+    fl_int64 _fl_tmp_4 = 0;
+    while (_fl_tmp_4 < fl_array_len(values)) {
+        fl_int v = (*((fl_int*)fl_array_get_ptr(values, _fl_tmp_4)));
+        fl_int _fl_tmp_5 = v;
+        FL_FanoutBranch _fl_tmp_6[3];
+        _fl_tmp_6[0].fn = _fl_fanout_tests_app_parallel_enrich_main_0_0;
+        _fl_tmp_6[0].arg = ((void*)((fl_int64)_fl_tmp_5));
+        _fl_tmp_6[1].fn = _fl_fanout_tests_app_parallel_enrich_main_0_1;
+        _fl_tmp_6[1].arg = ((void*)((fl_int64)_fl_tmp_5));
+        _fl_tmp_6[2].fn = _fl_fanout_tests_app_parallel_enrich_main_0_2;
+        _fl_tmp_6[2].arg = ((void*)((fl_int64)_fl_tmp_5));
+        fl_fanout_run(_fl_tmp_6, 3);
+        fl_int _fl_tmp_7 = ((fl_int)((fl_int64)_fl_tmp_6[0].result));
+        FL_String* _fl_tmp_8 = ((FL_String*)_fl_tmp_6[1].result);
+        fl_int _fl_tmp_9 = ((fl_int)((fl_int64)_fl_tmp_6[2].result));
+        fl_int _fl_tmp_10 = _fl_tmp_7;
+        FL_String* _fl_tmp_11 = _fl_tmp_8;
+        fl_int _fl_tmp_12 = _fl_tmp_9;
+        FL_String* output = fl_tests_app_parallel_enrich_format_result(_fl_tmp_10, _fl_tmp_11, _fl_tmp_12);
         fl_string_retain(output);
-        FL_Option_ptr _fl_tmp_9 = fl_array_get_safe(names, idx);
-        FL_String* name = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : _fl_str_tests_app_parallel_enrich_11);
+        FL_Option_ptr _fl_tmp_13 = fl_array_get_safe(names, idx);
+        FL_String* name = ((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : _fl_str_tests_app_parallel_enrich_11);
         fl_string_retain(name);
-        fl_println(fl_string_concat(fl_string_concat(name, _fl_str_tests_app_parallel_enrich_12), output));
+        FL_String* _fl_tmp_14 = fl_string_concat(name, _fl_str_tests_app_parallel_enrich_12);
+        fl_println(fl_string_concat(_fl_tmp_14, output));
+        fl_string_release(_fl_tmp_14);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(idx, 1, &_fl_e_1);
         idx = _fl_e_1;
-        _fl_tmp_0 = (_fl_tmp_0 + 1);
+        _fl_tmp_4 = (_fl_tmp_4 + 1);
     }
     fl_println(_fl_str_tests_app_parallel_enrich_13);
-    FL_Stream* _fl_tmp_10 = fl_tests_app_parallel_enrich_produce_values();
-    FL_Coroutine* source = fl_coroutine_new_threaded(_fl_tmp_10, 64);
+    FL_Stream* _fl_tmp_15 = fl_tests_app_parallel_enrich_produce_values();
+    FL_Coroutine* source = fl_coroutine_new_threaded(_fl_tmp_15, 64);
     fl_int j = 0;
     while (!fl_coroutine_done(source)) {
-        FL_Option_ptr _fl_tmp_11 = fl_coroutine_next(source);
-        FL_Option_int _fl_tmp_12;
-        _fl_tmp_12.tag = _fl_tmp_11.tag;
-        if (_fl_tmp_11.tag == 1) {
-            _fl_tmp_12.value = ((fl_int)((fl_int64)_fl_tmp_11.value));
+        FL_Option_ptr _fl_tmp_16 = fl_coroutine_next(source);
+        FL_Option_int _fl_tmp_17;
+        _fl_tmp_17.tag = _fl_tmp_16.tag;
+        if (_fl_tmp_16.tag == 1) {
+            _fl_tmp_17.value = ((fl_int)((fl_int64)_fl_tmp_16.value));
         }
-        FL_Option_int _fl_tmp_13 = _fl_tmp_12;
-        if (_fl_tmp_13.tag == 1) {
-            fl_int v = _fl_tmp_13.value;
-            FL_Option_ptr _fl_tmp_14 = fl_array_get_safe(names, j);
-            FL_String* name = ((_fl_tmp_14.tag == 1) ? _fl_tmp_14.value : _fl_str_tests_app_parallel_enrich_11);
+        FL_Option_int _fl_tmp_18 = _fl_tmp_17;
+        if (_fl_tmp_18.tag == 1) {
+            fl_int v = _fl_tmp_18.value;
+            FL_Option_ptr _fl_tmp_19 = fl_array_get_safe(names, j);
+            FL_String* name = ((_fl_tmp_19.tag == 1) ? _fl_tmp_19.value : _fl_str_tests_app_parallel_enrich_11);
             fl_string_retain(name);
             fl_int score = fl_tests_app_parallel_enrich_compute_score(v);
             FL_String* cat = fl_tests_app_parallel_enrich_categorize(v);
             fl_int hash = fl_tests_app_parallel_enrich_compute_hash(v);
-            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(name, _fl_str_tests_app_parallel_enrich_14), fl_conv_to_string__int(score)), _fl_str_tests_app_parallel_enrich_4), cat), _fl_str_tests_app_parallel_enrich_5), fl_conv_to_string__int(hash)));
+            FL_String* _fl_tmp_20 = fl_string_concat(name, _fl_str_tests_app_parallel_enrich_14);
+            FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, fl_conv_to_string__int(score));
+            FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, _fl_str_tests_app_parallel_enrich_4);
+            FL_String* _fl_tmp_23 = fl_string_concat(_fl_tmp_22, cat);
+            FL_String* _fl_tmp_24 = fl_string_concat(_fl_tmp_23, _fl_str_tests_app_parallel_enrich_5);
+            fl_println(fl_string_concat(_fl_tmp_24, fl_conv_to_string__int(hash)));
+            fl_string_release(_fl_tmp_20);
+            fl_string_release(_fl_tmp_21);
+            fl_string_release(_fl_tmp_22);
+            fl_string_release(_fl_tmp_23);
+            fl_string_release(_fl_tmp_24);
             fl_int _fl_e_2;
             FL_CHECKED_ADD(j, 1, &_fl_e_2);
             j = _fl_e_2;
