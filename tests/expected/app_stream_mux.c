@@ -545,17 +545,21 @@ void fl_tests_app_stream_mux_main(void) {
         FL_String* line = fl_tests_app_stream_mux_format_record(r);
         FL_Option_ptr _fl_tmp_1 = fl_map_get_str(destinations, dest);
         FL_String* existing = ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr(""));
+        FL_Map* _fl_old_2 = destinations;
         destinations = fl_map_set_str(destinations, dest, fl_string_concat(fl_string_concat(existing, line), fl_string_from_cstr("\n")));
+        if (_fl_old_2 != destinations) {
+            fl_map_release(_fl_old_2);
+        }
         _fl_tmp_0 = (_fl_tmp_0 + 1);
     }
     FL_Array* ks = fl_map_keys(destinations);
-    fl_int64 _fl_tmp_2 = 0;
-    while (_fl_tmp_2 < fl_array_len(ks)) {
-        FL_String* key = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_2)));
+    fl_int64 _fl_tmp_3 = 0;
+    while (_fl_tmp_3 < fl_array_len(ks)) {
+        FL_String* key = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_3)));
         fl_println(fl_string_concat(fl_string_concat(fl_string_from_cstr("=== "), key), fl_string_from_cstr(" ===")));
-        FL_Option_ptr _fl_tmp_3 = fl_map_get_str(destinations, key);
-        fl_println(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr("")));
-        _fl_tmp_2 = (_fl_tmp_2 + 1);
+        FL_Option_ptr _fl_tmp_4 = fl_map_get_str(destinations, key);
+        fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : fl_string_from_cstr("")));
+        _fl_tmp_3 = (_fl_tmp_3 + 1);
     }
 }
 

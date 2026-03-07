@@ -552,7 +552,11 @@ FL_Map* fl_string_set_from_array(FL_Array* arr) {
     fl_int64 _fl_tmp_0 = 0;
     while (_fl_tmp_0 < fl_array_len(arr)) {
         FL_String* item = (*((FL_String**)fl_array_get_ptr(arr, _fl_tmp_0)));
+        FL_Map* _fl_old_1 = s;
         s = fl_string_set_add(s, item);
+        if (_fl_old_1 != s) {
+            fl_map_release(_fl_old_1);
+        }
         _fl_tmp_0 = (_fl_tmp_0 + 1);
     }
     return s;
@@ -562,11 +566,15 @@ FL_Map* fl_string_set_from_array(FL_Array* arr) {
 FL_Map* fl_string_set_union(FL_Map* a, FL_Map* b) {
     FL_Map* result = a;
     FL_Array* b_keys = fl_map_keys(b);
-    fl_int64 _fl_tmp_1 = 0;
-    while (_fl_tmp_1 < fl_array_len(b_keys)) {
-        FL_String* k = (*((FL_String**)fl_array_get_ptr(b_keys, _fl_tmp_1)));
+    fl_int64 _fl_tmp_2 = 0;
+    while (_fl_tmp_2 < fl_array_len(b_keys)) {
+        FL_String* k = (*((FL_String**)fl_array_get_ptr(b_keys, _fl_tmp_2)));
+        FL_Map* _fl_old_3 = result;
         result = fl_string_set_add(result, k);
-        _fl_tmp_1 = (_fl_tmp_1 + 1);
+        if (_fl_old_3 != result) {
+            fl_map_release(_fl_old_3);
+        }
+        _fl_tmp_2 = (_fl_tmp_2 + 1);
     }
     return result;
 }
@@ -575,13 +583,17 @@ FL_Map* fl_string_set_union(FL_Map* a, FL_Map* b) {
 FL_Map* fl_string_set_difference(FL_Map* a, FL_Map* b) {
     FL_Map* result = fl_string_set_new();
     FL_Array* a_keys = fl_map_keys(a);
-    fl_int64 _fl_tmp_2 = 0;
-    while (_fl_tmp_2 < fl_array_len(a_keys)) {
-        FL_String* k = (*((FL_String**)fl_array_get_ptr(a_keys, _fl_tmp_2)));
+    fl_int64 _fl_tmp_4 = 0;
+    while (_fl_tmp_4 < fl_array_len(a_keys)) {
+        FL_String* k = (*((FL_String**)fl_array_get_ptr(a_keys, _fl_tmp_4)));
         if (!fl_string_set_has(b, k)) {
+            FL_Map* _fl_old_5 = result;
             result = fl_string_set_add(result, k);
+            if (_fl_old_5 != result) {
+                fl_map_release(_fl_old_5);
+            }
         }
-        _fl_tmp_2 = (_fl_tmp_2 + 1);
+        _fl_tmp_4 = (_fl_tmp_4 + 1);
     }
     return result;
 }
@@ -590,13 +602,17 @@ FL_Map* fl_string_set_difference(FL_Map* a, FL_Map* b) {
 FL_Map* fl_string_set_intersection(FL_Map* a, FL_Map* b) {
     FL_Map* result = fl_string_set_new();
     FL_Array* a_keys = fl_map_keys(a);
-    fl_int64 _fl_tmp_3 = 0;
-    while (_fl_tmp_3 < fl_array_len(a_keys)) {
-        FL_String* k = (*((FL_String**)fl_array_get_ptr(a_keys, _fl_tmp_3)));
+    fl_int64 _fl_tmp_6 = 0;
+    while (_fl_tmp_6 < fl_array_len(a_keys)) {
+        FL_String* k = (*((FL_String**)fl_array_get_ptr(a_keys, _fl_tmp_6)));
         if (fl_string_set_has(b, k)) {
+            FL_Map* _fl_old_7 = result;
             result = fl_string_set_add(result, k);
+            if (_fl_old_7 != result) {
+                fl_map_release(_fl_old_7);
+            }
         }
-        _fl_tmp_3 = (_fl_tmp_3 + 1);
+        _fl_tmp_6 = (_fl_tmp_6 + 1);
     }
     return result;
 }

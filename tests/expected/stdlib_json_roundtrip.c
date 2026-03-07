@@ -2165,12 +2165,16 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
                 FL_Tuple_fl_json_JsonValue_fl_int val_result = _fl_tmp_42.value;
                 fl_json_JsonValue* _fl_tmp_43 = ((fl_json_JsonValue*)malloc(sizeof(fl_json_JsonValue)));
                 (*_fl_tmp_43) = val_result._0;
+                FL_Map* _fl_old_44 = entries;
                 entries = fl_map_set_str(entries, key, ((void*)_fl_tmp_43));
+                if (_fl_old_44 != entries) {
+                    fl_map_release(_fl_old_44);
+                }
                 p = fl_json_skip_ws(s, val_result._1, len);
                 if (p < len) {
-                    FL_Option_char _fl_tmp_44 = fl_string_char_at(s, p);
-                    if (_fl_tmp_44.tag == 1) {
-                        fl_char ch = _fl_tmp_44.value;
+                    FL_Option_char _fl_tmp_45 = fl_string_char_at(s, p);
+                    if (_fl_tmp_45.tag == 1) {
+                        fl_char ch = _fl_tmp_45.value;
                         if (ch == 44) {
                             fl_int _fl_e_4;
                             FL_CHECKED_ADD(p, 1, &_fl_e_4);
@@ -2203,9 +2207,9 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
 /* Flow: json.parse */
 FL_Option_fl_json_JsonValue fl_json_parse(FL_String* s) {
     fl_int len = fl_string_len(s);
-    FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_45 = fl_json_parse_value(s, 0, len);
-    if (_fl_tmp_45.tag == 1) {
-        FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_45.value;
+    FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_46 = fl_json_parse_value(s, 0, len);
+    if (_fl_tmp_46.tag == 1) {
+        FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_46.value;
         fl_int p = fl_json_skip_ws(s, result._1, len);
         if (p == len) {
             return (FL_Option_fl_json_JsonValue){.tag = 1, .value = result._0};

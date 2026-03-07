@@ -497,39 +497,51 @@ FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
 /* Flow: tests.stdlib_generic_map.main */
 void fl_tests_stdlib_generic_map_main(void) {
     FL_Map* m = fl_map_new();
+    FL_Map* _fl_old_0 = m;
     m = fl_map_set_str(m, fl_string_from_cstr("greeting"), fl_string_from_cstr("hello"));
+    if (_fl_old_0 != m) {
+        fl_map_release(_fl_old_0);
+    }
+    FL_Map* _fl_old_1 = m;
     m = fl_map_set_str(m, fl_string_from_cstr("farewell"), fl_string_from_cstr("goodbye"));
-    FL_String* _fl_tmp_0 = fl_string_from_cstr("has greeting=");
-    fl_println(fl_string_concat(_fl_tmp_0, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("greeting")))));
-    FL_String* _fl_tmp_1 = fl_string_from_cstr("has missing=");
-    fl_println(fl_string_concat(_fl_tmp_1, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("missing")))));
-    FL_Option_ptr _fl_tmp_2 = fl_map_get_str(m, fl_string_from_cstr("greeting"));
-    if (_fl_tmp_2.tag == 1) {
-        FL_String* v = _fl_tmp_2.value;
-        FL_String* _fl_tmp_3 = fl_string_from_cstr("greeting=");
-        fl_println(fl_string_concat(_fl_tmp_3, v));
+    if (_fl_old_1 != m) {
+        fl_map_release(_fl_old_1);
+    }
+    FL_String* _fl_tmp_2 = fl_string_from_cstr("has greeting=");
+    fl_println(fl_string_concat(_fl_tmp_2, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("greeting")))));
+    FL_String* _fl_tmp_3 = fl_string_from_cstr("has missing=");
+    fl_println(fl_string_concat(_fl_tmp_3, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("missing")))));
+    FL_Option_ptr _fl_tmp_4 = fl_map_get_str(m, fl_string_from_cstr("greeting"));
+    if (_fl_tmp_4.tag == 1) {
+        FL_String* v = _fl_tmp_4.value;
+        FL_String* _fl_tmp_5 = fl_string_from_cstr("greeting=");
+        fl_println(fl_string_concat(_fl_tmp_5, v));
     } else {
         fl_println(fl_string_from_cstr("greeting=none"));
     }
-    FL_Option_ptr _fl_tmp_4 = fl_map_get_str(m, fl_string_from_cstr("farewell"));
-    if (_fl_tmp_4.tag == 1) {
-        FL_String* v = _fl_tmp_4.value;
-        FL_String* _fl_tmp_5 = fl_string_from_cstr("farewell=");
-        fl_println(fl_string_concat(_fl_tmp_5, v));
+    FL_Option_ptr _fl_tmp_6 = fl_map_get_str(m, fl_string_from_cstr("farewell"));
+    if (_fl_tmp_6.tag == 1) {
+        FL_String* v = _fl_tmp_6.value;
+        FL_String* _fl_tmp_7 = fl_string_from_cstr("farewell=");
+        fl_println(fl_string_concat(_fl_tmp_7, v));
     } else {
         fl_println(fl_string_from_cstr("farewell=none"));
     }
     FL_Array* ks = fl_map_keys(m);
-    FL_String* _fl_tmp_6 = fl_string_from_cstr("keys count=");
-    fl_println(fl_string_concat(_fl_tmp_6, fl_int_to_string(fl_array_len_int(ks))));
+    FL_String* _fl_tmp_8 = fl_string_from_cstr("keys count=");
+    fl_println(fl_string_concat(_fl_tmp_8, fl_int_to_string(fl_array_len_int(ks))));
     FL_Array* vs = fl_map_values(m);
-    FL_String* _fl_tmp_7 = fl_string_from_cstr("values count=");
-    fl_println(fl_string_concat(_fl_tmp_7, fl_int_to_string(fl_array_len_int(vs))));
+    FL_String* _fl_tmp_9 = fl_string_from_cstr("values count=");
+    fl_println(fl_string_concat(_fl_tmp_9, fl_int_to_string(fl_array_len_int(vs))));
+    FL_Map* _fl_old_10 = m;
     m = fl_map_remove_str(m, fl_string_from_cstr("greeting"));
-    FL_String* _fl_tmp_8 = fl_string_from_cstr("after remove has greeting=");
-    fl_println(fl_string_concat(_fl_tmp_8, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("greeting")))));
-    FL_String* _fl_tmp_9 = fl_string_from_cstr("len=");
-    fl_println(fl_string_concat(_fl_tmp_9, fl_int64_to_string(fl_map_len(m))));
+    if (_fl_old_10 != m) {
+        fl_map_release(_fl_old_10);
+    }
+    FL_String* _fl_tmp_11 = fl_string_from_cstr("after remove has greeting=");
+    fl_println(fl_string_concat(_fl_tmp_11, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("greeting")))));
+    FL_String* _fl_tmp_12 = fl_string_from_cstr("len=");
+    fl_println(fl_string_concat(_fl_tmp_12, fl_int64_to_string(fl_map_len(m))));
 }
 
 /* Entry point */

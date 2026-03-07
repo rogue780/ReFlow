@@ -1354,16 +1354,18 @@ class Lowerer:
         return [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
 
     # Type → release function mapping for reassignment.
-    # Only arrays: fl_array_push with capacity sharing bumps the old
-    # array's refcount to 2 before returning, so releasing the old header
-    # just decrements (never frees while data is shared).  Without
-    # capacity sharing (full copy), old and new are independent.
-    # Maps are excluded: callee functions receiving &map can release the
-    # old map internally, causing double-free if the caller also releases.
+    # Arrays and maps use capacity sharing: fl_array_push / fl_map_set bump
+    # the old header's refcount to 2 before returning a new header sharing
+    # the same backing storage.  Releasing the old header just decrements
+    # (never frees while data is shared).  The old header is marked
+    # owns_entries=false so even if it eventually reaches refcount 0 it
+    # won't free the shared entries.  Without capacity sharing (full copy
+    # on resize), old and new are independent — release frees the old copy.
     # Strings are excluded: they are stored by reference in containers
     # (arrays, maps) which do NOT retain their elements.
     _RELEASE_FN: dict[type, str] = {
         TArray:  "fl_array_release",
+        TMap:    "fl_map_release",
     }
 
     def _get_release_fn(self, t: Type) -> str | None:

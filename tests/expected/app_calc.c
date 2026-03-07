@@ -957,8 +957,16 @@ void fl_tests_app_calc_main(void) {
     fl_tests_app_calc_eval_and_print(fl_string_from_cstr("3 ^ 2"), fl_string_from_cstr("3 ^ 2"), env);
     fl_tests_app_calc_eval_and_print(fl_string_from_cstr("(1 + 2) * (3 + 4)"), fl_string_from_cstr("(1 + 2) * (3 + 4)"), env);
     fl_tests_app_calc_eval_and_print(fl_string_from_cstr("2 ^ 2 ^ 3"), fl_string_from_cstr("2 ^ 2 ^ 3"), env);
+    FL_Map* _fl_old_26 = env;
     env = fl_map_set_str(env, fl_string_from_cstr("x"), fl_box_float(10.0));
+    if (_fl_old_26 != env) {
+        fl_map_release(_fl_old_26);
+    }
+    FL_Map* _fl_old_27 = env;
     env = fl_map_set_str(env, fl_string_from_cstr("y"), fl_box_float(5.0));
+    if (_fl_old_27 != env) {
+        fl_map_release(_fl_old_27);
+    }
     fl_tests_app_calc_eval_and_print(fl_string_from_cstr("x + y"), fl_string_from_cstr("x + y"), env);
     fl_tests_app_calc_eval_and_print(fl_string_from_cstr("x * y"), fl_string_from_cstr("x * y"), env);
     fl_tests_app_calc_eval_and_print(fl_string_from_cstr("x ^ 2"), fl_string_from_cstr("x ^ 2"), env);

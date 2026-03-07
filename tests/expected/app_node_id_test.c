@@ -594,9 +594,21 @@ fl_int fl_tests_app_node_id_test_main(void) {
     (*_fl_tmp_3) = node_42;
     fl_tests_app_node_id_test_Expr node_add = (fl_tests_app_node_id_test_Expr){.tag = 1, .BinOp = (fl_tests_app_node_id_test_Expr_BinOp){.id = 3, .op = fl_string_from_cstr("+"), .left = _fl_tmp_2, .right = _fl_tmp_3}};
     FL_Map* types = fl_map_new();
+    FL_Map* _fl_old_4 = types;
     types = fl_map_set_str(types, fl_conv_to_string__int(1), fl_string_from_cstr("int"));
+    if (_fl_old_4 != types) {
+        fl_map_release(_fl_old_4);
+    }
+    FL_Map* _fl_old_5 = types;
     types = fl_map_set_str(types, fl_conv_to_string__int(2), fl_string_from_cstr("int"));
+    if (_fl_old_5 != types) {
+        fl_map_release(_fl_old_5);
+    }
+    FL_Map* _fl_old_6 = types;
     types = fl_map_set_str(types, fl_conv_to_string__int(3), fl_string_from_cstr("int"));
+    if (_fl_old_6 != types) {
+        fl_map_release(_fl_old_6);
+    }
     fl_println(fl_string_concat(fl_string_from_cstr("binop type: "), fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_add))));
     fl_println(fl_string_concat(fl_string_from_cstr("ident type: "), fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_x))));
     fl_println(fl_string_concat(fl_string_from_cstr("intlit type: "), fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_42))));
@@ -604,13 +616,13 @@ fl_int fl_tests_app_node_id_test_main(void) {
     FL_Array* keys = fl_map_keys(types);
     fl_println(fl_string_concat(fl_string_from_cstr("keys: "), fl_conv_to_string__int(fl_array_len_int(keys))));
     FL_Array* all_nodes = fl_array_new(3, sizeof(fl_tests_app_node_id_test_Expr), (fl_tests_app_node_id_test_Expr[]){node_x, node_42, node_add});
-    fl_int64 _fl_tmp_4 = 0;
-    while (_fl_tmp_4 < fl_array_len(all_nodes)) {
-        fl_tests_app_node_id_test_Expr node = (*((fl_tests_app_node_id_test_Expr*)fl_array_get_ptr(all_nodes, _fl_tmp_4)));
+    fl_int64 _fl_tmp_7 = 0;
+    while (_fl_tmp_7 < fl_array_len(all_nodes)) {
+        fl_tests_app_node_id_test_Expr node = (*((fl_tests_app_node_id_test_Expr*)fl_array_get_ptr(all_nodes, _fl_tmp_7)));
         fl_int nid = fl_tests_app_node_id_test_get_id(node);
         FL_String* t = fl_tests_app_node_id_test_lookup(types, nid);
         fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("node "), fl_conv_to_string__int(nid)), fl_string_from_cstr(" -> ")), t));
-        _fl_tmp_4 = (_fl_tmp_4 + 1);
+        _fl_tmp_7 = (_fl_tmp_7 + 1);
     }
     fl_println(fl_string_from_cstr("ok"));
     return 0;

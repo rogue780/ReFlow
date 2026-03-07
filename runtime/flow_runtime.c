@@ -1400,6 +1400,7 @@ struct FL_Map {
     fl_int64     count;
     fl_int64     capacity;
     FL_MapEntry* entries;
+    fl_bool      owns_entries;  /* false = shared entries, don't free on release */
 };
 
 static fl_uint64 fl__fnv1a(const void* key, fl_int64 len) {
@@ -1420,6 +1421,7 @@ static FL_Map* fl__map_alloc(fl_int64 capacity) {
     m->capacity = capacity;
     m->entries = (FL_MapEntry*)calloc((size_t)capacity, sizeof(FL_MapEntry));
     if (!m->entries) fl_panic("fl_map: out of memory");
+    m->owns_entries = fl_true;
     return m;
 }
 
@@ -1445,7 +1447,56 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
     fl_int64 new_count = m->count;
     if (!m->entries[existing_idx].occupied) new_count++;
 
-    /* Resize if load factor >= 75% */
+    /* Check if resize needed (load factor >= 75%) */
+    fl_bool needs_resize = (4 * new_count >= 3 * m->capacity);
+
+    /* Check sole ownership BEFORE bumping refcount */
+    fl_bool was_sole_owner = (atomic_load(&m->refcount) == 1);
+
+    /* Bump old map's refcount so release-on-reassignment in generated code
+     * (m = map.set(m, k, v)) decrements instead of freeing.  This mirrors
+     * fl_array_push's refcount bump for the same reason. */
+    atomic_fetch_add(&m->refcount, 1);
+
+    /* Sole owner, inserting new key, no resize → shallow-copy entries.
+     * We memcpy the entire entries array (one flat copy) and transfer key
+     * ownership to the new map.  The old map is marked non-owning so it
+     * won't free the shared key pointers on release.  This avoids N individual
+     * malloc+memcpy calls for keys while keeping old and new entries arrays
+     * independent (no aliasing between headers).
+     * Only for INSERT (new key), not overwrite: freeing an overwritten key
+     * in the new entries would leave the old map's entries with a dangling
+     * pointer to the freed key. */
+    if (was_sole_owner && !needs_resize
+            && !m->entries[existing_idx].occupied) {
+        FL_Map* n = (FL_Map*)malloc(sizeof(FL_Map));
+        if (!n) fl_panic("fl_map: out of memory");
+        n->refcount = 1;
+        n->count = new_count;
+        n->capacity = m->capacity;
+        n->owns_entries = fl_true;
+
+        /* Shallow-copy entries (key pointers transferred, not duplicated) */
+        n->entries = (FL_MapEntry*)malloc((size_t)m->capacity * sizeof(FL_MapEntry));
+        if (!n->entries) fl_panic("fl_map: out of memory");
+        memcpy(n->entries, m->entries, (size_t)m->capacity * sizeof(FL_MapEntry));
+
+        /* Old map loses key ownership (keys now owned by new map's entries) */
+        m->owns_entries = fl_false;
+
+        /* Insert new key in the NEW entries array */
+        FL_MapEntry* e = &n->entries[existing_idx];
+        void* key_copy = malloc((size_t)key_len);
+        if (!key_copy) fl_panic("fl_map: out of memory");
+        memcpy(key_copy, key, (size_t)key_len);
+        e->key = key_copy;
+        e->key_len = key_len;
+        e->val = val;
+        e->occupied = fl_true;
+        return n;
+    }
+
+    /* Need resize, overwrite, or shared → full copy with per-key duplication */
     fl_int64 new_cap = m->capacity;
     while (4 * new_count >= 3 * new_cap) new_cap *= 2;
 
@@ -1507,9 +1558,11 @@ void fl_map_retain(FL_Map* m) {
 void fl_map_release(FL_Map* m) {
     if (!m) return;
     if (atomic_fetch_sub(&m->refcount, 1) != 1) return;
-    for (fl_int64 i = 0; i < m->capacity; i++) {
-        if (m->entries[i].occupied) {
-            free(m->entries[i].key);
+    if (m->owns_entries) {
+        for (fl_int64 i = 0; i < m->capacity; i++) {
+            if (m->entries[i].occupied) {
+                free(m->entries[i].key);
+            }
         }
     }
     free(m->entries);
@@ -1535,8 +1588,11 @@ FL_Set* fl_set_new(void) {
 
 fl_bool fl_set_add(FL_Set* s, void* key, fl_int64 key_len) {
     fl_bool already = fl_map_has(s->map, key, key_len);
-    FL_Map* new_map = fl_map_set(s->map, key, key_len, NULL);
-    fl_map_release(s->map);
+    FL_Map* old = s->map;
+    FL_Map* new_map = fl_map_set(old, key, key_len, NULL);
+    /* fl_map_set bumps old->refcount (now 2); release twice: undo bump + free */
+    fl_map_release(old);
+    fl_map_release(old);
     s->map = new_map;
     return !already;
 }

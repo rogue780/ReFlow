@@ -897,15 +897,19 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
                 _fl_tmp_35 = fl_string_from_cstr("");
             }
             FL_String* val = _fl_tmp_35;
+            FL_Map* _fl_old_37 = m;
             m = fl_map_set_str(m, key, val);
+            if (_fl_old_37 != m) {
+                fl_map_release(_fl_old_37);
+            }
             fl_int _fl_e_1;
             FL_CHECKED_ADD(j, 1, &_fl_e_1);
             j = _fl_e_1;
         }
-        FL_Array* _fl_old_37 = result;
+        FL_Array* _fl_old_38 = result;
         result = fl_array_push_ptr(result, m);
-        if (_fl_old_37 != result) {
-            fl_array_release(_fl_old_37);
+        if (_fl_old_38 != result) {
+            fl_array_release(_fl_old_38);
         }
         fl_int _fl_e_2;
         FL_CHECKED_ADD(i, 1, &_fl_e_2);
