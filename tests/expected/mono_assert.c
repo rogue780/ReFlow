@@ -46,7 +46,9 @@ void fl_mono_assert_main(void);
 void fl_mono_assert_my_assert_eq__int(fl_int expected, fl_int actual, FL_String* msg) {
     if (!(expected == actual)) {
         FL_String* _fl_tmp_0 = fl_string_from_cstr("FAIL: ");
-        fl_eprintln(fl_string_concat(_fl_tmp_0, msg));
+        FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, msg);
+        fl_string_release(_fl_tmp_0);
+        fl_eprintln(_fl_tmp_1);
         fl_sys_exit(1);
     }
 }
@@ -54,8 +56,10 @@ void fl_mono_assert_my_assert_eq__int(fl_int expected, fl_int actual, FL_String*
 /* Flow: mono_assert.my_assert_eq[mono] */
 void fl_mono_assert_my_assert_eq__string(FL_String* expected, FL_String* actual, FL_String* msg) {
     if (!fl_string_eq(expected, actual)) {
-        FL_String* _fl_tmp_1 = fl_string_from_cstr("FAIL: ");
-        fl_eprintln(fl_string_concat(_fl_tmp_1, msg));
+        FL_String* _fl_tmp_2 = fl_string_from_cstr("FAIL: ");
+        FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, msg);
+        fl_string_release(_fl_tmp_2);
+        fl_eprintln(_fl_tmp_3);
         fl_sys_exit(1);
     }
 }

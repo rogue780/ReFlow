@@ -108,22 +108,28 @@ void fl_tests_stream_test_main(void) {
         }
         fl_int x = ((fl_int)((fl_uint64)_fl_tmp_0.value));
         FL_String* _fl_tmp_2 = fl_string_from_cstr("  ");
-        fl_println(fl_string_concat(_fl_tmp_2, fl_int_to_string(x)));
+        FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(x));
+        fl_string_release(_fl_tmp_2);
+        fl_println(_fl_tmp_3);
     }
+    fl_stream_release(_fl_tmp_1);
     fl_int total = 0;
-    FL_Stream* _fl_tmp_4 = fl_tests_stream_test_range(10);
+    FL_Stream* _fl_tmp_5 = fl_tests_stream_test_range(10);
     while (1) {
-        FL_Option_ptr _fl_tmp_3 = fl_stream_next(_fl_tmp_4);
-        if (_fl_tmp_3.tag == 0) {
+        FL_Option_ptr _fl_tmp_4 = fl_stream_next(_fl_tmp_5);
+        if (_fl_tmp_4.tag == 0) {
             break;
         }
-        fl_int x = ((fl_int)((fl_uint64)_fl_tmp_3.value));
+        fl_int x = ((fl_int)((fl_uint64)_fl_tmp_4.value));
         fl_int _fl_e_1;
         FL_CHECKED_ADD(total, x, &_fl_e_1);
         total = _fl_e_1;
     }
-    FL_String* _fl_tmp_5 = fl_string_from_cstr("sum 0..9 = ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_int_to_string(total)));
+    fl_stream_release(_fl_tmp_5);
+    FL_String* _fl_tmp_6 = fl_string_from_cstr("sum 0..9 = ");
+    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(total));
+    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_7);
 }
 
 /* Entry point */

@@ -79,26 +79,32 @@ void fl_tests_lambda_capture_main(void) {
     _fl_closure_tests_lambda_capture_main_0* _fl_tmp_0 = ((_fl_closure_tests_lambda_capture_main_0*)malloc(sizeof(_fl_closure_tests_lambda_capture_main_0)));
     _fl_tmp_0->y = y;
     FL_Closure* _fl_tmp_1 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_1->refcount = 1;
     _fl_tmp_1->fn = ((void*)_fl_clfn_tests_lambda_capture_main_0);
     _fl_tmp_1->env = ((void*)_fl_tmp_0);
     FL_Closure* add_y = _fl_tmp_1;
     FL_Closure* _fl_tmp_2 = add_y;
     fl_int r1 = ((fl_int (*)(void*, fl_int))_fl_tmp_2->fn)(_fl_tmp_2->env, 5);
     FL_String* _fl_tmp_3 = fl_string_from_cstr("5 + 10 = ");
-    fl_println(fl_string_concat(_fl_tmp_3, fl_int_to_string(r1)));
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_int_to_string(r1));
+    fl_string_release(_fl_tmp_3);
+    fl_println(_fl_tmp_4);
     fl_int a = 3;
     fl_int b = 4;
-    _fl_closure_tests_lambda_capture_main_1* _fl_tmp_4 = ((_fl_closure_tests_lambda_capture_main_1*)malloc(sizeof(_fl_closure_tests_lambda_capture_main_1)));
-    _fl_tmp_4->a = a;
-    _fl_tmp_4->b = b;
-    FL_Closure* _fl_tmp_5 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_5->fn = ((void*)_fl_clfn_tests_lambda_capture_main_1);
-    _fl_tmp_5->env = ((void*)_fl_tmp_4);
-    FL_Closure* compute = _fl_tmp_5;
-    FL_Closure* _fl_tmp_6 = compute;
-    fl_int r2 = ((fl_int (*)(void*, fl_int))_fl_tmp_6->fn)(_fl_tmp_6->env, 2);
-    FL_String* _fl_tmp_7 = fl_string_from_cstr("2 * 3 + 4 = ");
-    fl_println(fl_string_concat(_fl_tmp_7, fl_int_to_string(r2)));
+    _fl_closure_tests_lambda_capture_main_1* _fl_tmp_5 = ((_fl_closure_tests_lambda_capture_main_1*)malloc(sizeof(_fl_closure_tests_lambda_capture_main_1)));
+    _fl_tmp_5->a = a;
+    _fl_tmp_5->b = b;
+    FL_Closure* _fl_tmp_6 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_6->refcount = 1;
+    _fl_tmp_6->fn = ((void*)_fl_clfn_tests_lambda_capture_main_1);
+    _fl_tmp_6->env = ((void*)_fl_tmp_5);
+    FL_Closure* compute = _fl_tmp_6;
+    FL_Closure* _fl_tmp_7 = compute;
+    fl_int r2 = ((fl_int (*)(void*, fl_int))_fl_tmp_7->fn)(_fl_tmp_7->env, 2);
+    FL_String* _fl_tmp_8 = fl_string_from_cstr("2 * 3 + 4 = ");
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, fl_int_to_string(r2));
+    fl_string_release(_fl_tmp_8);
+    fl_println(_fl_tmp_9);
 }
 
 /* Entry point */

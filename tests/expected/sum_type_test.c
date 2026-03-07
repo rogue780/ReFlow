@@ -153,17 +153,27 @@ void fl_tests_sum_type_test_main(void) {
     fl_tests_sum_type_test_Shape r = (fl_tests_sum_type_test_Shape){.tag = 1, .Rectangle = (fl_tests_sum_type_test_Shape_Rectangle){.width = 3.0, .height = 4.0}};
     fl_tests_sum_type_test_Shape sq = (fl_tests_sum_type_test_Shape){.tag = 2, .Square = (fl_tests_sum_type_test_Shape_Square){.side = 7.0}};
     FL_String* _fl_tmp_3 = fl_string_from_cstr("circle area = ");
-    fl_println(fl_string_concat(_fl_tmp_3, fl_float_to_string(fl_tests_sum_type_test_area(c))));
-    FL_String* _fl_tmp_4 = fl_string_from_cstr("rect area = ");
-    fl_println(fl_string_concat(_fl_tmp_4, fl_float_to_string(fl_tests_sum_type_test_area(r))));
-    FL_String* _fl_tmp_5 = fl_string_from_cstr("square area = ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_float_to_string(fl_tests_sum_type_test_area(sq))));
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_float_to_string(fl_tests_sum_type_test_area(c)));
+    fl_string_release(_fl_tmp_3);
+    fl_println(_fl_tmp_4);
+    FL_String* _fl_tmp_5 = fl_string_from_cstr("rect area = ");
+    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_float_to_string(fl_tests_sum_type_test_area(r)));
+    fl_string_release(_fl_tmp_5);
+    fl_println(_fl_tmp_6);
+    FL_String* _fl_tmp_7 = fl_string_from_cstr("square area = ");
+    FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_float_to_string(fl_tests_sum_type_test_area(sq)));
+    fl_string_release(_fl_tmp_7);
+    fl_println(_fl_tmp_8);
     fl_tests_sum_type_test_Direction d = (fl_tests_sum_type_test_Direction){.tag = 0};
     fl_tests_sum_type_test_Direction o = fl_tests_sum_type_test_opposite(d);
-    FL_String* _fl_tmp_6 = fl_string_from_cstr("opposite of ");
-    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_tests_sum_type_test_dir_name(d));
-    FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_string_from_cstr(" is "));
-    fl_println(fl_string_concat(_fl_tmp_8, fl_tests_sum_type_test_dir_name(o)));
+    FL_String* _fl_tmp_9 = fl_string_from_cstr("opposite of ");
+    FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_tests_sum_type_test_dir_name(d));
+    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, fl_string_from_cstr(" is "));
+    FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, fl_tests_sum_type_test_dir_name(o));
+    fl_string_release(_fl_tmp_9);
+    fl_string_release(_fl_tmp_10);
+    fl_string_release(_fl_tmp_11);
+    fl_println(_fl_tmp_12);
 }
 
 /* Entry point */

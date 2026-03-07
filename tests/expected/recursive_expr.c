@@ -109,7 +109,9 @@ void fl_tests_recursive_expr_main(void) {
     (*_fl_tmp_5) = (fl_tests_recursive_expr_Expr){.tag = 2, .Neg = (fl_tests_recursive_expr_Expr_Neg){.inner = _fl_tmp_3}};
     fl_tests_recursive_expr_Expr e = (fl_tests_recursive_expr_Expr){.tag = 1, .Add = (fl_tests_recursive_expr_Expr_Add){.left = _fl_tmp_4, .right = _fl_tmp_5}};
     FL_String* _fl_tmp_6 = fl_string_from_cstr("Result: ");
-    fl_println(fl_string_concat(_fl_tmp_6, fl_int_to_string(fl_tests_recursive_expr_eval(e))));
+    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(fl_tests_recursive_expr_eval(e)));
+    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_7);
 }
 
 /* Entry point */

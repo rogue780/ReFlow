@@ -44,29 +44,37 @@ void fl_tests_stdlib_io_test_main(void) {
     if (_fl_tmp_0.tag == 1) {
         FL_String* s = _fl_tmp_0.value;
         FL_String* _fl_tmp_1 = fl_string_from_cstr("read: ");
-        fl_println(fl_string_concat(_fl_tmp_1, s));
+        FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, s);
+        fl_string_release(_fl_tmp_1);
+        fl_println(_fl_tmp_2);
     } else {
         fl_println(fl_string_from_cstr("read: none"));
     }
     fl_tmpfile_remove(tmp);
     FL_Option_ptr after = fl_read_file(tmp);
-    FL_Option_ptr _fl_tmp_2 = after;
-    if (_fl_tmp_2.tag == 1) {
-        FL_String* s = _fl_tmp_2.value;
-        FL_String* _fl_tmp_3 = fl_string_from_cstr("after remove: ");
-        fl_println(fl_string_concat(_fl_tmp_3, s));
+    FL_Option_ptr _fl_tmp_3 = after;
+    if (_fl_tmp_3.tag == 1) {
+        FL_String* s = _fl_tmp_3.value;
+        FL_String* _fl_tmp_4 = fl_string_from_cstr("after remove: ");
+        FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, s);
+        fl_string_release(_fl_tmp_4);
+        fl_println(_fl_tmp_5);
     } else {
         fl_println(fl_string_from_cstr("after remove: none"));
     }
     fl_bool wrote = fl_write_file(tmp, fl_string_from_cstr("overwrite test"));
-    FL_String* _fl_tmp_4 = fl_string_from_cstr("write_file: ");
-    fl_println(fl_string_concat(_fl_tmp_4, fl_bool_to_string(wrote)));
+    FL_String* _fl_tmp_6 = fl_string_from_cstr("write_file: ");
+    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_bool_to_string(wrote));
+    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_7);
     FL_Option_ptr contents2 = fl_read_file(tmp);
-    FL_Option_ptr _fl_tmp_5 = contents2;
-    if (_fl_tmp_5.tag == 1) {
-        FL_String* s = _fl_tmp_5.value;
-        FL_String* _fl_tmp_6 = fl_string_from_cstr("read2: ");
-        fl_println(fl_string_concat(_fl_tmp_6, s));
+    FL_Option_ptr _fl_tmp_8 = contents2;
+    if (_fl_tmp_8.tag == 1) {
+        FL_String* s = _fl_tmp_8.value;
+        FL_String* _fl_tmp_9 = fl_string_from_cstr("read2: ");
+        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, s);
+        fl_string_release(_fl_tmp_9);
+        fl_println(_fl_tmp_10);
     } else {
         fl_println(fl_string_from_cstr("read2: none"));
     }

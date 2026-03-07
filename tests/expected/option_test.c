@@ -54,31 +54,41 @@ void fl_tests_option_test_main(void) {
     if (_fl_tmp_0.tag == 1) {
         fl_int v = _fl_tmp_0.value;
         FL_String* _fl_tmp_1 = fl_string_from_cstr("found: ");
-        fl_println(fl_string_concat(_fl_tmp_1, fl_int_to_string(v)));
+        FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_int_to_string(v));
+        fl_string_release(_fl_tmp_1);
+        fl_println(_fl_tmp_2);
     } else {
         fl_println(fl_string_from_cstr("not found"));
     }
-    FL_Option_int _fl_tmp_2 = fl_tests_option_test_find_positive((-5));
-    if (_fl_tmp_2.tag == 1) {
-        fl_int v = _fl_tmp_2.value;
-        FL_String* _fl_tmp_3 = fl_string_from_cstr("found: ");
-        fl_println(fl_string_concat(_fl_tmp_3, fl_int_to_string(v)));
+    FL_Option_int _fl_tmp_3 = fl_tests_option_test_find_positive((-5));
+    if (_fl_tmp_3.tag == 1) {
+        fl_int v = _fl_tmp_3.value;
+        FL_String* _fl_tmp_4 = fl_string_from_cstr("found: ");
+        FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_int_to_string(v));
+        fl_string_release(_fl_tmp_4);
+        fl_println(_fl_tmp_5);
     } else {
         fl_println(fl_string_from_cstr("not found"));
     }
-    FL_Option_int _fl_tmp_4 = fl_tests_option_test_find_positive((-1));
-    fl_int val = ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : 0);
-    FL_String* _fl_tmp_5 = fl_string_from_cstr("coalesced: ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_int_to_string(val)));
-    FL_Option_int _fl_tmp_6 = fl_tests_option_test_find_positive(99);
-    fl_int val2 = ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : 0);
+    FL_Option_int _fl_tmp_6 = fl_tests_option_test_find_positive((-1));
+    fl_int val = ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : 0);
     FL_String* _fl_tmp_7 = fl_string_from_cstr("coalesced: ");
-    fl_println(fl_string_concat(_fl_tmp_7, fl_int_to_string(val2)));
+    FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_int_to_string(val));
+    fl_string_release(_fl_tmp_7);
+    fl_println(_fl_tmp_8);
+    FL_Option_int _fl_tmp_9 = fl_tests_option_test_find_positive(99);
+    fl_int val2 = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 0);
+    FL_String* _fl_tmp_10 = fl_string_from_cstr("coalesced: ");
+    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, fl_int_to_string(val2));
+    fl_string_release(_fl_tmp_10);
+    fl_println(_fl_tmp_11);
     FL_Option_int maybe = (FL_Option_int){.tag = 1, .value = 42};
-    FL_Option_int _fl_tmp_8 = maybe;
-    fl_int x = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : 0);
-    FL_String* _fl_tmp_9 = fl_string_from_cstr("auto-lifted: ");
-    fl_println(fl_string_concat(_fl_tmp_9, fl_int_to_string(x)));
+    FL_Option_int _fl_tmp_12 = maybe;
+    fl_int x = ((_fl_tmp_12.tag == 1) ? _fl_tmp_12.value : 0);
+    FL_String* _fl_tmp_13 = fl_string_from_cstr("auto-lifted: ");
+    FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, fl_int_to_string(x));
+    fl_string_release(_fl_tmp_13);
+    fl_println(_fl_tmp_14);
 }
 
 /* Entry point */

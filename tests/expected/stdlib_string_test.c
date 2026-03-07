@@ -44,41 +44,62 @@ void fl_tests_stdlib_string_test_main(void) {
     if (_fl_tmp_0.tag == 1) {
         fl_char c = _fl_tmp_0.value;
         FL_String* _fl_tmp_1 = fl_string_from_cstr("char_at(0): ");
-        fl_println(fl_string_concat(_fl_tmp_1, fl_char_to_string(c)));
+        FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_char_to_string(c));
+        fl_string_release(_fl_tmp_1);
+        fl_println(_fl_tmp_2);
     } else {
         fl_println(fl_string_from_cstr("char_at(0): none"));
     }
     FL_String* sub = fl_string_substring(s, 7, 12);
-    FL_String* _fl_tmp_2 = fl_string_from_cstr("substring(7,12): ");
-    fl_println(fl_string_concat(_fl_tmp_2, sub));
+    FL_String* _fl_tmp_3 = fl_string_from_cstr("substring(7,12): ");
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, sub);
+    fl_string_release(_fl_tmp_3);
+    fl_println(_fl_tmp_4);
     FL_Option_int idx = fl_string_index_of(s, fl_string_from_cstr("World"));
-    FL_Option_int _fl_tmp_3 = idx;
-    if (_fl_tmp_3.tag == 1) {
-        fl_int i = _fl_tmp_3.value;
-        FL_String* _fl_tmp_4 = fl_string_from_cstr("index_of World: ");
-        fl_println(fl_string_concat(_fl_tmp_4, fl_int_to_string(i)));
+    FL_Option_int _fl_tmp_5 = idx;
+    if (_fl_tmp_5.tag == 1) {
+        fl_int i = _fl_tmp_5.value;
+        FL_String* _fl_tmp_6 = fl_string_from_cstr("index_of World: ");
+        FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(i));
+        fl_string_release(_fl_tmp_6);
+        fl_println(_fl_tmp_7);
     } else {
         fl_println(fl_string_from_cstr("index_of World: none"));
     }
-    FL_String* _fl_tmp_5 = fl_string_from_cstr("contains World: ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_bool_to_string(fl_string_contains(s, fl_string_from_cstr("World")))));
-    FL_String* _fl_tmp_6 = fl_string_from_cstr("starts_with Hello: ");
-    fl_println(fl_string_concat(_fl_tmp_6, fl_bool_to_string(fl_string_starts_with(s, fl_string_from_cstr("Hello")))));
-    FL_String* _fl_tmp_7 = fl_string_from_cstr("ends_with !: ");
-    fl_println(fl_string_concat(_fl_tmp_7, fl_bool_to_string(fl_string_ends_with(s, fl_string_from_cstr("!")))));
+    FL_String* _fl_tmp_8 = fl_string_from_cstr("contains World: ");
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, fl_bool_to_string(fl_string_contains(s, fl_string_from_cstr("World"))));
+    fl_string_release(_fl_tmp_8);
+    fl_println(_fl_tmp_9);
+    FL_String* _fl_tmp_10 = fl_string_from_cstr("starts_with Hello: ");
+    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, fl_bool_to_string(fl_string_starts_with(s, fl_string_from_cstr("Hello"))));
+    fl_string_release(_fl_tmp_10);
+    fl_println(_fl_tmp_11);
+    FL_String* _fl_tmp_12 = fl_string_from_cstr("ends_with !: ");
+    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, fl_bool_to_string(fl_string_ends_with(s, fl_string_from_cstr("!"))));
+    fl_string_release(_fl_tmp_12);
+    fl_println(_fl_tmp_13);
     FL_String* lower = fl_string_to_lower(fl_string_from_cstr("HELLO"));
-    FL_String* _fl_tmp_8 = fl_string_from_cstr("to_lower: ");
-    fl_println(fl_string_concat(_fl_tmp_8, lower));
+    FL_String* _fl_tmp_14 = fl_string_from_cstr("to_lower: ");
+    FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, lower);
+    fl_string_release(_fl_tmp_14);
+    fl_println(_fl_tmp_15);
     FL_String* upper = fl_string_to_upper(fl_string_from_cstr("hello"));
-    FL_String* _fl_tmp_9 = fl_string_from_cstr("to_upper: ");
-    fl_println(fl_string_concat(_fl_tmp_9, upper));
+    FL_String* _fl_tmp_16 = fl_string_from_cstr("to_upper: ");
+    FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, upper);
+    fl_string_release(_fl_tmp_16);
+    fl_println(_fl_tmp_17);
     FL_String* trimmed = fl_string_trim(fl_string_from_cstr("  hi  "));
-    FL_String* _fl_tmp_10 = fl_string_from_cstr("trim: [");
-    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, trimmed);
-    fl_println(fl_string_concat(_fl_tmp_11, fl_string_from_cstr("]")));
+    FL_String* _fl_tmp_18 = fl_string_from_cstr("trim: [");
+    FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, trimmed);
+    FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, fl_string_from_cstr("]"));
+    fl_string_release(_fl_tmp_18);
+    fl_string_release(_fl_tmp_19);
+    fl_println(_fl_tmp_20);
     FL_String* replaced = fl_string_replace(fl_string_from_cstr("aabaa"), fl_string_from_cstr("a"), fl_string_from_cstr("x"));
-    FL_String* _fl_tmp_12 = fl_string_from_cstr("replace: ");
-    fl_println(fl_string_concat(_fl_tmp_12, replaced));
+    FL_String* _fl_tmp_21 = fl_string_from_cstr("replace: ");
+    FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, replaced);
+    fl_string_release(_fl_tmp_21);
+    fl_println(_fl_tmp_22);
 }
 
 /* Entry point */

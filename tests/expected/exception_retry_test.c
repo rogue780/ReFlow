@@ -56,31 +56,35 @@ void fl_tests_exception_retry_test_main(void) {
     if (setjmp(_fl_ef_0.jmp) == 0) {
         fl_int val = fl_tests_exception_retry_test_parse_value(fl_string_from_cstr("bad"));
         FL_String* _fl_tmp_0 = fl_string_from_cstr("got: ");
-        fl_println(fl_string_concat(_fl_tmp_0, fl_int_to_string(val)));
+        FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, fl_int_to_string(val));
+        fl_string_release(_fl_tmp_0);
+        fl_println(_fl_tmp_1);
         _fl_exception_pop();
     } else {
         _fl_exception_pop();
         _fl_ef_0_caught = fl_false;
         if (_fl_ef_0.exception_tag == 0) {
-            fl_int _fl_tmp_1 = 0;
+            fl_int _fl_tmp_2 = 0;
             FL_String* ex = ((FL_String*)_fl_ef_0.exception);
-            while (_fl_tmp_1 < 2) {
-                _fl_tmp_1 = (_fl_tmp_1 + 1);
+            while (_fl_tmp_2 < 2) {
+                _fl_tmp_2 = (_fl_tmp_2 + 1);
                 fl_println(fl_string_from_cstr("retry attempt"));
                 _fl_exception_push((&_fl_ef_0));
                 if (setjmp(_fl_ef_0.jmp) == 0) {
                     fl_int val = fl_tests_exception_retry_test_parse_value(fl_string_from_cstr("bad"));
-                    FL_String* _fl_tmp_3 = fl_string_from_cstr("got: ");
-                    fl_println(fl_string_concat(_fl_tmp_3, fl_int_to_string(val)));
+                    FL_String* _fl_tmp_4 = fl_string_from_cstr("got: ");
+                    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_int_to_string(val));
+                    fl_string_release(_fl_tmp_4);
+                    fl_println(_fl_tmp_5);
                     _fl_exception_pop();
-                    goto _fl_tmp_2;
+                    goto _fl_tmp_3;
                 } else {
                     _fl_exception_pop();
                     ex = ((FL_String*)_fl_ef_0.exception);
                 }
             }
             fl_println(fl_string_from_cstr("retries exhausted, caught"));
-_fl_tmp_2:;
+_fl_tmp_3:;
             _fl_ef_0_caught = fl_true;
         }
     }

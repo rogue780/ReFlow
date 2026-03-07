@@ -713,6 +713,12 @@ class Lowerer:
         # that need pass-by-pointer treatment. Cleared per function.
         self._mut_params: set[str] = set()
 
+        # Scope-exit cleanup: track container-typed locals at function level
+        # so we can release them before each return statement.
+        # Each entry: (var_name, c_type, release_fn_name)
+        self._container_locals: list[tuple[str, LType, str]] = []
+        self._scope_depth: int = 0
+
         # FFI: extern type names for lowering TNamed to void*
         self._extern_type_names: set[str] = set()
         for decl in self._module.decls:
@@ -1020,6 +1026,10 @@ class Lowerer:
         self._let_var_ltypes = {}
         saved_mut_params = self._mut_params
         self._mut_params = set()
+        saved_container_locals = self._container_locals
+        self._container_locals = []
+        saved_scope_depth = self._scope_depth
+        self._scope_depth = 0
 
         c_name = mangle(self._module_path, None, fn.name,
                         file=self._file, line=fn.line, col=fn.col)
@@ -1066,6 +1076,8 @@ class Lowerer:
         self._current_fn_name = saved_fn_name
         self._let_var_ltypes = saved_let_var_ltypes
         self._mut_params = saved_mut_params
+        self._container_locals = saved_container_locals
+        self._scope_depth = saved_scope_depth
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
         """Lower a type declaration. RT-7-2-2."""
@@ -1092,6 +1104,10 @@ class Lowerer:
             self._mut_params = set()
             saved_let_var_ltypes = self._let_var_ltypes
             self._let_var_ltypes = {}
+            saved_container_locals = self._container_locals
+            self._container_locals = []
+            saved_scope_depth = self._scope_depth
+            self._scope_depth = 0
             params: list[tuple[str, LType]] = []
             for p in method.params:
                 if p.name == "self":
@@ -1135,6 +1151,8 @@ class Lowerer:
             self._current_fn_return_type = saved_return_type
             self._mut_params = saved_mut_params
             self._let_var_ltypes = saved_let_var_ltypes
+            self._container_locals = saved_container_locals
+            self._scope_depth = saved_scope_depth
 
         # Lower constructors
         for ctor in td.constructors:
@@ -1276,6 +1294,56 @@ class Lowerer:
         elif isinstance(last, LBlock):
             self._inject_tail_returns(last.stmts)
 
+    def _inject_scope_cleanup(self, stmts: list[LStmt],
+                              declared: set[str] | None = None) -> None:
+        """Insert release calls for container locals before each LReturn.
+
+        Walks the statement tree recursively. Before each LReturn, inserts
+        release calls for container locals that have already been declared,
+        skipping the variable being returned (to avoid use-after-free).
+        """
+        if declared is None:
+            declared = set()
+        container_names = {name for name, _, _ in self._container_locals}
+        i = 0
+        while i < len(stmts):
+            s = stmts[i]
+            # Track declarations of container locals
+            if isinstance(s, LVarDecl) and s.c_name in container_names:
+                declared.add(s.c_name)
+            elif isinstance(s, LReturn):
+                # Determine which variable is being returned (if any)
+                returned_name: str | None = None
+                if s.value is not None and isinstance(s.value, LVar):
+                    returned_name = s.value.c_name
+                # Build release calls for declared locals, skip returned var
+                cleanup: list[LStmt] = []
+                for name, ct, fn_name in self._container_locals:
+                    if name not in declared or name == returned_name:
+                        continue
+                    cleanup.append(LExprStmt(
+                        LCall(fn_name, [LVar(name, ct)], LVoid())))
+                # Insert cleanup before the return
+                for j, c_stmt in enumerate(cleanup):
+                    stmts.insert(i + j, c_stmt)
+                i += len(cleanup) + 1
+                continue
+            # Recurse into compound statements, passing a copy of declared
+            # so both branches see what's been declared before the branch
+            if isinstance(s, LIf):
+                self._inject_scope_cleanup(s.then, set(declared))
+                self._inject_scope_cleanup(s.else_, set(declared))
+            elif isinstance(s, LSwitch):
+                for _, case_stmts in s.cases:
+                    self._inject_scope_cleanup(case_stmts, set(declared))
+                self._inject_scope_cleanup(s.default, set(declared))
+            elif isinstance(s, LBlock):
+                self._inject_scope_cleanup(s.stmts, set(declared))
+            # Do NOT recurse into LWhile — returns inside loops are rare
+            # and the loop may re-enter, so cleanup before loop-internal
+            # returns would be incorrect.
+            i += 1
+
     @staticmethod
     def _tag_source(stmts: list[LStmt], line: int | None) -> list[LStmt]:
         """Set source_line on each LStmt that doesn't already have one."""
@@ -1353,19 +1421,26 @@ class Lowerer:
         self._let_var_ltypes[stmt.name] = c_type
         stmts: list[LStmt] = [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
 
-        # Retain map-typed mutable variables initialized from non-allocating
-        # expressions (e.g. `let result:mut = param`).  This prevents
-        # release-on-reassignment from freeing a map that the caller still
-        # references through the original argument.  The retain bumps refcount
-        # to 2, so release decrements to 1 instead of freeing.
+        # Retain mutable variables initialized from non-allocating expressions
+        # (e.g. `let result:mut = param`).  This prevents release-on-reassignment
+        # from freeing an object that the caller still references through the
+        # original argument.  The retain bumps refcount to 2, so release
+        # decrements to 1 instead of freeing.
         if (isinstance(stmt.type_ann, MutType)
-                and isinstance(val_type, TMap)
                 and not self._is_allocating_expr(stmt.value)):
-            stmts.append(LExprStmt(LCall(
-                "fl_map_retain",
-                [LVar(stmt.name, c_type)],
-                c_type=LVoid(),
-            )))
+            retain_fn = self._RETAIN_FN.get(type(val_type))
+            if retain_fn is not None:
+                stmts.append(LExprStmt(LCall(
+                    retain_fn,
+                    [LVar(stmt.name, c_type)],
+                    c_type=LVoid(),
+                )))
+
+        # NOTE: Scope-exit cleanup is disabled. Releasing all container locals
+        # at function exit is unsafe without retain-on-store semantics — a local
+        # string/array that was passed into a struct field would be freed while
+        # the struct still holds a reference. This requires a more sophisticated
+        # ownership analysis or widespread retain-on-store.
 
         return stmts
 
@@ -1379,9 +1454,27 @@ class Lowerer:
     # on resize), old and new are independent — release frees the old copy.
     # Strings are excluded: they are stored by reference in containers
     # (arrays, maps) which do NOT retain their elements.
+    # Release-on-reassignment map.  TString is intentionally excluded:
+    # strings are frequently borrowed (e.g. `result = seg` from an array
+    # element), so releasing the old value on reassignment would free a
+    # string we don't own.  Proper string cleanup requires retain-on-store
+    # (every container must retain strings it stores, every variable must
+    # retain strings it borrows).  Without that, string release-on-reassign
+    # causes use-after-free.
     _RELEASE_FN: dict[type, str] = {
         TArray:  "fl_array_release",
         TMap:    "fl_map_release",
+        TStream: "fl_stream_release",
+        TBuffer: "fl_buffer_release",
+        TFn:     "fl_closure_release",
+    }
+
+    _RETAIN_FN: dict[type, str] = {
+        TArray:  "fl_array_retain",
+        TMap:    "fl_map_retain",
+        TStream: "fl_stream_retain",
+        TBuffer: "fl_buffer_retain",
+        TFn:     "fl_closure_retain",
     }
 
     def _get_release_fn(self, t: Type) -> str | None:
@@ -1393,7 +1486,7 @@ class Lowerer:
         """Check if an expression is guaranteed to produce a fresh allocation."""
         return isinstance(expr, (Call, MethodCall, BinOp, SomeExpr, OkExpr,
                                  ErrExpr, ArrayLit, RecordLit, FStringExpr,
-                                 CopyExpr))
+                                 CopyExpr, StringLit))
 
     def _call_passes_var_by_mut_ref(self, call_expr: Expr, var_name: str) -> bool:
         """Check if a Call passes `var_name` as a :mut (by-reference) argument.
@@ -1495,20 +1588,29 @@ class Lowerer:
         value = self._lower_expr(stmt.value)
         return [LReturn(value)]
 
+    def _lower_inner_block(self, block: Block) -> list[LStmt]:
+        """Lower an inner block with scope depth tracking."""
+        self._scope_depth += 1
+        result = self._lower_block(block)
+        self._scope_depth -= 1
+        return result
+
     def _lower_if_stmt(self, stmt: IfStmt) -> list[LStmt]:
         cond = self._lower_expr(stmt.condition)
-        then_body = self._lower_block(stmt.then_branch)
+        then_body = self._lower_inner_block(stmt.then_branch)
         else_body: list[LStmt] = []
         if stmt.else_branch is not None:
             if isinstance(stmt.else_branch, Block):
-                else_body = self._lower_block(stmt.else_branch)
+                else_body = self._lower_inner_block(stmt.else_branch)
             elif isinstance(stmt.else_branch, IfStmt):
                 else_body = self._lower_if_stmt(stmt.else_branch)
         return [LIf(cond=cond, then=then_body, else_=else_body)]
 
     def _lower_while(self, stmt: WhileStmt) -> list[LStmt]:
         cond = self._lower_expr(stmt.condition)
+        self._scope_depth += 1
         body = self._lower_block(stmt.body)
+        self._scope_depth -= 1
         result: list[LStmt] = [LWhile(cond=cond, body=body)]
         if stmt.finally_block is not None:
             result.extend(self._lower_block(stmt.finally_block))
@@ -1533,6 +1635,18 @@ class Lowerer:
         idx_name = self._fresh_temp()
         elem_lt = self._lower_type(elem_t)
 
+        # Release allocating iterables after the loop finishes
+        iter_type = self._type_of(stmt.iterable)
+        release_fn = self._get_release_fn(iter_type)
+        cleanup_needed = release_fn and self._is_allocating_expr(stmt.iterable)
+
+        if cleanup_needed:
+            arr_tmp = self._fresh_temp()
+            arr_lt = self._lower_type(iter_type)
+            arr_var = LVar(arr_tmp, arr_lt)
+        else:
+            arr_var = arr_expr
+
         # int64_t _fl_idx = 0;
         idx_decl = LVarDecl(
             c_name=idx_name,
@@ -1544,13 +1658,13 @@ class Lowerer:
         cond = LBinOp(
             op="<",
             left=LVar(idx_name, LInt(64, True)),
-            right=LCall("fl_array_len", [arr_expr], LInt(64, True)),
+            right=LCall("fl_array_len", [arr_var], LInt(64, True)),
             c_type=LBool(),
         )
 
         # ElementType item = *(ElementType*)fl_array_get_ptr(arr, _fl_idx);
         get_ptr = LCall("fl_array_get_ptr",
-                         [arr_expr, LVar(idx_name, LInt(64, True))],
+                         [arr_var, LVar(idx_name, LInt(64, True))],
                          LPtr(LVoid()))
         cast_ptr = LCast(get_ptr, LPtr(elem_lt))
         deref = LDeref(cast_ptr, elem_lt)
@@ -1567,11 +1681,23 @@ class Lowerer:
             ),
         )
 
-        body_stmts = [item_decl] + self._lower_block(stmt.body) + [increment]
-        result: list[LStmt] = [idx_decl, LWhile(cond=cond, body=body_stmts)]
+        self._scope_depth += 1
+        inner_body = self._lower_block(stmt.body)
+        self._scope_depth -= 1
+        body_stmts = [item_decl] + inner_body + [increment]
+        result: list[LStmt] = []
+
+        if cleanup_needed:
+            arr_lt = self._lower_type(iter_type)
+            result.append(LVarDecl(c_name=arr_tmp, c_type=arr_lt, init=arr_expr))
+
+        result.extend([idx_decl, LWhile(cond=cond, body=body_stmts)])
 
         if stmt.finally_block is not None:
             result.extend(self._lower_block(stmt.finally_block))
+
+        if cleanup_needed:
+            result.append(LExprStmt(LCall(release_fn, [arr_var], LVoid())))
 
         return result
 
@@ -1581,6 +1707,9 @@ class Lowerer:
         stream_lt = LPtr(LStruct("FL_Stream"))
         elem_lt = self._lower_type(elem_t)
         next_name = self._fresh_temp()
+
+        # Release allocating stream iterables after the loop finishes
+        cleanup_needed = self._is_allocating_expr(stmt.iterable)
 
         # Store stream in a temp to avoid re-evaluating the iterable each iteration
         stream_tmp = self._fresh_temp()
@@ -1624,11 +1753,17 @@ class Lowerer:
             item_init = LCast(LCast(value_access, LInt(64, False)), elem_lt)
         item_decl = LVarDecl(c_name=stmt.var, c_type=elem_lt, init=item_init)
 
-        body_stmts = [next_decl, tag_check, item_decl] + self._lower_block(stmt.body)
+        self._scope_depth += 1
+        inner_body = self._lower_block(stmt.body)
+        self._scope_depth -= 1
+        body_stmts = [next_decl, tag_check, item_decl] + inner_body
         result: list[LStmt] = [stream_decl, LWhile(cond=cond, body=body_stmts)]
 
         if stmt.finally_block is not None:
             result.extend(self._lower_block(stmt.finally_block))
+
+        if cleanup_needed:
+            result.append(LExprStmt(LCall("fl_stream_release", [stream_var], LVoid())))
 
         return result
 
@@ -1681,6 +1816,16 @@ class Lowerer:
 
     def _lower_expr_stmt(self, stmt: ExprStmt) -> list[LStmt]:
         expr = self._lower_expr(stmt.expr)
+        # Release discarded return values from allocating calls
+        expr_type = self._type_of(stmt.expr) if stmt.expr in self._types else None
+        release_fn = self._get_release_fn(expr_type) if expr_type else None
+        if release_fn and self._is_allocating_expr(stmt.expr):
+            tmp = self._fresh_temp()
+            c_type = self._lower_type(expr_type)
+            return [
+                LVarDecl(c_name=tmp, c_type=c_type, init=expr),
+                LExprStmt(LCall(release_fn, [LVar(tmp, c_type)], LVoid())),
+            ]
         return [LExprStmt(expr)]
 
     def _lower_yield(self, stmt: YieldStmt) -> list[LStmt]:
@@ -1744,7 +1889,7 @@ class Lowerer:
 
         # Build the try body (the "then" branch of setjmp == 0)
         try_stmts: list[LStmt] = []
-        try_stmts.extend(self._lower_block(stmt.body))
+        try_stmts.extend(self._lower_inner_block(stmt.body))
         try_stmts.append(LExprStmt(LCall(
             "_fl_exception_pop", [], LVoid(),
         )))
@@ -1961,7 +2106,9 @@ class Lowerer:
             ))
 
         # Lower the catch body
+        self._scope_depth += 1
         stmts.extend(self._lower_block(catch.body))
+        self._scope_depth -= 1
         return stmts
 
     def _build_retry_handler(self, retry: RetryBlock,
@@ -2065,7 +2212,9 @@ class Lowerer:
         ))
 
         # Execute retry body (user code that modifies ex)
+        self._scope_depth += 1
         loop_body.extend(self._lower_block(retry.body))
+        self._scope_depth -= 1
 
         # Write back modifications if typed exception
         if not isinstance(exc_type, TString):
@@ -4502,6 +4651,12 @@ class Lowerer:
                       LPtr(LVoid())),
                 closure_lt),
         ))
+        # Initialize refcount
+        self._pending_stmts.append(LAssign(
+            target=LArrow(LVar(closure_tmp, closure_lt),
+                          "refcount", LInt(64, True)),
+            value=LLit("1", LInt(64, True)),
+        ))
         # Set fn pointer
         self._pending_stmts.append(LAssign(
             target=LArrow(LVar(closure_tmp, closure_lt),
@@ -4633,14 +4788,27 @@ class Lowerer:
             return LCall("fl_string_from_cstr",
                          [LLit('""', LPtr(LVoid()))], string_type)
 
-        # Chain concat calls
+        # Chain concat calls, releasing intermediate results
         result = parts[0]
+        intermediates: list[str] = []
         for p in parts[1:]:
             tmp = self._fresh_temp()
             self._pending_stmts.append(
                 LVarDecl(c_name=tmp, c_type=string_type, init=result))
+            intermediates.append(tmp)
             result = LCall("fl_string_concat",
                            [LVar(tmp, string_type), p], string_type)
+
+        # Release intermediate concat results (not the final one)
+        if intermediates:
+            final_tmp = self._fresh_temp()
+            self._pending_stmts.append(
+                LVarDecl(c_name=final_tmp, c_type=string_type, init=result))
+            for itmp in intermediates:
+                self._pending_stmts.append(
+                    LExprStmt(LCall("fl_string_release",
+                                    [LVar(itmp, string_type)], LVoid())))
+            result = LVar(final_tmp, string_type)
 
         return result
 
@@ -5107,7 +5275,7 @@ class Lowerer:
         """Lower a match arm's body to a list of statements."""
         match arm.body:
             case Block():
-                return self._lower_block(arm.body)
+                return self._lower_inner_block(arm.body)
             case Expr():
                 saved = self._pending_stmts
                 self._pending_stmts = []
@@ -5168,7 +5336,7 @@ class Lowerer:
                         init=LFieldAccess(subj, "value", inner_lt)))
                     match arm.body:
                         case Block():
-                            some_body.extend(self._lower_block(arm.body))
+                            some_body.extend(self._lower_inner_block(arm.body))
                         case Expr():
                             saved = self._pending_stmts
                             self._pending_stmts = []
@@ -5180,7 +5348,7 @@ class Lowerer:
                 case NonePattern():
                     match arm.body:
                         case Block():
-                            none_body = self._lower_block(arm.body)
+                            none_body = self._lower_inner_block(arm.body)
                         case Expr():
                             saved = self._pending_stmts
                             self._pending_stmts = []
@@ -5192,7 +5360,7 @@ class Lowerer:
                 case WildcardPattern() | BindPattern():
                     match arm.body:
                         case Block():
-                            none_body = self._lower_block(arm.body)
+                            none_body = self._lower_inner_block(arm.body)
                         case Expr():
                             saved = self._pending_stmts
                             self._pending_stmts = []
@@ -5225,7 +5393,7 @@ class Lowerer:
                         init=LFieldAccess(subj, "ok_val", ok_lt)))
                     match arm.body:
                         case Block():
-                            ok_body.extend(self._lower_block(arm.body))
+                            ok_body.extend(self._lower_inner_block(arm.body))
                         case Expr():
                             saved = self._pending_stmts
                             self._pending_stmts = []
@@ -5241,7 +5409,7 @@ class Lowerer:
                         init=LFieldAccess(subj, "err_val", err_lt)))
                     match arm.body:
                         case Block():
-                            err_body.extend(self._lower_block(arm.body))
+                            err_body.extend(self._lower_inner_block(arm.body))
                         case Expr():
                             saved = self._pending_stmts
                             self._pending_stmts = []
@@ -5253,7 +5421,7 @@ class Lowerer:
                 case WildcardPattern() | BindPattern():
                     match arm.body:
                         case Block():
-                            err_body = self._lower_block(arm.body)
+                            err_body = self._lower_inner_block(arm.body)
                         case Expr():
                             saved = self._pending_stmts
                             self._pending_stmts = []
@@ -5320,7 +5488,7 @@ class Lowerer:
                     cond = self._make_equality_check(subj, val, subj_type)
                     match arm.body:
                         case Block():
-                            body = self._lower_block(arm.body)
+                            body = self._lower_inner_block(arm.body)
                         case Expr():
                             saved = self._pending_stmts
                             self._pending_stmts = []
@@ -5345,7 +5513,7 @@ class Lowerer:
                         body_stmts = []
                     match arm.body:
                         case Block():
-                            body_stmts.extend(self._lower_block(arm.body))
+                            body_stmts.extend(self._lower_inner_block(arm.body))
                         case Expr():
                             saved = self._pending_stmts
                             self._pending_stmts = []
@@ -5595,7 +5763,7 @@ class Lowerer:
         """Lower match arm body and return the result expression."""
         match arm.body:
             case Block():
-                block_stmts = self._lower_block(arm.body)
+                block_stmts = self._lower_inner_block(arm.body)
                 # Find the last expression
                 if block_stmts and isinstance(block_stmts[-1], LExprStmt):
                     self._pending_stmts.extend(block_stmts[:-1])

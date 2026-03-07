@@ -59,21 +59,27 @@ fl_int _fl_clfn_tests_lambda_basic_main_1(void* _env, fl_int a, fl_int b) {
 /* Flow: tests.lambda_basic.main */
 void fl_tests_lambda_basic_main(void) {
     FL_Closure* _fl_tmp_0 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_0->refcount = 1;
     _fl_tmp_0->fn = ((void*)_fl_clfn_tests_lambda_basic_main_0);
     _fl_tmp_0->env = NULL;
     FL_Closure* dbl = _fl_tmp_0;
     FL_Closure* _fl_tmp_1 = dbl;
     fl_int result = ((fl_int (*)(void*, fl_int))_fl_tmp_1->fn)(_fl_tmp_1->env, 5);
     FL_String* _fl_tmp_2 = fl_string_from_cstr("dbl(5) = ");
-    fl_println(fl_string_concat(_fl_tmp_2, fl_int_to_string(result)));
-    FL_Closure* _fl_tmp_3 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_3->fn = ((void*)_fl_clfn_tests_lambda_basic_main_1);
-    _fl_tmp_3->env = NULL;
-    FL_Closure* add = _fl_tmp_3;
-    FL_Closure* _fl_tmp_4 = add;
-    fl_int sum = ((fl_int (*)(void*, fl_int, fl_int))_fl_tmp_4->fn)(_fl_tmp_4->env, 3, 7);
-    FL_String* _fl_tmp_5 = fl_string_from_cstr("add(3, 7) = ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_int_to_string(sum)));
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(result));
+    fl_string_release(_fl_tmp_2);
+    fl_println(_fl_tmp_3);
+    FL_Closure* _fl_tmp_4 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_4->refcount = 1;
+    _fl_tmp_4->fn = ((void*)_fl_clfn_tests_lambda_basic_main_1);
+    _fl_tmp_4->env = NULL;
+    FL_Closure* add = _fl_tmp_4;
+    FL_Closure* _fl_tmp_5 = add;
+    fl_int sum = ((fl_int (*)(void*, fl_int, fl_int))_fl_tmp_5->fn)(_fl_tmp_5->env, 3, 7);
+    FL_String* _fl_tmp_6 = fl_string_from_cstr("add(3, 7) = ");
+    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(sum));
+    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_7);
 }
 
 /* Entry point */

@@ -868,6 +868,23 @@ FL_Coroutine* fl_pool_as_coroutine(FL_Pool* pool) {
 }
 
 /* ========================================================================
+ * Closures
+ * ======================================================================== */
+
+void fl_closure_retain(FL_Closure* c) {
+    if (!c) return;
+    atomic_fetch_add(&c->refcount, 1);
+}
+
+void fl_closure_release(FL_Closure* c) {
+    if (!c) return;
+    if (atomic_fetch_sub(&c->refcount, 1) == 1) {
+        free(c->env);
+        free(c);
+    }
+}
+
+/* ========================================================================
  * Stream Helpers
  * ======================================================================== */
 

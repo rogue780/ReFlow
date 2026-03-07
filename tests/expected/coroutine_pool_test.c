@@ -184,7 +184,9 @@ void fl_tests_coroutine_pool_test_main(void) {
         }
     }
     FL_String* _fl_tmp_9 = fl_string_from_cstr("count: ");
-    fl_println(fl_string_concat(_fl_tmp_9, fl_int_to_string(count)));
+    FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_int_to_string(count));
+    fl_string_release(_fl_tmp_9);
+    fl_println(_fl_tmp_10);
     fl_println(fl_string_from_cstr("done"));
 }
 

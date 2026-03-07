@@ -940,63 +940,77 @@ void fl_tests_stdlib_csv_test_main(void) {
     if (_fl_tmp_0.tag == 1) {
         FL_String* v = _fl_tmp_0.value;
         FL_String* _fl_tmp_1 = fl_string_from_cstr("f0=");
-        fl_println(fl_string_concat(_fl_tmp_1, v));
+        FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, v);
+        fl_string_release(_fl_tmp_1);
+        fl_println(_fl_tmp_2);
     } else {
         fl_println(fl_string_from_cstr("none"));
     }
     FL_Option_ptr f2 = fl_array_get_safe(row0, 2);
-    FL_Option_ptr _fl_tmp_2 = f2;
-    if (_fl_tmp_2.tag == 1) {
-        FL_String* v = _fl_tmp_2.value;
-        FL_String* _fl_tmp_3 = fl_string_from_cstr("f2=");
-        fl_println(fl_string_concat(_fl_tmp_3, v));
+    FL_Option_ptr _fl_tmp_3 = f2;
+    if (_fl_tmp_3.tag == 1) {
+        FL_String* v = _fl_tmp_3.value;
+        FL_String* _fl_tmp_4 = fl_string_from_cstr("f2=");
+        FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, v);
+        fl_string_release(_fl_tmp_4);
+        fl_println(_fl_tmp_5);
     } else {
         fl_println(fl_string_from_cstr("none"));
     }
     FL_Array* row1 = fl_csv_parse_row(fl_string_from_cstr("\"Smith, John\",\"He said \"\"hi\"\"\""));
     FL_Option_ptr name = fl_array_get_safe(row1, 0);
-    FL_Option_ptr _fl_tmp_4 = name;
-    if (_fl_tmp_4.tag == 1) {
-        FL_String* n = _fl_tmp_4.value;
-        FL_String* _fl_tmp_5 = fl_string_from_cstr("name=");
-        fl_println(fl_string_concat(_fl_tmp_5, n));
+    FL_Option_ptr _fl_tmp_6 = name;
+    if (_fl_tmp_6.tag == 1) {
+        FL_String* n = _fl_tmp_6.value;
+        FL_String* _fl_tmp_7 = fl_string_from_cstr("name=");
+        FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, n);
+        fl_string_release(_fl_tmp_7);
+        fl_println(_fl_tmp_8);
     } else {
         fl_println(fl_string_from_cstr("none"));
     }
     FL_Option_ptr desc = fl_array_get_safe(row1, 1);
-    FL_Option_ptr _fl_tmp_6 = desc;
-    if (_fl_tmp_6.tag == 1) {
-        FL_String* d = _fl_tmp_6.value;
-        FL_String* _fl_tmp_7 = fl_string_from_cstr("desc=");
-        fl_println(fl_string_concat(_fl_tmp_7, d));
+    FL_Option_ptr _fl_tmp_9 = desc;
+    if (_fl_tmp_9.tag == 1) {
+        FL_String* d = _fl_tmp_9.value;
+        FL_String* _fl_tmp_10 = fl_string_from_cstr("desc=");
+        FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, d);
+        fl_string_release(_fl_tmp_10);
+        fl_println(_fl_tmp_11);
     } else {
         fl_println(fl_string_from_cstr("none"));
     }
     FL_Array* fields = fl_csv_parse_row(fl_string_from_cstr("hello,\"world, yo\",test"));
     FL_String* row_str = fl_csv_row_to_string(fields);
-    FL_String* _fl_tmp_8 = fl_string_from_cstr("row_str=");
-    fl_println(fl_string_concat(_fl_tmp_8, row_str));
+    FL_String* _fl_tmp_12 = fl_string_from_cstr("row_str=");
+    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, row_str);
+    fl_string_release(_fl_tmp_12);
+    fl_println(_fl_tmp_13);
     FL_Array* hrows = fl_csv_parse(fl_string_from_cstr("name,age\nAlice,30\nBob,25"));
     FL_Array* records = fl_csv_with_headers(hrows);
     FL_Option_ptr rec0 = fl_array_get_safe(records, 0);
-    FL_Option_ptr _fl_tmp_9 = rec0;
-    if (_fl_tmp_9.tag == 1) {
-        FL_Map* m = _fl_tmp_9.value;
+    FL_Option_ptr _fl_tmp_14 = rec0;
+    if (_fl_tmp_14.tag == 1) {
+        FL_Map* m = _fl_tmp_14.value;
         FL_Option_ptr name_val = fl_map_get_str(m, fl_string_from_cstr("name"));
-        FL_Option_ptr _fl_tmp_10 = name_val;
-        if (_fl_tmp_10.tag == 1) {
-            FL_String* n = _fl_tmp_10.value;
-            FL_String* _fl_tmp_11 = fl_string_from_cstr("hdr_name=");
-            fl_println(fl_string_concat(_fl_tmp_11, n));
+        FL_Option_ptr _fl_tmp_15 = name_val;
+        if (_fl_tmp_15.tag == 1) {
+            FL_String* n = _fl_tmp_15.value;
+            FL_String* _fl_tmp_16 = fl_string_from_cstr("hdr_name=");
+            FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, n);
+            fl_string_release(_fl_tmp_16);
+            fl_println(_fl_tmp_17);
         } else {
             fl_println(fl_string_from_cstr("none"));
         }
         FL_Option_ptr age_val = fl_map_get_str(m, fl_string_from_cstr("age"));
-        FL_Option_ptr _fl_tmp_12 = age_val;
-        if (_fl_tmp_12.tag == 1) {
-            FL_String* a = _fl_tmp_12.value;
-            FL_String* _fl_tmp_13 = fl_string_from_cstr("hdr_age=");
-            fl_println(fl_string_concat(_fl_tmp_13, a));
+        FL_Option_ptr _fl_tmp_18 = age_val;
+        if (_fl_tmp_18.tag == 1) {
+            FL_String* a = _fl_tmp_18.value;
+            FL_String* _fl_tmp_19 = fl_string_from_cstr("hdr_age=");
+            FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, a);
+            fl_string_release(_fl_tmp_19);
+            fl_println(_fl_tmp_20);
         } else {
             fl_println(fl_string_from_cstr("none"));
         }

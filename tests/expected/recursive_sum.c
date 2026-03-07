@@ -93,7 +93,9 @@ void fl_tests_recursive_sum_main(void) {
     (*_fl_tmp_4) = (fl_tests_recursive_sum_Tree){.tag = 0, .Leaf = (fl_tests_recursive_sum_Tree_Leaf){.value = 3}};
     fl_tests_recursive_sum_Tree tree = (fl_tests_recursive_sum_Tree){.tag = 1, .Node = (fl_tests_recursive_sum_Tree_Node){.left = _fl_tmp_3, .right = _fl_tmp_4}};
     FL_String* _fl_tmp_5 = fl_string_from_cstr("Sum: ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_int_to_string(fl_tests_recursive_sum_sum_tree(tree))));
+    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_int_to_string(fl_tests_recursive_sum_sum_tree(tree)));
+    fl_string_release(_fl_tmp_5);
+    fl_println(_fl_tmp_6);
 }
 
 /* Entry point */

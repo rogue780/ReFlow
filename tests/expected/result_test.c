@@ -79,41 +79,57 @@ void fl_tests_result_test_main(void) {
     if (_fl_tmp_2.tag == 0) {
         fl_int v = _fl_tmp_2.ok_val;
         FL_String* _fl_tmp_3 = fl_string_from_cstr("10 / 3 = ");
-        fl_println(fl_string_concat(_fl_tmp_3, fl_int_to_string(v)));
+        FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_int_to_string(v));
+        fl_string_release(_fl_tmp_3);
+        fl_println(_fl_tmp_4);
     } else {
         FL_String* msg = _fl_tmp_2.err_val;
-        FL_String* _fl_tmp_4 = fl_string_from_cstr("error: ");
-        fl_println(fl_string_concat(_fl_tmp_4, msg));
+        FL_String* _fl_tmp_5 = fl_string_from_cstr("error: ");
+        FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, msg);
+        fl_string_release(_fl_tmp_5);
+        fl_println(_fl_tmp_6);
     }
-    FL_Result_fl_int_FL_String_ptr _fl_tmp_5 = fl_tests_result_test_safe_divide(10, 0);
-    if (_fl_tmp_5.tag == 0) {
-        fl_int v = _fl_tmp_5.ok_val;
-        FL_String* _fl_tmp_6 = fl_string_from_cstr("10 / 0 = ");
-        fl_println(fl_string_concat(_fl_tmp_6, fl_int_to_string(v)));
+    FL_Result_fl_int_FL_String_ptr _fl_tmp_7 = fl_tests_result_test_safe_divide(10, 0);
+    if (_fl_tmp_7.tag == 0) {
+        fl_int v = _fl_tmp_7.ok_val;
+        FL_String* _fl_tmp_8 = fl_string_from_cstr("10 / 0 = ");
+        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, fl_int_to_string(v));
+        fl_string_release(_fl_tmp_8);
+        fl_println(_fl_tmp_9);
     } else {
-        FL_String* msg = _fl_tmp_5.err_val;
-        FL_String* _fl_tmp_7 = fl_string_from_cstr("error: ");
-        fl_println(fl_string_concat(_fl_tmp_7, msg));
+        FL_String* msg = _fl_tmp_7.err_val;
+        FL_String* _fl_tmp_10 = fl_string_from_cstr("error: ");
+        FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, msg);
+        fl_string_release(_fl_tmp_10);
+        fl_println(_fl_tmp_11);
     }
-    FL_Result_fl_int_FL_String_ptr _fl_tmp_8 = fl_tests_result_test_compute(20, 4);
-    if (_fl_tmp_8.tag == 0) {
-        fl_int v = _fl_tmp_8.ok_val;
-        FL_String* _fl_tmp_9 = fl_string_from_cstr("compute(20, 4) = ");
-        fl_println(fl_string_concat(_fl_tmp_9, fl_int_to_string(v)));
+    FL_Result_fl_int_FL_String_ptr _fl_tmp_12 = fl_tests_result_test_compute(20, 4);
+    if (_fl_tmp_12.tag == 0) {
+        fl_int v = _fl_tmp_12.ok_val;
+        FL_String* _fl_tmp_13 = fl_string_from_cstr("compute(20, 4) = ");
+        FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, fl_int_to_string(v));
+        fl_string_release(_fl_tmp_13);
+        fl_println(_fl_tmp_14);
     } else {
-        FL_String* msg = _fl_tmp_8.err_val;
-        FL_String* _fl_tmp_10 = fl_string_from_cstr("compute error: ");
-        fl_println(fl_string_concat(_fl_tmp_10, msg));
+        FL_String* msg = _fl_tmp_12.err_val;
+        FL_String* _fl_tmp_15 = fl_string_from_cstr("compute error: ");
+        FL_String* _fl_tmp_16 = fl_string_concat(_fl_tmp_15, msg);
+        fl_string_release(_fl_tmp_15);
+        fl_println(_fl_tmp_16);
     }
-    FL_Result_fl_int_FL_String_ptr _fl_tmp_11 = fl_tests_result_test_compute(20, 0);
-    if (_fl_tmp_11.tag == 0) {
-        fl_int v = _fl_tmp_11.ok_val;
-        FL_String* _fl_tmp_12 = fl_string_from_cstr("compute(20, 0) = ");
-        fl_println(fl_string_concat(_fl_tmp_12, fl_int_to_string(v)));
+    FL_Result_fl_int_FL_String_ptr _fl_tmp_17 = fl_tests_result_test_compute(20, 0);
+    if (_fl_tmp_17.tag == 0) {
+        fl_int v = _fl_tmp_17.ok_val;
+        FL_String* _fl_tmp_18 = fl_string_from_cstr("compute(20, 0) = ");
+        FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, fl_int_to_string(v));
+        fl_string_release(_fl_tmp_18);
+        fl_println(_fl_tmp_19);
     } else {
-        FL_String* msg = _fl_tmp_11.err_val;
-        FL_String* _fl_tmp_13 = fl_string_from_cstr("compute error: ");
-        fl_println(fl_string_concat(_fl_tmp_13, msg));
+        FL_String* msg = _fl_tmp_17.err_val;
+        FL_String* _fl_tmp_20 = fl_string_from_cstr("compute error: ");
+        FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, msg);
+        fl_string_release(_fl_tmp_20);
+        fl_println(_fl_tmp_21);
     }
 }
 

@@ -316,17 +316,29 @@ FL_Option_ptr fl_path_walk(FL_String* dir) {
 /* Flow: tests.stdlib_path_test.main */
 void fl_tests_stdlib_path_test_main(void) {
     FL_String* _fl_tmp_0 = fl_string_from_cstr("join: ");
-    fl_println(fl_string_concat(_fl_tmp_0, fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("foo"), fl_string_from_cstr("bar.txt")}))));
-    FL_String* _fl_tmp_1 = fl_string_from_cstr("stem: ");
-    fl_println(fl_string_concat(_fl_tmp_1, fl_path_stem(fl_string_from_cstr("foo/bar.txt"))));
-    FL_String* _fl_tmp_2 = fl_string_from_cstr("parent: ");
-    fl_println(fl_string_concat(_fl_tmp_2, fl_path_parent(fl_string_from_cstr("foo/bar.txt"))));
-    FL_String* _fl_tmp_3 = fl_string_from_cstr("with_suffix: ");
-    fl_println(fl_string_concat(_fl_tmp_3, fl_path_with_suffix(fl_string_from_cstr("foo/bar.txt"), fl_string_from_cstr(".c"))));
-    FL_String* _fl_tmp_4 = fl_string_from_cstr("exists Makefile: ");
-    fl_println(fl_string_concat(_fl_tmp_4, fl_bool_to_string(fl_path_exists(fl_string_from_cstr("Makefile")))));
-    FL_String* _fl_tmp_5 = fl_string_from_cstr("exists nope.xyz: ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_bool_to_string(fl_path_exists(fl_string_from_cstr("nope.xyz")))));
+    FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("foo"), fl_string_from_cstr("bar.txt")})));
+    fl_string_release(_fl_tmp_0);
+    fl_println(_fl_tmp_1);
+    FL_String* _fl_tmp_2 = fl_string_from_cstr("stem: ");
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_path_stem(fl_string_from_cstr("foo/bar.txt")));
+    fl_string_release(_fl_tmp_2);
+    fl_println(_fl_tmp_3);
+    FL_String* _fl_tmp_4 = fl_string_from_cstr("parent: ");
+    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_path_parent(fl_string_from_cstr("foo/bar.txt")));
+    fl_string_release(_fl_tmp_4);
+    fl_println(_fl_tmp_5);
+    FL_String* _fl_tmp_6 = fl_string_from_cstr("with_suffix: ");
+    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_path_with_suffix(fl_string_from_cstr("foo/bar.txt"), fl_string_from_cstr(".c")));
+    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_7);
+    FL_String* _fl_tmp_8 = fl_string_from_cstr("exists Makefile: ");
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, fl_bool_to_string(fl_path_exists(fl_string_from_cstr("Makefile"))));
+    fl_string_release(_fl_tmp_8);
+    fl_println(_fl_tmp_9);
+    FL_String* _fl_tmp_10 = fl_string_from_cstr("exists nope.xyz: ");
+    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, fl_bool_to_string(fl_path_exists(fl_string_from_cstr("nope.xyz"))));
+    fl_string_release(_fl_tmp_10);
+    fl_println(_fl_tmp_11);
 }
 
 /* Entry point */

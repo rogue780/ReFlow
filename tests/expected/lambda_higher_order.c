@@ -99,34 +99,45 @@ fl_int _fl_clfn_tests_lambda_higher_order_main_2(void* _env, fl_int x) {
 /* Flow: tests.lambda_higher_order.main */
 void fl_tests_lambda_higher_order_main(void) {
     FL_Closure* _fl_tmp_1 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_1->refcount = 1;
     _fl_tmp_1->fn = ((void*)_fl_clfn_tests_lambda_higher_order_main_0);
     _fl_tmp_1->env = NULL;
     fl_int r1 = fl_tests_lambda_higher_order_apply(_fl_tmp_1, 5);
     FL_String* _fl_tmp_2 = fl_string_from_cstr("apply(inc, 5) = ");
-    fl_println(fl_string_concat(_fl_tmp_2, fl_int_to_string(r1)));
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(r1));
+    fl_string_release(_fl_tmp_2);
+    fl_println(_fl_tmp_3);
     fl_int offset = 100;
-    _fl_closure_tests_lambda_higher_order_main_1* _fl_tmp_3 = ((_fl_closure_tests_lambda_higher_order_main_1*)malloc(sizeof(_fl_closure_tests_lambda_higher_order_main_1)));
-    _fl_tmp_3->offset = offset;
-    FL_Closure* _fl_tmp_4 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_4->fn = ((void*)_fl_clfn_tests_lambda_higher_order_main_1);
-    _fl_tmp_4->env = ((void*)_fl_tmp_3);
-    fl_int r2 = fl_tests_lambda_higher_order_apply(_fl_tmp_4, 5);
-    FL_String* _fl_tmp_5 = fl_string_from_cstr("apply(add100, 5) = ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_int_to_string(r2)));
-    FL_Closure* _fl_tmp_6 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_6->fn = ((void*)_fl_wrap_tests_lambda_higher_order_triple);
-    _fl_tmp_6->env = NULL;
-    fl_int r3 = fl_tests_lambda_higher_order_apply(_fl_tmp_6, 4);
-    FL_String* _fl_tmp_7 = fl_string_from_cstr("apply(triple, 4) = ");
-    fl_println(fl_string_concat(_fl_tmp_7, fl_int_to_string(r3)));
-    fl_int _fl_tmp_8 = 5;
-    FL_Closure* _fl_tmp_9 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_9->fn = ((void*)_fl_clfn_tests_lambda_higher_order_main_2);
-    _fl_tmp_9->env = NULL;
-    FL_Closure* _fl_tmp_10 = _fl_tmp_9;
-    fl_int r4 = ((fl_int (*)(void*, fl_int))_fl_tmp_10->fn)(_fl_tmp_10->env, _fl_tmp_8);
-    FL_String* _fl_tmp_11 = fl_string_from_cstr("5 -> double = ");
-    fl_println(fl_string_concat(_fl_tmp_11, fl_int_to_string(r4)));
+    _fl_closure_tests_lambda_higher_order_main_1* _fl_tmp_4 = ((_fl_closure_tests_lambda_higher_order_main_1*)malloc(sizeof(_fl_closure_tests_lambda_higher_order_main_1)));
+    _fl_tmp_4->offset = offset;
+    FL_Closure* _fl_tmp_5 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_5->refcount = 1;
+    _fl_tmp_5->fn = ((void*)_fl_clfn_tests_lambda_higher_order_main_1);
+    _fl_tmp_5->env = ((void*)_fl_tmp_4);
+    fl_int r2 = fl_tests_lambda_higher_order_apply(_fl_tmp_5, 5);
+    FL_String* _fl_tmp_6 = fl_string_from_cstr("apply(add100, 5) = ");
+    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(r2));
+    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_7);
+    FL_Closure* _fl_tmp_8 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_8->fn = ((void*)_fl_wrap_tests_lambda_higher_order_triple);
+    _fl_tmp_8->env = NULL;
+    fl_int r3 = fl_tests_lambda_higher_order_apply(_fl_tmp_8, 4);
+    FL_String* _fl_tmp_9 = fl_string_from_cstr("apply(triple, 4) = ");
+    FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_int_to_string(r3));
+    fl_string_release(_fl_tmp_9);
+    fl_println(_fl_tmp_10);
+    fl_int _fl_tmp_11 = 5;
+    FL_Closure* _fl_tmp_12 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_12->refcount = 1;
+    _fl_tmp_12->fn = ((void*)_fl_clfn_tests_lambda_higher_order_main_2);
+    _fl_tmp_12->env = NULL;
+    FL_Closure* _fl_tmp_13 = _fl_tmp_12;
+    fl_int r4 = ((fl_int (*)(void*, fl_int))_fl_tmp_13->fn)(_fl_tmp_13->env, _fl_tmp_11);
+    FL_String* _fl_tmp_14 = fl_string_from_cstr("5 -> double = ");
+    FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, fl_int_to_string(r4));
+    fl_string_release(_fl_tmp_14);
+    fl_println(_fl_tmp_15);
 }
 
 /* Entry point */

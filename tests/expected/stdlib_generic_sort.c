@@ -513,6 +513,7 @@ fl_int _fl_srtwrap_sort_sort_3(void* _env, void* _a, void* _b);
 /* Flow: sort.sort[mono] */
 FL_Array* fl_sort_sort__int(FL_Array* arr) {
     FL_Closure* _fl_tmp_2 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_2->refcount = 1;
     _fl_tmp_2->fn = ((void*)_fl_clfn_sort_sort_0);
     _fl_tmp_2->env = NULL;
     FL_Closure* _fl_tmp_3 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
@@ -524,6 +525,7 @@ FL_Array* fl_sort_sort__int(FL_Array* arr) {
 /* Flow: sort.sort[mono] */
 FL_Array* fl_sort_sort__string(FL_Array* arr) {
     FL_Closure* _fl_tmp_4 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_4->refcount = 1;
     _fl_tmp_4->fn = ((void*)_fl_clfn_sort_sort_2);
     _fl_tmp_4->env = NULL;
     FL_Closure* _fl_tmp_5 = ((FL_Closure*)malloc(sizeof(FL_Closure)));

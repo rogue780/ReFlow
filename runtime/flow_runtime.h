@@ -384,9 +384,13 @@ FL_Coroutine* fl_pool_as_coroutine(FL_Pool* pool);
  * Closures
  * ======================================================================== */
 typedef struct FL_Closure {
+    _Atomic fl_int64 refcount;
     void* fn;
     void* env;
 } FL_Closure;
+
+void fl_closure_retain(FL_Closure* c);
+void fl_closure_release(FL_Closure* c);
 
 /* ========================================================================
  * Stream Helpers

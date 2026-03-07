@@ -63,23 +63,32 @@ fl_int fl_tests_struct_test_Counter_current(fl_tests_struct_test_Counter* self) 
 /* Flow: tests.struct_test.Counter.display */
 void fl_tests_struct_test_Counter_display(fl_tests_struct_test_Counter* self) {
     FL_String* _fl_tmp_0 = fl_string_from_cstr("counter = ");
-    fl_println(fl_string_concat(_fl_tmp_0, fl_int_to_string(self->value)));
+    FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, fl_int_to_string(self->value));
+    fl_string_release(_fl_tmp_0);
+    fl_println(_fl_tmp_1);
 }
 
 /* Flow: tests.struct_test.main */
 void fl_tests_struct_test_main(void) {
     fl_tests_struct_test_Point p = (fl_tests_struct_test_Point){.x = 3.0, .y = 4.0};
-    FL_String* _fl_tmp_1 = fl_string_from_cstr("point: (");
-    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_float_to_string(p.x));
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_string_from_cstr(", "));
-    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_float_to_string(p.y));
-    fl_println(fl_string_concat(_fl_tmp_4, fl_string_from_cstr(")")));
+    FL_String* _fl_tmp_2 = fl_string_from_cstr("point: (");
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_float_to_string(p.x));
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_string_from_cstr(", "));
+    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_float_to_string(p.y));
+    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_string_from_cstr(")"));
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_3);
+    fl_string_release(_fl_tmp_4);
+    fl_string_release(_fl_tmp_5);
+    fl_println(_fl_tmp_6);
     fl_tests_struct_test_Counter c = (fl_tests_struct_test_Counter){.value = 0};
     fl_tests_struct_test_Counter_display((&c));
     c.value = 10;
     fl_tests_struct_test_Counter_display((&c));
-    FL_String* _fl_tmp_5 = fl_string_from_cstr("current = ");
-    fl_println(fl_string_concat(_fl_tmp_5, fl_int_to_string(fl_tests_struct_test_Counter_current((&c)))));
+    FL_String* _fl_tmp_7 = fl_string_from_cstr("current = ");
+    FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_int_to_string(fl_tests_struct_test_Counter_current((&c))));
+    fl_string_release(_fl_tmp_7);
+    fl_println(_fl_tmp_8);
 }
 
 /* Entry point */

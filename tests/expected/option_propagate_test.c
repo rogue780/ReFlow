@@ -69,15 +69,19 @@ void fl_tests_option_propagate_test_main(void) {
     if (_fl_tmp_2.tag == 1) {
         fl_int v = _fl_tmp_2.value;
         FL_String* _fl_tmp_3 = fl_string_from_cstr("result: ");
-        fl_println(fl_string_concat(_fl_tmp_3, fl_int_to_string(v)));
+        FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_int_to_string(v));
+        fl_string_release(_fl_tmp_3);
+        fl_println(_fl_tmp_4);
     } else {
         fl_println(fl_string_from_cstr("none"));
     }
-    FL_Option_int _fl_tmp_4 = fl_tests_option_propagate_test_double_positive((-3));
-    if (_fl_tmp_4.tag == 1) {
-        fl_int v = _fl_tmp_4.value;
-        FL_String* _fl_tmp_5 = fl_string_from_cstr("result: ");
-        fl_println(fl_string_concat(_fl_tmp_5, fl_int_to_string(v)));
+    FL_Option_int _fl_tmp_5 = fl_tests_option_propagate_test_double_positive((-3));
+    if (_fl_tmp_5.tag == 1) {
+        fl_int v = _fl_tmp_5.value;
+        FL_String* _fl_tmp_6 = fl_string_from_cstr("result: ");
+        FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(v));
+        fl_string_release(_fl_tmp_6);
+        fl_println(_fl_tmp_7);
     } else {
         fl_println(fl_string_from_cstr("none"));
     }
