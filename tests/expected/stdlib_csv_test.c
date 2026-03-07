@@ -524,7 +524,9 @@ FL_String* _fl_str_csv_4 = NULL;
 FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
     fl_int len = fl_string_len(s);
     FL_Array* rows = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(rows, 2);
     FL_Array* current_row = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(current_row, 1);
     FL_String* field = _fl_str_csv_0;
     fl_string_retain(field);
     fl_int state = 0;
@@ -1002,6 +1004,7 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
         return fl_array_new(0, 0, NULL);
     }
     FL_Array* headers = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(headers, 1);
     FL_Option_ptr _fl_tmp_59 = fl_array_get_safe(rows, 0);
     if (_fl_tmp_59.tag == 1) {
         FL_Array* h = _fl_tmp_59.value;
@@ -1016,6 +1019,7 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
     }
     fl_int ncols = fl_array_len_int(headers);
     FL_Array* result = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(result, 3);
     fl_int i = 1;
     while (i < nrows) {
         FL_Option_ptr _fl_tmp_61 = fl_array_get_safe(rows, i);

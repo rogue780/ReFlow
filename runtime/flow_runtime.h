@@ -271,12 +271,26 @@ FL_RESULT_TYPE(void*,   void*,      FL_Result_ptr_ptr)
  * Array (RT-1-4-1)
  * ======================================================================== */
 
+/* Element type tag for container cleanup on release.
+ * When a container is released (refcount → 0), it iterates its elements
+ * and calls the appropriate release function for each one. */
+typedef enum {
+    FL_ELEM_NONE    = 0,  /* No cleanup (value types, raw pointers) */
+    FL_ELEM_STRING  = 1,
+    FL_ELEM_ARRAY   = 2,
+    FL_ELEM_MAP     = 3,
+    FL_ELEM_CLOSURE = 4,
+    FL_ELEM_STREAM  = 5,
+    FL_ELEM_BUFFER  = 6,
+} FL_ElemType;
+
 typedef struct FL_Array {
     _Atomic fl_int64  refcount;
     fl_int64  len;
     fl_int64  capacity;      /* allocated slots (>= len); 0 means capacity == len */
     void*     data;
     fl_int64  element_size;
+    FL_ElemType elem_type;   /* element refcount kind; 0 = no cleanup */
 } FL_Array;
 
 FL_String*    fl_string_join_array(FL_Array* parts);
@@ -303,6 +317,9 @@ FL_Option_float fl_array_get_float(FL_Array* arr, fl_int64 idx);
 FL_Option_bool  fl_array_get_bool(FL_Array* arr, fl_int64 idx);
 fl_int          fl_array_len_int(FL_Array* arr);
 FL_Array*       fl_array_concat(FL_Array* a, FL_Array* b);
+
+/* Element type setter for array cleanup */
+void fl_array_set_elem_type(FL_Array* a, fl_int t);
 
 /* ========================================================================
  * Stream (RT-1-5-1)
@@ -453,6 +470,9 @@ fl_bool       fl_map_has_str(FL_Map* m, FL_String* key);
 FL_Map*       fl_map_remove_str(FL_Map* m, FL_String* key);
 FL_Array*     fl_map_keys(FL_Map* m);
 FL_Array*     fl_map_values(FL_Map* m);
+
+/* Element type setter for map value cleanup */
+void fl_map_set_val_type(FL_Map* m, fl_int t);
 
 /* ========================================================================
  * Set (RT-1-6-2)

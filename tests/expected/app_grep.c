@@ -495,6 +495,7 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 /* Flow: file.read_lines */
 FL_Array* fl_file_read_lines(FL_File* f) {
     FL_Array* lines = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(lines, 1);
     fl_bool done = fl_false;
     while (!done) {
         FL_Option_ptr _fl_tmp_0 = fl_file_read_line(f);
@@ -651,6 +652,7 @@ fl_bool fl_tests_app_grep_should_skip_file(FL_String* filepath, FL_String* ext_f
 /* Flow: tests.app_grep.read_lines */
 FL_Array* fl_tests_app_grep_read_lines(FL_String* filepath) {
     FL_Array* lines = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(lines, 1);
     FL_Option_ptr f_opt = fl_file_open_read(filepath);
     FL_Option_ptr _fl_tmp_2 = f_opt;
     if (_fl_tmp_2.tag == 1) {

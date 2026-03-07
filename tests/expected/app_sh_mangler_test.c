@@ -1145,8 +1145,14 @@ fl_int fl_tests_programs_app_sh_mangler_test_main(void) {
     fl_println(fl_self_hosted_mangler_mangle_fanout_wrapper(_fl_str_tests_programs_app_sh_mangler_test_6, _fl_str_tests_programs_app_sh_mangler_test_8, 0, 1));
     fl_println(fl_self_hosted_mangler_mangle_exception_tag(_fl_str_tests_programs_app_sh_mangler_test_10, _fl_str_tests_programs_app_sh_mangler_test_11));
     fl_println(fl_self_hosted_mangler_mangle_exception_frame(0));
-    fl_println(fl_self_hosted_mangler_mangle_monomorphized(_fl_str_tests_programs_app_sh_mangler_test_12, _fl_str_tests_programs_app_sh_mangler_test_13, fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_mangler_test_14})));
-    fl_println(fl_self_hosted_mangler_mangle_monomorphized(_fl_str_tests_programs_app_sh_mangler_test_15, _fl_str_tests_programs_app_sh_mangler_test_16, fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_mangler_test_14})));
+    FL_Array* _fl_tmp_0 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_mangler_test_14});
+    fl_array_set_elem_type(_fl_tmp_0, 1);
+    fl_string_retain(_fl_str_tests_programs_app_sh_mangler_test_14);
+    fl_println(fl_self_hosted_mangler_mangle_monomorphized(_fl_str_tests_programs_app_sh_mangler_test_12, _fl_str_tests_programs_app_sh_mangler_test_13, _fl_tmp_0));
+    FL_Array* _fl_tmp_1 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_mangler_test_14});
+    fl_array_set_elem_type(_fl_tmp_1, 1);
+    fl_string_retain(_fl_str_tests_programs_app_sh_mangler_test_14);
+    fl_println(fl_self_hosted_mangler_mangle_monomorphized(_fl_str_tests_programs_app_sh_mangler_test_15, _fl_str_tests_programs_app_sh_mangler_test_16, _fl_tmp_1));
     fl_println(fl_self_hosted_mangler_mangle_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_14));
     fl_println(fl_self_hosted_mangler_mangle_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_17));
     fl_println(fl_self_hosted_mangler_mangle_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_18));

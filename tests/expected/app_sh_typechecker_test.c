@@ -6101,6 +6101,7 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_tuple_type(fl_self_hoste
 fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_named_or_generic_type(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token first_tok = fl_self_hosted_parser_advance(s);
     FL_Array* module_path = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(module_path, 1);
     FL_String* name = first_tok.value;
     fl_string_retain(name);
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_DOT)) {
@@ -6166,6 +6167,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_module_decl(fl_self_hosted_p
 /* Flow: self_hosted.parser.parse_dotted_name */
 FL_Array* fl_self_hosted_parser_parse_dotted_name(fl_self_hosted_parser_ParserState* s) {
     FL_Array* parts = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(parts, 1);
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* _fl_old_31 = parts;
     parts = fl_array_push_ptr(parts, name_tok.value);
@@ -6189,6 +6191,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_import_decl(fl_self_hosted_p
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IMPORT);
     FL_Array* path = fl_self_hosted_parser_parse_dotted_name(s);
     FL_Array* names = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(names, 1);
     FL_String* import_alias = _fl_str_self_hosted_parser_18;
     fl_string_retain(import_alias);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
@@ -8411,6 +8414,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ident_or_type_lit(fl_self_ho
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_DOT)) {
         fl_int saved_pos = s->pos;
         FL_Array* module_path = fl_array_new(0, 0, NULL);
+        fl_array_set_elem_type(module_path, 1);
         FL_String* current_name = name;
         fl_string_retain(current_name);
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_DOT)) {
@@ -8664,6 +8668,7 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
             fl_self_hosted_parser_advance(s);
             FL_Array* bindings = fl_array_new(0, 0, NULL);
+            fl_array_set_elem_type(bindings, 1);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
                 fl_self_hosted_lexer_Token b_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
                 FL_Array* _fl_old_256 = bindings;
@@ -8731,6 +8736,7 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
     fl_string_retain(filename);
     fl_self_hosted_parser_ParserState s = (fl_self_hosted_parser_ParserState){.tokens = tokens, .filename = filename, .token_count = fl_array_len_int(tokens), .pos = 0, .next_id = 1, .has_error = fl_false, .first_error = dummy_error, .literal_values = fl_array_new(0, 0, NULL), .cast_targets = fl_array_new(0, 0, NULL), .sized_capacities = fl_array_new(0, 0, NULL)};
     FL_Array* path = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(path, 1);
     if (fl_self_hosted_parser_check((&s), fl_self_hosted_lexer_TokenType_TK_MODULE)) {
         fl_self_hosted_ast_Decl mod_decl = fl_self_hosted_parser_parse_module_decl((&s));
         fl_self_hosted_ast_Decl _fl_tmp_264 = mod_decl;
@@ -9169,6 +9175,7 @@ FL_String* _fl_str_self_hosted_resolver_31 = NULL;
 FL_Array* fl_array_put__string(FL_Array* arr, fl_int idx, FL_String* val) {
     fl_int s = fl_array_len_int(arr);
     FL_Array* result = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(result, 1);
     fl_int i = 0;
     while (i < s) {
         if (i == idx) {
@@ -9222,6 +9229,7 @@ FL_Array* fl_array_slice__int(FL_Array* arr, fl_int start, fl_int end_idx) {
 /* Flow: array.slice[mono] */
 FL_Array* fl_array_slice__string(FL_Array* arr, fl_int start, fl_int end_idx) {
     FL_Array* result = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(result, 1);
     fl_int i = start;
     while (i < end_idx) {
         FL_Option_ptr _fl_tmp_202 = fl_array_get_safe(arr, i);
@@ -14692,6 +14700,7 @@ void fl_self_hosted_typechecker_register_enum_decl(fl_self_hosted_typechecker_TC
     fl_self_hosted_typechecker_TypeInfo info = fl_self_hosted_typechecker_empty_type_info(name);
     info.module_path = module_path;
     FL_Array* resolved_variants = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(resolved_variants, 1);
     FL_Array* resolved_values = fl_array_new(0, 0, NULL);
     fl_int next_val = 0;
     fl_int i = 0;
@@ -15733,6 +15742,7 @@ void fl_self_hosted_typechecker_match_type_env(fl_self_hosted_typechecker_TCType
 /* Flow: self_hosted.typechecker.get_decl_type_param_names */
 FL_Array* fl_self_hosted_typechecker_get_decl_type_param_names(fl_self_hosted_ast_Decl decl) {
     FL_Array* names = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(names, 1);
     fl_self_hosted_ast_Decl _fl_tmp_408 = decl;
     switch (_fl_tmp_408.tag) {
         case 2: {
@@ -16509,6 +16519,7 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             fl_int c = _fl_tmp_423.ERecordLit.col;
             FL_Array* fields = _fl_tmp_423.ERecordLit.fields;
             FL_Array* fn2s = fl_array_new(0, 0, NULL);
+            fl_array_set_elem_type(fn2s, 1);
             FL_Array* ftypes = fl_array_new(0, 0, NULL);
             fl_int i = 0;
             while (i < fl_array_len_int(fields)) {

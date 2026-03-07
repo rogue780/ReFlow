@@ -2548,6 +2548,7 @@ FL_Option_ptr fl_path_walk(FL_String* dir) {
     if (_fl_tmp_17.tag == 1) {
         FL_Array* entries = _fl_tmp_17.value;
         FL_Array* result = fl_array_new(0, 0, NULL);
+        fl_array_set_elem_type(result, 1);
         fl_int64 _fl_tmp_18 = 0;
         while (_fl_tmp_18 < fl_array_len(entries)) {
             FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_18)));
@@ -2612,13 +2613,13 @@ FL_String* _fl_str_tests_app_variadic_stdlib_10 = NULL;
 /* Flow: math.min[mono] */
 fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
     fl_int result = first;
-    fl_int64 _fl_tmp_8 = 0;
-    while (_fl_tmp_8 < fl_array_len(rest)) {
-        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_8)));
+    fl_int64 _fl_tmp_9 = 0;
+    while (_fl_tmp_9 < fl_array_len(rest)) {
+        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_9)));
         if (_fl_compare(val, result) < 0) {
             result = val;
         }
-        _fl_tmp_8 = (_fl_tmp_8 + 1);
+        _fl_tmp_9 = (_fl_tmp_9 + 1);
     }
     return result;
 }
@@ -2626,13 +2627,13 @@ fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
 /* Flow: math.max[mono] */
 fl_int fl_math_max__int(fl_int first, FL_Array* rest) {
     fl_int result = first;
-    fl_int64 _fl_tmp_9 = 0;
-    while (_fl_tmp_9 < fl_array_len(rest)) {
-        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_9)));
+    fl_int64 _fl_tmp_10 = 0;
+    while (_fl_tmp_10 < fl_array_len(rest)) {
+        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_10)));
         if (_fl_compare(val, result) > 0) {
             result = val;
         }
-        _fl_tmp_9 = (_fl_tmp_9 + 1);
+        _fl_tmp_10 = (_fl_tmp_10 + 1);
     }
     return result;
 }
@@ -2666,26 +2667,30 @@ fl_int fl_tests_app_variadic_stdlib_main(void) {
     FL_String* _fl_tmp_1 = fl_string_join(_fl_str_tests_app_variadic_stdlib_6, fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_7}));
     fl_println(_fl_tmp_1);
     fl_string_release(_fl_tmp_1);
-    FL_Array* parts = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_8, _fl_str_tests_app_variadic_stdlib_9});
-    FL_String* _fl_tmp_2 = fl_string_join(_fl_str_tests_app_variadic_stdlib_10, parts);
-    fl_println(_fl_tmp_2);
-    fl_string_release(_fl_tmp_2);
+    FL_Array* _fl_tmp_2 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_8, _fl_str_tests_app_variadic_stdlib_9});
+    fl_array_set_elem_type(_fl_tmp_2, 1);
+    fl_string_retain(_fl_str_tests_app_variadic_stdlib_8);
+    fl_string_retain(_fl_str_tests_app_variadic_stdlib_9);
+    FL_Array* parts = _fl_tmp_2;
+    FL_String* _fl_tmp_3 = fl_string_join(_fl_str_tests_app_variadic_stdlib_10, parts);
+    fl_println(_fl_tmp_3);
+    fl_string_release(_fl_tmp_3);
     fl_json_JsonValue arr = fl_json_array_val(fl_array_new(3, sizeof(fl_json_JsonValue), (fl_json_JsonValue[]){fl_json_int_val(1), fl_json_int_val(2), fl_json_int_val(3)}));
     fl_println(fl_json_to_string(arr));
     FL_Array* nums = fl_array_of__int(fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30}));
     fl_println(fl_conv_to_string__int(fl_array_len_int(nums)));
-    FL_Option_int _fl_tmp_3 = fl_array_get_int(nums, 0);
-    fl_println(fl_conv_to_string__int(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : 0)));
-    FL_Option_int _fl_tmp_4 = fl_array_get_int(nums, 1);
+    FL_Option_int _fl_tmp_4 = fl_array_get_int(nums, 0);
     fl_println(fl_conv_to_string__int(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : 0)));
-    FL_Option_int _fl_tmp_5 = fl_array_get_int(nums, 2);
+    FL_Option_int _fl_tmp_5 = fl_array_get_int(nums, 1);
     fl_println(fl_conv_to_string__int(((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : 0)));
+    FL_Option_int _fl_tmp_6 = fl_array_get_int(nums, 2);
+    fl_println(fl_conv_to_string__int(((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : 0)));
     FL_Array* strs = fl_array_of__string(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_8, _fl_str_tests_app_variadic_stdlib_9}));
     fl_println(fl_conv_to_string__int(fl_array_len_int(strs)));
-    FL_Option_ptr _fl_tmp_6 = fl_array_get_safe(strs, 0);
-    fl_println(((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_app_variadic_stdlib_4));
-    FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(strs, 1);
+    FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(strs, 0);
     fl_println(((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_variadic_stdlib_4));
+    FL_Option_ptr _fl_tmp_8 = fl_array_get_safe(strs, 1);
+    fl_println(((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_app_variadic_stdlib_4));
     return 0;
 }
 

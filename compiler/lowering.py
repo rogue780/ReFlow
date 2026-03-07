@@ -1515,6 +1515,24 @@ class Lowerer:
         self._let_var_ltypes[stmt.name] = c_type
         stmts: list[LStmt] = [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
 
+        # Phase 4 (element refcounting): empty array literals `[]` get type
+        # TArray(TAny()) from the typechecker (no elements to infer from).
+        # When the let binding has an annotation like array<string>, we know
+        # the concrete element type and must call fl_array_set_elem_type so
+        # subsequent push calls retain/release elements correctly.
+        if (isinstance(stmt.value, ArrayLit)
+                and not stmt.value.elements
+                and stmt.type_ann is not None):
+            ann_type = self._type_of(stmt.type_ann)
+            if isinstance(ann_type, TArray):
+                elem_tag = self._ELEM_TYPE_TAG.get(type(ann_type.element))
+                if elem_tag is not None:
+                    stmts.append(LExprStmt(LCall(
+                        "fl_array_set_elem_type",
+                        [LVar(stmt.name, c_type),
+                         LLit(str(elem_tag), LInt(64, True))],
+                        LVoid())))
+
         # Retain-on-store: retain ALL let bindings from non-allocating sources.
         # Skip when option auto-lifting changed the type: val_type is T but
         # the variable is option<T>, so calling fl_T_retain(option_var) would
@@ -1570,6 +1588,20 @@ class Lowerer:
         TStream: "fl_stream_retain",
         TBuffer: "fl_buffer_retain",
         TFn:     "fl_closure_retain",
+    }
+
+    # Maps Flow element/value types to FL_ElemType integer constants.
+    # These mirror the FL_ElemType enum in flow_runtime.h.
+    # Used by _lower_array_lit and map.new() interception to call
+    # fl_array_set_elem_type / fl_map_set_val_type so the runtime
+    # can retain/release elements automatically on push/copy/free.
+    _ELEM_TYPE_TAG: dict[type, int] = {
+        TString: 1,  # FL_ELEM_STRING
+        TArray:  2,  # FL_ELEM_ARRAY
+        TMap:    3,  # FL_ELEM_MAP
+        TFn:     4,  # FL_ELEM_CLOSURE
+        TStream: 5,  # FL_ELEM_STREAM
+        TBuffer: 6,  # FL_ELEM_BUFFER
     }
 
     def _get_release_fn(self, t: Type) -> str | None:
@@ -3664,7 +3696,21 @@ class Lowerer:
                         fn_decl, list(expr.args), lowered_args, t, lt)
                     if wrapped is not None:
                         return wrapped
-                return LCall(mc_c_name, self._hoist_string_args(mc_c_name, lowered_args), lt)
+                # Phase 4: set val_type on freshly created maps so the runtime
+                # retains/releases values automatically on set/copy/free.
+                call_result = LCall(mc_c_name, self._hoist_string_args(mc_c_name, lowered_args), lt)
+                if mc_c_name == "fl_map_new" and isinstance(t, TMap):
+                    val_tag = self._ELEM_TYPE_TAG.get(type(t.value))
+                    if val_tag is not None:
+                        tmp = self._fresh_temp()
+                        self._pending_stmts.append(
+                            LVarDecl(c_name=tmp, c_type=lt, init=call_result))
+                        self._pending_stmts.append(LExprStmt(LCall(
+                            "fl_map_set_val_type",
+                            [LVar(tmp, lt), LLit(str(val_tag), LInt(64, True))],
+                            LVoid())))
+                        return LVar(tmp, lt)
+                return call_result
             # Non-native imported function — use mangled name from source module
             if isinstance(fn_decl, FnDecl):
                 src_module = self._resolve_import_module_path(expr.receiver)
@@ -5400,7 +5446,18 @@ class Lowerer:
         return stmts
 
     def _lower_array_lit(self, expr: ArrayLit) -> LExpr:
-        """Lower array literal."""
+        """Lower array literal.
+
+        Phase 4 (element refcounting): after creating the array, if the
+        element type is a refcounted heap type (string, array, map, etc.),
+        emit fl_array_set_elem_type so the runtime knows to retain/release
+        elements on push/copy/free.
+
+        For non-empty literals fl_array_new copies the data via memcpy but
+        does NOT retain elements.  The runtime's release path WILL release
+        them.  So we emit explicit retain calls for every element to give the
+        array ownership without stealing the caller's reference.
+        """
         t = self._type_of(expr)
         lt = self._lower_type(t)
         elem_type = TAny()
@@ -5408,12 +5465,25 @@ class Lowerer:
             elem_type = t.element
         elem_lt = self._lower_type(elem_type)
 
+        tag = self._ELEM_TYPE_TAG.get(type(elem_type))
+
         if not expr.elements:
-            return LCall("fl_array_new",
-                         [LLit("0", LInt(64, True)),
-                          LLit("0", LInt(64, True)),
-                          LLit("NULL", LPtr(LVoid()))],
-                         lt)
+            arr_call = LCall("fl_array_new",
+                             [LLit("0", LInt(64, True)),
+                              LLit("0", LInt(64, True)),
+                              LLit("NULL", LPtr(LVoid()))],
+                             lt)
+            if tag is None:
+                return arr_call
+            # Emit: Type* _fl_tmp_N = fl_array_new(...);
+            #        fl_array_set_elem_type(_fl_tmp_N, TAG);
+            tmp = self._fresh_temp()
+            self._pending_stmts.append(LVarDecl(c_name=tmp, c_type=lt, init=arr_call))
+            self._pending_stmts.append(LExprStmt(LCall(
+                "fl_array_set_elem_type",
+                [LVar(tmp, lt), LLit(str(tag), LInt(64, True))],
+                LVoid())))
+            return LVar(tmp, lt)
 
         lowered_elems = [self._lower_expr(e) for e in expr.elements]
         count = len(lowered_elems)
@@ -5424,11 +5494,30 @@ class Lowerer:
             elem_type=elem_lt,
             c_type=LPtr(elem_lt),
         )
-        return LCall("fl_array_new",
-                     [LLit(str(count), LInt(64, True)),
-                      LSizeOf(elem_lt),
-                      data_expr],
-                     lt)
+        arr_call = LCall("fl_array_new",
+                         [LLit(str(count), LInt(64, True)),
+                          LSizeOf(elem_lt),
+                          data_expr],
+                         lt)
+
+        if tag is None:
+            return arr_call
+
+        # Refcounted element type: store array in temp, set elem_type, retain
+        # each element so the array holds an owned reference without stealing
+        # the caller's reference.
+        tmp = self._fresh_temp()
+        self._pending_stmts.append(LVarDecl(c_name=tmp, c_type=lt, init=arr_call))
+        self._pending_stmts.append(LExprStmt(LCall(
+            "fl_array_set_elem_type",
+            [LVar(tmp, lt), LLit(str(tag), LInt(64, True))],
+            LVoid())))
+        retain_fn = self._RETAIN_FN.get(type(elem_type))
+        if retain_fn:
+            for lowered_elem in lowered_elems:
+                self._pending_stmts.append(LExprStmt(LCall(
+                    retain_fn, [lowered_elem], LVoid())))
+        return LVar(tmp, lt)
 
     def _lower_type_lit(self, expr: TypeLit) -> LExpr:
         """Lower type literal (struct construction)."""

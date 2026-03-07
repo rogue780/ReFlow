@@ -495,6 +495,7 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 /* Flow: file.read_lines */
 FL_Array* fl_file_read_lines(FL_File* f) {
     FL_Array* lines = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(lines, 1);
     fl_bool done = fl_false;
     while (!done) {
         FL_Option_ptr _fl_tmp_0 = fl_file_read_line(f);

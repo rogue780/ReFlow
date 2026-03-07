@@ -203,6 +203,37 @@ FL_String* fl_byte_to_string(fl_byte v) {
  * Array (RT-1-4-1, RT-1-4-2)
  * ======================================================================== */
 
+/* Forward declarations for element-level refcounting dispatch */
+static void _fl_elem_retain(FL_ElemType t, void* slot) {
+    if (t == FL_ELEM_NONE) return;
+    void* p = *(void**)slot;
+    if (!p) return;
+    switch (t) {
+        case FL_ELEM_STRING:  fl_string_retain((FL_String*)p); break;
+        case FL_ELEM_ARRAY:   fl_array_retain((FL_Array*)p); break;
+        case FL_ELEM_MAP:     fl_map_retain((FL_Map*)p); break;
+        case FL_ELEM_CLOSURE: fl_closure_retain((FL_Closure*)p); break;
+        case FL_ELEM_STREAM:  fl_stream_retain((FL_Stream*)p); break;
+        case FL_ELEM_BUFFER:  fl_buffer_retain((FL_Buffer*)p); break;
+        default: break;
+    }
+}
+
+static void _fl_elem_release(FL_ElemType t, void* slot) {
+    if (t == FL_ELEM_NONE) return;
+    void* p = *(void**)slot;
+    if (!p) return;
+    switch (t) {
+        case FL_ELEM_STRING:  fl_string_release((FL_String*)p); break;
+        case FL_ELEM_ARRAY:   fl_array_release((FL_Array*)p); break;
+        case FL_ELEM_MAP:     fl_map_release((FL_Map*)p); break;
+        case FL_ELEM_CLOSURE: fl_closure_release((FL_Closure*)p); break;
+        case FL_ELEM_STREAM:  fl_stream_release((FL_Stream*)p); break;
+        case FL_ELEM_BUFFER:  fl_buffer_release((FL_Buffer*)p); break;
+        default: break;
+    }
+}
+
 FL_Array* fl_array_new(fl_int64 len, fl_int64 element_size, void* initial_data) {
     FL_Array* arr = (FL_Array*)malloc(sizeof(FL_Array));
     if (!arr) fl_panic("fl_array_new: out of memory");
@@ -210,6 +241,7 @@ FL_Array* fl_array_new(fl_int64 len, fl_int64 element_size, void* initial_data) 
     arr->len = len;
     arr->capacity = len;
     arr->element_size = element_size;
+    arr->elem_type = FL_ELEM_NONE;
     if (len > 0) {
         arr->data = malloc((size_t)len * (size_t)element_size);
         if (!arr->data) fl_panic("fl_array_new: out of memory");
@@ -232,6 +264,12 @@ void fl_array_retain(FL_Array* arr) {
 void fl_array_release(FL_Array* arr) {
     if (!arr) return;
     if (atomic_fetch_sub(&arr->refcount, 1) == 1) {
+        if (arr->elem_type != FL_ELEM_NONE && arr->data) {
+            for (fl_int64 i = 0; i < arr->len; i++) {
+                void* slot = (char*)arr->data + (size_t)i * (size_t)arr->element_size;
+                _fl_elem_release(arr->elem_type, slot);
+            }
+        }
         free(arr->data);
         free(arr);
     }
@@ -239,7 +277,15 @@ void fl_array_release(FL_Array* arr) {
 
 FL_Array* fl_array_copy(FL_Array* arr) {
     if (!arr) return NULL;
-    return fl_array_new(arr->len, arr->element_size, arr->data);
+    FL_Array* copy = fl_array_new(arr->len, arr->element_size, arr->data);
+    copy->elem_type = arr->elem_type;
+    if (copy->elem_type != FL_ELEM_NONE && copy->data) {
+        for (fl_int64 i = 0; i < copy->len; i++) {
+            void* slot = (char*)copy->data + (size_t)i * (size_t)copy->element_size;
+            _fl_elem_retain(copy->elem_type, slot);
+        }
+    }
+    return copy;
 }
 
 void* fl_array_get_ptr(FL_Array* arr, fl_int64 idx) {
@@ -293,7 +339,13 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
         out->len = new_len;
         out->capacity = cap;
         out->element_size = arr->element_size;
+        out->elem_type = arr->elem_type;
         out->data = arr->data;
+        /* Retain the newly pushed element */
+        if (out->elem_type != FL_ELEM_NONE) {
+            void* new_slot = (char*)out->data + (size_t)(new_len - 1) * elem_sz;
+            _fl_elem_retain(out->elem_type, new_slot);
+        }
         return out;
     }
 
@@ -308,12 +360,25 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
     out->len = new_len;
     out->capacity = new_cap;
     out->element_size = arr->element_size;
+    out->elem_type = arr->elem_type;
     out->data = malloc((size_t)new_cap * elem_sz);
     if (!out->data) fl_panic("fl_array_push: out of memory");
     if (arr->len > 0) {
         memcpy(out->data, arr->data, (size_t)arr->len * elem_sz);
+        /* Retain all copied elements (they're shared with old array) */
+        if (out->elem_type != FL_ELEM_NONE) {
+            for (fl_int64 i = 0; i < arr->len; i++) {
+                void* slot = (char*)out->data + (size_t)i * elem_sz;
+                _fl_elem_retain(out->elem_type, slot);
+            }
+        }
     }
     memcpy((char*)out->data + (size_t)arr->len * elem_sz, element, elem_sz);
+    /* Retain the newly pushed element */
+    if (out->elem_type != FL_ELEM_NONE) {
+        void* new_slot = (char*)out->data + (size_t)arr->len * elem_sz;
+        _fl_elem_retain(out->elem_type, new_slot);
+    }
     return out;
 }
 
@@ -1418,6 +1483,7 @@ struct FL_Map {
     fl_int64     capacity;
     FL_MapEntry* entries;
     fl_bool      owns_entries;  /* false = shared entries, don't free on release */
+    FL_ElemType  val_type;      /* value refcount kind; 0 = no cleanup */
 };
 
 static fl_uint64 fl__fnv1a(const void* key, fl_int64 len) {
@@ -1439,6 +1505,7 @@ static FL_Map* fl__map_alloc(fl_int64 capacity) {
     m->entries = (FL_MapEntry*)calloc((size_t)capacity, sizeof(FL_MapEntry));
     if (!m->entries) fl_panic("fl_map: out of memory");
     m->owns_entries = fl_true;
+    m->val_type = FL_ELEM_NONE;
     return m;
 }
 
@@ -1498,6 +1565,11 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         out->capacity = m->capacity;
         out->entries = m->entries;
         out->owns_entries = fl_true;
+        out->val_type = m->val_type;
+        /* Retain the inserted value */
+        if (out->val_type != FL_ELEM_NONE) {
+            _fl_elem_retain(out->val_type, &e->val);
+        }
         return out;
     }
 
@@ -1508,6 +1580,7 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
     while (4 * new_count >= 3 * new_cap) new_cap *= 2;
 
     FL_Map* n = fl__map_alloc(new_cap);
+    n->val_type = m->val_type;
 
     /* Copy existing entries (except the one being overwritten) */
     for (fl_int64 i = 0; i < m->capacity; i++) {
@@ -1523,6 +1596,10 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         n->entries[idx].key_len = e->key_len;
         n->entries[idx].val = e->val;
         n->entries[idx].occupied = fl_true;
+        /* Retain all copied values (shared with old map) */
+        if (n->val_type != FL_ELEM_NONE) {
+            _fl_elem_retain(n->val_type, &n->entries[idx].val);
+        }
         n->count++;
     }
 
@@ -1535,6 +1612,10 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
     n->entries[idx].key_len = key_len;
     n->entries[idx].val = val;
     n->entries[idx].occupied = fl_true;
+    /* Retain the new/updated value */
+    if (n->val_type != FL_ELEM_NONE) {
+        _fl_elem_retain(n->val_type, &n->entries[idx].val);
+    }
     n->count++;
 
     return n;
@@ -1568,6 +1649,9 @@ void fl_map_release(FL_Map* m) {
     if (m->owns_entries) {
         for (fl_int64 i = 0; i < m->capacity; i++) {
             if (m->entries[i].occupied) {
+                if (m->val_type != FL_ELEM_NONE) {
+                    _fl_elem_release(m->val_type, &m->entries[i].val);
+                }
                 free(m->entries[i].key);
             }
         }
@@ -3596,7 +3680,23 @@ FL_Array* fl_array_concat(FL_Array* a, FL_Array* b) {
            b->data, (size_t)(b->len * a->element_size));
     FL_Array* result = fl_array_new(total, a->element_size, data);
     free(data);
+    /* Propagate elem_type and retain all elements (both a and b contributed) */
+    result->elem_type = a->elem_type;
+    if (result->elem_type != FL_ELEM_NONE && result->data) {
+        for (fl_int64 i = 0; i < result->len; i++) {
+            void* slot = (char*)result->data + (size_t)i * (size_t)result->element_size;
+            _fl_elem_retain(result->elem_type, slot);
+        }
+    }
     return result;
+}
+
+void fl_array_set_elem_type(FL_Array* a, fl_int t) {
+    if (a) a->elem_type = (FL_ElemType)t;
+}
+
+void fl_map_set_val_type(FL_Map* m, fl_int t) {
+    if (m) m->val_type = (FL_ElemType)t;
 }
 
 /* ========================================================================
@@ -3718,6 +3818,9 @@ FL_Map* fl_map_remove_str(FL_Map* m, FL_String* key) {
         FL_MapEntry* e = &m->entries[idx];
         if (!e->occupied) break;
         if (e->key_len == key->len && memcmp(e->key, key->data, (size_t)key->len) == 0) {
+            if (m->val_type != FL_ELEM_NONE) {
+                _fl_elem_release(m->val_type, &e->val);
+            }
             e->occupied = 0;
             m->count--;
             break;
@@ -3745,6 +3848,8 @@ FL_Array* fl_map_keys(FL_Map* m) {
     }
     FL_Array* arr = fl_array_new(j, sizeof(FL_String*), keys);
     free(keys);
+    /* Keys are newly created FL_String* objects owned by this array */
+    arr->elem_type = FL_ELEM_STRING;
     return arr;
 }
 
@@ -3761,6 +3866,14 @@ FL_Array* fl_map_values(FL_Map* m) {
     }
     FL_Array* arr = fl_array_new(j, sizeof(void*), vals);
     free(vals);
+    /* Values are shared with the map; set elem_type and retain all */
+    arr->elem_type = m->val_type;
+    if (arr->elem_type != FL_ELEM_NONE && arr->data) {
+        for (fl_int64 i = 0; i < arr->len; i++) {
+            void* slot = (char*)arr->data + (size_t)i * sizeof(void*);
+            _fl_elem_retain(arr->elem_type, slot);
+        }
+    }
     return arr;
 }
 

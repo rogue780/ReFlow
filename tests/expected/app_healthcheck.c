@@ -967,6 +967,7 @@ void fl_tests_app_healthcheck_main(void) {
     fl_coroutine_set_input(_fl_tmp_32, _fl_tmp_29);
     FL_Coroutine* agg = _fl_tmp_32;
     FL_Array* urls = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(urls, 1);
     FL_String* _fl_tmp_33 = fl_string_concat(_fl_str_tests_app_healthcheck_25, fl_conv_to_string__int(port));
     FL_Array* _fl_old_34 = urls;
     urls = fl_array_push_ptr(urls, fl_string_concat(_fl_tmp_33, _fl_str_tests_app_healthcheck_26));

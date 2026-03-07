@@ -562,6 +562,7 @@ FL_String* _fl_str_tests_stdlib_generic_array_26 = NULL;
 /* Flow: tests.stdlib_generic_array.main */
 void fl_tests_stdlib_generic_array_main(void) {
     FL_Array* strs = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(strs, 1);
     FL_Array* _fl_old_0 = strs;
     strs = fl_array_push_ptr(strs, _fl_str_tests_stdlib_generic_array_0);
     if (_fl_old_0 != strs) {
@@ -662,12 +663,14 @@ void fl_tests_stdlib_generic_array_main(void) {
         fl_println(_fl_str_tests_stdlib_generic_array_14);
     }
     FL_Array* a = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(a, 1);
     FL_Array* _fl_old_28 = a;
     a = fl_array_push_ptr(a, _fl_str_tests_stdlib_generic_array_15);
     if (_fl_old_28 != a) {
         fl_array_release(_fl_old_28);
     }
     FL_Array* b = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(b, 1);
     FL_Array* _fl_old_29 = b;
     b = fl_array_push_ptr(b, _fl_str_tests_stdlib_generic_array_16);
     if (_fl_old_29 != b) {

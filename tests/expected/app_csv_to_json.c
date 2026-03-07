@@ -959,12 +959,27 @@ FL_String* fl_tests_app_csv_to_json_sanitize(FL_String* line) {
 
 /* Flow: tests.app_csv_to_json.main */
 void fl_tests_app_csv_to_json_main(void) {
-    FL_Array* lines = fl_array_new(5, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_12, _fl_str_tests_app_csv_to_json_13, _fl_str_tests_app_csv_to_json_14, _fl_str_tests_app_csv_to_json_15, _fl_str_tests_app_csv_to_json_16});
-    fl_tests_app_csv_to_json_Schema schema = (fl_tests_app_csv_to_json_Schema){.columns = fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_17, _fl_str_tests_app_csv_to_json_18, _fl_str_tests_app_csv_to_json_19}), .required = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_17})};
+    FL_Array* _fl_tmp_7 = fl_array_new(5, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_12, _fl_str_tests_app_csv_to_json_13, _fl_str_tests_app_csv_to_json_14, _fl_str_tests_app_csv_to_json_15, _fl_str_tests_app_csv_to_json_16});
+    fl_array_set_elem_type(_fl_tmp_7, 1);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_12);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_13);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_14);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_15);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_16);
+    FL_Array* lines = _fl_tmp_7;
+    FL_Array* _fl_tmp_8 = fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_17, _fl_str_tests_app_csv_to_json_18, _fl_str_tests_app_csv_to_json_19});
+    fl_array_set_elem_type(_fl_tmp_8, 1);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_17);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_18);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_19);
+    FL_Array* _fl_tmp_9 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_17});
+    fl_array_set_elem_type(_fl_tmp_9, 1);
+    fl_string_retain(_fl_str_tests_app_csv_to_json_17);
+    fl_tests_app_csv_to_json_Schema schema = (fl_tests_app_csv_to_json_Schema){.columns = _fl_tmp_8, .required = _fl_tmp_9};
     fl_int i = 1;
     while (i < fl_array_len_int(lines)) {
-        FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(lines, i);
-        FL_String* line = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_csv_to_json_1);
+        FL_Option_ptr _fl_tmp_10 = fl_array_get_safe(lines, i);
+        FL_String* line = ((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : _fl_str_tests_app_csv_to_json_1);
         fl_string_retain(line);
         FL_ExceptionFrame _fl_ef_0;
         _fl_exception_push((&_fl_ef_0));
@@ -991,11 +1006,11 @@ void fl_tests_app_csv_to_json_main(void) {
                     _fl_exception_pop();
                     if (_fl_ef_1.exception_tag == 0) {
                         FL_String* e2 = ((FL_String*)_fl_ef_1.exception);
-                        FL_String* _fl_tmp_8 = fl_string_concat(_fl_str_tests_app_csv_to_json_20, fl_conv_to_string__int(i));
-                        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_str_tests_app_csv_to_json_21);
-                        fl_println(fl_string_concat(_fl_tmp_9, e2));
-                        fl_string_release(_fl_tmp_8);
-                        fl_string_release(_fl_tmp_9);
+                        FL_String* _fl_tmp_11 = fl_string_concat(_fl_str_tests_app_csv_to_json_20, fl_conv_to_string__int(i));
+                        FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, _fl_str_tests_app_csv_to_json_21);
+                        fl_println(fl_string_concat(_fl_tmp_12, e2));
+                        fl_string_release(_fl_tmp_11);
+                        fl_string_release(_fl_tmp_12);
                     } else {
                         _fl_throw(_fl_ef_1.exception, _fl_ef_1.exception_tag);
                     }

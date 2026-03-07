@@ -2464,6 +2464,7 @@ FL_Tuple_FL_Array_ptr_FL_String_ptr fl_tests_app_json_query_parse_path(FL_String
         has_type_suffix = fl_true;
     }
     FL_Array* segments = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(segments, 1);
     if (fl_string_len(q) > 0) {
         FL_Array* parts = fl_string_split(q, _fl_str_tests_app_json_query_1);
         fl_int i = 0;

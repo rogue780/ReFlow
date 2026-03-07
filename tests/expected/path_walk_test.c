@@ -783,6 +783,7 @@ FL_Option_ptr fl_path_walk(FL_String* dir) {
     if (_fl_tmp_17.tag == 1) {
         FL_Array* entries = _fl_tmp_17.value;
         FL_Array* result = fl_array_new(0, 0, NULL);
+        fl_array_set_elem_type(result, 1);
         fl_int64 _fl_tmp_18 = 0;
         while (_fl_tmp_18 < fl_array_len(entries)) {
             FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_18)));
