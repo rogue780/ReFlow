@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -528,13 +537,29 @@ struct fl_tests_match_same_binding_test_Shape {
     fl_tests_match_same_binding_test_Shape_Rect Rect;
 };
 
+FL_String* _fl_str_tests_match_same_binding_test_0 = NULL;
+
+FL_String* _fl_str_tests_match_same_binding_test_1 = NULL;
+
+FL_String* _fl_str_tests_match_same_binding_test_2 = NULL;
+
+FL_String* _fl_str_tests_match_same_binding_test_3 = NULL;
+
+FL_String* _fl_str_tests_match_same_binding_test_4 = NULL;
+
+FL_String* _fl_str_tests_match_same_binding_test_5 = NULL;
+
+FL_String* _fl_str_tests_match_same_binding_test_6 = NULL;
+
+FL_String* _fl_str_tests_match_same_binding_test_7 = NULL;
+
 /* Flow: tests.match_same_binding_test.describe */
 FL_String* fl_tests_match_same_binding_test_describe(fl_tests_match_same_binding_test_Shape s) {
     fl_tests_match_same_binding_test_Shape _fl_tmp_0 = s;
     switch (_fl_tmp_0.tag) {
         case 0: {
             fl_float val = _fl_tmp_0.Circle.radius;
-            FL_String* _fl_tmp_1 = fl_string_from_cstr("circle r=");
+            FL_String* _fl_tmp_1 = _fl_str_tests_match_same_binding_test_0;
             FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_float_to_string(val));
             fl_string_release(_fl_tmp_1);
             return _fl_tmp_2;
@@ -542,7 +567,7 @@ FL_String* fl_tests_match_same_binding_test_describe(fl_tests_match_same_binding
         }
         case 1: {
             fl_float val = _fl_tmp_0.Square.side;
-            FL_String* _fl_tmp_3 = fl_string_from_cstr("square s=");
+            FL_String* _fl_tmp_3 = _fl_str_tests_match_same_binding_test_1;
             FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_float_to_string(val));
             fl_string_release(_fl_tmp_3);
             return _fl_tmp_4;
@@ -551,9 +576,9 @@ FL_String* fl_tests_match_same_binding_test_describe(fl_tests_match_same_binding
         case 2: {
             fl_float w = _fl_tmp_0.Rect.width;
             fl_float h = _fl_tmp_0.Rect.height;
-            FL_String* _fl_tmp_5 = fl_string_from_cstr("rect w=");
+            FL_String* _fl_tmp_5 = _fl_str_tests_match_same_binding_test_2;
             FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_float_to_string(w));
-            FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_string_from_cstr(" h="));
+            FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, _fl_str_tests_match_same_binding_test_3);
             FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_float_to_string(h));
             fl_string_release(_fl_tmp_5);
             fl_string_release(_fl_tmp_6);
@@ -595,24 +620,48 @@ void fl_tests_match_same_binding_test_main(void) {
     fl_println(fl_tests_match_same_binding_test_describe(c));
     fl_println(fl_tests_match_same_binding_test_describe(s));
     fl_println(fl_tests_match_same_binding_test_describe(r));
-    FL_String* _fl_tmp_10 = fl_string_from_cstr("area circle: ");
+    FL_String* _fl_tmp_10 = _fl_str_tests_match_same_binding_test_4;
     FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, fl_float_to_string(fl_tests_match_same_binding_test_area(c)));
     fl_string_release(_fl_tmp_10);
     fl_println(_fl_tmp_11);
-    FL_String* _fl_tmp_12 = fl_string_from_cstr("area square: ");
+    FL_String* _fl_tmp_12 = _fl_str_tests_match_same_binding_test_5;
     FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, fl_float_to_string(fl_tests_match_same_binding_test_area(s)));
     fl_string_release(_fl_tmp_12);
     fl_println(_fl_tmp_13);
-    FL_String* _fl_tmp_14 = fl_string_from_cstr("area rect: ");
+    FL_String* _fl_tmp_14 = _fl_str_tests_match_same_binding_test_6;
     FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, fl_float_to_string(fl_tests_match_same_binding_test_area(r)));
     fl_string_release(_fl_tmp_14);
     fl_println(_fl_tmp_15);
-    fl_println(fl_string_from_cstr("done"));
+    fl_println(_fl_str_tests_match_same_binding_test_7);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_match_same_binding_test_0 = fl_string_from_cstr("circle r=");
+    _fl_str_tests_match_same_binding_test_0->refcount = 2147483647;
+    _fl_str_tests_match_same_binding_test_1 = fl_string_from_cstr("square s=");
+    _fl_str_tests_match_same_binding_test_1->refcount = 2147483647;
+    _fl_str_tests_match_same_binding_test_2 = fl_string_from_cstr("rect w=");
+    _fl_str_tests_match_same_binding_test_2->refcount = 2147483647;
+    _fl_str_tests_match_same_binding_test_3 = fl_string_from_cstr(" h=");
+    _fl_str_tests_match_same_binding_test_3->refcount = 2147483647;
+    _fl_str_tests_match_same_binding_test_4 = fl_string_from_cstr("area circle: ");
+    _fl_str_tests_match_same_binding_test_4->refcount = 2147483647;
+    _fl_str_tests_match_same_binding_test_5 = fl_string_from_cstr("area square: ");
+    _fl_str_tests_match_same_binding_test_5->refcount = 2147483647;
+    _fl_str_tests_match_same_binding_test_6 = fl_string_from_cstr("area rect: ");
+    _fl_str_tests_match_same_binding_test_6->refcount = 2147483647;
+    _fl_str_tests_match_same_binding_test_7 = fl_string_from_cstr("done");
+    _fl_str_tests_match_same_binding_test_7->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_match_same_binding_test_main();
     return 0;
 }

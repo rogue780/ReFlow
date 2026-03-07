@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -177,10 +184,20 @@ FL_String* fl_crypto_base64_encode(FL_String* data);
 
 FL_String* fl_crypto_base64_decode(FL_String* data);
 
+FL_String* _fl_str_crypto_0 = NULL;
+
+FL_String* _fl_str_crypto_1 = NULL;
+
+FL_String* _fl_str_crypto_2 = NULL;
+
+FL_String* _fl_str_crypto_3 = NULL;
+
 /* Flow: crypto.bytes_to_hex */
 FL_String* fl_crypto_bytes_to_hex(void* p, fl_int len) {
-    FL_String* hex_chars = fl_string_from_cstr("0123456789abcdef");
-    FL_String* result = fl_string_from_cstr("");
+    FL_String* hex_chars = _fl_str_crypto_0;
+    fl_string_retain(hex_chars);
+    FL_String* result = _fl_str_crypto_1;
+    fl_string_retain(result);
     fl_int i = 0;
     while (i < len) {
         fl_int b = ((fl_int)fl_mem_read_byte(p, ((fl_int64)i)));
@@ -193,12 +210,20 @@ FL_String* fl_crypto_bytes_to_hex(void* p, fl_int len) {
         FL_Option_char _fl_tmp_0 = fl_string_char_at(hex_chars, hi);
         if (_fl_tmp_0.tag == 1) {
             fl_char hi_c = _fl_tmp_0.value;
+            FL_String* _fl_old_1 = result;
             result = fl_string_concat(result, fl_char_to_string(hi_c));
+            if (_fl_old_1 != result) {
+                fl_string_release(_fl_old_1);
+            }
         }
-        FL_Option_char _fl_tmp_1 = fl_string_char_at(hex_chars, lo);
-        if (_fl_tmp_1.tag == 1) {
-            fl_char lo_c = _fl_tmp_1.value;
+        FL_Option_char _fl_tmp_2 = fl_string_char_at(hex_chars, lo);
+        if (_fl_tmp_2.tag == 1) {
+            fl_char lo_c = _fl_tmp_2.value;
+            FL_String* _fl_old_3 = result;
             result = fl_string_concat(result, fl_char_to_string(lo_c));
+            if (_fl_old_3 != result) {
+                fl_string_release(_fl_old_3);
+            }
         }
         fl_int _fl_e_3;
         FL_CHECKED_ADD(i, 1, &_fl_e_3);
@@ -211,7 +236,7 @@ FL_String* fl_crypto_bytes_to_hex(void* p, fl_int len) {
 FL_String* fl_crypto_do_digest(void* md_ptr, FL_String* data, fl_int digest_len) {
     void* ctx = EVP_MD_CTX_new();
     if (fl_ptr_is_null(ctx)) {
-        return fl_string_from_cstr("");
+        return _fl_str_crypto_1;
     }
     EVP_DigestInit_ex(ctx, md_ptr, fl_ptr_null());
     EVP_DigestUpdate(ctx, fl_string_to_cptr(data), ((fl_int64)fl_string_len(data)));
@@ -254,10 +279,10 @@ FL_Array* fl_crypto_random_bytes(fl_int n) {
     FL_Array* result = fl_array_new(0, 0, NULL);
     fl_int i = 0;
     while (i < n) {
-        FL_Array* _fl_old_2 = result;
+        FL_Array* _fl_old_4 = result;
         result = fl_array_push_byte(result, fl_mem_read_byte(buf, ((fl_int64)i)));
-        if (_fl_old_2 != result) {
-            fl_array_release(_fl_old_2);
+        if (_fl_old_4 != result) {
+            fl_array_release(_fl_old_4);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -299,10 +324,10 @@ FL_String* fl_crypto_base64_decode(FL_String* data) {
     void* buf = fl_mem_alloc(((fl_int64)out_len));
     fl_int written = EVP_DecodeBlock(buf, fl_string_to_cptr(data), in_len);
     fl_int pad = 0;
-    if (fl_string_ends_with(data, fl_string_from_cstr("=="))) {
+    if (fl_string_ends_with(data, _fl_str_crypto_2)) {
         pad = 2;
     } else {
-        if (fl_string_ends_with(data, fl_string_from_cstr("="))) {
+        if (fl_string_ends_with(data, _fl_str_crypto_3)) {
             pad = 1;
         }
     }
@@ -316,60 +341,118 @@ FL_String* fl_crypto_base64_decode(FL_String* data) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
 }
 
+FL_String* _fl_str_tests_app_crypto_test_0 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_1 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_2 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_3 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_4 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_5 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_6 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_7 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_8 = NULL;
+
+FL_String* _fl_str_tests_app_crypto_test_9 = NULL;
+
 /* Flow: tests.app_crypto_test.main */
 fl_int fl_tests_app_crypto_test_main(void) {
-    FL_String* h256 = fl_crypto_sha256(fl_string_from_cstr("hello"));
-    FL_String* _fl_tmp_0 = fl_string_from_cstr("sha256: ");
+    FL_String* h256 = fl_crypto_sha256(_fl_str_tests_app_crypto_test_0);
+    FL_String* _fl_tmp_0 = _fl_str_tests_app_crypto_test_1;
     FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, h256);
     fl_string_release(_fl_tmp_0);
     fl_println(_fl_tmp_1);
-    FL_String* h512 = fl_crypto_sha512(fl_string_from_cstr("hello"));
-    FL_String* _fl_tmp_2 = fl_string_from_cstr("sha512: ");
+    FL_String* h512 = fl_crypto_sha512(_fl_str_tests_app_crypto_test_0);
+    FL_String* _fl_tmp_2 = _fl_str_tests_app_crypto_test_2;
     FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, h512);
     fl_string_release(_fl_tmp_2);
     fl_println(_fl_tmp_3);
-    FL_String* h_md5 = fl_crypto_md5(fl_string_from_cstr("hello"));
-    FL_String* _fl_tmp_4 = fl_string_from_cstr("md5: ");
+    FL_String* h_md5 = fl_crypto_md5(_fl_str_tests_app_crypto_test_0);
+    FL_String* _fl_tmp_4 = _fl_str_tests_app_crypto_test_3;
     FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, h_md5);
     fl_string_release(_fl_tmp_4);
     fl_println(_fl_tmp_5);
-    FL_String* hmac = fl_crypto_hmac_sha256(fl_string_from_cstr("secret"), fl_string_from_cstr("hello"));
-    FL_String* _fl_tmp_6 = fl_string_from_cstr("hmac_sha256: ");
+    FL_String* hmac = fl_crypto_hmac_sha256(_fl_str_tests_app_crypto_test_4, _fl_str_tests_app_crypto_test_0);
+    FL_String* _fl_tmp_6 = _fl_str_tests_app_crypto_test_5;
     FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, hmac);
     fl_string_release(_fl_tmp_6);
     fl_println(_fl_tmp_7);
-    FL_String* encoded = fl_crypto_base64_encode(fl_string_from_cstr("Hello, World!"));
-    FL_String* _fl_tmp_8 = fl_string_from_cstr("base64_encode: ");
+    FL_String* encoded = fl_crypto_base64_encode(_fl_str_tests_app_crypto_test_6);
+    FL_String* _fl_tmp_8 = _fl_str_tests_app_crypto_test_7;
     FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, encoded);
     fl_string_release(_fl_tmp_8);
     fl_println(_fl_tmp_9);
     FL_String* decoded = fl_crypto_base64_decode(encoded);
-    FL_String* _fl_tmp_10 = fl_string_from_cstr("base64_decode: ");
+    FL_String* _fl_tmp_10 = _fl_str_tests_app_crypto_test_8;
     FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, decoded);
     fl_string_release(_fl_tmp_10);
     fl_println(_fl_tmp_11);
     FL_Array* rb = fl_crypto_random_bytes(16);
-    FL_String* _fl_tmp_12 = fl_string_from_cstr("random_bytes_len: ");
+    FL_String* _fl_tmp_12 = _fl_str_tests_app_crypto_test_9;
     FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, fl_int_to_string(fl_array_len_int(rb)));
     fl_string_release(_fl_tmp_12);
     fl_println(_fl_tmp_13);
     return 0;
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_crypto_0 = fl_string_from_cstr("0123456789abcdef");
+    _fl_str_crypto_0->refcount = 2147483647;
+    _fl_str_crypto_1 = fl_string_from_cstr("");
+    _fl_str_crypto_1->refcount = 2147483647;
+    _fl_str_crypto_2 = fl_string_from_cstr("==");
+    _fl_str_crypto_2->refcount = 2147483647;
+    _fl_str_crypto_3 = fl_string_from_cstr("=");
+    _fl_str_crypto_3->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_0 = fl_string_from_cstr("hello");
+    _fl_str_tests_app_crypto_test_0->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_1 = fl_string_from_cstr("sha256: ");
+    _fl_str_tests_app_crypto_test_1->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_2 = fl_string_from_cstr("sha512: ");
+    _fl_str_tests_app_crypto_test_2->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_3 = fl_string_from_cstr("md5: ");
+    _fl_str_tests_app_crypto_test_3->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_4 = fl_string_from_cstr("secret");
+    _fl_str_tests_app_crypto_test_4->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_5 = fl_string_from_cstr("hmac_sha256: ");
+    _fl_str_tests_app_crypto_test_5->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_6 = fl_string_from_cstr("Hello, World!");
+    _fl_str_tests_app_crypto_test_6->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_7 = fl_string_from_cstr("base64_encode: ");
+    _fl_str_tests_app_crypto_test_7->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_8 = fl_string_from_cstr("base64_decode: ");
+    _fl_str_tests_app_crypto_test_8->refcount = 2147483647;
+    _fl_str_tests_app_crypto_test_9 = fl_string_from_cstr("random_bytes_len: ");
+    _fl_str_tests_app_crypto_test_9->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_crypto_test_main();
     return 0;
 }

@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -537,6 +546,8 @@ void fl_string_builder_clear(fl_string_builder_StringBuilder sb);
 struct fl_string_builder_StringBuilder {
     void* handle;
 };
+
+FL_String* _fl_str_string_builder_0 = NULL;
 
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
@@ -760,7 +771,7 @@ void fl_string_builder_append_float(fl_string_builder_StringBuilder sb, fl_float
 FL_String* fl_string_builder_build(fl_string_builder_StringBuilder sb) {
     fl_int64 cur_len = fl_string_builder_get_len(sb);
     if (cur_len == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_builder_0;
     }
     void* data = fl_string_builder_get_data(sb);
     return fl_mem_to_string(data, cur_len);
@@ -804,9 +815,54 @@ struct fl_tests_app_csv_to_json_CsvRow {
     FL_Array* fields;
 };
 
+FL_String* _fl_str_tests_app_csv_to_json_0 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_1 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_2 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_3 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_4 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_5 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_6 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_7 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_8 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_9 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_10 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_11 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_12 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_13 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_14 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_15 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_16 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_17 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_18 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_19 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_20 = NULL;
+
+FL_String* _fl_str_tests_app_csv_to_json_21 = NULL;
+
 /* Flow: tests.app_csv_to_json.parse_row */
 fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_parse_row(fl_int idx, FL_String* line) {
-    FL_Array* fields = fl_string_split(line, fl_string_from_cstr(","));
+    FL_Array* fields = fl_string_split(line, _fl_str_tests_app_csv_to_json_0);
+    fl_array_retain(fields);
     return (fl_tests_app_csv_to_json_CsvRow){.index = idx, .fields = fields};
 }
 
@@ -826,77 +882,86 @@ fl_bool fl_tests_app_csv_to_json_is_required(FL_String* name, FL_Array* required
 /* Flow: tests.app_csv_to_json.validate */
 fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_validate(fl_tests_app_csv_to_json_CsvRow row, fl_tests_app_csv_to_json_Schema schema) {
     FL_Array* cols = schema.columns;
+    fl_array_retain(cols);
     fl_int i = 0;
     while (i < fl_array_len_int(cols)) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(cols, i);
-        FL_String* col_name = ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr(""));
+        FL_String* col_name = ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_tests_app_csv_to_json_1);
+        fl_string_retain(col_name);
         if (fl_tests_app_csv_to_json_is_required(col_name, schema.required)) {
             FL_Option_ptr _fl_tmp_2 = fl_array_get_safe(row.fields, i);
-            FL_String* field_val = ((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : fl_string_from_cstr(""));
+            FL_String* field_val = ((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : _fl_str_tests_app_csv_to_json_1);
+            fl_string_retain(field_val);
             if (fl_string_len(field_val) == 0) {
-                _fl_throw(((void*)fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("missing required field '"), col_name), fl_string_from_cstr("' at row ")), fl_conv_to_string__int(row.index))), 0);
+                _fl_throw(((void*)fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_csv_to_json_2, col_name), _fl_str_tests_app_csv_to_json_3), fl_conv_to_string__int(row.index))), 0);
             }
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
+    fl_array_release(cols);
     return row;
 }
 
 /* Flow: tests.app_csv_to_json.escape_json */
 FL_String* fl_tests_app_csv_to_json_escape_json(FL_String* s) {
-    FL_String* r1 = fl_string_replace(s, fl_string_from_cstr("\\"), fl_string_from_cstr("\\\\"));
-    FL_String* r2 = fl_string_replace(r1, fl_string_from_cstr("\""), fl_string_from_cstr("\\\""));
+    FL_String* r1 = fl_string_replace(s, _fl_str_tests_app_csv_to_json_4, _fl_str_tests_app_csv_to_json_5);
+    FL_String* r2 = fl_string_replace(r1, _fl_str_tests_app_csv_to_json_6, _fl_str_tests_app_csv_to_json_7);
     return r2;
 }
 
 /* Flow: tests.app_csv_to_json.to_json */
 FL_String* fl_tests_app_csv_to_json_to_json(fl_tests_app_csv_to_json_CsvRow row, fl_tests_app_csv_to_json_Schema schema) {
     FL_Array* cols = schema.columns;
+    fl_array_retain(cols);
     fl_string_builder_StringBuilder b = fl_string_builder_new();
-    fl_string_builder_append(b, fl_string_from_cstr("{"));
+    fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_8);
     fl_int i = 0;
     while (i < fl_array_len_int(cols)) {
         if (i > 0) {
-            fl_string_builder_append(b, fl_string_from_cstr(","));
+            fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_0);
         }
         FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(cols, i);
-        FL_String* col_name = ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr(""));
+        FL_String* col_name = ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : _fl_str_tests_app_csv_to_json_1);
+        fl_string_retain(col_name);
         FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(row.fields, i);
-        FL_String* field_val = ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : fl_string_from_cstr(""));
-        fl_string_builder_append(b, fl_string_from_cstr("\""));
+        FL_String* field_val = ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_app_csv_to_json_1);
+        fl_string_retain(field_val);
+        fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_6);
         fl_string_builder_append(b, fl_tests_app_csv_to_json_escape_json(col_name));
-        fl_string_builder_append(b, fl_string_from_cstr("\":"));
+        fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_9);
         if (fl_string_len(field_val) > 0) {
-            fl_string_builder_append(b, fl_string_from_cstr("\""));
+            fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_6);
             fl_string_builder_append(b, fl_tests_app_csv_to_json_escape_json(field_val));
-            fl_string_builder_append(b, fl_string_from_cstr("\""));
+            fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_6);
         } else {
-            fl_string_builder_append(b, fl_string_from_cstr("null"));
+            fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_10);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    fl_string_builder_append(b, fl_string_from_cstr("}"));
+    fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_11);
+    fl_array_release(cols);
     return fl_string_builder_build(b);
 }
 
 /* Flow: tests.app_csv_to_json.sanitize */
 FL_String* fl_tests_app_csv_to_json_sanitize(FL_String* line) {
-    FL_String* cleaned = fl_string_replace(line, fl_string_from_cstr("\""), fl_string_from_cstr(""));
+    FL_String* cleaned = fl_string_replace(line, _fl_str_tests_app_csv_to_json_6, _fl_str_tests_app_csv_to_json_1);
     return fl_string_trim(cleaned);
 }
 
 /* Flow: tests.app_csv_to_json.main */
 void fl_tests_app_csv_to_json_main(void) {
-    FL_Array* lines = fl_array_new(5, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("name,age,city"), fl_string_from_cstr("Alice,30,NYC"), fl_string_from_cstr("Bob,,London"), fl_string_from_cstr(",bad,data"), fl_string_from_cstr("Charlie,25,Paris")});
-    fl_tests_app_csv_to_json_Schema schema = (fl_tests_app_csv_to_json_Schema){.columns = fl_array_new(3, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("name"), fl_string_from_cstr("age"), fl_string_from_cstr("city")}), .required = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("name")})};
+    FL_Array* lines = fl_array_new(5, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_12, _fl_str_tests_app_csv_to_json_13, _fl_str_tests_app_csv_to_json_14, _fl_str_tests_app_csv_to_json_15, _fl_str_tests_app_csv_to_json_16});
+    fl_tests_app_csv_to_json_Schema schema = (fl_tests_app_csv_to_json_Schema){.columns = fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_17, _fl_str_tests_app_csv_to_json_18, _fl_str_tests_app_csv_to_json_19}), .required = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_csv_to_json_17})};
     fl_int i = 1;
     while (i < fl_array_len_int(lines)) {
         FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(lines, i);
-        FL_String* line = ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : fl_string_from_cstr(""));
+        FL_String* line = ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : _fl_str_tests_app_csv_to_json_1);
+        fl_string_retain(line);
         FL_ExceptionFrame _fl_ef_0;
         _fl_exception_push((&_fl_ef_0));
         if (setjmp(_fl_ef_0.jmp) == 0) {
@@ -922,7 +987,7 @@ void fl_tests_app_csv_to_json_main(void) {
                     _fl_exception_pop();
                     if (_fl_ef_1.exception_tag == 0) {
                         FL_String* e2 = ((FL_String*)_fl_ef_1.exception);
-                        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("SKIP row "), fl_conv_to_string__int(i)), fl_string_from_cstr(": ")), e2));
+                        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_csv_to_json_20, fl_conv_to_string__int(i)), _fl_str_tests_app_csv_to_json_21), e2));
                     } else {
                         _fl_throw(_fl_ef_1.exception, _fl_ef_1.exception_tag);
                     }
@@ -937,9 +1002,63 @@ void fl_tests_app_csv_to_json_main(void) {
     }
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_string_builder_0 = fl_string_from_cstr("");
+    _fl_str_string_builder_0->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_0 = fl_string_from_cstr(",");
+    _fl_str_tests_app_csv_to_json_0->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_1 = fl_string_from_cstr("");
+    _fl_str_tests_app_csv_to_json_1->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_2 = fl_string_from_cstr("missing required field '");
+    _fl_str_tests_app_csv_to_json_2->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_3 = fl_string_from_cstr("' at row ");
+    _fl_str_tests_app_csv_to_json_3->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_4 = fl_string_from_cstr("\\");
+    _fl_str_tests_app_csv_to_json_4->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_5 = fl_string_from_cstr("\\\\");
+    _fl_str_tests_app_csv_to_json_5->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_6 = fl_string_from_cstr("\"");
+    _fl_str_tests_app_csv_to_json_6->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_7 = fl_string_from_cstr("\\\"");
+    _fl_str_tests_app_csv_to_json_7->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_8 = fl_string_from_cstr("{");
+    _fl_str_tests_app_csv_to_json_8->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_9 = fl_string_from_cstr("\":");
+    _fl_str_tests_app_csv_to_json_9->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_10 = fl_string_from_cstr("null");
+    _fl_str_tests_app_csv_to_json_10->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_11 = fl_string_from_cstr("}");
+    _fl_str_tests_app_csv_to_json_11->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_12 = fl_string_from_cstr("name,age,city");
+    _fl_str_tests_app_csv_to_json_12->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_13 = fl_string_from_cstr("Alice,30,NYC");
+    _fl_str_tests_app_csv_to_json_13->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_14 = fl_string_from_cstr("Bob,,London");
+    _fl_str_tests_app_csv_to_json_14->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_15 = fl_string_from_cstr(",bad,data");
+    _fl_str_tests_app_csv_to_json_15->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_16 = fl_string_from_cstr("Charlie,25,Paris");
+    _fl_str_tests_app_csv_to_json_16->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_17 = fl_string_from_cstr("name");
+    _fl_str_tests_app_csv_to_json_17->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_18 = fl_string_from_cstr("age");
+    _fl_str_tests_app_csv_to_json_18->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_19 = fl_string_from_cstr("city");
+    _fl_str_tests_app_csv_to_json_19->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_20 = fl_string_from_cstr("SKIP row ");
+    _fl_str_tests_app_csv_to_json_20->refcount = 2147483647;
+    _fl_str_tests_app_csv_to_json_21 = fl_string_from_cstr(": ");
+    _fl_str_tests_app_csv_to_json_21->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_csv_to_json_main();
     return 0;
 }

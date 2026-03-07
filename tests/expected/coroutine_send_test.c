@@ -4,18 +4,25 @@
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -25,12 +32,14 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -53,6 +62,18 @@ struct _fl_frame_tests_coroutine_send_test_echo_worker {
     fl_bool got_any;
     FL_String* msg;
 };
+
+FL_String* _fl_str_tests_coroutine_send_test_0 = NULL;
+
+FL_String* _fl_str_tests_coroutine_send_test_1 = NULL;
+
+FL_String* _fl_str_tests_coroutine_send_test_2 = NULL;
+
+FL_String* _fl_str_tests_coroutine_send_test_3 = NULL;
+
+FL_String* _fl_str_tests_coroutine_send_test_4 = NULL;
+
+FL_String* _fl_str_tests_coroutine_send_test_5 = NULL;
 
 /* Flow: tests.coroutine_send_test.echo_worker::next */
 FL_Option_ptr _fl_next_tests_coroutine_send_test_echo_worker(FL_Stream* self) {
@@ -83,7 +104,7 @@ _fl_state_0:;
             frame->msg = ((FL_String*)_fl_tmp_0.value);
             frame->got_any = fl_true;
             frame->_state = 1;
-            return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(fl_string_from_cstr("echo: "), frame->msg)))};
+            return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(_fl_str_tests_coroutine_send_test_0, frame->msg)))};
 _fl_state_1:;
         }
         if (!frame->got_any) {
@@ -117,36 +138,56 @@ void fl_tests_coroutine_send_test_main(void) {
     FL_Coroutine* _fl_tmp_4 = fl_coroutine_new_threaded(_fl_tmp_3, 64);
     fl_coroutine_set_input(_fl_tmp_4, _fl_tmp_1);
     FL_Coroutine* w = _fl_tmp_4;
-    fl_coroutine_send(w, ((void*)fl_string_from_cstr("hello")));
-    fl_coroutine_send(w, ((void*)fl_string_from_cstr("world")));
-    fl_coroutine_send(w, ((void*)fl_string_from_cstr("done")));
+    fl_coroutine_send(w, ((void*)_fl_str_tests_coroutine_send_test_1));
+    fl_coroutine_send(w, ((void*)_fl_str_tests_coroutine_send_test_2));
+    fl_coroutine_send(w, ((void*)_fl_str_tests_coroutine_send_test_3));
     FL_Option_ptr _fl_tmp_5 = fl_coroutine_next(w);
     if (_fl_tmp_5.tag == 1) {
         FL_String* v = _fl_tmp_5.value;
         fl_println(v);
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_coroutine_send_test_4);
     }
     FL_Option_ptr _fl_tmp_6 = fl_coroutine_next(w);
     if (_fl_tmp_6.tag == 1) {
         FL_String* v = _fl_tmp_6.value;
         fl_println(v);
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_coroutine_send_test_4);
     }
     FL_Option_ptr _fl_tmp_7 = fl_coroutine_next(w);
     if (_fl_tmp_7.tag == 1) {
         FL_String* v = _fl_tmp_7.value;
         fl_println(v);
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_coroutine_send_test_4);
     }
-    fl_println(fl_string_from_cstr("test complete"));
+    fl_println(_fl_str_tests_coroutine_send_test_5);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_coroutine_send_test_0 = fl_string_from_cstr("echo: ");
+    _fl_str_tests_coroutine_send_test_0->refcount = 2147483647;
+    _fl_str_tests_coroutine_send_test_1 = fl_string_from_cstr("hello");
+    _fl_str_tests_coroutine_send_test_1->refcount = 2147483647;
+    _fl_str_tests_coroutine_send_test_2 = fl_string_from_cstr("world");
+    _fl_str_tests_coroutine_send_test_2->refcount = 2147483647;
+    _fl_str_tests_coroutine_send_test_3 = fl_string_from_cstr("done");
+    _fl_str_tests_coroutine_send_test_3->refcount = 2147483647;
+    _fl_str_tests_coroutine_send_test_4 = fl_string_from_cstr("none");
+    _fl_str_tests_coroutine_send_test_4->refcount = 2147483647;
+    _fl_str_tests_coroutine_send_test_5 = fl_string_from_cstr("test complete");
+    _fl_str_tests_coroutine_send_test_5->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_coroutine_send_test_main();
     return 0;
 }

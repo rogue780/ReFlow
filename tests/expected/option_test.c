@@ -4,18 +4,25 @@
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -25,12 +32,14 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -39,6 +48,14 @@ FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
 FL_Option_int fl_tests_option_test_find_positive(fl_int x);
 
 void fl_tests_option_test_main(void);
+
+FL_String* _fl_str_tests_option_test_0 = NULL;
+
+FL_String* _fl_str_tests_option_test_1 = NULL;
+
+FL_String* _fl_str_tests_option_test_2 = NULL;
+
+FL_String* _fl_str_tests_option_test_3 = NULL;
 
 /* Flow: tests.option_test.find_positive */
 FL_Option_int fl_tests_option_test_find_positive(fl_int x) {
@@ -53,47 +70,63 @@ void fl_tests_option_test_main(void) {
     FL_Option_int _fl_tmp_0 = fl_tests_option_test_find_positive(42);
     if (_fl_tmp_0.tag == 1) {
         fl_int v = _fl_tmp_0.value;
-        FL_String* _fl_tmp_1 = fl_string_from_cstr("found: ");
+        FL_String* _fl_tmp_1 = _fl_str_tests_option_test_0;
         FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_int_to_string(v));
         fl_string_release(_fl_tmp_1);
         fl_println(_fl_tmp_2);
     } else {
-        fl_println(fl_string_from_cstr("not found"));
+        fl_println(_fl_str_tests_option_test_1);
     }
     FL_Option_int _fl_tmp_3 = fl_tests_option_test_find_positive((-5));
     if (_fl_tmp_3.tag == 1) {
         fl_int v = _fl_tmp_3.value;
-        FL_String* _fl_tmp_4 = fl_string_from_cstr("found: ");
+        FL_String* _fl_tmp_4 = _fl_str_tests_option_test_0;
         FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_int_to_string(v));
         fl_string_release(_fl_tmp_4);
         fl_println(_fl_tmp_5);
     } else {
-        fl_println(fl_string_from_cstr("not found"));
+        fl_println(_fl_str_tests_option_test_1);
     }
     FL_Option_int _fl_tmp_6 = fl_tests_option_test_find_positive((-1));
     fl_int val = ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : 0);
-    FL_String* _fl_tmp_7 = fl_string_from_cstr("coalesced: ");
+    FL_String* _fl_tmp_7 = _fl_str_tests_option_test_2;
     FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_int_to_string(val));
     fl_string_release(_fl_tmp_7);
     fl_println(_fl_tmp_8);
     FL_Option_int _fl_tmp_9 = fl_tests_option_test_find_positive(99);
     fl_int val2 = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 0);
-    FL_String* _fl_tmp_10 = fl_string_from_cstr("coalesced: ");
+    FL_String* _fl_tmp_10 = _fl_str_tests_option_test_2;
     FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, fl_int_to_string(val2));
     fl_string_release(_fl_tmp_10);
     fl_println(_fl_tmp_11);
     FL_Option_int maybe = (FL_Option_int){.tag = 1, .value = 42};
     FL_Option_int _fl_tmp_12 = maybe;
     fl_int x = ((_fl_tmp_12.tag == 1) ? _fl_tmp_12.value : 0);
-    FL_String* _fl_tmp_13 = fl_string_from_cstr("auto-lifted: ");
+    FL_String* _fl_tmp_13 = _fl_str_tests_option_test_3;
     FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, fl_int_to_string(x));
     fl_string_release(_fl_tmp_13);
     fl_println(_fl_tmp_14);
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_option_test_0 = fl_string_from_cstr("found: ");
+    _fl_str_tests_option_test_0->refcount = 2147483647;
+    _fl_str_tests_option_test_1 = fl_string_from_cstr("not found");
+    _fl_str_tests_option_test_1->refcount = 2147483647;
+    _fl_str_tests_option_test_2 = fl_string_from_cstr("coalesced: ");
+    _fl_str_tests_option_test_2->refcount = 2147483647;
+    _fl_str_tests_option_test_3 = fl_string_from_cstr("auto-lifted: ");
+    _fl_str_tests_option_test_3->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_option_test_main();
     return 0;
 }

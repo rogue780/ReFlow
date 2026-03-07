@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -528,6 +537,20 @@ struct fl_self_hosted_errors_CompileError {
     fl_int col;
 };
 
+FL_String* _fl_str_self_hosted_errors_0 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_1 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_2 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_3 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_4 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_5 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_6 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -535,26 +558,36 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 
 /* Flow: self_hosted.errors.lex_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_lex_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 0}, .message = message, .file = file, .line = line, .col = col};
 }
 
 /* Flow: self_hosted.errors.parse_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_parse_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 1}, .message = message, .file = file, .line = line, .col = col};
 }
 
 /* Flow: self_hosted.errors.resolve_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_resolve_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 2}, .message = message, .file = file, .line = line, .col = col};
 }
 
 /* Flow: self_hosted.errors.type_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_type_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 3}, .message = message, .file = file, .line = line, .col = col};
 }
 
 /* Flow: self_hosted.errors.emit_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_emit_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 4}, .message = message, .file = file, .line = line, .col = col};
 }
 
@@ -563,23 +596,23 @@ FL_String* fl_self_hosted_errors_kind_name(fl_self_hosted_errors_ErrorKind k) {
     fl_self_hosted_errors_ErrorKind _fl_tmp_0 = k;
     switch (_fl_tmp_0.tag) {
         case 0: {
-            return fl_string_from_cstr("LexError");
+            return _fl_str_self_hosted_errors_0;
             break;
         }
         case 1: {
-            return fl_string_from_cstr("ParseError");
+            return _fl_str_self_hosted_errors_1;
             break;
         }
         case 2: {
-            return fl_string_from_cstr("ResolveError");
+            return _fl_str_self_hosted_errors_2;
             break;
         }
         case 3: {
-            return fl_string_from_cstr("TypeError");
+            return _fl_str_self_hosted_errors_3;
             break;
         }
         case 4: {
-            return fl_string_from_cstr("EmitError");
+            return _fl_str_self_hosted_errors_4;
             break;
         }
     }
@@ -587,32 +620,98 @@ FL_String* fl_self_hosted_errors_kind_name(fl_self_hosted_errors_ErrorKind k) {
 
 /* Flow: self_hosted.errors.format */
 FL_String* fl_self_hosted_errors_format(fl_self_hosted_errors_CompileError e) {
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(e.file, fl_string_from_cstr(":")), fl_conv_to_string__int(e.line)), fl_string_from_cstr(":")), fl_conv_to_string__int(e.col)), fl_string_from_cstr(": ")), fl_self_hosted_errors_kind_name(e.kind)), fl_string_from_cstr(": ")), e.message);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(e.file, _fl_str_self_hosted_errors_5), fl_conv_to_string__int(e.line)), _fl_str_self_hosted_errors_5), fl_conv_to_string__int(e.col)), _fl_str_self_hosted_errors_6), fl_self_hosted_errors_kind_name(e.kind)), _fl_str_self_hosted_errors_6), e.message);
 }
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_0 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_1 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_2 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_3 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_4 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_5 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_6 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_7 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_8 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_9 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_errors_test_10 = NULL;
 
 /* Flow: tests.programs.app_sh_errors_test.main */
 fl_int fl_tests_programs_app_sh_errors_test_main(void) {
-    fl_self_hosted_errors_CompileError e1 = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated string"), fl_string_from_cstr("test.flow"), 10, 5);
+    fl_self_hosted_errors_CompileError e1 = fl_self_hosted_errors_lex_error(_fl_str_tests_programs_app_sh_errors_test_0, _fl_str_tests_programs_app_sh_errors_test_1, 10, 5);
     fl_println(fl_self_hosted_errors_format(e1));
-    fl_self_hosted_errors_CompileError e2 = fl_self_hosted_errors_parse_error(fl_string_from_cstr("expected ')'"), fl_string_from_cstr("main.flow"), 42, 13);
+    fl_self_hosted_errors_CompileError e2 = fl_self_hosted_errors_parse_error(_fl_str_tests_programs_app_sh_errors_test_2, _fl_str_tests_programs_app_sh_errors_test_3, 42, 13);
     fl_println(fl_self_hosted_errors_format(e2));
-    fl_self_hosted_errors_CompileError e3 = fl_self_hosted_errors_resolve_error(fl_string_from_cstr("undefined name 'x'"), fl_string_from_cstr("lib.flow"), 7, 1);
+    fl_self_hosted_errors_CompileError e3 = fl_self_hosted_errors_resolve_error(_fl_str_tests_programs_app_sh_errors_test_4, _fl_str_tests_programs_app_sh_errors_test_5, 7, 1);
     fl_println(fl_self_hosted_errors_format(e3));
-    fl_self_hosted_errors_CompileError e4 = fl_self_hosted_errors_type_error(fl_string_from_cstr("type mismatch: int vs string"), fl_string_from_cstr("check.flow"), 99, 20);
+    fl_self_hosted_errors_CompileError e4 = fl_self_hosted_errors_type_error(_fl_str_tests_programs_app_sh_errors_test_6, _fl_str_tests_programs_app_sh_errors_test_7, 99, 20);
     fl_println(fl_self_hosted_errors_format(e4));
-    fl_self_hosted_errors_CompileError e5 = fl_self_hosted_errors_emit_error(fl_string_from_cstr("malformed LIR node"), fl_string_from_cstr("emit.flow"), 1, 0);
+    fl_self_hosted_errors_CompileError e5 = fl_self_hosted_errors_emit_error(_fl_str_tests_programs_app_sh_errors_test_8, _fl_str_tests_programs_app_sh_errors_test_9, 1, 0);
     fl_println(fl_self_hosted_errors_format(e5));
     fl_println(fl_self_hosted_errors_kind_name(e1.kind));
     fl_println(fl_self_hosted_errors_kind_name(e5.kind));
     fl_println(e1.message);
     fl_println(e1.file);
-    fl_println(fl_string_from_cstr("ok"));
+    fl_println(_fl_str_tests_programs_app_sh_errors_test_10);
     return 0;
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_self_hosted_errors_0 = fl_string_from_cstr("LexError");
+    _fl_str_self_hosted_errors_0->refcount = 2147483647;
+    _fl_str_self_hosted_errors_1 = fl_string_from_cstr("ParseError");
+    _fl_str_self_hosted_errors_1->refcount = 2147483647;
+    _fl_str_self_hosted_errors_2 = fl_string_from_cstr("ResolveError");
+    _fl_str_self_hosted_errors_2->refcount = 2147483647;
+    _fl_str_self_hosted_errors_3 = fl_string_from_cstr("TypeError");
+    _fl_str_self_hosted_errors_3->refcount = 2147483647;
+    _fl_str_self_hosted_errors_4 = fl_string_from_cstr("EmitError");
+    _fl_str_self_hosted_errors_4->refcount = 2147483647;
+    _fl_str_self_hosted_errors_5 = fl_string_from_cstr(":");
+    _fl_str_self_hosted_errors_5->refcount = 2147483647;
+    _fl_str_self_hosted_errors_6 = fl_string_from_cstr(": ");
+    _fl_str_self_hosted_errors_6->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_0 = fl_string_from_cstr("unterminated string");
+    _fl_str_tests_programs_app_sh_errors_test_0->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_1 = fl_string_from_cstr("test.flow");
+    _fl_str_tests_programs_app_sh_errors_test_1->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_2 = fl_string_from_cstr("expected ')'");
+    _fl_str_tests_programs_app_sh_errors_test_2->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_3 = fl_string_from_cstr("main.flow");
+    _fl_str_tests_programs_app_sh_errors_test_3->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_4 = fl_string_from_cstr("undefined name 'x'");
+    _fl_str_tests_programs_app_sh_errors_test_4->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_5 = fl_string_from_cstr("lib.flow");
+    _fl_str_tests_programs_app_sh_errors_test_5->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_6 = fl_string_from_cstr("type mismatch: int vs string");
+    _fl_str_tests_programs_app_sh_errors_test_6->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_7 = fl_string_from_cstr("check.flow");
+    _fl_str_tests_programs_app_sh_errors_test_7->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_8 = fl_string_from_cstr("malformed LIR node");
+    _fl_str_tests_programs_app_sh_errors_test_8->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_9 = fl_string_from_cstr("emit.flow");
+    _fl_str_tests_programs_app_sh_errors_test_9->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_errors_test_10 = fl_string_from_cstr("ok");
+    _fl_str_tests_programs_app_sh_errors_test_10->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_programs_app_sh_errors_test_main();
     return 0;
 }

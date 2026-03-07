@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -499,6 +508,22 @@ FL_String* fl_conv_to_string__int(fl_int val);
 FL_String* fl_tests_map_for_each_test_get_or_default(FL_Map* m, FL_String* key);
 
 fl_int fl_tests_map_for_each_test_main(void);
+
+FL_String* _fl_str_tests_map_for_each_test_0 = NULL;
+
+FL_String* _fl_str_tests_map_for_each_test_1 = NULL;
+
+FL_String* _fl_str_tests_map_for_each_test_2 = NULL;
+
+FL_String* _fl_str_tests_map_for_each_test_3 = NULL;
+
+FL_String* _fl_str_tests_map_for_each_test_4 = NULL;
+
+FL_String* _fl_str_tests_map_for_each_test_5 = NULL;
+
+FL_String* _fl_str_tests_map_for_each_test_6 = NULL;
+
+FL_String* _fl_str_tests_map_for_each_test_7 = NULL;
 
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
@@ -512,20 +537,20 @@ FL_String* fl_tests_map_for_each_test_get_or_default(FL_Map* m, FL_String* key) 
         FL_String* v = _fl_tmp_0.value;
         return v;
     } else {
-        return fl_string_from_cstr("?");
+        return _fl_str_tests_map_for_each_test_0;
     }
 }
 
 /* Flow: tests.map_for_each_test.main */
 fl_int fl_tests_map_for_each_test_main(void) {
-    FL_Map* m = fl_map_set_str(fl_map_set_str(fl_map_set_str(fl_map_new(), fl_string_from_cstr("a"), fl_string_from_cstr("1")), fl_string_from_cstr("b"), fl_string_from_cstr("2")), fl_string_from_cstr("c"), fl_string_from_cstr("3"));
+    FL_Map* m = fl_map_set_str(fl_map_set_str(fl_map_set_str(fl_map_new(), _fl_str_tests_map_for_each_test_1, _fl_str_tests_map_for_each_test_2), _fl_str_tests_map_for_each_test_3, _fl_str_tests_map_for_each_test_4), _fl_str_tests_map_for_each_test_5, _fl_str_tests_map_for_each_test_6);
     FL_Array* ks = fl_map_keys(m);
     fl_println(fl_conv_to_string__int(fl_array_len_int(ks)));
     fl_int64 _fl_tmp_1 = 0;
     while (_fl_tmp_1 < fl_array_len(ks)) {
         FL_String* k = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_1)));
         FL_String* v = fl_tests_map_for_each_test_get_or_default(m, k);
-        fl_println(fl_string_concat(fl_string_concat(k, fl_string_from_cstr("=")), v));
+        fl_println(fl_string_concat(fl_string_concat(k, _fl_str_tests_map_for_each_test_7), v));
         _fl_tmp_1 = (_fl_tmp_1 + 1);
     }
     FL_Map* empty = fl_map_new();
@@ -534,9 +559,33 @@ fl_int fl_tests_map_for_each_test_main(void) {
     return 0;
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_map_for_each_test_0 = fl_string_from_cstr("?");
+    _fl_str_tests_map_for_each_test_0->refcount = 2147483647;
+    _fl_str_tests_map_for_each_test_1 = fl_string_from_cstr("a");
+    _fl_str_tests_map_for_each_test_1->refcount = 2147483647;
+    _fl_str_tests_map_for_each_test_2 = fl_string_from_cstr("1");
+    _fl_str_tests_map_for_each_test_2->refcount = 2147483647;
+    _fl_str_tests_map_for_each_test_3 = fl_string_from_cstr("b");
+    _fl_str_tests_map_for_each_test_3->refcount = 2147483647;
+    _fl_str_tests_map_for_each_test_4 = fl_string_from_cstr("2");
+    _fl_str_tests_map_for_each_test_4->refcount = 2147483647;
+    _fl_str_tests_map_for_each_test_5 = fl_string_from_cstr("c");
+    _fl_str_tests_map_for_each_test_5->refcount = 2147483647;
+    _fl_str_tests_map_for_each_test_6 = fl_string_from_cstr("3");
+    _fl_str_tests_map_for_each_test_6->refcount = 2147483647;
+    _fl_str_tests_map_for_each_test_7 = fl_string_from_cstr("=");
+    _fl_str_tests_map_for_each_test_7->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_map_for_each_test_main();
     return 0;
 }

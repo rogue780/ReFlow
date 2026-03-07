@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -528,6 +537,20 @@ struct fl_self_hosted_errors_CompileError {
     fl_int col;
 };
 
+FL_String* _fl_str_self_hosted_errors_0 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_1 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_2 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_3 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_4 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_5 = NULL;
+
+FL_String* _fl_str_self_hosted_errors_6 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -535,26 +558,36 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 
 /* Flow: self_hosted.errors.lex_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_lex_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 0}, .message = message, .file = file, .line = line, .col = col};
 }
 
 /* Flow: self_hosted.errors.parse_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_parse_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 1}, .message = message, .file = file, .line = line, .col = col};
 }
 
 /* Flow: self_hosted.errors.resolve_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_resolve_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 2}, .message = message, .file = file, .line = line, .col = col};
 }
 
 /* Flow: self_hosted.errors.type_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_type_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 3}, .message = message, .file = file, .line = line, .col = col};
 }
 
 /* Flow: self_hosted.errors.emit_error */
 fl_self_hosted_errors_CompileError fl_self_hosted_errors_emit_error(FL_String* message, FL_String* file, fl_int line, fl_int col) {
+    fl_string_retain(message);
+    fl_string_retain(file);
     return (fl_self_hosted_errors_CompileError){.kind = (fl_self_hosted_errors_ErrorKind){.tag = 4}, .message = message, .file = file, .line = line, .col = col};
 }
 
@@ -563,23 +596,23 @@ FL_String* fl_self_hosted_errors_kind_name(fl_self_hosted_errors_ErrorKind k) {
     fl_self_hosted_errors_ErrorKind _fl_tmp_0 = k;
     switch (_fl_tmp_0.tag) {
         case 0: {
-            return fl_string_from_cstr("LexError");
+            return _fl_str_self_hosted_errors_0;
             break;
         }
         case 1: {
-            return fl_string_from_cstr("ParseError");
+            return _fl_str_self_hosted_errors_1;
             break;
         }
         case 2: {
-            return fl_string_from_cstr("ResolveError");
+            return _fl_str_self_hosted_errors_2;
             break;
         }
         case 3: {
-            return fl_string_from_cstr("TypeError");
+            return _fl_str_self_hosted_errors_3;
             break;
         }
         case 4: {
-            return fl_string_from_cstr("EmitError");
+            return _fl_str_self_hosted_errors_4;
             break;
         }
     }
@@ -587,7 +620,7 @@ FL_String* fl_self_hosted_errors_kind_name(fl_self_hosted_errors_ErrorKind k) {
 
 /* Flow: self_hosted.errors.format */
 FL_String* fl_self_hosted_errors_format(fl_self_hosted_errors_CompileError e) {
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(e.file, fl_string_from_cstr(":")), fl_conv_to_string__int(e.line)), fl_string_from_cstr(":")), fl_conv_to_string__int(e.col)), fl_string_from_cstr(": ")), fl_self_hosted_errors_kind_name(e.kind)), fl_string_from_cstr(": ")), e.message);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(e.file, _fl_str_self_hosted_errors_5), fl_conv_to_string__int(e.line)), _fl_str_self_hosted_errors_5), fl_conv_to_string__int(e.col)), _fl_str_self_hosted_errors_6), fl_self_hosted_errors_kind_name(e.kind)), _fl_str_self_hosted_errors_6), e.message);
 }
 
 /* From: self_hosted/lexer.flow */
@@ -761,135 +794,483 @@ struct fl_self_hosted_lexer_LexState {
     FL_Array* tokens;
 };
 
+FL_String* _fl_str_self_hosted_lexer_0 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_1 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_2 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_3 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_4 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_5 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_6 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_7 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_8 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_9 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_10 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_11 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_12 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_13 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_14 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_15 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_16 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_17 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_18 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_19 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_20 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_21 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_22 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_23 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_24 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_25 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_26 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_27 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_28 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_29 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_30 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_31 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_32 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_33 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_34 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_35 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_36 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_37 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_38 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_39 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_40 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_41 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_42 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_43 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_44 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_45 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_46 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_47 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_48 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_49 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_50 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_51 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_52 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_53 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_54 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_55 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_56 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_57 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_58 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_59 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_60 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_61 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_62 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_63 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_64 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_65 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_66 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_67 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_68 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_69 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_70 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_71 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_72 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_73 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_74 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_75 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_76 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_77 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_78 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_79 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_80 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_81 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_82 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_83 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_84 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_85 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_86 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_87 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_88 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_89 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_90 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_91 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_92 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_93 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_94 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_95 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_96 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_97 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_98 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_99 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_100 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_101 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_102 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_103 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_104 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_105 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_106 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_107 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_108 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_109 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_110 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_111 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_112 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_113 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_114 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_115 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_116 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_117 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_118 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_119 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_120 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_121 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_122 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_123 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_124 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_125 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_126 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_127 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_128 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_129 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_130 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_131 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_132 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_133 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_134 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_135 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_136 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_137 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_138 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_139 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_140 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_141 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_142 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_143 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_144 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_145 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_146 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_147 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_148 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_149 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_150 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_151 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_152 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_153 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_154 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_155 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_156 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_157 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_158 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_159 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_160 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_161 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_162 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_163 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_164 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_165 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_166 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_167 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_168 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_169 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_170 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_171 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_172 = NULL;
+
+FL_String* _fl_str_self_hosted_lexer_173 = NULL;
+
 /* Flow: self_hosted.lexer.keyword_type */
 fl_int fl_self_hosted_lexer_keyword_type(FL_String* text) {
-    if (fl_string_eq(text, fl_string_from_cstr("module"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_0)) {
         return fl_self_hosted_lexer_TokenType_TK_MODULE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("import"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_1)) {
         return fl_self_hosted_lexer_TokenType_TK_IMPORT;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("export"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_2)) {
         return fl_self_hosted_lexer_TokenType_TK_EXPORT;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("as"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_3)) {
         return fl_self_hosted_lexer_TokenType_TK_AS;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("alias"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_4)) {
         return fl_self_hosted_lexer_TokenType_TK_ALIAS;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("type"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_5)) {
         return fl_self_hosted_lexer_TokenType_TK_TYPE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("typeof"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_6)) {
         return fl_self_hosted_lexer_TokenType_TK_TYPEOF;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("mut"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_7)) {
         return fl_self_hosted_lexer_TokenType_TK_MUT;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("imut"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_8)) {
         return fl_self_hosted_lexer_TokenType_TK_IMUT;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("let"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_9)) {
         return fl_self_hosted_lexer_TokenType_TK_LET;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("fn"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_10)) {
         return fl_self_hosted_lexer_TokenType_TK_FN;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("return"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_11)) {
         return fl_self_hosted_lexer_TokenType_TK_RETURN;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("yield"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_12)) {
         return fl_self_hosted_lexer_TokenType_TK_YIELD;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("try"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_13)) {
         return fl_self_hosted_lexer_TokenType_TK_TRY;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("retry"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_14)) {
         return fl_self_hosted_lexer_TokenType_TK_RETRY;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("catch"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_15)) {
         return fl_self_hosted_lexer_TokenType_TK_CATCH;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("finally"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_16)) {
         return fl_self_hosted_lexer_TokenType_TK_FINALLY;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("interface"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_17)) {
         return fl_self_hosted_lexer_TokenType_TK_INTERFACE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("fulfills"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_18)) {
         return fl_self_hosted_lexer_TokenType_TK_FULFILLS;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("constructor"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_19)) {
         return fl_self_hosted_lexer_TokenType_TK_CONSTRUCTOR;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("self"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_20)) {
         return fl_self_hosted_lexer_TokenType_TK_SELF;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("for"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_21)) {
         return fl_self_hosted_lexer_TokenType_TK_FOR;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("in"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_22)) {
         return fl_self_hosted_lexer_TokenType_TK_IN;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("while"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_23)) {
         return fl_self_hosted_lexer_TokenType_TK_WHILE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("if"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_24)) {
         return fl_self_hosted_lexer_TokenType_TK_IF;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("else"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_25)) {
         return fl_self_hosted_lexer_TokenType_TK_ELSE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("match"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_26)) {
         return fl_self_hosted_lexer_TokenType_TK_MATCH;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("none"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_27)) {
         return fl_self_hosted_lexer_TokenType_TK_NONE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("break"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_28)) {
         return fl_self_hosted_lexer_TokenType_TK_BREAK;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("continue"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_29)) {
         return fl_self_hosted_lexer_TokenType_TK_CONTINUE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("static"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_30)) {
         return fl_self_hosted_lexer_TokenType_TK_STATIC;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("pure"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_31)) {
         return fl_self_hosted_lexer_TokenType_TK_PURE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("record"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_32)) {
         return fl_self_hosted_lexer_TokenType_TK_RECORD;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("some"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_33)) {
         return fl_self_hosted_lexer_TokenType_TK_SOME;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("ok"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_34)) {
         return fl_self_hosted_lexer_TokenType_TK_OK;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("err"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_35)) {
         return fl_self_hosted_lexer_TokenType_TK_ERR;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("coerce"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_36)) {
         return fl_self_hosted_lexer_TokenType_TK_COERCE;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("cast"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_37)) {
         return fl_self_hosted_lexer_TokenType_TK_CAST;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("throw"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_38)) {
         return fl_self_hosted_lexer_TokenType_TK_THROW;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("extern"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_39)) {
         return fl_self_hosted_lexer_TokenType_TK_EXTERN;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("enum"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_40)) {
         return fl_self_hosted_lexer_TokenType_TK_ENUM;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("true"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_41)) {
         return fl_self_hosted_lexer_TokenType_TK_BOOL_LIT;
     }
-    if (fl_string_eq(text, fl_string_from_cstr("false"))) {
+    if (fl_string_eq(text, _fl_str_self_hosted_lexer_42)) {
         return fl_self_hosted_lexer_TokenType_TK_BOOL_LIT;
     }
     return fl_self_hosted_lexer_TokenType_TK_IDENT;
@@ -936,7 +1317,7 @@ fl_char fl_self_hosted_lexer_advance(fl_self_hosted_lexer_LexState* s) {
     fl_int _fl_e_1;
     FL_CHECKED_ADD(s->pos, 1, &_fl_e_1);
     s->pos = _fl_e_1;
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\n"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_43)) {
         fl_int _fl_e_2;
         FL_CHECKED_ADD(s->line, 1, &_fl_e_2);
         s->line = _fl_e_2;
@@ -985,6 +1366,8 @@ fl_bool fl_self_hosted_lexer_match_str(fl_self_hosted_lexer_LexState* s, FL_Stri
 
 /* Flow: self_hosted.lexer.make_token */
 fl_self_hosted_lexer_Token fl_self_hosted_lexer_make_token(fl_self_hosted_lexer_LexState s, fl_int ttype, FL_String* value, fl_int tok_line, fl_int tok_col) {
+    fl_string_retain(value);
+    fl_string_retain(s.filename);
     return (fl_self_hosted_lexer_Token){.ttype = ttype, .value = value, .line = tok_line, .col = tok_col, .file = s.filename};
 }
 
@@ -998,62 +1381,67 @@ void fl_self_hosted_lexer_emit(fl_self_hosted_lexer_LexState* s, fl_self_hosted_
 FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
     if (s->pos >= s->src_len) {
         fl_self_hosted_errors_CompileError* _fl_tmp_4 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_4) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated escape sequence"), s->filename, s->line, s->col);
+        (*_fl_tmp_4) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_44, s->filename, s->line, s->col);
         _fl_throw(((void*)_fl_tmp_4), 461109476);
     }
     fl_char ch = fl_self_hosted_lexer_advance(s);
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("n"))) {
-        return fl_string_from_cstr("\n");
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_45)) {
+        return _fl_str_self_hosted_lexer_43;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("t"))) {
-        return fl_string_from_cstr("\t");
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_46)) {
+        return _fl_str_self_hosted_lexer_47;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\\"))) {
-        return fl_string_from_cstr("\\");
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
+        return _fl_str_self_hosted_lexer_48;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\""))) {
-        return fl_string_from_cstr("\"");
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49)) {
+        return _fl_str_self_hosted_lexer_49;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("'"))) {
-        return fl_string_from_cstr("'");
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_50)) {
+        return _fl_str_self_hosted_lexer_50;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("0"))) {
-        return fl_string_from_cstr("\0");
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_51)) {
+        return _fl_str_self_hosted_lexer_52;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("r"))) {
-        return fl_string_from_cstr("\r");
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_53)) {
+        return _fl_str_self_hosted_lexer_54;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("{"))) {
-        return fl_string_from_cstr("{");
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) {
+        return _fl_str_self_hosted_lexer_55;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("u"))) {
-        if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("{")) == fl_false)) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_56)) {
+        if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_55) == fl_false)) {
             fl_self_hosted_errors_CompileError* _fl_tmp_5 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_5) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("expected '{' after '\\u'"), s->filename, s->line, s->col);
+            (*_fl_tmp_5) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_57, s->filename, s->line, s->col);
             _fl_throw(((void*)_fl_tmp_5), 461109476);
         }
         fl_self_hosted_lexer_advance(s);
-        FL_String* hex = fl_string_from_cstr("");
-        while ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("}")) == fl_false)) {
+        FL_String* hex = _fl_str_self_hosted_lexer_58;
+        fl_string_retain(hex);
+        while ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_59) == fl_false)) {
+            FL_String* _fl_old_6 = hex;
             hex = fl_string_concat(hex, fl_char_to_string(fl_self_hosted_lexer_advance(s)));
+            if (_fl_old_6 != hex) {
+                fl_string_release(_fl_old_6);
+            }
         }
         if (s->pos >= s->src_len) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_6 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_6) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated unicode escape"), s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_6), 461109476);
-        }
-        fl_self_hosted_lexer_advance(s);
-        if (fl_string_eq(hex, fl_string_from_cstr(""))) {
             fl_self_hosted_errors_CompileError* _fl_tmp_7 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_7) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("empty unicode escape"), s->filename, s->line, s->col);
+            (*_fl_tmp_7) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_60, s->filename, s->line, s->col);
             _fl_throw(((void*)_fl_tmp_7), 461109476);
         }
-        return fl_string_from_cstr("?");
+        fl_self_hosted_lexer_advance(s);
+        if (fl_string_eq(hex, _fl_str_self_hosted_lexer_58)) {
+            fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_61, s->filename, s->line, s->col);
+            _fl_throw(((void*)_fl_tmp_8), 461109476);
+        }
+        return _fl_str_self_hosted_lexer_62;
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unknown escape sequence"), s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_8), 461109476);
-    return fl_string_from_cstr("");
+    fl_self_hosted_errors_CompileError* _fl_tmp_9 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_63, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_9), 461109476);
+    return _fl_str_self_hosted_lexer_58;
 }
 
 /* Flow: self_hosted.lexer.scan_identifier */
@@ -1062,7 +1450,7 @@ void fl_self_hosted_lexer_scan_identifier(fl_self_hosted_lexer_LexState* s) {
     fl_int start_col = s->col;
     fl_int start_pos = s->pos;
     fl_self_hosted_lexer_advance(s);
-    while ((s->pos < s->src_len) && (fl_char_is_alphanumeric(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("_")))) {
+    while ((s->pos < s->src_len) && (fl_char_is_alphanumeric(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_64))) {
         fl_self_hosted_lexer_advance(s);
     }
     FL_String* text = fl_string_substring(s->source, start_pos, s->pos);
@@ -1076,39 +1464,39 @@ void fl_self_hosted_lexer_scan_number(fl_self_hosted_lexer_LexState* s) {
     fl_int start_col = s->col;
     fl_int start_pos = s->pos;
     fl_bool is_float = fl_false;
-    if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("0")) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), fl_string_from_cstr("x")) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), fl_string_from_cstr("X")))) {
+    if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_51) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), _fl_str_self_hosted_lexer_65) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), _fl_str_self_hosted_lexer_66))) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        while ((s->pos < s->src_len) && (fl_self_hosted_lexer_is_hex_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("_")))) {
+        while ((s->pos < s->src_len) && (fl_self_hosted_lexer_is_hex_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_64))) {
             fl_self_hosted_lexer_advance(s);
         }
         FL_String* raw = fl_string_substring(s->source, start_pos, s->pos);
-        FL_String* value = fl_string_replace(raw, fl_string_from_cstr("_"), fl_string_from_cstr(""));
+        FL_String* value = fl_string_replace(raw, _fl_str_self_hosted_lexer_64, _fl_str_self_hosted_lexer_58);
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_INT_LIT, value, start_line, start_col));
         return;
     }
-    while ((s->pos < s->src_len) && (fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("_")))) {
+    while ((s->pos < s->src_len) && (fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_64))) {
         fl_self_hosted_lexer_advance(s);
     }
-    if (((s->pos < s->src_len) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("."))) && fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 1))) {
+    if (((s->pos < s->src_len) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_67)) && fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 1))) {
         is_float = fl_true;
         fl_self_hosted_lexer_advance(s);
-        while ((s->pos < s->src_len) && (fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("_")))) {
+        while ((s->pos < s->src_len) && (fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_64))) {
             fl_self_hosted_lexer_advance(s);
         }
     }
-    if ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("e")) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("E")))) {
+    if ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_68) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_69))) {
         is_float = fl_true;
         fl_self_hosted_lexer_advance(s);
-        if ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("+")) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("-")))) {
+        if ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_70) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_71))) {
             fl_self_hosted_lexer_advance(s);
         }
-        while ((s->pos < s->src_len) && (fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("_")))) {
+        while ((s->pos < s->src_len) && (fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_64))) {
             fl_self_hosted_lexer_advance(s);
         }
     }
     FL_String* raw = fl_string_substring(s->source, start_pos, s->pos);
-    FL_String* value = fl_string_replace(raw, fl_string_from_cstr("_"), fl_string_from_cstr(""));
+    FL_String* value = fl_string_replace(raw, _fl_str_self_hosted_lexer_64, _fl_str_self_hosted_lexer_58);
     if (is_float) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT, value, start_line, start_col));
         return;
@@ -1121,24 +1509,33 @@ void fl_self_hosted_lexer_scan_string(fl_self_hosted_lexer_LexState* s) {
     fl_int start_line = s->line;
     fl_int start_col = s->col;
     fl_self_hosted_lexer_advance(s);
-    FL_String* chars = fl_string_from_cstr("");
+    FL_String* chars = _fl_str_self_hosted_lexer_58;
+    fl_string_retain(chars);
     while (s->pos < s->src_len) {
         fl_char ch = fl_self_hosted_lexer_peek((*s), 0);
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\""))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49)) {
             fl_self_hosted_lexer_advance(s);
             fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_STRING_LIT, chars, start_line, start_col));
             return;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\\"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             fl_self_hosted_lexer_advance(s);
+            FL_String* _fl_old_10 = chars;
             chars = fl_string_concat(chars, fl_self_hosted_lexer_scan_escape(s));
+            if (_fl_old_10 != chars) {
+                fl_string_release(_fl_old_10);
+            }
         } else {
+            FL_String* _fl_old_11 = chars;
             chars = fl_string_concat(chars, fl_char_to_string(fl_self_hosted_lexer_advance(s)));
+            if (_fl_old_11 != chars) {
+                fl_string_release(_fl_old_11);
+            }
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_9 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated string literal"), s->filename, start_line, start_col);
-    _fl_throw(((void*)_fl_tmp_9), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_12 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_12) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
+    _fl_throw(((void*)_fl_tmp_12), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_char_lit */
@@ -1147,21 +1544,30 @@ void fl_self_hosted_lexer_scan_char_lit(fl_self_hosted_lexer_LexState* s) {
     fl_int start_col = s->col;
     fl_self_hosted_lexer_advance(s);
     if (s->pos >= s->src_len) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_10 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_10) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated character literal"), s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_10), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_13 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_13) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_13), 461109476);
     }
-    FL_String* ch_val = fl_string_from_cstr("");
-    if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("\\"))) {
+    FL_String* ch_val = _fl_str_self_hosted_lexer_58;
+    fl_string_retain(ch_val);
+    if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_48)) {
         fl_self_hosted_lexer_advance(s);
+        FL_String* _fl_old_14 = ch_val;
         ch_val = fl_self_hosted_lexer_scan_escape(s);
+        if (_fl_old_14 != ch_val) {
+            fl_string_release(_fl_old_14);
+        }
     } else {
+        FL_String* _fl_old_15 = ch_val;
         ch_val = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+        if (_fl_old_15 != ch_val) {
+            fl_string_release(_fl_old_15);
+        }
     }
-    if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("'")) == fl_false)) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_11 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_11) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated character literal"), s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_11), 461109476);
+    if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_50) == fl_false)) {
+        fl_self_hosted_errors_CompileError* _fl_tmp_16 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_16) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_16), 461109476);
     }
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_CHAR_LIT, ch_val, start_line, start_col));
@@ -1174,7 +1580,7 @@ void fl_self_hosted_lexer_scan_comment(fl_self_hosted_lexer_LexState* s) {
     fl_int start_pos = s->pos;
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_advance(s);
-    while ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("\n")) == fl_false)) {
+    while ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_43) == fl_false)) {
         fl_self_hosted_lexer_advance(s);
     }
     FL_String* text = fl_string_substring(s->source, start_pos, s->pos);
@@ -1186,257 +1592,257 @@ void fl_self_hosted_lexer_scan_operator(fl_self_hosted_lexer_LexState* s) {
     fl_int start_line = s->line;
     fl_int start_col = s->col;
     fl_char ch = fl_self_hosted_lexer_peek((*s), 0);
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("=")) && fl_self_hosted_lexer_check((*s), fl_string_from_cstr("==="))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_74) && fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_75)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_TRIPLE_EQ, fl_string_from_cstr("==="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_TRIPLE_EQ, _fl_str_self_hosted_lexer_75, start_line, start_col));
         return;
     }
-    if ((fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("<")) && fl_self_hosted_lexer_check((*s), fl_string_from_cstr("<:(")))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_76) && fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_77)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PARALLEL_FANOUT, fl_string_from_cstr("<:("), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PARALLEL_FANOUT, _fl_str_self_hosted_lexer_77, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("=="))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_78)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DOUBLE_EQ, fl_string_from_cstr("=="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DOUBLE_EQ, _fl_str_self_hosted_lexer_78, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("!="))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_79)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_NOT_EQ, fl_string_from_cstr("!="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_NOT_EQ, _fl_str_self_hosted_lexer_79, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("<="))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_80)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LT_EQ, fl_string_from_cstr("<="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LT_EQ, _fl_str_self_hosted_lexer_80, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr(">="))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_81)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_GT_EQ, fl_string_from_cstr(">="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_GT_EQ, _fl_str_self_hosted_lexer_81, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("->"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_82)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_ARROW, fl_string_from_cstr("->"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_ARROW, _fl_str_self_hosted_lexer_82, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("=>"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_83)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FAT_ARROW, fl_string_from_cstr("=>"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FAT_ARROW, _fl_str_self_hosted_lexer_83, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("++"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_84)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_INCREMENT, fl_string_from_cstr("++"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_INCREMENT, _fl_str_self_hosted_lexer_84, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("--"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_85)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DECREMENT, fl_string_from_cstr("--"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DECREMENT, _fl_str_self_hosted_lexer_85, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("**"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_86)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DOUBLE_STAR, fl_string_from_cstr("**"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DOUBLE_STAR, _fl_str_self_hosted_lexer_86, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("</"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_87)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FLOOR_DIV, fl_string_from_cstr("</"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FLOOR_DIV, _fl_str_self_hosted_lexer_87, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("??"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_88)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DOUBLE_QUESTION, fl_string_from_cstr("??"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DOUBLE_QUESTION, _fl_str_self_hosted_lexer_88, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("&&"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_89)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_AND, fl_string_from_cstr("&&"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_AND, _fl_str_self_hosted_lexer_89, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("||"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_90)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_OR, fl_string_from_cstr("||"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_OR, _fl_str_self_hosted_lexer_90, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr(".."))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_91)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SPREAD, fl_string_from_cstr(".."), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SPREAD, _fl_str_self_hosted_lexer_91, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr(":<"))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_92)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_COROUTINE, fl_string_from_cstr(":<"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_COROUTINE, _fl_str_self_hosted_lexer_92, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("+="))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_93)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PLUS_ASSIGN, fl_string_from_cstr("+="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PLUS_ASSIGN, _fl_str_self_hosted_lexer_93, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("-="))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_94)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_MINUS_ASSIGN, fl_string_from_cstr("-="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_MINUS_ASSIGN, _fl_str_self_hosted_lexer_94, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("*="))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_95)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_STAR_ASSIGN, fl_string_from_cstr("*="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_STAR_ASSIGN, _fl_str_self_hosted_lexer_95, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_check((*s), fl_string_from_cstr("/="))) {
+    if (fl_self_hosted_lexer_check((*s), _fl_str_self_hosted_lexer_96)) {
         fl_self_hosted_lexer_advance(s);
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SLASH_ASSIGN, fl_string_from_cstr("/="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SLASH_ASSIGN, _fl_str_self_hosted_lexer_96, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("+"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_70)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PLUS, fl_string_from_cstr("+"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PLUS, _fl_str_self_hosted_lexer_70, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("-"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_71)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_MINUS, fl_string_from_cstr("-"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_MINUS, _fl_str_self_hosted_lexer_71, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("*"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_97)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_STAR, fl_string_from_cstr("*"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_STAR, _fl_str_self_hosted_lexer_97, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("/"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_98)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SLASH, fl_string_from_cstr("/"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SLASH, _fl_str_self_hosted_lexer_98, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("%"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_99)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PERCENT, fl_string_from_cstr("%"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PERCENT, _fl_str_self_hosted_lexer_99, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("<"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_76)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LT, fl_string_from_cstr("<"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LT, _fl_str_self_hosted_lexer_76, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr(">"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_100)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_GT, fl_string_from_cstr(">"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_GT, _fl_str_self_hosted_lexer_100, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("("))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_101)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LPAREN, fl_string_from_cstr("("), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LPAREN, _fl_str_self_hosted_lexer_101, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr(")"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_102)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RPAREN, fl_string_from_cstr(")"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RPAREN, _fl_str_self_hosted_lexer_102, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("{"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LBRACE, fl_string_from_cstr("{"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LBRACE, _fl_str_self_hosted_lexer_55, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("}"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_59)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RBRACE, fl_string_from_cstr("}"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RBRACE, _fl_str_self_hosted_lexer_59, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("["))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_103)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LBRACKET, fl_string_from_cstr("["), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LBRACKET, _fl_str_self_hosted_lexer_103, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("]"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_104)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RBRACKET, fl_string_from_cstr("]"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RBRACKET, _fl_str_self_hosted_lexer_104, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr(":"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_105)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_COLON, fl_string_from_cstr(":"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_COLON, _fl_str_self_hosted_lexer_105, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr(","))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_106)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_COMMA, fl_string_from_cstr(","), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_COMMA, _fl_str_self_hosted_lexer_106, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("."))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_67)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DOT, fl_string_from_cstr("."), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_DOT, _fl_str_self_hosted_lexer_67, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("|"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_107)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PIPE, fl_string_from_cstr("|"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_PIPE, _fl_str_self_hosted_lexer_107, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("?"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_62)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_QUESTION, fl_string_from_cstr("?"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_QUESTION, _fl_str_self_hosted_lexer_62, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("="))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_74)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_ASSIGN, fl_string_from_cstr("="), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_ASSIGN, _fl_str_self_hosted_lexer_74, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("!"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_108)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_BANG, fl_string_from_cstr("!"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_BANG, _fl_str_self_hosted_lexer_108, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("@"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_109)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_AT, fl_string_from_cstr("@"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_AT, _fl_str_self_hosted_lexer_109, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("&"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_110)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_AMPERSAND, fl_string_from_cstr("&"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_AMPERSAND, _fl_str_self_hosted_lexer_110, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\\"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_BACKSLASH, fl_string_from_cstr("\\"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_BACKSLASH, _fl_str_self_hosted_lexer_48, start_line, start_col));
         return;
     }
-    if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr(";"))) {
+    if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_111)) {
         fl_self_hosted_lexer_advance(s);
-        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SEMICOLON, fl_string_from_cstr(";"), start_line, start_col));
+        fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SEMICOLON, _fl_str_self_hosted_lexer_111, start_line, start_col));
         return;
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_12 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_12) = fl_self_hosted_errors_lex_error(fl_string_concat(fl_string_concat(fl_string_from_cstr("unexpected character '"), fl_char_to_string(ch)), fl_string_from_cstr("'")), s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_12), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_17 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_17) = fl_self_hosted_errors_lex_error(fl_string_concat(fl_string_concat(_fl_str_self_hosted_lexer_112, fl_char_to_string(ch)), _fl_str_self_hosted_lexer_50), s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_17), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring */
@@ -1445,7 +1851,7 @@ void fl_self_hosted_lexer_scan_fstring(fl_self_hosted_lexer_LexState* s) {
     fl_int start_col = s->col;
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_advance(s);
-    fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_START, fl_string_from_cstr("f\""), start_line, start_col));
+    fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_START, _fl_str_self_hosted_lexer_113, start_line, start_col));
     fl_self_hosted_lexer_scan_fstring_body(s);
 }
 
@@ -1453,17 +1859,17 @@ void fl_self_hosted_lexer_scan_fstring(fl_self_hosted_lexer_LexState* s) {
 void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s) {
     while (s->pos < s->src_len) {
         fl_char ch = fl_self_hosted_lexer_peek((*s), 0);
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\""))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49)) {
             fl_int end_line = s->line;
             fl_int end_col = s->col;
             fl_self_hosted_lexer_advance(s);
-            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_END, fl_string_from_cstr("\""), end_line, end_col));
+            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_END, _fl_str_self_hosted_lexer_49, end_line, end_col));
             return;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("{"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) {
             fl_self_hosted_lexer_scan_fstring_expr(s);
         } else {
-            if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\\"))) {
+            if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
                 fl_int esc_line = s->line;
                 fl_int esc_col = s->col;
                 fl_self_hosted_lexer_advance(s);
@@ -1474,22 +1880,27 @@ void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s) {
             }
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_13 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_13) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated f-string"), s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_13), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_18 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_18) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_18), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring_text */
 void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s) {
     fl_int start_line = s->line;
     fl_int start_col = s->col;
-    FL_String* chars = fl_string_from_cstr("");
+    FL_String* chars = _fl_str_self_hosted_lexer_58;
+    fl_string_retain(chars);
     while (s->pos < s->src_len) {
         fl_char ch = fl_self_hosted_lexer_peek((*s), 0);
-        if ((fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\"")) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("{"))) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\\"))) {
+        if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             break;
         }
+        FL_String* _fl_old_19 = chars;
         chars = fl_string_concat(chars, fl_char_to_string(fl_self_hosted_lexer_advance(s)));
+        if (_fl_old_19 != chars) {
+            fl_string_release(_fl_old_19);
+        }
     }
     if (fl_string_len(chars) > 0) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, chars, start_line, start_col));
@@ -1501,32 +1912,32 @@ void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
     fl_int start_line = s->line;
     fl_int start_col = s->col;
     fl_self_hosted_lexer_advance(s);
-    fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_START, fl_string_from_cstr("{"), start_line, start_col));
+    fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_START, _fl_str_self_hosted_lexer_55, start_line, start_col));
     fl_int brace_depth = 1;
     while ((s->pos < s->src_len) && (brace_depth > 0)) {
         fl_char ch = fl_self_hosted_lexer_peek((*s), 0);
-        if ((fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr(" ")) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\t"))) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\r"))) {
+        if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_115) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_47)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_54)) {
             fl_self_hosted_lexer_advance(s);
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\n"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_43)) {
             fl_int nl_line = s->line;
             fl_int nl_col = s->col;
             fl_self_hosted_lexer_advance(s);
-            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_NEWLINE, fl_string_from_cstr("\n"), nl_line, nl_col));
+            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_NEWLINE, _fl_str_self_hosted_lexer_43, nl_line, nl_col));
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("{"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(brace_depth, 1, &_fl_e_1);
             brace_depth = _fl_e_1;
             fl_int t_line = s->line;
             fl_int t_col = s->col;
             fl_self_hosted_lexer_advance(s);
-            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LBRACE, fl_string_from_cstr("{"), t_line, t_col));
+            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_LBRACE, _fl_str_self_hosted_lexer_55, t_line, t_col));
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("}"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_59)) {
             fl_int _fl_e_2;
             FL_CHECKED_SUB(brace_depth, 1, &_fl_e_2);
             brace_depth = _fl_e_2;
@@ -1534,24 +1945,24 @@ void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
                 fl_int end_line = s->line;
                 fl_int end_col = s->col;
                 fl_self_hosted_lexer_advance(s);
-                fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_END, fl_string_from_cstr("}"), end_line, end_col));
+                fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_END, _fl_str_self_hosted_lexer_59, end_line, end_col));
                 return;
             }
             fl_int t_line = s->line;
             fl_int t_col = s->col;
             fl_self_hosted_lexer_advance(s);
-            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RBRACE, fl_string_from_cstr("}"), t_line, t_col));
+            fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_RBRACE, _fl_str_self_hosted_lexer_59, t_line, t_col));
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("/")) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), fl_string_from_cstr("/"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_98) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), _fl_str_self_hosted_lexer_98)) {
             fl_self_hosted_lexer_scan_comment(s);
-            if ((s->pos < s->src_len) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), fl_string_from_cstr("\n"))) {
+            if ((s->pos < s->src_len) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_43)) {
                 fl_self_hosted_lexer_advance(s);
             }
             continue;
         }
-        if (fl_char_is_alpha(ch) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("_"))) {
-            if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("f")) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), fl_string_from_cstr("\""))) {
+        if (fl_char_is_alpha(ch) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_64)) {
+            if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_116) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 1), _fl_str_self_hosted_lexer_49)) {
                 fl_self_hosted_lexer_scan_fstring(s);
             } else {
                 fl_self_hosted_lexer_scan_identifier(s);
@@ -1562,51 +1973,53 @@ void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
             fl_self_hosted_lexer_scan_number(s);
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\""))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49)) {
             fl_self_hosted_lexer_scan_string(s);
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("'"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_50)) {
             fl_self_hosted_lexer_scan_char_lit(s);
             continue;
         }
         fl_self_hosted_lexer_scan_operator(s);
     }
     if (brace_depth > 0) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_14 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_14) = fl_self_hosted_errors_lex_error(fl_string_from_cstr("unterminated f-string expression"), s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_14), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_20 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_20) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_20), 461109476);
     }
 }
 
 /* Flow: self_hosted.lexer.tokenize */
 FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename) {
+    fl_string_retain(source);
+    fl_string_retain(filename);
     fl_self_hosted_lexer_LexState s = (fl_self_hosted_lexer_LexState){.source = source, .filename = filename, .src_len = fl_string_len(source), .pos = 0, .line = 1, .col = 1, .tokens = fl_array_new(0, 0, NULL)};
     while (s.pos < s.src_len) {
         fl_char ch = fl_self_hosted_lexer_peek(s, 0);
-        if ((fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr(" ")) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\t"))) || fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\r"))) {
+        if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_115) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_47)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_54)) {
             fl_self_hosted_lexer_advance((&s));
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\n"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_43)) {
             fl_int nl_line = s.line;
             fl_int nl_col = s.col;
             fl_self_hosted_lexer_advance((&s));
-            fl_self_hosted_lexer_emit((&s), fl_self_hosted_lexer_make_token(s, fl_self_hosted_lexer_TokenType_TK_NEWLINE, fl_string_from_cstr("\n"), nl_line, nl_col));
+            fl_self_hosted_lexer_emit((&s), fl_self_hosted_lexer_make_token(s, fl_self_hosted_lexer_TokenType_TK_NEWLINE, _fl_str_self_hosted_lexer_43, nl_line, nl_col));
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("/")) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 1), fl_string_from_cstr("/"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_98) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 1), _fl_str_self_hosted_lexer_98)) {
             fl_self_hosted_lexer_scan_comment((&s));
-            if ((s.pos < s.src_len) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 0), fl_string_from_cstr("\n"))) {
+            if ((s.pos < s.src_len) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 0), _fl_str_self_hosted_lexer_43)) {
                 fl_self_hosted_lexer_advance((&s));
             }
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("f")) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 1), fl_string_from_cstr("\""))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_116) && fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 1), _fl_str_self_hosted_lexer_49)) {
             fl_self_hosted_lexer_scan_fstring((&s));
             continue;
         }
-        if (fl_char_is_alpha(fl_self_hosted_lexer_peek(s, 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 0), fl_string_from_cstr("_"))) {
+        if (fl_char_is_alpha(fl_self_hosted_lexer_peek(s, 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek(s, 0), _fl_str_self_hosted_lexer_64)) {
             fl_self_hosted_lexer_scan_identifier((&s));
             continue;
         }
@@ -1614,188 +2027,188 @@ FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename) 
             fl_self_hosted_lexer_scan_number((&s));
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("\""))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49)) {
             fl_self_hosted_lexer_scan_string((&s));
             continue;
         }
-        if (fl_self_hosted_lexer_char_eq(ch, fl_string_from_cstr("'"))) {
+        if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_50)) {
             fl_self_hosted_lexer_scan_char_lit((&s));
             continue;
         }
         fl_self_hosted_lexer_scan_operator((&s));
     }
-    fl_self_hosted_lexer_emit((&s), fl_self_hosted_lexer_make_token(s, fl_self_hosted_lexer_TokenType_TK_EOF, fl_string_from_cstr(""), s.line, s.col));
+    fl_self_hosted_lexer_emit((&s), fl_self_hosted_lexer_make_token(s, fl_self_hosted_lexer_TokenType_TK_EOF, _fl_str_self_hosted_lexer_58, s.line, s.col));
     return s.tokens;
 }
 
 /* Flow: self_hosted.lexer.token_type_name */
 FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype) {
     if (ttype == fl_self_hosted_lexer_TokenType_TK_MODULE) {
-        return fl_string_from_cstr("MODULE");
+        return _fl_str_self_hosted_lexer_118;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_IMPORT) {
-        return fl_string_from_cstr("IMPORT");
+        return _fl_str_self_hosted_lexer_119;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_EXPORT) {
-        return fl_string_from_cstr("EXPORT");
+        return _fl_str_self_hosted_lexer_120;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LET) {
-        return fl_string_from_cstr("LET");
+        return _fl_str_self_hosted_lexer_121;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_FN) {
-        return fl_string_from_cstr("FN");
+        return _fl_str_self_hosted_lexer_122;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_RETURN) {
-        return fl_string_from_cstr("RETURN");
+        return _fl_str_self_hosted_lexer_123;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_IF) {
-        return fl_string_from_cstr("IF");
+        return _fl_str_self_hosted_lexer_124;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ELSE) {
-        return fl_string_from_cstr("ELSE");
+        return _fl_str_self_hosted_lexer_125;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_WHILE) {
-        return fl_string_from_cstr("WHILE");
+        return _fl_str_self_hosted_lexer_126;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_FOR) {
-        return fl_string_from_cstr("FOR");
+        return _fl_str_self_hosted_lexer_127;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_MATCH) {
-        return fl_string_from_cstr("MATCH");
+        return _fl_str_self_hosted_lexer_128;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_TYPE) {
-        return fl_string_from_cstr("TYPE");
+        return _fl_str_self_hosted_lexer_129;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_INTERFACE) {
-        return fl_string_from_cstr("INTERFACE");
+        return _fl_str_self_hosted_lexer_130;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_NONE) {
-        return fl_string_from_cstr("NONE");
+        return _fl_str_self_hosted_lexer_131;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_SOME) {
-        return fl_string_from_cstr("SOME");
+        return _fl_str_self_hosted_lexer_132;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_OK) {
-        return fl_string_from_cstr("OK");
+        return _fl_str_self_hosted_lexer_133;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ERR) {
-        return fl_string_from_cstr("ERR");
+        return _fl_str_self_hosted_lexer_134;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_BOOL_LIT) {
-        return fl_string_from_cstr("BOOL_LIT");
+        return _fl_str_self_hosted_lexer_135;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) {
-        return fl_string_from_cstr("INT_LIT");
+        return _fl_str_self_hosted_lexer_136;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT) {
-        return fl_string_from_cstr("FLOAT_LIT");
+        return _fl_str_self_hosted_lexer_137;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_STRING_LIT) {
-        return fl_string_from_cstr("STRING_LIT");
+        return _fl_str_self_hosted_lexer_138;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_CHAR_LIT) {
-        return fl_string_from_cstr("CHAR_LIT");
+        return _fl_str_self_hosted_lexer_139;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
-        return fl_string_from_cstr("IDENT");
+        return _fl_str_self_hosted_lexer_140;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_COMMENT) {
-        return fl_string_from_cstr("COMMENT");
+        return _fl_str_self_hosted_lexer_141;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_NEWLINE) {
-        return fl_string_from_cstr("NEWLINE");
+        return _fl_str_self_hosted_lexer_142;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_EOF) {
-        return fl_string_from_cstr("EOF");
+        return _fl_str_self_hosted_lexer_143;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_PLUS) {
-        return fl_string_from_cstr("PLUS");
+        return _fl_str_self_hosted_lexer_144;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_MINUS) {
-        return fl_string_from_cstr("MINUS");
+        return _fl_str_self_hosted_lexer_145;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_STAR) {
-        return fl_string_from_cstr("STAR");
+        return _fl_str_self_hosted_lexer_146;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_SLASH) {
-        return fl_string_from_cstr("SLASH");
+        return _fl_str_self_hosted_lexer_147;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ASSIGN) {
-        return fl_string_from_cstr("ASSIGN");
+        return _fl_str_self_hosted_lexer_148;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_DOUBLE_EQ) {
-        return fl_string_from_cstr("DOUBLE_EQ");
+        return _fl_str_self_hosted_lexer_149;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_NOT_EQ) {
-        return fl_string_from_cstr("NOT_EQ");
+        return _fl_str_self_hosted_lexer_150;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LT) {
-        return fl_string_from_cstr("LT");
+        return _fl_str_self_hosted_lexer_151;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_GT) {
-        return fl_string_from_cstr("GT");
+        return _fl_str_self_hosted_lexer_152;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LPAREN) {
-        return fl_string_from_cstr("LPAREN");
+        return _fl_str_self_hosted_lexer_153;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_RPAREN) {
-        return fl_string_from_cstr("RPAREN");
+        return _fl_str_self_hosted_lexer_154;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LBRACE) {
-        return fl_string_from_cstr("LBRACE");
+        return _fl_str_self_hosted_lexer_155;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_RBRACE) {
-        return fl_string_from_cstr("RBRACE");
+        return _fl_str_self_hosted_lexer_156;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LBRACKET) {
-        return fl_string_from_cstr("LBRACKET");
+        return _fl_str_self_hosted_lexer_157;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_RBRACKET) {
-        return fl_string_from_cstr("RBRACKET");
+        return _fl_str_self_hosted_lexer_158;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_COLON) {
-        return fl_string_from_cstr("COLON");
+        return _fl_str_self_hosted_lexer_159;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_COMMA) {
-        return fl_string_from_cstr("COMMA");
+        return _fl_str_self_hosted_lexer_160;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_DOT) {
-        return fl_string_from_cstr("DOT");
+        return _fl_str_self_hosted_lexer_161;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ARROW) {
-        return fl_string_from_cstr("ARROW");
+        return _fl_str_self_hosted_lexer_162;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_PIPE) {
-        return fl_string_from_cstr("PIPE");
+        return _fl_str_self_hosted_lexer_163;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_QUESTION) {
-        return fl_string_from_cstr("QUESTION");
+        return _fl_str_self_hosted_lexer_164;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_SPREAD) {
-        return fl_string_from_cstr("SPREAD");
+        return _fl_str_self_hosted_lexer_165;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_AND) {
-        return fl_string_from_cstr("AND");
+        return _fl_str_self_hosted_lexer_166;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_OR) {
-        return fl_string_from_cstr("OR");
+        return _fl_str_self_hosted_lexer_167;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_COERCE) {
-        return fl_string_from_cstr("COERCE");
+        return _fl_str_self_hosted_lexer_168;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_CAST) {
-        return fl_string_from_cstr("CAST");
+        return _fl_str_self_hosted_lexer_169;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_THROW) {
-        return fl_string_from_cstr("THROW");
+        return _fl_str_self_hosted_lexer_170;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_EXTERN) {
-        return fl_string_from_cstr("EXTERN");
+        return _fl_str_self_hosted_lexer_171;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ENUM) {
-        return fl_string_from_cstr("ENUM");
+        return _fl_str_self_hosted_lexer_172;
     }
-    return fl_string_concat(fl_string_concat(fl_string_from_cstr("UNKNOWN("), fl_conv_to_string__int(ttype)), fl_string_from_cstr(")"));
+    return fl_string_concat(fl_string_concat(_fl_str_self_hosted_lexer_173, fl_conv_to_string__int(ttype)), _fl_str_self_hosted_lexer_102);
 }
 
 typedef struct FL_Option_fl_self_hosted_lexer_Token FL_Option_fl_self_hosted_lexer_Token;
@@ -1807,26 +2220,54 @@ struct FL_Option_fl_self_hosted_lexer_Token {
     fl_self_hosted_lexer_Token value;
 };
 
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_0 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_1 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_2 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_3 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_4 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_5 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_6 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_7 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_8 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_9 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_10 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_11 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_lexer_test_12 = NULL;
+
 /* Flow: tests.programs.app_sh_lexer_test.main */
 fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
-    FL_String* src = fl_string_from_cstr("let x:int = 42");
-    FL_Array* tokens = fl_self_hosted_lexer_tokenize(src, fl_string_from_cstr("test.flow"));
-    fl_println(fl_string_concat(fl_string_from_cstr("token count: "), fl_conv_to_string__int(fl_array_len_int(tokens))));
+    FL_String* src = _fl_str_tests_programs_app_sh_lexer_test_0;
+    fl_string_retain(src);
+    FL_Array* tokens = fl_self_hosted_lexer_tokenize(src, _fl_str_tests_programs_app_sh_lexer_test_1);
+    fl_println(fl_string_concat(_fl_str_tests_programs_app_sh_lexer_test_2, fl_conv_to_string__int(fl_array_len_int(tokens))));
     fl_int i = 0;
     while (i < fl_array_len_int(tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(tokens, i), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
         FL_Option_fl_self_hosted_lexer_Token _fl_tmp_0 = tok;
         if (_fl_tmp_0.tag == 1) {
             fl_self_hosted_lexer_Token t = _fl_tmp_0.value;
-            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), fl_string_from_cstr(" '")), t.value), fl_string_from_cstr("'")));
+            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3), t.value), _fl_str_tests_programs_app_sh_lexer_test_4));
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    fl_println(fl_string_from_cstr("---"));
-    FL_String* ops_src = fl_string_from_cstr("a + b == c && d != e");
-    FL_Array* ops_tokens = fl_self_hosted_lexer_tokenize(ops_src, fl_string_from_cstr("test.flow"));
+    fl_println(_fl_str_tests_programs_app_sh_lexer_test_5);
+    FL_String* ops_src = _fl_str_tests_programs_app_sh_lexer_test_6;
+    fl_string_retain(ops_src);
+    FL_Array* ops_tokens = fl_self_hosted_lexer_tokenize(ops_src, _fl_str_tests_programs_app_sh_lexer_test_1);
     fl_int j = 0;
     while (j < fl_array_len_int(ops_tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(ops_tokens, j), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
@@ -1834,25 +2275,27 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
         if (_fl_tmp_1.tag == 1) {
             fl_self_hosted_lexer_Token t = _fl_tmp_1.value;
             if ((t.ttype != fl_self_hosted_lexer_TokenType_TK_NEWLINE) && (t.ttype != fl_self_hosted_lexer_TokenType_TK_EOF)) {
-                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), fl_string_from_cstr(" '")), t.value), fl_string_from_cstr("'")));
+                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3), t.value), _fl_str_tests_programs_app_sh_lexer_test_4));
             }
         }
         fl_int _fl_e_2;
         FL_CHECKED_ADD(j, 1, &_fl_e_2);
         j = _fl_e_2;
     }
-    fl_println(fl_string_from_cstr("---"));
-    FL_String* str_src = fl_string_from_cstr("\"hello world\"");
-    FL_Array* str_tokens = fl_self_hosted_lexer_tokenize(str_src, fl_string_from_cstr("test.flow"));
+    fl_println(_fl_str_tests_programs_app_sh_lexer_test_5);
+    FL_String* str_src = _fl_str_tests_programs_app_sh_lexer_test_7;
+    fl_string_retain(str_src);
+    FL_Array* str_tokens = fl_self_hosted_lexer_tokenize(str_src, _fl_str_tests_programs_app_sh_lexer_test_1);
     FL_Option_fl_self_hosted_lexer_Token st = FL_OPT_DEREF_AS(fl_array_get_safe(str_tokens, 0), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
     FL_Option_fl_self_hosted_lexer_Token _fl_tmp_2 = st;
     if (_fl_tmp_2.tag == 1) {
         fl_self_hosted_lexer_Token t = _fl_tmp_2.value;
-        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), fl_string_from_cstr(" '")), t.value), fl_string_from_cstr("'")));
+        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3), t.value), _fl_str_tests_programs_app_sh_lexer_test_4));
     }
-    fl_println(fl_string_from_cstr("---"));
-    FL_String* num_src = fl_string_from_cstr("42 3.14 0xFF");
-    FL_Array* num_tokens = fl_self_hosted_lexer_tokenize(num_src, fl_string_from_cstr("test.flow"));
+    fl_println(_fl_str_tests_programs_app_sh_lexer_test_5);
+    FL_String* num_src = _fl_str_tests_programs_app_sh_lexer_test_8;
+    fl_string_retain(num_src);
+    FL_Array* num_tokens = fl_self_hosted_lexer_tokenize(num_src, _fl_str_tests_programs_app_sh_lexer_test_1);
     fl_int k = 0;
     while (k < fl_array_len_int(num_tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(num_tokens, k), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
@@ -1860,16 +2303,17 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
         if (_fl_tmp_3.tag == 1) {
             fl_self_hosted_lexer_Token t = _fl_tmp_3.value;
             if ((t.ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) || (t.ttype == fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT)) {
-                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), fl_string_from_cstr(" '")), t.value), fl_string_from_cstr("'")));
+                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3), t.value), _fl_str_tests_programs_app_sh_lexer_test_4));
             }
         }
         fl_int _fl_e_3;
         FL_CHECKED_ADD(k, 1, &_fl_e_3);
         k = _fl_e_3;
     }
-    fl_println(fl_string_from_cstr("---"));
-    FL_String* kw_src = fl_string_from_cstr("fn main if else return true false none");
-    FL_Array* kw_tokens = fl_self_hosted_lexer_tokenize(kw_src, fl_string_from_cstr("test.flow"));
+    fl_println(_fl_str_tests_programs_app_sh_lexer_test_5);
+    FL_String* kw_src = _fl_str_tests_programs_app_sh_lexer_test_9;
+    fl_string_retain(kw_src);
+    FL_Array* kw_tokens = fl_self_hosted_lexer_tokenize(kw_src, _fl_str_tests_programs_app_sh_lexer_test_1);
     fl_int m = 0;
     while (m < fl_array_len_int(kw_tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(kw_tokens, m), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
@@ -1877,16 +2321,17 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
         if (_fl_tmp_4.tag == 1) {
             fl_self_hosted_lexer_Token t = _fl_tmp_4.value;
             if ((t.ttype != fl_self_hosted_lexer_TokenType_TK_NEWLINE) && (t.ttype != fl_self_hosted_lexer_TokenType_TK_EOF)) {
-                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), fl_string_from_cstr(" '")), t.value), fl_string_from_cstr("'")));
+                fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3), t.value), _fl_str_tests_programs_app_sh_lexer_test_4));
             }
         }
         fl_int _fl_e_4;
         FL_CHECKED_ADD(m, 1, &_fl_e_4);
         m = _fl_e_4;
     }
-    fl_println(fl_string_from_cstr("---"));
-    FL_String* multi_src = fl_string_from_cstr("a\nb\nc");
-    FL_Array* multi_tokens = fl_self_hosted_lexer_tokenize(multi_src, fl_string_from_cstr("test.flow"));
+    fl_println(_fl_str_tests_programs_app_sh_lexer_test_5);
+    FL_String* multi_src = _fl_str_tests_programs_app_sh_lexer_test_10;
+    fl_string_retain(multi_src);
+    FL_Array* multi_tokens = fl_self_hosted_lexer_tokenize(multi_src, _fl_str_tests_programs_app_sh_lexer_test_1);
     fl_int n = 0;
     while (n < fl_array_len_int(multi_tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(multi_tokens, n), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
@@ -1894,20 +2339,416 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
         if (_fl_tmp_5.tag == 1) {
             fl_self_hosted_lexer_Token t = _fl_tmp_5.value;
             if (t.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
-                fl_println(fl_string_concat(fl_string_concat(t.value, fl_string_from_cstr(" line:")), fl_conv_to_string__int(t.line)));
+                fl_println(fl_string_concat(fl_string_concat(t.value, _fl_str_tests_programs_app_sh_lexer_test_11), fl_conv_to_string__int(t.line)));
             }
         }
         fl_int _fl_e_5;
         FL_CHECKED_ADD(n, 1, &_fl_e_5);
         n = _fl_e_5;
     }
-    fl_println(fl_string_from_cstr("ok"));
+    fl_println(_fl_str_tests_programs_app_sh_lexer_test_12);
     return 0;
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_self_hosted_errors_0 = fl_string_from_cstr("LexError");
+    _fl_str_self_hosted_errors_0->refcount = 2147483647;
+    _fl_str_self_hosted_errors_1 = fl_string_from_cstr("ParseError");
+    _fl_str_self_hosted_errors_1->refcount = 2147483647;
+    _fl_str_self_hosted_errors_2 = fl_string_from_cstr("ResolveError");
+    _fl_str_self_hosted_errors_2->refcount = 2147483647;
+    _fl_str_self_hosted_errors_3 = fl_string_from_cstr("TypeError");
+    _fl_str_self_hosted_errors_3->refcount = 2147483647;
+    _fl_str_self_hosted_errors_4 = fl_string_from_cstr("EmitError");
+    _fl_str_self_hosted_errors_4->refcount = 2147483647;
+    _fl_str_self_hosted_errors_5 = fl_string_from_cstr(":");
+    _fl_str_self_hosted_errors_5->refcount = 2147483647;
+    _fl_str_self_hosted_errors_6 = fl_string_from_cstr(": ");
+    _fl_str_self_hosted_errors_6->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_0 = fl_string_from_cstr("module");
+    _fl_str_self_hosted_lexer_0->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_1 = fl_string_from_cstr("import");
+    _fl_str_self_hosted_lexer_1->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_2 = fl_string_from_cstr("export");
+    _fl_str_self_hosted_lexer_2->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_3 = fl_string_from_cstr("as");
+    _fl_str_self_hosted_lexer_3->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_4 = fl_string_from_cstr("alias");
+    _fl_str_self_hosted_lexer_4->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_5 = fl_string_from_cstr("type");
+    _fl_str_self_hosted_lexer_5->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_6 = fl_string_from_cstr("typeof");
+    _fl_str_self_hosted_lexer_6->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_7 = fl_string_from_cstr("mut");
+    _fl_str_self_hosted_lexer_7->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_8 = fl_string_from_cstr("imut");
+    _fl_str_self_hosted_lexer_8->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_9 = fl_string_from_cstr("let");
+    _fl_str_self_hosted_lexer_9->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_10 = fl_string_from_cstr("fn");
+    _fl_str_self_hosted_lexer_10->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_11 = fl_string_from_cstr("return");
+    _fl_str_self_hosted_lexer_11->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_12 = fl_string_from_cstr("yield");
+    _fl_str_self_hosted_lexer_12->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_13 = fl_string_from_cstr("try");
+    _fl_str_self_hosted_lexer_13->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_14 = fl_string_from_cstr("retry");
+    _fl_str_self_hosted_lexer_14->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_15 = fl_string_from_cstr("catch");
+    _fl_str_self_hosted_lexer_15->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_16 = fl_string_from_cstr("finally");
+    _fl_str_self_hosted_lexer_16->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_17 = fl_string_from_cstr("interface");
+    _fl_str_self_hosted_lexer_17->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_18 = fl_string_from_cstr("fulfills");
+    _fl_str_self_hosted_lexer_18->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_19 = fl_string_from_cstr("constructor");
+    _fl_str_self_hosted_lexer_19->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_20 = fl_string_from_cstr("self");
+    _fl_str_self_hosted_lexer_20->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_21 = fl_string_from_cstr("for");
+    _fl_str_self_hosted_lexer_21->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_22 = fl_string_from_cstr("in");
+    _fl_str_self_hosted_lexer_22->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_23 = fl_string_from_cstr("while");
+    _fl_str_self_hosted_lexer_23->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_24 = fl_string_from_cstr("if");
+    _fl_str_self_hosted_lexer_24->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_25 = fl_string_from_cstr("else");
+    _fl_str_self_hosted_lexer_25->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_26 = fl_string_from_cstr("match");
+    _fl_str_self_hosted_lexer_26->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_27 = fl_string_from_cstr("none");
+    _fl_str_self_hosted_lexer_27->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_28 = fl_string_from_cstr("break");
+    _fl_str_self_hosted_lexer_28->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_29 = fl_string_from_cstr("continue");
+    _fl_str_self_hosted_lexer_29->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_30 = fl_string_from_cstr("static");
+    _fl_str_self_hosted_lexer_30->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_31 = fl_string_from_cstr("pure");
+    _fl_str_self_hosted_lexer_31->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_32 = fl_string_from_cstr("record");
+    _fl_str_self_hosted_lexer_32->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_33 = fl_string_from_cstr("some");
+    _fl_str_self_hosted_lexer_33->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_34 = fl_string_from_cstr("ok");
+    _fl_str_self_hosted_lexer_34->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_35 = fl_string_from_cstr("err");
+    _fl_str_self_hosted_lexer_35->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_36 = fl_string_from_cstr("coerce");
+    _fl_str_self_hosted_lexer_36->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_37 = fl_string_from_cstr("cast");
+    _fl_str_self_hosted_lexer_37->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_38 = fl_string_from_cstr("throw");
+    _fl_str_self_hosted_lexer_38->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_39 = fl_string_from_cstr("extern");
+    _fl_str_self_hosted_lexer_39->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_40 = fl_string_from_cstr("enum");
+    _fl_str_self_hosted_lexer_40->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_41 = fl_string_from_cstr("true");
+    _fl_str_self_hosted_lexer_41->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_42 = fl_string_from_cstr("false");
+    _fl_str_self_hosted_lexer_42->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_43 = fl_string_from_cstr("\n");
+    _fl_str_self_hosted_lexer_43->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_44 = fl_string_from_cstr("unterminated escape sequence");
+    _fl_str_self_hosted_lexer_44->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_45 = fl_string_from_cstr("n");
+    _fl_str_self_hosted_lexer_45->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_46 = fl_string_from_cstr("t");
+    _fl_str_self_hosted_lexer_46->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_47 = fl_string_from_cstr("\t");
+    _fl_str_self_hosted_lexer_47->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_48 = fl_string_from_cstr("\\");
+    _fl_str_self_hosted_lexer_48->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_49 = fl_string_from_cstr("\"");
+    _fl_str_self_hosted_lexer_49->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_50 = fl_string_from_cstr("'");
+    _fl_str_self_hosted_lexer_50->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_51 = fl_string_from_cstr("0");
+    _fl_str_self_hosted_lexer_51->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_52 = fl_string_from_cstr("\0");
+    _fl_str_self_hosted_lexer_52->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_53 = fl_string_from_cstr("r");
+    _fl_str_self_hosted_lexer_53->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_54 = fl_string_from_cstr("\r");
+    _fl_str_self_hosted_lexer_54->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_55 = fl_string_from_cstr("{");
+    _fl_str_self_hosted_lexer_55->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_56 = fl_string_from_cstr("u");
+    _fl_str_self_hosted_lexer_56->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_57 = fl_string_from_cstr("expected '{' after '\\u'");
+    _fl_str_self_hosted_lexer_57->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_58 = fl_string_from_cstr("");
+    _fl_str_self_hosted_lexer_58->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_59 = fl_string_from_cstr("}");
+    _fl_str_self_hosted_lexer_59->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_60 = fl_string_from_cstr("unterminated unicode escape");
+    _fl_str_self_hosted_lexer_60->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_61 = fl_string_from_cstr("empty unicode escape");
+    _fl_str_self_hosted_lexer_61->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_62 = fl_string_from_cstr("?");
+    _fl_str_self_hosted_lexer_62->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_63 = fl_string_from_cstr("unknown escape sequence");
+    _fl_str_self_hosted_lexer_63->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_64 = fl_string_from_cstr("_");
+    _fl_str_self_hosted_lexer_64->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_65 = fl_string_from_cstr("x");
+    _fl_str_self_hosted_lexer_65->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_66 = fl_string_from_cstr("X");
+    _fl_str_self_hosted_lexer_66->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_67 = fl_string_from_cstr(".");
+    _fl_str_self_hosted_lexer_67->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_68 = fl_string_from_cstr("e");
+    _fl_str_self_hosted_lexer_68->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_69 = fl_string_from_cstr("E");
+    _fl_str_self_hosted_lexer_69->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_70 = fl_string_from_cstr("+");
+    _fl_str_self_hosted_lexer_70->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_71 = fl_string_from_cstr("-");
+    _fl_str_self_hosted_lexer_71->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_72 = fl_string_from_cstr("unterminated string literal");
+    _fl_str_self_hosted_lexer_72->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_73 = fl_string_from_cstr("unterminated character literal");
+    _fl_str_self_hosted_lexer_73->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_74 = fl_string_from_cstr("=");
+    _fl_str_self_hosted_lexer_74->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_75 = fl_string_from_cstr("===");
+    _fl_str_self_hosted_lexer_75->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_76 = fl_string_from_cstr("<");
+    _fl_str_self_hosted_lexer_76->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_77 = fl_string_from_cstr("<:(");
+    _fl_str_self_hosted_lexer_77->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_78 = fl_string_from_cstr("==");
+    _fl_str_self_hosted_lexer_78->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_79 = fl_string_from_cstr("!=");
+    _fl_str_self_hosted_lexer_79->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_80 = fl_string_from_cstr("<=");
+    _fl_str_self_hosted_lexer_80->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_81 = fl_string_from_cstr(">=");
+    _fl_str_self_hosted_lexer_81->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_82 = fl_string_from_cstr("->");
+    _fl_str_self_hosted_lexer_82->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_83 = fl_string_from_cstr("=>");
+    _fl_str_self_hosted_lexer_83->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_84 = fl_string_from_cstr("++");
+    _fl_str_self_hosted_lexer_84->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_85 = fl_string_from_cstr("--");
+    _fl_str_self_hosted_lexer_85->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_86 = fl_string_from_cstr("**");
+    _fl_str_self_hosted_lexer_86->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_87 = fl_string_from_cstr("</");
+    _fl_str_self_hosted_lexer_87->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_88 = fl_string_from_cstr("??");
+    _fl_str_self_hosted_lexer_88->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_89 = fl_string_from_cstr("&&");
+    _fl_str_self_hosted_lexer_89->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_90 = fl_string_from_cstr("||");
+    _fl_str_self_hosted_lexer_90->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_91 = fl_string_from_cstr("..");
+    _fl_str_self_hosted_lexer_91->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_92 = fl_string_from_cstr(":<");
+    _fl_str_self_hosted_lexer_92->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_93 = fl_string_from_cstr("+=");
+    _fl_str_self_hosted_lexer_93->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_94 = fl_string_from_cstr("-=");
+    _fl_str_self_hosted_lexer_94->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_95 = fl_string_from_cstr("*=");
+    _fl_str_self_hosted_lexer_95->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_96 = fl_string_from_cstr("/=");
+    _fl_str_self_hosted_lexer_96->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_97 = fl_string_from_cstr("*");
+    _fl_str_self_hosted_lexer_97->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_98 = fl_string_from_cstr("/");
+    _fl_str_self_hosted_lexer_98->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_99 = fl_string_from_cstr("%");
+    _fl_str_self_hosted_lexer_99->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_100 = fl_string_from_cstr(">");
+    _fl_str_self_hosted_lexer_100->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_101 = fl_string_from_cstr("(");
+    _fl_str_self_hosted_lexer_101->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_102 = fl_string_from_cstr(")");
+    _fl_str_self_hosted_lexer_102->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_103 = fl_string_from_cstr("[");
+    _fl_str_self_hosted_lexer_103->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_104 = fl_string_from_cstr("]");
+    _fl_str_self_hosted_lexer_104->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_105 = fl_string_from_cstr(":");
+    _fl_str_self_hosted_lexer_105->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_106 = fl_string_from_cstr(",");
+    _fl_str_self_hosted_lexer_106->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_107 = fl_string_from_cstr("|");
+    _fl_str_self_hosted_lexer_107->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_108 = fl_string_from_cstr("!");
+    _fl_str_self_hosted_lexer_108->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_109 = fl_string_from_cstr("@");
+    _fl_str_self_hosted_lexer_109->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_110 = fl_string_from_cstr("&");
+    _fl_str_self_hosted_lexer_110->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_111 = fl_string_from_cstr(";");
+    _fl_str_self_hosted_lexer_111->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_112 = fl_string_from_cstr("unexpected character '");
+    _fl_str_self_hosted_lexer_112->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_113 = fl_string_from_cstr("f\"");
+    _fl_str_self_hosted_lexer_113->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_114 = fl_string_from_cstr("unterminated f-string");
+    _fl_str_self_hosted_lexer_114->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_115 = fl_string_from_cstr(" ");
+    _fl_str_self_hosted_lexer_115->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_116 = fl_string_from_cstr("f");
+    _fl_str_self_hosted_lexer_116->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_117 = fl_string_from_cstr("unterminated f-string expression");
+    _fl_str_self_hosted_lexer_117->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_118 = fl_string_from_cstr("MODULE");
+    _fl_str_self_hosted_lexer_118->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_119 = fl_string_from_cstr("IMPORT");
+    _fl_str_self_hosted_lexer_119->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_120 = fl_string_from_cstr("EXPORT");
+    _fl_str_self_hosted_lexer_120->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_121 = fl_string_from_cstr("LET");
+    _fl_str_self_hosted_lexer_121->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_122 = fl_string_from_cstr("FN");
+    _fl_str_self_hosted_lexer_122->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_123 = fl_string_from_cstr("RETURN");
+    _fl_str_self_hosted_lexer_123->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_124 = fl_string_from_cstr("IF");
+    _fl_str_self_hosted_lexer_124->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_125 = fl_string_from_cstr("ELSE");
+    _fl_str_self_hosted_lexer_125->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_126 = fl_string_from_cstr("WHILE");
+    _fl_str_self_hosted_lexer_126->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_127 = fl_string_from_cstr("FOR");
+    _fl_str_self_hosted_lexer_127->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_128 = fl_string_from_cstr("MATCH");
+    _fl_str_self_hosted_lexer_128->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_129 = fl_string_from_cstr("TYPE");
+    _fl_str_self_hosted_lexer_129->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_130 = fl_string_from_cstr("INTERFACE");
+    _fl_str_self_hosted_lexer_130->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_131 = fl_string_from_cstr("NONE");
+    _fl_str_self_hosted_lexer_131->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_132 = fl_string_from_cstr("SOME");
+    _fl_str_self_hosted_lexer_132->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_133 = fl_string_from_cstr("OK");
+    _fl_str_self_hosted_lexer_133->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_134 = fl_string_from_cstr("ERR");
+    _fl_str_self_hosted_lexer_134->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_135 = fl_string_from_cstr("BOOL_LIT");
+    _fl_str_self_hosted_lexer_135->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_136 = fl_string_from_cstr("INT_LIT");
+    _fl_str_self_hosted_lexer_136->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_137 = fl_string_from_cstr("FLOAT_LIT");
+    _fl_str_self_hosted_lexer_137->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_138 = fl_string_from_cstr("STRING_LIT");
+    _fl_str_self_hosted_lexer_138->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_139 = fl_string_from_cstr("CHAR_LIT");
+    _fl_str_self_hosted_lexer_139->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_140 = fl_string_from_cstr("IDENT");
+    _fl_str_self_hosted_lexer_140->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_141 = fl_string_from_cstr("COMMENT");
+    _fl_str_self_hosted_lexer_141->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_142 = fl_string_from_cstr("NEWLINE");
+    _fl_str_self_hosted_lexer_142->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_143 = fl_string_from_cstr("EOF");
+    _fl_str_self_hosted_lexer_143->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_144 = fl_string_from_cstr("PLUS");
+    _fl_str_self_hosted_lexer_144->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_145 = fl_string_from_cstr("MINUS");
+    _fl_str_self_hosted_lexer_145->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_146 = fl_string_from_cstr("STAR");
+    _fl_str_self_hosted_lexer_146->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_147 = fl_string_from_cstr("SLASH");
+    _fl_str_self_hosted_lexer_147->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_148 = fl_string_from_cstr("ASSIGN");
+    _fl_str_self_hosted_lexer_148->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_149 = fl_string_from_cstr("DOUBLE_EQ");
+    _fl_str_self_hosted_lexer_149->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_150 = fl_string_from_cstr("NOT_EQ");
+    _fl_str_self_hosted_lexer_150->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_151 = fl_string_from_cstr("LT");
+    _fl_str_self_hosted_lexer_151->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_152 = fl_string_from_cstr("GT");
+    _fl_str_self_hosted_lexer_152->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_153 = fl_string_from_cstr("LPAREN");
+    _fl_str_self_hosted_lexer_153->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_154 = fl_string_from_cstr("RPAREN");
+    _fl_str_self_hosted_lexer_154->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_155 = fl_string_from_cstr("LBRACE");
+    _fl_str_self_hosted_lexer_155->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_156 = fl_string_from_cstr("RBRACE");
+    _fl_str_self_hosted_lexer_156->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_157 = fl_string_from_cstr("LBRACKET");
+    _fl_str_self_hosted_lexer_157->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_158 = fl_string_from_cstr("RBRACKET");
+    _fl_str_self_hosted_lexer_158->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_159 = fl_string_from_cstr("COLON");
+    _fl_str_self_hosted_lexer_159->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_160 = fl_string_from_cstr("COMMA");
+    _fl_str_self_hosted_lexer_160->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_161 = fl_string_from_cstr("DOT");
+    _fl_str_self_hosted_lexer_161->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_162 = fl_string_from_cstr("ARROW");
+    _fl_str_self_hosted_lexer_162->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_163 = fl_string_from_cstr("PIPE");
+    _fl_str_self_hosted_lexer_163->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_164 = fl_string_from_cstr("QUESTION");
+    _fl_str_self_hosted_lexer_164->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_165 = fl_string_from_cstr("SPREAD");
+    _fl_str_self_hosted_lexer_165->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_166 = fl_string_from_cstr("AND");
+    _fl_str_self_hosted_lexer_166->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_167 = fl_string_from_cstr("OR");
+    _fl_str_self_hosted_lexer_167->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_168 = fl_string_from_cstr("COERCE");
+    _fl_str_self_hosted_lexer_168->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_169 = fl_string_from_cstr("CAST");
+    _fl_str_self_hosted_lexer_169->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_170 = fl_string_from_cstr("THROW");
+    _fl_str_self_hosted_lexer_170->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_171 = fl_string_from_cstr("EXTERN");
+    _fl_str_self_hosted_lexer_171->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_172 = fl_string_from_cstr("ENUM");
+    _fl_str_self_hosted_lexer_172->refcount = 2147483647;
+    _fl_str_self_hosted_lexer_173 = fl_string_from_cstr("UNKNOWN(");
+    _fl_str_self_hosted_lexer_173->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_0 = fl_string_from_cstr("let x:int = 42");
+    _fl_str_tests_programs_app_sh_lexer_test_0->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_1 = fl_string_from_cstr("test.flow");
+    _fl_str_tests_programs_app_sh_lexer_test_1->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_2 = fl_string_from_cstr("token count: ");
+    _fl_str_tests_programs_app_sh_lexer_test_2->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_3 = fl_string_from_cstr(" '");
+    _fl_str_tests_programs_app_sh_lexer_test_3->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_4 = fl_string_from_cstr("'");
+    _fl_str_tests_programs_app_sh_lexer_test_4->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_5 = fl_string_from_cstr("---");
+    _fl_str_tests_programs_app_sh_lexer_test_5->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_6 = fl_string_from_cstr("a + b == c && d != e");
+    _fl_str_tests_programs_app_sh_lexer_test_6->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_7 = fl_string_from_cstr("\"hello world\"");
+    _fl_str_tests_programs_app_sh_lexer_test_7->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_8 = fl_string_from_cstr("42 3.14 0xFF");
+    _fl_str_tests_programs_app_sh_lexer_test_8->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_9 = fl_string_from_cstr("fn main if else return true false none");
+    _fl_str_tests_programs_app_sh_lexer_test_9->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_10 = fl_string_from_cstr("a\nb\nc");
+    _fl_str_tests_programs_app_sh_lexer_test_10->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_11 = fl_string_from_cstr(" line:");
+    _fl_str_tests_programs_app_sh_lexer_test_11->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_lexer_test_12 = fl_string_from_cstr("ok");
+    _fl_str_tests_programs_app_sh_lexer_test_12->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_programs_app_sh_lexer_test_main();
     return 0;
 }

@@ -4,18 +4,25 @@
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -25,12 +32,14 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -42,9 +51,21 @@ fl_int fl_main_add(fl_int a, fl_int b, fl_int c);
 
 void fl_main_main(void);
 
+FL_String* _fl_str_main_0 = NULL;
+
+FL_String* _fl_str_main_1 = NULL;
+
+FL_String* _fl_str_main_2 = NULL;
+
+FL_String* _fl_str_main_3 = NULL;
+
+FL_String* _fl_str_main_4 = NULL;
+
+FL_String* _fl_str_main_5 = NULL;
+
 /* Flow: main.greet */
 FL_String* fl_main_greet(FL_String* name, FL_String* greeting) {
-    return fl_string_concat(fl_string_concat(fl_string_concat(greeting, fl_string_from_cstr(", ")), name), fl_string_from_cstr("!"));
+    return fl_string_concat(fl_string_concat(fl_string_concat(greeting, _fl_str_main_0), name), _fl_str_main_1);
 }
 
 /* Flow: main.add */
@@ -59,14 +80,34 @@ fl_int fl_main_add(fl_int a, fl_int b, fl_int c) {
 /* Flow: main.main */
 void fl_main_main(void) {
     fl_println(fl_int_to_string(fl_main_add(1, 2, 3)));
-    fl_println(fl_main_greet(fl_string_from_cstr("World"), fl_string_from_cstr("Hello")));
-    fl_println(fl_main_greet(fl_string_from_cstr("World"), fl_string_from_cstr("Hi")));
-    fl_println(fl_main_greet(fl_string_from_cstr("World"), fl_string_from_cstr("Hey")));
+    fl_println(fl_main_greet(_fl_str_main_2, _fl_str_main_3));
+    fl_println(fl_main_greet(_fl_str_main_2, _fl_str_main_4));
+    fl_println(fl_main_greet(_fl_str_main_2, _fl_str_main_5));
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_main_0 = fl_string_from_cstr(", ");
+    _fl_str_main_0->refcount = 2147483647;
+    _fl_str_main_1 = fl_string_from_cstr("!");
+    _fl_str_main_1->refcount = 2147483647;
+    _fl_str_main_2 = fl_string_from_cstr("World");
+    _fl_str_main_2->refcount = 2147483647;
+    _fl_str_main_3 = fl_string_from_cstr("Hello");
+    _fl_str_main_3->refcount = 2147483647;
+    _fl_str_main_4 = fl_string_from_cstr("Hi");
+    _fl_str_main_4->refcount = 2147483647;
+    _fl_str_main_5 = fl_string_from_cstr("Hey");
+    _fl_str_main_5->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_main_main();
     return 0;
 }

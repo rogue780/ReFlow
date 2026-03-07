@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -510,6 +519,48 @@ struct fl_tests_app_stream_mux_Record {
     FL_String* data;
 };
 
+FL_String* _fl_str_tests_app_stream_mux_0 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_1 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_2 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_3 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_4 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_5 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_6 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_7 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_8 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_9 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_10 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_11 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_12 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_13 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_14 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_15 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_16 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_17 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_18 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_19 = NULL;
+
+FL_String* _fl_str_tests_app_stream_mux_20 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -517,26 +568,38 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 
 /* Flow: tests.app_stream_mux.route */
 FL_String* fl_tests_app_stream_mux_route(fl_tests_app_stream_mux_Record r) {
-    if (fl_string_eq(r.category, fl_string_from_cstr("error"))) {
-        return fl_string_from_cstr("alerts");
+    if (fl_string_eq(r.category, _fl_str_tests_app_stream_mux_0)) {
+        return _fl_str_tests_app_stream_mux_1;
     }
-    if (fl_string_eq(r.category, fl_string_from_cstr("metric"))) {
-        return fl_string_from_cstr("metrics");
+    if (fl_string_eq(r.category, _fl_str_tests_app_stream_mux_2)) {
+        return _fl_str_tests_app_stream_mux_3;
     }
-    if (fl_string_eq(r.category, fl_string_from_cstr("audit"))) {
-        return fl_string_from_cstr("archive");
+    if (fl_string_eq(r.category, _fl_str_tests_app_stream_mux_4)) {
+        return _fl_str_tests_app_stream_mux_5;
     }
-    return fl_string_from_cstr("default");
+    return _fl_str_tests_app_stream_mux_6;
 }
 
 /* Flow: tests.app_stream_mux.format_record */
 FL_String* fl_tests_app_stream_mux_format_record(fl_tests_app_stream_mux_Record r) {
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("["), r.category), fl_string_from_cstr("/")), fl_conv_to_string__int(r.priority)), fl_string_from_cstr("] ")), r.data);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_stream_mux_7, r.category), _fl_str_tests_app_stream_mux_8), fl_conv_to_string__int(r.priority)), _fl_str_tests_app_stream_mux_9), r.data);
 }
 
 /* Flow: tests.app_stream_mux.main */
 void fl_tests_app_stream_mux_main(void) {
-    FL_Array* records = fl_array_new(6, sizeof(fl_tests_app_stream_mux_Record), (fl_tests_app_stream_mux_Record[]){(fl_tests_app_stream_mux_Record){.category = fl_string_from_cstr("error"), .priority = 1, .data = fl_string_from_cstr("disk full")}, (fl_tests_app_stream_mux_Record){.category = fl_string_from_cstr("metric"), .priority = 3, .data = fl_string_from_cstr("cpu=72%")}, (fl_tests_app_stream_mux_Record){.category = fl_string_from_cstr("audit"), .priority = 2, .data = fl_string_from_cstr("user login")}, (fl_tests_app_stream_mux_Record){.category = fl_string_from_cstr("error"), .priority = 1, .data = fl_string_from_cstr("OOM")}, (fl_tests_app_stream_mux_Record){.category = fl_string_from_cstr("metric"), .priority = 3, .data = fl_string_from_cstr("mem=85%")}, (fl_tests_app_stream_mux_Record){.category = fl_string_from_cstr("info"), .priority = 4, .data = fl_string_from_cstr("startup complete")}});
+    fl_string_retain(_fl_str_tests_app_stream_mux_0);
+    fl_string_retain(_fl_str_tests_app_stream_mux_10);
+    fl_string_retain(_fl_str_tests_app_stream_mux_2);
+    fl_string_retain(_fl_str_tests_app_stream_mux_11);
+    fl_string_retain(_fl_str_tests_app_stream_mux_4);
+    fl_string_retain(_fl_str_tests_app_stream_mux_12);
+    fl_string_retain(_fl_str_tests_app_stream_mux_0);
+    fl_string_retain(_fl_str_tests_app_stream_mux_13);
+    fl_string_retain(_fl_str_tests_app_stream_mux_2);
+    fl_string_retain(_fl_str_tests_app_stream_mux_14);
+    fl_string_retain(_fl_str_tests_app_stream_mux_15);
+    fl_string_retain(_fl_str_tests_app_stream_mux_16);
+    FL_Array* records = fl_array_new(6, sizeof(fl_tests_app_stream_mux_Record), (fl_tests_app_stream_mux_Record[]){(fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_0, .priority = 1, .data = _fl_str_tests_app_stream_mux_10}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_2, .priority = 3, .data = _fl_str_tests_app_stream_mux_11}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_4, .priority = 2, .data = _fl_str_tests_app_stream_mux_12}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_0, .priority = 1, .data = _fl_str_tests_app_stream_mux_13}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_2, .priority = 3, .data = _fl_str_tests_app_stream_mux_14}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_15, .priority = 4, .data = _fl_str_tests_app_stream_mux_16}});
     FL_Map* destinations = fl_map_new();
     fl_int64 _fl_tmp_0 = 0;
     while (_fl_tmp_0 < fl_array_len(records)) {
@@ -544,9 +607,10 @@ void fl_tests_app_stream_mux_main(void) {
         FL_String* dest = fl_tests_app_stream_mux_route(r);
         FL_String* line = fl_tests_app_stream_mux_format_record(r);
         FL_Option_ptr _fl_tmp_1 = fl_map_get_str(destinations, dest);
-        FL_String* existing = ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr(""));
+        FL_String* existing = ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_tests_app_stream_mux_17);
+        fl_string_retain(existing);
         FL_Map* _fl_old_2 = destinations;
-        destinations = fl_map_set_str(destinations, dest, fl_string_concat(fl_string_concat(existing, line), fl_string_from_cstr("\n")));
+        destinations = fl_map_set_str(destinations, dest, fl_string_concat(fl_string_concat(existing, line), _fl_str_tests_app_stream_mux_18));
         if (_fl_old_2 != destinations) {
             fl_map_release(_fl_old_2);
         }
@@ -556,16 +620,66 @@ void fl_tests_app_stream_mux_main(void) {
     fl_int64 _fl_tmp_3 = 0;
     while (_fl_tmp_3 < fl_array_len(ks)) {
         FL_String* key = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_3)));
-        fl_println(fl_string_concat(fl_string_concat(fl_string_from_cstr("=== "), key), fl_string_from_cstr(" ===")));
+        fl_println(fl_string_concat(fl_string_concat(_fl_str_tests_app_stream_mux_19, key), _fl_str_tests_app_stream_mux_20));
         FL_Option_ptr _fl_tmp_4 = fl_map_get_str(destinations, key);
-        fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : fl_string_from_cstr("")));
+        fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_app_stream_mux_17));
         _fl_tmp_3 = (_fl_tmp_3 + 1);
     }
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_0 = fl_string_from_cstr("error");
+    _fl_str_tests_app_stream_mux_0->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_1 = fl_string_from_cstr("alerts");
+    _fl_str_tests_app_stream_mux_1->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_2 = fl_string_from_cstr("metric");
+    _fl_str_tests_app_stream_mux_2->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_3 = fl_string_from_cstr("metrics");
+    _fl_str_tests_app_stream_mux_3->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_4 = fl_string_from_cstr("audit");
+    _fl_str_tests_app_stream_mux_4->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_5 = fl_string_from_cstr("archive");
+    _fl_str_tests_app_stream_mux_5->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_6 = fl_string_from_cstr("default");
+    _fl_str_tests_app_stream_mux_6->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_7 = fl_string_from_cstr("[");
+    _fl_str_tests_app_stream_mux_7->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_8 = fl_string_from_cstr("/");
+    _fl_str_tests_app_stream_mux_8->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_9 = fl_string_from_cstr("] ");
+    _fl_str_tests_app_stream_mux_9->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_10 = fl_string_from_cstr("disk full");
+    _fl_str_tests_app_stream_mux_10->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_11 = fl_string_from_cstr("cpu=72%");
+    _fl_str_tests_app_stream_mux_11->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_12 = fl_string_from_cstr("user login");
+    _fl_str_tests_app_stream_mux_12->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_13 = fl_string_from_cstr("OOM");
+    _fl_str_tests_app_stream_mux_13->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_14 = fl_string_from_cstr("mem=85%");
+    _fl_str_tests_app_stream_mux_14->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_15 = fl_string_from_cstr("info");
+    _fl_str_tests_app_stream_mux_15->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_16 = fl_string_from_cstr("startup complete");
+    _fl_str_tests_app_stream_mux_16->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_17 = fl_string_from_cstr("");
+    _fl_str_tests_app_stream_mux_17->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_18 = fl_string_from_cstr("\n");
+    _fl_str_tests_app_stream_mux_18->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_19 = fl_string_from_cstr("=== ");
+    _fl_str_tests_app_stream_mux_19->refcount = 2147483647;
+    _fl_str_tests_app_stream_mux_20 = fl_string_from_cstr(" ===");
+    _fl_str_tests_app_stream_mux_20->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_stream_mux_main();
     return 0;
 }

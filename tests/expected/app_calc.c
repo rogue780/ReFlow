@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -576,6 +585,76 @@ struct FL_Tuple_FL_String_ptr_fl_int {
     fl_int _1;
 };
 
+FL_String* _fl_str_tests_app_calc_0 = NULL;
+
+FL_String* _fl_str_tests_app_calc_1 = NULL;
+
+FL_String* _fl_str_tests_app_calc_2 = NULL;
+
+FL_String* _fl_str_tests_app_calc_3 = NULL;
+
+FL_String* _fl_str_tests_app_calc_4 = NULL;
+
+FL_String* _fl_str_tests_app_calc_5 = NULL;
+
+FL_String* _fl_str_tests_app_calc_6 = NULL;
+
+FL_String* _fl_str_tests_app_calc_7 = NULL;
+
+FL_String* _fl_str_tests_app_calc_8 = NULL;
+
+FL_String* _fl_str_tests_app_calc_9 = NULL;
+
+FL_String* _fl_str_tests_app_calc_10 = NULL;
+
+FL_String* _fl_str_tests_app_calc_11 = NULL;
+
+FL_String* _fl_str_tests_app_calc_12 = NULL;
+
+FL_String* _fl_str_tests_app_calc_13 = NULL;
+
+FL_String* _fl_str_tests_app_calc_14 = NULL;
+
+FL_String* _fl_str_tests_app_calc_15 = NULL;
+
+FL_String* _fl_str_tests_app_calc_16 = NULL;
+
+FL_String* _fl_str_tests_app_calc_17 = NULL;
+
+FL_String* _fl_str_tests_app_calc_18 = NULL;
+
+FL_String* _fl_str_tests_app_calc_19 = NULL;
+
+FL_String* _fl_str_tests_app_calc_20 = NULL;
+
+FL_String* _fl_str_tests_app_calc_21 = NULL;
+
+FL_String* _fl_str_tests_app_calc_22 = NULL;
+
+FL_String* _fl_str_tests_app_calc_23 = NULL;
+
+FL_String* _fl_str_tests_app_calc_24 = NULL;
+
+FL_String* _fl_str_tests_app_calc_25 = NULL;
+
+FL_String* _fl_str_tests_app_calc_26 = NULL;
+
+FL_String* _fl_str_tests_app_calc_27 = NULL;
+
+FL_String* _fl_str_tests_app_calc_28 = NULL;
+
+FL_String* _fl_str_tests_app_calc_29 = NULL;
+
+FL_String* _fl_str_tests_app_calc_30 = NULL;
+
+FL_String* _fl_str_tests_app_calc_31 = NULL;
+
+FL_String* _fl_str_tests_app_calc_32 = NULL;
+
+FL_String* _fl_str_tests_app_calc_33 = NULL;
+
+FL_String* _fl_str_tests_app_calc_34 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -608,7 +687,7 @@ fl_int fl_tests_app_calc_skip_ws(FL_String* input, fl_int pos) {
 FL_String* fl_tests_app_calc_peek_char(FL_String* input, fl_int pos) {
     fl_int p = fl_tests_app_calc_skip_ws(input, pos);
     if (p >= fl_string_len(input)) {
-        return fl_string_from_cstr("");
+        return _fl_str_tests_app_calc_0;
     }
     FL_Option_char _fl_tmp_1 = fl_string_char_at(input, p);
     fl_char ch = ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : 32);
@@ -634,7 +713,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_number(FL_String*
     if (p < length) {
         FL_Option_char _fl_tmp_3 = fl_string_char_at(input, p);
         fl_char dot = ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : 32);
-        if (fl_string_eq(fl_char_to_string(dot), fl_string_from_cstr("."))) {
+        if (fl_string_eq(fl_char_to_string(dot), _fl_str_tests_app_calc_1)) {
             fl_int _fl_e_2;
             FL_CHECKED_ADD(p, 1, &_fl_e_2);
             p = _fl_e_2;
@@ -671,7 +750,7 @@ FL_Tuple_FL_String_ptr_fl_int fl_tests_app_calc_parse_ident(FL_String* input, fl
             p = _fl_e_1;
         } else {
             FL_String* cs = fl_char_to_string(ch);
-            if (fl_string_eq(cs, fl_string_from_cstr("_"))) {
+            if (fl_string_eq(cs, _fl_str_tests_app_calc_2)) {
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(p, 1, &_fl_e_2);
                 p = _fl_e_2;
@@ -699,7 +778,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_primary(FL_String
         return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 1, .Var = (fl_tests_app_calc_Expr_Var){.name = result._0}}, ._1 = result._1};
     }
     FL_String* cs = fl_char_to_string(ch);
-    if (fl_string_eq(cs, fl_string_from_cstr("("))) {
+    if (fl_string_eq(cs, _fl_str_tests_app_calc_3)) {
         fl_int _fl_e_1;
         FL_CHECKED_ADD(p, 1, &_fl_e_1);
         FL_Tuple_fl_tests_app_calc_Expr_fl_int inner = fl_tests_app_calc_parse_expr(input, _fl_e_1);
@@ -707,7 +786,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_primary(FL_String
         if (close_pos < fl_string_len(input)) {
             FL_Option_char _fl_tmp_8 = fl_string_char_at(input, close_pos);
             fl_char close_ch = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : 32);
-            if (fl_string_eq(fl_char_to_string(close_ch), fl_string_from_cstr(")"))) {
+            if (fl_string_eq(fl_char_to_string(close_ch), _fl_str_tests_app_calc_4)) {
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(close_pos, 1, &_fl_e_2);
                 return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = inner._0, ._1 = _fl_e_2};
@@ -726,7 +805,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_unary(FL_String* 
     if (p < fl_string_len(input)) {
         FL_Option_char _fl_tmp_9 = fl_string_char_at(input, p);
         fl_char ch = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 32);
-        if (fl_string_eq(fl_char_to_string(ch), fl_string_from_cstr("-"))) {
+        if (fl_string_eq(fl_char_to_string(ch), _fl_str_tests_app_calc_5)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(p, 1, &_fl_e_1);
             FL_Tuple_fl_tests_app_calc_Expr_fl_int result = fl_tests_app_calc_parse_unary(input, _fl_e_1);
@@ -745,7 +824,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_power(FL_String* 
     if (p < fl_string_len(input)) {
         FL_Option_char _fl_tmp_11 = fl_string_char_at(input, p);
         fl_char ch = ((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : 32);
-        if (fl_string_eq(fl_char_to_string(ch), fl_string_from_cstr("^"))) {
+        if (fl_string_eq(fl_char_to_string(ch), _fl_str_tests_app_calc_6)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(p, 1, &_fl_e_1);
             FL_Tuple_fl_tests_app_calc_Expr_fl_int exp = fl_tests_app_calc_parse_power(input, _fl_e_1);
@@ -753,7 +832,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_power(FL_String* 
             (*_fl_tmp_12) = base._0;
             fl_tests_app_calc_Expr* _fl_tmp_13 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
             (*_fl_tmp_13) = exp._0;
-            return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = fl_string_from_cstr("^"), .left = _fl_tmp_12, .right = _fl_tmp_13}}, ._1 = exp._1};
+            return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_6, .left = _fl_tmp_12, .right = _fl_tmp_13}}, ._1 = exp._1};
         }
     }
     return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = base._0, ._1 = base._1};
@@ -771,7 +850,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
             running = fl_false;
         } else {
             FL_String* ch = fl_tests_app_calc_peek_char(input, cur);
-            if (fl_string_eq(ch, fl_string_from_cstr("*"))) {
+            if (fl_string_eq(ch, _fl_str_tests_app_calc_7)) {
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(p, 1, &_fl_e_1);
                 FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_1);
@@ -779,10 +858,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
                 (*_fl_tmp_14) = left;
                 fl_tests_app_calc_Expr* _fl_tmp_15 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
                 (*_fl_tmp_15) = rhs._0;
-                left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = fl_string_from_cstr("*"), .left = _fl_tmp_14, .right = _fl_tmp_15}};
+                left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_7, .left = _fl_tmp_14, .right = _fl_tmp_15}};
                 cur = rhs._1;
             } else {
-                if (fl_string_eq(ch, fl_string_from_cstr("/"))) {
+                if (fl_string_eq(ch, _fl_str_tests_app_calc_8)) {
                     fl_int _fl_e_2;
                     FL_CHECKED_ADD(p, 1, &_fl_e_2);
                     FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_2);
@@ -790,10 +869,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
                     (*_fl_tmp_16) = left;
                     fl_tests_app_calc_Expr* _fl_tmp_17 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
                     (*_fl_tmp_17) = rhs._0;
-                    left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = fl_string_from_cstr("/"), .left = _fl_tmp_16, .right = _fl_tmp_17}};
+                    left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_8, .left = _fl_tmp_16, .right = _fl_tmp_17}};
                     cur = rhs._1;
                 } else {
-                    if (fl_string_eq(ch, fl_string_from_cstr("%"))) {
+                    if (fl_string_eq(ch, _fl_str_tests_app_calc_9)) {
                         fl_int _fl_e_3;
                         FL_CHECKED_ADD(p, 1, &_fl_e_3);
                         FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_3);
@@ -801,7 +880,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
                         (*_fl_tmp_18) = left;
                         fl_tests_app_calc_Expr* _fl_tmp_19 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
                         (*_fl_tmp_19) = rhs._0;
-                        left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = fl_string_from_cstr("%"), .left = _fl_tmp_18, .right = _fl_tmp_19}};
+                        left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_9, .left = _fl_tmp_18, .right = _fl_tmp_19}};
                         cur = rhs._1;
                     } else {
                         running = fl_false;
@@ -825,7 +904,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_additive(FL_Strin
             running = fl_false;
         } else {
             FL_String* ch = fl_tests_app_calc_peek_char(input, cur);
-            if (fl_string_eq(ch, fl_string_from_cstr("+"))) {
+            if (fl_string_eq(ch, _fl_str_tests_app_calc_10)) {
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(p, 1, &_fl_e_1);
                 FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_multiplicative(input, _fl_e_1);
@@ -833,10 +912,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_additive(FL_Strin
                 (*_fl_tmp_20) = left;
                 fl_tests_app_calc_Expr* _fl_tmp_21 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
                 (*_fl_tmp_21) = rhs._0;
-                left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = fl_string_from_cstr("+"), .left = _fl_tmp_20, .right = _fl_tmp_21}};
+                left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_10, .left = _fl_tmp_20, .right = _fl_tmp_21}};
                 cur = rhs._1;
             } else {
-                if (fl_string_eq(ch, fl_string_from_cstr("-"))) {
+                if (fl_string_eq(ch, _fl_str_tests_app_calc_5)) {
                     fl_int _fl_e_2;
                     FL_CHECKED_ADD(p, 1, &_fl_e_2);
                     FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_multiplicative(input, _fl_e_2);
@@ -844,7 +923,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_additive(FL_Strin
                     (*_fl_tmp_22) = left;
                     fl_tests_app_calc_Expr* _fl_tmp_23 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
                     (*_fl_tmp_23) = rhs._0;
-                    left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = fl_string_from_cstr("-"), .left = _fl_tmp_22, .right = _fl_tmp_23}};
+                    left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_5, .left = _fl_tmp_22, .right = _fl_tmp_23}};
                     cur = rhs._1;
                 } else {
                     running = fl_false;
@@ -886,22 +965,22 @@ fl_float fl_tests_app_calc_eval(fl_tests_app_calc_Expr expr, FL_Map* env) {
             fl_tests_app_calc_Expr right = (*_fl_tmp_24.BinOp.right);
             fl_float lv = fl_tests_app_calc_eval(left, env);
             fl_float rv = fl_tests_app_calc_eval(right, env);
-            if (fl_string_eq(op, fl_string_from_cstr("+"))) {
+            if (fl_string_eq(op, _fl_str_tests_app_calc_10)) {
                 return (lv + rv);
             } else {
-                if (fl_string_eq(op, fl_string_from_cstr("-"))) {
+                if (fl_string_eq(op, _fl_str_tests_app_calc_5)) {
                     return (lv - rv);
                 } else {
-                    if (fl_string_eq(op, fl_string_from_cstr("*"))) {
+                    if (fl_string_eq(op, _fl_str_tests_app_calc_7)) {
                         return (lv * rv);
                     } else {
-                        if (fl_string_eq(op, fl_string_from_cstr("/"))) {
+                        if (fl_string_eq(op, _fl_str_tests_app_calc_8)) {
                             if (rv == 0.0) {
                                 return 0.0;
                             }
                             return (lv / rv);
                         } else {
-                            if (fl_string_eq(op, fl_string_from_cstr("%"))) {
+                            if (fl_string_eq(op, _fl_str_tests_app_calc_9)) {
                                 if (rv == 0.0) {
                                     return 0.0;
                                 }
@@ -909,7 +988,7 @@ fl_float fl_tests_app_calc_eval(fl_tests_app_calc_Expr expr, FL_Map* env) {
                                 FL_CHECKED_FMOD(lv, rv, &_fl_e_1);
                                 return _fl_e_1;
                             } else {
-                                if (fl_string_eq(op, fl_string_from_cstr("^"))) {
+                                if (fl_string_eq(op, _fl_str_tests_app_calc_6)) {
                                     return pow(lv, rv);
                                 } else {
                                     return 0.0;
@@ -938,48 +1017,126 @@ FL_String* fl_tests_app_calc_format_result(fl_float value) {
 void fl_tests_app_calc_eval_and_print(FL_String* label, FL_String* input, FL_Map* env) {
     FL_Tuple_fl_tests_app_calc_Expr_fl_int parsed = fl_tests_app_calc_parse_expr(input, 0);
     fl_float result = fl_tests_app_calc_eval(parsed._0, env);
-    fl_println(fl_string_concat(fl_string_concat(label, fl_string_from_cstr(" = ")), fl_tests_app_calc_format_result(result)));
+    fl_println(fl_string_concat(fl_string_concat(label, _fl_str_tests_app_calc_11), fl_tests_app_calc_format_result(result)));
 }
 
 /* Flow: tests.app_calc.main */
 void fl_tests_app_calc_main(void) {
     FL_Map* env = fl_map_new();
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("2 + 3"), fl_string_from_cstr("2 + 3"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("10 - 4"), fl_string_from_cstr("10 - 4"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("3 * 7"), fl_string_from_cstr("3 * 7"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("20 / 4"), fl_string_from_cstr("20 / 4"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("2 + 3 * 4"), fl_string_from_cstr("2 + 3 * 4"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("(2 + 3) * 4"), fl_string_from_cstr("(2 + 3) * 4"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("-5"), fl_string_from_cstr("-5"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("-5 + 3"), fl_string_from_cstr("-5 + 3"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("-(2 + 3)"), fl_string_from_cstr("-(2 + 3)"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("2 ^ 10"), fl_string_from_cstr("2 ^ 10"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("3 ^ 2"), fl_string_from_cstr("3 ^ 2"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("(1 + 2) * (3 + 4)"), fl_string_from_cstr("(1 + 2) * (3 + 4)"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("2 ^ 2 ^ 3"), fl_string_from_cstr("2 ^ 2 ^ 3"), env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_12, _fl_str_tests_app_calc_12, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_13, _fl_str_tests_app_calc_13, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_14, _fl_str_tests_app_calc_14, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_15, _fl_str_tests_app_calc_15, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_16, _fl_str_tests_app_calc_16, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_17, _fl_str_tests_app_calc_17, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_18, _fl_str_tests_app_calc_18, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_19, _fl_str_tests_app_calc_19, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_20, _fl_str_tests_app_calc_20, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_21, _fl_str_tests_app_calc_21, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_22, _fl_str_tests_app_calc_22, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_23, _fl_str_tests_app_calc_23, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_24, _fl_str_tests_app_calc_24, env);
     FL_Map* _fl_old_26 = env;
-    env = fl_map_set_str(env, fl_string_from_cstr("x"), fl_box_float(10.0));
+    env = fl_map_set_str(env, _fl_str_tests_app_calc_25, fl_box_float(10.0));
     if (_fl_old_26 != env) {
         fl_map_release(_fl_old_26);
     }
     FL_Map* _fl_old_27 = env;
-    env = fl_map_set_str(env, fl_string_from_cstr("y"), fl_box_float(5.0));
+    env = fl_map_set_str(env, _fl_str_tests_app_calc_26, fl_box_float(5.0));
     if (_fl_old_27 != env) {
         fl_map_release(_fl_old_27);
     }
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("x + y"), fl_string_from_cstr("x + y"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("x * y"), fl_string_from_cstr("x * y"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("x ^ 2"), fl_string_from_cstr("x ^ 2"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("3.14 * 2"), fl_string_from_cstr("3.14 * 2"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("1 / 3"), fl_string_from_cstr("1 / 3"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("10 % 3"), fl_string_from_cstr("10 % 3"), env);
-    fl_tests_app_calc_eval_and_print(fl_string_from_cstr("10.5 % 3"), fl_string_from_cstr("10.5 % 3"), env);
-    fl_println(fl_string_from_cstr("All tests passed"));
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_27, _fl_str_tests_app_calc_27, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_28, _fl_str_tests_app_calc_28, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_29, _fl_str_tests_app_calc_29, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_30, _fl_str_tests_app_calc_30, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_31, _fl_str_tests_app_calc_31, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_32, _fl_str_tests_app_calc_32, env);
+    fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_33, _fl_str_tests_app_calc_33, env);
+    fl_println(_fl_str_tests_app_calc_34);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_app_calc_0 = fl_string_from_cstr("");
+    _fl_str_tests_app_calc_0->refcount = 2147483647;
+    _fl_str_tests_app_calc_1 = fl_string_from_cstr(".");
+    _fl_str_tests_app_calc_1->refcount = 2147483647;
+    _fl_str_tests_app_calc_2 = fl_string_from_cstr("_");
+    _fl_str_tests_app_calc_2->refcount = 2147483647;
+    _fl_str_tests_app_calc_3 = fl_string_from_cstr("(");
+    _fl_str_tests_app_calc_3->refcount = 2147483647;
+    _fl_str_tests_app_calc_4 = fl_string_from_cstr(")");
+    _fl_str_tests_app_calc_4->refcount = 2147483647;
+    _fl_str_tests_app_calc_5 = fl_string_from_cstr("-");
+    _fl_str_tests_app_calc_5->refcount = 2147483647;
+    _fl_str_tests_app_calc_6 = fl_string_from_cstr("^");
+    _fl_str_tests_app_calc_6->refcount = 2147483647;
+    _fl_str_tests_app_calc_7 = fl_string_from_cstr("*");
+    _fl_str_tests_app_calc_7->refcount = 2147483647;
+    _fl_str_tests_app_calc_8 = fl_string_from_cstr("/");
+    _fl_str_tests_app_calc_8->refcount = 2147483647;
+    _fl_str_tests_app_calc_9 = fl_string_from_cstr("%");
+    _fl_str_tests_app_calc_9->refcount = 2147483647;
+    _fl_str_tests_app_calc_10 = fl_string_from_cstr("+");
+    _fl_str_tests_app_calc_10->refcount = 2147483647;
+    _fl_str_tests_app_calc_11 = fl_string_from_cstr(" = ");
+    _fl_str_tests_app_calc_11->refcount = 2147483647;
+    _fl_str_tests_app_calc_12 = fl_string_from_cstr("2 + 3");
+    _fl_str_tests_app_calc_12->refcount = 2147483647;
+    _fl_str_tests_app_calc_13 = fl_string_from_cstr("10 - 4");
+    _fl_str_tests_app_calc_13->refcount = 2147483647;
+    _fl_str_tests_app_calc_14 = fl_string_from_cstr("3 * 7");
+    _fl_str_tests_app_calc_14->refcount = 2147483647;
+    _fl_str_tests_app_calc_15 = fl_string_from_cstr("20 / 4");
+    _fl_str_tests_app_calc_15->refcount = 2147483647;
+    _fl_str_tests_app_calc_16 = fl_string_from_cstr("2 + 3 * 4");
+    _fl_str_tests_app_calc_16->refcount = 2147483647;
+    _fl_str_tests_app_calc_17 = fl_string_from_cstr("(2 + 3) * 4");
+    _fl_str_tests_app_calc_17->refcount = 2147483647;
+    _fl_str_tests_app_calc_18 = fl_string_from_cstr("-5");
+    _fl_str_tests_app_calc_18->refcount = 2147483647;
+    _fl_str_tests_app_calc_19 = fl_string_from_cstr("-5 + 3");
+    _fl_str_tests_app_calc_19->refcount = 2147483647;
+    _fl_str_tests_app_calc_20 = fl_string_from_cstr("-(2 + 3)");
+    _fl_str_tests_app_calc_20->refcount = 2147483647;
+    _fl_str_tests_app_calc_21 = fl_string_from_cstr("2 ^ 10");
+    _fl_str_tests_app_calc_21->refcount = 2147483647;
+    _fl_str_tests_app_calc_22 = fl_string_from_cstr("3 ^ 2");
+    _fl_str_tests_app_calc_22->refcount = 2147483647;
+    _fl_str_tests_app_calc_23 = fl_string_from_cstr("(1 + 2) * (3 + 4)");
+    _fl_str_tests_app_calc_23->refcount = 2147483647;
+    _fl_str_tests_app_calc_24 = fl_string_from_cstr("2 ^ 2 ^ 3");
+    _fl_str_tests_app_calc_24->refcount = 2147483647;
+    _fl_str_tests_app_calc_25 = fl_string_from_cstr("x");
+    _fl_str_tests_app_calc_25->refcount = 2147483647;
+    _fl_str_tests_app_calc_26 = fl_string_from_cstr("y");
+    _fl_str_tests_app_calc_26->refcount = 2147483647;
+    _fl_str_tests_app_calc_27 = fl_string_from_cstr("x + y");
+    _fl_str_tests_app_calc_27->refcount = 2147483647;
+    _fl_str_tests_app_calc_28 = fl_string_from_cstr("x * y");
+    _fl_str_tests_app_calc_28->refcount = 2147483647;
+    _fl_str_tests_app_calc_29 = fl_string_from_cstr("x ^ 2");
+    _fl_str_tests_app_calc_29->refcount = 2147483647;
+    _fl_str_tests_app_calc_30 = fl_string_from_cstr("3.14 * 2");
+    _fl_str_tests_app_calc_30->refcount = 2147483647;
+    _fl_str_tests_app_calc_31 = fl_string_from_cstr("1 / 3");
+    _fl_str_tests_app_calc_31->refcount = 2147483647;
+    _fl_str_tests_app_calc_32 = fl_string_from_cstr("10 % 3");
+    _fl_str_tests_app_calc_32->refcount = 2147483647;
+    _fl_str_tests_app_calc_33 = fl_string_from_cstr("10.5 % 3");
+    _fl_str_tests_app_calc_33->refcount = 2147483647;
+    _fl_str_tests_app_calc_34 = fl_string_from_cstr("All tests passed");
+    _fl_str_tests_app_calc_34->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_calc_main();
     return 0;
 }

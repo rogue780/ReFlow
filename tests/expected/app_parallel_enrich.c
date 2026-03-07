@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -532,6 +541,36 @@ struct _fl_frame_tests_app_parallel_enrich_produce_values {
     fl_int _state;
 };
 
+FL_String* _fl_str_tests_app_parallel_enrich_0 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_1 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_2 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_3 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_4 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_5 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_6 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_7 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_8 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_9 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_10 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_11 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_12 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_13 = NULL;
+
+FL_String* _fl_str_tests_app_parallel_enrich_14 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -549,12 +588,12 @@ fl_int fl_tests_app_parallel_enrich_compute_score(fl_int value) {
 /* Flow: tests.app_parallel_enrich.categorize */
 FL_String* fl_tests_app_parallel_enrich_categorize(fl_int value) {
     if (value > 80) {
-        return fl_string_from_cstr("high");
+        return _fl_str_tests_app_parallel_enrich_0;
     }
     if (value > 40) {
-        return fl_string_from_cstr("medium");
+        return _fl_str_tests_app_parallel_enrich_1;
     }
-    return fl_string_from_cstr("low");
+    return _fl_str_tests_app_parallel_enrich_2;
 }
 
 /* Flow: tests.app_parallel_enrich.compute_hash */
@@ -568,7 +607,7 @@ fl_int fl_tests_app_parallel_enrich_compute_hash(fl_int value) {
 
 /* Flow: tests.app_parallel_enrich.format_result */
 FL_String* fl_tests_app_parallel_enrich_format_result(fl_int score, FL_String* category, fl_int hash) {
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("score="), fl_conv_to_string__int(score)), fl_string_from_cstr(" cat=")), category), fl_string_from_cstr(" hash=")), fl_conv_to_string__int(hash));
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_parallel_enrich_3, fl_conv_to_string__int(score)), _fl_str_tests_app_parallel_enrich_4), category), _fl_str_tests_app_parallel_enrich_5), fl_conv_to_string__int(hash));
 }
 
 /* Flow: tests.app_parallel_enrich.produce_values::next */
@@ -648,9 +687,9 @@ void* _fl_fanout_tests_app_parallel_enrich_main_0_2(void* _arg) {
 
 /* Flow: tests.app_parallel_enrich.main */
 void fl_tests_app_parallel_enrich_main(void) {
-    FL_Array* names = fl_array_new(4, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("alpha"), fl_string_from_cstr("beta"), fl_string_from_cstr("gamma"), fl_string_from_cstr("delta")});
+    FL_Array* names = fl_array_new(4, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_parallel_enrich_6, _fl_str_tests_app_parallel_enrich_7, _fl_str_tests_app_parallel_enrich_8, _fl_str_tests_app_parallel_enrich_9});
     FL_Array* values = fl_array_new(4, sizeof(fl_int), (fl_int[]){90, 45, 20, 75});
-    fl_println(fl_string_from_cstr("=== Parallel Enrichment ==="));
+    fl_println(_fl_str_tests_app_parallel_enrich_10);
     fl_int idx = 0;
     fl_int64 _fl_tmp_0 = 0;
     while (_fl_tmp_0 < fl_array_len(values)) {
@@ -671,15 +710,17 @@ void fl_tests_app_parallel_enrich_main(void) {
         FL_String* _fl_tmp_7 = _fl_tmp_4;
         fl_int _fl_tmp_8 = _fl_tmp_5;
         FL_String* output = fl_tests_app_parallel_enrich_format_result(_fl_tmp_6, _fl_tmp_7, _fl_tmp_8);
+        fl_string_retain(output);
         FL_Option_ptr _fl_tmp_9 = fl_array_get_safe(names, idx);
-        FL_String* name = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : fl_string_from_cstr(""));
-        fl_println(fl_string_concat(fl_string_concat(name, fl_string_from_cstr(": ")), output));
+        FL_String* name = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : _fl_str_tests_app_parallel_enrich_11);
+        fl_string_retain(name);
+        fl_println(fl_string_concat(fl_string_concat(name, _fl_str_tests_app_parallel_enrich_12), output));
         fl_int _fl_e_1;
         FL_CHECKED_ADD(idx, 1, &_fl_e_1);
         idx = _fl_e_1;
         _fl_tmp_0 = (_fl_tmp_0 + 1);
     }
-    fl_println(fl_string_from_cstr("=== Coroutine Stream ==="));
+    fl_println(_fl_str_tests_app_parallel_enrich_13);
     FL_Stream* _fl_tmp_10 = fl_tests_app_parallel_enrich_produce_values();
     FL_Coroutine* source = fl_coroutine_new_threaded(_fl_tmp_10, 64);
     fl_int j = 0;
@@ -694,11 +735,12 @@ void fl_tests_app_parallel_enrich_main(void) {
         if (_fl_tmp_13.tag == 1) {
             fl_int v = _fl_tmp_13.value;
             FL_Option_ptr _fl_tmp_14 = fl_array_get_safe(names, j);
-            FL_String* name = ((_fl_tmp_14.tag == 1) ? _fl_tmp_14.value : fl_string_from_cstr(""));
+            FL_String* name = ((_fl_tmp_14.tag == 1) ? _fl_tmp_14.value : _fl_str_tests_app_parallel_enrich_11);
+            fl_string_retain(name);
             fl_int score = fl_tests_app_parallel_enrich_compute_score(v);
             FL_String* cat = fl_tests_app_parallel_enrich_categorize(v);
             fl_int hash = fl_tests_app_parallel_enrich_compute_hash(v);
-            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(name, fl_string_from_cstr(": score=")), fl_conv_to_string__int(score)), fl_string_from_cstr(" cat=")), cat), fl_string_from_cstr(" hash=")), fl_conv_to_string__int(hash)));
+            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(name, _fl_str_tests_app_parallel_enrich_14), fl_conv_to_string__int(score)), _fl_str_tests_app_parallel_enrich_4), cat), _fl_str_tests_app_parallel_enrich_5), fl_conv_to_string__int(hash)));
             fl_int _fl_e_2;
             FL_CHECKED_ADD(j, 1, &_fl_e_2);
             j = _fl_e_2;
@@ -706,9 +748,47 @@ void fl_tests_app_parallel_enrich_main(void) {
     }
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_0 = fl_string_from_cstr("high");
+    _fl_str_tests_app_parallel_enrich_0->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_1 = fl_string_from_cstr("medium");
+    _fl_str_tests_app_parallel_enrich_1->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_2 = fl_string_from_cstr("low");
+    _fl_str_tests_app_parallel_enrich_2->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_3 = fl_string_from_cstr("score=");
+    _fl_str_tests_app_parallel_enrich_3->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_4 = fl_string_from_cstr(" cat=");
+    _fl_str_tests_app_parallel_enrich_4->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_5 = fl_string_from_cstr(" hash=");
+    _fl_str_tests_app_parallel_enrich_5->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_6 = fl_string_from_cstr("alpha");
+    _fl_str_tests_app_parallel_enrich_6->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_7 = fl_string_from_cstr("beta");
+    _fl_str_tests_app_parallel_enrich_7->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_8 = fl_string_from_cstr("gamma");
+    _fl_str_tests_app_parallel_enrich_8->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_9 = fl_string_from_cstr("delta");
+    _fl_str_tests_app_parallel_enrich_9->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_10 = fl_string_from_cstr("=== Parallel Enrichment ===");
+    _fl_str_tests_app_parallel_enrich_10->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_11 = fl_string_from_cstr("");
+    _fl_str_tests_app_parallel_enrich_11->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_12 = fl_string_from_cstr(": ");
+    _fl_str_tests_app_parallel_enrich_12->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_13 = fl_string_from_cstr("=== Coroutine Stream ===");
+    _fl_str_tests_app_parallel_enrich_13->refcount = 2147483647;
+    _fl_str_tests_app_parallel_enrich_14 = fl_string_from_cstr(": score=");
+    _fl_str_tests_app_parallel_enrich_14->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_parallel_enrich_main();
     return 0;
 }

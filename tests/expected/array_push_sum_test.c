@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -529,6 +538,18 @@ struct FL_Option_fl_array_push_sum_test_Shape {
     fl_byte tag;
     fl_array_push_sum_test_Shape value;
 };
+
+FL_String* _fl_str_array_push_sum_test_0 = NULL;
+
+FL_String* _fl_str_array_push_sum_test_1 = NULL;
+
+FL_String* _fl_str_array_push_sum_test_2 = NULL;
+
+FL_String* _fl_str_array_push_sum_test_3 = NULL;
+
+FL_String* _fl_str_array_push_sum_test_4 = NULL;
+
+FL_String* _fl_str_array_push_sum_test_5 = NULL;
 
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
@@ -574,7 +595,7 @@ void fl_array_push_sum_test_main(void) {
         fl_array_push_sum_test_Shape s = _fl_tmp_4.value;
         fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
     } else {
-        fl_println(fl_string_from_cstr("FAIL: index 0"));
+        fl_println(_fl_str_array_push_sum_test_0);
     }
     FL_Option_fl_array_push_sum_test_Shape s1 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 1), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
     FL_Option_fl_array_push_sum_test_Shape _fl_tmp_5 = s1;
@@ -582,7 +603,7 @@ void fl_array_push_sum_test_main(void) {
         fl_array_push_sum_test_Shape s = _fl_tmp_5.value;
         fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
     } else {
-        fl_println(fl_string_from_cstr("FAIL: index 1"));
+        fl_println(_fl_str_array_push_sum_test_1);
     }
     FL_Option_fl_array_push_sum_test_Shape s2 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 2), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
     FL_Option_fl_array_push_sum_test_Shape _fl_tmp_6 = s2;
@@ -590,22 +611,42 @@ void fl_array_push_sum_test_main(void) {
         fl_array_push_sum_test_Shape s = _fl_tmp_6.value;
         fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
     } else {
-        fl_println(fl_string_from_cstr("FAIL: index 2"));
+        fl_println(_fl_str_array_push_sum_test_2);
     }
     FL_Option_fl_array_push_sum_test_Shape s3 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 5), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
     FL_Option_fl_array_push_sum_test_Shape _fl_tmp_7 = s3;
     if (_fl_tmp_7.tag == 1) {
         fl_array_push_sum_test_Shape s = _fl_tmp_7.value;
-        fl_println(fl_string_from_cstr("FAIL: index 5 should be none"));
+        fl_println(_fl_str_array_push_sum_test_3);
     } else {
-        fl_println(fl_string_from_cstr("oob ok"));
+        fl_println(_fl_str_array_push_sum_test_4);
     }
-    fl_println(fl_string_from_cstr("All array push sum tests passed"));
+    fl_println(_fl_str_array_push_sum_test_5);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_array_push_sum_test_0 = fl_string_from_cstr("FAIL: index 0");
+    _fl_str_array_push_sum_test_0->refcount = 2147483647;
+    _fl_str_array_push_sum_test_1 = fl_string_from_cstr("FAIL: index 1");
+    _fl_str_array_push_sum_test_1->refcount = 2147483647;
+    _fl_str_array_push_sum_test_2 = fl_string_from_cstr("FAIL: index 2");
+    _fl_str_array_push_sum_test_2->refcount = 2147483647;
+    _fl_str_array_push_sum_test_3 = fl_string_from_cstr("FAIL: index 5 should be none");
+    _fl_str_array_push_sum_test_3->refcount = 2147483647;
+    _fl_str_array_push_sum_test_4 = fl_string_from_cstr("oob ok");
+    _fl_str_array_push_sum_test_4->refcount = 2147483647;
+    _fl_str_array_push_sum_test_5 = fl_string_from_cstr("All array push sum tests passed");
+    _fl_str_array_push_sum_test_5->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_array_push_sum_test_main();
     return 0;
 }

@@ -4,18 +4,25 @@
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -25,12 +32,14 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -50,6 +59,18 @@ struct FL_Result_fl_int_FL_String_ptr {
     FL_String* err_val;
 };
 
+FL_String* _fl_str_tests_if_let_test_0 = NULL;
+
+FL_String* _fl_str_tests_if_let_test_1 = NULL;
+
+FL_String* _fl_str_tests_if_let_test_2 = NULL;
+
+FL_String* _fl_str_tests_if_let_test_3 = NULL;
+
+FL_String* _fl_str_tests_if_let_test_4 = NULL;
+
+FL_String* _fl_str_tests_if_let_test_5 = NULL;
+
 /* Flow: tests.if_let_test.find_positive */
 FL_Option_int fl_tests_if_let_test_find_positive(fl_int x) {
     if (x > 0) {
@@ -61,7 +82,8 @@ FL_Option_int fl_tests_if_let_test_find_positive(fl_int x) {
 /* Flow: tests.if_let_test.safe_divide */
 FL_Result_fl_int_FL_String_ptr fl_tests_if_let_test_safe_divide(fl_int a, fl_int b) {
     if (b == 0) {
-        return (FL_Result_fl_int_FL_String_ptr){.tag = 1, .err_val = fl_string_from_cstr("division by zero")};
+        fl_string_retain(_fl_str_tests_if_let_test_0);
+        return (FL_Result_fl_int_FL_String_ptr){.tag = 1, .err_val = _fl_str_tests_if_let_test_0};
     }
     fl_int _fl_e_1;
     FL_CHECKED_DIV(a, b, &_fl_e_1);
@@ -73,7 +95,7 @@ void fl_tests_if_let_test_main(void) {
     FL_Option_int _fl_tmp_0 = fl_tests_if_let_test_find_positive(42);
     if (_fl_tmp_0.tag == 1) {
         fl_int v = _fl_tmp_0.value;
-        FL_String* _fl_tmp_1 = fl_string_from_cstr("found: ");
+        FL_String* _fl_tmp_1 = _fl_str_tests_if_let_test_1;
         FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_int_to_string(v));
         fl_string_release(_fl_tmp_1);
         fl_println(_fl_tmp_2);
@@ -81,17 +103,17 @@ void fl_tests_if_let_test_main(void) {
     FL_Option_int _fl_tmp_3 = fl_tests_if_let_test_find_positive((-5));
     if (_fl_tmp_3.tag == 1) {
         fl_int v = _fl_tmp_3.value;
-        FL_String* _fl_tmp_4 = fl_string_from_cstr("found: ");
+        FL_String* _fl_tmp_4 = _fl_str_tests_if_let_test_1;
         FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_int_to_string(v));
         fl_string_release(_fl_tmp_4);
         fl_println(_fl_tmp_5);
     } else {
-        fl_println(fl_string_from_cstr("not found"));
+        fl_println(_fl_str_tests_if_let_test_2);
     }
     FL_Result_fl_int_FL_String_ptr _fl_tmp_6 = fl_tests_if_let_test_safe_divide(10, 2);
     if (_fl_tmp_6.tag == 0) {
         fl_int v = _fl_tmp_6.ok_val;
-        FL_String* _fl_tmp_7 = fl_string_from_cstr("divided: ");
+        FL_String* _fl_tmp_7 = _fl_str_tests_if_let_test_3;
         FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_int_to_string(v));
         fl_string_release(_fl_tmp_7);
         fl_println(_fl_tmp_8);
@@ -101,29 +123,49 @@ void fl_tests_if_let_test_main(void) {
     FL_Result_fl_int_FL_String_ptr _fl_tmp_9 = fl_tests_if_let_test_safe_divide(10, 0);
     if (_fl_tmp_9.tag == 0) {
         fl_int v = _fl_tmp_9.ok_val;
-        FL_String* _fl_tmp_10 = fl_string_from_cstr("divided: ");
+        FL_String* _fl_tmp_10 = _fl_str_tests_if_let_test_3;
         FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, fl_int_to_string(v));
         fl_string_release(_fl_tmp_10);
         fl_println(_fl_tmp_11);
     } else {
         FL_String* _ = _fl_tmp_9.err_val;
-        fl_println(fl_string_from_cstr("division failed"));
+        fl_println(_fl_str_tests_if_let_test_4);
     }
     FL_Result_fl_int_FL_String_ptr _fl_tmp_12 = fl_tests_if_let_test_safe_divide(10, 0);
     if (_fl_tmp_12.tag == 0) {
         fl_int _ = _fl_tmp_12.ok_val;
     } else {
         FL_String* e = _fl_tmp_12.err_val;
-        FL_String* _fl_tmp_13 = fl_string_from_cstr("error: ");
+        FL_String* _fl_tmp_13 = _fl_str_tests_if_let_test_5;
         FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, e);
         fl_string_release(_fl_tmp_13);
         fl_println(_fl_tmp_14);
     }
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_if_let_test_0 = fl_string_from_cstr("division by zero");
+    _fl_str_tests_if_let_test_0->refcount = 2147483647;
+    _fl_str_tests_if_let_test_1 = fl_string_from_cstr("found: ");
+    _fl_str_tests_if_let_test_1->refcount = 2147483647;
+    _fl_str_tests_if_let_test_2 = fl_string_from_cstr("not found");
+    _fl_str_tests_if_let_test_2->refcount = 2147483647;
+    _fl_str_tests_if_let_test_3 = fl_string_from_cstr("divided: ");
+    _fl_str_tests_if_let_test_3->refcount = 2147483647;
+    _fl_str_tests_if_let_test_4 = fl_string_from_cstr("division failed");
+    _fl_str_tests_if_let_test_4->refcount = 2147483647;
+    _fl_str_tests_if_let_test_5 = fl_string_from_cstr("error: ");
+    _fl_str_tests_if_let_test_5->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_if_let_test_main();
     return 0;
 }

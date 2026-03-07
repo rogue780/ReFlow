@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -499,6 +508,36 @@ FL_String* fl_conv_to_string__float(fl_float val);
 FL_String* fl_conv_to_string__int(fl_int val);
 
 void fl_map_value_type_test_main(void);
+
+FL_String* _fl_str_map_value_type_test_0 = NULL;
+
+FL_String* _fl_str_map_value_type_test_1 = NULL;
+
+FL_String* _fl_str_map_value_type_test_2 = NULL;
+
+FL_String* _fl_str_map_value_type_test_3 = NULL;
+
+FL_String* _fl_str_map_value_type_test_4 = NULL;
+
+FL_String* _fl_str_map_value_type_test_5 = NULL;
+
+FL_String* _fl_str_map_value_type_test_6 = NULL;
+
+FL_String* _fl_str_map_value_type_test_7 = NULL;
+
+FL_String* _fl_str_map_value_type_test_8 = NULL;
+
+FL_String* _fl_str_map_value_type_test_9 = NULL;
+
+FL_String* _fl_str_map_value_type_test_10 = NULL;
+
+FL_String* _fl_str_map_value_type_test_11 = NULL;
+
+FL_String* _fl_str_map_value_type_test_12 = NULL;
+
+FL_String* _fl_str_map_value_type_test_13 = NULL;
+
+FL_String* _fl_str_map_value_type_test_14 = NULL;
 
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__float(fl_float val) {
@@ -513,58 +552,96 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 /* Flow: map_value_type_test.main */
 void fl_map_value_type_test_main(void) {
     FL_Map* mf = fl_map_new();
-    FL_Map* mf2 = fl_map_set_str(mf, fl_string_from_cstr("pi"), fl_box_float(3.14));
-    FL_Map* mf3 = fl_map_set_str(mf2, fl_string_from_cstr("e"), fl_box_float(2.718));
-    FL_Option_float _fl_tmp_0 = fl_opt_unbox_float(fl_map_get_str(mf3, fl_string_from_cstr("pi")));
+    FL_Map* mf2 = fl_map_set_str(mf, _fl_str_map_value_type_test_0, fl_box_float(3.14));
+    FL_Map* mf3 = fl_map_set_str(mf2, _fl_str_map_value_type_test_1, fl_box_float(2.718));
+    FL_Option_float _fl_tmp_0 = fl_opt_unbox_float(fl_map_get_str(mf3, _fl_str_map_value_type_test_0));
     if (_fl_tmp_0.tag == 1) {
         fl_float v = _fl_tmp_0.value;
         fl_println(fl_conv_to_string__float(v));
     } else {
-        fl_println(fl_string_from_cstr("FAIL: pi not found"));
+        fl_println(_fl_str_map_value_type_test_2);
     }
-    FL_Option_float _fl_tmp_1 = fl_opt_unbox_float(fl_map_get_str(mf3, fl_string_from_cstr("missing")));
+    FL_Option_float _fl_tmp_1 = fl_opt_unbox_float(fl_map_get_str(mf3, _fl_str_map_value_type_test_3));
     if (_fl_tmp_1.tag == 1) {
         fl_float v = _fl_tmp_1.value;
-        fl_println(fl_string_from_cstr("FAIL: should be none"));
+        fl_println(_fl_str_map_value_type_test_4);
     } else {
-        fl_println(fl_string_from_cstr("none ok"));
+        fl_println(_fl_str_map_value_type_test_5);
     }
     FL_Map* mi = fl_map_new();
-    FL_Map* mi2 = fl_map_set_str(mi, fl_string_from_cstr("x"), fl_box_int(42));
-    FL_Map* mi3 = fl_map_set_str(mi2, fl_string_from_cstr("y"), fl_box_int(100));
-    FL_Option_int _fl_tmp_2 = fl_opt_unbox_int(fl_map_get_str(mi3, fl_string_from_cstr("x")));
+    FL_Map* mi2 = fl_map_set_str(mi, _fl_str_map_value_type_test_6, fl_box_int(42));
+    FL_Map* mi3 = fl_map_set_str(mi2, _fl_str_map_value_type_test_7, fl_box_int(100));
+    FL_Option_int _fl_tmp_2 = fl_opt_unbox_int(fl_map_get_str(mi3, _fl_str_map_value_type_test_6));
     if (_fl_tmp_2.tag == 1) {
         fl_int v = _fl_tmp_2.value;
         fl_println(fl_conv_to_string__int(v));
     } else {
-        fl_println(fl_string_from_cstr("FAIL: x not found"));
+        fl_println(_fl_str_map_value_type_test_8);
     }
-    FL_Option_int _fl_tmp_3 = fl_opt_unbox_int(fl_map_get_str(mi3, fl_string_from_cstr("y")));
+    FL_Option_int _fl_tmp_3 = fl_opt_unbox_int(fl_map_get_str(mi3, _fl_str_map_value_type_test_7));
     if (_fl_tmp_3.tag == 1) {
         fl_int v = _fl_tmp_3.value;
         fl_println(fl_conv_to_string__int(v));
     } else {
-        fl_println(fl_string_from_cstr("FAIL: y not found"));
+        fl_println(_fl_str_map_value_type_test_9);
     }
     FL_Map* mb = fl_map_new();
-    FL_Map* mb2 = fl_map_set_str(mb, fl_string_from_cstr("flag"), fl_box_bool(fl_true));
-    FL_Option_bool _fl_tmp_4 = fl_opt_unbox_bool(fl_map_get_str(mb2, fl_string_from_cstr("flag")));
+    FL_Map* mb2 = fl_map_set_str(mb, _fl_str_map_value_type_test_10, fl_box_bool(fl_true));
+    FL_Option_bool _fl_tmp_4 = fl_opt_unbox_bool(fl_map_get_str(mb2, _fl_str_map_value_type_test_10));
     if (_fl_tmp_4.tag == 1) {
         fl_bool v = _fl_tmp_4.value;
         if (v) {
-            fl_println(fl_string_from_cstr("true ok"));
+            fl_println(_fl_str_map_value_type_test_11);
         } else {
-            fl_println(fl_string_from_cstr("FAIL: expected true"));
+            fl_println(_fl_str_map_value_type_test_12);
         }
     } else {
-        fl_println(fl_string_from_cstr("FAIL: flag not found"));
+        fl_println(_fl_str_map_value_type_test_13);
     }
-    fl_println(fl_string_from_cstr("All map value type tests passed"));
+    fl_println(_fl_str_map_value_type_test_14);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_map_value_type_test_0 = fl_string_from_cstr("pi");
+    _fl_str_map_value_type_test_0->refcount = 2147483647;
+    _fl_str_map_value_type_test_1 = fl_string_from_cstr("e");
+    _fl_str_map_value_type_test_1->refcount = 2147483647;
+    _fl_str_map_value_type_test_2 = fl_string_from_cstr("FAIL: pi not found");
+    _fl_str_map_value_type_test_2->refcount = 2147483647;
+    _fl_str_map_value_type_test_3 = fl_string_from_cstr("missing");
+    _fl_str_map_value_type_test_3->refcount = 2147483647;
+    _fl_str_map_value_type_test_4 = fl_string_from_cstr("FAIL: should be none");
+    _fl_str_map_value_type_test_4->refcount = 2147483647;
+    _fl_str_map_value_type_test_5 = fl_string_from_cstr("none ok");
+    _fl_str_map_value_type_test_5->refcount = 2147483647;
+    _fl_str_map_value_type_test_6 = fl_string_from_cstr("x");
+    _fl_str_map_value_type_test_6->refcount = 2147483647;
+    _fl_str_map_value_type_test_7 = fl_string_from_cstr("y");
+    _fl_str_map_value_type_test_7->refcount = 2147483647;
+    _fl_str_map_value_type_test_8 = fl_string_from_cstr("FAIL: x not found");
+    _fl_str_map_value_type_test_8->refcount = 2147483647;
+    _fl_str_map_value_type_test_9 = fl_string_from_cstr("FAIL: y not found");
+    _fl_str_map_value_type_test_9->refcount = 2147483647;
+    _fl_str_map_value_type_test_10 = fl_string_from_cstr("flag");
+    _fl_str_map_value_type_test_10->refcount = 2147483647;
+    _fl_str_map_value_type_test_11 = fl_string_from_cstr("true ok");
+    _fl_str_map_value_type_test_11->refcount = 2147483647;
+    _fl_str_map_value_type_test_12 = fl_string_from_cstr("FAIL: expected true");
+    _fl_str_map_value_type_test_12->refcount = 2147483647;
+    _fl_str_map_value_type_test_13 = fl_string_from_cstr("FAIL: flag not found");
+    _fl_str_map_value_type_test_13->refcount = 2147483647;
+    _fl_str_map_value_type_test_14 = fl_string_from_cstr("All map value type tests passed");
+    _fl_str_map_value_type_test_14->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_map_value_type_test_main();
     return 0;
 }

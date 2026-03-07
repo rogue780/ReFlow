@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -626,6 +635,24 @@ FL_String* fl_conv_to_string__int(fl_int val);
 
 fl_int fl_tests_set_test_main(void);
 
+FL_String* _fl_str_tests_set_test_0 = NULL;
+
+FL_String* _fl_str_tests_set_test_1 = NULL;
+
+FL_String* _fl_str_tests_set_test_2 = NULL;
+
+FL_String* _fl_str_tests_set_test_3 = NULL;
+
+FL_String* _fl_str_tests_set_test_4 = NULL;
+
+FL_String* _fl_str_tests_set_test_5 = NULL;
+
+FL_String* _fl_str_tests_set_test_6 = NULL;
+
+FL_String* _fl_str_tests_set_test_7 = NULL;
+
+FL_String* _fl_str_tests_set_test_8 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__bool(fl_bool val) {
     return fl_bool_to_string(val);
@@ -644,44 +671,70 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 /* Flow: tests.set_test.main */
 fl_int fl_tests_set_test_main(void) {
     FL_Map* s = fl_string_set_new();
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(s, fl_string_from_cstr("x"))));
-    FL_Map* s2 = fl_string_set_add(s, fl_string_from_cstr("alice"));
-    FL_Map* s3 = fl_string_set_add(s2, fl_string_from_cstr("bob"));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(s3, fl_string_from_cstr("alice"))));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(s3, fl_string_from_cstr("bob"))));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(s3, fl_string_from_cstr("charlie"))));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(s, _fl_str_tests_set_test_0)));
+    FL_Map* s2 = fl_string_set_add(s, _fl_str_tests_set_test_1);
+    FL_Map* s3 = fl_string_set_add(s2, _fl_str_tests_set_test_2);
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(s3, _fl_str_tests_set_test_1)));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(s3, _fl_str_tests_set_test_2)));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(s3, _fl_str_tests_set_test_3)));
     fl_println(fl_conv_to_string__int64(fl_string_set_size(s3)));
-    FL_Map* s4 = fl_string_set_add(s3, fl_string_from_cstr("alice"));
+    FL_Map* s4 = fl_string_set_add(s3, _fl_str_tests_set_test_1);
     fl_println(fl_conv_to_string__int64(fl_string_set_size(s4)));
-    FL_Map* s5 = fl_string_set_remove(s4, fl_string_from_cstr("alice"));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(s5, fl_string_from_cstr("alice"))));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(s5, fl_string_from_cstr("bob"))));
+    FL_Map* s5 = fl_string_set_remove(s4, _fl_str_tests_set_test_1);
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(s5, _fl_str_tests_set_test_1)));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(s5, _fl_str_tests_set_test_2)));
     fl_println(fl_conv_to_string__int64(fl_string_set_size(s5)));
     FL_Array* arr = fl_string_set_to_array(s3);
     fl_println(fl_conv_to_string__int(fl_array_len_int(arr)));
-    FL_Map* s6 = fl_string_set_from_array(fl_array_new(5, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("a"), fl_string_from_cstr("b"), fl_string_from_cstr("c"), fl_string_from_cstr("a"), fl_string_from_cstr("b")}));
+    FL_Map* s6 = fl_string_set_from_array(fl_array_new(5, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_set_test_4, _fl_str_tests_set_test_5, _fl_str_tests_set_test_6, _fl_str_tests_set_test_4, _fl_str_tests_set_test_5}));
     fl_println(fl_conv_to_string__int64(fl_string_set_size(s6)));
-    FL_Map* sa = fl_string_set_from_array(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("x"), fl_string_from_cstr("y")}));
-    FL_Map* sb = fl_string_set_from_array(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("y"), fl_string_from_cstr("z")}));
+    FL_Map* sa = fl_string_set_from_array(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_set_test_0, _fl_str_tests_set_test_7}));
+    FL_Map* sb = fl_string_set_from_array(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_set_test_7, _fl_str_tests_set_test_8}));
     FL_Map* u = fl_string_set_union(sa, sb);
     fl_println(fl_conv_to_string__int64(fl_string_set_size(u)));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(u, fl_string_from_cstr("x"))));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(u, fl_string_from_cstr("y"))));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(u, fl_string_from_cstr("z"))));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(u, _fl_str_tests_set_test_0)));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(u, _fl_str_tests_set_test_7)));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(u, _fl_str_tests_set_test_8)));
     FL_Map* d = fl_string_set_difference(sa, sb);
     fl_println(fl_conv_to_string__int64(fl_string_set_size(d)));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(d, fl_string_from_cstr("x"))));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(d, fl_string_from_cstr("y"))));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(d, _fl_str_tests_set_test_0)));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(d, _fl_str_tests_set_test_7)));
     FL_Map* inter = fl_string_set_intersection(sa, sb);
     fl_println(fl_conv_to_string__int64(fl_string_set_size(inter)));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(inter, fl_string_from_cstr("y"))));
-    fl_println(fl_conv_to_string__bool(fl_string_set_has(inter, fl_string_from_cstr("x"))));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(inter, _fl_str_tests_set_test_7)));
+    fl_println(fl_conv_to_string__bool(fl_string_set_has(inter, _fl_str_tests_set_test_0)));
     return 0;
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_set_test_0 = fl_string_from_cstr("x");
+    _fl_str_tests_set_test_0->refcount = 2147483647;
+    _fl_str_tests_set_test_1 = fl_string_from_cstr("alice");
+    _fl_str_tests_set_test_1->refcount = 2147483647;
+    _fl_str_tests_set_test_2 = fl_string_from_cstr("bob");
+    _fl_str_tests_set_test_2->refcount = 2147483647;
+    _fl_str_tests_set_test_3 = fl_string_from_cstr("charlie");
+    _fl_str_tests_set_test_3->refcount = 2147483647;
+    _fl_str_tests_set_test_4 = fl_string_from_cstr("a");
+    _fl_str_tests_set_test_4->refcount = 2147483647;
+    _fl_str_tests_set_test_5 = fl_string_from_cstr("b");
+    _fl_str_tests_set_test_5->refcount = 2147483647;
+    _fl_str_tests_set_test_6 = fl_string_from_cstr("c");
+    _fl_str_tests_set_test_6->refcount = 2147483647;
+    _fl_str_tests_set_test_7 = fl_string_from_cstr("y");
+    _fl_str_tests_set_test_7->refcount = 2147483647;
+    _fl_str_tests_set_test_8 = fl_string_from_cstr("z");
+    _fl_str_tests_set_test_8->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_set_test_main();
     return 0;
 }

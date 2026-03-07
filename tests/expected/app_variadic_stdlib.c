@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -537,6 +546,8 @@ void fl_string_builder_clear(fl_string_builder_StringBuilder sb);
 struct fl_string_builder_StringBuilder {
     void* handle;
 };
+
+FL_String* _fl_str_string_builder_0 = NULL;
 
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
@@ -760,7 +771,7 @@ void fl_string_builder_append_float(fl_string_builder_StringBuilder sb, fl_float
 FL_String* fl_string_builder_build(fl_string_builder_StringBuilder sb) {
     fl_int64 cur_len = fl_string_builder_get_len(sb);
     if (cur_len == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_builder_0;
     }
     void* data = fl_string_builder_get_data(sb);
     return fl_mem_to_string(data, cur_len);
@@ -931,6 +942,38 @@ struct FL_Option_FL_Tuple_fl_json_JsonValue_fl_int {
     FL_Tuple_fl_json_JsonValue_fl_int value;
 };
 
+FL_String* _fl_str_json_0 = NULL;
+
+FL_String* _fl_str_json_1 = NULL;
+
+FL_String* _fl_str_json_2 = NULL;
+
+FL_String* _fl_str_json_3 = NULL;
+
+FL_String* _fl_str_json_4 = NULL;
+
+FL_String* _fl_str_json_5 = NULL;
+
+FL_String* _fl_str_json_6 = NULL;
+
+FL_String* _fl_str_json_7 = NULL;
+
+FL_String* _fl_str_json_8 = NULL;
+
+FL_String* _fl_str_json_9 = NULL;
+
+FL_String* _fl_str_json_10 = NULL;
+
+FL_String* _fl_str_json_11 = NULL;
+
+FL_String* _fl_str_json_12 = NULL;
+
+FL_String* _fl_str_json_13 = NULL;
+
+FL_String* _fl_str_json_14 = NULL;
+
+FL_String* _fl_str_json_15 = NULL;
+
 /* Flow: json.null_val */
 fl_json_JsonValue fl_json_null_val(void) {
     return (fl_json_JsonValue){.tag = 0};
@@ -1054,6 +1097,7 @@ FL_Option_ptr fl_json_as_string(fl_json_JsonValue val) {
     switch (_fl_tmp_2.tag) {
         case 4: {
             FL_String* s = _fl_tmp_2.Str.val;
+            fl_string_retain(s);
             return (FL_Option_ptr){.tag = 1, .value = s};
             break;
         }
@@ -1218,6 +1262,7 @@ FL_Option_ptr fl_json_as_array(fl_json_JsonValue val) {
     switch (_fl_tmp_6.tag) {
         case 5: {
             FL_Array* items = _fl_tmp_6.Arr.items;
+            fl_array_retain(items);
             return (FL_Option_ptr){.tag = 1, .value = items};
             break;
         }
@@ -1389,23 +1434,23 @@ void fl_json_escape_json_string(fl_string_builder_StringBuilder b, FL_String* s)
         if (_fl_tmp_10.tag == 1) {
             fl_char c = _fl_tmp_10.value;
             if (c == 34) {
-                fl_string_builder_append(b, fl_string_from_cstr("\\\""));
+                fl_string_builder_append(b, _fl_str_json_0);
             } else {
                 if (c == 92) {
-                    fl_string_builder_append(b, fl_string_from_cstr("\\\\"));
+                    fl_string_builder_append(b, _fl_str_json_1);
                 } else {
                     if (c == 10) {
-                        fl_string_builder_append(b, fl_string_from_cstr("\\n"));
+                        fl_string_builder_append(b, _fl_str_json_2);
                     } else {
                         if (c == 13) {
-                            fl_string_builder_append(b, fl_string_from_cstr("\\r"));
+                            fl_string_builder_append(b, _fl_str_json_3);
                         } else {
                             if (c == 9) {
-                                fl_string_builder_append(b, fl_string_from_cstr("\\t"));
+                                fl_string_builder_append(b, _fl_str_json_4);
                             } else {
                                 fl_int code = fl_char_to_code(c);
                                 if (code < 32) {
-                                    fl_string_builder_append(b, fl_string_from_cstr("\\u00"));
+                                    fl_string_builder_append(b, _fl_str_json_5);
                                     fl_int _fl_e_1;
                                     FL_CHECKED_DIV(code, 16, &_fl_e_1);
                                     fl_int hi = _fl_e_1;
@@ -1449,15 +1494,15 @@ void fl_json_serialize(fl_string_builder_StringBuilder b, fl_json_JsonValue val)
     fl_json_JsonValue _fl_tmp_11 = val;
     switch (_fl_tmp_11.tag) {
         case 0: {
-            fl_string_builder_append(b, fl_string_from_cstr("null"));
+            fl_string_builder_append(b, _fl_str_json_6);
             break;
         }
         case 1: {
             fl_bool v = _fl_tmp_11.Bool.val;
             if (v) {
-                fl_string_builder_append(b, fl_string_from_cstr("true"));
+                fl_string_builder_append(b, _fl_str_json_7);
             } else {
-                fl_string_builder_append(b, fl_string_from_cstr("false"));
+                fl_string_builder_append(b, _fl_str_json_8);
             }
             break;
         }
@@ -1490,7 +1535,7 @@ void fl_json_serialize(fl_string_builder_StringBuilder b, fl_json_JsonValue val)
                     fl_json_JsonValue item = _fl_tmp_12.value;
                     fl_json_serialize(b, item);
                 } else {
-                    fl_string_builder_append(b, fl_string_from_cstr("null"));
+                    fl_string_builder_append(b, _fl_str_json_6);
                 }
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -1510,7 +1555,8 @@ void fl_json_serialize(fl_string_builder_StringBuilder b, fl_json_JsonValue val)
                     fl_string_builder_append_char(b, 44);
                 }
                 FL_Option_ptr _fl_tmp_13 = fl_array_get_safe(ks, i);
-                FL_String* key = ((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : fl_string_from_cstr(""));
+                FL_String* key = ((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : _fl_str_json_9);
+                fl_string_retain(key);
                 fl_json_escape_json_string(b, key);
                 fl_string_builder_append_char(b, 58);
                 FL_Option_fl_json_JsonValue _fl_tmp_14 = FL_OPT_DEREF_AS(fl_map_get_str(entries, key), fl_json_JsonValue, FL_Option_fl_json_JsonValue);
@@ -1538,15 +1584,15 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
     fl_json_JsonValue _fl_tmp_15 = val;
     switch (_fl_tmp_15.tag) {
         case 0: {
-            fl_string_builder_append(b, fl_string_from_cstr("null"));
+            fl_string_builder_append(b, _fl_str_json_6);
             break;
         }
         case 1: {
             fl_bool v = _fl_tmp_15.Bool.val;
             if (v) {
-                fl_string_builder_append(b, fl_string_from_cstr("true"));
+                fl_string_builder_append(b, _fl_str_json_7);
             } else {
-                fl_string_builder_append(b, fl_string_from_cstr("false"));
+                fl_string_builder_append(b, _fl_str_json_8);
             }
             break;
         }
@@ -1569,9 +1615,9 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
             FL_Array* items = _fl_tmp_15.Arr.items;
             fl_int len = fl_array_len_int(items);
             if (len == 0) {
-                fl_string_builder_append(b, fl_string_from_cstr("[]"));
+                fl_string_builder_append(b, _fl_str_json_10);
             } else {
-                fl_string_builder_append(b, fl_string_from_cstr("[\n"));
+                fl_string_builder_append(b, _fl_str_json_11);
                 fl_int i = 0;
                 while (i < len) {
                     fl_int _fl_e_2;
@@ -1586,7 +1632,7 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
                         FL_CHECKED_ADD(depth, 1, &_fl_e_3);
                         fl_json_serialize_pretty(b, item, indent, _fl_e_3);
                     } else {
-                        fl_string_builder_append(b, fl_string_from_cstr("null"));
+                        fl_string_builder_append(b, _fl_str_json_6);
                     }
                     fl_int _fl_e_4;
                     FL_CHECKED_ADD(i, 1, &_fl_e_4);
@@ -1610,13 +1656,13 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
             FL_Array* ks = fl_map_keys(entries);
             fl_int len = fl_array_len_int(ks);
             if (len == 0) {
-                fl_string_builder_append(b, fl_string_from_cstr("{}"));
+                fl_string_builder_append(b, _fl_str_json_12);
             } else {
-                fl_string_builder_append(b, fl_string_from_cstr("{\n"));
+                fl_string_builder_append(b, _fl_str_json_13);
                 fl_int i = 0;
                 while (i < len) {
                     if (i > 0) {
-                        fl_string_builder_append(b, fl_string_from_cstr(",\n"));
+                        fl_string_builder_append(b, _fl_str_json_14);
                     }
                     fl_int _fl_e_8;
                     FL_CHECKED_ADD(depth, 1, &_fl_e_8);
@@ -1624,9 +1670,10 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
                     FL_CHECKED_MUL(indent, _fl_e_8, &_fl_e_7);
                     fl_json_emit_indent(b, _fl_e_7);
                     FL_Option_ptr _fl_tmp_17 = fl_array_get_safe(ks, i);
-                    FL_String* key = ((_fl_tmp_17.tag == 1) ? _fl_tmp_17.value : fl_string_from_cstr(""));
+                    FL_String* key = ((_fl_tmp_17.tag == 1) ? _fl_tmp_17.value : _fl_str_json_9);
+                    fl_string_retain(key);
                     fl_json_escape_json_string(b, key);
-                    fl_string_builder_append(b, fl_string_from_cstr(": "));
+                    fl_string_builder_append(b, _fl_str_json_15);
                     FL_Option_fl_json_JsonValue _fl_tmp_18 = FL_OPT_DEREF_AS(fl_map_get_str(entries, key), fl_json_JsonValue, FL_Option_fl_json_JsonValue);
                     fl_json_JsonValue v = ((_fl_tmp_18.tag == 1) ? _fl_tmp_18.value : (fl_json_JsonValue){.tag = 0});
                     fl_int _fl_e_9;
@@ -2004,13 +2051,13 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_value(FL_String* s, fl
                     return fl_json_parse_array(s, p, len);
                 } else {
                     if (c == 116) {
-                        return fl_json_parse_literal(s, p, len, fl_string_from_cstr("true"), (fl_json_JsonValue){.tag = 1, .Bool = (fl_json_JsonValue_Bool){.val = fl_true}});
+                        return fl_json_parse_literal(s, p, len, _fl_str_json_7, (fl_json_JsonValue){.tag = 1, .Bool = (fl_json_JsonValue_Bool){.val = fl_true}});
                     } else {
                         if (c == 102) {
-                            return fl_json_parse_literal(s, p, len, fl_string_from_cstr("false"), (fl_json_JsonValue){.tag = 1, .Bool = (fl_json_JsonValue_Bool){.val = fl_false}});
+                            return fl_json_parse_literal(s, p, len, _fl_str_json_8, (fl_json_JsonValue){.tag = 1, .Bool = (fl_json_JsonValue_Bool){.val = fl_false}});
                         } else {
                             if (c == 110) {
-                                return fl_json_parse_literal(s, p, len, fl_string_from_cstr("null"), (fl_json_JsonValue){.tag = 0});
+                                return fl_json_parse_literal(s, p, len, _fl_str_json_6, (fl_json_JsonValue){.tag = 0});
                             } else {
                                 if ((c == 45) || fl_char_is_digit(c)) {
                                     return fl_json_parse_number(s, p, len);
@@ -2144,6 +2191,7 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
         if (_fl_tmp_40.tag == 1) {
             FL_Tuple_FL_String_ptr_fl_int key_result = _fl_tmp_40.value;
             FL_String* key = key_result._0;
+            fl_string_retain(key);
             p = fl_json_skip_ws(s, key_result._1, len);
             if (p >= len) {
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
@@ -2234,28 +2282,52 @@ FL_Option_ptr fl_path_extension(FL_String* p);
 
 FL_Option_ptr fl_path_walk(FL_String* dir);
 
+FL_String* _fl_str_path_0 = NULL;
+
+FL_String* _fl_str_path_1 = NULL;
+
+FL_String* _fl_str_path_2 = NULL;
+
 /* Flow: path.join */
 FL_String* fl_path_join(FL_Array* segments) {
-    FL_String* result = fl_string_from_cstr("");
+    FL_String* result = _fl_str_path_0;
+    fl_string_retain(result);
     fl_int64 _fl_tmp_0 = 0;
     while (_fl_tmp_0 < fl_array_len(segments)) {
         FL_String* seg = (*((FL_String**)fl_array_get_ptr(segments, _fl_tmp_0)));
         if (fl_string_len(result) == 0) {
+            FL_String* _fl_old_1 = result;
             result = seg;
+            if (_fl_old_1 != result) {
+                fl_string_retain(result);
+                fl_string_release(_fl_old_1);
+            }
         } else {
             if (fl_string_len(seg) > 0) {
                 fl_int _fl_e_1;
                 FL_CHECKED_SUB(fl_string_len(result), 1, &_fl_e_1);
-                FL_Option_char _fl_tmp_1 = fl_string_char_at(result, _fl_e_1);
-                if (_fl_tmp_1.tag == 1) {
-                    fl_char last = _fl_tmp_1.value;
+                FL_Option_char _fl_tmp_2 = fl_string_char_at(result, _fl_e_1);
+                if (_fl_tmp_2.tag == 1) {
+                    fl_char last = _fl_tmp_2.value;
                     if (last == 47) {
+                        FL_String* _fl_old_3 = result;
                         result = fl_string_concat(result, seg);
+                        if (_fl_old_3 != result) {
+                            fl_string_release(_fl_old_3);
+                        }
                     } else {
-                        result = fl_string_concat(fl_string_concat(result, fl_string_from_cstr("/")), seg);
+                        FL_String* _fl_old_4 = result;
+                        result = fl_string_concat(fl_string_concat(result, _fl_str_path_1), seg);
+                        if (_fl_old_4 != result) {
+                            fl_string_release(_fl_old_4);
+                        }
                     }
                 } else {
-                    result = fl_string_concat(fl_string_concat(result, fl_string_from_cstr("/")), seg);
+                    FL_String* _fl_old_5 = result;
+                    result = fl_string_concat(fl_string_concat(result, _fl_str_path_1), seg);
+                    if (_fl_old_5 != result) {
+                        fl_string_release(_fl_old_5);
+                    }
                 }
             }
         }
@@ -2272,9 +2344,9 @@ FL_String* fl_path_stem(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_1);
     fl_int i = _fl_e_1;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_2 = fl_string_char_at(p, i);
-        if (_fl_tmp_2.tag == 1) {
-            fl_char c = _fl_tmp_2.value;
+        FL_Option_char _fl_tmp_6 = fl_string_char_at(p, i);
+        if (_fl_tmp_6.tag == 1) {
+            fl_char c = _fl_tmp_6.value;
             if (c == 47) {
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -2296,9 +2368,9 @@ FL_String* fl_path_stem(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_5);
     i = _fl_e_5;
     while (i >= start) {
-        FL_Option_char _fl_tmp_3 = fl_string_char_at(p, i);
-        if (_fl_tmp_3.tag == 1) {
-            fl_char c = _fl_tmp_3.value;
+        FL_Option_char _fl_tmp_7 = fl_string_char_at(p, i);
+        if (_fl_tmp_7.tag == 1) {
+            fl_char c = _fl_tmp_7.value;
             if (c == 46) {
                 end = i;
                 i = (-1);
@@ -2322,9 +2394,9 @@ FL_String* fl_path_parent(FL_String* p) {
     if (len > 1) {
         fl_int _fl_e_1;
         FL_CHECKED_SUB(len, 1, &_fl_e_1);
-        FL_Option_char _fl_tmp_4 = fl_string_char_at(p, _fl_e_1);
-        if (_fl_tmp_4.tag == 1) {
-            fl_char c = _fl_tmp_4.value;
+        FL_Option_char _fl_tmp_8 = fl_string_char_at(p, _fl_e_1);
+        if (_fl_tmp_8.tag == 1) {
+            fl_char c = _fl_tmp_8.value;
             if (c == 47) {
                 fl_int _fl_e_2;
                 FL_CHECKED_SUB(len, 1, &_fl_e_2);
@@ -2339,9 +2411,9 @@ FL_String* fl_path_parent(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_4);
     fl_int i = _fl_e_4;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_5 = fl_string_char_at(p, i);
-        if (_fl_tmp_5.tag == 1) {
-            fl_char c = _fl_tmp_5.value;
+        FL_Option_char _fl_tmp_9 = fl_string_char_at(p, i);
+        if (_fl_tmp_9.tag == 1) {
+            fl_char c = _fl_tmp_9.value;
             if (c == 47) {
                 last_slash = i;
                 i = (-1);
@@ -2357,10 +2429,10 @@ FL_String* fl_path_parent(FL_String* p) {
         }
     }
     if (last_slash < 0) {
-        return fl_string_from_cstr(".");
+        return _fl_str_path_2;
     }
     if (last_slash == 0) {
-        return fl_string_from_cstr("/");
+        return _fl_str_path_1;
     }
     return fl_string_substring(p, 0, last_slash);
 }
@@ -2378,9 +2450,9 @@ FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix) {
     FL_CHECKED_SUB(len, 1, &_fl_e_3);
     fl_int i = _fl_e_3;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_6 = fl_string_char_at(p, i);
-        if (_fl_tmp_6.tag == 1) {
-            fl_char c = _fl_tmp_6.value;
+        FL_Option_char _fl_tmp_10 = fl_string_char_at(p, i);
+        if (_fl_tmp_10.tag == 1) {
+            fl_char c = _fl_tmp_10.value;
             if ((c == 47) && (last_slash < 0)) {
                 last_slash = i;
                 i = (-1);
@@ -2396,13 +2468,13 @@ FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix) {
             i = _fl_e_4;
         }
     }
-    fl_int _fl_tmp_7;
+    fl_int _fl_tmp_11;
     if ((dot >= 0) && (dot > last_slash)) {
-        _fl_tmp_7 = dot;
+        _fl_tmp_11 = dot;
     } else {
-        _fl_tmp_7 = len;
+        _fl_tmp_11 = len;
     }
-    fl_int base_end = _fl_tmp_7;
+    fl_int base_end = _fl_tmp_11;
     return fl_string_concat(fl_string_substring(p, 0, base_end), suffix);
 }
 
@@ -2414,9 +2486,9 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_1);
     fl_int i = _fl_e_1;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_8 = fl_string_char_at(p, i);
-        if (_fl_tmp_8.tag == 1) {
-            fl_char c = _fl_tmp_8.value;
+        FL_Option_char _fl_tmp_12 = fl_string_char_at(p, i);
+        if (_fl_tmp_12.tag == 1) {
+            fl_char c = _fl_tmp_12.value;
             if (c == 47) {
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -2440,9 +2512,9 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_6);
     i = _fl_e_6;
     while (i >= base_start) {
-        FL_Option_char _fl_tmp_9 = fl_string_char_at(p, i);
-        if (_fl_tmp_9.tag == 1) {
-            fl_char c = _fl_tmp_9.value;
+        FL_Option_char _fl_tmp_13 = fl_string_char_at(p, i);
+        if (_fl_tmp_13.tag == 1) {
+            fl_char c = _fl_tmp_13.value;
             if (c == 46) {
                 dot = i;
                 i = (-1);
@@ -2465,32 +2537,33 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
 
 /* Flow: path.walk */
 FL_Option_ptr fl_path_walk(FL_String* dir) {
-    FL_Option_ptr _fl_tmp_10 = fl_path_list_dir(dir);
-    if (_fl_tmp_10.tag == 1) {
-        FL_Array* entries = _fl_tmp_10.value;
+    FL_Option_ptr _fl_tmp_14 = fl_path_list_dir(dir);
+    if (_fl_tmp_14.tag == 1) {
+        FL_Array* entries = _fl_tmp_14.value;
         FL_Array* result = fl_array_new(0, 0, NULL);
-        fl_int64 _fl_tmp_11 = 0;
-        while (_fl_tmp_11 < fl_array_len(entries)) {
-            FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_11)));
+        fl_int64 _fl_tmp_15 = 0;
+        while (_fl_tmp_15 < fl_array_len(entries)) {
+            FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_15)));
             FL_String* full = fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry}));
-            FL_Array* _fl_old_12 = result;
+            FL_Array* _fl_old_16 = result;
             result = fl_array_push_ptr(result, full);
-            if (_fl_old_12 != result) {
-                fl_array_release(_fl_old_12);
+            if (_fl_old_16 != result) {
+                fl_array_release(_fl_old_16);
             }
             if (fl_path_is_dir(full)) {
-                FL_Option_ptr _fl_tmp_13 = fl_path_walk(full);
-                if (_fl_tmp_13.tag == 1) {
-                    FL_Array* children = _fl_tmp_13.value;
-                    FL_Array* _fl_old_14 = result;
+                FL_Option_ptr _fl_tmp_17 = fl_path_walk(full);
+                if (_fl_tmp_17.tag == 1) {
+                    FL_Array* children = _fl_tmp_17.value;
+                    FL_Array* _fl_old_18 = result;
                     result = fl_array_concat(result, children);
-                    if (_fl_old_14 != result) {
-                        fl_array_release(_fl_old_14);
+                    if (_fl_old_18 != result) {
+                        fl_array_release(_fl_old_18);
                     }
                 }
             }
-            _fl_tmp_11 = (_fl_tmp_11 + 1);
+            _fl_tmp_15 = (_fl_tmp_15 + 1);
         }
+        fl_array_retain(result);
         return (FL_Option_ptr){.tag = 1, .value = result};
     } else {
         return (FL_Option_ptr){.tag = 0};
@@ -2506,6 +2579,28 @@ FL_Array* fl_array_of__int(FL_Array* items);
 FL_Array* fl_array_of__string(FL_Array* items);
 
 fl_int fl_tests_app_variadic_stdlib_main(void);
+
+FL_String* _fl_str_tests_app_variadic_stdlib_0 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_1 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_2 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_3 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_4 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_5 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_6 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_7 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_8 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_9 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_stdlib_10 = NULL;
 
 /* Flow: math.min[mono] */
 fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
@@ -2547,10 +2642,10 @@ FL_Array* fl_array_of__string(FL_Array* items) {
 
 /* Flow: tests.app_variadic_stdlib.main */
 fl_int fl_tests_app_variadic_stdlib_main(void) {
-    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("a"), fl_string_from_cstr("b"), fl_string_from_cstr("c")})));
-    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("a/"), fl_string_from_cstr("b"), fl_string_from_cstr("c")})));
-    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr(""), fl_string_from_cstr("b"), fl_string_from_cstr("c")})));
-    fl_println(fl_path_join(fl_array_new(1, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("a")})));
+    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2})));
+    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_3, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2})));
+    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_4, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2})));
+    fl_println(fl_path_join(fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0})));
     fl_println(fl_path_join(fl_array_new(0, 0, NULL)));
     fl_println(fl_conv_to_string__int(fl_math_min__int(5, fl_array_new(3, sizeof(fl_int), (fl_int[]){3, 8, 1}))));
     fl_println(fl_conv_to_string__int(fl_math_min__int(42, fl_array_new(0, 0, NULL))));
@@ -2558,10 +2653,10 @@ fl_int fl_tests_app_variadic_stdlib_main(void) {
     fl_println(fl_conv_to_string__int(fl_math_max__int(5, fl_array_new(3, sizeof(fl_int), (fl_int[]){3, 8, 1}))));
     fl_println(fl_conv_to_string__int(fl_math_max__int(42, fl_array_new(0, 0, NULL))));
     fl_println(fl_conv_to_string__int(fl_math_max__int(10, fl_array_new(1, sizeof(fl_int), (fl_int[]){20}))));
-    fl_println(fl_string_join(fl_string_from_cstr(", "), fl_array_new(3, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("a"), fl_string_from_cstr("b"), fl_string_from_cstr("c")})));
-    fl_println(fl_string_join(fl_string_from_cstr("-"), fl_array_new(1, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("x")})));
-    FL_Array* parts = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("hello"), fl_string_from_cstr("world")});
-    fl_println(fl_string_join(fl_string_from_cstr(" "), parts));
+    fl_println(fl_string_join(_fl_str_tests_app_variadic_stdlib_5, fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2})));
+    fl_println(fl_string_join(_fl_str_tests_app_variadic_stdlib_6, fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_7})));
+    FL_Array* parts = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_8, _fl_str_tests_app_variadic_stdlib_9});
+    fl_println(fl_string_join(_fl_str_tests_app_variadic_stdlib_10, parts));
     fl_json_JsonValue arr = fl_json_array_val(fl_array_new(3, sizeof(fl_json_JsonValue), (fl_json_JsonValue[]){fl_json_int_val(1), fl_json_int_val(2), fl_json_int_val(3)}));
     fl_println(fl_json_to_string(arr));
     FL_Array* nums = fl_array_of__int(fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30}));
@@ -2572,18 +2667,88 @@ fl_int fl_tests_app_variadic_stdlib_main(void) {
     fl_println(fl_conv_to_string__int(((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : 0)));
     FL_Option_int _fl_tmp_2 = fl_array_get_int(nums, 2);
     fl_println(fl_conv_to_string__int(((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : 0)));
-    FL_Array* strs = fl_array_of__string(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("hello"), fl_string_from_cstr("world")}));
+    FL_Array* strs = fl_array_of__string(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_8, _fl_str_tests_app_variadic_stdlib_9}));
     fl_println(fl_conv_to_string__int(fl_array_len_int(strs)));
     FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(strs, 0);
-    fl_println(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr("")));
+    fl_println(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : _fl_str_tests_app_variadic_stdlib_4));
     FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(strs, 1);
-    fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : fl_string_from_cstr("")));
+    fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_app_variadic_stdlib_4));
     return 0;
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_string_builder_0 = fl_string_from_cstr("");
+    _fl_str_string_builder_0->refcount = 2147483647;
+    _fl_str_json_0 = fl_string_from_cstr("\\\"");
+    _fl_str_json_0->refcount = 2147483647;
+    _fl_str_json_1 = fl_string_from_cstr("\\\\");
+    _fl_str_json_1->refcount = 2147483647;
+    _fl_str_json_2 = fl_string_from_cstr("\\n");
+    _fl_str_json_2->refcount = 2147483647;
+    _fl_str_json_3 = fl_string_from_cstr("\\r");
+    _fl_str_json_3->refcount = 2147483647;
+    _fl_str_json_4 = fl_string_from_cstr("\\t");
+    _fl_str_json_4->refcount = 2147483647;
+    _fl_str_json_5 = fl_string_from_cstr("\\u00");
+    _fl_str_json_5->refcount = 2147483647;
+    _fl_str_json_6 = fl_string_from_cstr("null");
+    _fl_str_json_6->refcount = 2147483647;
+    _fl_str_json_7 = fl_string_from_cstr("true");
+    _fl_str_json_7->refcount = 2147483647;
+    _fl_str_json_8 = fl_string_from_cstr("false");
+    _fl_str_json_8->refcount = 2147483647;
+    _fl_str_json_9 = fl_string_from_cstr("");
+    _fl_str_json_9->refcount = 2147483647;
+    _fl_str_json_10 = fl_string_from_cstr("[]");
+    _fl_str_json_10->refcount = 2147483647;
+    _fl_str_json_11 = fl_string_from_cstr("[\n");
+    _fl_str_json_11->refcount = 2147483647;
+    _fl_str_json_12 = fl_string_from_cstr("{}");
+    _fl_str_json_12->refcount = 2147483647;
+    _fl_str_json_13 = fl_string_from_cstr("{\n");
+    _fl_str_json_13->refcount = 2147483647;
+    _fl_str_json_14 = fl_string_from_cstr(",\n");
+    _fl_str_json_14->refcount = 2147483647;
+    _fl_str_json_15 = fl_string_from_cstr(": ");
+    _fl_str_json_15->refcount = 2147483647;
+    _fl_str_path_0 = fl_string_from_cstr("");
+    _fl_str_path_0->refcount = 2147483647;
+    _fl_str_path_1 = fl_string_from_cstr("/");
+    _fl_str_path_1->refcount = 2147483647;
+    _fl_str_path_2 = fl_string_from_cstr(".");
+    _fl_str_path_2->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_0 = fl_string_from_cstr("a");
+    _fl_str_tests_app_variadic_stdlib_0->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_1 = fl_string_from_cstr("b");
+    _fl_str_tests_app_variadic_stdlib_1->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_2 = fl_string_from_cstr("c");
+    _fl_str_tests_app_variadic_stdlib_2->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_3 = fl_string_from_cstr("a/");
+    _fl_str_tests_app_variadic_stdlib_3->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_4 = fl_string_from_cstr("");
+    _fl_str_tests_app_variadic_stdlib_4->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_5 = fl_string_from_cstr(", ");
+    _fl_str_tests_app_variadic_stdlib_5->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_6 = fl_string_from_cstr("-");
+    _fl_str_tests_app_variadic_stdlib_6->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_7 = fl_string_from_cstr("x");
+    _fl_str_tests_app_variadic_stdlib_7->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_8 = fl_string_from_cstr("hello");
+    _fl_str_tests_app_variadic_stdlib_8->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_9 = fl_string_from_cstr("world");
+    _fl_str_tests_app_variadic_stdlib_9->refcount = 2147483647;
+    _fl_str_tests_app_variadic_stdlib_10 = fl_string_from_cstr(" ");
+    _fl_str_tests_app_variadic_stdlib_10->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_variadic_stdlib_main();
     return 0;
 }

@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -506,6 +515,12 @@ struct fl_main_Counter {
     fl_bool active;
 };
 
+FL_String* _fl_str_main_0 = NULL;
+
+FL_String* _fl_str_main_1 = NULL;
+
+FL_String* _fl_str_main_2 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -513,22 +528,36 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 
 /* Flow: main.main */
 fl_int fl_main_main(void) {
-    fl_main_Counter c = (fl_main_Counter){.name = fl_string_from_cstr("test"), .count = 0, .active = fl_true};
+    fl_main_Counter c = (fl_main_Counter){.name = _fl_str_main_0, .count = 0, .active = fl_true};
     c.count = 42;
     c.active = fl_false;
     fl_println(c.name);
     fl_println(fl_conv_to_string__int(c.count));
     if (c.active) {
-        fl_println(fl_string_from_cstr("active"));
+        fl_println(_fl_str_main_1);
     } else {
-        fl_println(fl_string_from_cstr("inactive"));
+        fl_println(_fl_str_main_2);
     }
     return 0;
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_main_0 = fl_string_from_cstr("test");
+    _fl_str_main_0->refcount = 2147483647;
+    _fl_str_main_1 = fl_string_from_cstr("active");
+    _fl_str_main_1->refcount = 2147483647;
+    _fl_str_main_2 = fl_string_from_cstr("inactive");
+    _fl_str_main_2->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_main_main();
     return 0;
 }

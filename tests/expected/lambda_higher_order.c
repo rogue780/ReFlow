@@ -4,18 +4,25 @@
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -25,12 +32,14 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -55,6 +64,14 @@ void fl_tests_lambda_higher_order_main(void);
 struct _fl_closure_tests_lambda_higher_order_main_1 {
     fl_int offset;
 };
+
+FL_String* _fl_str_tests_lambda_higher_order_0 = NULL;
+
+FL_String* _fl_str_tests_lambda_higher_order_1 = NULL;
+
+FL_String* _fl_str_tests_lambda_higher_order_2 = NULL;
+
+FL_String* _fl_str_tests_lambda_higher_order_3 = NULL;
 
 /* Flow: tests.lambda_higher_order.apply */
 fl_int fl_tests_lambda_higher_order_apply(FL_Closure* f, fl_int x) {
@@ -103,7 +120,7 @@ void fl_tests_lambda_higher_order_main(void) {
     _fl_tmp_1->fn = ((void*)_fl_clfn_tests_lambda_higher_order_main_0);
     _fl_tmp_1->env = NULL;
     fl_int r1 = fl_tests_lambda_higher_order_apply(_fl_tmp_1, 5);
-    FL_String* _fl_tmp_2 = fl_string_from_cstr("apply(inc, 5) = ");
+    FL_String* _fl_tmp_2 = _fl_str_tests_lambda_higher_order_0;
     FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(r1));
     fl_string_release(_fl_tmp_2);
     fl_println(_fl_tmp_3);
@@ -115,7 +132,7 @@ void fl_tests_lambda_higher_order_main(void) {
     _fl_tmp_5->fn = ((void*)_fl_clfn_tests_lambda_higher_order_main_1);
     _fl_tmp_5->env = ((void*)_fl_tmp_4);
     fl_int r2 = fl_tests_lambda_higher_order_apply(_fl_tmp_5, 5);
-    FL_String* _fl_tmp_6 = fl_string_from_cstr("apply(add100, 5) = ");
+    FL_String* _fl_tmp_6 = _fl_str_tests_lambda_higher_order_1;
     FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(r2));
     fl_string_release(_fl_tmp_6);
     fl_println(_fl_tmp_7);
@@ -123,7 +140,7 @@ void fl_tests_lambda_higher_order_main(void) {
     _fl_tmp_8->fn = ((void*)_fl_wrap_tests_lambda_higher_order_triple);
     _fl_tmp_8->env = NULL;
     fl_int r3 = fl_tests_lambda_higher_order_apply(_fl_tmp_8, 4);
-    FL_String* _fl_tmp_9 = fl_string_from_cstr("apply(triple, 4) = ");
+    FL_String* _fl_tmp_9 = _fl_str_tests_lambda_higher_order_2;
     FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_int_to_string(r3));
     fl_string_release(_fl_tmp_9);
     fl_println(_fl_tmp_10);
@@ -134,15 +151,31 @@ void fl_tests_lambda_higher_order_main(void) {
     _fl_tmp_12->env = NULL;
     FL_Closure* _fl_tmp_13 = _fl_tmp_12;
     fl_int r4 = ((fl_int (*)(void*, fl_int))_fl_tmp_13->fn)(_fl_tmp_13->env, _fl_tmp_11);
-    FL_String* _fl_tmp_14 = fl_string_from_cstr("5 -> double = ");
+    FL_String* _fl_tmp_14 = _fl_str_tests_lambda_higher_order_3;
     FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, fl_int_to_string(r4));
     fl_string_release(_fl_tmp_14);
     fl_println(_fl_tmp_15);
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_lambda_higher_order_0 = fl_string_from_cstr("apply(inc, 5) = ");
+    _fl_str_tests_lambda_higher_order_0->refcount = 2147483647;
+    _fl_str_tests_lambda_higher_order_1 = fl_string_from_cstr("apply(add100, 5) = ");
+    _fl_str_tests_lambda_higher_order_1->refcount = 2147483647;
+    _fl_str_tests_lambda_higher_order_2 = fl_string_from_cstr("apply(triple, 4) = ");
+    _fl_str_tests_lambda_higher_order_2->refcount = 2147483647;
+    _fl_str_tests_lambda_higher_order_3 = fl_string_from_cstr("5 -> double = ");
+    _fl_str_tests_lambda_higher_order_3->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_lambda_higher_order_main();
     return 0;
 }

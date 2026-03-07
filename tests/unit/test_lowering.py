@@ -313,8 +313,9 @@ class TestLiteralLowering(unittest.TestCase):
         fn = find_fn(m, "do_stuff")
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
-        self.assertIsInstance(ret.value, LCall)
-        self.assertEqual(ret.value.fn_name, "fl_string_from_cstr")
+        # String literals are interned as static globals (_fl_str_N)
+        self.assertIsInstance(ret.value, LVar)
+        self.assertTrue(ret.value.c_name.startswith("_fl_str_"))
 
 
 class TestArithmeticLowering(unittest.TestCase):
@@ -413,8 +414,9 @@ class TestFStringLowering(unittest.TestCase):
         fn = find_fn(m, "do_stuff")
         ret = find_stmt_of_type(fn.body, LReturn)
         self.assertIsNotNone(ret)
-        self.assertIsInstance(ret.value, LCall)
-        self.assertEqual(ret.value.fn_name, "fl_string_from_cstr")
+        # f-string with only a string literal part is interned
+        self.assertIsInstance(ret.value, LVar)
+        self.assertTrue(ret.value.c_name.startswith("_fl_str_"))
 
 
 class TestMatchLowering(unittest.TestCase):

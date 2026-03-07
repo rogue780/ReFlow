@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -501,12 +508,23 @@ FL_Array* fl_csv_parse_delimited(FL_String* s, fl_byte delimiter);
 
 FL_Array* fl_csv_with_headers(FL_Array* rows);
 
+FL_String* _fl_str_csv_0 = NULL;
+
+FL_String* _fl_str_csv_1 = NULL;
+
+FL_String* _fl_str_csv_2 = NULL;
+
+FL_String* _fl_str_csv_3 = NULL;
+
+FL_String* _fl_str_csv_4 = NULL;
+
 /* Flow: csv.parse_impl */
 FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
     fl_int len = fl_string_len(s);
     FL_Array* rows = fl_array_new(0, 0, NULL);
     FL_Array* current_row = fl_array_new(0, 0, NULL);
-    FL_String* field = fl_string_from_cstr("");
+    FL_String* field = _fl_str_csv_0;
+    fl_string_retain(field);
     fl_int state = 0;
     fl_int i = 0;
     while (i < len) {
@@ -524,33 +542,43 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                         if (_fl_old_1 != current_row) {
                             fl_array_release(_fl_old_1);
                         }
-                        field = fl_string_from_cstr("");
+                        FL_String* _fl_old_2 = field;
+                        field = _fl_str_csv_0;
+                        if (_fl_old_2 != field) {
+                            fl_string_retain(field);
+                            fl_string_release(_fl_old_2);
+                        }
                     } else {
                         if (c == 13) {
-                            FL_Array* _fl_old_2 = current_row;
+                            FL_Array* _fl_old_3 = current_row;
                             current_row = fl_array_push_ptr(current_row, field);
-                            if (_fl_old_2 != current_row) {
-                                fl_array_release(_fl_old_2);
-                            }
-                            field = fl_string_from_cstr("");
-                            FL_Array* _fl_old_3 = rows;
-                            rows = fl_array_push_ptr(rows, current_row);
-                            if (_fl_old_3 != rows) {
+                            if (_fl_old_3 != current_row) {
                                 fl_array_release(_fl_old_3);
                             }
-                            FL_Array* _fl_old_4 = current_row;
+                            FL_String* _fl_old_4 = field;
+                            field = _fl_str_csv_0;
+                            if (_fl_old_4 != field) {
+                                fl_string_retain(field);
+                                fl_string_release(_fl_old_4);
+                            }
+                            FL_Array* _fl_old_5 = rows;
+                            rows = fl_array_push_ptr(rows, current_row);
+                            if (_fl_old_5 != rows) {
+                                fl_array_release(_fl_old_5);
+                            }
+                            FL_Array* _fl_old_6 = current_row;
                             current_row = fl_array_new(0, 0, NULL);
-                            if (_fl_old_4 != current_row) {
-                                fl_array_release(_fl_old_4);
+                            if (_fl_old_6 != current_row) {
+                                fl_array_release(_fl_old_6);
                             }
                             fl_int _fl_e_1;
                             FL_CHECKED_ADD(i, 1, &_fl_e_1);
                             if (_fl_e_1 < len) {
                                 fl_int _fl_e_2;
                                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
-                                FL_Option_char _fl_tmp_5 = fl_string_char_at(s, _fl_e_2);
-                                if (_fl_tmp_5.tag == 1) {
-                                    fl_char nc = _fl_tmp_5.value;
+                                FL_Option_char _fl_tmp_7 = fl_string_char_at(s, _fl_e_2);
+                                if (_fl_tmp_7.tag == 1) {
+                                    fl_char nc = _fl_tmp_7.value;
                                     if (nc == 10) {
                                         fl_int _fl_e_3;
                                         FL_CHECKED_ADD(i, 1, &_fl_e_3);
@@ -560,24 +588,33 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                             }
                         } else {
                             if (c == 10) {
-                                FL_Array* _fl_old_6 = current_row;
-                                current_row = fl_array_push_ptr(current_row, field);
-                                if (_fl_old_6 != current_row) {
-                                    fl_array_release(_fl_old_6);
-                                }
-                                field = fl_string_from_cstr("");
-                                FL_Array* _fl_old_7 = rows;
-                                rows = fl_array_push_ptr(rows, current_row);
-                                if (_fl_old_7 != rows) {
-                                    fl_array_release(_fl_old_7);
-                                }
                                 FL_Array* _fl_old_8 = current_row;
-                                current_row = fl_array_new(0, 0, NULL);
+                                current_row = fl_array_push_ptr(current_row, field);
                                 if (_fl_old_8 != current_row) {
                                     fl_array_release(_fl_old_8);
                                 }
+                                FL_String* _fl_old_9 = field;
+                                field = _fl_str_csv_0;
+                                if (_fl_old_9 != field) {
+                                    fl_string_retain(field);
+                                    fl_string_release(_fl_old_9);
+                                }
+                                FL_Array* _fl_old_10 = rows;
+                                rows = fl_array_push_ptr(rows, current_row);
+                                if (_fl_old_10 != rows) {
+                                    fl_array_release(_fl_old_10);
+                                }
+                                FL_Array* _fl_old_11 = current_row;
+                                current_row = fl_array_new(0, 0, NULL);
+                                if (_fl_old_11 != current_row) {
+                                    fl_array_release(_fl_old_11);
+                                }
                             } else {
+                                FL_String* _fl_old_12 = field;
                                 field = fl_string_concat(field, fl_char_to_string(c));
+                                if (_fl_old_12 != field) {
+                                    fl_string_release(_fl_old_12);
+                                }
                                 state = 1;
                             }
                         }
@@ -586,39 +623,49 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
             } else {
                 if (state == 1) {
                     if (c == delim) {
-                        FL_Array* _fl_old_9 = current_row;
+                        FL_Array* _fl_old_13 = current_row;
                         current_row = fl_array_push_ptr(current_row, field);
-                        if (_fl_old_9 != current_row) {
-                            fl_array_release(_fl_old_9);
+                        if (_fl_old_13 != current_row) {
+                            fl_array_release(_fl_old_13);
                         }
-                        field = fl_string_from_cstr("");
+                        FL_String* _fl_old_14 = field;
+                        field = _fl_str_csv_0;
+                        if (_fl_old_14 != field) {
+                            fl_string_retain(field);
+                            fl_string_release(_fl_old_14);
+                        }
                         state = 0;
                     } else {
                         if (c == 13) {
-                            FL_Array* _fl_old_10 = current_row;
+                            FL_Array* _fl_old_15 = current_row;
                             current_row = fl_array_push_ptr(current_row, field);
-                            if (_fl_old_10 != current_row) {
-                                fl_array_release(_fl_old_10);
+                            if (_fl_old_15 != current_row) {
+                                fl_array_release(_fl_old_15);
                             }
-                            field = fl_string_from_cstr("");
-                            FL_Array* _fl_old_11 = rows;
+                            FL_String* _fl_old_16 = field;
+                            field = _fl_str_csv_0;
+                            if (_fl_old_16 != field) {
+                                fl_string_retain(field);
+                                fl_string_release(_fl_old_16);
+                            }
+                            FL_Array* _fl_old_17 = rows;
                             rows = fl_array_push_ptr(rows, current_row);
-                            if (_fl_old_11 != rows) {
-                                fl_array_release(_fl_old_11);
+                            if (_fl_old_17 != rows) {
+                                fl_array_release(_fl_old_17);
                             }
-                            FL_Array* _fl_old_12 = current_row;
+                            FL_Array* _fl_old_18 = current_row;
                             current_row = fl_array_new(0, 0, NULL);
-                            if (_fl_old_12 != current_row) {
-                                fl_array_release(_fl_old_12);
+                            if (_fl_old_18 != current_row) {
+                                fl_array_release(_fl_old_18);
                             }
                             fl_int _fl_e_4;
                             FL_CHECKED_ADD(i, 1, &_fl_e_4);
                             if (_fl_e_4 < len) {
                                 fl_int _fl_e_5;
                                 FL_CHECKED_ADD(i, 1, &_fl_e_5);
-                                FL_Option_char _fl_tmp_13 = fl_string_char_at(s, _fl_e_5);
-                                if (_fl_tmp_13.tag == 1) {
-                                    fl_char nc = _fl_tmp_13.value;
+                                FL_Option_char _fl_tmp_19 = fl_string_char_at(s, _fl_e_5);
+                                if (_fl_tmp_19.tag == 1) {
+                                    fl_char nc = _fl_tmp_19.value;
                                     if (nc == 10) {
                                         fl_int _fl_e_6;
                                         FL_CHECKED_ADD(i, 1, &_fl_e_6);
@@ -629,25 +676,34 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                             state = 0;
                         } else {
                             if (c == 10) {
-                                FL_Array* _fl_old_14 = current_row;
+                                FL_Array* _fl_old_20 = current_row;
                                 current_row = fl_array_push_ptr(current_row, field);
-                                if (_fl_old_14 != current_row) {
-                                    fl_array_release(_fl_old_14);
+                                if (_fl_old_20 != current_row) {
+                                    fl_array_release(_fl_old_20);
                                 }
-                                field = fl_string_from_cstr("");
-                                FL_Array* _fl_old_15 = rows;
+                                FL_String* _fl_old_21 = field;
+                                field = _fl_str_csv_0;
+                                if (_fl_old_21 != field) {
+                                    fl_string_retain(field);
+                                    fl_string_release(_fl_old_21);
+                                }
+                                FL_Array* _fl_old_22 = rows;
                                 rows = fl_array_push_ptr(rows, current_row);
-                                if (_fl_old_15 != rows) {
-                                    fl_array_release(_fl_old_15);
+                                if (_fl_old_22 != rows) {
+                                    fl_array_release(_fl_old_22);
                                 }
-                                FL_Array* _fl_old_16 = current_row;
+                                FL_Array* _fl_old_23 = current_row;
                                 current_row = fl_array_new(0, 0, NULL);
-                                if (_fl_old_16 != current_row) {
-                                    fl_array_release(_fl_old_16);
+                                if (_fl_old_23 != current_row) {
+                                    fl_array_release(_fl_old_23);
                                 }
                                 state = 0;
                             } else {
+                                FL_String* _fl_old_24 = field;
                                 field = fl_string_concat(field, fl_char_to_string(c));
+                                if (_fl_old_24 != field) {
+                                    fl_string_release(_fl_old_24);
+                                }
                             }
                         }
                     }
@@ -656,47 +712,65 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                         if (c == 34) {
                             state = 3;
                         } else {
+                            FL_String* _fl_old_25 = field;
                             field = fl_string_concat(field, fl_char_to_string(c));
+                            if (_fl_old_25 != field) {
+                                fl_string_release(_fl_old_25);
+                            }
                         }
                     } else {
                         if (c == 34) {
-                            field = fl_string_concat(field, fl_string_from_cstr("\""));
+                            FL_String* _fl_old_26 = field;
+                            field = fl_string_concat(field, _fl_str_csv_1);
+                            if (_fl_old_26 != field) {
+                                fl_string_release(_fl_old_26);
+                            }
                             state = 2;
                         } else {
                             if (c == delim) {
-                                FL_Array* _fl_old_17 = current_row;
+                                FL_Array* _fl_old_27 = current_row;
                                 current_row = fl_array_push_ptr(current_row, field);
-                                if (_fl_old_17 != current_row) {
-                                    fl_array_release(_fl_old_17);
+                                if (_fl_old_27 != current_row) {
+                                    fl_array_release(_fl_old_27);
                                 }
-                                field = fl_string_from_cstr("");
+                                FL_String* _fl_old_28 = field;
+                                field = _fl_str_csv_0;
+                                if (_fl_old_28 != field) {
+                                    fl_string_retain(field);
+                                    fl_string_release(_fl_old_28);
+                                }
                                 state = 0;
                             } else {
                                 if (c == 13) {
-                                    FL_Array* _fl_old_18 = current_row;
+                                    FL_Array* _fl_old_29 = current_row;
                                     current_row = fl_array_push_ptr(current_row, field);
-                                    if (_fl_old_18 != current_row) {
-                                        fl_array_release(_fl_old_18);
+                                    if (_fl_old_29 != current_row) {
+                                        fl_array_release(_fl_old_29);
                                     }
-                                    field = fl_string_from_cstr("");
-                                    FL_Array* _fl_old_19 = rows;
+                                    FL_String* _fl_old_30 = field;
+                                    field = _fl_str_csv_0;
+                                    if (_fl_old_30 != field) {
+                                        fl_string_retain(field);
+                                        fl_string_release(_fl_old_30);
+                                    }
+                                    FL_Array* _fl_old_31 = rows;
                                     rows = fl_array_push_ptr(rows, current_row);
-                                    if (_fl_old_19 != rows) {
-                                        fl_array_release(_fl_old_19);
+                                    if (_fl_old_31 != rows) {
+                                        fl_array_release(_fl_old_31);
                                     }
-                                    FL_Array* _fl_old_20 = current_row;
+                                    FL_Array* _fl_old_32 = current_row;
                                     current_row = fl_array_new(0, 0, NULL);
-                                    if (_fl_old_20 != current_row) {
-                                        fl_array_release(_fl_old_20);
+                                    if (_fl_old_32 != current_row) {
+                                        fl_array_release(_fl_old_32);
                                     }
                                     fl_int _fl_e_7;
                                     FL_CHECKED_ADD(i, 1, &_fl_e_7);
                                     if (_fl_e_7 < len) {
                                         fl_int _fl_e_8;
                                         FL_CHECKED_ADD(i, 1, &_fl_e_8);
-                                        FL_Option_char _fl_tmp_21 = fl_string_char_at(s, _fl_e_8);
-                                        if (_fl_tmp_21.tag == 1) {
-                                            fl_char nc = _fl_tmp_21.value;
+                                        FL_Option_char _fl_tmp_33 = fl_string_char_at(s, _fl_e_8);
+                                        if (_fl_tmp_33.tag == 1) {
+                                            fl_char nc = _fl_tmp_33.value;
                                             if (nc == 10) {
                                                 fl_int _fl_e_9;
                                                 FL_CHECKED_ADD(i, 1, &_fl_e_9);
@@ -707,25 +781,34 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                                     state = 0;
                                 } else {
                                     if (c == 10) {
-                                        FL_Array* _fl_old_22 = current_row;
+                                        FL_Array* _fl_old_34 = current_row;
                                         current_row = fl_array_push_ptr(current_row, field);
-                                        if (_fl_old_22 != current_row) {
-                                            fl_array_release(_fl_old_22);
+                                        if (_fl_old_34 != current_row) {
+                                            fl_array_release(_fl_old_34);
                                         }
-                                        field = fl_string_from_cstr("");
-                                        FL_Array* _fl_old_23 = rows;
+                                        FL_String* _fl_old_35 = field;
+                                        field = _fl_str_csv_0;
+                                        if (_fl_old_35 != field) {
+                                            fl_string_retain(field);
+                                            fl_string_release(_fl_old_35);
+                                        }
+                                        FL_Array* _fl_old_36 = rows;
                                         rows = fl_array_push_ptr(rows, current_row);
-                                        if (_fl_old_23 != rows) {
-                                            fl_array_release(_fl_old_23);
+                                        if (_fl_old_36 != rows) {
+                                            fl_array_release(_fl_old_36);
                                         }
-                                        FL_Array* _fl_old_24 = current_row;
+                                        FL_Array* _fl_old_37 = current_row;
                                         current_row = fl_array_new(0, 0, NULL);
-                                        if (_fl_old_24 != current_row) {
-                                            fl_array_release(_fl_old_24);
+                                        if (_fl_old_37 != current_row) {
+                                            fl_array_release(_fl_old_37);
                                         }
                                         state = 0;
                                     } else {
+                                        FL_String* _fl_old_38 = field;
                                         field = fl_string_concat(field, fl_char_to_string(c));
+                                        if (_fl_old_38 != field) {
+                                            fl_string_release(_fl_old_38);
+                                        }
                                         state = 1;
                                     }
                                 }
@@ -740,15 +823,15 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
         i = _fl_e_10;
     }
     if (((fl_string_len(field) > 0) || (state != 0)) || (fl_array_len_int(current_row) > 0)) {
-        FL_Array* _fl_old_25 = current_row;
+        FL_Array* _fl_old_39 = current_row;
         current_row = fl_array_push_ptr(current_row, field);
-        if (_fl_old_25 != current_row) {
-            fl_array_release(_fl_old_25);
+        if (_fl_old_39 != current_row) {
+            fl_array_release(_fl_old_39);
         }
-        FL_Array* _fl_old_26 = rows;
+        FL_Array* _fl_old_40 = rows;
         rows = fl_array_push_ptr(rows, current_row);
-        if (_fl_old_26 != rows) {
-            fl_array_release(_fl_old_26);
+        if (_fl_old_40 != rows) {
+            fl_array_release(_fl_old_40);
         }
     }
     return rows;
@@ -759,9 +842,9 @@ fl_bool fl_csv_needs_quoting(FL_String* s, fl_char delim) {
     fl_int len = fl_string_len(s);
     fl_int i = 0;
     while (i < len) {
-        FL_Option_char _fl_tmp_27 = fl_string_char_at(s, i);
-        if (_fl_tmp_27.tag == 1) {
-            fl_char c = _fl_tmp_27.value;
+        FL_Option_char _fl_tmp_41 = fl_string_char_at(s, i);
+        if (_fl_tmp_41.tag == 1) {
+            fl_char c = _fl_tmp_41.value;
             if ((((c == delim) || (c == 34)) || (c == 10)) || (c == 13)) {
                 return fl_true;
             }
@@ -776,23 +859,36 @@ fl_bool fl_csv_needs_quoting(FL_String* s, fl_char delim) {
 /* Flow: csv.quote_field */
 FL_String* fl_csv_quote_field(FL_String* s) {
     fl_int len = fl_string_len(s);
-    FL_String* result = fl_string_from_cstr("\"");
+    FL_String* result = _fl_str_csv_1;
+    fl_string_retain(result);
     fl_int i = 0;
     while (i < len) {
-        FL_Option_char _fl_tmp_28 = fl_string_char_at(s, i);
-        if (_fl_tmp_28.tag == 1) {
-            fl_char c = _fl_tmp_28.value;
+        FL_Option_char _fl_tmp_42 = fl_string_char_at(s, i);
+        if (_fl_tmp_42.tag == 1) {
+            fl_char c = _fl_tmp_42.value;
             if (c == 34) {
-                result = fl_string_concat(result, fl_string_from_cstr("\"\""));
+                FL_String* _fl_old_43 = result;
+                result = fl_string_concat(result, _fl_str_csv_2);
+                if (_fl_old_43 != result) {
+                    fl_string_release(_fl_old_43);
+                }
             } else {
+                FL_String* _fl_old_44 = result;
                 result = fl_string_concat(result, fl_char_to_string(c));
+                if (_fl_old_44 != result) {
+                    fl_string_release(_fl_old_44);
+                }
             }
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    result = fl_string_concat(result, fl_string_from_cstr("\""));
+    FL_String* _fl_old_45 = result;
+    result = fl_string_concat(result, _fl_str_csv_1);
+    if (_fl_old_45 != result) {
+        fl_string_release(_fl_old_45);
+    }
     return result;
 }
 
@@ -805,9 +901,9 @@ FL_Array* fl_csv_parse(FL_String* s) {
 FL_Array* fl_csv_parse_row(FL_String* s) {
     FL_Array* rows = fl_csv_parse_impl(s, 44);
     if (fl_array_len_int(rows) > 0) {
-        FL_Option_ptr _fl_tmp_29 = fl_array_get_safe(rows, 0);
-        if (_fl_tmp_29.tag == 1) {
-            FL_Array* row = _fl_tmp_29.value;
+        FL_Option_ptr _fl_tmp_46 = fl_array_get_safe(rows, 0);
+        if (_fl_tmp_46.tag == 1) {
+            FL_Array* row = _fl_tmp_46.value;
             return row;
         } else {
             return fl_array_new(0, 0, NULL);
@@ -819,15 +915,25 @@ FL_Array* fl_csv_parse_row(FL_String* s) {
 /* Flow: csv.to_string */
 FL_String* fl_csv_to_string(FL_Array* rows) {
     fl_int n = fl_array_len_int(rows);
-    FL_String* result = fl_string_from_cstr("");
+    FL_String* result = _fl_str_csv_0;
+    fl_string_retain(result);
     fl_int i = 0;
     while (i < n) {
         if (i > 0) {
-            result = fl_string_concat(result, fl_string_from_cstr("\r\n"));
+            FL_String* _fl_old_47 = result;
+            result = fl_string_concat(result, _fl_str_csv_3);
+            if (_fl_old_47 != result) {
+                fl_string_release(_fl_old_47);
+            }
         }
-        FL_Option_ptr _fl_tmp_30 = fl_array_get_safe(rows, i);
-        FL_Array* row = ((_fl_tmp_30.tag == 1) ? _fl_tmp_30.value : fl_array_new(0, 0, NULL));
+        FL_Option_ptr _fl_tmp_48 = fl_array_get_safe(rows, i);
+        FL_Array* row = ((_fl_tmp_48.tag == 1) ? _fl_tmp_48.value : fl_array_new(0, 0, NULL));
+        fl_array_retain(row);
+        FL_String* _fl_old_49 = result;
         result = fl_string_concat(result, fl_csv_row_to_string(row));
+        if (_fl_old_49 != result) {
+            fl_string_release(_fl_old_49);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -838,18 +944,32 @@ FL_String* fl_csv_to_string(FL_Array* rows) {
 /* Flow: csv.row_to_string */
 FL_String* fl_csv_row_to_string(FL_Array* fields) {
     fl_int n = fl_array_len_int(fields);
-    FL_String* result = fl_string_from_cstr("");
+    FL_String* result = _fl_str_csv_0;
+    fl_string_retain(result);
     fl_int i = 0;
     while (i < n) {
         if (i > 0) {
-            result = fl_string_concat(result, fl_string_from_cstr(","));
+            FL_String* _fl_old_50 = result;
+            result = fl_string_concat(result, _fl_str_csv_4);
+            if (_fl_old_50 != result) {
+                fl_string_release(_fl_old_50);
+            }
         }
-        FL_Option_ptr _fl_tmp_31 = fl_array_get_safe(fields, i);
-        FL_String* f = ((_fl_tmp_31.tag == 1) ? _fl_tmp_31.value : fl_string_from_cstr(""));
+        FL_Option_ptr _fl_tmp_51 = fl_array_get_safe(fields, i);
+        FL_String* f = ((_fl_tmp_51.tag == 1) ? _fl_tmp_51.value : _fl_str_csv_0);
+        fl_string_retain(f);
         if (fl_csv_needs_quoting(f, 44)) {
+            FL_String* _fl_old_52 = result;
             result = fl_string_concat(result, fl_csv_quote_field(f));
+            if (_fl_old_52 != result) {
+                fl_string_release(_fl_old_52);
+            }
         } else {
+            FL_String* _fl_old_53 = result;
             result = fl_string_concat(result, f);
+            if (_fl_old_53 != result) {
+                fl_string_release(_fl_old_53);
+            }
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -870,10 +990,15 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
         return fl_array_new(0, 0, NULL);
     }
     FL_Array* headers = fl_array_new(0, 0, NULL);
-    FL_Option_ptr _fl_tmp_32 = fl_array_get_safe(rows, 0);
-    if (_fl_tmp_32.tag == 1) {
-        FL_Array* h = _fl_tmp_32.value;
+    FL_Option_ptr _fl_tmp_54 = fl_array_get_safe(rows, 0);
+    if (_fl_tmp_54.tag == 1) {
+        FL_Array* h = _fl_tmp_54.value;
+        FL_Array* _fl_old_55 = headers;
         headers = h;
+        if (_fl_old_55 != headers) {
+            fl_array_retain(headers);
+            fl_array_release(_fl_old_55);
+        }
     } else {
         return fl_array_new(0, 0, NULL);
     }
@@ -881,35 +1006,38 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
     FL_Array* result = fl_array_new(0, 0, NULL);
     fl_int i = 1;
     while (i < nrows) {
-        FL_Option_ptr _fl_tmp_33 = fl_array_get_safe(rows, i);
-        FL_Array* row = ((_fl_tmp_33.tag == 1) ? _fl_tmp_33.value : fl_array_new(0, 0, NULL));
+        FL_Option_ptr _fl_tmp_56 = fl_array_get_safe(rows, i);
+        FL_Array* row = ((_fl_tmp_56.tag == 1) ? _fl_tmp_56.value : fl_array_new(0, 0, NULL));
+        fl_array_retain(row);
         FL_Map* m = fl_map_new();
         fl_int row_len = fl_array_len_int(row);
         fl_int j = 0;
         while (j < ncols) {
-            FL_Option_ptr _fl_tmp_34 = fl_array_get_safe(headers, j);
-            FL_String* key = ((_fl_tmp_34.tag == 1) ? _fl_tmp_34.value : fl_string_from_cstr(""));
-            FL_String* _fl_tmp_35;
+            FL_Option_ptr _fl_tmp_57 = fl_array_get_safe(headers, j);
+            FL_String* key = ((_fl_tmp_57.tag == 1) ? _fl_tmp_57.value : _fl_str_csv_0);
+            fl_string_retain(key);
+            FL_String* _fl_tmp_58;
             if (j < row_len) {
-                FL_Option_ptr _fl_tmp_36 = fl_array_get_safe(row, j);
-                _fl_tmp_35 = ((_fl_tmp_36.tag == 1) ? _fl_tmp_36.value : fl_string_from_cstr(""));
+                FL_Option_ptr _fl_tmp_59 = fl_array_get_safe(row, j);
+                _fl_tmp_58 = ((_fl_tmp_59.tag == 1) ? _fl_tmp_59.value : _fl_str_csv_0);
             } else {
-                _fl_tmp_35 = fl_string_from_cstr("");
+                _fl_tmp_58 = _fl_str_csv_0;
             }
-            FL_String* val = _fl_tmp_35;
-            FL_Map* _fl_old_37 = m;
+            FL_String* val = _fl_tmp_58;
+            fl_string_retain(val);
+            FL_Map* _fl_old_60 = m;
             m = fl_map_set_str(m, key, val);
-            if (_fl_old_37 != m) {
-                fl_map_release(_fl_old_37);
+            if (_fl_old_60 != m) {
+                fl_map_release(_fl_old_60);
             }
             fl_int _fl_e_1;
             FL_CHECKED_ADD(j, 1, &_fl_e_1);
             j = _fl_e_1;
         }
-        FL_Array* _fl_old_38 = result;
+        FL_Array* _fl_old_61 = result;
         result = fl_array_push_ptr(result, m);
-        if (_fl_old_38 != result) {
-            fl_array_release(_fl_old_38);
+        if (_fl_old_61 != result) {
+            fl_array_release(_fl_old_61);
         }
         fl_int _fl_e_2;
         FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -920,109 +1048,193 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
 }
 
+FL_String* _fl_str_tests_stdlib_csv_test_0 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_1 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_2 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_3 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_4 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_5 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_6 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_7 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_8 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_9 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_10 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_11 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_12 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_13 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_14 = NULL;
+
+FL_String* _fl_str_tests_stdlib_csv_test_15 = NULL;
+
 /* Flow: tests.stdlib_csv_test.main */
 void fl_tests_stdlib_csv_test_main(void) {
-    FL_Array* rows = fl_csv_parse(fl_string_from_cstr("a,b,c\n1,2,3\n4,5,6"));
-    FL_Array* row0 = fl_csv_parse_row(fl_string_from_cstr("a,b,c"));
+    FL_Array* rows = fl_csv_parse(_fl_str_tests_stdlib_csv_test_0);
+    FL_Array* row0 = fl_csv_parse_row(_fl_str_tests_stdlib_csv_test_1);
     FL_Option_ptr f0 = fl_array_get_safe(row0, 0);
     FL_Option_ptr _fl_tmp_0 = f0;
     if (_fl_tmp_0.tag == 1) {
         FL_String* v = _fl_tmp_0.value;
-        FL_String* _fl_tmp_1 = fl_string_from_cstr("f0=");
+        FL_String* _fl_tmp_1 = _fl_str_tests_stdlib_csv_test_2;
         FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, v);
         fl_string_release(_fl_tmp_1);
         fl_println(_fl_tmp_2);
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_stdlib_csv_test_3);
     }
     FL_Option_ptr f2 = fl_array_get_safe(row0, 2);
     FL_Option_ptr _fl_tmp_3 = f2;
     if (_fl_tmp_3.tag == 1) {
         FL_String* v = _fl_tmp_3.value;
-        FL_String* _fl_tmp_4 = fl_string_from_cstr("f2=");
+        FL_String* _fl_tmp_4 = _fl_str_tests_stdlib_csv_test_4;
         FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, v);
         fl_string_release(_fl_tmp_4);
         fl_println(_fl_tmp_5);
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_stdlib_csv_test_3);
     }
-    FL_Array* row1 = fl_csv_parse_row(fl_string_from_cstr("\"Smith, John\",\"He said \"\"hi\"\"\""));
+    FL_Array* row1 = fl_csv_parse_row(_fl_str_tests_stdlib_csv_test_5);
     FL_Option_ptr name = fl_array_get_safe(row1, 0);
     FL_Option_ptr _fl_tmp_6 = name;
     if (_fl_tmp_6.tag == 1) {
         FL_String* n = _fl_tmp_6.value;
-        FL_String* _fl_tmp_7 = fl_string_from_cstr("name=");
+        FL_String* _fl_tmp_7 = _fl_str_tests_stdlib_csv_test_6;
         FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, n);
         fl_string_release(_fl_tmp_7);
         fl_println(_fl_tmp_8);
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_stdlib_csv_test_3);
     }
     FL_Option_ptr desc = fl_array_get_safe(row1, 1);
     FL_Option_ptr _fl_tmp_9 = desc;
     if (_fl_tmp_9.tag == 1) {
         FL_String* d = _fl_tmp_9.value;
-        FL_String* _fl_tmp_10 = fl_string_from_cstr("desc=");
+        FL_String* _fl_tmp_10 = _fl_str_tests_stdlib_csv_test_7;
         FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, d);
         fl_string_release(_fl_tmp_10);
         fl_println(_fl_tmp_11);
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_stdlib_csv_test_3);
     }
-    FL_Array* fields = fl_csv_parse_row(fl_string_from_cstr("hello,\"world, yo\",test"));
+    FL_Array* fields = fl_csv_parse_row(_fl_str_tests_stdlib_csv_test_8);
     FL_String* row_str = fl_csv_row_to_string(fields);
-    FL_String* _fl_tmp_12 = fl_string_from_cstr("row_str=");
+    FL_String* _fl_tmp_12 = _fl_str_tests_stdlib_csv_test_9;
     FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, row_str);
     fl_string_release(_fl_tmp_12);
     fl_println(_fl_tmp_13);
-    FL_Array* hrows = fl_csv_parse(fl_string_from_cstr("name,age\nAlice,30\nBob,25"));
+    FL_Array* hrows = fl_csv_parse(_fl_str_tests_stdlib_csv_test_10);
     FL_Array* records = fl_csv_with_headers(hrows);
     FL_Option_ptr rec0 = fl_array_get_safe(records, 0);
     FL_Option_ptr _fl_tmp_14 = rec0;
     if (_fl_tmp_14.tag == 1) {
         FL_Map* m = _fl_tmp_14.value;
-        FL_Option_ptr name_val = fl_map_get_str(m, fl_string_from_cstr("name"));
+        FL_Option_ptr name_val = fl_map_get_str(m, _fl_str_tests_stdlib_csv_test_11);
         FL_Option_ptr _fl_tmp_15 = name_val;
         if (_fl_tmp_15.tag == 1) {
             FL_String* n = _fl_tmp_15.value;
-            FL_String* _fl_tmp_16 = fl_string_from_cstr("hdr_name=");
+            FL_String* _fl_tmp_16 = _fl_str_tests_stdlib_csv_test_12;
             FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, n);
             fl_string_release(_fl_tmp_16);
             fl_println(_fl_tmp_17);
         } else {
-            fl_println(fl_string_from_cstr("none"));
+            fl_println(_fl_str_tests_stdlib_csv_test_3);
         }
-        FL_Option_ptr age_val = fl_map_get_str(m, fl_string_from_cstr("age"));
+        FL_Option_ptr age_val = fl_map_get_str(m, _fl_str_tests_stdlib_csv_test_13);
         FL_Option_ptr _fl_tmp_18 = age_val;
         if (_fl_tmp_18.tag == 1) {
             FL_String* a = _fl_tmp_18.value;
-            FL_String* _fl_tmp_19 = fl_string_from_cstr("hdr_age=");
+            FL_String* _fl_tmp_19 = _fl_str_tests_stdlib_csv_test_14;
             FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, a);
             fl_string_release(_fl_tmp_19);
             fl_println(_fl_tmp_20);
         } else {
-            fl_println(fl_string_from_cstr("none"));
+            fl_println(_fl_str_tests_stdlib_csv_test_3);
         }
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_stdlib_csv_test_3);
     }
-    fl_println(fl_string_from_cstr("done"));
+    fl_println(_fl_str_tests_stdlib_csv_test_15);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_csv_0 = fl_string_from_cstr("");
+    _fl_str_csv_0->refcount = 2147483647;
+    _fl_str_csv_1 = fl_string_from_cstr("\"");
+    _fl_str_csv_1->refcount = 2147483647;
+    _fl_str_csv_2 = fl_string_from_cstr("\"\"");
+    _fl_str_csv_2->refcount = 2147483647;
+    _fl_str_csv_3 = fl_string_from_cstr("\r\n");
+    _fl_str_csv_3->refcount = 2147483647;
+    _fl_str_csv_4 = fl_string_from_cstr(",");
+    _fl_str_csv_4->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_0 = fl_string_from_cstr("a,b,c\n1,2,3\n4,5,6");
+    _fl_str_tests_stdlib_csv_test_0->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_1 = fl_string_from_cstr("a,b,c");
+    _fl_str_tests_stdlib_csv_test_1->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_2 = fl_string_from_cstr("f0=");
+    _fl_str_tests_stdlib_csv_test_2->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_3 = fl_string_from_cstr("none");
+    _fl_str_tests_stdlib_csv_test_3->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_4 = fl_string_from_cstr("f2=");
+    _fl_str_tests_stdlib_csv_test_4->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_5 = fl_string_from_cstr("\"Smith, John\",\"He said \"\"hi\"\"\"");
+    _fl_str_tests_stdlib_csv_test_5->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_6 = fl_string_from_cstr("name=");
+    _fl_str_tests_stdlib_csv_test_6->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_7 = fl_string_from_cstr("desc=");
+    _fl_str_tests_stdlib_csv_test_7->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_8 = fl_string_from_cstr("hello,\"world, yo\",test");
+    _fl_str_tests_stdlib_csv_test_8->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_9 = fl_string_from_cstr("row_str=");
+    _fl_str_tests_stdlib_csv_test_9->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_10 = fl_string_from_cstr("name,age\nAlice,30\nBob,25");
+    _fl_str_tests_stdlib_csv_test_10->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_11 = fl_string_from_cstr("name");
+    _fl_str_tests_stdlib_csv_test_11->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_12 = fl_string_from_cstr("hdr_name=");
+    _fl_str_tests_stdlib_csv_test_12->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_13 = fl_string_from_cstr("age");
+    _fl_str_tests_stdlib_csv_test_13->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_14 = fl_string_from_cstr("hdr_age=");
+    _fl_str_tests_stdlib_csv_test_14->refcount = 2147483647;
+    _fl_str_tests_stdlib_csv_test_15 = fl_string_from_cstr("done");
+    _fl_str_tests_stdlib_csv_test_15->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_stdlib_csv_test_main();
     return 0;
 }

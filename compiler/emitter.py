@@ -329,6 +329,9 @@ class Emitter:
             self._indent_level += 1
             for name, init_expr in all_static_inits:
                 self._emitln(f"{name} = {init_expr};")
+                # Pin interned strings so retain/release never frees them
+                if name.startswith("_fl_str_"):
+                    self._emitln(f"{name}->refcount = 2147483647;")
             self._indent_level -= 1
             self._emitln("}")
         self._blank()

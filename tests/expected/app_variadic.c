@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -503,6 +512,20 @@ fl_int fl_tests_app_variadic_count(FL_Array* items);
 FL_String* fl_tests_app_variadic_first_or(FL_String* fallback, FL_Array* items);
 
 fl_int fl_tests_app_variadic_main(void);
+
+FL_String* _fl_str_tests_app_variadic_0 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_1 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_2 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_3 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_4 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_5 = NULL;
+
+FL_String* _fl_str_tests_app_variadic_6 = NULL;
 
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
@@ -542,17 +565,39 @@ fl_int fl_tests_app_variadic_main(void) {
     fl_println(fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(3, sizeof(fl_int), (fl_int[]){1, 2, 3}))));
     fl_println(fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(0, 0, NULL))));
     fl_println(fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(1, sizeof(fl_int), (fl_int[]){42}))));
-    fl_println(fl_tests_app_variadic_first_or(fl_string_from_cstr("none"), fl_array_new(2, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("hello"), fl_string_from_cstr("world")})));
-    fl_println(fl_tests_app_variadic_first_or(fl_string_from_cstr("none"), fl_array_new(0, 0, NULL)));
+    fl_println(fl_tests_app_variadic_first_or(_fl_str_tests_app_variadic_0, fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_1, _fl_str_tests_app_variadic_2})));
+    fl_println(fl_tests_app_variadic_first_or(_fl_str_tests_app_variadic_0, fl_array_new(0, 0, NULL)));
     FL_Array* nums = fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30});
     fl_println(fl_conv_to_string__int(fl_tests_app_variadic_sum(nums)));
-    fl_println(fl_conv_to_string__int(fl_tests_app_variadic_count(fl_array_new(4, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("a"), fl_string_from_cstr("b"), fl_string_from_cstr("c"), fl_string_from_cstr("d")}))));
+    fl_println(fl_conv_to_string__int(fl_tests_app_variadic_count(fl_array_new(4, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_3, _fl_str_tests_app_variadic_4, _fl_str_tests_app_variadic_5, _fl_str_tests_app_variadic_6}))));
     return 0;
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_app_variadic_0 = fl_string_from_cstr("none");
+    _fl_str_tests_app_variadic_0->refcount = 2147483647;
+    _fl_str_tests_app_variadic_1 = fl_string_from_cstr("hello");
+    _fl_str_tests_app_variadic_1->refcount = 2147483647;
+    _fl_str_tests_app_variadic_2 = fl_string_from_cstr("world");
+    _fl_str_tests_app_variadic_2->refcount = 2147483647;
+    _fl_str_tests_app_variadic_3 = fl_string_from_cstr("a");
+    _fl_str_tests_app_variadic_3->refcount = 2147483647;
+    _fl_str_tests_app_variadic_4 = fl_string_from_cstr("b");
+    _fl_str_tests_app_variadic_4->refcount = 2147483647;
+    _fl_str_tests_app_variadic_5 = fl_string_from_cstr("c");
+    _fl_str_tests_app_variadic_5->refcount = 2147483647;
+    _fl_str_tests_app_variadic_6 = fl_string_from_cstr("d");
+    _fl_str_tests_app_variadic_6->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_variadic_main();
     return 0;
 }

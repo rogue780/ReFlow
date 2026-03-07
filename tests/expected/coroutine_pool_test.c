@@ -4,18 +4,25 @@
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -25,12 +32,14 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -64,6 +73,10 @@ struct _fl_frame_tests_coroutine_pool_test_squarer {
     FL_Stream* inbox;
     fl_int val;
 };
+
+FL_String* _fl_str_tests_coroutine_pool_test_0 = NULL;
+
+FL_String* _fl_str_tests_coroutine_pool_test_1 = NULL;
 
 /* Flow: tests.coroutine_pool_test.producer::next */
 FL_Option_ptr _fl_next_tests_coroutine_pool_test_producer(FL_Stream* self) {
@@ -183,16 +196,28 @@ void fl_tests_coroutine_pool_test_main(void) {
             count = _fl_e_1;
         }
     }
-    FL_String* _fl_tmp_9 = fl_string_from_cstr("count: ");
+    FL_String* _fl_tmp_9 = _fl_str_tests_coroutine_pool_test_0;
     FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_int_to_string(count));
     fl_string_release(_fl_tmp_9);
     fl_println(_fl_tmp_10);
-    fl_println(fl_string_from_cstr("done"));
+    fl_println(_fl_str_tests_coroutine_pool_test_1);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_coroutine_pool_test_0 = fl_string_from_cstr("count: ");
+    _fl_str_tests_coroutine_pool_test_0->refcount = 2147483647;
+    _fl_str_tests_coroutine_pool_test_1 = fl_string_from_cstr("done");
+    _fl_str_tests_coroutine_pool_test_1->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_coroutine_pool_test_main();
     return 0;
 }

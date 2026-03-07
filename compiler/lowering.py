@@ -368,6 +368,7 @@ class LStaticDef:
     c_type: LType
     init: LExpr | None
     is_mut: bool
+    is_interned: bool = False  # interned string literal — set refcount high
 
 
 @dataclass
@@ -719,6 +720,13 @@ class Lowerer:
         self._container_locals: list[tuple[str, LType, str]] = []
         self._scope_depth: int = 0
 
+        # String literal interning: deduplicate string constants as static
+        # globals, initialized once in _fl_init_statics with high refcount
+        # so retain/release never frees them.  Eliminates millions of
+        # temporary fl_string_from_cstr allocations.
+        self._interned_strings: dict[str, str] = {}  # raw C literal → global name
+        self._intern_counter: int = 0
+
         # FFI: extern type names for lowering TNamed to void*
         self._extern_type_names: set[str] = set()
         for decl in self._module.decls:
@@ -773,6 +781,18 @@ class Lowerer:
             if fn_def.source_name.endswith(".main"):
                 entry_point = fn_def.c_name
                 break
+
+        # Add interned string globals to static_defs
+        for c_literal, global_name in self._interned_strings.items():
+            self._static_defs.append(LStaticDef(
+                c_name=global_name,
+                c_type=LPtr(LStruct("FL_String")),
+                init=LCall("fl_string_from_cstr",
+                           [LLit(c_literal, LPtr(LVoid()))],
+                           LPtr(LStruct("FL_String"))),
+                is_mut=False,
+                is_interned=True,
+            ))
 
         return LModule(
             type_defs=self._type_defs,
@@ -1063,6 +1083,14 @@ class Lowerer:
                 self._pending_stmts = []
                 body.append(LReturn(expr_result))
 
+        # Scope-exit cleanup: release container locals before returns
+        if self._container_locals:
+            self._inject_scope_cleanup(body)
+            # For void functions without explicit return, append cleanup
+            if isinstance(ret_lt, LVoid):
+                body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
+                             for n, ct, fn_name in self._container_locals])
+
         self._fn_defs.append(LFnDef(
             c_name=c_name,
             params=params,
@@ -1138,6 +1166,13 @@ class Lowerer:
                     body = list(self._pending_stmts)
                     self._pending_stmts = []
                     body.append(LReturn(expr_result))
+
+            # Scope-exit cleanup: release container locals before returns
+            if self._container_locals:
+                self._inject_scope_cleanup(body)
+                if isinstance(ret_lt, LVoid):
+                    body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
+                                 for n, ct, fn_name in self._container_locals])
 
             self._fn_defs.append(LFnDef(
                 c_name=m_c_name,
@@ -1294,13 +1329,47 @@ class Lowerer:
         elif isinstance(last, LBlock):
             self._inject_tail_returns(last.stmts)
 
+    @staticmethod
+    def _collect_referenced_vars(expr: LExpr | None) -> set[str]:
+        """Collect all LVar names referenced in an expression tree."""
+        refs: set[str] = set()
+        if expr is None:
+            return refs
+        stack: list[LExpr] = [expr]
+        while stack:
+            e = stack.pop()
+            if isinstance(e, LVar):
+                refs.add(e.c_name)
+            # Walk into sub-expressions
+            for attr in ('left', 'right', 'cond', 'then_expr', 'else_expr',
+                         'value', 'inner', 'operand', 'expr', 'base'):
+                child = getattr(e, attr, None)
+                if isinstance(child, LExpr):
+                    stack.append(child)
+            # Walk into lists (e.g. LCall args, LCompound fields)
+            for attr in ('args',):
+                child_list = getattr(e, attr, None)
+                if isinstance(child_list, list):
+                    for item in child_list:
+                        if isinstance(item, LExpr):
+                            stack.append(item)
+            # LCompound fields: list of (name, expr) tuples
+            if hasattr(e, 'fields') and isinstance(getattr(e, 'fields'), list):
+                for item in e.fields:
+                    if isinstance(item, tuple) and len(item) == 2:
+                        _, field_val = item
+                        if isinstance(field_val, LExpr):
+                            stack.append(field_val)
+        return refs
+
     def _inject_scope_cleanup(self, stmts: list[LStmt],
                               declared: set[str] | None = None) -> None:
         """Insert release calls for container locals before each LReturn.
 
         Walks the statement tree recursively. Before each LReturn, inserts
         release calls for container locals that have already been declared,
-        skipping the variable being returned (to avoid use-after-free).
+        skipping variables referenced in the return expression (to avoid
+        use-after-free on returned compound literals).
         """
         if declared is None:
             declared = set()
@@ -1312,14 +1381,12 @@ class Lowerer:
             if isinstance(s, LVarDecl) and s.c_name in container_names:
                 declared.add(s.c_name)
             elif isinstance(s, LReturn):
-                # Determine which variable is being returned (if any)
-                returned_name: str | None = None
-                if s.value is not None and isinstance(s.value, LVar):
-                    returned_name = s.value.c_name
-                # Build release calls for declared locals, skip returned var
+                # Collect ALL variable names referenced in the return expr
+                returned_names = self._collect_referenced_vars(s.value)
+                # Build release calls for declared locals, skip referenced vars
                 cleanup: list[LStmt] = []
                 for name, ct, fn_name in self._container_locals:
-                    if name not in declared or name == returned_name:
+                    if name not in declared or name in returned_names:
                         continue
                     cleanup.append(LExprStmt(
                         LCall(fn_name, [LVar(name, ct)], LVoid())))
@@ -1405,11 +1472,13 @@ class Lowerer:
                     isinstance(expr_ct, LPtr) and isinstance(expr_ct.inner, LVoid)):
                 c_type = expr_ct
         # If there's a type annotation, prefer it for the declared type
+        auto_lifted = False
         if stmt.type_ann is not None:
             ann_type = self._type_of(stmt.type_ann)
             c_type = self._lower_type(ann_type)
             # Auto-lift T → option<T>
             if isinstance(ann_type, TOption) and not isinstance(val_type, TOption):
+                auto_lifted = True
                 init = LCompound(
                     fields=[("tag", LLit("1", LByte())),
                             ("value", init)],
@@ -1421,13 +1490,11 @@ class Lowerer:
         self._let_var_ltypes[stmt.name] = c_type
         stmts: list[LStmt] = [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
 
-        # Retain mutable variables initialized from non-allocating expressions
-        # (e.g. `let result:mut = param`).  This prevents release-on-reassignment
-        # from freeing an object that the caller still references through the
-        # original argument.  The retain bumps refcount to 2, so release
-        # decrements to 1 instead of freeing.
-        if (isinstance(stmt.type_ann, MutType)
-                and not self._is_allocating_expr(stmt.value)):
+        # Retain-on-store: retain ALL let bindings from non-allocating sources.
+        # Skip when option auto-lifting changed the type: val_type is T but
+        # the variable is option<T>, so calling fl_T_retain(option_var) would
+        # be a type mismatch.
+        if not auto_lifted and not self._is_allocating_expr(stmt.value):
             retain_fn = self._RETAIN_FN.get(type(val_type))
             if retain_fn is not None:
                 stmts.append(LExprStmt(LCall(
@@ -1436,32 +1503,34 @@ class Lowerer:
                     c_type=LVoid(),
                 )))
 
-        # NOTE: Scope-exit cleanup is disabled. Releasing all container locals
-        # at function exit is unsafe without retain-on-store semantics — a local
-        # string/array that was passed into a struct field would be freed while
-        # the struct still holds a reference. This requires a more sophisticated
-        # ownership analysis or widespread retain-on-store.
+        # Register container-typed locals for scope-exit cleanup.
+        # Only top-level function scope (depth 0) — inner block vars
+        # are not tracked to avoid releasing already-dead variables.
+        # Skip auto-lifted bindings: the variable is option<T>, not T.
+        # Only register non-allocating (retained) bindings.  Allocating
+        # expressions start at refcount 1; if the value is subsequently
+        # passed into a container (array.push, map.set), the container
+        # holds the only reference.  Scope-exit release would free it
+        # while the container still references it → use-after-free.
+        # Skip TString: strings are freely aliased (stored in struct fields,
+        # arrays, maps, passed as params) so scope-exit release causes
+        # use-after-free when any alias survives the function.
+        if (not auto_lifted
+                and not self._is_allocating_expr(stmt.value)
+                and not isinstance(val_type, TString)):
+            release_fn = self._get_release_fn(val_type)
+            if release_fn and self._scope_depth == 0:
+                self._container_locals.append((stmt.name, c_type, release_fn))
 
         return stmts
 
-    # Type → release function mapping for reassignment.
-    # Arrays and maps use capacity sharing: fl_array_push / fl_map_set bump
-    # the old header's refcount to 2 before returning a new header sharing
-    # the same backing storage.  Releasing the old header just decrements
-    # (never frees while data is shared).  The old header is marked
-    # owns_entries=false so even if it eventually reaches refcount 0 it
-    # won't free the shared entries.  Without capacity sharing (full copy
-    # on resize), old and new are independent — release frees the old copy.
-    # Strings are excluded: they are stored by reference in containers
-    # (arrays, maps) which do NOT retain their elements.
-    # Release-on-reassignment map.  TString is intentionally excluded:
-    # strings are frequently borrowed (e.g. `result = seg` from an array
-    # element), so releasing the old value on reassignment would free a
-    # string we don't own.  Proper string cleanup requires retain-on-store
-    # (every container must retain strings it stores, every variable must
-    # retain strings it borrows).  Without that, string release-on-reassign
-    # causes use-after-free.
+    # Type → release/retain function mappings.
+    # All refcounted heap types: string, array, map, stream, buffer, closure.
+    # Retain-on-store ensures every "owner" (let binding, struct field,
+    # option/result wrapper) bumps the refcount, so release-on-reassignment
+    # and scope-exit cleanup are safe.
     _RELEASE_FN: dict[type, str] = {
+        TString: "fl_string_release",
         TArray:  "fl_array_release",
         TMap:    "fl_map_release",
         TStream: "fl_stream_release",
@@ -1470,6 +1539,7 @@ class Lowerer:
     }
 
     _RETAIN_FN: dict[type, str] = {
+        TString: "fl_string_retain",
         TArray:  "fl_array_retain",
         TMap:    "fl_map_retain",
         TStream: "fl_stream_retain",
@@ -1481,12 +1551,32 @@ class Lowerer:
         """Return the release function name for a container type, or None."""
         return self._RELEASE_FN.get(type(t))
 
+    def _intern_string(self, c_literal: str) -> LVar:
+        """Return an LVar referencing an interned static string global.
+
+        All identical C string literals share the same global FL_String*
+        variable, initialized once in _fl_init_statics with a high refcount
+        so it is never freed by retain/release.
+        """
+        if c_literal in self._interned_strings:
+            name = self._interned_strings[c_literal]
+        else:
+            mod_prefix = self._module_path.replace(".", "_")
+            name = f"_fl_str_{mod_prefix}_{self._intern_counter}"
+            self._intern_counter += 1
+            self._interned_strings[c_literal] = name
+        return LVar(name, LPtr(LStruct("FL_String")))
+
     @staticmethod
     def _is_allocating_expr(expr: Expr) -> bool:
-        """Check if an expression is guaranteed to produce a fresh allocation."""
+        """Check if an expression is guaranteed to produce a fresh allocation.
+
+        StringLit is NOT allocating — interned as a static global with a
+        pinned refcount, so retain/release is a no-op on it.
+        """
         return isinstance(expr, (Call, MethodCall, BinOp, SomeExpr, OkExpr,
                                  ErrExpr, ArrayLit, RecordLit, FStringExpr,
-                                 CopyExpr, StringLit))
+                                 CopyExpr))
 
     def _call_passes_var_by_mut_ref(self, call_expr: Expr, var_name: str) -> bool:
         """Check if a Call passes `var_name` as a :mut (by-reference) argument.
@@ -1539,6 +1629,36 @@ class Lowerer:
                                     c_type=LBool()),
                         then=[LExprStmt(LCall(release_fn, [old_var],
                                               c_type=LVoid()))],
+                        else_=[],
+                    ),
+                ]
+
+        # Non-allocating RHS (borrowed value): retain new, release old.
+        # This handles `x = param` where x is :mut and param is borrowed.
+        # Skip when the target variable is passed by &ref to the same call —
+        # the callee already handles release through the pointer.
+        if (isinstance(stmt.target, Ident)
+                and not self._call_passes_var_by_mut_ref(stmt.value, stmt.target.name)):
+            target_type = self._type_of(stmt.target)
+            retain_fn = self._RETAIN_FN.get(type(target_type))
+            release_fn = self._get_release_fn(target_type)
+            if retain_fn and release_fn:
+                old_tmp = f"_fl_old_{self._tmp_counter}"
+                self._tmp_counter += 1
+                old_c_type = target.c_type
+                old_var = LVar(old_tmp, old_c_type)
+                return [
+                    LVarDecl(c_name=old_tmp, c_type=old_c_type, init=target),
+                    LAssign(target=target, value=value),
+                    LIf(
+                        cond=LBinOp("!=", old_var, target,
+                                    c_type=LBool()),
+                        then=[
+                            LExprStmt(LCall(retain_fn, [target],
+                                            c_type=LVoid())),
+                            LExprStmt(LCall(release_fn, [old_var],
+                                            c_type=LVoid())),
+                        ],
                         else_=[],
                     ),
                 ]
@@ -2430,11 +2550,8 @@ class Lowerer:
 
             case StringLit(value=v):
                 escaped = v.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t").replace("\0", "\\0")
-                return LCall(
-                    "fl_string_from_cstr",
-                    [LLit(f'"{escaped}"', LPtr(LVoid()))],
-                    LPtr(LStruct("FL_String")),
-                )
+                c_literal = f'"{escaped}"'
+                return self._intern_string(c_literal)
 
             case CharLit(value=v):
                 return LLit(str(v), LChar())
@@ -2611,7 +2728,15 @@ class Lowerer:
                 lt = self._lower_type(t)
                 lfields: list[tuple[str, LExpr]] = []
                 for name, val in rfields:
-                    lfields.append((name, self._lower_expr(val)))
+                    lowered_val = self._lower_expr(val)
+                    # Retain-on-store: retain borrowed refcounted field values
+                    if not self._is_allocating_expr(val):
+                        val_type = self._type_of(val)
+                        retain_fn = self._RETAIN_FN.get(type(val_type))
+                        if retain_fn:
+                            self._pending_stmts.append(
+                                LExprStmt(LCall(retain_fn, [lowered_val], LVoid())))
+                    lfields.append((name, lowered_val))
                 return LCompound(fields=lfields, c_type=lt)
 
             # Type literal (struct construction)
@@ -2697,11 +2822,7 @@ class Lowerer:
                 # Lower to string representation of type
                 t = self._type_of(inner)
                 type_name = self._type_name_str(t)
-                return LCall(
-                    "fl_string_from_cstr",
-                    [LLit(f'"{type_name}"', LPtr(LVoid()))],
-                    LPtr(LStruct("FL_String")),
-                )
+                return self._intern_string(f'"{type_name}"')
 
             # Coroutine start — wrap stream in FL_Coroutine (always threaded)
             case CoroutineStart(call=call):
@@ -4773,11 +4894,7 @@ class Lowerer:
             if isinstance(part, str):
                 if part:
                     escaped = part.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t").replace("\0", "\\0")
-                    parts.append(LCall(
-                        "fl_string_from_cstr",
-                        [LLit(f'"{escaped}"', LPtr(LVoid()))],
-                        string_type,
-                    ))
+                    parts.append(self._intern_string(f'"{escaped}"'))
             else:
                 # Expression part — convert to string
                 inner = self._lower_expr(part)
@@ -4785,8 +4902,7 @@ class Lowerer:
                 parts.append(self._to_string_expr(inner, inner_type))
 
         if not parts:
-            return LCall("fl_string_from_cstr",
-                         [LLit('""', LPtr(LVoid()))], string_type)
+            return self._intern_string('""')
 
         # Chain concat calls, releasing intermediate results
         result = parts[0]
@@ -5081,6 +5197,13 @@ class Lowerer:
     def _lower_some(self, expr: SomeExpr) -> LExpr:
         """Lower some(value)."""
         inner = self._lower_expr(expr.inner)
+        # Retain-on-store: retain borrowed inner value
+        if not self._is_allocating_expr(expr.inner):
+            inner_type = self._type_of(expr.inner)
+            retain_fn = self._RETAIN_FN.get(type(inner_type))
+            if retain_fn:
+                self._pending_stmts.append(
+                    LExprStmt(LCall(retain_fn, [inner], LVoid())))
         t = self._type_of(expr)
         lt = self._lower_type(t)
         return LCompound(
@@ -5091,6 +5214,13 @@ class Lowerer:
     def _lower_ok(self, expr: OkExpr) -> LExpr:
         """Lower ok(value)."""
         inner = self._lower_expr(expr.inner)
+        # Retain-on-store: retain borrowed inner value
+        if not self._is_allocating_expr(expr.inner):
+            inner_type = self._type_of(expr.inner)
+            retain_fn = self._RETAIN_FN.get(type(inner_type))
+            if retain_fn:
+                self._pending_stmts.append(
+                    LExprStmt(LCall(retain_fn, [inner], LVoid())))
         # Use function return type to get concrete result struct
         t = self._current_fn_return_type if isinstance(
             self._current_fn_return_type, TResult) else self._type_of(expr)
@@ -5104,6 +5234,13 @@ class Lowerer:
     def _lower_err(self, expr: ErrExpr) -> LExpr:
         """Lower err(value)."""
         inner = self._lower_expr(expr.inner)
+        # Retain-on-store: retain borrowed inner value
+        if not self._is_allocating_expr(expr.inner):
+            inner_type = self._type_of(expr.inner)
+            retain_fn = self._RETAIN_FN.get(type(inner_type))
+            if retain_fn:
+                self._pending_stmts.append(
+                    LExprStmt(LCall(retain_fn, [inner], LVoid())))
         # Use function return type to get concrete result struct
         t = self._current_fn_return_type if isinstance(
             self._current_fn_return_type, TResult) else self._type_of(expr)
@@ -5199,7 +5336,15 @@ class Lowerer:
         lt = self._lower_type(t)
         lfields: list[tuple[str, LExpr]] = []
         for name, val in expr.fields:
-            lfields.append((name, self._lower_expr(val)))
+            lowered_val = self._lower_expr(val)
+            # Retain-on-store: retain borrowed refcounted field values
+            if not self._is_allocating_expr(val):
+                val_type = self._type_of(val)
+                retain_fn = self._RETAIN_FN.get(type(val_type))
+                if retain_fn:
+                    self._pending_stmts.append(
+                        LExprStmt(LCall(retain_fn, [lowered_val], LVoid())))
+            lfields.append((name, lowered_val))
         return LCompound(fields=lfields, c_type=lt)
 
     # ------------------------------------------------------------------
@@ -7159,6 +7304,10 @@ class Lowerer:
         self._mono_type_env = env
         saved_mono_caller = self._mono_caller_module_path
         self._mono_caller_module_path = saved_module_path
+        saved_container_locals = self._container_locals
+        self._container_locals = []
+        saved_scope_depth = self._scope_depth
+        self._scope_depth = 0
 
         ret_type_raw = self._type_of_return(fn_decl)
         ret_type = self._deep_substitute(ret_type_raw, env)
@@ -7189,6 +7338,13 @@ class Lowerer:
                     self._pending_stmts = []
                     body.append(LReturn(expr_result))
 
+        # Scope-exit cleanup for monomorphized functions
+        if self._container_locals:
+            self._inject_scope_cleanup(body)
+            if isinstance(ret_lt, LVoid):
+                body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
+                             for n, ct, fn_name in self._container_locals])
+
         # Restore state
         self._types = original_types
         self._resolved = saved_resolved
@@ -7198,6 +7354,8 @@ class Lowerer:
         self._let_var_ltypes = saved_let_var_ltypes
         self._mono_type_env = saved_mono_type_env
         self._mono_caller_module_path = saved_mono_caller
+        self._container_locals = saved_container_locals
+        self._scope_depth = saved_scope_depth
 
         return LFnDef(
             c_name=site.mangled_name,

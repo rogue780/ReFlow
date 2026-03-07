@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -532,6 +541,162 @@ FL_String* fl_self_hosted_mangler_mangle_exception_frame(fl_int index);
 
 FL_String* fl_self_hosted_mangler_mangle_monomorphized(FL_String* mod, FL_String* fn_name, FL_Array* type_args);
 
+FL_String* _fl_str_self_hosted_mangler_0 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_1 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_2 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_3 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_4 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_5 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_6 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_7 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_8 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_9 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_10 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_11 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_12 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_13 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_14 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_15 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_16 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_17 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_18 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_19 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_20 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_21 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_22 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_23 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_24 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_25 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_26 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_27 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_28 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_29 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_30 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_31 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_32 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_33 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_34 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_35 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_36 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_37 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_38 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_39 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_40 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_41 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_42 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_43 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_44 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_45 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_46 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_47 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_48 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_49 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_50 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_51 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_52 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_53 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_54 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_55 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_56 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_57 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_58 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_59 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_60 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_61 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_62 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_63 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_64 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_65 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_66 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_67 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_68 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_69 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_70 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_71 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_72 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_73 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_74 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_75 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_76 = NULL;
+
+FL_String* _fl_str_self_hosted_mangler_77 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -539,111 +704,111 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 
 /* Flow: self_hosted.mangler.prefix */
 FL_String* fl_self_hosted_mangler_prefix(void) {
-    return fl_string_from_cstr("fl_");
+    return _fl_str_self_hosted_mangler_0;
 }
 
 /* Flow: self_hosted.mangler.is_reserved */
 fl_bool fl_self_hosted_mangler_is_reserved(FL_String* name) {
-    if (fl_string_eq(name, fl_string_from_cstr("auto"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_1)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("break"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_2)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("case"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_3)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("char"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_4)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("const"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_5)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("continue"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_6)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("default"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_7)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("do"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_8)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("double"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_9)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("else"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_10)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("enum"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_11)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("extern"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_12)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("float"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_13)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("for"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_14)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("goto"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_15)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("if"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_16)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("inline"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_17)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("int"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_18)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("long"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_19)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("register"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_20)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("restrict"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_21)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("return"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_22)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("short"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_23)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("signed"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_24)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("sizeof"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_25)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("static"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_26)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("struct"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_27)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("switch"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_28)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("typedef"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_29)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("union"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_30)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("unsigned"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_31)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("void"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_32)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("volatile"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_33)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("while"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_34)) {
         return fl_true;
     }
     return fl_false;
@@ -651,52 +816,52 @@ fl_bool fl_self_hosted_mangler_is_reserved(FL_String* name) {
 
 /* Flow: self_hosted.mangler.is_builtin_type */
 fl_bool fl_self_hosted_mangler_is_builtin_type(FL_String* name) {
-    if (fl_string_eq(name, fl_string_from_cstr("int"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_18)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("int16"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_35)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("int32"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_36)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("int64"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_37)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("uint"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_38)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("uint16"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_39)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("uint32"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_40)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("uint64"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_41)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("float"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_13)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("float32"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_42)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("float64"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_43)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("bool"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_44)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("byte"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_45)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("char"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_4)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("string"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_46)) {
         return fl_true;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("none"))) {
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_47)) {
         return fl_true;
     }
     return fl_false;
@@ -704,196 +869,481 @@ fl_bool fl_self_hosted_mangler_is_builtin_type(FL_String* name) {
 
 /* Flow: self_hosted.mangler.mangle_builtin_type */
 FL_String* fl_self_hosted_mangler_mangle_builtin_type(FL_String* name) {
-    if (fl_string_eq(name, fl_string_from_cstr("int"))) {
-        return fl_string_from_cstr("fl_int");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_18)) {
+        return _fl_str_self_hosted_mangler_48;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("int16"))) {
-        return fl_string_from_cstr("fl_int16");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_35)) {
+        return _fl_str_self_hosted_mangler_49;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("int32"))) {
-        return fl_string_from_cstr("fl_int32");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_36)) {
+        return _fl_str_self_hosted_mangler_50;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("int64"))) {
-        return fl_string_from_cstr("fl_int64");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_37)) {
+        return _fl_str_self_hosted_mangler_51;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("uint"))) {
-        return fl_string_from_cstr("fl_uint");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_38)) {
+        return _fl_str_self_hosted_mangler_52;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("uint16"))) {
-        return fl_string_from_cstr("fl_uint16");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_39)) {
+        return _fl_str_self_hosted_mangler_53;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("uint32"))) {
-        return fl_string_from_cstr("fl_uint32");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_40)) {
+        return _fl_str_self_hosted_mangler_54;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("uint64"))) {
-        return fl_string_from_cstr("fl_uint64");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_41)) {
+        return _fl_str_self_hosted_mangler_55;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("float"))) {
-        return fl_string_from_cstr("fl_float");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_13)) {
+        return _fl_str_self_hosted_mangler_56;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("float32"))) {
-        return fl_string_from_cstr("fl_float32");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_42)) {
+        return _fl_str_self_hosted_mangler_57;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("float64"))) {
-        return fl_string_from_cstr("fl_float64");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_43)) {
+        return _fl_str_self_hosted_mangler_58;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("bool"))) {
-        return fl_string_from_cstr("fl_bool");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_44)) {
+        return _fl_str_self_hosted_mangler_59;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("byte"))) {
-        return fl_string_from_cstr("fl_byte");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_45)) {
+        return _fl_str_self_hosted_mangler_60;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("char"))) {
-        return fl_string_from_cstr("fl_char");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_4)) {
+        return _fl_str_self_hosted_mangler_61;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("string"))) {
-        return fl_string_from_cstr("FL_String*");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_46)) {
+        return _fl_str_self_hosted_mangler_62;
     }
-    if (fl_string_eq(name, fl_string_from_cstr("none"))) {
-        return fl_string_from_cstr("void");
+    if (fl_string_eq(name, _fl_str_self_hosted_mangler_47)) {
+        return _fl_str_self_hosted_mangler_32;
     }
-    return fl_string_from_cstr("");
+    return _fl_str_self_hosted_mangler_63;
 }
 
 /* Flow: self_hosted.mangler.mangle */
 FL_String* fl_self_hosted_mangler_mangle(FL_String* mod, FL_String* type_name, FL_String* fn_name) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
     FL_String* result = fl_string_concat(fl_self_hosted_mangler_prefix(), parts);
-    if (!fl_string_eq(type_name, fl_string_from_cstr(""))) {
-        result = fl_string_concat(fl_string_concat(result, fl_string_from_cstr("_")), type_name);
+    if (!fl_string_eq(type_name, _fl_str_self_hosted_mangler_63)) {
+        FL_String* _fl_old_0 = result;
+        result = fl_string_concat(fl_string_concat(result, _fl_str_self_hosted_mangler_65), type_name);
+        if (_fl_old_0 != result) {
+            fl_string_release(_fl_old_0);
+        }
     }
-    if (!fl_string_eq(fn_name, fl_string_from_cstr(""))) {
-        result = fl_string_concat(fl_string_concat(result, fl_string_from_cstr("_")), fn_name);
+    if (!fl_string_eq(fn_name, _fl_str_self_hosted_mangler_63)) {
+        FL_String* _fl_old_1 = result;
+        result = fl_string_concat(fl_string_concat(result, _fl_str_self_hosted_mangler_65), fn_name);
+        if (_fl_old_1 != result) {
+            fl_string_release(_fl_old_1);
+        }
     }
     return result;
 }
 
 /* Flow: self_hosted.mangler.mangle_stream_frame */
 FL_String* fl_self_hosted_mangler_mangle_stream_frame(FL_String* mod, FL_String* fn_name) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_frame_"), parts), fl_string_from_cstr("_")), fn_name);
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_66, parts), _fl_str_self_hosted_mangler_65), fn_name);
 }
 
 /* Flow: self_hosted.mangler.mangle_stream_next */
 FL_String* fl_self_hosted_mangler_mangle_stream_next(FL_String* mod, FL_String* fn_name) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_next_"), parts), fl_string_from_cstr("_")), fn_name);
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_67, parts), _fl_str_self_hosted_mangler_65), fn_name);
 }
 
 /* Flow: self_hosted.mangler.mangle_stream_free */
 FL_String* fl_self_hosted_mangler_mangle_stream_free(FL_String* mod, FL_String* fn_name) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_free_"), parts), fl_string_from_cstr("_")), fn_name);
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_68, parts), _fl_str_self_hosted_mangler_65), fn_name);
 }
 
 /* Flow: self_hosted.mangler.mangle_closure_frame */
 FL_String* fl_self_hosted_mangler_mangle_closure_frame(FL_String* mod, FL_String* fn_name, fl_int lambda_id) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_closure_"), parts), fl_string_from_cstr("_")), fn_name), fl_string_from_cstr("_")), fl_conv_to_string__int(lambda_id));
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_69, parts), _fl_str_self_hosted_mangler_65), fn_name), _fl_str_self_hosted_mangler_65), fl_conv_to_string__int(lambda_id));
 }
 
 /* Flow: self_hosted.mangler.mangle_closure_fn */
 FL_String* fl_self_hosted_mangler_mangle_closure_fn(FL_String* mod, FL_String* fn_name, fl_int lambda_id) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_clfn_"), parts), fl_string_from_cstr("_")), fn_name), fl_string_from_cstr("_")), fl_conv_to_string__int(lambda_id));
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_70, parts), _fl_str_self_hosted_mangler_65), fn_name), _fl_str_self_hosted_mangler_65), fl_conv_to_string__int(lambda_id));
 }
 
 /* Flow: self_hosted.mangler.mangle_fn_wrapper */
 FL_String* fl_self_hosted_mangler_mangle_fn_wrapper(FL_String* mod, FL_String* fn_name) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_wrap_"), parts), fl_string_from_cstr("_")), fn_name);
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_71, parts), _fl_str_self_hosted_mangler_65), fn_name);
 }
 
 /* Flow: self_hosted.mangler.mangle_stream_wrapper */
 FL_String* fl_self_hosted_mangler_mangle_stream_wrapper(FL_String* mod, FL_String* fn_name, fl_int wrapper_id) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_swrap_"), parts), fl_string_from_cstr("_")), fn_name), fl_string_from_cstr("_")), fl_conv_to_string__int(wrapper_id));
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_72, parts), _fl_str_self_hosted_mangler_65), fn_name), _fl_str_self_hosted_mangler_65), fl_conv_to_string__int(wrapper_id));
 }
 
 /* Flow: self_hosted.mangler.mangle_sort_wrapper */
 FL_String* fl_self_hosted_mangler_mangle_sort_wrapper(FL_String* mod, FL_String* fn_name, fl_int wrapper_id) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_srtwrap_"), parts), fl_string_from_cstr("_")), fn_name), fl_string_from_cstr("_")), fl_conv_to_string__int(wrapper_id));
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_73, parts), _fl_str_self_hosted_mangler_65), fn_name), _fl_str_self_hosted_mangler_65), fl_conv_to_string__int(wrapper_id));
 }
 
 /* Flow: self_hosted.mangler.mangle_fanout_wrapper */
 FL_String* fl_self_hosted_mangler_mangle_fanout_wrapper(FL_String* mod, FL_String* fn_name, fl_int fanout_id, fl_int branch_idx) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_fanout_"), parts), fl_string_from_cstr("_")), fn_name), fl_string_from_cstr("_")), fl_conv_to_string__int(fanout_id)), fl_string_from_cstr("_")), fl_conv_to_string__int(branch_idx));
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_74, parts), _fl_str_self_hosted_mangler_65), fn_name), _fl_str_self_hosted_mangler_65), fl_conv_to_string__int(fanout_id)), _fl_str_self_hosted_mangler_65), fl_conv_to_string__int(branch_idx));
 }
 
 /* Flow: self_hosted.mangler.mangle_exception_tag */
 FL_String* fl_self_hosted_mangler_mangle_exception_tag(FL_String* mod, FL_String* type_name) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("_fl_exc_tag_"), parts), fl_string_from_cstr("_")), type_name);
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    return fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_self_hosted_mangler_75, parts), _fl_str_self_hosted_mangler_65), type_name);
 }
 
 /* Flow: self_hosted.mangler.mangle_exception_frame */
 FL_String* fl_self_hosted_mangler_mangle_exception_frame(fl_int index) {
-    return fl_string_concat(fl_string_from_cstr("_fl_ef_"), fl_conv_to_string__int(index));
+    return fl_string_concat(_fl_str_self_hosted_mangler_76, fl_conv_to_string__int(index));
 }
 
 /* Flow: self_hosted.mangler.mangle_monomorphized */
 FL_String* fl_self_hosted_mangler_mangle_monomorphized(FL_String* mod, FL_String* fn_name, FL_Array* type_args) {
-    FL_String* parts = fl_string_replace(mod, fl_string_from_cstr("."), fl_string_from_cstr("_"));
-    FL_String* suffix = fl_string_from_cstr("");
+    FL_String* parts = fl_string_replace(mod, _fl_str_self_hosted_mangler_64, _fl_str_self_hosted_mangler_65);
+    FL_String* suffix = _fl_str_self_hosted_mangler_63;
+    fl_string_retain(suffix);
     fl_int i = 0;
     while (i < fl_array_len_int(type_args)) {
         if (i > 0) {
-            suffix = fl_string_concat(suffix, fl_string_from_cstr("_"));
+            FL_String* _fl_old_2 = suffix;
+            suffix = fl_string_concat(suffix, _fl_str_self_hosted_mangler_65);
+            if (_fl_old_2 != suffix) {
+                fl_string_release(_fl_old_2);
+            }
         }
-        FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(type_args, i);
-        suffix = fl_string_concat(suffix, ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr("")));
+        FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(type_args, i);
+        FL_String* _fl_old_4 = suffix;
+        suffix = fl_string_concat(suffix, ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : _fl_str_self_hosted_mangler_63));
+        if (_fl_old_4 != suffix) {
+            fl_string_release(_fl_old_4);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_mangler_prefix(), parts), fl_string_from_cstr("_")), fn_name), fl_string_from_cstr("__")), suffix);
+    return fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_self_hosted_mangler_prefix(), parts), _fl_str_self_hosted_mangler_65), fn_name), _fl_str_self_hosted_mangler_77), suffix);
 }
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_0 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_1 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_2 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_3 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_4 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_5 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_6 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_7 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_8 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_9 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_10 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_11 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_12 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_13 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_14 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_15 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_16 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_17 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_18 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_19 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_20 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_21 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_22 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_23 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_24 = NULL;
+
+FL_String* _fl_str_tests_programs_app_sh_mangler_test_25 = NULL;
 
 /* Flow: tests.programs.app_sh_mangler_test.main */
 fl_int fl_tests_programs_app_sh_mangler_test_main(void) {
-    fl_println(fl_self_hosted_mangler_mangle(fl_string_from_cstr("math.vector"), fl_string_from_cstr(""), fl_string_from_cstr("")));
-    fl_println(fl_self_hosted_mangler_mangle(fl_string_from_cstr("math.vector"), fl_string_from_cstr("Vec3"), fl_string_from_cstr("")));
-    fl_println(fl_self_hosted_mangler_mangle(fl_string_from_cstr("math.vector"), fl_string_from_cstr("Vec3"), fl_string_from_cstr("dot")));
-    fl_println(fl_self_hosted_mangler_mangle(fl_string_from_cstr("pipeline.orders"), fl_string_from_cstr(""), fl_string_from_cstr("run")));
-    fl_println(fl_self_hosted_mangler_mangle(fl_string_from_cstr("main"), fl_string_from_cstr(""), fl_string_from_cstr("main")));
-    fl_println(fl_self_hosted_mangler_mangle_stream_frame(fl_string_from_cstr("math.vector"), fl_string_from_cstr("generate")));
-    fl_println(fl_self_hosted_mangler_mangle_stream_next(fl_string_from_cstr("math.vector"), fl_string_from_cstr("generate")));
-    fl_println(fl_self_hosted_mangler_mangle_stream_free(fl_string_from_cstr("math.vector"), fl_string_from_cstr("generate")));
-    fl_println(fl_self_hosted_mangler_mangle_closure_frame(fl_string_from_cstr("pipeline.orders"), fl_string_from_cstr("run"), 0));
-    fl_println(fl_self_hosted_mangler_mangle_closure_fn(fl_string_from_cstr("pipeline.orders"), fl_string_from_cstr("run"), 0));
-    fl_println(fl_self_hosted_mangler_mangle_fn_wrapper(fl_string_from_cstr("pipeline.orders"), fl_string_from_cstr("run")));
-    fl_println(fl_self_hosted_mangler_mangle_stream_wrapper(fl_string_from_cstr("main"), fl_string_from_cstr("process"), 0));
-    fl_println(fl_self_hosted_mangler_mangle_sort_wrapper(fl_string_from_cstr("sort"), fl_string_from_cstr("sort"), 0));
-    fl_println(fl_self_hosted_mangler_mangle_fanout_wrapper(fl_string_from_cstr("main"), fl_string_from_cstr("process"), 0, 1));
-    fl_println(fl_self_hosted_mangler_mangle_exception_tag(fl_string_from_cstr("domain.order"), fl_string_from_cstr("ParseError")));
+    fl_println(fl_self_hosted_mangler_mangle(_fl_str_tests_programs_app_sh_mangler_test_0, _fl_str_tests_programs_app_sh_mangler_test_1, _fl_str_tests_programs_app_sh_mangler_test_1));
+    fl_println(fl_self_hosted_mangler_mangle(_fl_str_tests_programs_app_sh_mangler_test_0, _fl_str_tests_programs_app_sh_mangler_test_2, _fl_str_tests_programs_app_sh_mangler_test_1));
+    fl_println(fl_self_hosted_mangler_mangle(_fl_str_tests_programs_app_sh_mangler_test_0, _fl_str_tests_programs_app_sh_mangler_test_2, _fl_str_tests_programs_app_sh_mangler_test_3));
+    fl_println(fl_self_hosted_mangler_mangle(_fl_str_tests_programs_app_sh_mangler_test_4, _fl_str_tests_programs_app_sh_mangler_test_1, _fl_str_tests_programs_app_sh_mangler_test_5));
+    fl_println(fl_self_hosted_mangler_mangle(_fl_str_tests_programs_app_sh_mangler_test_6, _fl_str_tests_programs_app_sh_mangler_test_1, _fl_str_tests_programs_app_sh_mangler_test_6));
+    fl_println(fl_self_hosted_mangler_mangle_stream_frame(_fl_str_tests_programs_app_sh_mangler_test_0, _fl_str_tests_programs_app_sh_mangler_test_7));
+    fl_println(fl_self_hosted_mangler_mangle_stream_next(_fl_str_tests_programs_app_sh_mangler_test_0, _fl_str_tests_programs_app_sh_mangler_test_7));
+    fl_println(fl_self_hosted_mangler_mangle_stream_free(_fl_str_tests_programs_app_sh_mangler_test_0, _fl_str_tests_programs_app_sh_mangler_test_7));
+    fl_println(fl_self_hosted_mangler_mangle_closure_frame(_fl_str_tests_programs_app_sh_mangler_test_4, _fl_str_tests_programs_app_sh_mangler_test_5, 0));
+    fl_println(fl_self_hosted_mangler_mangle_closure_fn(_fl_str_tests_programs_app_sh_mangler_test_4, _fl_str_tests_programs_app_sh_mangler_test_5, 0));
+    fl_println(fl_self_hosted_mangler_mangle_fn_wrapper(_fl_str_tests_programs_app_sh_mangler_test_4, _fl_str_tests_programs_app_sh_mangler_test_5));
+    fl_println(fl_self_hosted_mangler_mangle_stream_wrapper(_fl_str_tests_programs_app_sh_mangler_test_6, _fl_str_tests_programs_app_sh_mangler_test_8, 0));
+    fl_println(fl_self_hosted_mangler_mangle_sort_wrapper(_fl_str_tests_programs_app_sh_mangler_test_9, _fl_str_tests_programs_app_sh_mangler_test_9, 0));
+    fl_println(fl_self_hosted_mangler_mangle_fanout_wrapper(_fl_str_tests_programs_app_sh_mangler_test_6, _fl_str_tests_programs_app_sh_mangler_test_8, 0, 1));
+    fl_println(fl_self_hosted_mangler_mangle_exception_tag(_fl_str_tests_programs_app_sh_mangler_test_10, _fl_str_tests_programs_app_sh_mangler_test_11));
     fl_println(fl_self_hosted_mangler_mangle_exception_frame(0));
-    fl_println(fl_self_hosted_mangler_mangle_monomorphized(fl_string_from_cstr("math"), fl_string_from_cstr("min"), fl_array_new(1, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("int")})));
-    fl_println(fl_self_hosted_mangler_mangle_monomorphized(fl_string_from_cstr("testing"), fl_string_from_cstr("assert_eq"), fl_array_new(1, sizeof(FL_String*), (FL_String*[]){fl_string_from_cstr("int")})));
-    fl_println(fl_self_hosted_mangler_mangle_builtin_type(fl_string_from_cstr("int")));
-    fl_println(fl_self_hosted_mangler_mangle_builtin_type(fl_string_from_cstr("string")));
-    fl_println(fl_self_hosted_mangler_mangle_builtin_type(fl_string_from_cstr("none")));
-    fl_println(fl_self_hosted_mangler_mangle_builtin_type(fl_string_from_cstr("bool")));
-    if (fl_self_hosted_mangler_is_reserved(fl_string_from_cstr("int"))) {
-        fl_println(fl_string_from_cstr("int is reserved"));
+    fl_println(fl_self_hosted_mangler_mangle_monomorphized(_fl_str_tests_programs_app_sh_mangler_test_12, _fl_str_tests_programs_app_sh_mangler_test_13, fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_mangler_test_14})));
+    fl_println(fl_self_hosted_mangler_mangle_monomorphized(_fl_str_tests_programs_app_sh_mangler_test_15, _fl_str_tests_programs_app_sh_mangler_test_16, fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_mangler_test_14})));
+    fl_println(fl_self_hosted_mangler_mangle_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_14));
+    fl_println(fl_self_hosted_mangler_mangle_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_17));
+    fl_println(fl_self_hosted_mangler_mangle_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_18));
+    fl_println(fl_self_hosted_mangler_mangle_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_19));
+    if (fl_self_hosted_mangler_is_reserved(_fl_str_tests_programs_app_sh_mangler_test_14)) {
+        fl_println(_fl_str_tests_programs_app_sh_mangler_test_20);
     }
-    if (fl_self_hosted_mangler_is_reserved(fl_string_from_cstr("foo")) == fl_false) {
-        fl_println(fl_string_from_cstr("foo is not reserved"));
+    if (fl_self_hosted_mangler_is_reserved(_fl_str_tests_programs_app_sh_mangler_test_21) == fl_false) {
+        fl_println(_fl_str_tests_programs_app_sh_mangler_test_22);
     }
-    if (fl_self_hosted_mangler_is_builtin_type(fl_string_from_cstr("int"))) {
-        fl_println(fl_string_from_cstr("int is builtin"));
+    if (fl_self_hosted_mangler_is_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_14)) {
+        fl_println(_fl_str_tests_programs_app_sh_mangler_test_23);
     }
-    if (fl_self_hosted_mangler_is_builtin_type(fl_string_from_cstr("Vec3")) == fl_false) {
-        fl_println(fl_string_from_cstr("Vec3 is not builtin"));
+    if (fl_self_hosted_mangler_is_builtin_type(_fl_str_tests_programs_app_sh_mangler_test_2) == fl_false) {
+        fl_println(_fl_str_tests_programs_app_sh_mangler_test_24);
     }
-    fl_println(fl_string_from_cstr("ok"));
+    fl_println(_fl_str_tests_programs_app_sh_mangler_test_25);
     return 0;
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_0 = fl_string_from_cstr("fl_");
+    _fl_str_self_hosted_mangler_0->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_1 = fl_string_from_cstr("auto");
+    _fl_str_self_hosted_mangler_1->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_2 = fl_string_from_cstr("break");
+    _fl_str_self_hosted_mangler_2->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_3 = fl_string_from_cstr("case");
+    _fl_str_self_hosted_mangler_3->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_4 = fl_string_from_cstr("char");
+    _fl_str_self_hosted_mangler_4->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_5 = fl_string_from_cstr("const");
+    _fl_str_self_hosted_mangler_5->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_6 = fl_string_from_cstr("continue");
+    _fl_str_self_hosted_mangler_6->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_7 = fl_string_from_cstr("default");
+    _fl_str_self_hosted_mangler_7->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_8 = fl_string_from_cstr("do");
+    _fl_str_self_hosted_mangler_8->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_9 = fl_string_from_cstr("double");
+    _fl_str_self_hosted_mangler_9->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_10 = fl_string_from_cstr("else");
+    _fl_str_self_hosted_mangler_10->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_11 = fl_string_from_cstr("enum");
+    _fl_str_self_hosted_mangler_11->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_12 = fl_string_from_cstr("extern");
+    _fl_str_self_hosted_mangler_12->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_13 = fl_string_from_cstr("float");
+    _fl_str_self_hosted_mangler_13->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_14 = fl_string_from_cstr("for");
+    _fl_str_self_hosted_mangler_14->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_15 = fl_string_from_cstr("goto");
+    _fl_str_self_hosted_mangler_15->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_16 = fl_string_from_cstr("if");
+    _fl_str_self_hosted_mangler_16->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_17 = fl_string_from_cstr("inline");
+    _fl_str_self_hosted_mangler_17->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_18 = fl_string_from_cstr("int");
+    _fl_str_self_hosted_mangler_18->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_19 = fl_string_from_cstr("long");
+    _fl_str_self_hosted_mangler_19->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_20 = fl_string_from_cstr("register");
+    _fl_str_self_hosted_mangler_20->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_21 = fl_string_from_cstr("restrict");
+    _fl_str_self_hosted_mangler_21->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_22 = fl_string_from_cstr("return");
+    _fl_str_self_hosted_mangler_22->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_23 = fl_string_from_cstr("short");
+    _fl_str_self_hosted_mangler_23->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_24 = fl_string_from_cstr("signed");
+    _fl_str_self_hosted_mangler_24->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_25 = fl_string_from_cstr("sizeof");
+    _fl_str_self_hosted_mangler_25->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_26 = fl_string_from_cstr("static");
+    _fl_str_self_hosted_mangler_26->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_27 = fl_string_from_cstr("struct");
+    _fl_str_self_hosted_mangler_27->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_28 = fl_string_from_cstr("switch");
+    _fl_str_self_hosted_mangler_28->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_29 = fl_string_from_cstr("typedef");
+    _fl_str_self_hosted_mangler_29->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_30 = fl_string_from_cstr("union");
+    _fl_str_self_hosted_mangler_30->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_31 = fl_string_from_cstr("unsigned");
+    _fl_str_self_hosted_mangler_31->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_32 = fl_string_from_cstr("void");
+    _fl_str_self_hosted_mangler_32->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_33 = fl_string_from_cstr("volatile");
+    _fl_str_self_hosted_mangler_33->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_34 = fl_string_from_cstr("while");
+    _fl_str_self_hosted_mangler_34->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_35 = fl_string_from_cstr("int16");
+    _fl_str_self_hosted_mangler_35->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_36 = fl_string_from_cstr("int32");
+    _fl_str_self_hosted_mangler_36->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_37 = fl_string_from_cstr("int64");
+    _fl_str_self_hosted_mangler_37->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_38 = fl_string_from_cstr("uint");
+    _fl_str_self_hosted_mangler_38->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_39 = fl_string_from_cstr("uint16");
+    _fl_str_self_hosted_mangler_39->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_40 = fl_string_from_cstr("uint32");
+    _fl_str_self_hosted_mangler_40->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_41 = fl_string_from_cstr("uint64");
+    _fl_str_self_hosted_mangler_41->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_42 = fl_string_from_cstr("float32");
+    _fl_str_self_hosted_mangler_42->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_43 = fl_string_from_cstr("float64");
+    _fl_str_self_hosted_mangler_43->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_44 = fl_string_from_cstr("bool");
+    _fl_str_self_hosted_mangler_44->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_45 = fl_string_from_cstr("byte");
+    _fl_str_self_hosted_mangler_45->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_46 = fl_string_from_cstr("string");
+    _fl_str_self_hosted_mangler_46->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_47 = fl_string_from_cstr("none");
+    _fl_str_self_hosted_mangler_47->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_48 = fl_string_from_cstr("fl_int");
+    _fl_str_self_hosted_mangler_48->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_49 = fl_string_from_cstr("fl_int16");
+    _fl_str_self_hosted_mangler_49->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_50 = fl_string_from_cstr("fl_int32");
+    _fl_str_self_hosted_mangler_50->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_51 = fl_string_from_cstr("fl_int64");
+    _fl_str_self_hosted_mangler_51->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_52 = fl_string_from_cstr("fl_uint");
+    _fl_str_self_hosted_mangler_52->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_53 = fl_string_from_cstr("fl_uint16");
+    _fl_str_self_hosted_mangler_53->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_54 = fl_string_from_cstr("fl_uint32");
+    _fl_str_self_hosted_mangler_54->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_55 = fl_string_from_cstr("fl_uint64");
+    _fl_str_self_hosted_mangler_55->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_56 = fl_string_from_cstr("fl_float");
+    _fl_str_self_hosted_mangler_56->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_57 = fl_string_from_cstr("fl_float32");
+    _fl_str_self_hosted_mangler_57->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_58 = fl_string_from_cstr("fl_float64");
+    _fl_str_self_hosted_mangler_58->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_59 = fl_string_from_cstr("fl_bool");
+    _fl_str_self_hosted_mangler_59->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_60 = fl_string_from_cstr("fl_byte");
+    _fl_str_self_hosted_mangler_60->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_61 = fl_string_from_cstr("fl_char");
+    _fl_str_self_hosted_mangler_61->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_62 = fl_string_from_cstr("FL_String*");
+    _fl_str_self_hosted_mangler_62->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_63 = fl_string_from_cstr("");
+    _fl_str_self_hosted_mangler_63->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_64 = fl_string_from_cstr(".");
+    _fl_str_self_hosted_mangler_64->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_65 = fl_string_from_cstr("_");
+    _fl_str_self_hosted_mangler_65->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_66 = fl_string_from_cstr("_fl_frame_");
+    _fl_str_self_hosted_mangler_66->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_67 = fl_string_from_cstr("_fl_next_");
+    _fl_str_self_hosted_mangler_67->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_68 = fl_string_from_cstr("_fl_free_");
+    _fl_str_self_hosted_mangler_68->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_69 = fl_string_from_cstr("_fl_closure_");
+    _fl_str_self_hosted_mangler_69->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_70 = fl_string_from_cstr("_fl_clfn_");
+    _fl_str_self_hosted_mangler_70->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_71 = fl_string_from_cstr("_fl_wrap_");
+    _fl_str_self_hosted_mangler_71->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_72 = fl_string_from_cstr("_fl_swrap_");
+    _fl_str_self_hosted_mangler_72->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_73 = fl_string_from_cstr("_fl_srtwrap_");
+    _fl_str_self_hosted_mangler_73->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_74 = fl_string_from_cstr("_fl_fanout_");
+    _fl_str_self_hosted_mangler_74->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_75 = fl_string_from_cstr("_fl_exc_tag_");
+    _fl_str_self_hosted_mangler_75->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_76 = fl_string_from_cstr("_fl_ef_");
+    _fl_str_self_hosted_mangler_76->refcount = 2147483647;
+    _fl_str_self_hosted_mangler_77 = fl_string_from_cstr("__");
+    _fl_str_self_hosted_mangler_77->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_0 = fl_string_from_cstr("math.vector");
+    _fl_str_tests_programs_app_sh_mangler_test_0->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_1 = fl_string_from_cstr("");
+    _fl_str_tests_programs_app_sh_mangler_test_1->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_2 = fl_string_from_cstr("Vec3");
+    _fl_str_tests_programs_app_sh_mangler_test_2->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_3 = fl_string_from_cstr("dot");
+    _fl_str_tests_programs_app_sh_mangler_test_3->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_4 = fl_string_from_cstr("pipeline.orders");
+    _fl_str_tests_programs_app_sh_mangler_test_4->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_5 = fl_string_from_cstr("run");
+    _fl_str_tests_programs_app_sh_mangler_test_5->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_6 = fl_string_from_cstr("main");
+    _fl_str_tests_programs_app_sh_mangler_test_6->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_7 = fl_string_from_cstr("generate");
+    _fl_str_tests_programs_app_sh_mangler_test_7->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_8 = fl_string_from_cstr("process");
+    _fl_str_tests_programs_app_sh_mangler_test_8->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_9 = fl_string_from_cstr("sort");
+    _fl_str_tests_programs_app_sh_mangler_test_9->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_10 = fl_string_from_cstr("domain.order");
+    _fl_str_tests_programs_app_sh_mangler_test_10->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_11 = fl_string_from_cstr("ParseError");
+    _fl_str_tests_programs_app_sh_mangler_test_11->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_12 = fl_string_from_cstr("math");
+    _fl_str_tests_programs_app_sh_mangler_test_12->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_13 = fl_string_from_cstr("min");
+    _fl_str_tests_programs_app_sh_mangler_test_13->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_14 = fl_string_from_cstr("int");
+    _fl_str_tests_programs_app_sh_mangler_test_14->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_15 = fl_string_from_cstr("testing");
+    _fl_str_tests_programs_app_sh_mangler_test_15->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_16 = fl_string_from_cstr("assert_eq");
+    _fl_str_tests_programs_app_sh_mangler_test_16->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_17 = fl_string_from_cstr("string");
+    _fl_str_tests_programs_app_sh_mangler_test_17->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_18 = fl_string_from_cstr("none");
+    _fl_str_tests_programs_app_sh_mangler_test_18->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_19 = fl_string_from_cstr("bool");
+    _fl_str_tests_programs_app_sh_mangler_test_19->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_20 = fl_string_from_cstr("int is reserved");
+    _fl_str_tests_programs_app_sh_mangler_test_20->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_21 = fl_string_from_cstr("foo");
+    _fl_str_tests_programs_app_sh_mangler_test_21->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_22 = fl_string_from_cstr("foo is not reserved");
+    _fl_str_tests_programs_app_sh_mangler_test_22->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_23 = fl_string_from_cstr("int is builtin");
+    _fl_str_tests_programs_app_sh_mangler_test_23->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_24 = fl_string_from_cstr("Vec3 is not builtin");
+    _fl_str_tests_programs_app_sh_mangler_test_24->refcount = 2147483647;
+    _fl_str_tests_programs_app_sh_mangler_test_25 = fl_string_from_cstr("ok");
+    _fl_str_tests_programs_app_sh_mangler_test_25->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_programs_app_sh_mangler_test_main();
     return 0;
 }

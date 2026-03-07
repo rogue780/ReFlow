@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -505,12 +512,14 @@ FL_Array* fl_file_read_lines(FL_File* f) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -520,6 +529,22 @@ FL_String* fl_conv_to_string__int(fl_int val);
 
 fl_int fl_tests_file_read_lines_test_main(void);
 
+FL_String* _fl_str_tests_file_read_lines_test_0 = NULL;
+
+FL_String* _fl_str_tests_file_read_lines_test_1 = NULL;
+
+FL_String* _fl_str_tests_file_read_lines_test_2 = NULL;
+
+FL_String* _fl_str_tests_file_read_lines_test_3 = NULL;
+
+FL_String* _fl_str_tests_file_read_lines_test_4 = NULL;
+
+FL_String* _fl_str_tests_file_read_lines_test_5 = NULL;
+
+FL_String* _fl_str_tests_file_read_lines_test_6 = NULL;
+
+FL_String* _fl_str_tests_file_read_lines_test_7 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -527,43 +552,67 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 
 /* Flow: tests.file_read_lines_test.main */
 fl_int fl_tests_file_read_lines_test_main(void) {
-    FL_String* tmp = fl_tmpfile_create(fl_string_from_cstr(".txt"), fl_string_from_cstr("line1\nline2\nline3\n"));
+    FL_String* tmp = fl_tmpfile_create(_fl_str_tests_file_read_lines_test_0, _fl_str_tests_file_read_lines_test_1);
     FL_Option_ptr _fl_tmp_0 = fl_file_open_read(tmp);
     if (_fl_tmp_0.tag == 1) {
         void* f = _fl_tmp_0.value;
         FL_Array* lines = fl_file_read_lines(f);
         fl_println(fl_conv_to_string__int(fl_array_len_int(lines)));
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(lines, 0);
-        fl_println(((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("?")));
+        fl_println(((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_tests_file_read_lines_test_2));
         FL_Option_ptr _fl_tmp_2 = fl_array_get_safe(lines, 1);
-        fl_println(((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : fl_string_from_cstr("?")));
+        fl_println(((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : _fl_str_tests_file_read_lines_test_2));
         FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(lines, 2);
-        fl_println(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr("?")));
+        fl_println(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : _fl_str_tests_file_read_lines_test_2));
         fl_file_close(f);
     } else {
-        fl_println(fl_string_from_cstr("open failed"));
+        fl_println(_fl_str_tests_file_read_lines_test_3);
     }
     FL_Option_ptr _fl_tmp_4 = fl_io_read_file_lines(tmp);
     if (_fl_tmp_4.tag == 1) {
         FL_Array* lines = _fl_tmp_4.value;
         fl_println(fl_conv_to_string__int(fl_array_len_int(lines)));
     } else {
-        fl_println(fl_string_from_cstr("read_file_lines failed"));
+        fl_println(_fl_str_tests_file_read_lines_test_4);
     }
-    FL_Option_ptr _fl_tmp_5 = fl_io_read_file_lines(fl_string_from_cstr("/nonexistent_file_12345.txt"));
+    FL_Option_ptr _fl_tmp_5 = fl_io_read_file_lines(_fl_str_tests_file_read_lines_test_5);
     if (_fl_tmp_5.tag == 1) {
         FL_Array* lines = _fl_tmp_5.value;
-        fl_println(fl_string_from_cstr("unexpected"));
+        fl_println(_fl_str_tests_file_read_lines_test_6);
     } else {
-        fl_println(fl_string_from_cstr("none"));
+        fl_println(_fl_str_tests_file_read_lines_test_7);
     }
     fl_tmpfile_remove(tmp);
     return 0;
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_file_read_lines_test_0 = fl_string_from_cstr(".txt");
+    _fl_str_tests_file_read_lines_test_0->refcount = 2147483647;
+    _fl_str_tests_file_read_lines_test_1 = fl_string_from_cstr("line1\nline2\nline3\n");
+    _fl_str_tests_file_read_lines_test_1->refcount = 2147483647;
+    _fl_str_tests_file_read_lines_test_2 = fl_string_from_cstr("?");
+    _fl_str_tests_file_read_lines_test_2->refcount = 2147483647;
+    _fl_str_tests_file_read_lines_test_3 = fl_string_from_cstr("open failed");
+    _fl_str_tests_file_read_lines_test_3->refcount = 2147483647;
+    _fl_str_tests_file_read_lines_test_4 = fl_string_from_cstr("read_file_lines failed");
+    _fl_str_tests_file_read_lines_test_4->refcount = 2147483647;
+    _fl_str_tests_file_read_lines_test_5 = fl_string_from_cstr("/nonexistent_file_12345.txt");
+    _fl_str_tests_file_read_lines_test_5->refcount = 2147483647;
+    _fl_str_tests_file_read_lines_test_6 = fl_string_from_cstr("unexpected");
+    _fl_str_tests_file_read_lines_test_6->refcount = 2147483647;
+    _fl_str_tests_file_read_lines_test_7 = fl_string_from_cstr("none");
+    _fl_str_tests_file_read_lines_test_7->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_file_read_lines_test_main();
     return 0;
 }

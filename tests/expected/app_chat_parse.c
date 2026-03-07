@@ -4,18 +4,25 @@
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -25,12 +32,14 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -53,14 +62,98 @@ struct FL_Tuple_FL_String_ptr_FL_String_ptr {
     FL_String* _1;
 };
 
+FL_String* _fl_str_tests_app_chat_parse_0 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_1 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_2 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_3 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_4 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_5 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_6 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_7 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_8 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_9 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_10 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_11 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_12 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_13 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_14 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_15 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_16 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_17 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_18 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_19 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_20 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_21 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_22 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_23 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_24 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_25 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_26 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_27 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_28 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_29 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_30 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_31 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_32 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_33 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_34 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_35 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_36 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_37 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_38 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_39 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_40 = NULL;
+
+FL_String* _fl_str_tests_app_chat_parse_41 = NULL;
+
 /* Flow: tests.app_chat_parse.parse_message */
 FL_Tuple_FL_String_ptr_FL_String_ptr fl_tests_app_chat_parse_parse_message(FL_String* raw) {
     FL_String* trimmed = fl_string_trim(raw);
     if (fl_string_len(trimmed) == 0) {
-        return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = fl_string_from_cstr("/empty"), ._1 = fl_string_from_cstr("")};
+        return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = _fl_str_tests_app_chat_parse_0, ._1 = _fl_str_tests_app_chat_parse_1};
     }
-    if (fl_string_starts_with(trimmed, fl_string_from_cstr("/"))) {
-        FL_Option_int _fl_tmp_0 = fl_string_index_of(trimmed, fl_string_from_cstr(" "));
+    if (fl_string_starts_with(trimmed, _fl_str_tests_app_chat_parse_2)) {
+        FL_Option_int _fl_tmp_0 = fl_string_index_of(trimmed, _fl_str_tests_app_chat_parse_3);
         if (_fl_tmp_0.tag == 1) {
             fl_int idx = _fl_tmp_0.value;
             FL_String* cmd = fl_string_substring(trimmed, 0, idx);
@@ -69,22 +162,25 @@ FL_Tuple_FL_String_ptr_FL_String_ptr fl_tests_app_chat_parse_parse_message(FL_St
             FL_String* arg = fl_string_trim(fl_string_substring(trimmed, _fl_e_1, fl_string_len(trimmed)));
             return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = cmd, ._1 = arg};
         } else {
-            return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = trimmed, ._1 = fl_string_from_cstr("")};
+            return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = trimmed, ._1 = _fl_str_tests_app_chat_parse_1};
         }
     }
-    return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = fl_string_from_cstr("/say"), ._1 = trimmed};
+    return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = _fl_str_tests_app_chat_parse_4, ._1 = trimmed};
 }
 
 /* Flow: tests.app_chat_parse.validate_nick */
 FL_Option_ptr fl_tests_app_chat_parse_validate_nick(FL_String* name) {
     if (fl_string_len(name) == 0) {
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_from_cstr("Nickname cannot be empty.")};
+        fl_string_retain(_fl_str_tests_app_chat_parse_5);
+        return (FL_Option_ptr){.tag = 1, .value = _fl_str_tests_app_chat_parse_5};
     }
     if (fl_string_len(name) > 20) {
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_from_cstr("Nickname too long (max 20 chars).")};
+        fl_string_retain(_fl_str_tests_app_chat_parse_6);
+        return (FL_Option_ptr){.tag = 1, .value = _fl_str_tests_app_chat_parse_6};
     }
-    if (fl_string_contains(name, fl_string_from_cstr(" "))) {
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_from_cstr("Nickname cannot contain spaces.")};
+    if (fl_string_contains(name, _fl_str_tests_app_chat_parse_3)) {
+        fl_string_retain(_fl_str_tests_app_chat_parse_7);
+        return (FL_Option_ptr){.tag = 1, .value = _fl_str_tests_app_chat_parse_7};
     }
     return (FL_Option_ptr){.tag = 0};
 }
@@ -93,9 +189,9 @@ FL_Option_ptr fl_tests_app_chat_parse_validate_nick(FL_String* name) {
 void fl_tests_app_chat_parse_test_parse(FL_String* input, FL_String* expected_cmd, FL_String* expected_arg) {
     FL_Tuple_FL_String_ptr_FL_String_ptr result = fl_tests_app_chat_parse_parse_message(input);
     if (fl_string_eq(result._0, expected_cmd) && fl_string_eq(result._1, expected_arg)) {
-        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("PASS: \""), input), fl_string_from_cstr("\" -> (")), result._0), fl_string_from_cstr(", ")), result._1), fl_string_from_cstr(")")));
+        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_8, input), _fl_str_tests_app_chat_parse_9), result._0), _fl_str_tests_app_chat_parse_10), result._1), _fl_str_tests_app_chat_parse_11));
     } else {
-        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("FAIL: \""), input), fl_string_from_cstr("\" expected (")), expected_cmd), fl_string_from_cstr(", ")), expected_arg), fl_string_from_cstr(") got (")), result._0), fl_string_from_cstr(", ")), result._1), fl_string_from_cstr(")")));
+        fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_12, input), _fl_str_tests_app_chat_parse_13), expected_cmd), _fl_str_tests_app_chat_parse_10), expected_arg), _fl_str_tests_app_chat_parse_14), result._0), _fl_str_tests_app_chat_parse_10), result._1), _fl_str_tests_app_chat_parse_11));
     }
 }
 
@@ -105,47 +201,139 @@ void fl_tests_app_chat_parse_test_nick(FL_String* input, fl_bool expect_ok) {
     if (_fl_tmp_1.tag == 1) {
         FL_String* reason = _fl_tmp_1.value;
         if (!expect_ok) {
-            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("PASS: validate_nick(\""), input), fl_string_from_cstr("\") -> error: ")), reason));
+            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_15, input), _fl_str_tests_app_chat_parse_16), reason));
         } else {
-            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(fl_string_from_cstr("FAIL: validate_nick(\""), input), fl_string_from_cstr("\") expected ok, got: ")), reason));
+            fl_println(fl_string_concat(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_17, input), _fl_str_tests_app_chat_parse_18), reason));
         }
     } else {
         if (expect_ok) {
-            fl_println(fl_string_concat(fl_string_concat(fl_string_from_cstr("PASS: validate_nick(\""), input), fl_string_from_cstr("\") -> ok")));
+            fl_println(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_15, input), _fl_str_tests_app_chat_parse_19));
         } else {
-            fl_println(fl_string_concat(fl_string_concat(fl_string_from_cstr("FAIL: validate_nick(\""), input), fl_string_from_cstr("\") expected error, got ok")));
+            fl_println(fl_string_concat(fl_string_concat(_fl_str_tests_app_chat_parse_17, input), _fl_str_tests_app_chat_parse_20));
         }
     }
 }
 
 /* Flow: tests.app_chat_parse.main */
 void fl_tests_app_chat_parse_main(void) {
-    fl_println(fl_string_from_cstr("=== parse_message tests ==="));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("hello"), fl_string_from_cstr("/say"), fl_string_from_cstr("hello"));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("hello world"), fl_string_from_cstr("/say"), fl_string_from_cstr("hello world"));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("/help"), fl_string_from_cstr("/help"), fl_string_from_cstr(""));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("/quit"), fl_string_from_cstr("/quit"), fl_string_from_cstr(""));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("/nick bob"), fl_string_from_cstr("/nick"), fl_string_from_cstr("bob"));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("/nick  alice "), fl_string_from_cstr("/nick"), fl_string_from_cstr("alice"));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("/say hi there"), fl_string_from_cstr("/say"), fl_string_from_cstr("hi there"));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr(""), fl_string_from_cstr("/empty"), fl_string_from_cstr(""));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("  "), fl_string_from_cstr("/empty"), fl_string_from_cstr(""));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("/"), fl_string_from_cstr("/"), fl_string_from_cstr(""));
-    fl_tests_app_chat_parse_test_parse(fl_string_from_cstr("/ "), fl_string_from_cstr("/"), fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== validate_nick tests ==="));
-    fl_tests_app_chat_parse_test_nick(fl_string_from_cstr("alice"), fl_true);
-    fl_tests_app_chat_parse_test_nick(fl_string_from_cstr("bob123"), fl_true);
-    fl_tests_app_chat_parse_test_nick(fl_string_from_cstr("a"), fl_true);
-    fl_tests_app_chat_parse_test_nick(fl_string_from_cstr("twelve_chars_ok!"), fl_true);
-    fl_tests_app_chat_parse_test_nick(fl_string_from_cstr(""), fl_false);
-    fl_tests_app_chat_parse_test_nick(fl_string_from_cstr("has space"), fl_false);
-    fl_tests_app_chat_parse_test_nick(fl_string_from_cstr("this_name_is_way_too_long_for_a_nickname"), fl_false);
-    fl_println(fl_string_from_cstr("done"));
+    fl_println(_fl_str_tests_app_chat_parse_21);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_22, _fl_str_tests_app_chat_parse_4, _fl_str_tests_app_chat_parse_22);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_23, _fl_str_tests_app_chat_parse_4, _fl_str_tests_app_chat_parse_23);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_24, _fl_str_tests_app_chat_parse_24, _fl_str_tests_app_chat_parse_1);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_25, _fl_str_tests_app_chat_parse_25, _fl_str_tests_app_chat_parse_1);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_26, _fl_str_tests_app_chat_parse_27, _fl_str_tests_app_chat_parse_28);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_29, _fl_str_tests_app_chat_parse_27, _fl_str_tests_app_chat_parse_30);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_31, _fl_str_tests_app_chat_parse_4, _fl_str_tests_app_chat_parse_32);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_1, _fl_str_tests_app_chat_parse_0, _fl_str_tests_app_chat_parse_1);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_33, _fl_str_tests_app_chat_parse_0, _fl_str_tests_app_chat_parse_1);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_2, _fl_str_tests_app_chat_parse_2, _fl_str_tests_app_chat_parse_1);
+    fl_tests_app_chat_parse_test_parse(_fl_str_tests_app_chat_parse_34, _fl_str_tests_app_chat_parse_2, _fl_str_tests_app_chat_parse_1);
+    fl_println(_fl_str_tests_app_chat_parse_35);
+    fl_tests_app_chat_parse_test_nick(_fl_str_tests_app_chat_parse_30, fl_true);
+    fl_tests_app_chat_parse_test_nick(_fl_str_tests_app_chat_parse_36, fl_true);
+    fl_tests_app_chat_parse_test_nick(_fl_str_tests_app_chat_parse_37, fl_true);
+    fl_tests_app_chat_parse_test_nick(_fl_str_tests_app_chat_parse_38, fl_true);
+    fl_tests_app_chat_parse_test_nick(_fl_str_tests_app_chat_parse_1, fl_false);
+    fl_tests_app_chat_parse_test_nick(_fl_str_tests_app_chat_parse_39, fl_false);
+    fl_tests_app_chat_parse_test_nick(_fl_str_tests_app_chat_parse_40, fl_false);
+    fl_println(_fl_str_tests_app_chat_parse_41);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_0 = fl_string_from_cstr("/empty");
+    _fl_str_tests_app_chat_parse_0->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_1 = fl_string_from_cstr("");
+    _fl_str_tests_app_chat_parse_1->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_2 = fl_string_from_cstr("/");
+    _fl_str_tests_app_chat_parse_2->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_3 = fl_string_from_cstr(" ");
+    _fl_str_tests_app_chat_parse_3->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_4 = fl_string_from_cstr("/say");
+    _fl_str_tests_app_chat_parse_4->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_5 = fl_string_from_cstr("Nickname cannot be empty.");
+    _fl_str_tests_app_chat_parse_5->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_6 = fl_string_from_cstr("Nickname too long (max 20 chars).");
+    _fl_str_tests_app_chat_parse_6->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_7 = fl_string_from_cstr("Nickname cannot contain spaces.");
+    _fl_str_tests_app_chat_parse_7->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_8 = fl_string_from_cstr("PASS: \"");
+    _fl_str_tests_app_chat_parse_8->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_9 = fl_string_from_cstr("\" -> (");
+    _fl_str_tests_app_chat_parse_9->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_10 = fl_string_from_cstr(", ");
+    _fl_str_tests_app_chat_parse_10->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_11 = fl_string_from_cstr(")");
+    _fl_str_tests_app_chat_parse_11->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_12 = fl_string_from_cstr("FAIL: \"");
+    _fl_str_tests_app_chat_parse_12->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_13 = fl_string_from_cstr("\" expected (");
+    _fl_str_tests_app_chat_parse_13->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_14 = fl_string_from_cstr(") got (");
+    _fl_str_tests_app_chat_parse_14->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_15 = fl_string_from_cstr("PASS: validate_nick(\"");
+    _fl_str_tests_app_chat_parse_15->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_16 = fl_string_from_cstr("\") -> error: ");
+    _fl_str_tests_app_chat_parse_16->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_17 = fl_string_from_cstr("FAIL: validate_nick(\"");
+    _fl_str_tests_app_chat_parse_17->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_18 = fl_string_from_cstr("\") expected ok, got: ");
+    _fl_str_tests_app_chat_parse_18->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_19 = fl_string_from_cstr("\") -> ok");
+    _fl_str_tests_app_chat_parse_19->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_20 = fl_string_from_cstr("\") expected error, got ok");
+    _fl_str_tests_app_chat_parse_20->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_21 = fl_string_from_cstr("=== parse_message tests ===");
+    _fl_str_tests_app_chat_parse_21->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_22 = fl_string_from_cstr("hello");
+    _fl_str_tests_app_chat_parse_22->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_23 = fl_string_from_cstr("hello world");
+    _fl_str_tests_app_chat_parse_23->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_24 = fl_string_from_cstr("/help");
+    _fl_str_tests_app_chat_parse_24->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_25 = fl_string_from_cstr("/quit");
+    _fl_str_tests_app_chat_parse_25->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_26 = fl_string_from_cstr("/nick bob");
+    _fl_str_tests_app_chat_parse_26->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_27 = fl_string_from_cstr("/nick");
+    _fl_str_tests_app_chat_parse_27->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_28 = fl_string_from_cstr("bob");
+    _fl_str_tests_app_chat_parse_28->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_29 = fl_string_from_cstr("/nick  alice ");
+    _fl_str_tests_app_chat_parse_29->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_30 = fl_string_from_cstr("alice");
+    _fl_str_tests_app_chat_parse_30->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_31 = fl_string_from_cstr("/say hi there");
+    _fl_str_tests_app_chat_parse_31->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_32 = fl_string_from_cstr("hi there");
+    _fl_str_tests_app_chat_parse_32->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_33 = fl_string_from_cstr("  ");
+    _fl_str_tests_app_chat_parse_33->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_34 = fl_string_from_cstr("/ ");
+    _fl_str_tests_app_chat_parse_34->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_35 = fl_string_from_cstr("=== validate_nick tests ===");
+    _fl_str_tests_app_chat_parse_35->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_36 = fl_string_from_cstr("bob123");
+    _fl_str_tests_app_chat_parse_36->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_37 = fl_string_from_cstr("a");
+    _fl_str_tests_app_chat_parse_37->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_38 = fl_string_from_cstr("twelve_chars_ok!");
+    _fl_str_tests_app_chat_parse_38->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_39 = fl_string_from_cstr("has space");
+    _fl_str_tests_app_chat_parse_39->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_40 = fl_string_from_cstr("this_name_is_way_too_long_for_a_nickname");
+    _fl_str_tests_app_chat_parse_40->refcount = 2147483647;
+    _fl_str_tests_app_chat_parse_41 = fl_string_from_cstr("done");
+    _fl_str_tests_app_chat_parse_41->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_chat_parse_main();
     return 0;
 }

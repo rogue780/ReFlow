@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,53 +490,109 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
 }
 
+FL_String* _fl_str_tests_stdlib_generic_array_0 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_1 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_2 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_3 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_4 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_5 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_6 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_7 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_8 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_9 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_10 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_11 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_12 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_13 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_14 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_15 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_16 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_17 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_18 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_19 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_20 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_21 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_22 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_23 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_24 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_25 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_array_26 = NULL;
+
 /* Flow: tests.stdlib_generic_array.main */
 void fl_tests_stdlib_generic_array_main(void) {
     FL_Array* strs = fl_array_new(0, 0, NULL);
     FL_Array* _fl_old_0 = strs;
-    strs = fl_array_push_ptr(strs, fl_string_from_cstr("hello"));
+    strs = fl_array_push_ptr(strs, _fl_str_tests_stdlib_generic_array_0);
     if (_fl_old_0 != strs) {
         fl_array_release(_fl_old_0);
     }
     FL_Array* _fl_old_1 = strs;
-    strs = fl_array_push_ptr(strs, fl_string_from_cstr("world"));
+    strs = fl_array_push_ptr(strs, _fl_str_tests_stdlib_generic_array_1);
     if (_fl_old_1 != strs) {
         fl_array_release(_fl_old_1);
     }
-    FL_String* _fl_tmp_2 = fl_string_from_cstr("size=");
+    FL_String* _fl_tmp_2 = _fl_str_tests_stdlib_generic_array_2;
     FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(fl_array_len_int(strs)));
     fl_string_release(_fl_tmp_2);
     fl_println(_fl_tmp_3);
     FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(strs, 0);
     if (_fl_tmp_4.tag == 1) {
         FL_String* v = _fl_tmp_4.value;
-        FL_String* _fl_tmp_5 = fl_string_from_cstr("strs[0]=");
+        FL_String* _fl_tmp_5 = _fl_str_tests_stdlib_generic_array_3;
         FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, v);
         fl_string_release(_fl_tmp_5);
         fl_println(_fl_tmp_6);
     } else {
-        fl_println(fl_string_from_cstr("strs[0]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_4);
     }
     FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(strs, 1);
     if (_fl_tmp_7.tag == 1) {
         FL_String* v = _fl_tmp_7.value;
-        FL_String* _fl_tmp_8 = fl_string_from_cstr("strs[1]=");
+        FL_String* _fl_tmp_8 = _fl_str_tests_stdlib_generic_array_5;
         FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, v);
         fl_string_release(_fl_tmp_8);
         fl_println(_fl_tmp_9);
     } else {
-        fl_println(fl_string_from_cstr("strs[1]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_6);
     }
     FL_Array* nums = fl_array_new(0, 0, NULL);
     FL_Array* _fl_old_10 = nums;
@@ -547,29 +610,29 @@ void fl_tests_stdlib_generic_array_main(void) {
     if (_fl_old_12 != nums) {
         fl_array_release(_fl_old_12);
     }
-    FL_String* _fl_tmp_13 = fl_string_from_cstr("nums size=");
+    FL_String* _fl_tmp_13 = _fl_str_tests_stdlib_generic_array_7;
     FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, fl_int_to_string(fl_array_len_int(nums)));
     fl_string_release(_fl_tmp_13);
     fl_println(_fl_tmp_14);
     FL_Option_int _fl_tmp_15 = fl_array_get_int(nums, 0);
     if (_fl_tmp_15.tag == 1) {
         fl_int v = _fl_tmp_15.value;
-        FL_String* _fl_tmp_16 = fl_string_from_cstr("nums[0]=");
+        FL_String* _fl_tmp_16 = _fl_str_tests_stdlib_generic_array_8;
         FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, fl_int_to_string(v));
         fl_string_release(_fl_tmp_16);
         fl_println(_fl_tmp_17);
     } else {
-        fl_println(fl_string_from_cstr("nums[0]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_9);
     }
     FL_Option_int _fl_tmp_18 = fl_array_get_int(nums, 2);
     if (_fl_tmp_18.tag == 1) {
         fl_int v = _fl_tmp_18.value;
-        FL_String* _fl_tmp_19 = fl_string_from_cstr("nums[2]=");
+        FL_String* _fl_tmp_19 = _fl_str_tests_stdlib_generic_array_10;
         FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, fl_int_to_string(v));
         fl_string_release(_fl_tmp_19);
         fl_println(_fl_tmp_20);
     } else {
-        fl_println(fl_string_from_cstr("nums[2]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_11);
     }
     FL_Array* floats = fl_array_new(0, 0, NULL);
     FL_Array* _fl_old_21 = floats;
@@ -582,56 +645,56 @@ void fl_tests_stdlib_generic_array_main(void) {
     if (_fl_old_22 != floats) {
         fl_array_release(_fl_old_22);
     }
-    FL_String* _fl_tmp_23 = fl_string_from_cstr("floats size=");
+    FL_String* _fl_tmp_23 = _fl_str_tests_stdlib_generic_array_12;
     FL_String* _fl_tmp_24 = fl_string_concat(_fl_tmp_23, fl_int_to_string(fl_array_len_int(floats)));
     fl_string_release(_fl_tmp_23);
     fl_println(_fl_tmp_24);
     FL_Option_float _fl_tmp_25 = fl_array_get_float(floats, 0);
     if (_fl_tmp_25.tag == 1) {
         fl_float v = _fl_tmp_25.value;
-        FL_String* _fl_tmp_26 = fl_string_from_cstr("floats[0]=");
+        FL_String* _fl_tmp_26 = _fl_str_tests_stdlib_generic_array_13;
         FL_String* _fl_tmp_27 = fl_string_concat(_fl_tmp_26, fl_float_to_string(v));
         fl_string_release(_fl_tmp_26);
         fl_println(_fl_tmp_27);
     } else {
-        fl_println(fl_string_from_cstr("floats[0]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_14);
     }
     FL_Array* a = fl_array_new(0, 0, NULL);
     FL_Array* _fl_old_28 = a;
-    a = fl_array_push_ptr(a, fl_string_from_cstr("a"));
+    a = fl_array_push_ptr(a, _fl_str_tests_stdlib_generic_array_15);
     if (_fl_old_28 != a) {
         fl_array_release(_fl_old_28);
     }
     FL_Array* b = fl_array_new(0, 0, NULL);
     FL_Array* _fl_old_29 = b;
-    b = fl_array_push_ptr(b, fl_string_from_cstr("b"));
+    b = fl_array_push_ptr(b, _fl_str_tests_stdlib_generic_array_16);
     if (_fl_old_29 != b) {
         fl_array_release(_fl_old_29);
     }
     FL_Array* ab = fl_array_concat(a, b);
-    FL_String* _fl_tmp_30 = fl_string_from_cstr("concat size=");
+    FL_String* _fl_tmp_30 = _fl_str_tests_stdlib_generic_array_17;
     FL_String* _fl_tmp_31 = fl_string_concat(_fl_tmp_30, fl_int_to_string(fl_array_len_int(ab)));
     fl_string_release(_fl_tmp_30);
     fl_println(_fl_tmp_31);
     FL_Option_ptr _fl_tmp_32 = fl_array_get_safe(ab, 0);
     if (_fl_tmp_32.tag == 1) {
         FL_String* v = _fl_tmp_32.value;
-        FL_String* _fl_tmp_33 = fl_string_from_cstr("ab[0]=");
+        FL_String* _fl_tmp_33 = _fl_str_tests_stdlib_generic_array_18;
         FL_String* _fl_tmp_34 = fl_string_concat(_fl_tmp_33, v);
         fl_string_release(_fl_tmp_33);
         fl_println(_fl_tmp_34);
     } else {
-        fl_println(fl_string_from_cstr("ab[0]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_19);
     }
     FL_Option_ptr _fl_tmp_35 = fl_array_get_safe(ab, 1);
     if (_fl_tmp_35.tag == 1) {
         FL_String* v = _fl_tmp_35.value;
-        FL_String* _fl_tmp_36 = fl_string_from_cstr("ab[1]=");
+        FL_String* _fl_tmp_36 = _fl_str_tests_stdlib_generic_array_20;
         FL_String* _fl_tmp_37 = fl_string_concat(_fl_tmp_36, v);
         fl_string_release(_fl_tmp_36);
         fl_println(_fl_tmp_37);
     } else {
-        fl_println(fl_string_from_cstr("ab[1]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_21);
     }
     FL_Array* bools = fl_array_new(0, 0, NULL);
     FL_Array* _fl_old_38 = bools;
@@ -644,35 +707,97 @@ void fl_tests_stdlib_generic_array_main(void) {
     if (_fl_old_39 != bools) {
         fl_array_release(_fl_old_39);
     }
-    FL_String* _fl_tmp_40 = fl_string_from_cstr("bools size=");
+    FL_String* _fl_tmp_40 = _fl_str_tests_stdlib_generic_array_22;
     FL_String* _fl_tmp_41 = fl_string_concat(_fl_tmp_40, fl_int_to_string(fl_array_len_int(bools)));
     fl_string_release(_fl_tmp_40);
     fl_println(_fl_tmp_41);
     FL_Option_bool _fl_tmp_42 = fl_array_get_bool(bools, 0);
     if (_fl_tmp_42.tag == 1) {
         fl_bool v = _fl_tmp_42.value;
-        FL_String* _fl_tmp_43 = fl_string_from_cstr("bools[0]=");
+        FL_String* _fl_tmp_43 = _fl_str_tests_stdlib_generic_array_23;
         FL_String* _fl_tmp_44 = fl_string_concat(_fl_tmp_43, fl_bool_to_string(v));
         fl_string_release(_fl_tmp_43);
         fl_println(_fl_tmp_44);
     } else {
-        fl_println(fl_string_from_cstr("bools[0]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_24);
     }
     FL_Option_bool _fl_tmp_45 = fl_array_get_bool(bools, 1);
     if (_fl_tmp_45.tag == 1) {
         fl_bool v = _fl_tmp_45.value;
-        FL_String* _fl_tmp_46 = fl_string_from_cstr("bools[1]=");
+        FL_String* _fl_tmp_46 = _fl_str_tests_stdlib_generic_array_25;
         FL_String* _fl_tmp_47 = fl_string_concat(_fl_tmp_46, fl_bool_to_string(v));
         fl_string_release(_fl_tmp_46);
         fl_println(_fl_tmp_47);
     } else {
-        fl_println(fl_string_from_cstr("bools[1]=none"));
+        fl_println(_fl_str_tests_stdlib_generic_array_26);
     }
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_0 = fl_string_from_cstr("hello");
+    _fl_str_tests_stdlib_generic_array_0->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_1 = fl_string_from_cstr("world");
+    _fl_str_tests_stdlib_generic_array_1->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_2 = fl_string_from_cstr("size=");
+    _fl_str_tests_stdlib_generic_array_2->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_3 = fl_string_from_cstr("strs[0]=");
+    _fl_str_tests_stdlib_generic_array_3->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_4 = fl_string_from_cstr("strs[0]=none");
+    _fl_str_tests_stdlib_generic_array_4->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_5 = fl_string_from_cstr("strs[1]=");
+    _fl_str_tests_stdlib_generic_array_5->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_6 = fl_string_from_cstr("strs[1]=none");
+    _fl_str_tests_stdlib_generic_array_6->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_7 = fl_string_from_cstr("nums size=");
+    _fl_str_tests_stdlib_generic_array_7->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_8 = fl_string_from_cstr("nums[0]=");
+    _fl_str_tests_stdlib_generic_array_8->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_9 = fl_string_from_cstr("nums[0]=none");
+    _fl_str_tests_stdlib_generic_array_9->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_10 = fl_string_from_cstr("nums[2]=");
+    _fl_str_tests_stdlib_generic_array_10->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_11 = fl_string_from_cstr("nums[2]=none");
+    _fl_str_tests_stdlib_generic_array_11->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_12 = fl_string_from_cstr("floats size=");
+    _fl_str_tests_stdlib_generic_array_12->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_13 = fl_string_from_cstr("floats[0]=");
+    _fl_str_tests_stdlib_generic_array_13->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_14 = fl_string_from_cstr("floats[0]=none");
+    _fl_str_tests_stdlib_generic_array_14->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_15 = fl_string_from_cstr("a");
+    _fl_str_tests_stdlib_generic_array_15->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_16 = fl_string_from_cstr("b");
+    _fl_str_tests_stdlib_generic_array_16->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_17 = fl_string_from_cstr("concat size=");
+    _fl_str_tests_stdlib_generic_array_17->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_18 = fl_string_from_cstr("ab[0]=");
+    _fl_str_tests_stdlib_generic_array_18->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_19 = fl_string_from_cstr("ab[0]=none");
+    _fl_str_tests_stdlib_generic_array_19->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_20 = fl_string_from_cstr("ab[1]=");
+    _fl_str_tests_stdlib_generic_array_20->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_21 = fl_string_from_cstr("ab[1]=none");
+    _fl_str_tests_stdlib_generic_array_21->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_22 = fl_string_from_cstr("bools size=");
+    _fl_str_tests_stdlib_generic_array_22->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_23 = fl_string_from_cstr("bools[0]=");
+    _fl_str_tests_stdlib_generic_array_23->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_24 = fl_string_from_cstr("bools[0]=none");
+    _fl_str_tests_stdlib_generic_array_24->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_25 = fl_string_from_cstr("bools[1]=");
+    _fl_str_tests_stdlib_generic_array_25->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_array_26 = fl_string_from_cstr("bools[1]=none");
+    _fl_str_tests_stdlib_generic_array_26->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_stdlib_generic_array_main();
     return 0;
 }

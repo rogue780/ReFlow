@@ -3706,7 +3706,7 @@ fl_bool fl_map_has_str(FL_Map* m, FL_String* key) {
 }
 
 FL_Map* fl_map_remove_str(FL_Map* m, FL_String* key) {
-    if (!m || !key) return m;
+    if (!m || !key) { fl_map_retain(m); return m; }
     /* Find and unoccupy the entry */
     uint64_t hash = 14695981039346656037ULL;
     for (fl_int64 i = 0; i < key->len; i++) {
@@ -3724,6 +3724,11 @@ FL_Map* fl_map_remove_str(FL_Map* m, FL_String* key) {
         }
         idx = (idx + 1) % m->capacity;
     }
+    /* Bump refcount: caller gets a new reference to the same map.
+     * This matches fl_map_set's convention of returning a value the
+     * caller "owns", allowing scope-exit cleanup to release it
+     * without double-freeing an aliased pointer. */
+    fl_map_retain(m);
     return m;
 }
 

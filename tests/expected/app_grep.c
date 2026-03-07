@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -505,12 +512,14 @@ FL_Array* fl_file_read_lines(FL_File* f) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -532,6 +541,68 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
 
 void fl_tests_app_grep_main(void);
 
+FL_String* _fl_str_tests_app_grep_0 = NULL;
+
+FL_String* _fl_str_tests_app_grep_1 = NULL;
+
+FL_String* _fl_str_tests_app_grep_2 = NULL;
+
+FL_String* _fl_str_tests_app_grep_3 = NULL;
+
+FL_String* _fl_str_tests_app_grep_4 = NULL;
+
+FL_String* _fl_str_tests_app_grep_5 = NULL;
+
+FL_String* _fl_str_tests_app_grep_6 = NULL;
+
+FL_String* _fl_str_tests_app_grep_7 = NULL;
+
+FL_String* _fl_str_tests_app_grep_8 = NULL;
+
+FL_String* _fl_str_tests_app_grep_9 = NULL;
+
+FL_String* _fl_str_tests_app_grep_10 = NULL;
+
+FL_String* _fl_str_tests_app_grep_11 = NULL;
+
+FL_String* _fl_str_tests_app_grep_12 = NULL;
+
+FL_String* _fl_str_tests_app_grep_13 = NULL;
+
+FL_String* _fl_str_tests_app_grep_14 = NULL;
+
+FL_String* _fl_str_tests_app_grep_15 = NULL;
+
+FL_String* _fl_str_tests_app_grep_16 = NULL;
+
+FL_String* _fl_str_tests_app_grep_17 = NULL;
+
+FL_String* _fl_str_tests_app_grep_18 = NULL;
+
+FL_String* _fl_str_tests_app_grep_19 = NULL;
+
+FL_String* _fl_str_tests_app_grep_20 = NULL;
+
+FL_String* _fl_str_tests_app_grep_21 = NULL;
+
+FL_String* _fl_str_tests_app_grep_22 = NULL;
+
+FL_String* _fl_str_tests_app_grep_23 = NULL;
+
+FL_String* _fl_str_tests_app_grep_24 = NULL;
+
+FL_String* _fl_str_tests_app_grep_25 = NULL;
+
+FL_String* _fl_str_tests_app_grep_26 = NULL;
+
+FL_String* _fl_str_tests_app_grep_27 = NULL;
+
+FL_String* _fl_str_tests_app_grep_28 = NULL;
+
+FL_String* _fl_str_tests_app_grep_29 = NULL;
+
+FL_String* _fl_str_tests_app_grep_30 = NULL;
+
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
@@ -545,10 +616,20 @@ FL_String* fl_conv_to_string__bool(fl_bool val) {
 /* Flow: tests.app_grep.matches_line */
 fl_bool fl_tests_app_grep_matches_line(FL_String* line, FL_String* pattern, fl_bool case_i, fl_bool invert) {
     FL_String* haystack = line;
+    fl_string_retain(haystack);
     FL_String* needle = pattern;
+    fl_string_retain(needle);
     if (case_i) {
+        FL_String* _fl_old_0 = haystack;
         haystack = fl_string_to_lower(line);
+        if (_fl_old_0 != haystack) {
+            fl_string_release(_fl_old_0);
+        }
+        FL_String* _fl_old_1 = needle;
         needle = fl_string_to_lower(pattern);
+        if (_fl_old_1 != needle) {
+            fl_string_release(_fl_old_1);
+        }
     }
     fl_bool found = fl_string_contains(haystack, needle);
     if (invert) {
@@ -569,18 +650,18 @@ fl_bool fl_tests_app_grep_should_skip_file(FL_String* filepath, FL_String* ext_f
 FL_Array* fl_tests_app_grep_read_lines(FL_String* filepath) {
     FL_Array* lines = fl_array_new(0, 0, NULL);
     FL_Option_ptr f_opt = fl_file_open_read(filepath);
-    FL_Option_ptr _fl_tmp_0 = f_opt;
-    if (_fl_tmp_0.tag == 1) {
-        void* f = _fl_tmp_0.value;
+    FL_Option_ptr _fl_tmp_2 = f_opt;
+    if (_fl_tmp_2.tag == 1) {
+        void* f = _fl_tmp_2.value;
         while (fl_true) {
             FL_Option_ptr line_opt = fl_file_read_line(f);
-            FL_Option_ptr _fl_tmp_1 = line_opt;
-            if (_fl_tmp_1.tag == 1) {
-                FL_String* line = _fl_tmp_1.value;
-                FL_Array* _fl_old_2 = lines;
+            FL_Option_ptr _fl_tmp_3 = line_opt;
+            if (_fl_tmp_3.tag == 1) {
+                FL_String* line = _fl_tmp_3.value;
+                FL_Array* _fl_old_4 = lines;
                 lines = fl_array_push_ptr(lines, line);
-                if (_fl_old_2 != lines) {
-                    fl_array_release(_fl_old_2);
+                if (_fl_old_4 != lines) {
+                    fl_array_release(_fl_old_4);
                 }
             } else {
                 break;
@@ -598,15 +679,16 @@ fl_int fl_tests_app_grep_search_and_print(FL_String* filepath, FL_String* patter
     fl_int match_count = 0;
     fl_int idx = 0;
     while (idx < num_lines) {
-        FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(lines, idx);
-        FL_String* line = ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : fl_string_from_cstr(""));
+        FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(lines, idx);
+        FL_String* line = ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : _fl_str_tests_app_grep_0);
+        fl_string_retain(line);
         if (fl_tests_app_grep_matches_line(line, pattern, case_i, invert)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(match_count, 1, &_fl_e_1);
             match_count = _fl_e_1;
             fl_int _fl_e_2;
             FL_CHECKED_ADD(idx, 1, &_fl_e_2);
-            fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_2), fl_string_from_cstr(":")), line));
+            fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_2), _fl_str_tests_app_grep_1), line));
         }
         fl_int _fl_e_3;
         FL_CHECKED_ADD(idx, 1, &_fl_e_3);
@@ -622,13 +704,14 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
     FL_Array* match_indices = fl_array_new(0, 0, NULL);
     fl_int idx = 0;
     while (idx < num_lines) {
-        FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(lines, idx);
-        FL_String* line = ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : fl_string_from_cstr(""));
+        FL_Option_ptr _fl_tmp_6 = fl_array_get_safe(lines, idx);
+        FL_String* line = ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_app_grep_0);
+        fl_string_retain(line);
         if (fl_tests_app_grep_matches_line(line, pattern, fl_false, fl_false)) {
-            FL_Array* _fl_old_5 = match_indices;
+            FL_Array* _fl_old_7 = match_indices;
             match_indices = fl_array_push_int(match_indices, idx);
-            if (_fl_old_5 != match_indices) {
-                fl_array_release(_fl_old_5);
+            if (_fl_old_7 != match_indices) {
+                fl_array_release(_fl_old_7);
             }
         }
         fl_int _fl_e_1;
@@ -640,9 +723,9 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
     fl_bool first_group = fl_true;
     fl_int mi = 0;
     while (mi < match_count) {
-        FL_Option_int _fl_tmp_6 = fl_array_get_int(match_indices, mi);
-        if (_fl_tmp_6.tag == 1) {
-            fl_int line_idx = _fl_tmp_6.value;
+        FL_Option_int _fl_tmp_8 = fl_array_get_int(match_indices, mi);
+        if (_fl_tmp_8.tag == 1) {
+            fl_int line_idx = _fl_tmp_8.value;
             fl_int _fl_e_2;
             FL_CHECKED_SUB(line_idx, before, &_fl_e_2);
             fl_int range_start = _fl_e_2;
@@ -660,7 +743,7 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
             fl_int _fl_e_5;
             FL_CHECKED_ADD(printed_up_to, 1, &_fl_e_5);
             if ((!first_group) && (range_start > _fl_e_5)) {
-                fl_println(fl_string_from_cstr("--"));
+                fl_println(_fl_str_tests_app_grep_2);
             }
             first_group = fl_false;
             fl_int start = range_start;
@@ -671,16 +754,17 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
             }
             fl_int li = start;
             while (li <= range_end) {
-                FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(lines, li);
-                FL_String* line = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : fl_string_from_cstr(""));
+                FL_Option_ptr _fl_tmp_9 = fl_array_get_safe(lines, li);
+                FL_String* line = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : _fl_str_tests_app_grep_0);
+                fl_string_retain(line);
                 if (li == line_idx) {
                     fl_int _fl_e_7;
                     FL_CHECKED_ADD(li, 1, &_fl_e_7);
-                    fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_7), fl_string_from_cstr(":")), line));
+                    fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_7), _fl_str_tests_app_grep_1), line));
                 } else {
                     fl_int _fl_e_8;
                     FL_CHECKED_ADD(li, 1, &_fl_e_8);
-                    fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_8), fl_string_from_cstr("-")), line));
+                    fl_println(fl_string_concat(fl_string_concat(fl_conv_to_string__int(_fl_e_8), _fl_str_tests_app_grep_3), line));
                 }
                 fl_int _fl_e_9;
                 FL_CHECKED_ADD(li, 1, &_fl_e_9);
@@ -699,61 +783,131 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
 
 /* Flow: tests.app_grep.main */
 void fl_tests_app_grep_main(void) {
-    FL_String* txt_file = fl_tmpfile_create(fl_string_from_cstr(".txt"), fl_string_from_cstr("hello world\nfoo bar baz\nHELLO again\nnothing here\nfoo is great"));
-    FL_String* log_file = fl_tmpfile_create(fl_string_from_cstr(".log"), fl_string_from_cstr("error: disk full\nwarning: low memory\nerror: timeout\ninfo: all good"));
-    fl_println(fl_string_from_cstr("=== Basic Match ==="));
-    fl_int c1 = fl_tests_app_grep_search_and_print(txt_file, fl_string_from_cstr("foo"), fl_false, fl_false);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c1)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== Case Insensitive ==="));
-    fl_int c2 = fl_tests_app_grep_search_and_print(txt_file, fl_string_from_cstr("hello"), fl_true, fl_false);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c2)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== Case Sensitive ==="));
-    fl_int c3 = fl_tests_app_grep_search_and_print(txt_file, fl_string_from_cstr("hello"), fl_false, fl_false);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c3)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== Invert Match ==="));
-    fl_int c4 = fl_tests_app_grep_search_and_print(txt_file, fl_string_from_cstr("foo"), fl_false, fl_true);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c4)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== No Match ==="));
-    fl_int c5 = fl_tests_app_grep_search_and_print(txt_file, fl_string_from_cstr("zzzzz"), fl_false, fl_false);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c5)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== Extension Filter ==="));
-    fl_println(fl_string_concat(fl_string_from_cstr("skip .txt for .log: "), fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(fl_string_from_cstr("data.txt"), fl_string_from_cstr(".log")))));
-    fl_println(fl_string_concat(fl_string_from_cstr("skip .log for .log: "), fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(fl_string_from_cstr("data.log"), fl_string_from_cstr(".log")))));
-    fl_println(fl_string_concat(fl_string_from_cstr("skip any for empty: "), fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(fl_string_from_cstr("data.txt"), fl_string_from_cstr("")))));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== Multi-file Search ==="));
-    fl_int c6 = fl_tests_app_grep_search_and_print(log_file, fl_string_from_cstr("error"), fl_false, fl_false);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c6)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== Before Context ==="));
-    fl_int c7 = fl_tests_app_grep_search_with_context(txt_file, fl_string_from_cstr("nothing"), 1, 0);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c7)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== After Context ==="));
-    fl_int c8 = fl_tests_app_grep_search_with_context(txt_file, fl_string_from_cstr("hello"), 0, 1);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c8)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== Combined Context ==="));
-    fl_int c9 = fl_tests_app_grep_search_with_context(log_file, fl_string_from_cstr("error"), 1, 1);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c9)));
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("=== Context With Separator ==="));
-    fl_int c10 = fl_tests_app_grep_search_with_context(txt_file, fl_string_from_cstr("foo"), 1, 0);
-    fl_println(fl_string_concat(fl_string_from_cstr("count: "), fl_conv_to_string__int(c10)));
+    FL_String* txt_file = fl_tmpfile_create(_fl_str_tests_app_grep_4, _fl_str_tests_app_grep_5);
+    FL_String* log_file = fl_tmpfile_create(_fl_str_tests_app_grep_6, _fl_str_tests_app_grep_7);
+    fl_println(_fl_str_tests_app_grep_8);
+    fl_int c1 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_9, fl_false, fl_false);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c1)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_11);
+    fl_int c2 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_12, fl_true, fl_false);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c2)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_13);
+    fl_int c3 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_12, fl_false, fl_false);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c3)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_14);
+    fl_int c4 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_9, fl_false, fl_true);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c4)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_15);
+    fl_int c5 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_16, fl_false, fl_false);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c5)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_17);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_18, fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(_fl_str_tests_app_grep_19, _fl_str_tests_app_grep_6))));
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_20, fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(_fl_str_tests_app_grep_21, _fl_str_tests_app_grep_6))));
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_22, fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(_fl_str_tests_app_grep_19, _fl_str_tests_app_grep_0))));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_23);
+    fl_int c6 = fl_tests_app_grep_search_and_print(log_file, _fl_str_tests_app_grep_24, fl_false, fl_false);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c6)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_25);
+    fl_int c7 = fl_tests_app_grep_search_with_context(txt_file, _fl_str_tests_app_grep_26, 1, 0);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c7)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_27);
+    fl_int c8 = fl_tests_app_grep_search_with_context(txt_file, _fl_str_tests_app_grep_12, 0, 1);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c8)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_28);
+    fl_int c9 = fl_tests_app_grep_search_with_context(log_file, _fl_str_tests_app_grep_24, 1, 1);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c9)));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_29);
+    fl_int c10 = fl_tests_app_grep_search_with_context(txt_file, _fl_str_tests_app_grep_9, 1, 0);
+    fl_println(fl_string_concat(_fl_str_tests_app_grep_10, fl_conv_to_string__int(c10)));
     fl_tmpfile_remove(txt_file);
     fl_tmpfile_remove(log_file);
-    fl_println(fl_string_from_cstr(""));
-    fl_println(fl_string_from_cstr("done"));
+    fl_println(_fl_str_tests_app_grep_0);
+    fl_println(_fl_str_tests_app_grep_30);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_app_grep_0 = fl_string_from_cstr("");
+    _fl_str_tests_app_grep_0->refcount = 2147483647;
+    _fl_str_tests_app_grep_1 = fl_string_from_cstr(":");
+    _fl_str_tests_app_grep_1->refcount = 2147483647;
+    _fl_str_tests_app_grep_2 = fl_string_from_cstr("--");
+    _fl_str_tests_app_grep_2->refcount = 2147483647;
+    _fl_str_tests_app_grep_3 = fl_string_from_cstr("-");
+    _fl_str_tests_app_grep_3->refcount = 2147483647;
+    _fl_str_tests_app_grep_4 = fl_string_from_cstr(".txt");
+    _fl_str_tests_app_grep_4->refcount = 2147483647;
+    _fl_str_tests_app_grep_5 = fl_string_from_cstr("hello world\nfoo bar baz\nHELLO again\nnothing here\nfoo is great");
+    _fl_str_tests_app_grep_5->refcount = 2147483647;
+    _fl_str_tests_app_grep_6 = fl_string_from_cstr(".log");
+    _fl_str_tests_app_grep_6->refcount = 2147483647;
+    _fl_str_tests_app_grep_7 = fl_string_from_cstr("error: disk full\nwarning: low memory\nerror: timeout\ninfo: all good");
+    _fl_str_tests_app_grep_7->refcount = 2147483647;
+    _fl_str_tests_app_grep_8 = fl_string_from_cstr("=== Basic Match ===");
+    _fl_str_tests_app_grep_8->refcount = 2147483647;
+    _fl_str_tests_app_grep_9 = fl_string_from_cstr("foo");
+    _fl_str_tests_app_grep_9->refcount = 2147483647;
+    _fl_str_tests_app_grep_10 = fl_string_from_cstr("count: ");
+    _fl_str_tests_app_grep_10->refcount = 2147483647;
+    _fl_str_tests_app_grep_11 = fl_string_from_cstr("=== Case Insensitive ===");
+    _fl_str_tests_app_grep_11->refcount = 2147483647;
+    _fl_str_tests_app_grep_12 = fl_string_from_cstr("hello");
+    _fl_str_tests_app_grep_12->refcount = 2147483647;
+    _fl_str_tests_app_grep_13 = fl_string_from_cstr("=== Case Sensitive ===");
+    _fl_str_tests_app_grep_13->refcount = 2147483647;
+    _fl_str_tests_app_grep_14 = fl_string_from_cstr("=== Invert Match ===");
+    _fl_str_tests_app_grep_14->refcount = 2147483647;
+    _fl_str_tests_app_grep_15 = fl_string_from_cstr("=== No Match ===");
+    _fl_str_tests_app_grep_15->refcount = 2147483647;
+    _fl_str_tests_app_grep_16 = fl_string_from_cstr("zzzzz");
+    _fl_str_tests_app_grep_16->refcount = 2147483647;
+    _fl_str_tests_app_grep_17 = fl_string_from_cstr("=== Extension Filter ===");
+    _fl_str_tests_app_grep_17->refcount = 2147483647;
+    _fl_str_tests_app_grep_18 = fl_string_from_cstr("skip .txt for .log: ");
+    _fl_str_tests_app_grep_18->refcount = 2147483647;
+    _fl_str_tests_app_grep_19 = fl_string_from_cstr("data.txt");
+    _fl_str_tests_app_grep_19->refcount = 2147483647;
+    _fl_str_tests_app_grep_20 = fl_string_from_cstr("skip .log for .log: ");
+    _fl_str_tests_app_grep_20->refcount = 2147483647;
+    _fl_str_tests_app_grep_21 = fl_string_from_cstr("data.log");
+    _fl_str_tests_app_grep_21->refcount = 2147483647;
+    _fl_str_tests_app_grep_22 = fl_string_from_cstr("skip any for empty: ");
+    _fl_str_tests_app_grep_22->refcount = 2147483647;
+    _fl_str_tests_app_grep_23 = fl_string_from_cstr("=== Multi-file Search ===");
+    _fl_str_tests_app_grep_23->refcount = 2147483647;
+    _fl_str_tests_app_grep_24 = fl_string_from_cstr("error");
+    _fl_str_tests_app_grep_24->refcount = 2147483647;
+    _fl_str_tests_app_grep_25 = fl_string_from_cstr("=== Before Context ===");
+    _fl_str_tests_app_grep_25->refcount = 2147483647;
+    _fl_str_tests_app_grep_26 = fl_string_from_cstr("nothing");
+    _fl_str_tests_app_grep_26->refcount = 2147483647;
+    _fl_str_tests_app_grep_27 = fl_string_from_cstr("=== After Context ===");
+    _fl_str_tests_app_grep_27->refcount = 2147483647;
+    _fl_str_tests_app_grep_28 = fl_string_from_cstr("=== Combined Context ===");
+    _fl_str_tests_app_grep_28->refcount = 2147483647;
+    _fl_str_tests_app_grep_29 = fl_string_from_cstr("=== Context With Separator ===");
+    _fl_str_tests_app_grep_29->refcount = 2147483647;
+    _fl_str_tests_app_grep_30 = fl_string_from_cstr("done");
+    _fl_str_tests_app_grep_30->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_grep_main();
     return 0;
 }

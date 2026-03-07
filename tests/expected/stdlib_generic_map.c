@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,86 +490,156 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
 }
 
+FL_String* _fl_str_tests_stdlib_generic_map_0 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_1 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_2 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_3 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_4 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_5 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_6 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_7 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_8 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_9 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_10 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_11 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_12 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_13 = NULL;
+
+FL_String* _fl_str_tests_stdlib_generic_map_14 = NULL;
+
 /* Flow: tests.stdlib_generic_map.main */
 void fl_tests_stdlib_generic_map_main(void) {
     FL_Map* m = fl_map_new();
     FL_Map* _fl_old_0 = m;
-    m = fl_map_set_str(m, fl_string_from_cstr("greeting"), fl_string_from_cstr("hello"));
+    m = fl_map_set_str(m, _fl_str_tests_stdlib_generic_map_0, _fl_str_tests_stdlib_generic_map_1);
     if (_fl_old_0 != m) {
         fl_map_release(_fl_old_0);
     }
     FL_Map* _fl_old_1 = m;
-    m = fl_map_set_str(m, fl_string_from_cstr("farewell"), fl_string_from_cstr("goodbye"));
+    m = fl_map_set_str(m, _fl_str_tests_stdlib_generic_map_2, _fl_str_tests_stdlib_generic_map_3);
     if (_fl_old_1 != m) {
         fl_map_release(_fl_old_1);
     }
-    FL_String* _fl_tmp_2 = fl_string_from_cstr("has greeting=");
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("greeting"))));
+    FL_String* _fl_tmp_2 = _fl_str_tests_stdlib_generic_map_4;
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_0)));
     fl_string_release(_fl_tmp_2);
     fl_println(_fl_tmp_3);
-    FL_String* _fl_tmp_4 = fl_string_from_cstr("has missing=");
-    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("missing"))));
+    FL_String* _fl_tmp_4 = _fl_str_tests_stdlib_generic_map_5;
+    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_6)));
     fl_string_release(_fl_tmp_4);
     fl_println(_fl_tmp_5);
-    FL_Option_ptr _fl_tmp_6 = fl_map_get_str(m, fl_string_from_cstr("greeting"));
+    FL_Option_ptr _fl_tmp_6 = fl_map_get_str(m, _fl_str_tests_stdlib_generic_map_0);
     if (_fl_tmp_6.tag == 1) {
         FL_String* v = _fl_tmp_6.value;
-        FL_String* _fl_tmp_7 = fl_string_from_cstr("greeting=");
+        FL_String* _fl_tmp_7 = _fl_str_tests_stdlib_generic_map_7;
         FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, v);
         fl_string_release(_fl_tmp_7);
         fl_println(_fl_tmp_8);
     } else {
-        fl_println(fl_string_from_cstr("greeting=none"));
+        fl_println(_fl_str_tests_stdlib_generic_map_8);
     }
-    FL_Option_ptr _fl_tmp_9 = fl_map_get_str(m, fl_string_from_cstr("farewell"));
+    FL_Option_ptr _fl_tmp_9 = fl_map_get_str(m, _fl_str_tests_stdlib_generic_map_2);
     if (_fl_tmp_9.tag == 1) {
         FL_String* v = _fl_tmp_9.value;
-        FL_String* _fl_tmp_10 = fl_string_from_cstr("farewell=");
+        FL_String* _fl_tmp_10 = _fl_str_tests_stdlib_generic_map_9;
         FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, v);
         fl_string_release(_fl_tmp_10);
         fl_println(_fl_tmp_11);
     } else {
-        fl_println(fl_string_from_cstr("farewell=none"));
+        fl_println(_fl_str_tests_stdlib_generic_map_10);
     }
     FL_Array* ks = fl_map_keys(m);
-    FL_String* _fl_tmp_12 = fl_string_from_cstr("keys count=");
+    FL_String* _fl_tmp_12 = _fl_str_tests_stdlib_generic_map_11;
     FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, fl_int_to_string(fl_array_len_int(ks)));
     fl_string_release(_fl_tmp_12);
     fl_println(_fl_tmp_13);
     FL_Array* vs = fl_map_values(m);
-    FL_String* _fl_tmp_14 = fl_string_from_cstr("values count=");
+    FL_String* _fl_tmp_14 = _fl_str_tests_stdlib_generic_map_12;
     FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, fl_int_to_string(fl_array_len_int(vs)));
     fl_string_release(_fl_tmp_14);
     fl_println(_fl_tmp_15);
     FL_Map* _fl_old_16 = m;
-    m = fl_map_remove_str(m, fl_string_from_cstr("greeting"));
+    m = fl_map_remove_str(m, _fl_str_tests_stdlib_generic_map_0);
     if (_fl_old_16 != m) {
         fl_map_release(_fl_old_16);
     }
-    FL_String* _fl_tmp_17 = fl_string_from_cstr("after remove has greeting=");
-    FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, fl_bool_to_string(fl_map_has_str(m, fl_string_from_cstr("greeting"))));
+    FL_String* _fl_tmp_17 = _fl_str_tests_stdlib_generic_map_13;
+    FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_0)));
     fl_string_release(_fl_tmp_17);
     fl_println(_fl_tmp_18);
-    FL_String* _fl_tmp_19 = fl_string_from_cstr("len=");
+    FL_String* _fl_tmp_19 = _fl_str_tests_stdlib_generic_map_14;
     FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, fl_int64_to_string(fl_map_len(m)));
     fl_string_release(_fl_tmp_19);
     fl_println(_fl_tmp_20);
 }
 
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_0 = fl_string_from_cstr("greeting");
+    _fl_str_tests_stdlib_generic_map_0->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_1 = fl_string_from_cstr("hello");
+    _fl_str_tests_stdlib_generic_map_1->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_2 = fl_string_from_cstr("farewell");
+    _fl_str_tests_stdlib_generic_map_2->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_3 = fl_string_from_cstr("goodbye");
+    _fl_str_tests_stdlib_generic_map_3->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_4 = fl_string_from_cstr("has greeting=");
+    _fl_str_tests_stdlib_generic_map_4->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_5 = fl_string_from_cstr("has missing=");
+    _fl_str_tests_stdlib_generic_map_5->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_6 = fl_string_from_cstr("missing");
+    _fl_str_tests_stdlib_generic_map_6->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_7 = fl_string_from_cstr("greeting=");
+    _fl_str_tests_stdlib_generic_map_7->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_8 = fl_string_from_cstr("greeting=none");
+    _fl_str_tests_stdlib_generic_map_8->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_9 = fl_string_from_cstr("farewell=");
+    _fl_str_tests_stdlib_generic_map_9->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_10 = fl_string_from_cstr("farewell=none");
+    _fl_str_tests_stdlib_generic_map_10->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_11 = fl_string_from_cstr("keys count=");
+    _fl_str_tests_stdlib_generic_map_11->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_12 = fl_string_from_cstr("values count=");
+    _fl_str_tests_stdlib_generic_map_12->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_13 = fl_string_from_cstr("after remove has greeting=");
+    _fl_str_tests_stdlib_generic_map_13->refcount = 2147483647;
+    _fl_str_tests_stdlib_generic_map_14 = fl_string_from_cstr("len=");
+    _fl_str_tests_stdlib_generic_map_14->refcount = 2147483647;
+}
+
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_stdlib_generic_map_main();
     return 0;
 }

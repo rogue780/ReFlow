@@ -4,18 +4,25 @@
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -25,45 +32,67 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
 }
 
+FL_String* _fl_str_tests_stdlib_io_test_0 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_1 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_2 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_3 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_4 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_5 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_6 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_7 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_8 = NULL;
+
+FL_String* _fl_str_tests_stdlib_io_test_9 = NULL;
+
 /* Flow: tests.stdlib_io_test.main */
 void fl_tests_stdlib_io_test_main(void) {
-    FL_String* tmp = fl_tmpfile_create(fl_string_from_cstr(".txt"), fl_string_from_cstr("hello from flow"));
+    FL_String* tmp = fl_tmpfile_create(_fl_str_tests_stdlib_io_test_0, _fl_str_tests_stdlib_io_test_1);
     FL_Option_ptr contents = fl_read_file(tmp);
     FL_Option_ptr _fl_tmp_0 = contents;
     if (_fl_tmp_0.tag == 1) {
         FL_String* s = _fl_tmp_0.value;
-        FL_String* _fl_tmp_1 = fl_string_from_cstr("read: ");
+        FL_String* _fl_tmp_1 = _fl_str_tests_stdlib_io_test_2;
         FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, s);
         fl_string_release(_fl_tmp_1);
         fl_println(_fl_tmp_2);
     } else {
-        fl_println(fl_string_from_cstr("read: none"));
+        fl_println(_fl_str_tests_stdlib_io_test_3);
     }
     fl_tmpfile_remove(tmp);
     FL_Option_ptr after = fl_read_file(tmp);
     FL_Option_ptr _fl_tmp_3 = after;
     if (_fl_tmp_3.tag == 1) {
         FL_String* s = _fl_tmp_3.value;
-        FL_String* _fl_tmp_4 = fl_string_from_cstr("after remove: ");
+        FL_String* _fl_tmp_4 = _fl_str_tests_stdlib_io_test_4;
         FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, s);
         fl_string_release(_fl_tmp_4);
         fl_println(_fl_tmp_5);
     } else {
-        fl_println(fl_string_from_cstr("after remove: none"));
+        fl_println(_fl_str_tests_stdlib_io_test_5);
     }
-    fl_bool wrote = fl_write_file(tmp, fl_string_from_cstr("overwrite test"));
-    FL_String* _fl_tmp_6 = fl_string_from_cstr("write_file: ");
+    fl_bool wrote = fl_write_file(tmp, _fl_str_tests_stdlib_io_test_6);
+    FL_String* _fl_tmp_6 = _fl_str_tests_stdlib_io_test_7;
     FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_bool_to_string(wrote));
     fl_string_release(_fl_tmp_6);
     fl_println(_fl_tmp_7);
@@ -71,19 +100,47 @@ void fl_tests_stdlib_io_test_main(void) {
     FL_Option_ptr _fl_tmp_8 = contents2;
     if (_fl_tmp_8.tag == 1) {
         FL_String* s = _fl_tmp_8.value;
-        FL_String* _fl_tmp_9 = fl_string_from_cstr("read2: ");
+        FL_String* _fl_tmp_9 = _fl_str_tests_stdlib_io_test_8;
         FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, s);
         fl_string_release(_fl_tmp_9);
         fl_println(_fl_tmp_10);
     } else {
-        fl_println(fl_string_from_cstr("read2: none"));
+        fl_println(_fl_str_tests_stdlib_io_test_9);
     }
     fl_tmpfile_remove(tmp);
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_0 = fl_string_from_cstr(".txt");
+    _fl_str_tests_stdlib_io_test_0->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_1 = fl_string_from_cstr("hello from flow");
+    _fl_str_tests_stdlib_io_test_1->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_2 = fl_string_from_cstr("read: ");
+    _fl_str_tests_stdlib_io_test_2->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_3 = fl_string_from_cstr("read: none");
+    _fl_str_tests_stdlib_io_test_3->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_4 = fl_string_from_cstr("after remove: ");
+    _fl_str_tests_stdlib_io_test_4->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_5 = fl_string_from_cstr("after remove: none");
+    _fl_str_tests_stdlib_io_test_5->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_6 = fl_string_from_cstr("overwrite test");
+    _fl_str_tests_stdlib_io_test_6->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_7 = fl_string_from_cstr("write_file: ");
+    _fl_str_tests_stdlib_io_test_7->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_8 = fl_string_from_cstr("read2: ");
+    _fl_str_tests_stdlib_io_test_8->refcount = 2147483647;
+    _fl_str_tests_stdlib_io_test_9 = fl_string_from_cstr("read2: none");
+    _fl_str_tests_stdlib_io_test_9->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_stdlib_io_test_main();
     return 0;
 }

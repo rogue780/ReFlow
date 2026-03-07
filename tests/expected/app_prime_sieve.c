@@ -124,18 +124,25 @@ FL_String* fl_char_to_string(fl_char c) {
 
 /* From: stdlib/string.flow */
 
+FL_String* _fl_str_string_0 = NULL;
+
 /* Flow: string.join */
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
-        return fl_string_from_cstr("");
+        return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
-    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : fl_string_from_cstr(""));
+    FL_String* result = ((_fl_tmp_0.tag == 1) ? _fl_tmp_0.value : _fl_str_string_0);
+    fl_string_retain(result);
     fl_int i = 1;
     while (i < n) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(parts, i);
-        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fl_string_from_cstr("")));
+        FL_String* _fl_old_2 = result;
+        result = fl_string_concat(fl_string_concat(result, sep), ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_string_0));
+        if (_fl_old_2 != result) {
+            fl_string_release(_fl_old_2);
+        }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -483,12 +490,14 @@ FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl
 
 /* From: stdlib/io.flow */
 
+FL_String* _fl_str_io_0 = NULL;
+
 /* Flow: io.read_file_lines */
 FL_Option_ptr fl_io_read_file_lines(FL_String* p) {
     FL_Option_ptr _fl_tmp_0 = fl_read_file(p);
     if (_fl_tmp_0.tag == 1) {
         FL_String* content = _fl_tmp_0.value;
-        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, fl_string_from_cstr("\n"))};
+        return (FL_Option_ptr){.tag = 1, .value = fl_string_split(content, _fl_str_io_0)};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -529,6 +538,18 @@ struct _fl_frame_tests_app_prime_sieve_filter_primes {
     fl_int limit;
     fl_int i;
 };
+
+FL_String* _fl_str_tests_app_prime_sieve_0 = NULL;
+
+FL_String* _fl_str_tests_app_prime_sieve_1 = NULL;
+
+FL_String* _fl_str_tests_app_prime_sieve_2 = NULL;
+
+FL_String* _fl_str_tests_app_prime_sieve_3 = NULL;
+
+FL_String* _fl_str_tests_app_prime_sieve_4 = NULL;
+
+FL_String* _fl_str_tests_app_prime_sieve_5 = NULL;
 
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
@@ -663,7 +684,7 @@ FL_Stream* fl_tests_app_prime_sieve_filter_primes(fl_int start, fl_int limit) {
 
 /* Flow: tests.app_prime_sieve.main */
 void fl_tests_app_prime_sieve_main(void) {
-    fl_println(fl_string_from_cstr("=== Coroutine sieve ==="));
+    fl_println(_fl_str_tests_app_prime_sieve_0);
     FL_Stream* _fl_tmp_0 = fl_tests_app_prime_sieve_integers_from(2, 50);
     FL_Coroutine* candidates = fl_coroutine_new_threaded(_fl_tmp_0, 64);
     while (!fl_coroutine_done(candidates)) {
@@ -681,7 +702,7 @@ void fl_tests_app_prime_sieve_main(void) {
             }
         }
     }
-    fl_println(fl_string_from_cstr("=== Filtered stream ==="));
+    fl_println(_fl_str_tests_app_prime_sieve_1);
     FL_Stream* _fl_tmp_4 = fl_tests_app_prime_sieve_filter_primes(2, 50);
     FL_Coroutine* primes = fl_coroutine_new_threaded(_fl_tmp_4, 64);
     while (!fl_coroutine_done(primes)) {
@@ -697,12 +718,12 @@ void fl_tests_app_prime_sieve_main(void) {
             fl_println(fl_conv_to_string__int(p));
         }
     }
-    fl_println(fl_string_from_cstr("=== Concurrent coroutines ==="));
+    fl_println(_fl_str_tests_app_prime_sieve_2);
     FL_Stream* _fl_tmp_8 = fl_tests_app_prime_sieve_filter_primes(2, 25);
     FL_Coroutine* low = fl_coroutine_new_threaded(_fl_tmp_8, 64);
     FL_Stream* _fl_tmp_9 = fl_tests_app_prime_sieve_filter_primes(26, 50);
     FL_Coroutine* high = fl_coroutine_new_threaded(_fl_tmp_9, 64);
-    fl_println(fl_string_from_cstr("Low primes:"));
+    fl_println(_fl_str_tests_app_prime_sieve_3);
     while (!fl_coroutine_done(low)) {
         FL_Option_ptr _fl_tmp_10 = fl_coroutine_next(low);
         FL_Option_int _fl_tmp_11;
@@ -713,10 +734,10 @@ void fl_tests_app_prime_sieve_main(void) {
         FL_Option_int _fl_tmp_12 = _fl_tmp_11;
         if (_fl_tmp_12.tag == 1) {
             fl_int p = _fl_tmp_12.value;
-            fl_println(fl_string_concat(fl_string_from_cstr("  "), fl_conv_to_string__int(p)));
+            fl_println(fl_string_concat(_fl_str_tests_app_prime_sieve_4, fl_conv_to_string__int(p)));
         }
     }
-    fl_println(fl_string_from_cstr("High primes:"));
+    fl_println(_fl_str_tests_app_prime_sieve_5);
     while (!fl_coroutine_done(high)) {
         FL_Option_ptr _fl_tmp_13 = fl_coroutine_next(high);
         FL_Option_int _fl_tmp_14;
@@ -727,14 +748,34 @@ void fl_tests_app_prime_sieve_main(void) {
         FL_Option_int _fl_tmp_15 = _fl_tmp_14;
         if (_fl_tmp_15.tag == 1) {
             fl_int p = _fl_tmp_15.value;
-            fl_println(fl_string_concat(fl_string_from_cstr("  "), fl_conv_to_string__int(p)));
+            fl_println(fl_string_concat(_fl_str_tests_app_prime_sieve_4, fl_conv_to_string__int(p)));
         }
     }
+}
+
+static void _fl_init_statics(void) {
+    _fl_str_string_0 = fl_string_from_cstr("");
+    _fl_str_string_0->refcount = 2147483647;
+    _fl_str_io_0 = fl_string_from_cstr("\n");
+    _fl_str_io_0->refcount = 2147483647;
+    _fl_str_tests_app_prime_sieve_0 = fl_string_from_cstr("=== Coroutine sieve ===");
+    _fl_str_tests_app_prime_sieve_0->refcount = 2147483647;
+    _fl_str_tests_app_prime_sieve_1 = fl_string_from_cstr("=== Filtered stream ===");
+    _fl_str_tests_app_prime_sieve_1->refcount = 2147483647;
+    _fl_str_tests_app_prime_sieve_2 = fl_string_from_cstr("=== Concurrent coroutines ===");
+    _fl_str_tests_app_prime_sieve_2->refcount = 2147483647;
+    _fl_str_tests_app_prime_sieve_3 = fl_string_from_cstr("Low primes:");
+    _fl_str_tests_app_prime_sieve_3->refcount = 2147483647;
+    _fl_str_tests_app_prime_sieve_4 = fl_string_from_cstr("  ");
+    _fl_str_tests_app_prime_sieve_4->refcount = 2147483647;
+    _fl_str_tests_app_prime_sieve_5 = fl_string_from_cstr("High primes:");
+    _fl_str_tests_app_prime_sieve_5->refcount = 2147483647;
 }
 
 /* Entry point */
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
+    _fl_init_statics();
     fl_tests_app_prime_sieve_main();
     return 0;
 }
