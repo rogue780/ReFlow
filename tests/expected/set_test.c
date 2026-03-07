@@ -565,6 +565,7 @@ FL_Map* fl_string_set_from_array(FL_Array* arr) {
 /* Flow: string_set.union */
 FL_Map* fl_string_set_union(FL_Map* a, FL_Map* b) {
     FL_Map* result = a;
+    fl_map_retain(result);
     FL_Array* b_keys = fl_map_keys(b);
     fl_int64 _fl_tmp_2 = 0;
     while (_fl_tmp_2 < fl_array_len(b_keys)) {

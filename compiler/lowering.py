@@ -1351,7 +1351,23 @@ class Lowerer:
         # contains TTypeVar/TAny (typechecker doesn't substitute generic call
         # return types, so let-bound vars may appear typed as TTypeVar).
         self._let_var_ltypes[stmt.name] = c_type
-        return [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
+        stmts: list[LStmt] = [LVarDecl(c_name=stmt.name, c_type=c_type, init=init)]
+
+        # Retain map-typed mutable variables initialized from non-allocating
+        # expressions (e.g. `let result:mut = param`).  This prevents
+        # release-on-reassignment from freeing a map that the caller still
+        # references through the original argument.  The retain bumps refcount
+        # to 2, so release decrements to 1 instead of freeing.
+        if (isinstance(stmt.type_ann, MutType)
+                and isinstance(val_type, TMap)
+                and not self._is_allocating_expr(stmt.value)):
+            stmts.append(LExprStmt(LCall(
+                "fl_map_retain",
+                [LVar(stmt.name, c_type)],
+                c_type=LVoid(),
+            )))
+
+        return stmts
 
     # Type → release function mapping for reassignment.
     # Arrays and maps use capacity sharing: fl_array_push / fl_map_set bump
@@ -1379,6 +1395,29 @@ class Lowerer:
                                  ErrExpr, ArrayLit, RecordLit, FStringExpr,
                                  CopyExpr))
 
+    def _call_passes_var_by_mut_ref(self, call_expr: Expr, var_name: str) -> bool:
+        """Check if a Call passes `var_name` as a :mut (by-reference) argument.
+
+        When a variable is passed by &reference, the callee handles
+        release-on-reassignment internally through the pointer.  The caller
+        must NOT also emit release-on-reassignment to avoid double-free.
+        """
+        if not isinstance(call_expr, Call):
+            return False
+        # Find the FnDecl to check param annotations
+        sym = self._resolved.symbols.get(call_expr.callee)
+        if sym is None or not isinstance(sym.decl, FnDecl):
+            return False
+        fn_decl: FnDecl = sym.decl
+        for i, param in enumerate(fn_decl.params):
+            if i >= len(call_expr.args):
+                break
+            if isinstance(param.type_ann, MutType):
+                arg = call_expr.args[i]
+                if isinstance(arg, Ident) and arg.name == var_name:
+                    return True
+        return False
+
     def _lower_assign(self, stmt: AssignStmt) -> list[LStmt]:
         target = self._lower_expr(stmt.target)
         value = self._lower_expr(stmt.value)
@@ -1387,8 +1426,11 @@ class Lowerer:
         # Only for allocating RHS (call, literal) so the old value is
         # guaranteed to be from a previous allocation, not a borrow.
         # Guard: old != new handles functions like map.remove that return self.
+        # Skip when the target variable is passed by &ref to the same call —
+        # the callee already handles release through the pointer.
         if (isinstance(stmt.target, Ident)
-                and self._is_allocating_expr(stmt.value)):
+                and self._is_allocating_expr(stmt.value)
+                and not self._call_passes_var_by_mut_ref(stmt.value, stmt.target.name)):
             target_type = self._type_of(stmt.target)
             release_fn = self._get_release_fn(target_type)
             if release_fn is not None:
