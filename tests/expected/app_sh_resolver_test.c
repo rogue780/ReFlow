@@ -8437,6 +8437,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ident_or_type_lit(fl_self_ho
             }
         }
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACE) && fl_self_hosted_parser_is_first_upper(current_name)) {
+            fl_string_release(name);
             return fl_self_hosted_parser_parse_type_construction_lit(s, first_tok, current_name, module_path);
         }
         s->pos = saved_pos;
@@ -9179,19 +9180,19 @@ FL_Array* fl_array_put__string(FL_Array* arr, fl_int idx, FL_String* val) {
     fl_int i = 0;
     while (i < s) {
         if (i == idx) {
-            FL_Array* _fl_old_196 = result;
+            FL_Array* _fl_old_199 = result;
             result = fl_array_push_ptr(result, val);
-            if (_fl_old_196 != result) {
-                fl_array_release(_fl_old_196);
+            if (_fl_old_199 != result) {
+                fl_array_release(_fl_old_199);
             }
         } else {
-            FL_Option_ptr _fl_tmp_197 = fl_array_get_safe(arr, i);
-            if (_fl_tmp_197.tag == 1) {
-                FL_String* v = _fl_tmp_197.value;
-                FL_Array* _fl_old_198 = result;
+            FL_Option_ptr _fl_tmp_200 = fl_array_get_safe(arr, i);
+            if (_fl_tmp_200.tag == 1) {
+                FL_String* v = _fl_tmp_200.value;
+                FL_Array* _fl_old_201 = result;
                 result = fl_array_push_ptr(result, v);
-                if (_fl_old_198 != result) {
-                    fl_array_release(_fl_old_198);
+                if (_fl_old_201 != result) {
+                    fl_array_release(_fl_old_201);
                 }
             }
         }
@@ -9207,14 +9208,14 @@ FL_Array* fl_array_slice__int(FL_Array* arr, fl_int start, fl_int end_idx) {
     FL_Array* result = fl_array_new(0, 0, NULL);
     fl_int i = start;
     while (i < end_idx) {
-        FL_Option_int _fl_tmp_199 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_int, FL_Option_int);
-        if (_fl_tmp_199.tag == 1) {
-            fl_int val = _fl_tmp_199.value;
-            fl_int _fl_tmp_200 = val;
-            FL_Array* _fl_old_201 = result;
-            result = fl_array_push_sized(result, (&_fl_tmp_200), sizeof(fl_int));
-            if (_fl_old_201 != result) {
-                fl_array_release(_fl_old_201);
+        FL_Option_int _fl_tmp_202 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_int, FL_Option_int);
+        if (_fl_tmp_202.tag == 1) {
+            fl_int val = _fl_tmp_202.value;
+            fl_int _fl_tmp_203 = val;
+            FL_Array* _fl_old_204 = result;
+            result = fl_array_push_sized(result, (&_fl_tmp_203), sizeof(fl_int));
+            if (_fl_old_204 != result) {
+                fl_array_release(_fl_old_204);
             }
         } else {
             return result;
@@ -9232,13 +9233,13 @@ FL_Array* fl_array_slice__string(FL_Array* arr, fl_int start, fl_int end_idx) {
     fl_array_set_elem_type(result, 1);
     fl_int i = start;
     while (i < end_idx) {
-        FL_Option_ptr _fl_tmp_202 = fl_array_get_safe(arr, i);
-        if (_fl_tmp_202.tag == 1) {
-            FL_String* val = _fl_tmp_202.value;
-            FL_Array* _fl_old_203 = result;
+        FL_Option_ptr _fl_tmp_205 = fl_array_get_safe(arr, i);
+        if (_fl_tmp_205.tag == 1) {
+            FL_String* val = _fl_tmp_205.value;
+            FL_Array* _fl_old_206 = result;
             result = fl_array_push_ptr(result, val);
-            if (_fl_old_203 != result) {
-                fl_array_release(_fl_old_203);
+            if (_fl_old_206 != result) {
+                fl_array_release(_fl_old_206);
             }
         } else {
             return result;
@@ -11629,7 +11630,13 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
 fl_self_hosted_resolver_ResolvedModule fl_self_hosted_resolver_resolve(fl_self_hosted_ast_Module mod, FL_String* filename, FL_Map* imported_modules) {
     fl_string_retain(filename);
     fl_map_retain(imported_modules);
-    fl_self_hosted_resolver_ResolverState state = (fl_self_hosted_resolver_ResolverState){.src_module = mod, .filename = filename, .imported_modules = imported_modules, .bind_names = fl_array_new(0, 0, NULL), .bind_symbols = fl_map_new(), .bind_depths = fl_array_new(0, 0, NULL), .binding_count = 0, .frame_watermarks = fl_array_new(0, 0, NULL), .frame_count = 0, .current_depth = 0, .symbols = fl_map_new(), .captures = fl_map_new(), .type_member_scopes = fl_map_new(), .static_member_scopes = fl_map_new(), .in_method = fl_false, .in_constructor = fl_false, .in_stream_fn = fl_false, .cap_lambda_ids = fl_array_new(0, 0, NULL), .cap_entry_depths = fl_array_new(0, 0, NULL), .cap_sym_counts = fl_array_new(0, 0, NULL), .cap_sym_store = fl_map_new(), .cap_name_store = fl_map_new(), .cap_count = 0};
+    FL_Array* _fl_tmp_196 = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(_fl_tmp_196, 1);
+    FL_Array* _fl_tmp_197 = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(_fl_tmp_197, 1);
+    FL_Array* _fl_tmp_198 = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(_fl_tmp_198, 1);
+    fl_self_hosted_resolver_ResolverState state = (fl_self_hosted_resolver_ResolverState){.src_module = mod, .filename = filename, .imported_modules = imported_modules, .bind_names = _fl_tmp_196, .bind_symbols = fl_map_new(), .bind_depths = _fl_tmp_197, .binding_count = 0, .frame_watermarks = _fl_tmp_198, .frame_count = 0, .current_depth = 0, .symbols = fl_map_new(), .captures = fl_map_new(), .type_member_scopes = fl_map_new(), .static_member_scopes = fl_map_new(), .in_method = fl_false, .in_constructor = fl_false, .in_stream_fn = fl_false, .cap_lambda_ids = fl_array_new(0, 0, NULL), .cap_entry_depths = fl_array_new(0, 0, NULL), .cap_sym_counts = fl_array_new(0, 0, NULL), .cap_sym_store = fl_map_new(), .cap_name_store = fl_map_new(), .cap_count = 0};
     fl_self_hosted_resolver_pre_pass((&state));
     fl_self_hosted_resolver_resolve_imports((&state));
     fl_self_hosted_resolver_build_type_member_scopes((&state));
@@ -11796,6 +11803,7 @@ void fl_tests_programs_app_sh_resolver_test_test_ident_resolves_param(void) {
             break;
         }
     }
+    fl_string_release(src);
 }
 
 /* Flow: tests.programs.app_sh_resolver_test.test_ident_resolves_local */
@@ -11862,6 +11870,7 @@ void fl_tests_programs_app_sh_resolver_test_test_ident_resolves_local(void) {
             break;
         }
     }
+    fl_string_release(src);
 }
 
 /* Flow: tests.programs.app_sh_resolver_test.test_exports */
@@ -11896,6 +11905,7 @@ void fl_tests_programs_app_sh_resolver_test_test_exports(void) {
     } else {
         fl_println(_fl_str_tests_programs_app_sh_resolver_test_20);
     }
+    fl_string_release(src);
 }
 
 /* Flow: tests.programs.app_sh_resolver_test.test_undefined_error */
@@ -11919,6 +11929,7 @@ void fl_tests_programs_app_sh_resolver_test_test_undefined_error(void) {
             _fl_throw(_fl_ef_0.exception, _fl_ef_0.exception_tag);
         }
     }
+    fl_string_release(src);
 }
 
 /* Flow: tests.programs.app_sh_resolver_test.test_immutable_assign_error */
@@ -11942,6 +11953,7 @@ void fl_tests_programs_app_sh_resolver_test_test_immutable_assign_error(void) {
             _fl_throw(_fl_ef_1.exception, _fl_ef_1.exception_tag);
         }
     }
+    fl_string_release(src);
 }
 
 /* Flow: tests.programs.app_sh_resolver_test.test_fn_call_resolves */
@@ -12021,6 +12033,7 @@ void fl_tests_programs_app_sh_resolver_test_test_fn_call_resolves(void) {
             break;
         }
     }
+    fl_string_release(src);
 }
 
 /* Flow: tests.programs.app_sh_resolver_test.main */

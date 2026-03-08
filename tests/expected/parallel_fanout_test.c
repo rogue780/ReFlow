@@ -182,6 +182,7 @@ void fl_tests_parallel_fanout_test_main(void) {
     FL_String* r2 = fl_tests_parallel_fanout_test_both(_fl_tmp_20, _fl_tmp_21);
     fl_string_retain(r2);
     fl_println(r2);
+    fl_string_release(r2);
 }
 
 static void _fl_init_statics(void) {

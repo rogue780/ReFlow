@@ -2402,6 +2402,12 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
         n = _fl_e_5;
     }
     fl_println(_fl_str_tests_programs_app_sh_lexer_test_12);
+    fl_string_release(src);
+    fl_string_release(ops_src);
+    fl_string_release(str_src);
+    fl_string_release(num_src);
+    fl_string_release(kw_src);
+    fl_string_release(multi_src);
     return 0;
 }
 

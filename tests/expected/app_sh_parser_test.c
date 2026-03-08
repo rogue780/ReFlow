@@ -8437,6 +8437,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ident_or_type_lit(fl_self_ho
             }
         }
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACE) && fl_self_hosted_parser_is_first_upper(current_name)) {
+            fl_string_release(name);
             return fl_self_hosted_parser_parse_type_construction_lit(s, first_tok, current_name, module_path);
         }
         s->pos = saved_pos;
@@ -9527,6 +9528,13 @@ fl_int fl_tests_programs_app_sh_parser_test_main(void) {
         }
     }
     fl_println(_fl_str_tests_programs_app_sh_parser_test_52);
+    fl_string_release(src1);
+    fl_string_release(src2);
+    fl_string_release(src3);
+    fl_string_release(src4);
+    fl_string_release(src5);
+    fl_string_release(src6);
+    fl_string_release(src7);
     return 0;
 }
 

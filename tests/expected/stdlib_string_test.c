@@ -158,6 +158,7 @@ void fl_tests_stdlib_string_test_main(void) {
     FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, replaced);
     fl_string_release(_fl_tmp_21);
     fl_println(_fl_tmp_22);
+    fl_string_release(s);
 }
 
 static void _fl_init_statics(void) {

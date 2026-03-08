@@ -235,6 +235,7 @@ FL_String* fl_crypto_bytes_to_hex(void* p, fl_int len) {
         FL_CHECKED_ADD(i, 1, &_fl_e_3);
         i = _fl_e_3;
     }
+    fl_string_release(hex_chars);
     return result;
 }
 

@@ -81,6 +81,7 @@ void fl_tests_typeof_test_main(void) {
     fl_println(_fl_str_tests_typeof_test_4);
     FL_Tuple_fl_int_fl_int t = (FL_Tuple_fl_int_fl_int){._0 = 1, ._1 = 2};
     fl_println(_fl_str_tests_typeof_test_5);
+    fl_string_release(s);
 }
 
 static void _fl_init_statics(void) {

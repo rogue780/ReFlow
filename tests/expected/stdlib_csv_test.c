@@ -575,6 +575,7 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                             if (_fl_old_6 != current_row) {
                                 fl_array_release(_fl_old_6);
                             }
+                            fl_array_set_elem_type(current_row, 1);
                             fl_int _fl_e_1;
                             FL_CHECKED_ADD(i, 1, &_fl_e_1);
                             if (_fl_e_1 < len) {
@@ -613,6 +614,7 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                                 if (_fl_old_11 != current_row) {
                                     fl_array_release(_fl_old_11);
                                 }
+                                fl_array_set_elem_type(current_row, 1);
                             } else {
                                 FL_String* _fl_tmp_12 = fl_char_to_string(c);
                                 FL_String* _fl_old_13 = field;
@@ -664,6 +666,7 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                             if (_fl_old_19 != current_row) {
                                 fl_array_release(_fl_old_19);
                             }
+                            fl_array_set_elem_type(current_row, 1);
                             fl_int _fl_e_4;
                             FL_CHECKED_ADD(i, 1, &_fl_e_4);
                             if (_fl_e_4 < len) {
@@ -703,6 +706,7 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                                 if (_fl_old_24 != current_row) {
                                     fl_array_release(_fl_old_24);
                                 }
+                                fl_array_set_elem_type(current_row, 1);
                                 state = 0;
                             } else {
                                 FL_String* _fl_tmp_25 = fl_char_to_string(c);
@@ -773,6 +777,7 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                                     if (_fl_old_35 != current_row) {
                                         fl_array_release(_fl_old_35);
                                     }
+                                    fl_array_set_elem_type(current_row, 1);
                                     fl_int _fl_e_7;
                                     FL_CHECKED_ADD(i, 1, &_fl_e_7);
                                     if (_fl_e_7 < len) {
@@ -812,6 +817,7 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                                         if (_fl_old_40 != current_row) {
                                             fl_array_release(_fl_old_40);
                                         }
+                                        fl_array_set_elem_type(current_row, 1);
                                         state = 0;
                                     } else {
                                         FL_String* _fl_tmp_41 = fl_char_to_string(c);

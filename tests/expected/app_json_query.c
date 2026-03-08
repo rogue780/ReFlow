@@ -2679,12 +2679,14 @@ void fl_tests_app_json_query_run_query(fl_json_JsonValue root, FL_String* query,
         fl_println(_fl_tmp_20);
         fl_string_release(_fl_tmp_20);
         fl_array_release(segments);
+        fl_string_release(parse_err);
         return;
     }
     FL_Array* results = fl_tests_app_json_query_resolve(root, segments);
     if (fl_array_len_int(results) == 0) {
         fl_println(_fl_str_tests_app_json_query_16);
         fl_array_release(segments);
+        fl_string_release(parse_err);
         return;
     }
     fl_int i = 0;
@@ -2699,6 +2701,7 @@ void fl_tests_app_json_query_run_query(fl_json_JsonValue root, FL_String* query,
         i = _fl_e_1;
     }
     fl_array_release(segments);
+    fl_string_release(parse_err);
 }
 
 /* Flow: tests.app_json_query.main */
@@ -2711,8 +2714,10 @@ void fl_tests_app_json_query_main(void) {
         fl_tests_app_json_query_run_tests(root);
     } else {
         fl_println(_fl_str_tests_app_json_query_18);
+        fl_string_release(test_json);
         return;
     }
+    fl_string_release(test_json);
 }
 
 /* Flow: tests.app_json_query.run_tests */

@@ -925,6 +925,29 @@ class Lowerer:
             return self._mono_caller_module_path
         return self._module_path
 
+    def _get_struct_field_types(self, type_name: str) -> dict[str, "Type"]:
+        """Look up declared field types for a struct from its TypeDecl.
+
+        Returns {field_name: Type} for each field. Used by _lower_type_lit
+        to set elem_type on empty array fields whose inferred type is
+        TArray(TAny) — the declared field type provides the concrete
+        element type needed for container element refcounting.
+        """
+        bare = type_name.rsplit('.', 1)[-1] if '.' in type_name else type_name
+        # Search local module
+        for decl in self._module.decls:
+            if isinstance(decl, TypeDecl) and decl.name == bare and not decl.is_sum_type:
+                return {f.name: self._type_of(f.type_ann)
+                        for f in decl.fields if f.type_ann}
+        # Search imported modules
+        if self._all_typed:
+            for _, typed_mod in self._all_typed.items():
+                for decl in typed_mod.module.decls:
+                    if isinstance(decl, TypeDecl) and decl.name == bare and not decl.is_sum_type:
+                        return {f.name: self._type_of(f.type_ann)
+                                for f in decl.fields if f.type_ann}
+        return {}
+
     def _resolve_tvar_to_sum(self, name: str) -> TSum | None:
         """Try to resolve a TTypeVar name to a concrete TSum type.
 
@@ -1371,8 +1394,8 @@ class Lowerer:
                 child = getattr(e, attr, None)
                 if isinstance(child, LExpr):
                     stack.append(child)
-            # Walk into lists (e.g. LCall args, LCompound fields)
-            for attr in ('args',):
+            # Walk into lists (e.g. LCall args, LArrayData elements)
+            for attr in ('args', 'elements'):
                 child_list = getattr(e, attr, None)
                 if isinstance(child_list, list):
                     for item in child_list:
@@ -1546,21 +1569,21 @@ class Lowerer:
                     c_type=LVoid(),
                 )))
 
-        # Register container-typed locals for scope-exit cleanup.
+        # Register refcounted locals for scope-exit cleanup.
         # Only top-level function scope (depth 0) — inner block vars
         # are not tracked to avoid releasing already-dead variables.
         # Skip auto-lifted bindings: the variable is option<T>, not T.
-        # Only register non-allocating (retained) bindings.  Allocating
-        # expressions start at refcount 1; if the value is subsequently
-        # passed into a container (array.push, map.set), the container
-        # holds the only reference.  Scope-exit release would free it
-        # while the container still references it → use-after-free.
-        # Skip TString: strings are freely aliased (stored in struct fields,
-        # arrays, maps, passed as params) so scope-exit release causes
-        # use-after-free when any alias survives the function.
+        # Only non-allocating bindings: they are retained at bind (above),
+        # so scope-exit release is always safe (balanced +1/-1).
+        # Skip :mut bindings: the bind-time retain targets the initial value
+        # but scope-exit release targets the final value.  When a :mut var
+        # is reassigned via an allocating expression, the new value is NOT
+        # retained (release-on-reassignment only releases the old value),
+        # so the scope-exit release would be unbalanced and cause UAF.
+        is_mut_binding = isinstance(stmt.type_ann, MutType)
         if (not auto_lifted
                 and not self._is_allocating_expr(stmt.value)
-                and not isinstance(val_type, TString)):
+                and not is_mut_binding):
             release_fn = self._get_release_fn(val_type)
             if release_fn and self._scope_depth == 0:
                 self._container_locals.append((stmt.name, c_type, release_fn))
@@ -1737,7 +1760,7 @@ class Lowerer:
                 self._tmp_counter += 1
                 old_c_type = target.c_type
                 old_var = LVar(old_tmp, old_c_type)
-                return [
+                result = [
                     LVarDecl(c_name=old_tmp, c_type=old_c_type, init=target),
                     LAssign(target=target, value=value),
                     LIf(
@@ -1748,6 +1771,17 @@ class Lowerer:
                         else_=[],
                     ),
                 ]
+                # Set elem_type on empty array reassignment so pushed
+                # elements are retained by the runtime.
+                if isinstance(stmt.value, ArrayLit) and not stmt.value.elements:
+                    if isinstance(target_type, TArray):
+                        tag = self._ELEM_TYPE_TAG.get(type(target_type.element))
+                        if tag is not None:
+                            result.append(LExprStmt(LCall(
+                                "fl_array_set_elem_type",
+                                [target, LLit(str(tag), LInt(64, True))],
+                                LVoid())))
+                return result
 
         # Non-allocating RHS (borrowed value): retain new, release old.
         # This handles `x = param` where x is :mut and param is borrowed.
@@ -5523,9 +5557,38 @@ class Lowerer:
         """Lower type literal (struct construction)."""
         t = self._type_of(expr)
         lt = self._lower_type(t)
+
+        # Look up declared field types from the struct's TypeDecl so we can
+        # set elem_type on empty array fields (whose inferred type is
+        # TArray(TAny) — no concrete element type without the declaration).
+        decl_field_types = self._get_struct_field_types(expr.type_name)
+
         lfields: list[tuple[str, LExpr]] = []
         for name, val in expr.fields:
             lowered_val = self._lower_expr(val)
+
+            # Set elem_type on empty arrays from declared field type,
+            # since the typechecker infers TArray(TAny) for empty
+            # literals without context.  Must store the array in a
+            # temp first — lowered_val is an LCall that would create
+            # a new array each time it's evaluated.
+            if isinstance(val, ArrayLit) and not val.elements:
+                decl_t = decl_field_types.get(name)
+                if isinstance(decl_t, TArray):
+                    tag = self._ELEM_TYPE_TAG.get(type(decl_t.element))
+                    if tag is not None:
+                        arr_lt = self._lower_type(TArray(decl_t.element))
+                        tmp = self._fresh_temp()
+                        self._pending_stmts.append(
+                            LVarDecl(c_name=tmp, c_type=arr_lt,
+                                     init=lowered_val))
+                        self._pending_stmts.append(LExprStmt(LCall(
+                            "fl_array_set_elem_type",
+                            [LVar(tmp, arr_lt),
+                             LLit(str(tag), LInt(64, True))],
+                            LVoid())))
+                        lowered_val = LVar(tmp, arr_lt)
+
             # Retain-on-store: retain borrowed refcounted field values
             if not self._is_allocating_expr(val):
                 val_type = self._type_of(val)
