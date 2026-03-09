@@ -538,19 +538,19 @@ FL_Array* fl_array_put__string(FL_Array* arr, fl_int idx, FL_String* val) {
     fl_int i = 0;
     while (i < s) {
         if (i == idx) {
-            FL_Array* _fl_old_12 = result;
+            FL_Array* _fl_old_18 = result;
             result = fl_array_push_ptr(result, val);
-            if (_fl_old_12 != result) {
-                fl_array_release(_fl_old_12);
+            if (_fl_old_18 != result) {
+                fl_array_release(_fl_old_18);
             }
         } else {
-            FL_Option_ptr _fl_tmp_13 = fl_array_get_safe(arr, i);
-            if (_fl_tmp_13.tag == 1) {
-                FL_String* v = _fl_tmp_13.value;
-                FL_Array* _fl_old_14 = result;
+            FL_Option_ptr _fl_tmp_19 = fl_array_get_safe(arr, i);
+            if (_fl_tmp_19.tag == 1) {
+                FL_String* v = _fl_tmp_19.value;
+                FL_Array* _fl_old_20 = result;
                 result = fl_array_push_ptr(result, v);
-                if (_fl_old_14 != result) {
-                    fl_array_release(_fl_old_14);
+                if (_fl_old_20 != result) {
+                    fl_array_release(_fl_old_20);
                 }
             }
         }
@@ -573,21 +573,21 @@ FL_Array* fl_array_put__int(FL_Array* arr, fl_int idx, fl_int val) {
     fl_int i = 0;
     while (i < s) {
         if (i == idx) {
-            fl_int _fl_tmp_15 = val;
-            FL_Array* _fl_old_16 = result;
-            result = fl_array_push_sized(result, (&_fl_tmp_15), sizeof(fl_int));
-            if (_fl_old_16 != result) {
-                fl_array_release(_fl_old_16);
+            fl_int _fl_tmp_21 = val;
+            FL_Array* _fl_old_22 = result;
+            result = fl_array_push_sized(result, (&_fl_tmp_21), sizeof(fl_int));
+            if (_fl_old_22 != result) {
+                fl_array_release(_fl_old_22);
             }
         } else {
-            FL_Option_int _fl_tmp_17 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_int, FL_Option_int);
-            if (_fl_tmp_17.tag == 1) {
-                fl_int v = _fl_tmp_17.value;
-                fl_int _fl_tmp_18 = v;
-                FL_Array* _fl_old_19 = result;
-                result = fl_array_push_sized(result, (&_fl_tmp_18), sizeof(fl_int));
-                if (_fl_old_19 != result) {
-                    fl_array_release(_fl_old_19);
+            FL_Option_int _fl_tmp_23 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_int, FL_Option_int);
+            if (_fl_tmp_23.tag == 1) {
+                fl_int v = _fl_tmp_23.value;
+                fl_int _fl_tmp_24 = v;
+                FL_Array* _fl_old_25 = result;
+                result = fl_array_push_sized(result, (&_fl_tmp_24), sizeof(fl_int));
+                if (_fl_old_25 != result) {
+                    fl_array_release(_fl_old_25);
                 }
             }
         }
@@ -613,29 +613,41 @@ fl_int fl_tests_array_put_test_main(void) {
     fl_println(((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : _fl_str_tests_array_put_test_4));
     FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(updated, 2);
     fl_println(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : _fl_str_tests_array_put_test_4));
-    fl_println(fl_conv_to_string__int(fl_array_len_int(updated)));
-    FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(names, 1);
-    fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_array_put_test_4));
-    FL_Array* first = fl_array_put__string(names, 0, _fl_str_tests_array_put_test_5);
-    FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(first, 0);
+    FL_String* _fl_tmp_4 = fl_conv_to_string__int(fl_array_len_int(updated));
+    fl_println(_fl_tmp_4);
+    fl_string_release(_fl_tmp_4);
+    FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(names, 1);
     fl_println(((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : _fl_str_tests_array_put_test_4));
-    FL_Option_ptr _fl_tmp_6 = fl_array_get_safe(first, 1);
+    FL_Array* first = fl_array_put__string(names, 0, _fl_str_tests_array_put_test_5);
+    FL_Option_ptr _fl_tmp_6 = fl_array_get_safe(first, 0);
     fl_println(((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_array_put_test_4));
-    FL_Array* last = fl_array_put__string(names, 2, _fl_str_tests_array_put_test_6);
-    FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(last, 2);
+    FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(first, 1);
     fl_println(((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_array_put_test_4));
+    FL_Array* last = fl_array_put__string(names, 2, _fl_str_tests_array_put_test_6);
+    FL_Option_ptr _fl_tmp_8 = fl_array_get_safe(last, 2);
+    fl_println(((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_array_put_test_4));
     FL_Array* nums = fl_array_new(4, sizeof(fl_int), (fl_int[]){10, 20, 30, 40});
     FL_Array* nums2 = fl_array_put__int(nums, 2, 99);
-    FL_Option_int _fl_tmp_8 = fl_array_get_int(nums2, 0);
-    fl_println(fl_conv_to_string__int(((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : 0)));
-    FL_Option_int _fl_tmp_9 = fl_array_get_int(nums2, 1);
-    fl_println(fl_conv_to_string__int(((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 0)));
-    FL_Option_int _fl_tmp_10 = fl_array_get_int(nums2, 2);
-    fl_println(fl_conv_to_string__int(((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : 0)));
-    FL_Option_int _fl_tmp_11 = fl_array_get_int(nums2, 3);
-    fl_println(fl_conv_to_string__int(((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : 0)));
+    FL_Option_int _fl_tmp_9 = fl_array_get_int(nums2, 0);
+    FL_String* _fl_tmp_10 = fl_conv_to_string__int(((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 0));
+    fl_println(_fl_tmp_10);
+    fl_string_release(_fl_tmp_10);
+    FL_Option_int _fl_tmp_11 = fl_array_get_int(nums2, 1);
+    FL_String* _fl_tmp_12 = fl_conv_to_string__int(((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : 0));
+    fl_println(_fl_tmp_12);
+    fl_string_release(_fl_tmp_12);
+    FL_Option_int _fl_tmp_13 = fl_array_get_int(nums2, 2);
+    FL_String* _fl_tmp_14 = fl_conv_to_string__int(((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : 0));
+    fl_println(_fl_tmp_14);
+    fl_string_release(_fl_tmp_14);
+    FL_Option_int _fl_tmp_15 = fl_array_get_int(nums2, 3);
+    FL_String* _fl_tmp_16 = fl_conv_to_string__int(((_fl_tmp_15.tag == 1) ? _fl_tmp_15.value : 0));
+    fl_println(_fl_tmp_16);
+    fl_string_release(_fl_tmp_16);
     FL_Array* safe = fl_array_put__string(names, 99, _fl_str_tests_array_put_test_7);
-    fl_println(fl_conv_to_string__int(fl_array_len_int(safe)));
+    FL_String* _fl_tmp_17 = fl_conv_to_string__int(fl_array_len_int(safe));
+    fl_println(_fl_tmp_17);
+    fl_string_release(_fl_tmp_17);
     fl_array_release(names);
     fl_array_release(updated);
     fl_array_release(first);

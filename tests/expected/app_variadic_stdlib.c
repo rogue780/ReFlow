@@ -2633,13 +2633,13 @@ FL_String* _fl_str_tests_app_variadic_stdlib_10 = NULL;
 /* Flow: math.min[mono] */
 fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
     fl_int result = first;
-    fl_int64 _fl_tmp_9 = 0;
-    while (_fl_tmp_9 < fl_array_len(rest)) {
-        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_9)));
+    fl_int64 _fl_tmp_26 = 0;
+    while (_fl_tmp_26 < fl_array_len(rest)) {
+        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_26)));
         if (_fl_compare(val, result) < 0) {
             result = val;
         }
-        _fl_tmp_9 = (_fl_tmp_9 + 1);
+        _fl_tmp_26 = (_fl_tmp_26 + 1);
     }
     return result;
 }
@@ -2647,13 +2647,13 @@ fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
 /* Flow: math.max[mono] */
 fl_int fl_math_max__int(fl_int first, FL_Array* rest) {
     fl_int result = first;
-    fl_int64 _fl_tmp_10 = 0;
-    while (_fl_tmp_10 < fl_array_len(rest)) {
-        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_10)));
+    fl_int64 _fl_tmp_27 = 0;
+    while (_fl_tmp_27 < fl_array_len(rest)) {
+        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_27)));
         if (_fl_compare(val, result) > 0) {
             result = val;
         }
-        _fl_tmp_10 = (_fl_tmp_10 + 1);
+        _fl_tmp_27 = (_fl_tmp_27 + 1);
     }
     return result;
 }
@@ -2672,47 +2672,81 @@ FL_Array* fl_array_of__string(FL_Array* items) {
 
 /* Flow: tests.app_variadic_stdlib.main */
 fl_int fl_tests_app_variadic_stdlib_main(void) {
-    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2})));
-    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_3, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2})));
-    fl_println(fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_4, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2})));
-    fl_println(fl_path_join(fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0})));
-    fl_println(fl_path_join(fl_array_new(0, 0, NULL)));
-    fl_println(fl_conv_to_string__int(fl_math_min__int(5, fl_array_new(3, sizeof(fl_int), (fl_int[]){3, 8, 1}))));
-    fl_println(fl_conv_to_string__int(fl_math_min__int(42, fl_array_new(0, 0, NULL))));
-    fl_println(fl_conv_to_string__int(fl_math_min__int(10, fl_array_new(1, sizeof(fl_int), (fl_int[]){20}))));
-    fl_println(fl_conv_to_string__int(fl_math_max__int(5, fl_array_new(3, sizeof(fl_int), (fl_int[]){3, 8, 1}))));
-    fl_println(fl_conv_to_string__int(fl_math_max__int(42, fl_array_new(0, 0, NULL))));
-    fl_println(fl_conv_to_string__int(fl_math_max__int(10, fl_array_new(1, sizeof(fl_int), (fl_int[]){20}))));
-    FL_String* _fl_tmp_0 = fl_string_join(_fl_str_tests_app_variadic_stdlib_5, fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2}));
+    FL_String* _fl_tmp_0 = fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2}));
     fl_println(_fl_tmp_0);
     fl_string_release(_fl_tmp_0);
-    FL_String* _fl_tmp_1 = fl_string_join(_fl_str_tests_app_variadic_stdlib_6, fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_7}));
+    FL_String* _fl_tmp_1 = fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_3, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2}));
     fl_println(_fl_tmp_1);
     fl_string_release(_fl_tmp_1);
-    FL_Array* _fl_tmp_2 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_8, _fl_str_tests_app_variadic_stdlib_9});
-    fl_array_set_elem_type(_fl_tmp_2, 1);
-    fl_string_retain(_fl_str_tests_app_variadic_stdlib_8);
-    fl_string_retain(_fl_str_tests_app_variadic_stdlib_9);
-    FL_Array* parts = _fl_tmp_2;
-    FL_String* _fl_tmp_3 = fl_string_join(_fl_str_tests_app_variadic_stdlib_10, parts);
+    FL_String* _fl_tmp_2 = fl_path_join(fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_4, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2}));
+    fl_println(_fl_tmp_2);
+    fl_string_release(_fl_tmp_2);
+    FL_String* _fl_tmp_3 = fl_path_join(fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0}));
     fl_println(_fl_tmp_3);
     fl_string_release(_fl_tmp_3);
+    FL_String* _fl_tmp_4 = fl_path_join(fl_array_new(0, 0, NULL));
+    fl_println(_fl_tmp_4);
+    fl_string_release(_fl_tmp_4);
+    FL_String* _fl_tmp_5 = fl_conv_to_string__int(fl_math_min__int(5, fl_array_new(3, sizeof(fl_int), (fl_int[]){3, 8, 1})));
+    fl_println(_fl_tmp_5);
+    fl_string_release(_fl_tmp_5);
+    FL_String* _fl_tmp_6 = fl_conv_to_string__int(fl_math_min__int(42, fl_array_new(0, 0, NULL)));
+    fl_println(_fl_tmp_6);
+    fl_string_release(_fl_tmp_6);
+    FL_String* _fl_tmp_7 = fl_conv_to_string__int(fl_math_min__int(10, fl_array_new(1, sizeof(fl_int), (fl_int[]){20})));
+    fl_println(_fl_tmp_7);
+    fl_string_release(_fl_tmp_7);
+    FL_String* _fl_tmp_8 = fl_conv_to_string__int(fl_math_max__int(5, fl_array_new(3, sizeof(fl_int), (fl_int[]){3, 8, 1})));
+    fl_println(_fl_tmp_8);
+    fl_string_release(_fl_tmp_8);
+    FL_String* _fl_tmp_9 = fl_conv_to_string__int(fl_math_max__int(42, fl_array_new(0, 0, NULL)));
+    fl_println(_fl_tmp_9);
+    fl_string_release(_fl_tmp_9);
+    FL_String* _fl_tmp_10 = fl_conv_to_string__int(fl_math_max__int(10, fl_array_new(1, sizeof(fl_int), (fl_int[]){20})));
+    fl_println(_fl_tmp_10);
+    fl_string_release(_fl_tmp_10);
+    FL_String* _fl_tmp_11 = fl_string_join(_fl_str_tests_app_variadic_stdlib_5, fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_0, _fl_str_tests_app_variadic_stdlib_1, _fl_str_tests_app_variadic_stdlib_2}));
+    fl_println(_fl_tmp_11);
+    fl_string_release(_fl_tmp_11);
+    FL_String* _fl_tmp_12 = fl_string_join(_fl_str_tests_app_variadic_stdlib_6, fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_7}));
+    fl_println(_fl_tmp_12);
+    fl_string_release(_fl_tmp_12);
+    FL_Array* _fl_tmp_13 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_8, _fl_str_tests_app_variadic_stdlib_9});
+    fl_array_set_elem_type(_fl_tmp_13, 1);
+    fl_string_retain(_fl_str_tests_app_variadic_stdlib_8);
+    fl_string_retain(_fl_str_tests_app_variadic_stdlib_9);
+    FL_Array* parts = _fl_tmp_13;
+    FL_String* _fl_tmp_14 = fl_string_join(_fl_str_tests_app_variadic_stdlib_10, parts);
+    fl_println(_fl_tmp_14);
+    fl_string_release(_fl_tmp_14);
     fl_json_JsonValue arr = fl_json_array_val(fl_array_new(3, sizeof(fl_json_JsonValue), (fl_json_JsonValue[]){fl_json_int_val(1), fl_json_int_val(2), fl_json_int_val(3)}));
-    fl_println(fl_json_to_string(arr));
+    FL_String* _fl_tmp_15 = fl_json_to_string(arr);
+    fl_println(_fl_tmp_15);
+    fl_string_release(_fl_tmp_15);
     FL_Array* nums = fl_array_of__int(fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30}));
-    fl_println(fl_conv_to_string__int(fl_array_len_int(nums)));
-    FL_Option_int _fl_tmp_4 = fl_array_get_int(nums, 0);
-    fl_println(fl_conv_to_string__int(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : 0)));
-    FL_Option_int _fl_tmp_5 = fl_array_get_int(nums, 1);
-    fl_println(fl_conv_to_string__int(((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : 0)));
-    FL_Option_int _fl_tmp_6 = fl_array_get_int(nums, 2);
-    fl_println(fl_conv_to_string__int(((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : 0)));
+    FL_String* _fl_tmp_16 = fl_conv_to_string__int(fl_array_len_int(nums));
+    fl_println(_fl_tmp_16);
+    fl_string_release(_fl_tmp_16);
+    FL_Option_int _fl_tmp_17 = fl_array_get_int(nums, 0);
+    FL_String* _fl_tmp_18 = fl_conv_to_string__int(((_fl_tmp_17.tag == 1) ? _fl_tmp_17.value : 0));
+    fl_println(_fl_tmp_18);
+    fl_string_release(_fl_tmp_18);
+    FL_Option_int _fl_tmp_19 = fl_array_get_int(nums, 1);
+    FL_String* _fl_tmp_20 = fl_conv_to_string__int(((_fl_tmp_19.tag == 1) ? _fl_tmp_19.value : 0));
+    fl_println(_fl_tmp_20);
+    fl_string_release(_fl_tmp_20);
+    FL_Option_int _fl_tmp_21 = fl_array_get_int(nums, 2);
+    FL_String* _fl_tmp_22 = fl_conv_to_string__int(((_fl_tmp_21.tag == 1) ? _fl_tmp_21.value : 0));
+    fl_println(_fl_tmp_22);
+    fl_string_release(_fl_tmp_22);
     FL_Array* strs = fl_array_of__string(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_stdlib_8, _fl_str_tests_app_variadic_stdlib_9}));
-    fl_println(fl_conv_to_string__int(fl_array_len_int(strs)));
-    FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(strs, 0);
-    fl_println(((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_variadic_stdlib_4));
-    FL_Option_ptr _fl_tmp_8 = fl_array_get_safe(strs, 1);
-    fl_println(((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_app_variadic_stdlib_4));
+    FL_String* _fl_tmp_23 = fl_conv_to_string__int(fl_array_len_int(strs));
+    fl_println(_fl_tmp_23);
+    fl_string_release(_fl_tmp_23);
+    FL_Option_ptr _fl_tmp_24 = fl_array_get_safe(strs, 0);
+    fl_println(((_fl_tmp_24.tag == 1) ? _fl_tmp_24.value : _fl_str_tests_app_variadic_stdlib_4));
+    FL_Option_ptr _fl_tmp_25 = fl_array_get_safe(strs, 1);
+    fl_println(((_fl_tmp_25.tag == 1) ? _fl_tmp_25.value : _fl_str_tests_app_variadic_stdlib_4));
     fl_array_release(parts);
     fl_array_release(nums);
     fl_array_release(strs);

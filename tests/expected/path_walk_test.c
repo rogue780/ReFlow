@@ -851,13 +851,13 @@ FL_String* fl_conv_to_string__bool(fl_bool val) {
 
 /* Flow: array.contains[mono] */
 fl_bool fl_array_contains__string(FL_Array* arr, FL_String* val) {
-    fl_int64 _fl_tmp_2 = 0;
-    while (_fl_tmp_2 < fl_array_len(arr)) {
-        FL_String* item = (*((FL_String**)fl_array_get_ptr(arr, _fl_tmp_2)));
+    fl_int64 _fl_tmp_6 = 0;
+    while (_fl_tmp_6 < fl_array_len(arr)) {
+        FL_String* item = (*((FL_String**)fl_array_get_ptr(arr, _fl_tmp_6)));
         if (fl_string_eq(item, val)) {
             return fl_true;
         }
-        _fl_tmp_2 = (_fl_tmp_2 + 1);
+        _fl_tmp_6 = (_fl_tmp_6 + 1);
     }
     return fl_false;
 }
@@ -870,16 +870,24 @@ fl_int fl_tests_path_walk_test_main(void) {
     if (_fl_tmp_0.tag == 1) {
         FL_Array* files = _fl_tmp_0.value;
         fl_int count = fl_array_len_int(files);
-        fl_println(fl_conv_to_string__bool((count > 0)));
-        fl_println(fl_conv_to_string__bool(fl_array_contains__string(files, _fl_str_tests_path_walk_test_4)));
-        fl_println(fl_conv_to_string__bool(fl_array_contains__string(files, _fl_str_tests_path_walk_test_5)));
-        fl_println(fl_conv_to_string__bool(fl_array_contains__string(files, _fl_str_tests_path_walk_test_6)));
+        FL_String* _fl_tmp_1 = fl_conv_to_string__bool((count > 0));
+        fl_println(_fl_tmp_1);
+        fl_string_release(_fl_tmp_1);
+        FL_String* _fl_tmp_2 = fl_conv_to_string__bool(fl_array_contains__string(files, _fl_str_tests_path_walk_test_4));
+        fl_println(_fl_tmp_2);
+        fl_string_release(_fl_tmp_2);
+        FL_String* _fl_tmp_3 = fl_conv_to_string__bool(fl_array_contains__string(files, _fl_str_tests_path_walk_test_5));
+        fl_println(_fl_tmp_3);
+        fl_string_release(_fl_tmp_3);
+        FL_String* _fl_tmp_4 = fl_conv_to_string__bool(fl_array_contains__string(files, _fl_str_tests_path_walk_test_6));
+        fl_println(_fl_tmp_4);
+        fl_string_release(_fl_tmp_4);
     } else {
         fl_println(_fl_str_tests_path_walk_test_7);
     }
-    FL_Option_ptr _fl_tmp_1 = fl_path_walk(_fl_str_tests_path_walk_test_8);
-    if (_fl_tmp_1.tag == 1) {
-        FL_Array* files = _fl_tmp_1.value;
+    FL_Option_ptr _fl_tmp_5 = fl_path_walk(_fl_str_tests_path_walk_test_8);
+    if (_fl_tmp_5.tag == 1) {
+        FL_Array* files = _fl_tmp_5.value;
         fl_println(_fl_str_tests_path_walk_test_9);
     } else {
         fl_println(_fl_str_tests_path_walk_test_10);

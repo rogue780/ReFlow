@@ -2326,14 +2326,16 @@ void fl_stdlib_json_roundtrip_main(void) {
     FL_Option_fl_json_JsonValue _fl_tmp_0 = parsed;
     if (_fl_tmp_0.tag == 1) {
         fl_json_JsonValue val = _fl_tmp_0.value;
-        fl_println(fl_json_to_string(val));
+        FL_String* _fl_tmp_1 = fl_json_to_string(val);
+        fl_println(_fl_tmp_1);
+        fl_string_release(_fl_tmp_1);
         FL_Option_fl_json_JsonValue name = fl_json_get(val, _fl_str_stdlib_json_roundtrip_1);
-        FL_Option_fl_json_JsonValue _fl_tmp_1 = name;
-        if (_fl_tmp_1.tag == 1) {
-            fl_json_JsonValue n = _fl_tmp_1.value;
-            FL_Option_ptr _fl_tmp_2 = fl_json_as_string(n);
-            if (_fl_tmp_2.tag == 1) {
-                FL_String* s = _fl_tmp_2.value;
+        FL_Option_fl_json_JsonValue _fl_tmp_2 = name;
+        if (_fl_tmp_2.tag == 1) {
+            fl_json_JsonValue n = _fl_tmp_2.value;
+            FL_Option_ptr _fl_tmp_3 = fl_json_as_string(n);
+            if (_fl_tmp_3.tag == 1) {
+                FL_String* s = _fl_tmp_3.value;
                 fl_println(s);
             } else {
                 fl_println(_fl_str_stdlib_json_roundtrip_2);
@@ -2342,16 +2344,18 @@ void fl_stdlib_json_roundtrip_main(void) {
             fl_println(_fl_str_stdlib_json_roundtrip_3);
         }
         FL_Option_fl_json_JsonValue ver = fl_json_get(val, _fl_str_stdlib_json_roundtrip_4);
-        FL_Option_fl_json_JsonValue _fl_tmp_3 = ver;
-        if (_fl_tmp_3.tag == 1) {
-            fl_json_JsonValue v = _fl_tmp_3.value;
-            FL_Option_int64 _fl_tmp_4 = fl_json_as_int(v);
-            if (_fl_tmp_4.tag == 1) {
-                fl_int64 n = _fl_tmp_4.value;
-                fl_println(fl_conv_to_string__int64(n));
+        FL_Option_fl_json_JsonValue _fl_tmp_4 = ver;
+        if (_fl_tmp_4.tag == 1) {
+            fl_json_JsonValue v = _fl_tmp_4.value;
+            FL_Option_int64 _fl_tmp_5 = fl_json_as_int(v);
+            if (_fl_tmp_5.tag == 1) {
+                fl_int64 n = _fl_tmp_5.value;
+                FL_String* _fl_tmp_6 = fl_conv_to_string__int64(n);
+                fl_println(_fl_tmp_6);
             } else {
                 fl_println(_fl_str_stdlib_json_roundtrip_5);
             }
+            fl_string_release(_fl_tmp_6);
         } else {
             fl_println(_fl_str_stdlib_json_roundtrip_6);
         }
@@ -2359,8 +2363,12 @@ void fl_stdlib_json_roundtrip_main(void) {
         fl_println(_fl_str_stdlib_json_roundtrip_7);
     }
     fl_json_JsonValue built = fl_json_bool_val(fl_true);
-    fl_println(fl_json_to_string(built));
-    fl_println(fl_conv_to_string__bool(fl_json_is_null(fl_json_null_val())));
+    FL_String* _fl_tmp_7 = fl_json_to_string(built);
+    fl_println(_fl_tmp_7);
+    fl_string_release(_fl_tmp_7);
+    FL_String* _fl_tmp_8 = fl_conv_to_string__bool(fl_json_is_null(fl_json_null_val()));
+    fl_println(_fl_tmp_8);
+    fl_string_release(_fl_tmp_8);
 }
 
 static void _fl_init_statics(void) {

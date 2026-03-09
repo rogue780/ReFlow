@@ -1033,10 +1033,12 @@ void fl_tests_app_calc_eval_and_print(FL_String* label, FL_String* input, FL_Map
     FL_Tuple_fl_tests_app_calc_Expr_fl_int parsed = fl_tests_app_calc_parse_expr(input, 0);
     fl_float result = fl_tests_app_calc_eval(parsed._0, env);
     FL_String* _fl_tmp_26 = fl_string_concat(label, _fl_str_tests_app_calc_11);
-    FL_String* _fl_tmp_27 = fl_string_concat(_fl_tmp_26, fl_tests_app_calc_format_result(result));
-    fl_println(_fl_tmp_27);
+    FL_String* _fl_tmp_27 = fl_tests_app_calc_format_result(result);
+    FL_String* _fl_tmp_28 = fl_string_concat(_fl_tmp_26, _fl_tmp_27);
+    fl_println(_fl_tmp_28);
     fl_string_release(_fl_tmp_26);
     fl_string_release(_fl_tmp_27);
+    fl_string_release(_fl_tmp_28);
 }
 
 /* Flow: tests.app_calc.main */
@@ -1055,15 +1057,15 @@ void fl_tests_app_calc_main(void) {
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_22, _fl_str_tests_app_calc_22, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_23, _fl_str_tests_app_calc_23, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_24, _fl_str_tests_app_calc_24, env);
-    FL_Map* _fl_old_28 = env;
-    env = fl_map_set_str(env, _fl_str_tests_app_calc_25, fl_box_float(10.0));
-    if (_fl_old_28 != env) {
-        fl_map_release(_fl_old_28);
-    }
     FL_Map* _fl_old_29 = env;
-    env = fl_map_set_str(env, _fl_str_tests_app_calc_26, fl_box_float(5.0));
+    env = fl_map_set_str(env, _fl_str_tests_app_calc_25, fl_box_float(10.0));
     if (_fl_old_29 != env) {
         fl_map_release(_fl_old_29);
+    }
+    FL_Map* _fl_old_30 = env;
+    env = fl_map_set_str(env, _fl_str_tests_app_calc_26, fl_box_float(5.0));
+    if (_fl_old_30 != env) {
+        fl_map_release(_fl_old_30);
     }
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_27, _fl_str_tests_app_calc_27, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_28, _fl_str_tests_app_calc_28, env);

@@ -538,8 +538,12 @@ void fl_main_move_point(fl_main_Point* p, fl_int dx, fl_int dy) {
 fl_int fl_main_main(void) {
     fl_main_Point p = (fl_main_Point){.x = 10, .y = 20};
     fl_main_move_point((&p), 5, 3);
-    fl_println(fl_conv_to_string__int(p.x));
-    fl_println(fl_conv_to_string__int(p.y));
+    FL_String* _fl_tmp_0 = fl_conv_to_string__int(p.x);
+    fl_println(_fl_tmp_0);
+    fl_string_release(_fl_tmp_0);
+    FL_String* _fl_tmp_1 = fl_conv_to_string__int(p.y);
+    fl_println(_fl_tmp_1);
+    fl_string_release(_fl_tmp_1);
     return 0;
 }
 

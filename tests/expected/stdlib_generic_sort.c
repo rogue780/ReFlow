@@ -530,26 +530,26 @@ FL_String* _fl_str_stdlib_generic_sort_2 = NULL;
 
 /* Flow: sort.sort[mono] */
 FL_Array* fl_sort_sort__int(FL_Array* arr) {
-    FL_Closure* _fl_tmp_3 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_3->refcount = 1;
-    _fl_tmp_3->fn = ((void*)_fl_clfn_sort_sort_0);
-    _fl_tmp_3->env = NULL;
     FL_Closure* _fl_tmp_4 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_4->fn = ((void*)_fl_srtwrap_sort_sort_1);
-    _fl_tmp_4->env = ((void*)_fl_tmp_3);
-    return fl_sort_array_by(arr, _fl_tmp_4);
+    _fl_tmp_4->refcount = 1;
+    _fl_tmp_4->fn = ((void*)_fl_clfn_sort_sort_0);
+    _fl_tmp_4->env = NULL;
+    FL_Closure* _fl_tmp_5 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_5->fn = ((void*)_fl_srtwrap_sort_sort_1);
+    _fl_tmp_5->env = ((void*)_fl_tmp_4);
+    return fl_sort_array_by(arr, _fl_tmp_5);
 }
 
 /* Flow: sort.sort[mono] */
 FL_Array* fl_sort_sort__string(FL_Array* arr) {
-    FL_Closure* _fl_tmp_5 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_5->refcount = 1;
-    _fl_tmp_5->fn = ((void*)_fl_clfn_sort_sort_2);
-    _fl_tmp_5->env = NULL;
     FL_Closure* _fl_tmp_6 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_6->fn = ((void*)_fl_srtwrap_sort_sort_3);
-    _fl_tmp_6->env = ((void*)_fl_tmp_5);
-    return fl_sort_array_by(arr, _fl_tmp_6);
+    _fl_tmp_6->refcount = 1;
+    _fl_tmp_6->fn = ((void*)_fl_clfn_sort_sort_2);
+    _fl_tmp_6->env = NULL;
+    FL_Closure* _fl_tmp_7 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_7->fn = ((void*)_fl_srtwrap_sort_sort_3);
+    _fl_tmp_7->env = ((void*)_fl_tmp_6);
+    return fl_sort_array_by(arr, _fl_tmp_7);
 }
 
 /* Flow: conv.to_string[mono] */
@@ -569,14 +569,16 @@ void fl_stdlib_generic_sort_main(void) {
     fl_int64 _fl_tmp_1 = 0;
     while (_fl_tmp_1 < fl_array_len(ints)) {
         fl_int n = (*((fl_int*)fl_array_get_ptr(ints, _fl_tmp_1)));
-        fl_println(fl_conv_to_string__int(n));
+        FL_String* _fl_tmp_2 = fl_conv_to_string__int(n);
+        fl_println(_fl_tmp_2);
+        fl_string_release(_fl_tmp_2);
         _fl_tmp_1 = (_fl_tmp_1 + 1);
     }
-    fl_int64 _fl_tmp_2 = 0;
-    while (_fl_tmp_2 < fl_array_len(strs)) {
-        FL_String* s = (*((FL_String**)fl_array_get_ptr(strs, _fl_tmp_2)));
+    fl_int64 _fl_tmp_3 = 0;
+    while (_fl_tmp_3 < fl_array_len(strs)) {
+        FL_String* s = (*((FL_String**)fl_array_get_ptr(strs, _fl_tmp_3)));
         fl_println(s);
-        _fl_tmp_2 = (_fl_tmp_2 + 1);
+        _fl_tmp_3 = (_fl_tmp_3 + 1);
     }
     fl_array_release(ints);
     fl_array_release(strs);

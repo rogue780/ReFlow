@@ -550,21 +550,25 @@ FL_String* fl_tests_map_for_each_test_get_or_default(FL_Map* m, FL_String* key) 
 fl_int fl_tests_map_for_each_test_main(void) {
     FL_Map* m = fl_map_set_str(fl_map_set_str(fl_map_set_str(fl_map_new(), _fl_str_tests_map_for_each_test_1, _fl_str_tests_map_for_each_test_2), _fl_str_tests_map_for_each_test_3, _fl_str_tests_map_for_each_test_4), _fl_str_tests_map_for_each_test_5, _fl_str_tests_map_for_each_test_6);
     FL_Array* ks = fl_map_keys(m);
-    fl_println(fl_conv_to_string__int(fl_array_len_int(ks)));
-    fl_int64 _fl_tmp_1 = 0;
-    while (_fl_tmp_1 < fl_array_len(ks)) {
-        FL_String* k = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_1)));
+    FL_String* _fl_tmp_1 = fl_conv_to_string__int(fl_array_len_int(ks));
+    fl_println(_fl_tmp_1);
+    fl_string_release(_fl_tmp_1);
+    fl_int64 _fl_tmp_2 = 0;
+    while (_fl_tmp_2 < fl_array_len(ks)) {
+        FL_String* k = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_2)));
         FL_String* v = fl_tests_map_for_each_test_get_or_default(m, k);
-        FL_String* _fl_tmp_2 = fl_string_concat(k, _fl_str_tests_map_for_each_test_7);
-        FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, v);
-        fl_println(_fl_tmp_3);
-        fl_string_release(_fl_tmp_2);
+        FL_String* _fl_tmp_3 = fl_string_concat(k, _fl_str_tests_map_for_each_test_7);
+        FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, v);
+        fl_println(_fl_tmp_4);
         fl_string_release(_fl_tmp_3);
-        _fl_tmp_1 = (_fl_tmp_1 + 1);
+        fl_string_release(_fl_tmp_4);
+        _fl_tmp_2 = (_fl_tmp_2 + 1);
     }
     FL_Map* empty = fl_map_new();
     FL_Array* empty_ks = fl_map_keys(empty);
-    fl_println(fl_conv_to_string__int(fl_array_len_int(empty_ks)));
+    FL_String* _fl_tmp_5 = fl_conv_to_string__int(fl_array_len_int(empty_ks));
+    fl_println(_fl_tmp_5);
+    fl_string_release(_fl_tmp_5);
     fl_map_release(m);
     fl_array_release(ks);
     fl_map_release(empty);

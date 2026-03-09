@@ -560,13 +560,15 @@ void fl_map_value_type_test_main(void) {
     FL_Option_float _fl_tmp_0 = fl_opt_unbox_float(fl_map_get_str(mf3, _fl_str_map_value_type_test_0));
     if (_fl_tmp_0.tag == 1) {
         fl_float v = _fl_tmp_0.value;
-        fl_println(fl_conv_to_string__float(v));
+        FL_String* _fl_tmp_1 = fl_conv_to_string__float(v);
+        fl_println(_fl_tmp_1);
     } else {
         fl_println(_fl_str_map_value_type_test_2);
     }
-    FL_Option_float _fl_tmp_1 = fl_opt_unbox_float(fl_map_get_str(mf3, _fl_str_map_value_type_test_3));
-    if (_fl_tmp_1.tag == 1) {
-        fl_float v = _fl_tmp_1.value;
+    fl_string_release(_fl_tmp_1);
+    FL_Option_float _fl_tmp_2 = fl_opt_unbox_float(fl_map_get_str(mf3, _fl_str_map_value_type_test_3));
+    if (_fl_tmp_2.tag == 1) {
+        fl_float v = _fl_tmp_2.value;
         fl_println(_fl_str_map_value_type_test_4);
     } else {
         fl_println(_fl_str_map_value_type_test_5);
@@ -574,25 +576,29 @@ void fl_map_value_type_test_main(void) {
     FL_Map* mi = fl_map_new();
     FL_Map* mi2 = fl_map_set_str(mi, _fl_str_map_value_type_test_6, fl_box_int(42));
     FL_Map* mi3 = fl_map_set_str(mi2, _fl_str_map_value_type_test_7, fl_box_int(100));
-    FL_Option_int _fl_tmp_2 = fl_opt_unbox_int(fl_map_get_str(mi3, _fl_str_map_value_type_test_6));
-    if (_fl_tmp_2.tag == 1) {
-        fl_int v = _fl_tmp_2.value;
-        fl_println(fl_conv_to_string__int(v));
+    FL_Option_int _fl_tmp_3 = fl_opt_unbox_int(fl_map_get_str(mi3, _fl_str_map_value_type_test_6));
+    if (_fl_tmp_3.tag == 1) {
+        fl_int v = _fl_tmp_3.value;
+        FL_String* _fl_tmp_4 = fl_conv_to_string__int(v);
+        fl_println(_fl_tmp_4);
     } else {
         fl_println(_fl_str_map_value_type_test_8);
     }
-    FL_Option_int _fl_tmp_3 = fl_opt_unbox_int(fl_map_get_str(mi3, _fl_str_map_value_type_test_7));
-    if (_fl_tmp_3.tag == 1) {
-        fl_int v = _fl_tmp_3.value;
-        fl_println(fl_conv_to_string__int(v));
+    fl_string_release(_fl_tmp_4);
+    FL_Option_int _fl_tmp_5 = fl_opt_unbox_int(fl_map_get_str(mi3, _fl_str_map_value_type_test_7));
+    if (_fl_tmp_5.tag == 1) {
+        fl_int v = _fl_tmp_5.value;
+        FL_String* _fl_tmp_6 = fl_conv_to_string__int(v);
+        fl_println(_fl_tmp_6);
     } else {
         fl_println(_fl_str_map_value_type_test_9);
     }
+    fl_string_release(_fl_tmp_6);
     FL_Map* mb = fl_map_new();
     FL_Map* mb2 = fl_map_set_str(mb, _fl_str_map_value_type_test_10, fl_box_bool(fl_true));
-    FL_Option_bool _fl_tmp_4 = fl_opt_unbox_bool(fl_map_get_str(mb2, _fl_str_map_value_type_test_10));
-    if (_fl_tmp_4.tag == 1) {
-        fl_bool v = _fl_tmp_4.value;
+    FL_Option_bool _fl_tmp_7 = fl_opt_unbox_bool(fl_map_get_str(mb2, _fl_str_map_value_type_test_10));
+    if (_fl_tmp_7.tag == 1) {
+        fl_bool v = _fl_tmp_7.value;
         if (v) {
             fl_println(_fl_str_map_value_type_test_11);
         } else {

@@ -737,21 +737,25 @@ void fl_tests_app_prime_sieve_main(void) {
         FL_Option_int _fl_tmp_12 = _fl_tmp_11;
         if (_fl_tmp_12.tag == 1) {
             fl_int p = _fl_tmp_12.value;
-            fl_println(fl_string_concat(_fl_str_tests_app_prime_sieve_4, fl_conv_to_string__int(p)));
+            FL_String* _fl_tmp_13 = fl_conv_to_string__int(p);
+            fl_println(fl_string_concat(_fl_str_tests_app_prime_sieve_4, _fl_tmp_13));
+            fl_string_release(_fl_tmp_13);
         }
     }
     fl_println(_fl_str_tests_app_prime_sieve_5);
     while (!fl_coroutine_done(high)) {
-        FL_Option_ptr _fl_tmp_13 = fl_coroutine_next(high);
-        FL_Option_int _fl_tmp_14;
-        _fl_tmp_14.tag = _fl_tmp_13.tag;
-        if (_fl_tmp_13.tag == 1) {
-            _fl_tmp_14.value = ((fl_int)((fl_int64)_fl_tmp_13.value));
+        FL_Option_ptr _fl_tmp_14 = fl_coroutine_next(high);
+        FL_Option_int _fl_tmp_15;
+        _fl_tmp_15.tag = _fl_tmp_14.tag;
+        if (_fl_tmp_14.tag == 1) {
+            _fl_tmp_15.value = ((fl_int)((fl_int64)_fl_tmp_14.value));
         }
-        FL_Option_int _fl_tmp_15 = _fl_tmp_14;
-        if (_fl_tmp_15.tag == 1) {
-            fl_int p = _fl_tmp_15.value;
-            fl_println(fl_string_concat(_fl_str_tests_app_prime_sieve_4, fl_conv_to_string__int(p)));
+        FL_Option_int _fl_tmp_16 = _fl_tmp_15;
+        if (_fl_tmp_16.tag == 1) {
+            fl_int p = _fl_tmp_16.value;
+            FL_String* _fl_tmp_17 = fl_conv_to_string__int(p);
+            fl_println(fl_string_concat(_fl_str_tests_app_prime_sieve_4, _fl_tmp_17));
+            fl_string_release(_fl_tmp_17);
         }
     }
 }

@@ -591,35 +591,43 @@ void fl_array_push_sum_test_main(void) {
     FL_Array* shapes3 = fl_array_push_sized(shapes2, (&_fl_tmp_2), sizeof(fl_array_push_sum_test_Shape));
     fl_array_push_sum_test_Shape _fl_tmp_3 = (fl_array_push_sum_test_Shape){.tag = 0, .Circle = (fl_array_push_sum_test_Shape_Circle){.radius = 1.0}};
     FL_Array* shapes4 = fl_array_push_sized(shapes3, (&_fl_tmp_3), sizeof(fl_array_push_sum_test_Shape));
-    fl_println(fl_conv_to_string__int(fl_array_len_int(shapes4)));
+    FL_String* _fl_tmp_4 = fl_conv_to_string__int(fl_array_len_int(shapes4));
+    fl_println(_fl_tmp_4);
+    fl_string_release(_fl_tmp_4);
     FL_Option_fl_array_push_sum_test_Shape s0 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 0), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
-    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_4 = s0;
-    if (_fl_tmp_4.tag == 1) {
-        fl_array_push_sum_test_Shape s = _fl_tmp_4.value;
-        fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
+    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_5 = s0;
+    if (_fl_tmp_5.tag == 1) {
+        fl_array_push_sum_test_Shape s = _fl_tmp_5.value;
+        FL_String* _fl_tmp_6 = fl_conv_to_string__float(fl_array_push_sum_test_area(s));
+        fl_println(_fl_tmp_6);
     } else {
         fl_println(_fl_str_array_push_sum_test_0);
     }
+    fl_string_release(_fl_tmp_6);
     FL_Option_fl_array_push_sum_test_Shape s1 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 1), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
-    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_5 = s1;
-    if (_fl_tmp_5.tag == 1) {
-        fl_array_push_sum_test_Shape s = _fl_tmp_5.value;
-        fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
+    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_7 = s1;
+    if (_fl_tmp_7.tag == 1) {
+        fl_array_push_sum_test_Shape s = _fl_tmp_7.value;
+        FL_String* _fl_tmp_8 = fl_conv_to_string__float(fl_array_push_sum_test_area(s));
+        fl_println(_fl_tmp_8);
     } else {
         fl_println(_fl_str_array_push_sum_test_1);
     }
+    fl_string_release(_fl_tmp_8);
     FL_Option_fl_array_push_sum_test_Shape s2 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 2), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
-    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_6 = s2;
-    if (_fl_tmp_6.tag == 1) {
-        fl_array_push_sum_test_Shape s = _fl_tmp_6.value;
-        fl_println(fl_conv_to_string__float(fl_array_push_sum_test_area(s)));
+    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_9 = s2;
+    if (_fl_tmp_9.tag == 1) {
+        fl_array_push_sum_test_Shape s = _fl_tmp_9.value;
+        FL_String* _fl_tmp_10 = fl_conv_to_string__float(fl_array_push_sum_test_area(s));
+        fl_println(_fl_tmp_10);
     } else {
         fl_println(_fl_str_array_push_sum_test_2);
     }
+    fl_string_release(_fl_tmp_10);
     FL_Option_fl_array_push_sum_test_Shape s3 = FL_OPT_DEREF_AS(fl_array_get_safe(shapes4, 5), fl_array_push_sum_test_Shape, FL_Option_fl_array_push_sum_test_Shape);
-    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_7 = s3;
-    if (_fl_tmp_7.tag == 1) {
-        fl_array_push_sum_test_Shape s = _fl_tmp_7.value;
+    FL_Option_fl_array_push_sum_test_Shape _fl_tmp_11 = s3;
+    if (_fl_tmp_11.tag == 1) {
+        fl_array_push_sum_test_Shape s = _fl_tmp_11.value;
         fl_println(_fl_str_array_push_sum_test_3);
     } else {
         fl_println(_fl_str_array_push_sum_test_4);

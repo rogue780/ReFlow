@@ -94,25 +94,31 @@ FL_String* fl_main_color_name(fl_int c) {
 
 /* Flow: main.main */
 fl_int fl_main_main(void) {
-    fl_println(fl_main_color_name(fl_main_Color_Red));
-    fl_println(fl_main_color_name(fl_main_Color_Green));
-    fl_println(fl_main_color_name(fl_main_Color_Blue));
-    fl_int x = fl_main_Direction_North;
-    FL_String* _fl_tmp_0 = fl_int_to_string(x);
+    FL_String* _fl_tmp_0 = fl_main_color_name(fl_main_Color_Red);
     fl_println(_fl_tmp_0);
     fl_string_release(_fl_tmp_0);
-    FL_String* _fl_tmp_1 = fl_int_to_string(((fl_int)fl_main_Direction_West));
+    FL_String* _fl_tmp_1 = fl_main_color_name(fl_main_Color_Green);
     fl_println(_fl_tmp_1);
     fl_string_release(_fl_tmp_1);
-    FL_String* _fl_tmp_2 = fl_int_to_string(((fl_int)fl_main_Offset_A));
+    FL_String* _fl_tmp_2 = fl_main_color_name(fl_main_Color_Blue);
     fl_println(_fl_tmp_2);
     fl_string_release(_fl_tmp_2);
-    FL_String* _fl_tmp_3 = fl_int_to_string(((fl_int)fl_main_Offset_B));
+    fl_int x = fl_main_Direction_North;
+    FL_String* _fl_tmp_3 = fl_int_to_string(x);
     fl_println(_fl_tmp_3);
     fl_string_release(_fl_tmp_3);
-    FL_String* _fl_tmp_4 = fl_int_to_string(((fl_int)fl_main_Offset_D));
+    FL_String* _fl_tmp_4 = fl_int_to_string(((fl_int)fl_main_Direction_West));
     fl_println(_fl_tmp_4);
     fl_string_release(_fl_tmp_4);
+    FL_String* _fl_tmp_5 = fl_int_to_string(((fl_int)fl_main_Offset_A));
+    fl_println(_fl_tmp_5);
+    fl_string_release(_fl_tmp_5);
+    FL_String* _fl_tmp_6 = fl_int_to_string(((fl_int)fl_main_Offset_B));
+    fl_println(_fl_tmp_6);
+    fl_string_release(_fl_tmp_6);
+    FL_String* _fl_tmp_7 = fl_int_to_string(((fl_int)fl_main_Offset_D));
+    fl_println(_fl_tmp_7);
+    fl_string_release(_fl_tmp_7);
     return 0;
 }
 

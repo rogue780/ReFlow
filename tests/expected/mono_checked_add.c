@@ -542,8 +542,12 @@ FL_String* fl_conv_to_string__float(fl_float val) {
 void fl_mono_checked_add_main(void) {
     fl_int x = fl_mono_checked_add_add_generic__int(3, 4);
     fl_float y = fl_mono_checked_add_add_generic__float(1.5, 2.5);
-    fl_println(fl_conv_to_string__int(x));
-    fl_println(fl_conv_to_string__float(y));
+    FL_String* _fl_tmp_0 = fl_conv_to_string__int(x);
+    fl_println(_fl_tmp_0);
+    fl_string_release(_fl_tmp_0);
+    FL_String* _fl_tmp_1 = fl_conv_to_string__float(y);
+    fl_println(_fl_tmp_1);
+    fl_string_release(_fl_tmp_1);
 }
 
 static void _fl_init_statics(void) {

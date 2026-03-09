@@ -527,7 +527,9 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 /* Flow: tests.programs.multi_main.main */
 void fl_tests_programs_multi_main_main(void) {
     fl_int result = fl_tests_programs_multi_helper_double(21);
-    fl_println(fl_conv_to_string__int(result));
+    FL_String* _fl_tmp_0 = fl_conv_to_string__int(result);
+    fl_println(_fl_tmp_0);
+    fl_string_release(_fl_tmp_0);
 }
 
 static void _fl_init_statics(void) {

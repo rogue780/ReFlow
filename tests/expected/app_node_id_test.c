@@ -584,38 +584,40 @@ FL_String* fl_conv_to_string__int64(fl_int64 val) {
 
 /* Flow: tests.app_node_id_test.lookup */
 FL_String* fl_tests_app_node_id_test_lookup(FL_Map* types, fl_int id) {
-    FL_Option_ptr _fl_tmp_0 = fl_map_get_str(types, fl_conv_to_string__int(id));
-    if (_fl_tmp_0.tag == 1) {
-        FL_String* v = _fl_tmp_0.value;
+    FL_String* _fl_tmp_0 = fl_conv_to_string__int(id);
+    FL_Option_ptr _fl_tmp_1 = fl_map_get_str(types, _fl_tmp_0);
+    if (_fl_tmp_1.tag == 1) {
+        FL_String* v = _fl_tmp_1.value;
         fl_string_retain(v);
         return v;
     } else {
         fl_string_retain(_fl_str_tests_app_node_id_test_0);
         return _fl_str_tests_app_node_id_test_0;
     }
+    return fl_string_release(_fl_tmp_0);
 }
 
 /* Flow: tests.app_node_id_test.get_id */
 fl_int fl_tests_app_node_id_test_get_id(fl_tests_app_node_id_test_Expr expr) {
-    fl_tests_app_node_id_test_Expr _fl_tmp_1 = expr;
-    switch (_fl_tmp_1.tag) {
+    fl_tests_app_node_id_test_Expr _fl_tmp_2 = expr;
+    switch (_fl_tmp_2.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_1.IntLit.id;
-            fl_int v = _fl_tmp_1.IntLit.value;
+            fl_int nid = _fl_tmp_2.IntLit.id;
+            fl_int v = _fl_tmp_2.IntLit.value;
             return nid;
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_1.BinOp.id;
-            FL_String* o = _fl_tmp_1.BinOp.op;
-            fl_tests_app_node_id_test_Expr l = (*_fl_tmp_1.BinOp.left);
-            fl_tests_app_node_id_test_Expr r = (*_fl_tmp_1.BinOp.right);
+            fl_int nid = _fl_tmp_2.BinOp.id;
+            FL_String* o = _fl_tmp_2.BinOp.op;
+            fl_tests_app_node_id_test_Expr l = (*_fl_tmp_2.BinOp.left);
+            fl_tests_app_node_id_test_Expr r = (*_fl_tmp_2.BinOp.right);
             return nid;
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_1.Ident.id;
-            FL_String* n = _fl_tmp_1.Ident.name;
+            fl_int nid = _fl_tmp_2.Ident.id;
+            FL_String* n = _fl_tmp_2.Ident.name;
             return nid;
             break;
         }
@@ -627,58 +629,70 @@ fl_int fl_tests_app_node_id_test_main(void) {
     fl_string_retain(_fl_str_tests_app_node_id_test_1);
     fl_tests_app_node_id_test_Expr node_x = (fl_tests_app_node_id_test_Expr){.tag = 2, .Ident = (fl_tests_app_node_id_test_Expr_Ident){.id = 1, .name = _fl_str_tests_app_node_id_test_1}};
     fl_tests_app_node_id_test_Expr node_42 = (fl_tests_app_node_id_test_Expr){.tag = 0, .IntLit = (fl_tests_app_node_id_test_Expr_IntLit){.id = 2, .value = 42}};
-    fl_tests_app_node_id_test_Expr* _fl_tmp_2 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
-    (*_fl_tmp_2) = node_x;
     fl_tests_app_node_id_test_Expr* _fl_tmp_3 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
-    (*_fl_tmp_3) = node_42;
+    (*_fl_tmp_3) = node_x;
+    fl_tests_app_node_id_test_Expr* _fl_tmp_4 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
+    (*_fl_tmp_4) = node_42;
     fl_string_retain(_fl_str_tests_app_node_id_test_2);
-    fl_tests_app_node_id_test_Expr node_add = (fl_tests_app_node_id_test_Expr){.tag = 1, .BinOp = (fl_tests_app_node_id_test_Expr_BinOp){.id = 3, .op = _fl_str_tests_app_node_id_test_2, .left = _fl_tmp_2, .right = _fl_tmp_3}};
+    fl_tests_app_node_id_test_Expr node_add = (fl_tests_app_node_id_test_Expr){.tag = 1, .BinOp = (fl_tests_app_node_id_test_Expr_BinOp){.id = 3, .op = _fl_str_tests_app_node_id_test_2, .left = _fl_tmp_3, .right = _fl_tmp_4}};
     FL_Map* types = fl_map_new();
-    FL_Map* _fl_old_4 = types;
-    types = fl_map_set_str(types, fl_conv_to_string__int(1), _fl_str_tests_app_node_id_test_3);
-    if (_fl_old_4 != types) {
-        fl_map_release(_fl_old_4);
-    }
     FL_Map* _fl_old_5 = types;
-    types = fl_map_set_str(types, fl_conv_to_string__int(2), _fl_str_tests_app_node_id_test_3);
+    types = fl_map_set_str(types, fl_conv_to_string__int(1), _fl_str_tests_app_node_id_test_3);
     if (_fl_old_5 != types) {
         fl_map_release(_fl_old_5);
     }
     FL_Map* _fl_old_6 = types;
-    types = fl_map_set_str(types, fl_conv_to_string__int(3), _fl_str_tests_app_node_id_test_3);
+    types = fl_map_set_str(types, fl_conv_to_string__int(2), _fl_str_tests_app_node_id_test_3);
     if (_fl_old_6 != types) {
         fl_map_release(_fl_old_6);
     }
-    FL_String* _fl_tmp_7 = fl_string_concat(_fl_str_tests_app_node_id_test_4, fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_add)));
-    fl_println(_fl_tmp_7);
-    fl_string_release(_fl_tmp_7);
-    FL_String* _fl_tmp_8 = fl_string_concat(_fl_str_tests_app_node_id_test_5, fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_x)));
-    fl_println(_fl_tmp_8);
-    fl_string_release(_fl_tmp_8);
-    FL_String* _fl_tmp_9 = fl_string_concat(_fl_str_tests_app_node_id_test_6, fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_42)));
+    FL_Map* _fl_old_7 = types;
+    types = fl_map_set_str(types, fl_conv_to_string__int(3), _fl_str_tests_app_node_id_test_3);
+    if (_fl_old_7 != types) {
+        fl_map_release(_fl_old_7);
+    }
+    FL_String* _fl_tmp_8 = fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_add));
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_str_tests_app_node_id_test_4, _fl_tmp_8);
     fl_println(_fl_tmp_9);
+    fl_string_release(_fl_tmp_8);
     fl_string_release(_fl_tmp_9);
-    FL_String* _fl_tmp_10 = fl_string_concat(_fl_str_tests_app_node_id_test_7, fl_conv_to_string__int64(fl_map_len(types)));
-    fl_println(_fl_tmp_10);
-    fl_string_release(_fl_tmp_10);
-    FL_Array* keys = fl_map_keys(types);
-    FL_String* _fl_tmp_11 = fl_string_concat(_fl_str_tests_app_node_id_test_8, fl_conv_to_string__int(fl_array_len_int(keys)));
+    FL_String* _fl_tmp_10 = fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_x));
+    FL_String* _fl_tmp_11 = fl_string_concat(_fl_str_tests_app_node_id_test_5, _fl_tmp_10);
     fl_println(_fl_tmp_11);
+    fl_string_release(_fl_tmp_10);
     fl_string_release(_fl_tmp_11);
+    FL_String* _fl_tmp_12 = fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_42));
+    FL_String* _fl_tmp_13 = fl_string_concat(_fl_str_tests_app_node_id_test_6, _fl_tmp_12);
+    fl_println(_fl_tmp_13);
+    fl_string_release(_fl_tmp_12);
+    fl_string_release(_fl_tmp_13);
+    FL_String* _fl_tmp_14 = fl_conv_to_string__int64(fl_map_len(types));
+    FL_String* _fl_tmp_15 = fl_string_concat(_fl_str_tests_app_node_id_test_7, _fl_tmp_14);
+    fl_println(_fl_tmp_15);
+    fl_string_release(_fl_tmp_14);
+    fl_string_release(_fl_tmp_15);
+    FL_Array* keys = fl_map_keys(types);
+    FL_String* _fl_tmp_16 = fl_conv_to_string__int(fl_array_len_int(keys));
+    FL_String* _fl_tmp_17 = fl_string_concat(_fl_str_tests_app_node_id_test_8, _fl_tmp_16);
+    fl_println(_fl_tmp_17);
+    fl_string_release(_fl_tmp_16);
+    fl_string_release(_fl_tmp_17);
     FL_Array* all_nodes = fl_array_new(3, sizeof(fl_tests_app_node_id_test_Expr), (fl_tests_app_node_id_test_Expr[]){node_x, node_42, node_add});
-    fl_int64 _fl_tmp_12 = 0;
-    while (_fl_tmp_12 < fl_array_len(all_nodes)) {
-        fl_tests_app_node_id_test_Expr node = (*((fl_tests_app_node_id_test_Expr*)fl_array_get_ptr(all_nodes, _fl_tmp_12)));
+    fl_int64 _fl_tmp_18 = 0;
+    while (_fl_tmp_18 < fl_array_len(all_nodes)) {
+        fl_tests_app_node_id_test_Expr node = (*((fl_tests_app_node_id_test_Expr*)fl_array_get_ptr(all_nodes, _fl_tmp_18)));
         fl_int nid = fl_tests_app_node_id_test_get_id(node);
         FL_String* t = fl_tests_app_node_id_test_lookup(types, nid);
-        FL_String* _fl_tmp_13 = fl_string_concat(_fl_str_tests_app_node_id_test_9, fl_conv_to_string__int(nid));
-        FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, _fl_str_tests_app_node_id_test_10);
-        FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, t);
-        fl_println(_fl_tmp_15);
-        fl_string_release(_fl_tmp_13);
-        fl_string_release(_fl_tmp_14);
-        fl_string_release(_fl_tmp_15);
-        _fl_tmp_12 = (_fl_tmp_12 + 1);
+        FL_String* _fl_tmp_19 = fl_conv_to_string__int(nid);
+        FL_String* _fl_tmp_20 = fl_string_concat(_fl_str_tests_app_node_id_test_9, _fl_tmp_19);
+        FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, _fl_str_tests_app_node_id_test_10);
+        FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, t);
+        fl_println(_fl_tmp_22);
+        fl_string_release(_fl_tmp_19);
+        fl_string_release(_fl_tmp_20);
+        fl_string_release(_fl_tmp_21);
+        fl_string_release(_fl_tmp_22);
+        _fl_tmp_18 = (_fl_tmp_18 + 1);
     }
     fl_println(_fl_str_tests_app_node_id_test_11);
     fl_map_release(types);

@@ -536,7 +536,9 @@ fl_int fl_main_main(void) {
     c.count = 42;
     c.active = fl_false;
     fl_println(c.name);
-    fl_println(fl_conv_to_string__int(c.count));
+    FL_String* _fl_tmp_0 = fl_conv_to_string__int(c.count);
+    fl_println(_fl_tmp_0);
+    fl_string_release(_fl_tmp_0);
     if (c.active) {
         fl_println(_fl_str_main_1);
     } else {

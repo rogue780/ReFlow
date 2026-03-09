@@ -629,13 +629,16 @@ FL_String* fl_self_hosted_errors_kind_name(fl_self_hosted_errors_ErrorKind k) {
 /* Flow: self_hosted.errors.format */
 FL_String* fl_self_hosted_errors_format(fl_self_hosted_errors_CompileError e) {
     FL_String* _fl_tmp_1 = fl_string_concat(e.file, _fl_str_self_hosted_errors_5);
-    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_conv_to_string__int(e.line));
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, _fl_str_self_hosted_errors_5);
-    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_conv_to_string__int(e.col));
-    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_str_self_hosted_errors_6);
-    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_self_hosted_errors_kind_name(e.kind));
+    FL_String* _fl_tmp_2 = fl_conv_to_string__int(e.line);
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_1, _fl_tmp_2);
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_str_self_hosted_errors_5);
+    FL_String* _fl_tmp_5 = fl_conv_to_string__int(e.col);
+    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_4, _fl_tmp_5);
     FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, _fl_str_self_hosted_errors_6);
-    return fl_string_concat(_fl_tmp_7, e.message);
+    FL_String* _fl_tmp_8 = fl_self_hosted_errors_kind_name(e.kind);
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_7, _fl_tmp_8);
+    FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_str_self_hosted_errors_6);
+    return fl_string_concat(_fl_tmp_10, e.message);
 }
 
 /* From: self_hosted/lexer.flow */
@@ -1555,24 +1558,26 @@ void fl_self_hosted_lexer_scan_string(fl_self_hosted_lexer_LexState* s) {
         }
         if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             fl_self_hosted_lexer_advance(s);
-            FL_String* _fl_old_11 = chars;
-            chars = fl_string_concat(chars, fl_self_hosted_lexer_scan_escape(s));
-            if (_fl_old_11 != chars) {
-                fl_string_release(_fl_old_11);
+            FL_String* _fl_tmp_11 = fl_self_hosted_lexer_scan_escape(s);
+            FL_String* _fl_old_12 = chars;
+            chars = fl_string_concat(chars, _fl_tmp_11);
+            if (_fl_old_12 != chars) {
+                fl_string_release(_fl_old_12);
             }
+            fl_string_release(_fl_tmp_11);
         } else {
-            FL_String* _fl_tmp_12 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-            FL_String* _fl_old_13 = chars;
-            chars = fl_string_concat(chars, _fl_tmp_12);
-            if (_fl_old_13 != chars) {
-                fl_string_release(_fl_old_13);
+            FL_String* _fl_tmp_13 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+            FL_String* _fl_old_14 = chars;
+            chars = fl_string_concat(chars, _fl_tmp_13);
+            if (_fl_old_14 != chars) {
+                fl_string_release(_fl_old_14);
             }
-            fl_string_release(_fl_tmp_12);
+            fl_string_release(_fl_tmp_13);
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_14 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_14) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
-    _fl_throw(((void*)_fl_tmp_14), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_15 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_15) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
+    _fl_throw(((void*)_fl_tmp_15), 461109476);
     fl_string_release(chars);
 }
 
@@ -1582,30 +1587,30 @@ void fl_self_hosted_lexer_scan_char_lit(fl_self_hosted_lexer_LexState* s) {
     fl_int start_col = s->col;
     fl_self_hosted_lexer_advance(s);
     if (s->pos >= s->src_len) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_15 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_15) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_15), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_16 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_16) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_16), 461109476);
     }
     FL_String* ch_val = _fl_str_self_hosted_lexer_58;
     fl_string_retain(ch_val);
     if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_48)) {
         fl_self_hosted_lexer_advance(s);
-        FL_String* _fl_old_16 = ch_val;
-        ch_val = fl_self_hosted_lexer_scan_escape(s);
-        if (_fl_old_16 != ch_val) {
-            fl_string_release(_fl_old_16);
-        }
-    } else {
         FL_String* _fl_old_17 = ch_val;
-        ch_val = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+        ch_val = fl_self_hosted_lexer_scan_escape(s);
         if (_fl_old_17 != ch_val) {
             fl_string_release(_fl_old_17);
         }
+    } else {
+        FL_String* _fl_old_18 = ch_val;
+        ch_val = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+        if (_fl_old_18 != ch_val) {
+            fl_string_release(_fl_old_18);
+        }
     }
     if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_50) == fl_false)) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_18 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_18) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_18), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_19 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_19) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_19), 461109476);
     }
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_CHAR_LIT, ch_val, start_line, start_col));
@@ -1880,12 +1885,12 @@ void fl_self_hosted_lexer_scan_operator(fl_self_hosted_lexer_LexState* s) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SEMICOLON, _fl_str_self_hosted_lexer_111, start_line, start_col));
         return;
     }
-    FL_String* _fl_tmp_19 = fl_char_to_string(ch);
-    FL_String* _fl_tmp_20 = fl_string_concat(_fl_str_self_hosted_lexer_112, _fl_tmp_19);
-    FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, _fl_str_self_hosted_lexer_50);
-    fl_self_hosted_errors_CompileError* _fl_tmp_22 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_22) = fl_self_hosted_errors_lex_error(_fl_tmp_21, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_22), 461109476);
+    FL_String* _fl_tmp_20 = fl_char_to_string(ch);
+    FL_String* _fl_tmp_21 = fl_string_concat(_fl_str_self_hosted_lexer_112, _fl_tmp_20);
+    FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, _fl_str_self_hosted_lexer_50);
+    fl_self_hosted_errors_CompileError* _fl_tmp_23 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_23) = fl_self_hosted_errors_lex_error(_fl_tmp_22, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_23), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring */
@@ -1923,9 +1928,9 @@ void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s) {
             }
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_23 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_23) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_23), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_24 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_24) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_24), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring_text */
@@ -1939,13 +1944,13 @@ void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s) {
         if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             break;
         }
-        FL_String* _fl_tmp_24 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-        FL_String* _fl_old_25 = chars;
-        chars = fl_string_concat(chars, _fl_tmp_24);
-        if (_fl_old_25 != chars) {
-            fl_string_release(_fl_old_25);
+        FL_String* _fl_tmp_25 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+        FL_String* _fl_old_26 = chars;
+        chars = fl_string_concat(chars, _fl_tmp_25);
+        if (_fl_old_26 != chars) {
+            fl_string_release(_fl_old_26);
         }
-        fl_string_release(_fl_tmp_24);
+        fl_string_release(_fl_tmp_25);
     }
     if (fl_string_len(chars) > 0) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, chars, start_line, start_col));
@@ -2030,9 +2035,9 @@ void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
         fl_self_hosted_lexer_scan_operator(s);
     }
     if (brace_depth > 0) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_26 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_26) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_26), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_27 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_27) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_27), 461109476);
     }
 }
 
@@ -2310,8 +2315,9 @@ FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype) {
         fl_string_retain(_fl_str_self_hosted_lexer_172);
         return _fl_str_self_hosted_lexer_172;
     }
-    FL_String* _fl_tmp_27 = fl_string_concat(_fl_str_self_hosted_lexer_173, fl_conv_to_string__int(ttype));
-    return fl_string_concat(_fl_tmp_27, _fl_str_self_hosted_lexer_102);
+    FL_String* _fl_tmp_28 = fl_conv_to_string__int(ttype);
+    FL_String* _fl_tmp_29 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_28);
+    return fl_string_concat(_fl_tmp_29, _fl_str_self_hosted_lexer_102);
 }
 
 typedef struct FL_Option_fl_self_hosted_lexer_Token FL_Option_fl_self_hosted_lexer_Token;
@@ -2354,22 +2360,26 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
     FL_String* src = _fl_str_tests_programs_app_sh_lexer_test_0;
     fl_string_retain(src);
     FL_Array* tokens = fl_self_hosted_lexer_tokenize(src, _fl_str_tests_programs_app_sh_lexer_test_1);
-    FL_String* _fl_tmp_0 = fl_string_concat(_fl_str_tests_programs_app_sh_lexer_test_2, fl_conv_to_string__int(fl_array_len_int(tokens)));
-    fl_println(_fl_tmp_0);
+    FL_String* _fl_tmp_0 = fl_conv_to_string__int(fl_array_len_int(tokens));
+    FL_String* _fl_tmp_1 = fl_string_concat(_fl_str_tests_programs_app_sh_lexer_test_2, _fl_tmp_0);
+    fl_println(_fl_tmp_1);
     fl_string_release(_fl_tmp_0);
+    fl_string_release(_fl_tmp_1);
     fl_int i = 0;
     while (i < fl_array_len_int(tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(tokens, i), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
-        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_1 = tok;
-        if (_fl_tmp_1.tag == 1) {
-            fl_self_hosted_lexer_Token t = _fl_tmp_1.value;
-            FL_String* _fl_tmp_2 = fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3);
-            FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, t.value);
-            FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_str_tests_programs_app_sh_lexer_test_4);
-            fl_println(_fl_tmp_4);
-            fl_string_release(_fl_tmp_2);
+        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_2 = tok;
+        if (_fl_tmp_2.tag == 1) {
+            fl_self_hosted_lexer_Token t = _fl_tmp_2.value;
+            FL_String* _fl_tmp_3 = fl_self_hosted_lexer_token_type_name(t.ttype);
+            FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_str_tests_programs_app_sh_lexer_test_3);
+            FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, t.value);
+            FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, _fl_str_tests_programs_app_sh_lexer_test_4);
+            fl_println(_fl_tmp_6);
             fl_string_release(_fl_tmp_3);
             fl_string_release(_fl_tmp_4);
+            fl_string_release(_fl_tmp_5);
+            fl_string_release(_fl_tmp_6);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -2382,17 +2392,19 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
     fl_int j = 0;
     while (j < fl_array_len_int(ops_tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(ops_tokens, j), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
-        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_5 = tok;
-        if (_fl_tmp_5.tag == 1) {
-            fl_self_hosted_lexer_Token t = _fl_tmp_5.value;
+        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_7 = tok;
+        if (_fl_tmp_7.tag == 1) {
+            fl_self_hosted_lexer_Token t = _fl_tmp_7.value;
             if ((t.ttype != fl_self_hosted_lexer_TokenType_TK_NEWLINE) && (t.ttype != fl_self_hosted_lexer_TokenType_TK_EOF)) {
-                FL_String* _fl_tmp_6 = fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3);
-                FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, t.value);
-                FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, _fl_str_tests_programs_app_sh_lexer_test_4);
-                fl_println(_fl_tmp_8);
-                fl_string_release(_fl_tmp_6);
-                fl_string_release(_fl_tmp_7);
+                FL_String* _fl_tmp_8 = fl_self_hosted_lexer_token_type_name(t.ttype);
+                FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_str_tests_programs_app_sh_lexer_test_3);
+                FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, t.value);
+                FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, _fl_str_tests_programs_app_sh_lexer_test_4);
+                fl_println(_fl_tmp_11);
                 fl_string_release(_fl_tmp_8);
+                fl_string_release(_fl_tmp_9);
+                fl_string_release(_fl_tmp_10);
+                fl_string_release(_fl_tmp_11);
             }
         }
         fl_int _fl_e_2;
@@ -2404,16 +2416,18 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
     fl_string_retain(str_src);
     FL_Array* str_tokens = fl_self_hosted_lexer_tokenize(str_src, _fl_str_tests_programs_app_sh_lexer_test_1);
     FL_Option_fl_self_hosted_lexer_Token st = FL_OPT_DEREF_AS(fl_array_get_safe(str_tokens, 0), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
-    FL_Option_fl_self_hosted_lexer_Token _fl_tmp_9 = st;
-    if (_fl_tmp_9.tag == 1) {
-        fl_self_hosted_lexer_Token t = _fl_tmp_9.value;
-        FL_String* _fl_tmp_10 = fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3);
-        FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, t.value);
-        FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, _fl_str_tests_programs_app_sh_lexer_test_4);
-        fl_println(_fl_tmp_12);
-        fl_string_release(_fl_tmp_10);
-        fl_string_release(_fl_tmp_11);
-        fl_string_release(_fl_tmp_12);
+    FL_Option_fl_self_hosted_lexer_Token _fl_tmp_12 = st;
+    if (_fl_tmp_12.tag == 1) {
+        fl_self_hosted_lexer_Token t = _fl_tmp_12.value;
+        FL_String* _fl_tmp_13 = fl_self_hosted_lexer_token_type_name(t.ttype);
+        FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, _fl_str_tests_programs_app_sh_lexer_test_3);
+        FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, t.value);
+        FL_String* _fl_tmp_16 = fl_string_concat(_fl_tmp_15, _fl_str_tests_programs_app_sh_lexer_test_4);
+        fl_println(_fl_tmp_16);
+        fl_string_release(_fl_tmp_13);
+        fl_string_release(_fl_tmp_14);
+        fl_string_release(_fl_tmp_15);
+        fl_string_release(_fl_tmp_16);
     }
     fl_println(_fl_str_tests_programs_app_sh_lexer_test_5);
     FL_String* num_src = _fl_str_tests_programs_app_sh_lexer_test_8;
@@ -2422,17 +2436,19 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
     fl_int k = 0;
     while (k < fl_array_len_int(num_tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(num_tokens, k), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
-        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_13 = tok;
-        if (_fl_tmp_13.tag == 1) {
-            fl_self_hosted_lexer_Token t = _fl_tmp_13.value;
+        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_17 = tok;
+        if (_fl_tmp_17.tag == 1) {
+            fl_self_hosted_lexer_Token t = _fl_tmp_17.value;
             if ((t.ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) || (t.ttype == fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT)) {
-                FL_String* _fl_tmp_14 = fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3);
-                FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, t.value);
-                FL_String* _fl_tmp_16 = fl_string_concat(_fl_tmp_15, _fl_str_tests_programs_app_sh_lexer_test_4);
-                fl_println(_fl_tmp_16);
-                fl_string_release(_fl_tmp_14);
-                fl_string_release(_fl_tmp_15);
-                fl_string_release(_fl_tmp_16);
+                FL_String* _fl_tmp_18 = fl_self_hosted_lexer_token_type_name(t.ttype);
+                FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, _fl_str_tests_programs_app_sh_lexer_test_3);
+                FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, t.value);
+                FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, _fl_str_tests_programs_app_sh_lexer_test_4);
+                fl_println(_fl_tmp_21);
+                fl_string_release(_fl_tmp_18);
+                fl_string_release(_fl_tmp_19);
+                fl_string_release(_fl_tmp_20);
+                fl_string_release(_fl_tmp_21);
             }
         }
         fl_int _fl_e_3;
@@ -2446,17 +2462,19 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
     fl_int m = 0;
     while (m < fl_array_len_int(kw_tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(kw_tokens, m), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
-        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_17 = tok;
-        if (_fl_tmp_17.tag == 1) {
-            fl_self_hosted_lexer_Token t = _fl_tmp_17.value;
+        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_22 = tok;
+        if (_fl_tmp_22.tag == 1) {
+            fl_self_hosted_lexer_Token t = _fl_tmp_22.value;
             if ((t.ttype != fl_self_hosted_lexer_TokenType_TK_NEWLINE) && (t.ttype != fl_self_hosted_lexer_TokenType_TK_EOF)) {
-                FL_String* _fl_tmp_18 = fl_string_concat(fl_self_hosted_lexer_token_type_name(t.ttype), _fl_str_tests_programs_app_sh_lexer_test_3);
-                FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, t.value);
-                FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, _fl_str_tests_programs_app_sh_lexer_test_4);
-                fl_println(_fl_tmp_20);
-                fl_string_release(_fl_tmp_18);
-                fl_string_release(_fl_tmp_19);
-                fl_string_release(_fl_tmp_20);
+                FL_String* _fl_tmp_23 = fl_self_hosted_lexer_token_type_name(t.ttype);
+                FL_String* _fl_tmp_24 = fl_string_concat(_fl_tmp_23, _fl_str_tests_programs_app_sh_lexer_test_3);
+                FL_String* _fl_tmp_25 = fl_string_concat(_fl_tmp_24, t.value);
+                FL_String* _fl_tmp_26 = fl_string_concat(_fl_tmp_25, _fl_str_tests_programs_app_sh_lexer_test_4);
+                fl_println(_fl_tmp_26);
+                fl_string_release(_fl_tmp_23);
+                fl_string_release(_fl_tmp_24);
+                fl_string_release(_fl_tmp_25);
+                fl_string_release(_fl_tmp_26);
             }
         }
         fl_int _fl_e_4;
@@ -2470,15 +2488,17 @@ fl_int fl_tests_programs_app_sh_lexer_test_main(void) {
     fl_int n = 0;
     while (n < fl_array_len_int(multi_tokens)) {
         FL_Option_fl_self_hosted_lexer_Token tok = FL_OPT_DEREF_AS(fl_array_get_safe(multi_tokens, n), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
-        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_21 = tok;
-        if (_fl_tmp_21.tag == 1) {
-            fl_self_hosted_lexer_Token t = _fl_tmp_21.value;
+        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_27 = tok;
+        if (_fl_tmp_27.tag == 1) {
+            fl_self_hosted_lexer_Token t = _fl_tmp_27.value;
             if (t.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
-                FL_String* _fl_tmp_22 = fl_string_concat(t.value, _fl_str_tests_programs_app_sh_lexer_test_11);
-                FL_String* _fl_tmp_23 = fl_string_concat(_fl_tmp_22, fl_conv_to_string__int(t.line));
-                fl_println(_fl_tmp_23);
-                fl_string_release(_fl_tmp_22);
-                fl_string_release(_fl_tmp_23);
+                FL_String* _fl_tmp_28 = fl_string_concat(t.value, _fl_str_tests_programs_app_sh_lexer_test_11);
+                FL_String* _fl_tmp_29 = fl_conv_to_string__int(t.line);
+                FL_String* _fl_tmp_30 = fl_string_concat(_fl_tmp_28, _fl_tmp_29);
+                fl_println(_fl_tmp_30);
+                fl_string_release(_fl_tmp_28);
+                fl_string_release(_fl_tmp_29);
+                fl_string_release(_fl_tmp_30);
             }
         }
         fl_int _fl_e_5;

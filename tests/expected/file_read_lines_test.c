@@ -561,27 +561,31 @@ fl_int fl_tests_file_read_lines_test_main(void) {
     if (_fl_tmp_0.tag == 1) {
         void* f = _fl_tmp_0.value;
         FL_Array* lines = fl_file_read_lines(f);
-        fl_println(fl_conv_to_string__int(fl_array_len_int(lines)));
-        FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(lines, 0);
-        fl_println(((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : _fl_str_tests_file_read_lines_test_2));
-        FL_Option_ptr _fl_tmp_2 = fl_array_get_safe(lines, 1);
+        FL_String* _fl_tmp_1 = fl_conv_to_string__int(fl_array_len_int(lines));
+        fl_println(_fl_tmp_1);
+        fl_string_release(_fl_tmp_1);
+        FL_Option_ptr _fl_tmp_2 = fl_array_get_safe(lines, 0);
         fl_println(((_fl_tmp_2.tag == 1) ? _fl_tmp_2.value : _fl_str_tests_file_read_lines_test_2));
-        FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(lines, 2);
+        FL_Option_ptr _fl_tmp_3 = fl_array_get_safe(lines, 1);
         fl_println(((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : _fl_str_tests_file_read_lines_test_2));
+        FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(lines, 2);
+        fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_file_read_lines_test_2));
         fl_file_close(f);
     } else {
         fl_println(_fl_str_tests_file_read_lines_test_3);
     }
-    FL_Option_ptr _fl_tmp_4 = fl_io_read_file_lines(tmp);
-    if (_fl_tmp_4.tag == 1) {
-        FL_Array* lines = _fl_tmp_4.value;
-        fl_println(fl_conv_to_string__int(fl_array_len_int(lines)));
+    FL_Option_ptr _fl_tmp_5 = fl_io_read_file_lines(tmp);
+    if (_fl_tmp_5.tag == 1) {
+        FL_Array* lines = _fl_tmp_5.value;
+        FL_String* _fl_tmp_6 = fl_conv_to_string__int(fl_array_len_int(lines));
+        fl_println(_fl_tmp_6);
+        fl_string_release(_fl_tmp_6);
     } else {
         fl_println(_fl_str_tests_file_read_lines_test_4);
     }
-    FL_Option_ptr _fl_tmp_5 = fl_io_read_file_lines(_fl_str_tests_file_read_lines_test_5);
-    if (_fl_tmp_5.tag == 1) {
-        FL_Array* lines = _fl_tmp_5.value;
+    FL_Option_ptr _fl_tmp_7 = fl_io_read_file_lines(_fl_str_tests_file_read_lines_test_5);
+    if (_fl_tmp_7.tag == 1) {
+        FL_Array* lines = _fl_tmp_7.value;
         fl_println(_fl_str_tests_file_read_lines_test_6);
     } else {
         fl_println(_fl_str_tests_file_read_lines_test_7);

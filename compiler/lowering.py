@@ -1711,39 +1711,27 @@ class Lowerer:
 
     _STRING_LTYPE = LPtr(LStruct("FL_String"))
 
-    # String functions known to return freshly allocated (owned) strings.
-    # Only these are safe to hoist-and-release; user-defined functions may
-    # return borrowed references (e.g. struct fields) whose release would
-    # cause use-after-free.
-    _OWNED_STRING_FNS = frozenset({
-        "fl_string_concat",
-        "fl_string_substring",
-        "fl_string_replace",
-        "fl_string_trim",
-        "fl_string_to_lower",
-        "fl_string_to_upper",
-        "fl_string_join",
-        "fl_string_from_cstr",
-        "fl_int_to_string",
-        "fl_int64_to_string",
-        "fl_float_to_string",
-        "fl_bool_to_string",
-        "fl_char_to_string",
+    # Functions that never return owned strings — do not hoist.
+    _NON_OWNED_STRING_FNS = frozenset({
+        "fl_string_retain",
+        "fl_string_release",
     })
 
     def _hoist_string_temp(self, expr: LExpr) -> LExpr:
-        """If expr is a known-allocating string call, hoist to temp and schedule release.
+        """If expr is a string-returning call, hoist to temp and schedule release.
 
-        Only hoists calls to runtime functions that are guaranteed to return
-        freshly allocated strings.  User-defined functions may return borrowed
-        references (struct fields, match bindings, etc.) so releasing their
-        return values would cause use-after-free.
+        With the owned-return convention, all function calls return owned
+        values. String-returning calls (both runtime and user-defined) are
+        safe to hoist and release as intermediates in concat chains.
 
         Returns the temp LVar if hoisted, or the original expr if not eligible.
         """
         if not isinstance(expr, LCall):
             return expr
-        if expr.fn_name not in self._OWNED_STRING_FNS:
+        if expr.fn_name in self._NON_OWNED_STRING_FNS:
+            return expr
+        # Only hoist string-returning calls
+        if expr.c_type != self._STRING_LTYPE:
             return expr
         tmp = self._fresh_temp()
         self._pending_stmts.append(

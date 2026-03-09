@@ -518,24 +518,24 @@ void fl_mono_min_main(void);
 
 /* Flow: mono_min.min[mono] */
 fl_int fl_mono_min_min__int(fl_int a, fl_int b) {
-    fl_int _fl_tmp_0;
+    fl_int _fl_tmp_2;
     if (_fl_compare(a, b) <= 0) {
-        _fl_tmp_0 = a;
+        _fl_tmp_2 = a;
     } else {
-        _fl_tmp_0 = b;
+        _fl_tmp_2 = b;
     }
-    return _fl_tmp_0;
+    return _fl_tmp_2;
 }
 
 /* Flow: mono_min.min[mono] */
 fl_float fl_mono_min_min__float(fl_float a, fl_float b) {
-    fl_float _fl_tmp_1;
+    fl_float _fl_tmp_3;
     if (_fl_compare(a, b) <= 0) {
-        _fl_tmp_1 = a;
+        _fl_tmp_3 = a;
     } else {
-        _fl_tmp_1 = b;
+        _fl_tmp_3 = b;
     }
-    return _fl_tmp_1;
+    return _fl_tmp_3;
 }
 
 /* Flow: conv.to_string[mono] */
@@ -552,8 +552,12 @@ FL_String* fl_conv_to_string__float(fl_float val) {
 void fl_mono_min_main(void) {
     fl_int x = fl_mono_min_min__int(3, 7);
     fl_float y = fl_mono_min_min__float(1.5, 0.5);
-    fl_println(fl_conv_to_string__int(x));
-    fl_println(fl_conv_to_string__float(y));
+    FL_String* _fl_tmp_0 = fl_conv_to_string__int(x);
+    fl_println(_fl_tmp_0);
+    fl_string_release(_fl_tmp_0);
+    FL_String* _fl_tmp_1 = fl_conv_to_string__float(y);
+    fl_println(_fl_tmp_1);
+    fl_string_release(_fl_tmp_1);
 }
 
 static void _fl_init_statics(void) {

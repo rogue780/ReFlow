@@ -629,13 +629,16 @@ FL_String* fl_self_hosted_errors_kind_name(fl_self_hosted_errors_ErrorKind k) {
 /* Flow: self_hosted.errors.format */
 FL_String* fl_self_hosted_errors_format(fl_self_hosted_errors_CompileError e) {
     FL_String* _fl_tmp_1 = fl_string_concat(e.file, _fl_str_self_hosted_errors_5);
-    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_conv_to_string__int(e.line));
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, _fl_str_self_hosted_errors_5);
-    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_conv_to_string__int(e.col));
-    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_str_self_hosted_errors_6);
-    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_self_hosted_errors_kind_name(e.kind));
+    FL_String* _fl_tmp_2 = fl_conv_to_string__int(e.line);
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_1, _fl_tmp_2);
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_str_self_hosted_errors_5);
+    FL_String* _fl_tmp_5 = fl_conv_to_string__int(e.col);
+    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_4, _fl_tmp_5);
     FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, _fl_str_self_hosted_errors_6);
-    return fl_string_concat(_fl_tmp_7, e.message);
+    FL_String* _fl_tmp_8 = fl_self_hosted_errors_kind_name(e.kind);
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_7, _fl_tmp_8);
+    FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_str_self_hosted_errors_6);
+    return fl_string_concat(_fl_tmp_10, e.message);
 }
 
 FL_String* _fl_str_tests_programs_app_sh_errors_test_0 = NULL;
@@ -663,17 +666,31 @@ FL_String* _fl_str_tests_programs_app_sh_errors_test_10 = NULL;
 /* Flow: tests.programs.app_sh_errors_test.main */
 fl_int fl_tests_programs_app_sh_errors_test_main(void) {
     fl_self_hosted_errors_CompileError e1 = fl_self_hosted_errors_lex_error(_fl_str_tests_programs_app_sh_errors_test_0, _fl_str_tests_programs_app_sh_errors_test_1, 10, 5);
-    fl_println(fl_self_hosted_errors_format(e1));
+    FL_String* _fl_tmp_0 = fl_self_hosted_errors_format(e1);
+    fl_println(_fl_tmp_0);
+    fl_string_release(_fl_tmp_0);
     fl_self_hosted_errors_CompileError e2 = fl_self_hosted_errors_parse_error(_fl_str_tests_programs_app_sh_errors_test_2, _fl_str_tests_programs_app_sh_errors_test_3, 42, 13);
-    fl_println(fl_self_hosted_errors_format(e2));
+    FL_String* _fl_tmp_1 = fl_self_hosted_errors_format(e2);
+    fl_println(_fl_tmp_1);
+    fl_string_release(_fl_tmp_1);
     fl_self_hosted_errors_CompileError e3 = fl_self_hosted_errors_resolve_error(_fl_str_tests_programs_app_sh_errors_test_4, _fl_str_tests_programs_app_sh_errors_test_5, 7, 1);
-    fl_println(fl_self_hosted_errors_format(e3));
+    FL_String* _fl_tmp_2 = fl_self_hosted_errors_format(e3);
+    fl_println(_fl_tmp_2);
+    fl_string_release(_fl_tmp_2);
     fl_self_hosted_errors_CompileError e4 = fl_self_hosted_errors_type_error(_fl_str_tests_programs_app_sh_errors_test_6, _fl_str_tests_programs_app_sh_errors_test_7, 99, 20);
-    fl_println(fl_self_hosted_errors_format(e4));
+    FL_String* _fl_tmp_3 = fl_self_hosted_errors_format(e4);
+    fl_println(_fl_tmp_3);
+    fl_string_release(_fl_tmp_3);
     fl_self_hosted_errors_CompileError e5 = fl_self_hosted_errors_emit_error(_fl_str_tests_programs_app_sh_errors_test_8, _fl_str_tests_programs_app_sh_errors_test_9, 1, 0);
-    fl_println(fl_self_hosted_errors_format(e5));
-    fl_println(fl_self_hosted_errors_kind_name(e1.kind));
-    fl_println(fl_self_hosted_errors_kind_name(e5.kind));
+    FL_String* _fl_tmp_4 = fl_self_hosted_errors_format(e5);
+    fl_println(_fl_tmp_4);
+    fl_string_release(_fl_tmp_4);
+    FL_String* _fl_tmp_5 = fl_self_hosted_errors_kind_name(e1.kind);
+    fl_println(_fl_tmp_5);
+    fl_string_release(_fl_tmp_5);
+    FL_String* _fl_tmp_6 = fl_self_hosted_errors_kind_name(e5.kind);
+    fl_println(_fl_tmp_6);
+    fl_string_release(_fl_tmp_6);
     fl_println(e1.message);
     fl_println(e1.file);
     fl_println(_fl_str_tests_programs_app_sh_errors_test_10);
