@@ -1114,33 +1114,25 @@ FL_String* fl_self_hosted_mangler_mangle_monomorphized(FL_String* mod, FL_String
     fl_int i = 0;
     while (i < fl_array_len_int(type_args)) {
         if (i > 0) {
-            FL_String* _fl_old_44 = suffix;
-            suffix = fl_string_concat(suffix, _fl_str_self_hosted_mangler_65);
-            if (_fl_old_44 != suffix) {
-                fl_string_release(_fl_old_44);
-            }
+            fl_string_append((&suffix), _fl_str_self_hosted_mangler_65);
         }
-        FL_Option_ptr _fl_tmp_45 = fl_array_get_safe(type_args, i);
-        FL_String* _fl_old_46 = suffix;
-        suffix = fl_string_concat(suffix, ((_fl_tmp_45.tag == 1) ? _fl_tmp_45.value : _fl_str_self_hosted_mangler_63));
-        if (_fl_old_46 != suffix) {
-            fl_string_release(_fl_old_46);
-        }
+        FL_Option_ptr _fl_tmp_44 = fl_array_get_safe(type_args, i);
+        fl_string_append((&suffix), ((_fl_tmp_44.tag == 1) ? _fl_tmp_44.value : _fl_str_self_hosted_mangler_63));
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    FL_String* _fl_tmp_47 = fl_self_hosted_mangler_prefix();
-    FL_String* _fl_tmp_48 = fl_string_concat(_fl_tmp_47, parts);
-    FL_String* _fl_tmp_49 = fl_string_concat(_fl_tmp_48, _fl_str_self_hosted_mangler_65);
-    FL_String* _fl_tmp_50 = fl_string_concat(_fl_tmp_49, fn_name);
-    FL_String* _fl_tmp_51 = fl_string_concat(_fl_tmp_50, _fl_str_self_hosted_mangler_77);
+    FL_String* _fl_tmp_45 = fl_self_hosted_mangler_prefix();
+    FL_String* _fl_tmp_46 = fl_string_concat(_fl_tmp_45, parts);
+    FL_String* _fl_tmp_47 = fl_string_concat(_fl_tmp_46, _fl_str_self_hosted_mangler_65);
+    FL_String* _fl_tmp_48 = fl_string_concat(_fl_tmp_47, fn_name);
+    FL_String* _fl_tmp_49 = fl_string_concat(_fl_tmp_48, _fl_str_self_hosted_mangler_77);
+    fl_string_release(_fl_tmp_45);
+    fl_string_release(_fl_tmp_46);
     fl_string_release(_fl_tmp_47);
     fl_string_release(_fl_tmp_48);
-    fl_string_release(_fl_tmp_49);
-    fl_string_release(_fl_tmp_50);
     fl_string_release(parts);
-    return fl_string_concat(_fl_tmp_51, suffix);
+    return fl_string_concat(_fl_tmp_49, suffix);
 }
 
 FL_String* _fl_str_tests_programs_app_sh_mangler_test_0 = NULL;

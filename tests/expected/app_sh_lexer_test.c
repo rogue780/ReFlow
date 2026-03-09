@@ -1455,31 +1455,27 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
         fl_string_retain(hex);
         while ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_59) == fl_false)) {
             FL_String* _fl_tmp_6 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-            FL_String* _fl_old_7 = hex;
-            hex = fl_string_concat(hex, _fl_tmp_6);
-            if (_fl_old_7 != hex) {
-                fl_string_release(_fl_old_7);
-            }
+            fl_string_append((&hex), _fl_tmp_6);
             fl_string_release(_fl_tmp_6);
         }
         if (s->pos >= s->src_len) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_60, s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_8), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_7 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_7) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_60, s->filename, s->line, s->col);
+            _fl_throw(((void*)_fl_tmp_7), 461109476);
         }
         fl_self_hosted_lexer_advance(s);
         if (fl_string_eq(hex, _fl_str_self_hosted_lexer_58)) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_9 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_61, s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_9), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_61, s->filename, s->line, s->col);
+            _fl_throw(((void*)_fl_tmp_8), 461109476);
         }
         fl_string_retain(_fl_str_self_hosted_lexer_62);
         fl_string_release(hex);
         return _fl_str_self_hosted_lexer_62;
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_10 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_10) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_63, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_10), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_9 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_63, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_9), 461109476);
     fl_string_retain(_fl_str_self_hosted_lexer_58);
     return _fl_str_self_hosted_lexer_58;
 }
@@ -1567,26 +1563,18 @@ void fl_self_hosted_lexer_scan_string(fl_self_hosted_lexer_LexState* s) {
         }
         if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             fl_self_hosted_lexer_advance(s);
-            FL_String* _fl_tmp_11 = fl_self_hosted_lexer_scan_escape(s);
-            FL_String* _fl_old_12 = chars;
-            chars = fl_string_concat(chars, _fl_tmp_11);
-            if (_fl_old_12 != chars) {
-                fl_string_release(_fl_old_12);
-            }
-            fl_string_release(_fl_tmp_11);
+            FL_String* _fl_tmp_10 = fl_self_hosted_lexer_scan_escape(s);
+            fl_string_append((&chars), _fl_tmp_10);
+            fl_string_release(_fl_tmp_10);
         } else {
-            FL_String* _fl_tmp_13 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-            FL_String* _fl_old_14 = chars;
-            chars = fl_string_concat(chars, _fl_tmp_13);
-            if (_fl_old_14 != chars) {
-                fl_string_release(_fl_old_14);
-            }
-            fl_string_release(_fl_tmp_13);
+            FL_String* _fl_tmp_11 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+            fl_string_append((&chars), _fl_tmp_11);
+            fl_string_release(_fl_tmp_11);
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_15 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_15) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
-    _fl_throw(((void*)_fl_tmp_15), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_12 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_12) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
+    _fl_throw(((void*)_fl_tmp_12), 461109476);
     fl_string_release(chars);
 }
 
@@ -1596,30 +1584,30 @@ void fl_self_hosted_lexer_scan_char_lit(fl_self_hosted_lexer_LexState* s) {
     fl_int start_col = s->col;
     fl_self_hosted_lexer_advance(s);
     if (s->pos >= s->src_len) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_16 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_16) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_16), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_13 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_13) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_13), 461109476);
     }
     FL_String* ch_val = _fl_str_self_hosted_lexer_58;
     fl_string_retain(ch_val);
     if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_48)) {
         fl_self_hosted_lexer_advance(s);
-        FL_String* _fl_old_17 = ch_val;
+        FL_String* _fl_old_14 = ch_val;
         ch_val = fl_self_hosted_lexer_scan_escape(s);
-        if (_fl_old_17 != ch_val) {
-            fl_string_release(_fl_old_17);
+        if (_fl_old_14 != ch_val) {
+            fl_string_release(_fl_old_14);
         }
     } else {
-        FL_String* _fl_old_18 = ch_val;
+        FL_String* _fl_old_15 = ch_val;
         ch_val = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-        if (_fl_old_18 != ch_val) {
-            fl_string_release(_fl_old_18);
+        if (_fl_old_15 != ch_val) {
+            fl_string_release(_fl_old_15);
         }
     }
     if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_50) == fl_false)) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_19 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_19) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_19), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_16 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_16) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_16), 461109476);
     }
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_CHAR_LIT, ch_val, start_line, start_col));
@@ -1894,12 +1882,12 @@ void fl_self_hosted_lexer_scan_operator(fl_self_hosted_lexer_LexState* s) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SEMICOLON, _fl_str_self_hosted_lexer_111, start_line, start_col));
         return;
     }
-    FL_String* _fl_tmp_20 = fl_char_to_string(ch);
-    FL_String* _fl_tmp_21 = fl_string_concat(_fl_str_self_hosted_lexer_112, _fl_tmp_20);
-    FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, _fl_str_self_hosted_lexer_50);
-    fl_self_hosted_errors_CompileError* _fl_tmp_23 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_23) = fl_self_hosted_errors_lex_error(_fl_tmp_22, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_23), 461109476);
+    FL_String* _fl_tmp_17 = fl_char_to_string(ch);
+    FL_String* _fl_tmp_18 = fl_string_concat(_fl_str_self_hosted_lexer_112, _fl_tmp_17);
+    FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, _fl_str_self_hosted_lexer_50);
+    fl_self_hosted_errors_CompileError* _fl_tmp_20 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_20) = fl_self_hosted_errors_lex_error(_fl_tmp_19, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_20), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring */
@@ -1937,9 +1925,9 @@ void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s) {
             }
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_24 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_24) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_24), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_21 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_21) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_21), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring_text */
@@ -1953,13 +1941,9 @@ void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s) {
         if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             break;
         }
-        FL_String* _fl_tmp_25 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-        FL_String* _fl_old_26 = chars;
-        chars = fl_string_concat(chars, _fl_tmp_25);
-        if (_fl_old_26 != chars) {
-            fl_string_release(_fl_old_26);
-        }
-        fl_string_release(_fl_tmp_25);
+        FL_String* _fl_tmp_22 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+        fl_string_append((&chars), _fl_tmp_22);
+        fl_string_release(_fl_tmp_22);
     }
     if (fl_string_len(chars) > 0) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, chars, start_line, start_col));
@@ -2044,9 +2028,9 @@ void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
         fl_self_hosted_lexer_scan_operator(s);
     }
     if (brace_depth > 0) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_27 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_27) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_27), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_23 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_23) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_23), 461109476);
     }
 }
 
@@ -2324,10 +2308,10 @@ FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype) {
         fl_string_retain(_fl_str_self_hosted_lexer_172);
         return _fl_str_self_hosted_lexer_172;
     }
-    FL_String* _fl_tmp_28 = fl_conv_to_string__int(ttype);
-    FL_String* _fl_tmp_29 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_28);
-    fl_string_release(_fl_tmp_28);
-    return fl_string_concat(_fl_tmp_29, _fl_str_self_hosted_lexer_102);
+    FL_String* _fl_tmp_24 = fl_conv_to_string__int(ttype);
+    FL_String* _fl_tmp_25 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_24);
+    fl_string_release(_fl_tmp_24);
+    return fl_string_concat(_fl_tmp_25, _fl_str_self_hosted_lexer_102);
 }
 
 typedef struct FL_Option_fl_self_hosted_lexer_Token FL_Option_fl_self_hosted_lexer_Token;

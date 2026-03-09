@@ -207,6 +207,7 @@ void       fl_string_retain(FL_String* s);
 void       fl_string_release(FL_String* s);
 FL_String* fl_string_copy(FL_String* s);
 FL_String* fl_string_concat(FL_String* a, FL_String* b);
+void       fl_string_append(FL_String** a, FL_String* b);
 fl_bool    fl_string_eq(FL_String* a, FL_String* b);
 fl_int64   fl_string_len(FL_String* s);
 fl_int     fl_string_cmp(FL_String* a, FL_String* b);

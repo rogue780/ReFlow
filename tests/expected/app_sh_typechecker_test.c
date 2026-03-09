@@ -1455,31 +1455,27 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
         fl_string_retain(hex);
         while ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_59) == fl_false)) {
             FL_String* _fl_tmp_6 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-            FL_String* _fl_old_7 = hex;
-            hex = fl_string_concat(hex, _fl_tmp_6);
-            if (_fl_old_7 != hex) {
-                fl_string_release(_fl_old_7);
-            }
+            fl_string_append((&hex), _fl_tmp_6);
             fl_string_release(_fl_tmp_6);
         }
         if (s->pos >= s->src_len) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_60, s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_8), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_7 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_7) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_60, s->filename, s->line, s->col);
+            _fl_throw(((void*)_fl_tmp_7), 461109476);
         }
         fl_self_hosted_lexer_advance(s);
         if (fl_string_eq(hex, _fl_str_self_hosted_lexer_58)) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_9 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_61, s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_9), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_61, s->filename, s->line, s->col);
+            _fl_throw(((void*)_fl_tmp_8), 461109476);
         }
         fl_string_retain(_fl_str_self_hosted_lexer_62);
         fl_string_release(hex);
         return _fl_str_self_hosted_lexer_62;
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_10 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_10) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_63, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_10), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_9 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_63, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_9), 461109476);
     fl_string_retain(_fl_str_self_hosted_lexer_58);
     return _fl_str_self_hosted_lexer_58;
 }
@@ -1567,26 +1563,18 @@ void fl_self_hosted_lexer_scan_string(fl_self_hosted_lexer_LexState* s) {
         }
         if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             fl_self_hosted_lexer_advance(s);
-            FL_String* _fl_tmp_11 = fl_self_hosted_lexer_scan_escape(s);
-            FL_String* _fl_old_12 = chars;
-            chars = fl_string_concat(chars, _fl_tmp_11);
-            if (_fl_old_12 != chars) {
-                fl_string_release(_fl_old_12);
-            }
-            fl_string_release(_fl_tmp_11);
+            FL_String* _fl_tmp_10 = fl_self_hosted_lexer_scan_escape(s);
+            fl_string_append((&chars), _fl_tmp_10);
+            fl_string_release(_fl_tmp_10);
         } else {
-            FL_String* _fl_tmp_13 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-            FL_String* _fl_old_14 = chars;
-            chars = fl_string_concat(chars, _fl_tmp_13);
-            if (_fl_old_14 != chars) {
-                fl_string_release(_fl_old_14);
-            }
-            fl_string_release(_fl_tmp_13);
+            FL_String* _fl_tmp_11 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+            fl_string_append((&chars), _fl_tmp_11);
+            fl_string_release(_fl_tmp_11);
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_15 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_15) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
-    _fl_throw(((void*)_fl_tmp_15), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_12 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_12) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
+    _fl_throw(((void*)_fl_tmp_12), 461109476);
     fl_string_release(chars);
 }
 
@@ -1596,30 +1584,30 @@ void fl_self_hosted_lexer_scan_char_lit(fl_self_hosted_lexer_LexState* s) {
     fl_int start_col = s->col;
     fl_self_hosted_lexer_advance(s);
     if (s->pos >= s->src_len) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_16 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_16) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_16), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_13 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_13) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_13), 461109476);
     }
     FL_String* ch_val = _fl_str_self_hosted_lexer_58;
     fl_string_retain(ch_val);
     if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_48)) {
         fl_self_hosted_lexer_advance(s);
-        FL_String* _fl_old_17 = ch_val;
+        FL_String* _fl_old_14 = ch_val;
         ch_val = fl_self_hosted_lexer_scan_escape(s);
-        if (_fl_old_17 != ch_val) {
-            fl_string_release(_fl_old_17);
+        if (_fl_old_14 != ch_val) {
+            fl_string_release(_fl_old_14);
         }
     } else {
-        FL_String* _fl_old_18 = ch_val;
+        FL_String* _fl_old_15 = ch_val;
         ch_val = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-        if (_fl_old_18 != ch_val) {
-            fl_string_release(_fl_old_18);
+        if (_fl_old_15 != ch_val) {
+            fl_string_release(_fl_old_15);
         }
     }
     if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_50) == fl_false)) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_19 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_19) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_19), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_16 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_16) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_16), 461109476);
     }
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_CHAR_LIT, ch_val, start_line, start_col));
@@ -1894,12 +1882,12 @@ void fl_self_hosted_lexer_scan_operator(fl_self_hosted_lexer_LexState* s) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SEMICOLON, _fl_str_self_hosted_lexer_111, start_line, start_col));
         return;
     }
-    FL_String* _fl_tmp_20 = fl_char_to_string(ch);
-    FL_String* _fl_tmp_21 = fl_string_concat(_fl_str_self_hosted_lexer_112, _fl_tmp_20);
-    FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, _fl_str_self_hosted_lexer_50);
-    fl_self_hosted_errors_CompileError* _fl_tmp_23 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_23) = fl_self_hosted_errors_lex_error(_fl_tmp_22, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_23), 461109476);
+    FL_String* _fl_tmp_17 = fl_char_to_string(ch);
+    FL_String* _fl_tmp_18 = fl_string_concat(_fl_str_self_hosted_lexer_112, _fl_tmp_17);
+    FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, _fl_str_self_hosted_lexer_50);
+    fl_self_hosted_errors_CompileError* _fl_tmp_20 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_20) = fl_self_hosted_errors_lex_error(_fl_tmp_19, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_20), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring */
@@ -1937,9 +1925,9 @@ void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s) {
             }
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_24 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_24) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_24), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_21 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_21) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_21), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring_text */
@@ -1953,13 +1941,9 @@ void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s) {
         if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             break;
         }
-        FL_String* _fl_tmp_25 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-        FL_String* _fl_old_26 = chars;
-        chars = fl_string_concat(chars, _fl_tmp_25);
-        if (_fl_old_26 != chars) {
-            fl_string_release(_fl_old_26);
-        }
-        fl_string_release(_fl_tmp_25);
+        FL_String* _fl_tmp_22 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+        fl_string_append((&chars), _fl_tmp_22);
+        fl_string_release(_fl_tmp_22);
     }
     if (fl_string_len(chars) > 0) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, chars, start_line, start_col));
@@ -2044,9 +2028,9 @@ void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
         fl_self_hosted_lexer_scan_operator(s);
     }
     if (brace_depth > 0) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_27 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_27) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_27), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_23 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_23) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_23), 461109476);
     }
 }
 
@@ -2324,10 +2308,10 @@ FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype) {
         fl_string_retain(_fl_str_self_hosted_lexer_172);
         return _fl_str_self_hosted_lexer_172;
     }
-    FL_String* _fl_tmp_28 = fl_conv_to_string__int(ttype);
-    FL_String* _fl_tmp_29 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_28);
-    fl_string_release(_fl_tmp_28);
-    return fl_string_concat(_fl_tmp_29, _fl_str_self_hosted_lexer_102);
+    FL_String* _fl_tmp_24 = fl_conv_to_string__int(ttype);
+    FL_String* _fl_tmp_25 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_24);
+    fl_string_release(_fl_tmp_24);
+    return fl_string_concat(_fl_tmp_25, _fl_str_self_hosted_lexer_102);
 }
 
 /* From: self_hosted/ast.flow */
@@ -8714,35 +8698,27 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_type_construction_lit(fl_sel
         fl_int pi = 0;
         while (pi < fl_array_len_int(module_path)) {
             if (pi > 0) {
-                FL_String* _fl_old_237 = prefix;
-                prefix = fl_string_concat(prefix, _fl_str_self_hosted_parser_56);
-                if (_fl_old_237 != prefix) {
-                    fl_string_release(_fl_old_237);
-                }
+                fl_string_append((&prefix), _fl_str_self_hosted_parser_56);
             }
-            FL_Option_ptr _fl_tmp_238 = fl_array_get_safe(module_path, pi);
-            FL_String* _fl_old_239 = prefix;
-            prefix = fl_string_concat(prefix, ((_fl_tmp_238.tag == 1) ? _fl_tmp_238.value : _fl_str_self_hosted_parser_18));
-            if (_fl_old_239 != prefix) {
-                fl_string_release(_fl_old_239);
-            }
+            FL_Option_ptr _fl_tmp_237 = fl_array_get_safe(module_path, pi);
+            fl_string_append((&prefix), ((_fl_tmp_237.tag == 1) ? _fl_tmp_237.value : _fl_str_self_hosted_parser_18));
             fl_int _fl_e_1;
             FL_CHECKED_ADD(pi, 1, &_fl_e_1);
             pi = _fl_e_1;
         }
-        FL_String* _fl_tmp_240 = fl_string_concat(prefix, _fl_str_self_hosted_parser_56);
-        FL_String* _fl_old_241 = full_name;
-        full_name = fl_string_concat(_fl_tmp_240, type_name);
-        if (_fl_old_241 != full_name) {
-            fl_string_release(_fl_old_241);
+        FL_String* _fl_tmp_238 = fl_string_concat(prefix, _fl_str_self_hosted_parser_56);
+        FL_String* _fl_old_239 = full_name;
+        full_name = fl_string_concat(_fl_tmp_238, type_name);
+        if (_fl_old_239 != full_name) {
+            fl_string_release(_fl_old_239);
         }
-        fl_string_release(_fl_tmp_240);
+        fl_string_release(_fl_tmp_238);
     }
-    fl_self_hosted_ast_Expr* _fl_tmp_242 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_242) = spread;
+    fl_self_hosted_ast_Expr* _fl_tmp_240 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
+    (*_fl_tmp_240) = spread;
     fl_string_retain(full_name);
     fl_array_retain(fields);
-    return (fl_self_hosted_ast_Expr){.tag = 19, .ETypeLit = (fl_self_hosted_ast_Expr_ETypeLit){.id = fl_self_hosted_parser_fresh_id(s), .line = start_tok.line, .col = start_tok.col, .type_name = full_name, .fields = fields, .has_spread = has_spread, .spread = _fl_tmp_242}};
+    return (fl_self_hosted_ast_Expr){.tag = 19, .ETypeLit = (fl_self_hosted_ast_Expr_ETypeLit){.id = fl_self_hosted_parser_fresh_id(s), .line = start_tok.line, .col = start_tok.col, .type_name = full_name, .fields = fields, .has_spread = has_spread, .spread = _fl_tmp_240}};
 }
 
 /* Flow: self_hosted.parser.parse_arg_list */
@@ -8753,23 +8729,23 @@ FL_Array* fl_self_hosted_parser_parse_arg_list(fl_self_hosted_parser_ParserState
         return args;
     }
     fl_self_hosted_ast_Expr first = fl_self_hosted_parser_parse_call_arg(s, seen_named);
-    fl_self_hosted_ast_Expr _fl_tmp_243 = first;
-    switch (_fl_tmp_243.tag) {
+    fl_self_hosted_ast_Expr _fl_tmp_241 = first;
+    switch (_fl_tmp_241.tag) {
         case 9: {
-            fl_int nid = _fl_tmp_243.ENamedArg.id;
-            fl_int nl = _fl_tmp_243.ENamedArg.line;
-            fl_int nc = _fl_tmp_243.ENamedArg.col;
-            FL_String* nn = _fl_tmp_243.ENamedArg.name;
-            fl_self_hosted_ast_Expr nv = (*_fl_tmp_243.ENamedArg.value);
+            fl_int nid = _fl_tmp_241.ENamedArg.id;
+            fl_int nl = _fl_tmp_241.ENamedArg.line;
+            fl_int nc = _fl_tmp_241.ENamedArg.col;
+            FL_String* nn = _fl_tmp_241.ENamedArg.name;
+            fl_self_hosted_ast_Expr nv = (*_fl_tmp_241.ENamedArg.value);
             seen_named = fl_true;
             break;
         }
     }
-    fl_self_hosted_ast_Expr _fl_tmp_244 = first;
-    FL_Array* _fl_old_245 = args;
-    args = fl_array_push_sized(args, (&_fl_tmp_244), sizeof(fl_self_hosted_ast_Expr));
-    if (_fl_old_245 != args) {
-        fl_array_release(_fl_old_245);
+    fl_self_hosted_ast_Expr _fl_tmp_242 = first;
+    FL_Array* _fl_old_243 = args;
+    args = fl_array_push_sized(args, (&_fl_tmp_242), sizeof(fl_self_hosted_ast_Expr));
+    if (_fl_old_243 != args) {
+        fl_array_release(_fl_old_243);
     }
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
         fl_self_hosted_parser_advance(s);
@@ -8777,31 +8753,31 @@ FL_Array* fl_self_hosted_parser_parse_arg_list(fl_self_hosted_parser_ParserState
             break;
         }
         fl_self_hosted_ast_Expr arg = fl_self_hosted_parser_parse_call_arg(s, seen_named);
-        fl_self_hosted_ast_Expr _fl_tmp_246 = arg;
-        switch (_fl_tmp_246.tag) {
+        fl_self_hosted_ast_Expr _fl_tmp_244 = arg;
+        switch (_fl_tmp_244.tag) {
             case 9: {
-                fl_int nid = _fl_tmp_246.ENamedArg.id;
-                fl_int nl = _fl_tmp_246.ENamedArg.line;
-                fl_int nc = _fl_tmp_246.ENamedArg.col;
-                FL_String* nn = _fl_tmp_246.ENamedArg.name;
-                fl_self_hosted_ast_Expr nv = (*_fl_tmp_246.ENamedArg.value);
+                fl_int nid = _fl_tmp_244.ENamedArg.id;
+                fl_int nl = _fl_tmp_244.ENamedArg.line;
+                fl_int nc = _fl_tmp_244.ENamedArg.col;
+                FL_String* nn = _fl_tmp_244.ENamedArg.name;
+                fl_self_hosted_ast_Expr nv = (*_fl_tmp_244.ENamedArg.value);
                 seen_named = fl_true;
                 break;
             }
             default: {
                 if (seen_named) {
-                    fl_self_hosted_errors_CompileError* _fl_tmp_247 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                    (*_fl_tmp_247) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_57);
-                    _fl_throw(((void*)_fl_tmp_247), 461109476);
+                    fl_self_hosted_errors_CompileError* _fl_tmp_245 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                    (*_fl_tmp_245) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_57);
+                    _fl_throw(((void*)_fl_tmp_245), 461109476);
                 }
                 break;
             }
         }
-        fl_self_hosted_ast_Expr _fl_tmp_248 = arg;
-        FL_Array* _fl_old_249 = args;
-        args = fl_array_push_sized(args, (&_fl_tmp_248), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_249 != args) {
-            fl_array_release(_fl_old_249);
+        fl_self_hosted_ast_Expr _fl_tmp_246 = arg;
+        FL_Array* _fl_old_247 = args;
+        args = fl_array_push_sized(args, (&_fl_tmp_246), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_247 != args) {
+            fl_array_release(_fl_old_247);
         }
     }
     return args;
@@ -8812,9 +8788,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_call_arg(fl_self_hosted_pars
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_SPREAD)) {
         fl_self_hosted_lexer_Token spread_tok = fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
-        fl_self_hosted_ast_Expr* _fl_tmp_250 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-        (*_fl_tmp_250) = inner;
-        return (fl_self_hosted_ast_Expr){.tag = 10, .ESpread = (fl_self_hosted_ast_Expr_ESpread){.id = fl_self_hosted_parser_fresh_id(s), .line = spread_tok.line, .col = spread_tok.col, .inner = _fl_tmp_250}};
+        fl_self_hosted_ast_Expr* _fl_tmp_248 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
+        (*_fl_tmp_248) = inner;
+        return (fl_self_hosted_ast_Expr){.tag = 10, .ESpread = (fl_self_hosted_ast_Expr_ESpread){.id = fl_self_hosted_parser_fresh_id(s), .line = spread_tok.line, .col = spread_tok.col, .inner = _fl_tmp_248}};
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_IDENT)) {
         fl_self_hosted_lexer_Token next = fl_self_hosted_parser_peek2(s);
@@ -8822,16 +8798,16 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_call_arg(fl_self_hosted_pars
             fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_advance(s);
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
-            fl_self_hosted_ast_Expr* _fl_tmp_251 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_fl_tmp_251) = value;
+            fl_self_hosted_ast_Expr* _fl_tmp_249 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
+            (*_fl_tmp_249) = value;
             fl_string_retain(name_tok.value);
-            return (fl_self_hosted_ast_Expr){.tag = 9, .ENamedArg = (fl_self_hosted_ast_Expr_ENamedArg){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .name = name_tok.value, .value = _fl_tmp_251}};
+            return (fl_self_hosted_ast_Expr){.tag = 9, .ENamedArg = (fl_self_hosted_ast_Expr_ENamedArg){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .name = name_tok.value, .value = _fl_tmp_249}};
         }
     }
     if (seen_named) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_252 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_252) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_57);
-        _fl_throw(((void*)_fl_tmp_252), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_250 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_250) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_57);
+        _fl_throw(((void*)_fl_tmp_250), 461109476);
     }
     return fl_self_hosted_parser_parse_expr(s);
 }
@@ -8877,27 +8853,27 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
     if ((((tok.ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) || (tok.ttype == fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT)) || (tok.ttype == fl_self_hosted_lexer_TokenType_TK_STRING_LIT)) || (tok.ttype == fl_self_hosted_lexer_TokenType_TK_CHAR_LIT)) {
         fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_primary(s);
         fl_int vid = fl_array_len_int(s->literal_values);
-        fl_self_hosted_ast_Expr _fl_tmp_253 = expr;
-        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_253), sizeof(fl_self_hosted_ast_Expr));
+        fl_self_hosted_ast_Expr _fl_tmp_251 = expr;
+        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_251), sizeof(fl_self_hosted_ast_Expr));
         return (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_MINUS) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_primary(s);
-        fl_self_hosted_ast_Expr* _fl_tmp_254 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-        (*_fl_tmp_254) = inner;
+        fl_self_hosted_ast_Expr* _fl_tmp_252 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
+        (*_fl_tmp_252) = inner;
         fl_string_retain(_fl_str_self_hosted_parser_11);
-        fl_self_hosted_ast_Expr neg = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_11, .operand = _fl_tmp_254}};
+        fl_self_hosted_ast_Expr neg = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_11, .operand = _fl_tmp_252}};
         fl_int vid = fl_array_len_int(s->literal_values);
-        fl_self_hosted_ast_Expr _fl_tmp_255 = neg;
-        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_255), sizeof(fl_self_hosted_ast_Expr));
+        fl_self_hosted_ast_Expr _fl_tmp_253 = neg;
+        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_253), sizeof(fl_self_hosted_ast_Expr));
         return (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_BOOL_LIT) {
         fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_bool_lit(s);
         fl_int vid = fl_array_len_int(s->literal_values);
-        fl_self_hosted_ast_Expr _fl_tmp_256 = expr;
-        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_256), sizeof(fl_self_hosted_ast_Expr));
+        fl_self_hosted_ast_Expr _fl_tmp_254 = expr;
+        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_254), sizeof(fl_self_hosted_ast_Expr));
         return (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
@@ -8908,10 +8884,10 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
             fl_array_set_elem_type(bindings, 1);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
                 fl_self_hosted_lexer_Token b_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                FL_Array* _fl_old_257 = bindings;
+                FL_Array* _fl_old_255 = bindings;
                 bindings = fl_array_push_ptr(bindings, b_tok.value);
-                if (_fl_old_257 != bindings) {
-                    fl_array_release(_fl_old_257);
+                if (_fl_old_255 != bindings) {
+                    fl_array_release(_fl_old_255);
                 }
                 while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
                     fl_self_hosted_parser_advance(s);
@@ -8919,10 +8895,10 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
                         break;
                     }
                     fl_self_hosted_lexer_Token b2 = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                    FL_Array* _fl_old_258 = bindings;
+                    FL_Array* _fl_old_256 = bindings;
                     bindings = fl_array_push_ptr(bindings, b2.value);
-                    if (_fl_old_258 != bindings) {
-                        fl_array_release(_fl_old_258);
+                    if (_fl_old_256 != bindings) {
+                        fl_array_release(_fl_old_256);
                     }
                 }
             }
@@ -8934,10 +8910,10 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_string_retain(name_tok.value);
         return (fl_self_hosted_ast_Pattern){.tag = 2, .PBind = (fl_self_hosted_ast_Pattern_PBind){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .name = name_tok.value}};
     }
-    FL_String* _fl_tmp_259 = fl_string_concat(_fl_str_self_hosted_parser_58, tok.value);
-    fl_self_hosted_errors_CompileError* _fl_tmp_260 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_260) = fl_self_hosted_parser_error_at(s, fl_string_concat(_fl_tmp_259, _fl_str_self_hosted_parser_23), tok.line, tok.col);
-    _fl_throw(((void*)_fl_tmp_260), 461109476);
+    FL_String* _fl_tmp_257 = fl_string_concat(_fl_str_self_hosted_parser_58, tok.value);
+    fl_self_hosted_errors_CompileError* _fl_tmp_258 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_258) = fl_self_hosted_parser_error_at(s, fl_string_concat(_fl_tmp_257, _fl_str_self_hosted_parser_23), tok.line, tok.col);
+    _fl_throw(((void*)_fl_tmp_258), 461109476);
     return (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}};
 }
 
@@ -8946,22 +8922,22 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_tuple_pattern(fl_self_hos
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     FL_Array* elements = fl_array_new(0, 0, NULL);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
-        fl_self_hosted_ast_Pattern _fl_tmp_261 = fl_self_hosted_parser_parse_pattern(s);
-        FL_Array* _fl_old_262 = elements;
-        elements = fl_array_push_sized(elements, (&_fl_tmp_261), sizeof(fl_self_hosted_ast_Pattern));
-        if (_fl_old_262 != elements) {
-            fl_array_release(_fl_old_262);
+        fl_self_hosted_ast_Pattern _fl_tmp_259 = fl_self_hosted_parser_parse_pattern(s);
+        FL_Array* _fl_old_260 = elements;
+        elements = fl_array_push_sized(elements, (&_fl_tmp_259), sizeof(fl_self_hosted_ast_Pattern));
+        if (_fl_old_260 != elements) {
+            fl_array_release(_fl_old_260);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN)) {
                 break;
             }
-            fl_self_hosted_ast_Pattern _fl_tmp_263 = fl_self_hosted_parser_parse_pattern(s);
-            FL_Array* _fl_old_264 = elements;
-            elements = fl_array_push_sized(elements, (&_fl_tmp_263), sizeof(fl_self_hosted_ast_Pattern));
-            if (_fl_old_264 != elements) {
-                fl_array_release(_fl_old_264);
+            fl_self_hosted_ast_Pattern _fl_tmp_261 = fl_self_hosted_parser_parse_pattern(s);
+            FL_Array* _fl_old_262 = elements;
+            elements = fl_array_push_sized(elements, (&_fl_tmp_261), sizeof(fl_self_hosted_ast_Pattern));
+            if (_fl_old_262 != elements) {
+                fl_array_release(_fl_old_262);
             }
         }
     }
@@ -8980,18 +8956,18 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
     fl_array_set_elem_type(path, 1);
     if (fl_self_hosted_parser_check((&s), fl_self_hosted_lexer_TokenType_TK_MODULE)) {
         fl_self_hosted_ast_Decl mod_decl = fl_self_hosted_parser_parse_module_decl((&s));
-        fl_self_hosted_ast_Decl _fl_tmp_265 = mod_decl;
-        switch (_fl_tmp_265.tag) {
+        fl_self_hosted_ast_Decl _fl_tmp_263 = mod_decl;
+        switch (_fl_tmp_263.tag) {
             case 0: {
-                fl_int mid = _fl_tmp_265.DModule.id;
-                fl_int ml = _fl_tmp_265.DModule.line;
-                fl_int mc = _fl_tmp_265.DModule.col;
-                FL_Array* mp = _fl_tmp_265.DModule.path;
-                FL_Array* _fl_old_266 = path;
+                fl_int mid = _fl_tmp_263.DModule.id;
+                fl_int ml = _fl_tmp_263.DModule.line;
+                fl_int mc = _fl_tmp_263.DModule.col;
+                FL_Array* mp = _fl_tmp_263.DModule.path;
+                FL_Array* _fl_old_264 = path;
                 path = mp;
-                if (_fl_old_266 != path) {
+                if (_fl_old_264 != path) {
                     fl_array_retain(path);
-                    fl_array_release(_fl_old_266);
+                    fl_array_release(_fl_old_264);
                 }
                 break;
             }
@@ -8999,11 +8975,11 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
     }
     FL_Array* imports = fl_array_new(0, 0, NULL);
     while (fl_self_hosted_parser_check((&s), fl_self_hosted_lexer_TokenType_TK_IMPORT)) {
-        fl_self_hosted_ast_Decl _fl_tmp_267 = fl_self_hosted_parser_parse_import_decl((&s));
-        FL_Array* _fl_old_268 = imports;
-        imports = fl_array_push_sized(imports, (&_fl_tmp_267), sizeof(fl_self_hosted_ast_Decl));
-        if (_fl_old_268 != imports) {
-            fl_array_release(_fl_old_268);
+        fl_self_hosted_ast_Decl _fl_tmp_265 = fl_self_hosted_parser_parse_import_decl((&s));
+        FL_Array* _fl_old_266 = imports;
+        imports = fl_array_push_sized(imports, (&_fl_tmp_265), sizeof(fl_self_hosted_ast_Decl));
+        if (_fl_old_266 != imports) {
+            fl_array_release(_fl_old_266);
         }
     }
     FL_Array* decls = fl_array_new(0, 0, NULL);
@@ -9013,18 +8989,18 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
         _fl_exception_push((&_fl_ef_2));
         if (setjmp(_fl_ef_2.jmp) == 0) {
             fl_self_hosted_ast_Decl decl = fl_self_hosted_parser_parse_top_level_decl((&s));
-            fl_self_hosted_ast_Decl _fl_tmp_269 = decl;
-            FL_Array* _fl_old_270 = decls;
-            decls = fl_array_push_sized(decls, (&_fl_tmp_269), sizeof(fl_self_hosted_ast_Decl));
-            if (_fl_old_270 != decls) {
-                fl_array_release(_fl_old_270);
+            fl_self_hosted_ast_Decl _fl_tmp_267 = decl;
+            FL_Array* _fl_old_268 = decls;
+            decls = fl_array_push_sized(decls, (&_fl_tmp_267), sizeof(fl_self_hosted_ast_Decl));
+            if (_fl_old_268 != decls) {
+                fl_array_release(_fl_old_268);
             }
             _fl_exception_pop();
         } else {
             _fl_exception_pop();
             if (_fl_ef_2.exception_tag == 461109476) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_271 = ((fl_self_hosted_errors_CompileError*)_fl_ef_2.exception);
-                fl_self_hosted_errors_CompileError e = (*_fl_tmp_271);
+                fl_self_hosted_errors_CompileError* _fl_tmp_269 = ((fl_self_hosted_errors_CompileError*)_fl_ef_2.exception);
+                fl_self_hosted_errors_CompileError e = (*_fl_tmp_269);
                 if (s.has_error == fl_false) {
                     s.has_error = fl_true;
                     s.first_error = fl_self_hosted_errors_parse_error(e.message, filename, fl_self_hosted_parser_peek((&s)).line, fl_self_hosted_parser_peek((&s)).col);
@@ -9039,9 +9015,9 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
         }
     }
     if (s.has_error) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_272 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_272) = s.first_error;
-        _fl_throw(((void*)_fl_tmp_272), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_270 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_270) = s.first_error;
+        _fl_throw(((void*)_fl_tmp_270), 461109476);
     }
     fl_self_hosted_ast_Module parsed_module = fl_self_hosted_ast_make_module(path, imports, decls, filename);
     fl_array_retain(s.literal_values);
@@ -12644,21 +12620,21 @@ FL_Array* fl_array_put__self_hosted_typechecker_TCTypeBox(FL_Array* arr, fl_int 
     fl_int i = 0;
     while (i < s) {
         if (i == idx) {
-            fl_self_hosted_typechecker_TCTypeBox _fl_tmp_620 = val;
-            FL_Array* _fl_old_621 = result;
-            result = fl_array_push_sized(result, (&_fl_tmp_620), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-            if (_fl_old_621 != result) {
-                fl_array_release(_fl_old_621);
+            fl_self_hosted_typechecker_TCTypeBox _fl_tmp_616 = val;
+            FL_Array* _fl_old_617 = result;
+            result = fl_array_push_sized(result, (&_fl_tmp_616), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+            if (_fl_old_617 != result) {
+                fl_array_release(_fl_old_617);
             }
         } else {
-            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_622 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-            if (_fl_tmp_622.tag == 1) {
-                fl_self_hosted_typechecker_TCTypeBox v = _fl_tmp_622.value;
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_623 = v;
-                FL_Array* _fl_old_624 = result;
-                result = fl_array_push_sized(result, (&_fl_tmp_623), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_624 != result) {
-                    fl_array_release(_fl_old_624);
+            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_618 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+            if (_fl_tmp_618.tag == 1) {
+                fl_self_hosted_typechecker_TCTypeBox v = _fl_tmp_618.value;
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_619 = v;
+                FL_Array* _fl_old_620 = result;
+                result = fl_array_push_sized(result, (&_fl_tmp_619), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_620 != result) {
+                    fl_array_release(_fl_old_620);
                 }
             }
         }
@@ -12674,14 +12650,14 @@ FL_Array* fl_array_slice__self_hosted_typechecker_TCTypeBox(FL_Array* arr, fl_in
     FL_Array* result = fl_array_new(0, 0, NULL);
     fl_int i = start;
     while (i < end_idx) {
-        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_625 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-        if (_fl_tmp_625.tag == 1) {
-            fl_self_hosted_typechecker_TCTypeBox val = _fl_tmp_625.value;
-            fl_self_hosted_typechecker_TCTypeBox _fl_tmp_626 = val;
-            FL_Array* _fl_old_627 = result;
-            result = fl_array_push_sized(result, (&_fl_tmp_626), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-            if (_fl_old_627 != result) {
-                fl_array_release(_fl_old_627);
+        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_621 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+        if (_fl_tmp_621.tag == 1) {
+            fl_self_hosted_typechecker_TCTypeBox val = _fl_tmp_621.value;
+            fl_self_hosted_typechecker_TCTypeBox _fl_tmp_622 = val;
+            FL_Array* _fl_old_623 = result;
+            result = fl_array_push_sized(result, (&_fl_tmp_622), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+            if (_fl_old_623 != result) {
+                fl_array_release(_fl_old_623);
             }
         } else {
             return result;
@@ -13330,19 +13306,11 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
                 FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_73 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
                 fl_self_hosted_typechecker_TCTypeBox eb = ((_fl_tmp_73.tag == 1) ? _fl_tmp_73.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                 if (i > 0) {
-                    FL_String* _fl_old_74 = parts;
-                    parts = fl_string_concat(parts, _fl_str_self_hosted_typechecker_15);
-                    if (_fl_old_74 != parts) {
-                        fl_string_release(_fl_old_74);
-                    }
+                    fl_string_append((&parts), _fl_str_self_hosted_typechecker_15);
                 }
-                FL_String* _fl_tmp_75 = fl_self_hosted_typechecker_type_name(eb.tc);
-                FL_String* _fl_old_76 = parts;
-                parts = fl_string_concat(parts, _fl_tmp_75);
-                if (_fl_old_76 != parts) {
-                    fl_string_release(_fl_old_76);
-                }
-                fl_string_release(_fl_tmp_75);
+                FL_String* _fl_tmp_74 = fl_self_hosted_typechecker_type_name(eb.tc);
+                fl_string_append((&parts), _fl_tmp_74);
+                fl_string_release(_fl_tmp_74);
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(i, 1, &_fl_e_1);
                 i = _fl_e_1;
@@ -13352,64 +13320,64 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
         }
         case 11: {
             fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_62.TCArray.elem);
-            FL_String* _fl_tmp_77 = fl_self_hosted_typechecker_type_name(elem);
-            FL_String* _fl_tmp_78 = fl_string_concat(_fl_str_self_hosted_typechecker_18, _fl_tmp_77);
-            fl_string_release(_fl_tmp_77);
-            return fl_string_concat(_fl_tmp_78, _fl_str_self_hosted_typechecker_13);
+            FL_String* _fl_tmp_75 = fl_self_hosted_typechecker_type_name(elem);
+            FL_String* _fl_tmp_76 = fl_string_concat(_fl_str_self_hosted_typechecker_18, _fl_tmp_75);
+            fl_string_release(_fl_tmp_75);
+            return fl_string_concat(_fl_tmp_76, _fl_str_self_hosted_typechecker_13);
             break;
         }
         case 12: {
             fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_62.TCStream.elem);
-            FL_String* _fl_tmp_79 = fl_self_hosted_typechecker_type_name(elem);
-            FL_String* _fl_tmp_80 = fl_string_concat(_fl_str_self_hosted_typechecker_19, _fl_tmp_79);
-            fl_string_release(_fl_tmp_79);
-            return fl_string_concat(_fl_tmp_80, _fl_str_self_hosted_typechecker_13);
+            FL_String* _fl_tmp_77 = fl_self_hosted_typechecker_type_name(elem);
+            FL_String* _fl_tmp_78 = fl_string_concat(_fl_str_self_hosted_typechecker_19, _fl_tmp_77);
+            fl_string_release(_fl_tmp_77);
+            return fl_string_concat(_fl_tmp_78, _fl_str_self_hosted_typechecker_13);
             break;
         }
         case 13: {
             fl_self_hosted_typechecker_TCType yield_type = (*_fl_tmp_62.TCCoroutine.yield_type);
             fl_self_hosted_typechecker_TCType send_type = (*_fl_tmp_62.TCCoroutine.send_type);
-            FL_String* _fl_tmp_81 = fl_self_hosted_typechecker_type_name(yield_type);
-            FL_String* _fl_tmp_82 = fl_string_concat(_fl_str_self_hosted_typechecker_20, _fl_tmp_81);
-            FL_String* _fl_tmp_83 = fl_string_concat(_fl_tmp_82, _fl_str_self_hosted_typechecker_15);
-            FL_String* _fl_tmp_84 = fl_self_hosted_typechecker_type_name(send_type);
-            FL_String* _fl_tmp_85 = fl_string_concat(_fl_tmp_83, _fl_tmp_84);
+            FL_String* _fl_tmp_79 = fl_self_hosted_typechecker_type_name(yield_type);
+            FL_String* _fl_tmp_80 = fl_string_concat(_fl_str_self_hosted_typechecker_20, _fl_tmp_79);
+            FL_String* _fl_tmp_81 = fl_string_concat(_fl_tmp_80, _fl_str_self_hosted_typechecker_15);
+            FL_String* _fl_tmp_82 = fl_self_hosted_typechecker_type_name(send_type);
+            FL_String* _fl_tmp_83 = fl_string_concat(_fl_tmp_81, _fl_tmp_82);
+            fl_string_release(_fl_tmp_79);
+            fl_string_release(_fl_tmp_80);
             fl_string_release(_fl_tmp_81);
             fl_string_release(_fl_tmp_82);
-            fl_string_release(_fl_tmp_83);
-            fl_string_release(_fl_tmp_84);
-            return fl_string_concat(_fl_tmp_85, _fl_str_self_hosted_typechecker_13);
+            return fl_string_concat(_fl_tmp_83, _fl_str_self_hosted_typechecker_13);
             break;
         }
         case 14: {
             fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_62.TCBuffer.elem);
-            FL_String* _fl_tmp_86 = fl_self_hosted_typechecker_type_name(elem);
-            FL_String* _fl_tmp_87 = fl_string_concat(_fl_str_self_hosted_typechecker_21, _fl_tmp_86);
-            fl_string_release(_fl_tmp_86);
-            return fl_string_concat(_fl_tmp_87, _fl_str_self_hosted_typechecker_13);
+            FL_String* _fl_tmp_84 = fl_self_hosted_typechecker_type_name(elem);
+            FL_String* _fl_tmp_85 = fl_string_concat(_fl_str_self_hosted_typechecker_21, _fl_tmp_84);
+            fl_string_release(_fl_tmp_84);
+            return fl_string_concat(_fl_tmp_85, _fl_str_self_hosted_typechecker_13);
             break;
         }
         case 15: {
             fl_self_hosted_typechecker_TCType key = (*_fl_tmp_62.TCMap.key);
             fl_self_hosted_typechecker_TCType val = (*_fl_tmp_62.TCMap.val);
-            FL_String* _fl_tmp_88 = fl_self_hosted_typechecker_type_name(key);
-            FL_String* _fl_tmp_89 = fl_string_concat(_fl_str_self_hosted_typechecker_22, _fl_tmp_88);
-            FL_String* _fl_tmp_90 = fl_string_concat(_fl_tmp_89, _fl_str_self_hosted_typechecker_15);
-            FL_String* _fl_tmp_91 = fl_self_hosted_typechecker_type_name(val);
-            FL_String* _fl_tmp_92 = fl_string_concat(_fl_tmp_90, _fl_tmp_91);
+            FL_String* _fl_tmp_86 = fl_self_hosted_typechecker_type_name(key);
+            FL_String* _fl_tmp_87 = fl_string_concat(_fl_str_self_hosted_typechecker_22, _fl_tmp_86);
+            FL_String* _fl_tmp_88 = fl_string_concat(_fl_tmp_87, _fl_str_self_hosted_typechecker_15);
+            FL_String* _fl_tmp_89 = fl_self_hosted_typechecker_type_name(val);
+            FL_String* _fl_tmp_90 = fl_string_concat(_fl_tmp_88, _fl_tmp_89);
+            fl_string_release(_fl_tmp_86);
+            fl_string_release(_fl_tmp_87);
             fl_string_release(_fl_tmp_88);
             fl_string_release(_fl_tmp_89);
-            fl_string_release(_fl_tmp_90);
-            fl_string_release(_fl_tmp_91);
-            return fl_string_concat(_fl_tmp_92, _fl_str_self_hosted_typechecker_13);
+            return fl_string_concat(_fl_tmp_90, _fl_str_self_hosted_typechecker_13);
             break;
         }
         case 16: {
             fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_62.TCSet.elem);
-            FL_String* _fl_tmp_93 = fl_self_hosted_typechecker_type_name(elem);
-            FL_String* _fl_tmp_94 = fl_string_concat(_fl_str_self_hosted_typechecker_23, _fl_tmp_93);
-            fl_string_release(_fl_tmp_93);
-            return fl_string_concat(_fl_tmp_94, _fl_str_self_hosted_typechecker_13);
+            FL_String* _fl_tmp_91 = fl_self_hosted_typechecker_type_name(elem);
+            FL_String* _fl_tmp_92 = fl_string_concat(_fl_str_self_hosted_typechecker_23, _fl_tmp_91);
+            fl_string_release(_fl_tmp_91);
+            return fl_string_concat(_fl_tmp_92, _fl_str_self_hosted_typechecker_13);
             break;
         }
         case 17: {
@@ -13422,30 +13390,22 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             fl_int i = 0;
             fl_int n = fl_array_len_int(params);
             while (i < n) {
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_95 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCTypeBox pb = ((_fl_tmp_95.tag == 1) ? _fl_tmp_95.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_93 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCTypeBox pb = ((_fl_tmp_93.tag == 1) ? _fl_tmp_93.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                 if (i > 0) {
-                    FL_String* _fl_old_96 = parts;
-                    parts = fl_string_concat(parts, _fl_str_self_hosted_typechecker_15);
-                    if (_fl_old_96 != parts) {
-                        fl_string_release(_fl_old_96);
-                    }
+                    fl_string_append((&parts), _fl_str_self_hosted_typechecker_15);
                 }
-                FL_String* _fl_tmp_97 = fl_self_hosted_typechecker_type_name(pb.tc);
-                FL_String* _fl_old_98 = parts;
-                parts = fl_string_concat(parts, _fl_tmp_97);
-                if (_fl_old_98 != parts) {
-                    fl_string_release(_fl_old_98);
-                }
-                fl_string_release(_fl_tmp_97);
+                FL_String* _fl_tmp_94 = fl_self_hosted_typechecker_type_name(pb.tc);
+                fl_string_append((&parts), _fl_tmp_94);
+                fl_string_release(_fl_tmp_94);
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
                 i = _fl_e_2;
             }
-            FL_String* _fl_tmp_99 = fl_string_concat(parts, _fl_str_self_hosted_typechecker_25);
-            FL_String* _fl_tmp_100 = fl_self_hosted_typechecker_type_name(ret);
+            FL_String* _fl_tmp_95 = fl_string_concat(parts, _fl_str_self_hosted_typechecker_25);
+            FL_String* _fl_tmp_96 = fl_self_hosted_typechecker_type_name(ret);
             fl_string_release(parts);
-            return fl_string_concat(_fl_tmp_99, _fl_tmp_100);
+            return fl_string_concat(_fl_tmp_95, _fl_tmp_96);
             break;
         }
         case 18: {
@@ -13508,16 +13468,16 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
 
 /* Flow: self_hosted.typechecker.types_equal */
 fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType a, fl_self_hosted_typechecker_TCType b) {
-    fl_self_hosted_typechecker_TCType _fl_tmp_101 = a;
-    switch (_fl_tmp_101.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_97 = a;
+    switch (_fl_tmp_97.tag) {
         case 0: {
-            fl_int wa = _fl_tmp_101.TCInt.width;
-            fl_bool sa = _fl_tmp_101.TCInt.is_signed;
-            fl_self_hosted_typechecker_TCType _fl_tmp_102 = b;
-            switch (_fl_tmp_102.tag) {
+            fl_int wa = _fl_tmp_97.TCInt.width;
+            fl_bool sa = _fl_tmp_97.TCInt.is_signed;
+            fl_self_hosted_typechecker_TCType _fl_tmp_98 = b;
+            switch (_fl_tmp_98.tag) {
                 case 0: {
-                    fl_int wb = _fl_tmp_102.TCInt.width;
-                    fl_bool sb = _fl_tmp_102.TCInt.is_signed;
+                    fl_int wb = _fl_tmp_98.TCInt.width;
+                    fl_bool sb = _fl_tmp_98.TCInt.is_signed;
                     return ((wa == wb) && (sa == sb));
                     break;
                 }
@@ -13529,11 +13489,11 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 1: {
-            fl_int wa = _fl_tmp_101.TCFloat.width;
-            fl_self_hosted_typechecker_TCType _fl_tmp_103 = b;
-            switch (_fl_tmp_103.tag) {
+            fl_int wa = _fl_tmp_97.TCFloat.width;
+            fl_self_hosted_typechecker_TCType _fl_tmp_99 = b;
+            switch (_fl_tmp_99.tag) {
                 case 1: {
-                    fl_int wb = _fl_tmp_103.TCFloat.width;
+                    fl_int wb = _fl_tmp_99.TCFloat.width;
                     return (wa == wb);
                     break;
                 }
@@ -13545,8 +13505,8 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 2: {
-            fl_self_hosted_typechecker_TCType _fl_tmp_104 = b;
-            switch (_fl_tmp_104.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_100 = b;
+            switch (_fl_tmp_100.tag) {
                 case 2: {
                     return fl_true;
                     break;
@@ -13559,8 +13519,8 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 3: {
-            fl_self_hosted_typechecker_TCType _fl_tmp_105 = b;
-            switch (_fl_tmp_105.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_101 = b;
+            switch (_fl_tmp_101.tag) {
                 case 3: {
                     return fl_true;
                     break;
@@ -13573,8 +13533,8 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 4: {
-            fl_self_hosted_typechecker_TCType _fl_tmp_106 = b;
-            switch (_fl_tmp_106.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_102 = b;
+            switch (_fl_tmp_102.tag) {
                 case 4: {
                     return fl_true;
                     break;
@@ -13587,8 +13547,8 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 5: {
-            fl_self_hosted_typechecker_TCType _fl_tmp_107 = b;
-            switch (_fl_tmp_107.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_103 = b;
+            switch (_fl_tmp_103.tag) {
                 case 5: {
                     return fl_true;
                     break;
@@ -13601,8 +13561,8 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 6: {
-            fl_self_hosted_typechecker_TCType _fl_tmp_108 = b;
-            switch (_fl_tmp_108.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_104 = b;
+            switch (_fl_tmp_104.tag) {
                 case 6: {
                     return fl_true;
                     break;
@@ -13615,8 +13575,8 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 7: {
-            fl_self_hosted_typechecker_TCType _fl_tmp_109 = b;
-            switch (_fl_tmp_109.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_105 = b;
+            switch (_fl_tmp_105.tag) {
                 case 7: {
                     return fl_true;
                     break;
@@ -13629,11 +13589,11 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 8: {
-            fl_self_hosted_typechecker_TCType ia = (*_fl_tmp_101.TCOption.inner);
-            fl_self_hosted_typechecker_TCType _fl_tmp_110 = b;
-            switch (_fl_tmp_110.tag) {
+            fl_self_hosted_typechecker_TCType ia = (*_fl_tmp_97.TCOption.inner);
+            fl_self_hosted_typechecker_TCType _fl_tmp_106 = b;
+            switch (_fl_tmp_106.tag) {
                 case 8: {
-                    fl_self_hosted_typechecker_TCType ib = (*_fl_tmp_110.TCOption.inner);
+                    fl_self_hosted_typechecker_TCType ib = (*_fl_tmp_106.TCOption.inner);
                     return fl_self_hosted_typechecker_types_equal(ia, ib);
                     break;
                 }
@@ -13645,13 +13605,13 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 9: {
-            fl_self_hosted_typechecker_TCType ok_a = (*_fl_tmp_101.TCResult.ok_type);
-            fl_self_hosted_typechecker_TCType err_a = (*_fl_tmp_101.TCResult.err_type);
-            fl_self_hosted_typechecker_TCType _fl_tmp_111 = b;
-            switch (_fl_tmp_111.tag) {
+            fl_self_hosted_typechecker_TCType ok_a = (*_fl_tmp_97.TCResult.ok_type);
+            fl_self_hosted_typechecker_TCType err_a = (*_fl_tmp_97.TCResult.err_type);
+            fl_self_hosted_typechecker_TCType _fl_tmp_107 = b;
+            switch (_fl_tmp_107.tag) {
                 case 9: {
-                    fl_self_hosted_typechecker_TCType ok_b = (*_fl_tmp_111.TCResult.ok_type);
-                    fl_self_hosted_typechecker_TCType err_b = (*_fl_tmp_111.TCResult.err_type);
+                    fl_self_hosted_typechecker_TCType ok_b = (*_fl_tmp_107.TCResult.ok_type);
+                    fl_self_hosted_typechecker_TCType err_b = (*_fl_tmp_107.TCResult.err_type);
                     return (fl_self_hosted_typechecker_types_equal(ok_a, ok_b) && fl_self_hosted_typechecker_types_equal(err_a, err_b));
                     break;
                 }
@@ -13663,11 +13623,11 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 11: {
-            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_101.TCArray.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_112 = b;
-            switch (_fl_tmp_112.tag) {
+            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_97.TCArray.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_108 = b;
+            switch (_fl_tmp_108.tag) {
                 case 11: {
-                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_112.TCArray.elem);
+                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_108.TCArray.elem);
                     return fl_self_hosted_typechecker_types_equal(ea, eb);
                     break;
                 }
@@ -13679,11 +13639,11 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 12: {
-            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_101.TCStream.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_113 = b;
-            switch (_fl_tmp_113.tag) {
+            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_97.TCStream.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_109 = b;
+            switch (_fl_tmp_109.tag) {
                 case 12: {
-                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_113.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_109.TCStream.elem);
                     return fl_self_hosted_typechecker_types_equal(ea, eb);
                     break;
                 }
@@ -13695,11 +13655,11 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 14: {
-            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_101.TCBuffer.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_114 = b;
-            switch (_fl_tmp_114.tag) {
+            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_97.TCBuffer.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_110 = b;
+            switch (_fl_tmp_110.tag) {
                 case 14: {
-                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_114.TCBuffer.elem);
+                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_110.TCBuffer.elem);
                     return fl_self_hosted_typechecker_types_equal(ea, eb);
                     break;
                 }
@@ -13711,13 +13671,13 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 15: {
-            fl_self_hosted_typechecker_TCType ka = (*_fl_tmp_101.TCMap.key);
-            fl_self_hosted_typechecker_TCType va = (*_fl_tmp_101.TCMap.val);
-            fl_self_hosted_typechecker_TCType _fl_tmp_115 = b;
-            switch (_fl_tmp_115.tag) {
+            fl_self_hosted_typechecker_TCType ka = (*_fl_tmp_97.TCMap.key);
+            fl_self_hosted_typechecker_TCType va = (*_fl_tmp_97.TCMap.val);
+            fl_self_hosted_typechecker_TCType _fl_tmp_111 = b;
+            switch (_fl_tmp_111.tag) {
                 case 15: {
-                    fl_self_hosted_typechecker_TCType kb = (*_fl_tmp_115.TCMap.key);
-                    fl_self_hosted_typechecker_TCType vb = (*_fl_tmp_115.TCMap.val);
+                    fl_self_hosted_typechecker_TCType kb = (*_fl_tmp_111.TCMap.key);
+                    fl_self_hosted_typechecker_TCType vb = (*_fl_tmp_111.TCMap.val);
                     return (fl_self_hosted_typechecker_types_equal(ka, kb) && fl_self_hosted_typechecker_types_equal(va, vb));
                     break;
                 }
@@ -13729,11 +13689,11 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 16: {
-            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_101.TCSet.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_116 = b;
-            switch (_fl_tmp_116.tag) {
+            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_97.TCSet.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_112 = b;
+            switch (_fl_tmp_112.tag) {
                 case 16: {
-                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_116.TCSet.elem);
+                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_112.TCSet.elem);
                     return fl_self_hosted_typechecker_types_equal(ea, eb);
                     break;
                 }
@@ -13745,15 +13705,15 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 19: {
-            FL_String* mod_path_a = _fl_tmp_101.TCNamed.mod_path;
-            FL_String* na = _fl_tmp_101.TCNamed.name;
-            FL_Array* args_a = _fl_tmp_101.TCNamed.type_args;
-            fl_self_hosted_typechecker_TCType _fl_tmp_117 = b;
-            switch (_fl_tmp_117.tag) {
+            FL_String* mod_path_a = _fl_tmp_97.TCNamed.mod_path;
+            FL_String* na = _fl_tmp_97.TCNamed.name;
+            FL_Array* args_a = _fl_tmp_97.TCNamed.type_args;
+            fl_self_hosted_typechecker_TCType _fl_tmp_113 = b;
+            switch (_fl_tmp_113.tag) {
                 case 19: {
-                    FL_String* mod_path_b = _fl_tmp_117.TCNamed.mod_path;
-                    FL_String* nb = _fl_tmp_117.TCNamed.name;
-                    FL_Array* args_b = _fl_tmp_117.TCNamed.type_args;
+                    FL_String* mod_path_b = _fl_tmp_113.TCNamed.mod_path;
+                    FL_String* nb = _fl_tmp_113.TCNamed.name;
+                    FL_Array* args_b = _fl_tmp_113.TCNamed.type_args;
                     if (!fl_string_eq(na, nb)) {
                         return fl_false;
                     }
@@ -13763,10 +13723,10 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
                     }
                     fl_int i = 0;
                     while (i < n) {
-                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_118 = FL_OPT_DEREF_AS(fl_array_get_safe(args_a, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                        fl_self_hosted_typechecker_TCTypeBox ab = ((_fl_tmp_118.tag == 1) ? _fl_tmp_118.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
-                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_119 = FL_OPT_DEREF_AS(fl_array_get_safe(args_b, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                        fl_self_hosted_typechecker_TCTypeBox bb = ((_fl_tmp_119.tag == 1) ? _fl_tmp_119.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_114 = FL_OPT_DEREF_AS(fl_array_get_safe(args_a, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                        fl_self_hosted_typechecker_TCTypeBox ab = ((_fl_tmp_114.tag == 1) ? _fl_tmp_114.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_115 = FL_OPT_DEREF_AS(fl_array_get_safe(args_b, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                        fl_self_hosted_typechecker_TCTypeBox bb = ((_fl_tmp_115.tag == 1) ? _fl_tmp_115.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                         if (!fl_self_hosted_typechecker_types_equal(ab.tc, bb.tc)) {
                             return fl_false;
                         }
@@ -13785,15 +13745,15 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 20: {
-            FL_String* na = _fl_tmp_101.TCSumType.name;
-            FL_String* mod_path_a = _fl_tmp_101.TCSumType.mod_path;
-            FL_Array* va = _fl_tmp_101.TCSumType.variants;
-            fl_self_hosted_typechecker_TCType _fl_tmp_120 = b;
-            switch (_fl_tmp_120.tag) {
+            FL_String* na = _fl_tmp_97.TCSumType.name;
+            FL_String* mod_path_a = _fl_tmp_97.TCSumType.mod_path;
+            FL_Array* va = _fl_tmp_97.TCSumType.variants;
+            fl_self_hosted_typechecker_TCType _fl_tmp_116 = b;
+            switch (_fl_tmp_116.tag) {
                 case 20: {
-                    FL_String* nb = _fl_tmp_120.TCSumType.name;
-                    FL_String* mod_path_b = _fl_tmp_120.TCSumType.mod_path;
-                    FL_Array* vb = _fl_tmp_120.TCSumType.variants;
+                    FL_String* nb = _fl_tmp_116.TCSumType.name;
+                    FL_String* mod_path_b = _fl_tmp_116.TCSumType.mod_path;
+                    FL_Array* vb = _fl_tmp_116.TCSumType.variants;
                     return fl_string_eq(na, nb);
                     break;
                 }
@@ -13805,17 +13765,17 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 21: {
-            FL_String* na = _fl_tmp_101.TCEnum.name;
-            FL_String* mod_path_a = _fl_tmp_101.TCEnum.mod_path;
-            FL_Array* vna = _fl_tmp_101.TCEnum.variant_names;
-            FL_Array* vva = _fl_tmp_101.TCEnum.variant_values;
-            fl_self_hosted_typechecker_TCType _fl_tmp_121 = b;
-            switch (_fl_tmp_121.tag) {
+            FL_String* na = _fl_tmp_97.TCEnum.name;
+            FL_String* mod_path_a = _fl_tmp_97.TCEnum.mod_path;
+            FL_Array* vna = _fl_tmp_97.TCEnum.variant_names;
+            FL_Array* vva = _fl_tmp_97.TCEnum.variant_values;
+            fl_self_hosted_typechecker_TCType _fl_tmp_117 = b;
+            switch (_fl_tmp_117.tag) {
                 case 21: {
-                    FL_String* nb = _fl_tmp_121.TCEnum.name;
-                    FL_String* mod_path_b = _fl_tmp_121.TCEnum.mod_path;
-                    FL_Array* vnb = _fl_tmp_121.TCEnum.variant_names;
-                    FL_Array* vvb = _fl_tmp_121.TCEnum.variant_values;
+                    FL_String* nb = _fl_tmp_117.TCEnum.name;
+                    FL_String* mod_path_b = _fl_tmp_117.TCEnum.mod_path;
+                    FL_Array* vnb = _fl_tmp_117.TCEnum.variant_names;
+                    FL_Array* vvb = _fl_tmp_117.TCEnum.variant_values;
                     return fl_string_eq(na, nb);
                     break;
                 }
@@ -13827,11 +13787,11 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 22: {
-            FL_String* na = _fl_tmp_101.TCTypeVar.name;
-            fl_self_hosted_typechecker_TCType _fl_tmp_122 = b;
-            switch (_fl_tmp_122.tag) {
+            FL_String* na = _fl_tmp_97.TCTypeVar.name;
+            fl_self_hosted_typechecker_TCType _fl_tmp_118 = b;
+            switch (_fl_tmp_118.tag) {
                 case 22: {
-                    FL_String* nb = _fl_tmp_122.TCTypeVar.name;
+                    FL_String* nb = _fl_tmp_118.TCTypeVar.name;
                     return fl_string_eq(na, nb);
                     break;
                 }
@@ -13847,8 +13807,8 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 24: {
-            fl_self_hosted_typechecker_TCType _fl_tmp_123 = b;
-            switch (_fl_tmp_123.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_119 = b;
+            switch (_fl_tmp_119.tag) {
                 case 24: {
                     return fl_true;
                     break;
@@ -13861,13 +13821,13 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
             break;
         }
         case 25: {
-            FL_String* na = _fl_tmp_101.TCAlias.name;
-            fl_self_hosted_typechecker_TCType ua = (*_fl_tmp_101.TCAlias.underlying);
-            fl_self_hosted_typechecker_TCType _fl_tmp_124 = b;
-            switch (_fl_tmp_124.tag) {
+            FL_String* na = _fl_tmp_97.TCAlias.name;
+            fl_self_hosted_typechecker_TCType ua = (*_fl_tmp_97.TCAlias.underlying);
+            fl_self_hosted_typechecker_TCType _fl_tmp_120 = b;
+            switch (_fl_tmp_120.tag) {
                 case 25: {
-                    FL_String* nb = _fl_tmp_124.TCAlias.name;
-                    fl_self_hosted_typechecker_TCType ub = (*_fl_tmp_124.TCAlias.underlying);
+                    FL_String* nb = _fl_tmp_120.TCAlias.name;
+                    fl_self_hosted_typechecker_TCType ub = (*_fl_tmp_120.TCAlias.underlying);
                     return (fl_string_eq(na, nb) && fl_self_hosted_typechecker_types_equal(ua, ub));
                     break;
                 }
@@ -13887,15 +13847,15 @@ fl_bool fl_self_hosted_typechecker_types_equal(fl_self_hosted_typechecker_TCType
 
 /* Flow: self_hosted.typechecker.is_assignable */
 fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCType src, fl_self_hosted_typechecker_TCType tgt) {
-    fl_self_hosted_typechecker_TCType _fl_tmp_125 = src;
-    switch (_fl_tmp_125.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_121 = src;
+    switch (_fl_tmp_121.tag) {
         case 23: {
             return fl_true;
             break;
         }
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_126 = tgt;
-    switch (_fl_tmp_126.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_122 = tgt;
+    switch (_fl_tmp_122.tag) {
         case 23: {
             return fl_true;
             break;
@@ -13904,17 +13864,17 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
     if (fl_self_hosted_typechecker_types_equal(src, tgt)) {
         return fl_true;
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_127 = src;
-    switch (_fl_tmp_127.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_123 = src;
+    switch (_fl_tmp_123.tag) {
         case 7: {
-            fl_self_hosted_typechecker_TCType _fl_tmp_128 = tgt;
-            switch (_fl_tmp_128.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_124 = tgt;
+            switch (_fl_tmp_124.tag) {
                 case 5: {
                     return fl_true;
                     break;
                 }
                 case 8: {
-                    fl_self_hosted_typechecker_TCType i = (*_fl_tmp_128.TCOption.inner);
+                    fl_self_hosted_typechecker_TCType i = (*_fl_tmp_124.TCOption.inner);
                     return fl_true;
                     break;
                 }
@@ -13922,14 +13882,14 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_129 = tgt;
-    switch (_fl_tmp_129.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_125 = tgt;
+    switch (_fl_tmp_125.tag) {
         case 8: {
-            fl_self_hosted_typechecker_TCType tgt_inner = (*_fl_tmp_129.TCOption.inner);
-            fl_self_hosted_typechecker_TCType _fl_tmp_130 = src;
-            switch (_fl_tmp_130.tag) {
+            fl_self_hosted_typechecker_TCType tgt_inner = (*_fl_tmp_125.TCOption.inner);
+            fl_self_hosted_typechecker_TCType _fl_tmp_126 = src;
+            switch (_fl_tmp_126.tag) {
                 case 8: {
-                    fl_self_hosted_typechecker_TCType src_inner = (*_fl_tmp_130.TCOption.inner);
+                    fl_self_hosted_typechecker_TCType src_inner = (*_fl_tmp_126.TCOption.inner);
                     return fl_self_hosted_typechecker_is_assignable(src_inner, tgt_inner);
                     break;
                 }
@@ -13941,16 +13901,16 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_131 = src;
-    switch (_fl_tmp_131.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_127 = src;
+    switch (_fl_tmp_127.tag) {
         case 9: {
-            fl_self_hosted_typechecker_TCType ok_a = (*_fl_tmp_131.TCResult.ok_type);
-            fl_self_hosted_typechecker_TCType err_a = (*_fl_tmp_131.TCResult.err_type);
-            fl_self_hosted_typechecker_TCType _fl_tmp_132 = tgt;
-            switch (_fl_tmp_132.tag) {
+            fl_self_hosted_typechecker_TCType ok_a = (*_fl_tmp_127.TCResult.ok_type);
+            fl_self_hosted_typechecker_TCType err_a = (*_fl_tmp_127.TCResult.err_type);
+            fl_self_hosted_typechecker_TCType _fl_tmp_128 = tgt;
+            switch (_fl_tmp_128.tag) {
                 case 9: {
-                    fl_self_hosted_typechecker_TCType ok_b = (*_fl_tmp_132.TCResult.ok_type);
-                    fl_self_hosted_typechecker_TCType err_b = (*_fl_tmp_132.TCResult.err_type);
+                    fl_self_hosted_typechecker_TCType ok_b = (*_fl_tmp_128.TCResult.ok_type);
+                    fl_self_hosted_typechecker_TCType err_b = (*_fl_tmp_128.TCResult.err_type);
                     return (fl_self_hosted_typechecker_is_assignable(ok_a, ok_b) && fl_self_hosted_typechecker_is_assignable(err_a, err_b));
                     break;
                 }
@@ -13958,30 +13918,30 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_133 = tgt;
-    switch (_fl_tmp_133.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_129 = tgt;
+    switch (_fl_tmp_129.tag) {
         case 22: {
-            FL_String* n = _fl_tmp_133.TCTypeVar.name;
+            FL_String* n = _fl_tmp_129.TCTypeVar.name;
             return fl_true;
             break;
         }
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_134 = src;
-    switch (_fl_tmp_134.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_130 = src;
+    switch (_fl_tmp_130.tag) {
         case 22: {
-            FL_String* n = _fl_tmp_134.TCTypeVar.name;
+            FL_String* n = _fl_tmp_130.TCTypeVar.name;
             return fl_true;
             break;
         }
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_135 = src;
-    switch (_fl_tmp_135.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_131 = src;
+    switch (_fl_tmp_131.tag) {
         case 11: {
-            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_135.TCArray.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_136 = tgt;
-            switch (_fl_tmp_136.tag) {
+            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_131.TCArray.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_132 = tgt;
+            switch (_fl_tmp_132.tag) {
                 case 11: {
-                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_136.TCArray.elem);
+                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_132.TCArray.elem);
                     return fl_self_hosted_typechecker_is_assignable(ea, eb);
                     break;
                 }
@@ -13989,11 +13949,11 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 12: {
-            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_135.TCStream.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_137 = tgt;
-            switch (_fl_tmp_137.tag) {
+            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_131.TCStream.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_133 = tgt;
+            switch (_fl_tmp_133.tag) {
                 case 12: {
-                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_137.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_133.TCStream.elem);
                     return fl_self_hosted_typechecker_is_assignable(ea, eb);
                     break;
                 }
@@ -14001,11 +13961,11 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 14: {
-            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_135.TCBuffer.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_138 = tgt;
-            switch (_fl_tmp_138.tag) {
+            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_131.TCBuffer.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_134 = tgt;
+            switch (_fl_tmp_134.tag) {
                 case 14: {
-                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_138.TCBuffer.elem);
+                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_134.TCBuffer.elem);
                     return fl_self_hosted_typechecker_is_assignable(ea, eb);
                     break;
                 }
@@ -14013,13 +13973,13 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 15: {
-            fl_self_hosted_typechecker_TCType ka = (*_fl_tmp_135.TCMap.key);
-            fl_self_hosted_typechecker_TCType va = (*_fl_tmp_135.TCMap.val);
-            fl_self_hosted_typechecker_TCType _fl_tmp_139 = tgt;
-            switch (_fl_tmp_139.tag) {
+            fl_self_hosted_typechecker_TCType ka = (*_fl_tmp_131.TCMap.key);
+            fl_self_hosted_typechecker_TCType va = (*_fl_tmp_131.TCMap.val);
+            fl_self_hosted_typechecker_TCType _fl_tmp_135 = tgt;
+            switch (_fl_tmp_135.tag) {
                 case 15: {
-                    fl_self_hosted_typechecker_TCType kb = (*_fl_tmp_139.TCMap.key);
-                    fl_self_hosted_typechecker_TCType vb = (*_fl_tmp_139.TCMap.val);
+                    fl_self_hosted_typechecker_TCType kb = (*_fl_tmp_135.TCMap.key);
+                    fl_self_hosted_typechecker_TCType vb = (*_fl_tmp_135.TCMap.val);
                     return (fl_self_hosted_typechecker_is_assignable(ka, kb) && fl_self_hosted_typechecker_is_assignable(va, vb));
                     break;
                 }
@@ -14027,11 +13987,11 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 16: {
-            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_135.TCSet.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_140 = tgt;
-            switch (_fl_tmp_140.tag) {
+            fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_131.TCSet.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_136 = tgt;
+            switch (_fl_tmp_136.tag) {
                 case 16: {
-                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_140.TCSet.elem);
+                    fl_self_hosted_typechecker_TCType eb = (*_fl_tmp_136.TCSet.elem);
                     return fl_self_hosted_typechecker_is_assignable(ea, eb);
                     break;
                 }
@@ -14039,15 +13999,15 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 19: {
-            FL_String* mod_path_a = _fl_tmp_135.TCNamed.mod_path;
-            FL_String* na = _fl_tmp_135.TCNamed.name;
-            FL_Array* args_a = _fl_tmp_135.TCNamed.type_args;
-            fl_self_hosted_typechecker_TCType _fl_tmp_141 = tgt;
-            switch (_fl_tmp_141.tag) {
+            FL_String* mod_path_a = _fl_tmp_131.TCNamed.mod_path;
+            FL_String* na = _fl_tmp_131.TCNamed.name;
+            FL_Array* args_a = _fl_tmp_131.TCNamed.type_args;
+            fl_self_hosted_typechecker_TCType _fl_tmp_137 = tgt;
+            switch (_fl_tmp_137.tag) {
                 case 19: {
-                    FL_String* mod_path_b = _fl_tmp_141.TCNamed.mod_path;
-                    FL_String* nb = _fl_tmp_141.TCNamed.name;
-                    FL_Array* args_b = _fl_tmp_141.TCNamed.type_args;
+                    FL_String* mod_path_b = _fl_tmp_137.TCNamed.mod_path;
+                    FL_String* nb = _fl_tmp_137.TCNamed.name;
+                    FL_Array* args_b = _fl_tmp_137.TCNamed.type_args;
                     if (!fl_string_eq(na, nb)) {
                         return fl_false;
                     }
@@ -14057,10 +14017,10 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
                     }
                     fl_int i = 0;
                     while (i < narg) {
-                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_142 = FL_OPT_DEREF_AS(fl_array_get_safe(args_a, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                        fl_self_hosted_typechecker_TCTypeBox ab = ((_fl_tmp_142.tag == 1) ? _fl_tmp_142.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
-                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_143 = FL_OPT_DEREF_AS(fl_array_get_safe(args_b, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                        fl_self_hosted_typechecker_TCTypeBox bb = ((_fl_tmp_143.tag == 1) ? _fl_tmp_143.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_138 = FL_OPT_DEREF_AS(fl_array_get_safe(args_a, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                        fl_self_hosted_typechecker_TCTypeBox ab = ((_fl_tmp_138.tag == 1) ? _fl_tmp_138.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_139 = FL_OPT_DEREF_AS(fl_array_get_safe(args_b, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                        fl_self_hosted_typechecker_TCTypeBox bb = ((_fl_tmp_139.tag == 1) ? _fl_tmp_139.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                         if (!fl_self_hosted_typechecker_is_assignable(ab.tc, bb.tc)) {
                             return fl_false;
                         }
@@ -14075,22 +14035,22 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 20: {
-            FL_String* na = _fl_tmp_135.TCSumType.name;
-            FL_String* mod_path_a = _fl_tmp_135.TCSumType.mod_path;
-            FL_Array* va = _fl_tmp_135.TCSumType.variants;
-            fl_self_hosted_typechecker_TCType _fl_tmp_144 = tgt;
-            switch (_fl_tmp_144.tag) {
+            FL_String* na = _fl_tmp_131.TCSumType.name;
+            FL_String* mod_path_a = _fl_tmp_131.TCSumType.mod_path;
+            FL_Array* va = _fl_tmp_131.TCSumType.variants;
+            fl_self_hosted_typechecker_TCType _fl_tmp_140 = tgt;
+            switch (_fl_tmp_140.tag) {
                 case 20: {
-                    FL_String* nb = _fl_tmp_144.TCSumType.name;
-                    FL_String* mod_path_b = _fl_tmp_144.TCSumType.mod_path;
-                    FL_Array* vb = _fl_tmp_144.TCSumType.variants;
+                    FL_String* nb = _fl_tmp_140.TCSumType.name;
+                    FL_String* mod_path_b = _fl_tmp_140.TCSumType.mod_path;
+                    FL_Array* vb = _fl_tmp_140.TCSumType.variants;
                     return fl_string_eq(na, nb);
                     break;
                 }
                 case 19: {
-                    FL_String* mod_path_b = _fl_tmp_144.TCNamed.mod_path;
-                    FL_String* nb = _fl_tmp_144.TCNamed.name;
-                    FL_Array* args_b = _fl_tmp_144.TCNamed.type_args;
+                    FL_String* mod_path_b = _fl_tmp_140.TCNamed.mod_path;
+                    FL_String* nb = _fl_tmp_140.TCNamed.name;
+                    FL_Array* args_b = _fl_tmp_140.TCNamed.type_args;
                     return fl_string_eq(na, nb);
                     break;
                 }
@@ -14098,23 +14058,23 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 21: {
-            FL_String* na = _fl_tmp_135.TCEnum.name;
-            FL_String* mod_path_a = _fl_tmp_135.TCEnum.mod_path;
-            FL_Array* vna = _fl_tmp_135.TCEnum.variant_names;
-            FL_Array* vva = _fl_tmp_135.TCEnum.variant_values;
-            fl_self_hosted_typechecker_TCType _fl_tmp_145 = tgt;
-            switch (_fl_tmp_145.tag) {
+            FL_String* na = _fl_tmp_131.TCEnum.name;
+            FL_String* mod_path_a = _fl_tmp_131.TCEnum.mod_path;
+            FL_Array* vna = _fl_tmp_131.TCEnum.variant_names;
+            FL_Array* vva = _fl_tmp_131.TCEnum.variant_values;
+            fl_self_hosted_typechecker_TCType _fl_tmp_141 = tgt;
+            switch (_fl_tmp_141.tag) {
                 case 21: {
-                    FL_String* nb = _fl_tmp_145.TCEnum.name;
-                    FL_String* mod_path_b = _fl_tmp_145.TCEnum.mod_path;
-                    FL_Array* vnb = _fl_tmp_145.TCEnum.variant_names;
-                    FL_Array* vvb = _fl_tmp_145.TCEnum.variant_values;
+                    FL_String* nb = _fl_tmp_141.TCEnum.name;
+                    FL_String* mod_path_b = _fl_tmp_141.TCEnum.mod_path;
+                    FL_Array* vnb = _fl_tmp_141.TCEnum.variant_names;
+                    FL_Array* vvb = _fl_tmp_141.TCEnum.variant_values;
                     return fl_string_eq(na, nb);
                     break;
                 }
                 case 0: {
-                    fl_int w = _fl_tmp_145.TCInt.width;
-                    fl_bool sg = _fl_tmp_145.TCInt.is_signed;
+                    fl_int w = _fl_tmp_141.TCInt.width;
+                    fl_bool sg = _fl_tmp_141.TCInt.is_signed;
                     return ((w >= 32) && sg);
                     break;
                 }
@@ -14122,13 +14082,13 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 0: {
-            fl_int wa = _fl_tmp_135.TCInt.width;
-            fl_bool sa = _fl_tmp_135.TCInt.is_signed;
-            fl_self_hosted_typechecker_TCType _fl_tmp_146 = tgt;
-            switch (_fl_tmp_146.tag) {
+            fl_int wa = _fl_tmp_131.TCInt.width;
+            fl_bool sa = _fl_tmp_131.TCInt.is_signed;
+            fl_self_hosted_typechecker_TCType _fl_tmp_142 = tgt;
+            switch (_fl_tmp_142.tag) {
                 case 0: {
-                    fl_int wb = _fl_tmp_146.TCInt.width;
-                    fl_bool sb = _fl_tmp_146.TCInt.is_signed;
+                    fl_int wb = _fl_tmp_142.TCInt.width;
+                    fl_bool sb = _fl_tmp_142.TCInt.is_signed;
                     if ((sa == sb) && (wa < wb)) {
                         return fl_true;
                     }
@@ -14139,24 +14099,24 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
         case 25: {
-            FL_String* na = _fl_tmp_135.TCAlias.name;
-            fl_self_hosted_typechecker_TCType ua = (*_fl_tmp_135.TCAlias.underlying);
+            FL_String* na = _fl_tmp_131.TCAlias.name;
+            fl_self_hosted_typechecker_TCType ua = (*_fl_tmp_131.TCAlias.underlying);
             return fl_self_hosted_typechecker_is_assignable(ua, tgt);
             break;
         }
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_147 = src;
-    switch (_fl_tmp_147.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_143 = src;
+    switch (_fl_tmp_143.tag) {
         case 19: {
-            FL_String* mod_path_a = _fl_tmp_147.TCNamed.mod_path;
-            FL_String* na = _fl_tmp_147.TCNamed.name;
-            FL_Array* args_a = _fl_tmp_147.TCNamed.type_args;
-            fl_self_hosted_typechecker_TCType _fl_tmp_148 = tgt;
-            switch (_fl_tmp_148.tag) {
+            FL_String* mod_path_a = _fl_tmp_143.TCNamed.mod_path;
+            FL_String* na = _fl_tmp_143.TCNamed.name;
+            FL_Array* args_a = _fl_tmp_143.TCNamed.type_args;
+            fl_self_hosted_typechecker_TCType _fl_tmp_144 = tgt;
+            switch (_fl_tmp_144.tag) {
                 case 20: {
-                    FL_String* nb = _fl_tmp_148.TCSumType.name;
-                    FL_String* mod_path_b = _fl_tmp_148.TCSumType.mod_path;
-                    FL_Array* vb = _fl_tmp_148.TCSumType.variants;
+                    FL_String* nb = _fl_tmp_144.TCSumType.name;
+                    FL_String* mod_path_b = _fl_tmp_144.TCSumType.mod_path;
+                    FL_Array* vb = _fl_tmp_144.TCSumType.variants;
                     return fl_string_eq(na, nb);
                     break;
                 }
@@ -14164,11 +14124,11 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
             break;
         }
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_149 = tgt;
-    switch (_fl_tmp_149.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_145 = tgt;
+    switch (_fl_tmp_145.tag) {
         case 25: {
-            FL_String* na = _fl_tmp_149.TCAlias.name;
-            fl_self_hosted_typechecker_TCType ua = (*_fl_tmp_149.TCAlias.underlying);
+            FL_String* na = _fl_tmp_145.TCAlias.name;
+            fl_self_hosted_typechecker_TCType ua = (*_fl_tmp_145.TCAlias.underlying);
             return fl_self_hosted_typechecker_is_assignable(src, ua);
             break;
         }
@@ -14178,19 +14138,19 @@ fl_bool fl_self_hosted_typechecker_is_assignable(fl_self_hosted_typechecker_TCTy
 
 /* Flow: self_hosted.typechecker.resolve_type_expr */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_TypeExpr te) {
-    fl_self_hosted_ast_TypeExpr _fl_tmp_150 = te;
-    switch (_fl_tmp_150.tag) {
+    fl_self_hosted_ast_TypeExpr _fl_tmp_146 = te;
+    switch (_fl_tmp_146.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_150.TNamedType.id;
-            fl_int l = _fl_tmp_150.TNamedType.line;
-            fl_int c = _fl_tmp_150.TNamedType.col;
-            FL_String* name = _fl_tmp_150.TNamedType.name;
-            FL_Array* mp = _fl_tmp_150.TNamedType.module_path;
+            fl_int nid = _fl_tmp_146.TNamedType.id;
+            fl_int l = _fl_tmp_146.TNamedType.line;
+            fl_int c = _fl_tmp_146.TNamedType.col;
+            FL_String* name = _fl_tmp_146.TNamedType.name;
+            FL_Array* mp = _fl_tmp_146.TNamedType.module_path;
             if (fl_array_len_int(mp) > 0) {
                 FL_Option_fl_self_hosted_typechecker_TypeInfo info_opt = FL_OPT_DEREF_AS(fl_map_get_str(s->type_registry, name), fl_self_hosted_typechecker_TypeInfo, FL_Option_fl_self_hosted_typechecker_TypeInfo);
-                FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_151 = info_opt;
-                if (_fl_tmp_151.tag == 1) {
-                    fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_151.value;
+                FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_147 = info_opt;
+                if (_fl_tmp_147.tag == 1) {
+                    fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_147.value;
                     if (info.has_enum) {
                         return info.enum_type_box.tc;
                     }
@@ -14259,8 +14219,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
             }
             fl_int ei = 0;
             while (ei < fl_array_len_int(s->extern_type_names)) {
-                FL_Option_ptr _fl_tmp_152 = fl_array_get_safe(s->extern_type_names, ei);
-                FL_String* en = ((_fl_tmp_152.tag == 1) ? _fl_tmp_152.value : _fl_str_self_hosted_typechecker_0);
+                FL_Option_ptr _fl_tmp_148 = fl_array_get_safe(s->extern_type_names, ei);
+                FL_String* en = ((_fl_tmp_148.tag == 1) ? _fl_tmp_148.value : _fl_str_self_hosted_typechecker_0);
                 fl_string_retain(en);
                 if (fl_string_eq(en, name)) {
                     fl_string_retain(_fl_str_self_hosted_typechecker_0);
@@ -14272,9 +14232,9 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 ei = _fl_e_1;
             }
             FL_Option_fl_self_hosted_typechecker_TypeInfo info_opt2 = FL_OPT_DEREF_AS(fl_map_get_str(s->type_registry, name), fl_self_hosted_typechecker_TypeInfo, FL_Option_fl_self_hosted_typechecker_TypeInfo);
-            FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_153 = info_opt2;
-            if (_fl_tmp_153.tag == 1) {
-                fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_153.value;
+            FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_149 = info_opt2;
+            if (_fl_tmp_149.tag == 1) {
+                fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_149.value;
                 if (info.has_enum) {
                     return info.enum_type_box.tc;
                 }
@@ -14290,22 +14250,22 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_150.TGenericType.id;
-            fl_int l = _fl_tmp_150.TGenericType.line;
-            fl_int c = _fl_tmp_150.TGenericType.col;
-            fl_self_hosted_ast_TypeExpr base = (*_fl_tmp_150.TGenericType.base);
-            FL_Array* args = _fl_tmp_150.TGenericType.args;
+            fl_int nid = _fl_tmp_146.TGenericType.id;
+            fl_int l = _fl_tmp_146.TGenericType.line;
+            fl_int c = _fl_tmp_146.TGenericType.col;
+            fl_self_hosted_ast_TypeExpr base = (*_fl_tmp_146.TGenericType.base);
+            FL_Array* args = _fl_tmp_146.TGenericType.args;
             FL_Array* resolved_args = fl_array_new(0, 0, NULL);
             fl_int i = 0;
             while (i < fl_array_len_int(args)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_TypeExpr _fl_tmp_154 = FL_OPT_DEREF_AS(fl_array_get_safe(args, i), fl_self_hosted_ast_TypeExpr, FL_Option_fl_self_hosted_ast_TypeExpr);
-                fl_self_hosted_ast_TypeExpr arg = ((_fl_tmp_154.tag == 1) ? _fl_tmp_154.value : (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}});
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_155 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, arg));
-                FL_Array* _fl_old_156 = resolved_args;
-                resolved_args = fl_array_push_sized(resolved_args, (&_fl_tmp_155), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_156 != resolved_args) {
-                    fl_array_release(_fl_old_156);
+                FL_Option_fl_self_hosted_ast_TypeExpr _fl_tmp_150 = FL_OPT_DEREF_AS(fl_array_get_safe(args, i), fl_self_hosted_ast_TypeExpr, FL_Option_fl_self_hosted_ast_TypeExpr);
+                fl_self_hosted_ast_TypeExpr arg = ((_fl_tmp_150.tag == 1) ? _fl_tmp_150.value : (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}});
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_151 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, arg));
+                FL_Array* _fl_old_152 = resolved_args;
+                resolved_args = fl_array_push_sized(resolved_args, (&_fl_tmp_151), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_152 != resolved_args) {
+                    fl_array_release(_fl_old_152);
                 }
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -14313,88 +14273,88 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
             }
             FL_String* base_name = fl_self_hosted_typechecker_type_expr_base_name(base);
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_37)) {
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_157 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType inner = ((_fl_tmp_157.tag == 1) ? _fl_tmp_157.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_158 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_158) = inner;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_153 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType inner = ((_fl_tmp_153.tag == 1) ? _fl_tmp_153.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_154 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_154) = inner;
                 fl_array_release(resolved_args);
                 fl_string_release(base_name);
-                return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_158}};
+                return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_154}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_38)) {
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_159 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType ok_t = ((_fl_tmp_159.tag == 1) ? _fl_tmp_159.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_160 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 1), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType err_t = ((_fl_tmp_160.tag == 1) ? _fl_tmp_160.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_161 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_161) = ok_t;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_162 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_162) = err_t;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_155 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType ok_t = ((_fl_tmp_155.tag == 1) ? _fl_tmp_155.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_156 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 1), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType err_t = ((_fl_tmp_156.tag == 1) ? _fl_tmp_156.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_157 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_157) = ok_t;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_158 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_158) = err_t;
                 fl_array_release(resolved_args);
                 fl_string_release(base_name);
-                return (fl_self_hosted_typechecker_TCType){.tag = 9, .TCResult = (fl_self_hosted_typechecker_TCType_TCResult){.ok_type = _fl_tmp_161, .err_type = _fl_tmp_162}};
+                return (fl_self_hosted_typechecker_TCType){.tag = 9, .TCResult = (fl_self_hosted_typechecker_TCType_TCResult){.ok_type = _fl_tmp_157, .err_type = _fl_tmp_158}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_39)) {
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_159 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_159.tag == 1) ? _fl_tmp_159.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_160 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_160) = elem;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
+                return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_160}};
+            }
+            if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_40)) {
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_161 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_161.tag == 1) ? _fl_tmp_161.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_162 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_162) = elem;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
+                return (fl_self_hosted_typechecker_TCType){.tag = 12, .TCStream = (fl_self_hosted_typechecker_TCType_TCStream){.elem = _fl_tmp_162}};
+            }
+            if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_41)) {
                 FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_163 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
                 fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_163.tag == 1) ? _fl_tmp_163.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_164 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_164) = elem;
                 fl_array_release(resolved_args);
                 fl_string_release(base_name);
-                return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_164}};
-            }
-            if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_40)) {
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_165 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_165.tag == 1) ? _fl_tmp_165.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_166 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_166) = elem;
-                fl_array_release(resolved_args);
-                fl_string_release(base_name);
-                return (fl_self_hosted_typechecker_TCType){.tag = 12, .TCStream = (fl_self_hosted_typechecker_TCType_TCStream){.elem = _fl_tmp_166}};
-            }
-            if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_41)) {
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_167 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_167.tag == 1) ? _fl_tmp_167.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_168 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_168) = elem;
-                fl_array_release(resolved_args);
-                fl_string_release(base_name);
-                return (fl_self_hosted_typechecker_TCType){.tag = 14, .TCBuffer = (fl_self_hosted_typechecker_TCType_TCBuffer){.elem = _fl_tmp_168}};
+                return (fl_self_hosted_typechecker_TCType){.tag = 14, .TCBuffer = (fl_self_hosted_typechecker_TCType_TCBuffer){.elem = _fl_tmp_164}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_42)) {
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_169 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType k = ((_fl_tmp_169.tag == 1) ? _fl_tmp_169.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_170 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 1), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType v = ((_fl_tmp_170.tag == 1) ? _fl_tmp_170.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_171 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_171) = k;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_172 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_172) = v;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_165 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType k = ((_fl_tmp_165.tag == 1) ? _fl_tmp_165.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_166 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 1), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType v = ((_fl_tmp_166.tag == 1) ? _fl_tmp_166.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_167 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_167) = k;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_168 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_168) = v;
                 fl_array_release(resolved_args);
                 fl_string_release(base_name);
-                return (fl_self_hosted_typechecker_TCType){.tag = 15, .TCMap = (fl_self_hosted_typechecker_TCType_TCMap){.key = _fl_tmp_171, .val = _fl_tmp_172}};
+                return (fl_self_hosted_typechecker_TCType){.tag = 15, .TCMap = (fl_self_hosted_typechecker_TCType_TCMap){.key = _fl_tmp_167, .val = _fl_tmp_168}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_43)) {
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_173 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_173.tag == 1) ? _fl_tmp_173.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_174 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_174) = elem;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_169 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_169.tag == 1) ? _fl_tmp_169.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_170 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_170) = elem;
                 fl_array_release(resolved_args);
                 fl_string_release(base_name);
-                return (fl_self_hosted_typechecker_TCType){.tag = 16, .TCSet = (fl_self_hosted_typechecker_TCType_TCSet){.elem = _fl_tmp_174}};
+                return (fl_self_hosted_typechecker_TCType){.tag = 16, .TCSet = (fl_self_hosted_typechecker_TCType_TCSet){.elem = _fl_tmp_170}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_44)) {
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_175 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType yt = ((_fl_tmp_175.tag == 1) ? _fl_tmp_175.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_176 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 1), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCType st = ((_fl_tmp_176.tag == 1) ? _fl_tmp_176.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_177 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_177) = yt;
-                fl_self_hosted_typechecker_TCType* _fl_tmp_178 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_178) = st;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_171 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType yt = ((_fl_tmp_171.tag == 1) ? _fl_tmp_171.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_172 = FL_OPT_DEREF_AS(fl_array_get_safe(resolved_args, 1), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCType st = ((_fl_tmp_172.tag == 1) ? _fl_tmp_172.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_173 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_173) = yt;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_174 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_174) = st;
                 fl_array_release(resolved_args);
                 fl_string_release(base_name);
-                return (fl_self_hosted_typechecker_TCType){.tag = 13, .TCCoroutine = (fl_self_hosted_typechecker_TCType_TCCoroutine){.yield_type = _fl_tmp_177, .send_type = _fl_tmp_178}};
+                return (fl_self_hosted_typechecker_TCType){.tag = 13, .TCCoroutine = (fl_self_hosted_typechecker_TCType_TCCoroutine){.yield_type = _fl_tmp_173, .send_type = _fl_tmp_174}};
             }
             fl_string_retain(_fl_str_self_hosted_typechecker_0);
             fl_string_retain(base_name);
@@ -14403,60 +14363,60 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_150.TOptionType.id;
-            fl_int l = _fl_tmp_150.TOptionType.line;
-            fl_int c = _fl_tmp_150.TOptionType.col;
-            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_150.TOptionType.inner);
-            fl_self_hosted_typechecker_TCType* _fl_tmp_179 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_179) = fl_self_hosted_typechecker_resolve_type_expr(s, inner);
-            return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_179}};
+            fl_int nid = _fl_tmp_146.TOptionType.id;
+            fl_int l = _fl_tmp_146.TOptionType.line;
+            fl_int c = _fl_tmp_146.TOptionType.col;
+            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_146.TOptionType.inner);
+            fl_self_hosted_typechecker_TCType* _fl_tmp_175 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_175) = fl_self_hosted_typechecker_resolve_type_expr(s, inner);
+            return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_175}};
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_150.TFnType.id;
-            fl_int l = _fl_tmp_150.TFnType.line;
-            fl_int c = _fl_tmp_150.TFnType.col;
-            FL_Array* params = _fl_tmp_150.TFnType.params;
-            fl_self_hosted_ast_TypeExpr ret = (*_fl_tmp_150.TFnType.ret);
+            fl_int nid = _fl_tmp_146.TFnType.id;
+            fl_int l = _fl_tmp_146.TFnType.line;
+            fl_int c = _fl_tmp_146.TFnType.col;
+            FL_Array* params = _fl_tmp_146.TFnType.params;
+            fl_self_hosted_ast_TypeExpr ret = (*_fl_tmp_146.TFnType.ret);
             FL_Array* param_types = fl_array_new(0, 0, NULL);
             fl_int i = 0;
             while (i < fl_array_len_int(params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_TypeExpr _fl_tmp_180 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_TypeExpr, FL_Option_fl_self_hosted_ast_TypeExpr);
-                fl_self_hosted_ast_TypeExpr p = ((_fl_tmp_180.tag == 1) ? _fl_tmp_180.value : (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}});
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_181 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, p));
-                FL_Array* _fl_old_182 = param_types;
-                param_types = fl_array_push_sized(param_types, (&_fl_tmp_181), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_182 != param_types) {
-                    fl_array_release(_fl_old_182);
+                FL_Option_fl_self_hosted_ast_TypeExpr _fl_tmp_176 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_TypeExpr, FL_Option_fl_self_hosted_ast_TypeExpr);
+                fl_self_hosted_ast_TypeExpr p = ((_fl_tmp_176.tag == 1) ? _fl_tmp_176.value : (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}});
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_177 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, p));
+                FL_Array* _fl_old_178 = param_types;
+                param_types = fl_array_push_sized(param_types, (&_fl_tmp_177), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_178 != param_types) {
+                    fl_array_release(_fl_old_178);
                 }
                 fl_int _fl_e_3;
                 FL_CHECKED_ADD(i, 1, &_fl_e_3);
                 i = _fl_e_3;
             }
             fl_self_hosted_typechecker_TCType ret_t = fl_self_hosted_typechecker_resolve_type_expr(s, ret);
-            fl_self_hosted_typechecker_TCType* _fl_tmp_183 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_183) = ret_t;
+            fl_self_hosted_typechecker_TCType* _fl_tmp_179 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_179) = ret_t;
             fl_array_retain(param_types);
-            return (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = param_types, .ret = _fl_tmp_183, .is_pure = fl_false, .is_variadic = fl_false}};
+            return (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = param_types, .ret = _fl_tmp_179, .is_pure = fl_false, .is_variadic = fl_false}};
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_150.TTupleType.id;
-            fl_int l = _fl_tmp_150.TTupleType.line;
-            fl_int c = _fl_tmp_150.TTupleType.col;
-            FL_Array* elements = _fl_tmp_150.TTupleType.elements;
+            fl_int nid = _fl_tmp_146.TTupleType.id;
+            fl_int l = _fl_tmp_146.TTupleType.line;
+            fl_int c = _fl_tmp_146.TTupleType.col;
+            FL_Array* elements = _fl_tmp_146.TTupleType.elements;
             FL_Array* elem_types = fl_array_new(0, 0, NULL);
             fl_int i = 0;
             while (i < fl_array_len_int(elements)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_TypeExpr _fl_tmp_184 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, i), fl_self_hosted_ast_TypeExpr, FL_Option_fl_self_hosted_ast_TypeExpr);
-                fl_self_hosted_ast_TypeExpr e = ((_fl_tmp_184.tag == 1) ? _fl_tmp_184.value : (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}});
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_185 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, e));
-                FL_Array* _fl_old_186 = elem_types;
-                elem_types = fl_array_push_sized(elem_types, (&_fl_tmp_185), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_186 != elem_types) {
-                    fl_array_release(_fl_old_186);
+                FL_Option_fl_self_hosted_ast_TypeExpr _fl_tmp_180 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, i), fl_self_hosted_ast_TypeExpr, FL_Option_fl_self_hosted_ast_TypeExpr);
+                fl_self_hosted_ast_TypeExpr e = ((_fl_tmp_180.tag == 1) ? _fl_tmp_180.value : (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}});
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_181 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, e));
+                FL_Array* _fl_old_182 = elem_types;
+                elem_types = fl_array_push_sized(elem_types, (&_fl_tmp_181), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_182 != elem_types) {
+                    fl_array_release(_fl_old_182);
                 }
                 fl_int _fl_e_4;
                 FL_CHECKED_ADD(i, 1, &_fl_e_4);
@@ -14467,36 +14427,36 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_150.TMutType.id;
-            fl_int l = _fl_tmp_150.TMutType.line;
-            fl_int c = _fl_tmp_150.TMutType.col;
-            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_150.TMutType.inner);
+            fl_int nid = _fl_tmp_146.TMutType.id;
+            fl_int l = _fl_tmp_146.TMutType.line;
+            fl_int c = _fl_tmp_146.TMutType.col;
+            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_146.TMutType.inner);
             return fl_self_hosted_typechecker_resolve_type_expr(s, inner);
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_150.TImutType.id;
-            fl_int l = _fl_tmp_150.TImutType.line;
-            fl_int c = _fl_tmp_150.TImutType.col;
-            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_150.TImutType.inner);
+            fl_int nid = _fl_tmp_146.TImutType.id;
+            fl_int l = _fl_tmp_146.TImutType.line;
+            fl_int c = _fl_tmp_146.TImutType.col;
+            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_146.TImutType.inner);
             return fl_self_hosted_typechecker_resolve_type_expr(s, inner);
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_150.TSizedType.id;
-            fl_int l = _fl_tmp_150.TSizedType.line;
-            fl_int c = _fl_tmp_150.TSizedType.col;
-            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_150.TSizedType.inner);
-            fl_int capacity_id = _fl_tmp_150.TSizedType.capacity_id;
+            fl_int nid = _fl_tmp_146.TSizedType.id;
+            fl_int l = _fl_tmp_146.TSizedType.line;
+            fl_int c = _fl_tmp_146.TSizedType.col;
+            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_146.TSizedType.inner);
+            fl_int capacity_id = _fl_tmp_146.TSizedType.capacity_id;
             fl_self_hosted_typechecker_TCType resolved = fl_self_hosted_typechecker_resolve_type_expr(s, inner);
-            fl_self_hosted_typechecker_TCType _fl_tmp_187 = resolved;
-            switch (_fl_tmp_187.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_183 = resolved;
+            switch (_fl_tmp_183.tag) {
                 case 12: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_187.TCStream.elem);
-                    fl_int _fl_tmp_188 = nid;
-                    s->capacity_node_ids = fl_array_push_sized(s->capacity_node_ids, (&_fl_tmp_188), sizeof(fl_int));
-                    fl_int _fl_tmp_189 = capacity_id;
-                    s->capacity_expr_ids = fl_array_push_sized(s->capacity_expr_ids, (&_fl_tmp_189), sizeof(fl_int));
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_183.TCStream.elem);
+                    fl_int _fl_tmp_184 = nid;
+                    s->capacity_node_ids = fl_array_push_sized(s->capacity_node_ids, (&_fl_tmp_184), sizeof(fl_int));
+                    fl_int _fl_tmp_185 = capacity_id;
+                    s->capacity_expr_ids = fl_array_push_sized(s->capacity_expr_ids, (&_fl_tmp_185), sizeof(fl_int));
                     return resolved;
                     break;
                 }
@@ -14508,10 +14468,10 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_150.TSumTypeExpr.id;
-            fl_int l = _fl_tmp_150.TSumTypeExpr.line;
-            fl_int c = _fl_tmp_150.TSumTypeExpr.col;
-            FL_Array* variants = _fl_tmp_150.TSumTypeExpr.variants;
+            fl_int nid = _fl_tmp_146.TSumTypeExpr.id;
+            fl_int l = _fl_tmp_146.TSumTypeExpr.line;
+            fl_int c = _fl_tmp_146.TSumTypeExpr.col;
+            FL_Array* variants = _fl_tmp_146.TSumTypeExpr.variants;
             return (fl_self_hosted_typechecker_TCType){.tag = 23};
             break;
         }
@@ -14520,14 +14480,14 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
 
 /* Flow: self_hosted.typechecker.type_expr_base_name */
 FL_String* fl_self_hosted_typechecker_type_expr_base_name(fl_self_hosted_ast_TypeExpr te) {
-    fl_self_hosted_ast_TypeExpr _fl_tmp_190 = te;
-    switch (_fl_tmp_190.tag) {
+    fl_self_hosted_ast_TypeExpr _fl_tmp_186 = te;
+    switch (_fl_tmp_186.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_190.TNamedType.id;
-            fl_int l = _fl_tmp_190.TNamedType.line;
-            fl_int c = _fl_tmp_190.TNamedType.col;
-            FL_String* name = _fl_tmp_190.TNamedType.name;
-            FL_Array* mp = _fl_tmp_190.TNamedType.module_path;
+            fl_int nid = _fl_tmp_186.TNamedType.id;
+            fl_int l = _fl_tmp_186.TNamedType.line;
+            fl_int c = _fl_tmp_186.TNamedType.col;
+            FL_String* name = _fl_tmp_186.TNamedType.name;
+            FL_Array* mp = _fl_tmp_186.TNamedType.module_path;
             fl_string_retain(name);
             return name;
             break;
@@ -14550,30 +14510,30 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr_o
 
 /* Flow: self_hosted.typechecker.fn_decl_type */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_fn_decl_type(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Decl decl) {
-    fl_self_hosted_ast_Decl _fl_tmp_191 = decl;
-    switch (_fl_tmp_191.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_187 = decl;
+    switch (_fl_tmp_187.tag) {
         case 2: {
-            fl_int nid = _fl_tmp_191.DFn.id;
-            fl_int l = _fl_tmp_191.DFn.line;
-            fl_int c = _fl_tmp_191.DFn.col;
-            FL_String* name = _fl_tmp_191.DFn.name;
-            FL_Array* type_params = _fl_tmp_191.DFn.type_params;
-            FL_Array* params = _fl_tmp_191.DFn.params;
-            fl_bool hrt = _fl_tmp_191.DFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_191.DFn.return_type;
-            FL_Array* body = _fl_tmp_191.DFn.body;
-            fl_bool is_pure = _fl_tmp_191.DFn.is_pure;
-            fl_bool is_export = _fl_tmp_191.DFn.is_export;
-            fl_bool is_static = _fl_tmp_191.DFn.is_static;
-            fl_bool hf = _fl_tmp_191.DFn.has_finally;
-            FL_Array* fb = _fl_tmp_191.DFn.finally_body;
+            fl_int nid = _fl_tmp_187.DFn.id;
+            fl_int l = _fl_tmp_187.DFn.line;
+            fl_int c = _fl_tmp_187.DFn.col;
+            FL_String* name = _fl_tmp_187.DFn.name;
+            FL_Array* type_params = _fl_tmp_187.DFn.type_params;
+            FL_Array* params = _fl_tmp_187.DFn.params;
+            fl_bool hrt = _fl_tmp_187.DFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_187.DFn.return_type;
+            FL_Array* body = _fl_tmp_187.DFn.body;
+            fl_bool is_pure = _fl_tmp_187.DFn.is_pure;
+            fl_bool is_export = _fl_tmp_187.DFn.is_export;
+            fl_bool is_static = _fl_tmp_187.DFn.is_static;
+            fl_bool hf = _fl_tmp_187.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_187.DFn.finally_body;
             FL_Array* param_types = fl_array_new(0, 0, NULL);
             fl_bool has_variadic = fl_false;
             fl_int i = 0;
             while (i < fl_array_len_int(params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_Param _fl_tmp_192 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                fl_self_hosted_ast_Param p = ((_fl_tmp_192.tag == 1) ? _fl_tmp_192.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                FL_Option_fl_self_hosted_ast_Param _fl_tmp_188 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                fl_self_hosted_ast_Param p = ((_fl_tmp_188.tag == 1) ? _fl_tmp_188.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                 if (fl_string_eq(p.name, _fl_str_self_hosted_typechecker_28)) {
                     fl_int _fl_e_1;
                     FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -14581,20 +14541,20 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_fn_decl_type(fl_sel
                 } else {
                     fl_self_hosted_typechecker_TCType pt = fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann);
                     if (p.is_variadic) {
-                        fl_self_hosted_typechecker_TCType* _fl_tmp_193 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                        (*_fl_tmp_193) = pt;
-                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_194 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_193}});
-                        FL_Array* _fl_old_195 = param_types;
-                        param_types = fl_array_push_sized(param_types, (&_fl_tmp_194), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                        if (_fl_old_195 != param_types) {
-                            fl_array_release(_fl_old_195);
+                        fl_self_hosted_typechecker_TCType* _fl_tmp_189 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                        (*_fl_tmp_189) = pt;
+                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_190 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_189}});
+                        FL_Array* _fl_old_191 = param_types;
+                        param_types = fl_array_push_sized(param_types, (&_fl_tmp_190), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                        if (_fl_old_191 != param_types) {
+                            fl_array_release(_fl_old_191);
                         }
                     } else {
-                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_196 = fl_self_hosted_typechecker_tc_box(pt);
-                        FL_Array* _fl_old_197 = param_types;
-                        param_types = fl_array_push_sized(param_types, (&_fl_tmp_196), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                        if (_fl_old_197 != param_types) {
-                            fl_array_release(_fl_old_197);
+                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_192 = fl_self_hosted_typechecker_tc_box(pt);
+                        FL_Array* _fl_old_193 = param_types;
+                        param_types = fl_array_push_sized(param_types, (&_fl_tmp_192), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                        if (_fl_old_193 != param_types) {
+                            fl_array_release(_fl_old_193);
                         }
                     }
                     fl_int _fl_e_2;
@@ -14603,10 +14563,10 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_fn_decl_type(fl_sel
                 }
             }
             fl_self_hosted_typechecker_TCType ret_t = fl_self_hosted_typechecker_resolve_type_expr_opt(s, hrt, ret);
-            fl_self_hosted_typechecker_TCType* _fl_tmp_198 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_198) = ret_t;
+            fl_self_hosted_typechecker_TCType* _fl_tmp_194 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_194) = ret_t;
             fl_array_retain(param_types);
-            return (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = param_types, .ret = _fl_tmp_198, .is_pure = is_pure, .is_variadic = fl_false}};
+            return (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = param_types, .ret = _fl_tmp_194, .is_pure = is_pure, .is_variadic = fl_false}};
             break;
         }
         default: {
@@ -14618,24 +14578,24 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_fn_decl_type(fl_sel
 
 /* Flow: self_hosted.typechecker.extern_fn_decl_type */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_extern_fn_decl_type(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Decl decl) {
-    fl_self_hosted_ast_Decl _fl_tmp_199 = decl;
-    switch (_fl_tmp_199.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_195 = decl;
+    switch (_fl_tmp_195.tag) {
         case 9: {
-            fl_int nid = _fl_tmp_199.DExternFn.id;
-            fl_int l = _fl_tmp_199.DExternFn.line;
-            fl_int c = _fl_tmp_199.DExternFn.col;
-            FL_String* name = _fl_tmp_199.DExternFn.name;
-            FL_Array* type_params = _fl_tmp_199.DExternFn.type_params;
-            FL_Array* params = _fl_tmp_199.DExternFn.params;
-            fl_bool hrt = _fl_tmp_199.DExternFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_199.DExternFn.return_type;
-            fl_bool is_export = _fl_tmp_199.DExternFn.is_export;
-            FL_String* c_name = _fl_tmp_199.DExternFn.c_name;
+            fl_int nid = _fl_tmp_195.DExternFn.id;
+            fl_int l = _fl_tmp_195.DExternFn.line;
+            fl_int c = _fl_tmp_195.DExternFn.col;
+            FL_String* name = _fl_tmp_195.DExternFn.name;
+            FL_Array* type_params = _fl_tmp_195.DExternFn.type_params;
+            FL_Array* params = _fl_tmp_195.DExternFn.params;
+            fl_bool hrt = _fl_tmp_195.DExternFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_195.DExternFn.return_type;
+            fl_bool is_export = _fl_tmp_195.DExternFn.is_export;
+            FL_String* c_name = _fl_tmp_195.DExternFn.c_name;
             fl_int i = 0;
             while (i < fl_array_len_int(type_params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
-                FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_200 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, i), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
-                fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_200.tag == 1) ? _fl_tmp_200.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_196 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, i), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
+                fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_196.tag == 1) ? _fl_tmp_196.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
                 fl_string_retain(tp.name);
                 fl_self_hosted_typechecker_scope_define(s, tp.name, (fl_self_hosted_typechecker_TCType){.tag = 22, .TCTypeVar = (fl_self_hosted_typechecker_TCType_TCTypeVar){.name = tp.name}});
                 fl_int _fl_e_1;
@@ -14646,14 +14606,14 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_extern_fn_decl_type
             fl_int j = 0;
             while (j < fl_array_len_int(params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_Param _fl_tmp_201 = FL_OPT_DEREF_AS(fl_array_get_safe(params, j), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                fl_self_hosted_ast_Param p = ((_fl_tmp_201.tag == 1) ? _fl_tmp_201.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                FL_Option_fl_self_hosted_ast_Param _fl_tmp_197 = FL_OPT_DEREF_AS(fl_array_get_safe(params, j), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                fl_self_hosted_ast_Param p = ((_fl_tmp_197.tag == 1) ? _fl_tmp_197.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                 fl_self_hosted_typechecker_TCType pt = fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann);
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_202 = fl_self_hosted_typechecker_tc_box(pt);
-                FL_Array* _fl_old_203 = param_types;
-                param_types = fl_array_push_sized(param_types, (&_fl_tmp_202), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_203 != param_types) {
-                    fl_array_release(_fl_old_203);
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_198 = fl_self_hosted_typechecker_tc_box(pt);
+                FL_Array* _fl_old_199 = param_types;
+                param_types = fl_array_push_sized(param_types, (&_fl_tmp_198), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_199 != param_types) {
+                    fl_array_release(_fl_old_199);
                 }
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(j, 1, &_fl_e_2);
@@ -14666,10 +14626,10 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_extern_fn_decl_type
                 FL_CHECKED_SUB(s->scope_count, k, &_fl_e_3);
                 s->scope_count = _fl_e_3;
             }
-            fl_self_hosted_typechecker_TCType* _fl_tmp_204 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_204) = ret_t;
+            fl_self_hosted_typechecker_TCType* _fl_tmp_200 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_200) = ret_t;
             fl_array_retain(param_types);
-            return (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = param_types, .ret = _fl_tmp_204, .is_pure = fl_false, .is_variadic = fl_false}};
+            return (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = param_types, .ret = _fl_tmp_200, .is_pure = fl_false, .is_variadic = fl_false}};
             break;
         }
         default: {
@@ -14681,37 +14641,37 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_extern_fn_decl_type
 
 /* Flow: self_hosted.typechecker.decl_fn_type */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_decl_fn_type(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Decl d) {
-    fl_self_hosted_ast_Decl _fl_tmp_205 = d;
-    switch (_fl_tmp_205.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_201 = d;
+    switch (_fl_tmp_201.tag) {
         case 2: {
-            fl_int nid = _fl_tmp_205.DFn.id;
-            fl_int l = _fl_tmp_205.DFn.line;
-            fl_int c = _fl_tmp_205.DFn.col;
-            FL_String* name = _fl_tmp_205.DFn.name;
-            FL_Array* tp = _fl_tmp_205.DFn.type_params;
-            FL_Array* params = _fl_tmp_205.DFn.params;
-            fl_bool hrt = _fl_tmp_205.DFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_205.DFn.return_type;
-            FL_Array* body = _fl_tmp_205.DFn.body;
-            fl_bool is_pure = _fl_tmp_205.DFn.is_pure;
-            fl_bool is_export = _fl_tmp_205.DFn.is_export;
-            fl_bool is_static = _fl_tmp_205.DFn.is_static;
-            fl_bool hf = _fl_tmp_205.DFn.has_finally;
-            FL_Array* fb = _fl_tmp_205.DFn.finally_body;
+            fl_int nid = _fl_tmp_201.DFn.id;
+            fl_int l = _fl_tmp_201.DFn.line;
+            fl_int c = _fl_tmp_201.DFn.col;
+            FL_String* name = _fl_tmp_201.DFn.name;
+            FL_Array* tp = _fl_tmp_201.DFn.type_params;
+            FL_Array* params = _fl_tmp_201.DFn.params;
+            fl_bool hrt = _fl_tmp_201.DFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_201.DFn.return_type;
+            FL_Array* body = _fl_tmp_201.DFn.body;
+            fl_bool is_pure = _fl_tmp_201.DFn.is_pure;
+            fl_bool is_export = _fl_tmp_201.DFn.is_export;
+            fl_bool is_static = _fl_tmp_201.DFn.is_static;
+            fl_bool hf = _fl_tmp_201.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_201.DFn.finally_body;
             return fl_self_hosted_typechecker_fn_decl_type(s, d);
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_205.DExternFn.id;
-            fl_int l = _fl_tmp_205.DExternFn.line;
-            fl_int c = _fl_tmp_205.DExternFn.col;
-            FL_String* name = _fl_tmp_205.DExternFn.name;
-            FL_Array* tp = _fl_tmp_205.DExternFn.type_params;
-            FL_Array* params = _fl_tmp_205.DExternFn.params;
-            fl_bool hrt = _fl_tmp_205.DExternFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_205.DExternFn.return_type;
-            fl_bool is_export = _fl_tmp_205.DExternFn.is_export;
-            FL_String* cn = _fl_tmp_205.DExternFn.c_name;
+            fl_int nid = _fl_tmp_201.DExternFn.id;
+            fl_int l = _fl_tmp_201.DExternFn.line;
+            fl_int c = _fl_tmp_201.DExternFn.col;
+            FL_String* name = _fl_tmp_201.DExternFn.name;
+            FL_Array* tp = _fl_tmp_201.DExternFn.type_params;
+            FL_Array* params = _fl_tmp_201.DExternFn.params;
+            fl_bool hrt = _fl_tmp_201.DExternFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_201.DExternFn.return_type;
+            fl_bool is_export = _fl_tmp_201.DExternFn.is_export;
+            FL_String* cn = _fl_tmp_201.DExternFn.c_name;
             return fl_self_hosted_typechecker_extern_fn_decl_type(s, d);
             break;
         }
@@ -14724,105 +14684,105 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_decl_fn_type(fl_sel
 
 /* Flow: self_hosted.typechecker.cache_decl */
 void fl_self_hosted_typechecker_cache_decl(fl_self_hosted_typechecker_TCState* s, FL_String* mk, fl_self_hosted_ast_Decl d) {
-    FL_String* _fl_tmp_206 = fl_string_concat(mk, _fl_str_self_hosted_typechecker_45);
-    FL_String* _fl_tmp_207 = fl_conv_to_string__int(fl_self_hosted_ast_decl_id(d));
-    FL_String* key = fl_string_concat(_fl_tmp_206, _fl_tmp_207);
-    fl_string_release(_fl_tmp_206);
-    fl_string_release(_fl_tmp_207);
-    fl_self_hosted_ast_Decl* _fl_tmp_208 = ((fl_self_hosted_ast_Decl*)malloc(sizeof(fl_self_hosted_ast_Decl)));
-    (*_fl_tmp_208) = d;
-    s->decl_cache = fl_map_set_str(s->decl_cache, key, ((void*)_fl_tmp_208));
+    FL_String* _fl_tmp_202 = fl_string_concat(mk, _fl_str_self_hosted_typechecker_45);
+    FL_String* _fl_tmp_203 = fl_conv_to_string__int(fl_self_hosted_ast_decl_id(d));
+    FL_String* key = fl_string_concat(_fl_tmp_202, _fl_tmp_203);
+    fl_string_release(_fl_tmp_202);
+    fl_string_release(_fl_tmp_203);
+    fl_self_hosted_ast_Decl* _fl_tmp_204 = ((fl_self_hosted_ast_Decl*)malloc(sizeof(fl_self_hosted_ast_Decl)));
+    (*_fl_tmp_204) = d;
+    s->decl_cache = fl_map_set_str(s->decl_cache, key, ((void*)_fl_tmp_204));
     fl_string_release(key);
 }
 
 /* Flow: self_hosted.typechecker.build_decl_cache */
 void fl_self_hosted_typechecker_build_decl_cache(fl_self_hosted_typechecker_TCState* s) {
-    fl_int64 _fl_tmp_209 = 0;
-    while (_fl_tmp_209 < fl_array_len(s->src_module.decls)) {
-        fl_self_hosted_ast_Decl d = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(s->src_module.decls, _fl_tmp_209)));
+    fl_int64 _fl_tmp_205 = 0;
+    while (_fl_tmp_205 < fl_array_len(s->src_module.decls)) {
+        fl_self_hosted_ast_Decl d = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(s->src_module.decls, _fl_tmp_205)));
         fl_self_hosted_typechecker_cache_decl(s, _fl_str_self_hosted_typechecker_0, d);
-        fl_self_hosted_ast_Decl _fl_tmp_210 = d;
-        switch (_fl_tmp_210.tag) {
+        fl_self_hosted_ast_Decl _fl_tmp_206 = d;
+        switch (_fl_tmp_206.tag) {
             case 3: {
-                fl_int nid = _fl_tmp_210.DType.id;
-                fl_int l = _fl_tmp_210.DType.line;
-                fl_int c = _fl_tmp_210.DType.col;
-                FL_String* name = _fl_tmp_210.DType.name;
-                FL_Array* tp = _fl_tmp_210.DType.type_params;
-                FL_Array* fields = _fl_tmp_210.DType.fields;
-                FL_Array* methods = _fl_tmp_210.DType.methods;
-                FL_Array* ctors = _fl_tmp_210.DType.constructors;
-                FL_Array* statics = _fl_tmp_210.DType.static_members;
-                FL_Array* ifaces = _fl_tmp_210.DType.interfaces;
-                fl_bool ie = _fl_tmp_210.DType.is_export;
-                fl_bool ist = _fl_tmp_210.DType.is_sum_type;
-                FL_Array* v = _fl_tmp_210.DType.variants;
-                fl_bool im = _fl_tmp_210.DType.is_mut;
-                fl_int64 _fl_tmp_211 = 0;
-                while (_fl_tmp_211 < fl_array_len(methods)) {
-                    fl_self_hosted_ast_Decl m = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(methods, _fl_tmp_211)));
+                fl_int nid = _fl_tmp_206.DType.id;
+                fl_int l = _fl_tmp_206.DType.line;
+                fl_int c = _fl_tmp_206.DType.col;
+                FL_String* name = _fl_tmp_206.DType.name;
+                FL_Array* tp = _fl_tmp_206.DType.type_params;
+                FL_Array* fields = _fl_tmp_206.DType.fields;
+                FL_Array* methods = _fl_tmp_206.DType.methods;
+                FL_Array* ctors = _fl_tmp_206.DType.constructors;
+                FL_Array* statics = _fl_tmp_206.DType.static_members;
+                FL_Array* ifaces = _fl_tmp_206.DType.interfaces;
+                fl_bool ie = _fl_tmp_206.DType.is_export;
+                fl_bool ist = _fl_tmp_206.DType.is_sum_type;
+                FL_Array* v = _fl_tmp_206.DType.variants;
+                fl_bool im = _fl_tmp_206.DType.is_mut;
+                fl_int64 _fl_tmp_207 = 0;
+                while (_fl_tmp_207 < fl_array_len(methods)) {
+                    fl_self_hosted_ast_Decl m = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(methods, _fl_tmp_207)));
                     fl_self_hosted_typechecker_cache_decl(s, _fl_str_self_hosted_typechecker_0, m);
-                    _fl_tmp_211 = (_fl_tmp_211 + 1);
+                    _fl_tmp_207 = (_fl_tmp_207 + 1);
                 }
-                fl_int64 _fl_tmp_212 = 0;
-                while (_fl_tmp_212 < fl_array_len(ctors)) {
-                    fl_self_hosted_ast_Decl ct = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(ctors, _fl_tmp_212)));
+                fl_int64 _fl_tmp_208 = 0;
+                while (_fl_tmp_208 < fl_array_len(ctors)) {
+                    fl_self_hosted_ast_Decl ct = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(ctors, _fl_tmp_208)));
                     fl_self_hosted_typechecker_cache_decl(s, _fl_str_self_hosted_typechecker_0, ct);
-                    _fl_tmp_212 = (_fl_tmp_212 + 1);
+                    _fl_tmp_208 = (_fl_tmp_208 + 1);
                 }
                 break;
             }
         }
-        _fl_tmp_209 = (_fl_tmp_209 + 1);
+        _fl_tmp_205 = (_fl_tmp_205 + 1);
     }
     FL_Array* mod_keys = fl_map_keys(s->imported_module_decls);
-    fl_int64 _fl_tmp_213 = 0;
-    while (_fl_tmp_213 < fl_array_len(mod_keys)) {
-        FL_String* mk = (*((FL_String**)fl_array_get_ptr(mod_keys, _fl_tmp_213)));
+    fl_int64 _fl_tmp_209 = 0;
+    while (_fl_tmp_209 < fl_array_len(mod_keys)) {
+        FL_String* mk = (*((FL_String**)fl_array_get_ptr(mod_keys, _fl_tmp_209)));
         FL_Option_fl_self_hosted_ast_Module mod_opt = FL_OPT_DEREF_AS(fl_map_get_str(s->imported_module_decls, mk), fl_self_hosted_ast_Module, FL_Option_fl_self_hosted_ast_Module);
-        FL_Option_fl_self_hosted_ast_Module _fl_tmp_214 = mod_opt;
-        if (_fl_tmp_214.tag == 1) {
-            fl_self_hosted_ast_Module mod = _fl_tmp_214.value;
-            fl_int64 _fl_tmp_215 = 0;
-            while (_fl_tmp_215 < fl_array_len(mod.decls)) {
-                fl_self_hosted_ast_Decl d = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(mod.decls, _fl_tmp_215)));
+        FL_Option_fl_self_hosted_ast_Module _fl_tmp_210 = mod_opt;
+        if (_fl_tmp_210.tag == 1) {
+            fl_self_hosted_ast_Module mod = _fl_tmp_210.value;
+            fl_int64 _fl_tmp_211 = 0;
+            while (_fl_tmp_211 < fl_array_len(mod.decls)) {
+                fl_self_hosted_ast_Decl d = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(mod.decls, _fl_tmp_211)));
                 fl_self_hosted_typechecker_cache_decl(s, mk, d);
-                fl_self_hosted_ast_Decl _fl_tmp_216 = d;
-                switch (_fl_tmp_216.tag) {
+                fl_self_hosted_ast_Decl _fl_tmp_212 = d;
+                switch (_fl_tmp_212.tag) {
                     case 3: {
-                        fl_int nid = _fl_tmp_216.DType.id;
-                        fl_int l = _fl_tmp_216.DType.line;
-                        fl_int c = _fl_tmp_216.DType.col;
-                        FL_String* name = _fl_tmp_216.DType.name;
-                        FL_Array* tp = _fl_tmp_216.DType.type_params;
-                        FL_Array* fields = _fl_tmp_216.DType.fields;
-                        FL_Array* methods = _fl_tmp_216.DType.methods;
-                        FL_Array* ctors = _fl_tmp_216.DType.constructors;
-                        FL_Array* statics = _fl_tmp_216.DType.static_members;
-                        FL_Array* ifaces = _fl_tmp_216.DType.interfaces;
-                        fl_bool ie = _fl_tmp_216.DType.is_export;
-                        fl_bool ist = _fl_tmp_216.DType.is_sum_type;
-                        FL_Array* v = _fl_tmp_216.DType.variants;
-                        fl_bool im = _fl_tmp_216.DType.is_mut;
-                        fl_int64 _fl_tmp_217 = 0;
-                        while (_fl_tmp_217 < fl_array_len(methods)) {
-                            fl_self_hosted_ast_Decl m = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(methods, _fl_tmp_217)));
+                        fl_int nid = _fl_tmp_212.DType.id;
+                        fl_int l = _fl_tmp_212.DType.line;
+                        fl_int c = _fl_tmp_212.DType.col;
+                        FL_String* name = _fl_tmp_212.DType.name;
+                        FL_Array* tp = _fl_tmp_212.DType.type_params;
+                        FL_Array* fields = _fl_tmp_212.DType.fields;
+                        FL_Array* methods = _fl_tmp_212.DType.methods;
+                        FL_Array* ctors = _fl_tmp_212.DType.constructors;
+                        FL_Array* statics = _fl_tmp_212.DType.static_members;
+                        FL_Array* ifaces = _fl_tmp_212.DType.interfaces;
+                        fl_bool ie = _fl_tmp_212.DType.is_export;
+                        fl_bool ist = _fl_tmp_212.DType.is_sum_type;
+                        FL_Array* v = _fl_tmp_212.DType.variants;
+                        fl_bool im = _fl_tmp_212.DType.is_mut;
+                        fl_int64 _fl_tmp_213 = 0;
+                        while (_fl_tmp_213 < fl_array_len(methods)) {
+                            fl_self_hosted_ast_Decl m = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(methods, _fl_tmp_213)));
                             fl_self_hosted_typechecker_cache_decl(s, mk, m);
-                            _fl_tmp_217 = (_fl_tmp_217 + 1);
+                            _fl_tmp_213 = (_fl_tmp_213 + 1);
                         }
-                        fl_int64 _fl_tmp_218 = 0;
-                        while (_fl_tmp_218 < fl_array_len(ctors)) {
-                            fl_self_hosted_ast_Decl ct = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(ctors, _fl_tmp_218)));
+                        fl_int64 _fl_tmp_214 = 0;
+                        while (_fl_tmp_214 < fl_array_len(ctors)) {
+                            fl_self_hosted_ast_Decl ct = (*((fl_self_hosted_ast_Decl*)fl_array_get_ptr(ctors, _fl_tmp_214)));
                             fl_self_hosted_typechecker_cache_decl(s, mk, ct);
-                            _fl_tmp_218 = (_fl_tmp_218 + 1);
+                            _fl_tmp_214 = (_fl_tmp_214 + 1);
                         }
                         break;
                     }
                 }
-                _fl_tmp_215 = (_fl_tmp_215 + 1);
+                _fl_tmp_211 = (_fl_tmp_211 + 1);
             }
         }
-        _fl_tmp_213 = (_fl_tmp_213 + 1);
+        _fl_tmp_209 = (_fl_tmp_209 + 1);
     }
     fl_array_release(mod_keys);
 }
@@ -14833,16 +14793,16 @@ void fl_self_hosted_typechecker_collect_extern_types(fl_self_hosted_typechecker_
     FL_Array* decls = s->src_module.decls;
     fl_array_retain(decls);
     while (i < fl_array_len_int(decls)) {
-        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_219 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-        fl_self_hosted_ast_Decl d = ((_fl_tmp_219.tag == 1) ? _fl_tmp_219.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-        fl_self_hosted_ast_Decl _fl_tmp_220 = d;
-        switch (_fl_tmp_220.tag) {
+        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_215 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+        fl_self_hosted_ast_Decl d = ((_fl_tmp_215.tag == 1) ? _fl_tmp_215.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+        fl_self_hosted_ast_Decl _fl_tmp_216 = d;
+        switch (_fl_tmp_216.tag) {
             case 8: {
-                fl_int nid = _fl_tmp_220.DExternType.id;
-                fl_int l = _fl_tmp_220.DExternType.line;
-                fl_int c = _fl_tmp_220.DExternType.col;
-                FL_String* name = _fl_tmp_220.DExternType.name;
-                fl_bool is_export = _fl_tmp_220.DExternType.is_export;
+                fl_int nid = _fl_tmp_216.DExternType.id;
+                fl_int l = _fl_tmp_216.DExternType.line;
+                fl_int c = _fl_tmp_216.DExternType.col;
+                FL_String* name = _fl_tmp_216.DExternType.name;
+                fl_bool is_export = _fl_tmp_216.DExternType.is_export;
                 s->extern_type_names = fl_array_push_ptr(s->extern_type_names, name);
                 break;
             }
@@ -14860,35 +14820,35 @@ void fl_self_hosted_typechecker_build_type_registry(fl_self_hosted_typechecker_T
     fl_array_retain(decls);
     fl_int i = 0;
     while (i < fl_array_len_int(decls)) {
-        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_221 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-        fl_self_hosted_ast_Decl d = ((_fl_tmp_221.tag == 1) ? _fl_tmp_221.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-        fl_self_hosted_ast_Decl _fl_tmp_222 = d;
-        switch (_fl_tmp_222.tag) {
+        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_217 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+        fl_self_hosted_ast_Decl d = ((_fl_tmp_217.tag == 1) ? _fl_tmp_217.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+        fl_self_hosted_ast_Decl _fl_tmp_218 = d;
+        switch (_fl_tmp_218.tag) {
             case 3: {
-                fl_int nid = _fl_tmp_222.DType.id;
-                fl_int l = _fl_tmp_222.DType.line;
-                fl_int c = _fl_tmp_222.DType.col;
-                FL_String* name = _fl_tmp_222.DType.name;
-                FL_Array* type_params = _fl_tmp_222.DType.type_params;
-                FL_Array* fields = _fl_tmp_222.DType.fields;
-                FL_Array* methods = _fl_tmp_222.DType.methods;
-                FL_Array* ctors = _fl_tmp_222.DType.constructors;
-                FL_Array* statics = _fl_tmp_222.DType.static_members;
-                FL_Array* ifaces = _fl_tmp_222.DType.interfaces;
-                fl_bool is_export = _fl_tmp_222.DType.is_export;
-                fl_bool is_sum_type = _fl_tmp_222.DType.is_sum_type;
-                FL_Array* variants = _fl_tmp_222.DType.variants;
-                fl_bool is_mut = _fl_tmp_222.DType.is_mut;
+                fl_int nid = _fl_tmp_218.DType.id;
+                fl_int l = _fl_tmp_218.DType.line;
+                fl_int c = _fl_tmp_218.DType.col;
+                FL_String* name = _fl_tmp_218.DType.name;
+                FL_Array* type_params = _fl_tmp_218.DType.type_params;
+                FL_Array* fields = _fl_tmp_218.DType.fields;
+                FL_Array* methods = _fl_tmp_218.DType.methods;
+                FL_Array* ctors = _fl_tmp_218.DType.constructors;
+                FL_Array* statics = _fl_tmp_218.DType.static_members;
+                FL_Array* ifaces = _fl_tmp_218.DType.interfaces;
+                fl_bool is_export = _fl_tmp_218.DType.is_export;
+                fl_bool is_sum_type = _fl_tmp_218.DType.is_sum_type;
+                FL_Array* variants = _fl_tmp_218.DType.variants;
+                fl_bool is_mut = _fl_tmp_218.DType.is_mut;
                 fl_self_hosted_typechecker_register_type_decl(s, name, type_params, fields, methods, ctors, statics, ifaces, is_sum_type, variants, _fl_str_self_hosted_typechecker_0);
                 break;
             }
             case 6: {
-                fl_int nid = _fl_tmp_222.DEnum.id;
-                fl_int l = _fl_tmp_222.DEnum.line;
-                fl_int c = _fl_tmp_222.DEnum.col;
-                FL_String* name = _fl_tmp_222.DEnum.name;
-                FL_Array* variants = _fl_tmp_222.DEnum.variants;
-                fl_bool is_export = _fl_tmp_222.DEnum.is_export;
+                fl_int nid = _fl_tmp_218.DEnum.id;
+                fl_int l = _fl_tmp_218.DEnum.line;
+                fl_int c = _fl_tmp_218.DEnum.col;
+                FL_String* name = _fl_tmp_218.DEnum.name;
+                FL_Array* variants = _fl_tmp_218.DEnum.variants;
+                fl_bool is_export = _fl_tmp_218.DEnum.is_export;
                 fl_self_hosted_typechecker_register_enum_decl(s, name, variants, _fl_str_self_hosted_typechecker_0);
                 break;
             }
@@ -14907,8 +14867,8 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
     fl_int i = 0;
     while (i < fl_array_len_int(type_params)) {
         fl_string_retain(_fl_str_self_hosted_typechecker_0);
-        FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_223 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, i), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
-        fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_223.tag == 1) ? _fl_tmp_223.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+        FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_219 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, i), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
+        fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_219.tag == 1) ? _fl_tmp_219.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
         info.type_param_names = fl_array_push_ptr(info.type_param_names, tp.name);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -14917,10 +14877,10 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
     fl_int ii = 0;
     while (ii < fl_array_len_int(ifaces)) {
         fl_string_retain(_fl_str_self_hosted_typechecker_0);
-        FL_Option_fl_self_hosted_ast_TypeExpr _fl_tmp_224 = FL_OPT_DEREF_AS(fl_array_get_safe(ifaces, ii), fl_self_hosted_ast_TypeExpr, FL_Option_fl_self_hosted_ast_TypeExpr);
-        fl_self_hosted_ast_TypeExpr iface_te = ((_fl_tmp_224.tag == 1) ? _fl_tmp_224.value : (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_0, .module_path = fl_array_new(0, 0, NULL)}});
-        fl_self_hosted_ast_TypeExpr _fl_tmp_225 = iface_te;
-        info.interface_exprs = fl_array_push_sized(info.interface_exprs, (&_fl_tmp_225), sizeof(fl_self_hosted_ast_TypeExpr));
+        FL_Option_fl_self_hosted_ast_TypeExpr _fl_tmp_220 = FL_OPT_DEREF_AS(fl_array_get_safe(ifaces, ii), fl_self_hosted_ast_TypeExpr, FL_Option_fl_self_hosted_ast_TypeExpr);
+        fl_self_hosted_ast_TypeExpr iface_te = ((_fl_tmp_220.tag == 1) ? _fl_tmp_220.value : (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_0, .module_path = fl_array_new(0, 0, NULL)}});
+        fl_self_hosted_ast_TypeExpr _fl_tmp_221 = iface_te;
+        info.interface_exprs = fl_array_push_sized(info.interface_exprs, (&_fl_tmp_221), sizeof(fl_self_hosted_ast_TypeExpr));
         fl_int _fl_e_2;
         FL_CHECKED_ADD(ii, 1, &_fl_e_2);
         ii = _fl_e_2;
@@ -14931,45 +14891,45 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
         fl_string_retain(name);
         fl_string_retain(module_path);
         info.sum_type_box = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 20, .TCSumType = (fl_self_hosted_typechecker_TCType_TCSumType){.name = name, .mod_path = module_path, .variants = fl_array_new(0, 0, NULL)}});
-        fl_self_hosted_typechecker_TypeInfo* _fl_tmp_226 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
-        (*_fl_tmp_226) = info;
-        s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_226));
+        fl_self_hosted_typechecker_TypeInfo* _fl_tmp_222 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
+        (*_fl_tmp_222) = info;
+        s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_222));
         FL_Array* sum_variants = fl_array_new(0, 0, NULL);
         fl_int vi = 0;
         while (vi < fl_array_len_int(variants)) {
             fl_string_retain(_fl_str_self_hosted_typechecker_0);
-            FL_Option_fl_self_hosted_ast_SumVariantDecl _fl_tmp_227 = FL_OPT_DEREF_AS(fl_array_get_safe(variants, vi), fl_self_hosted_ast_SumVariantDecl, FL_Option_fl_self_hosted_ast_SumVariantDecl);
-            fl_self_hosted_ast_SumVariantDecl v = ((_fl_tmp_227.tag == 1) ? _fl_tmp_227.value : (fl_self_hosted_ast_SumVariantDecl){.name = _fl_str_self_hosted_typechecker_0, .fields = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+            FL_Option_fl_self_hosted_ast_SumVariantDecl _fl_tmp_223 = FL_OPT_DEREF_AS(fl_array_get_safe(variants, vi), fl_self_hosted_ast_SumVariantDecl, FL_Option_fl_self_hosted_ast_SumVariantDecl);
+            fl_self_hosted_ast_SumVariantDecl v = ((_fl_tmp_223.tag == 1) ? _fl_tmp_223.value : (fl_self_hosted_ast_SumVariantDecl){.name = _fl_str_self_hosted_typechecker_0, .fields = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
             if (fl_array_len_int(v.fields) > 0) {
                 FL_Array* v_fields = fl_array_new(0, 0, NULL);
                 fl_int fi = 0;
                 while (fi < fl_array_len_int(v.fields)) {
                     fl_string_retain(_fl_str_self_hosted_typechecker_0);
                     fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                    FL_Option_fl_self_hosted_ast_Field _fl_tmp_228 = FL_OPT_DEREF_AS(fl_array_get_safe(v.fields, fi), fl_self_hosted_ast_Field, FL_Option_fl_self_hosted_ast_Field);
-                    fl_self_hosted_ast_Field f = ((_fl_tmp_228.tag == 1) ? _fl_tmp_228.value : (fl_self_hosted_ast_Field){.name = _fl_str_self_hosted_typechecker_0, .type_expr = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}});
-                    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_229 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, f.type_expr));
-                    FL_Array* _fl_old_230 = v_fields;
-                    v_fields = fl_array_push_sized(v_fields, (&_fl_tmp_229), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                    if (_fl_old_230 != v_fields) {
-                        fl_array_release(_fl_old_230);
+                    FL_Option_fl_self_hosted_ast_Field _fl_tmp_224 = FL_OPT_DEREF_AS(fl_array_get_safe(v.fields, fi), fl_self_hosted_ast_Field, FL_Option_fl_self_hosted_ast_Field);
+                    fl_self_hosted_ast_Field f = ((_fl_tmp_224.tag == 1) ? _fl_tmp_224.value : (fl_self_hosted_ast_Field){.name = _fl_str_self_hosted_typechecker_0, .type_expr = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}});
+                    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_225 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, f.type_expr));
+                    FL_Array* _fl_old_226 = v_fields;
+                    v_fields = fl_array_push_sized(v_fields, (&_fl_tmp_225), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                    if (_fl_old_226 != v_fields) {
+                        fl_array_release(_fl_old_226);
                     }
                     fl_int _fl_e_3;
                     FL_CHECKED_ADD(fi, 1, &_fl_e_3);
                     fi = _fl_e_3;
                 }
-                fl_self_hosted_typechecker_TCSumVariant _fl_tmp_231 = fl_self_hosted_typechecker_make_sum_variant_with_fields(v.name, v_fields);
-                FL_Array* _fl_old_232 = sum_variants;
-                sum_variants = fl_array_push_sized(sum_variants, (&_fl_tmp_231), sizeof(fl_self_hosted_typechecker_TCSumVariant));
-                if (_fl_old_232 != sum_variants) {
-                    fl_array_release(_fl_old_232);
+                fl_self_hosted_typechecker_TCSumVariant _fl_tmp_227 = fl_self_hosted_typechecker_make_sum_variant_with_fields(v.name, v_fields);
+                FL_Array* _fl_old_228 = sum_variants;
+                sum_variants = fl_array_push_sized(sum_variants, (&_fl_tmp_227), sizeof(fl_self_hosted_typechecker_TCSumVariant));
+                if (_fl_old_228 != sum_variants) {
+                    fl_array_release(_fl_old_228);
                 }
             } else {
-                fl_self_hosted_typechecker_TCSumVariant _fl_tmp_233 = fl_self_hosted_typechecker_make_sum_variant(v.name);
-                FL_Array* _fl_old_234 = sum_variants;
-                sum_variants = fl_array_push_sized(sum_variants, (&_fl_tmp_233), sizeof(fl_self_hosted_typechecker_TCSumVariant));
-                if (_fl_old_234 != sum_variants) {
-                    fl_array_release(_fl_old_234);
+                fl_self_hosted_typechecker_TCSumVariant _fl_tmp_229 = fl_self_hosted_typechecker_make_sum_variant(v.name);
+                FL_Array* _fl_old_230 = sum_variants;
+                sum_variants = fl_array_push_sized(sum_variants, (&_fl_tmp_229), sizeof(fl_self_hosted_typechecker_TCSumVariant));
+                if (_fl_old_230 != sum_variants) {
+                    fl_array_release(_fl_old_230);
                 }
             }
             fl_int _fl_e_4;
@@ -14981,20 +14941,20 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
         fl_array_retain(sum_variants);
         fl_self_hosted_typechecker_TCType final_sum = (fl_self_hosted_typechecker_TCType){.tag = 20, .TCSumType = (fl_self_hosted_typechecker_TCType_TCSumType){.name = name, .mod_path = module_path, .variants = sum_variants}};
         info.sum_type_box = fl_self_hosted_typechecker_tc_box(final_sum);
-        fl_self_hosted_typechecker_TypeInfo* _fl_tmp_235 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
-        (*_fl_tmp_235) = info;
-        s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_235));
+        fl_self_hosted_typechecker_TypeInfo* _fl_tmp_231 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
+        (*_fl_tmp_231) = info;
+        s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_231));
     } else {
         fl_int fi = 0;
         while (fi < fl_array_len_int(fields)) {
             fl_string_retain(_fl_str_self_hosted_typechecker_0);
             fl_string_retain(_fl_str_self_hosted_typechecker_27);
-            FL_Option_fl_self_hosted_ast_FieldDecl _fl_tmp_236 = FL_OPT_DEREF_AS(fl_array_get_safe(fields, fi), fl_self_hosted_ast_FieldDecl, FL_Option_fl_self_hosted_ast_FieldDecl);
-            fl_self_hosted_ast_FieldDecl f = ((_fl_tmp_236.tag == 1) ? _fl_tmp_236.value : (fl_self_hosted_ast_FieldDecl){.name = _fl_str_self_hosted_typechecker_0, .type_ann = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, .is_mut = fl_false, .id = 0, .line = 0, .col = 0});
+            FL_Option_fl_self_hosted_ast_FieldDecl _fl_tmp_232 = FL_OPT_DEREF_AS(fl_array_get_safe(fields, fi), fl_self_hosted_ast_FieldDecl, FL_Option_fl_self_hosted_ast_FieldDecl);
+            fl_self_hosted_ast_FieldDecl f = ((_fl_tmp_232.tag == 1) ? _fl_tmp_232.value : (fl_self_hosted_ast_FieldDecl){.name = _fl_str_self_hosted_typechecker_0, .type_ann = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, .is_mut = fl_false, .id = 0, .line = 0, .col = 0});
             info.field_names = fl_array_push_ptr(info.field_names, f.name);
-            fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_237 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-            (*_fl_tmp_237) = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, f.type_ann));
-            info.field_types = fl_map_set_str(info.field_types, f.name, ((void*)_fl_tmp_237));
+            fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_233 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+            (*_fl_tmp_233) = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, f.type_ann));
+            info.field_types = fl_map_set_str(info.field_types, f.name, ((void*)_fl_tmp_233));
             info.field_muts = fl_map_set_str(info.field_muts, f.name, fl_box_bool(f.is_mut));
             fl_int _fl_e_5;
             FL_CHECKED_ADD(fi, 1, &_fl_e_5);
@@ -15002,37 +14962,37 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
         }
         fl_int mi = 0;
         while (mi < fl_array_len_int(methods)) {
-            FL_Option_fl_self_hosted_ast_Decl _fl_tmp_238 = FL_OPT_DEREF_AS(fl_array_get_safe(methods, mi), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-            fl_self_hosted_ast_Decl m = ((_fl_tmp_238.tag == 1) ? _fl_tmp_238.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-            fl_self_hosted_ast_Decl _fl_tmp_239 = m;
-            switch (_fl_tmp_239.tag) {
+            FL_Option_fl_self_hosted_ast_Decl _fl_tmp_234 = FL_OPT_DEREF_AS(fl_array_get_safe(methods, mi), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+            fl_self_hosted_ast_Decl m = ((_fl_tmp_234.tag == 1) ? _fl_tmp_234.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+            fl_self_hosted_ast_Decl _fl_tmp_235 = m;
+            switch (_fl_tmp_235.tag) {
                 case 2: {
-                    fl_int nid = _fl_tmp_239.DFn.id;
-                    fl_int l = _fl_tmp_239.DFn.line;
-                    fl_int c = _fl_tmp_239.DFn.col;
-                    FL_String* mname = _fl_tmp_239.DFn.name;
-                    FL_Array* tp = _fl_tmp_239.DFn.type_params;
-                    FL_Array* params = _fl_tmp_239.DFn.params;
-                    fl_bool hrt = _fl_tmp_239.DFn.has_return_type;
-                    fl_self_hosted_ast_TypeExpr ret = _fl_tmp_239.DFn.return_type;
-                    FL_Array* body = _fl_tmp_239.DFn.body;
-                    fl_bool is_pure = _fl_tmp_239.DFn.is_pure;
-                    fl_bool is_export = _fl_tmp_239.DFn.is_export;
-                    fl_bool is_static = _fl_tmp_239.DFn.is_static;
-                    fl_bool hf = _fl_tmp_239.DFn.has_finally;
-                    FL_Array* fb = _fl_tmp_239.DFn.finally_body;
+                    fl_int nid = _fl_tmp_235.DFn.id;
+                    fl_int l = _fl_tmp_235.DFn.line;
+                    fl_int c = _fl_tmp_235.DFn.col;
+                    FL_String* mname = _fl_tmp_235.DFn.name;
+                    FL_Array* tp = _fl_tmp_235.DFn.type_params;
+                    FL_Array* params = _fl_tmp_235.DFn.params;
+                    fl_bool hrt = _fl_tmp_235.DFn.has_return_type;
+                    fl_self_hosted_ast_TypeExpr ret = _fl_tmp_235.DFn.return_type;
+                    FL_Array* body = _fl_tmp_235.DFn.body;
+                    fl_bool is_pure = _fl_tmp_235.DFn.is_pure;
+                    fl_bool is_export = _fl_tmp_235.DFn.is_export;
+                    fl_bool is_static = _fl_tmp_235.DFn.is_static;
+                    fl_bool hf = _fl_tmp_235.DFn.has_finally;
+                    FL_Array* fb = _fl_tmp_235.DFn.finally_body;
                     FL_Array* mparams = fl_array_new(0, 0, NULL);
                     fl_int pi = 0;
                     while (pi < fl_array_len_int(params)) {
                         fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                        FL_Option_fl_self_hosted_ast_Param _fl_tmp_240 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                        fl_self_hosted_ast_Param p = ((_fl_tmp_240.tag == 1) ? _fl_tmp_240.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                        FL_Option_fl_self_hosted_ast_Param _fl_tmp_236 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                        fl_self_hosted_ast_Param p = ((_fl_tmp_236.tag == 1) ? _fl_tmp_236.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                         if (!fl_string_eq(p.name, _fl_str_self_hosted_typechecker_28)) {
-                            fl_self_hosted_typechecker_TCTypeBox _fl_tmp_241 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann));
-                            FL_Array* _fl_old_242 = mparams;
-                            mparams = fl_array_push_sized(mparams, (&_fl_tmp_241), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                            if (_fl_old_242 != mparams) {
-                                fl_array_release(_fl_old_242);
+                            fl_self_hosted_typechecker_TCTypeBox _fl_tmp_237 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann));
+                            FL_Array* _fl_old_238 = mparams;
+                            mparams = fl_array_push_sized(mparams, (&_fl_tmp_237), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                            if (_fl_old_238 != mparams) {
+                                fl_array_release(_fl_old_238);
                             }
                         }
                         fl_int _fl_e_6;
@@ -15041,12 +15001,12 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
                     }
                     fl_self_hosted_typechecker_TCType mret = fl_self_hosted_typechecker_resolve_type_expr_opt(s, hrt, ret);
                     info.method_names = fl_array_push_ptr(info.method_names, mname);
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_243 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_243) = mret;
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_239 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_239) = mret;
                     fl_array_retain(mparams);
-                    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_244 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-                    (*_fl_tmp_244) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mparams, .ret = _fl_tmp_243, .is_pure = is_pure, .is_variadic = fl_false}});
-                    info.method_types = fl_map_set_str(info.method_types, mname, ((void*)_fl_tmp_244));
+                    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_240 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+                    (*_fl_tmp_240) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mparams, .ret = _fl_tmp_239, .is_pure = is_pure, .is_variadic = fl_false}});
+                    info.method_types = fl_map_set_str(info.method_types, mname, ((void*)_fl_tmp_240));
                     break;
                 }
             }
@@ -15056,23 +15016,23 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
         }
         fl_int si = 0;
         while (si < fl_array_len_int(statics)) {
-            FL_Option_fl_self_hosted_ast_Decl _fl_tmp_245 = FL_OPT_DEREF_AS(fl_array_get_safe(statics, si), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-            fl_self_hosted_ast_Decl sm = ((_fl_tmp_245.tag == 1) ? _fl_tmp_245.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-            fl_self_hosted_ast_Decl _fl_tmp_246 = sm;
-            switch (_fl_tmp_246.tag) {
+            FL_Option_fl_self_hosted_ast_Decl _fl_tmp_241 = FL_OPT_DEREF_AS(fl_array_get_safe(statics, si), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+            fl_self_hosted_ast_Decl sm = ((_fl_tmp_241.tag == 1) ? _fl_tmp_241.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+            fl_self_hosted_ast_Decl _fl_tmp_242 = sm;
+            switch (_fl_tmp_242.tag) {
                 case 11: {
-                    fl_int nid = _fl_tmp_246.DStaticMember.id;
-                    fl_int l = _fl_tmp_246.DStaticMember.line;
-                    fl_int c = _fl_tmp_246.DStaticMember.col;
-                    FL_String* sname = _fl_tmp_246.DStaticMember.name;
-                    fl_self_hosted_ast_TypeExpr type_ann = _fl_tmp_246.DStaticMember.type_ann;
-                    fl_bool is_mut = _fl_tmp_246.DStaticMember.is_mut;
-                    fl_bool hv = _fl_tmp_246.DStaticMember.has_value;
-                    fl_self_hosted_ast_Expr val = _fl_tmp_246.DStaticMember.value;
+                    fl_int nid = _fl_tmp_242.DStaticMember.id;
+                    fl_int l = _fl_tmp_242.DStaticMember.line;
+                    fl_int c = _fl_tmp_242.DStaticMember.col;
+                    FL_String* sname = _fl_tmp_242.DStaticMember.name;
+                    fl_self_hosted_ast_TypeExpr type_ann = _fl_tmp_242.DStaticMember.type_ann;
+                    fl_bool is_mut = _fl_tmp_242.DStaticMember.is_mut;
+                    fl_bool hv = _fl_tmp_242.DStaticMember.has_value;
+                    fl_self_hosted_ast_Expr val = _fl_tmp_242.DStaticMember.value;
                     info.static_names = fl_array_push_ptr(info.static_names, sname);
-                    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_247 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-                    (*_fl_tmp_247) = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, type_ann));
-                    info.static_types = fl_map_set_str(info.static_types, sname, ((void*)_fl_tmp_247));
+                    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_243 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+                    (*_fl_tmp_243) = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, type_ann));
+                    info.static_types = fl_map_set_str(info.static_types, sname, ((void*)_fl_tmp_243));
                     info.static_muts = fl_map_set_str(info.static_muts, sname, fl_box_bool(is_mut));
                     break;
                 }
@@ -15083,30 +15043,30 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
         }
         fl_int ci = 0;
         while (ci < fl_array_len_int(ctors)) {
-            FL_Option_fl_self_hosted_ast_Decl _fl_tmp_248 = FL_OPT_DEREF_AS(fl_array_get_safe(ctors, ci), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-            fl_self_hosted_ast_Decl ctor = ((_fl_tmp_248.tag == 1) ? _fl_tmp_248.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-            fl_self_hosted_ast_Decl _fl_tmp_249 = ctor;
-            switch (_fl_tmp_249.tag) {
+            FL_Option_fl_self_hosted_ast_Decl _fl_tmp_244 = FL_OPT_DEREF_AS(fl_array_get_safe(ctors, ci), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+            fl_self_hosted_ast_Decl ctor = ((_fl_tmp_244.tag == 1) ? _fl_tmp_244.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+            fl_self_hosted_ast_Decl _fl_tmp_245 = ctor;
+            switch (_fl_tmp_245.tag) {
                 case 10: {
-                    fl_int nid = _fl_tmp_249.DConstructor.id;
-                    fl_int l = _fl_tmp_249.DConstructor.line;
-                    fl_int c = _fl_tmp_249.DConstructor.col;
-                    FL_String* cname = _fl_tmp_249.DConstructor.name;
-                    FL_Array* params = _fl_tmp_249.DConstructor.params;
-                    fl_self_hosted_ast_TypeExpr ret = _fl_tmp_249.DConstructor.return_type;
-                    FL_Array* body = _fl_tmp_249.DConstructor.body;
+                    fl_int nid = _fl_tmp_245.DConstructor.id;
+                    fl_int l = _fl_tmp_245.DConstructor.line;
+                    fl_int c = _fl_tmp_245.DConstructor.col;
+                    FL_String* cname = _fl_tmp_245.DConstructor.name;
+                    FL_Array* params = _fl_tmp_245.DConstructor.params;
+                    fl_self_hosted_ast_TypeExpr ret = _fl_tmp_245.DConstructor.return_type;
+                    FL_Array* body = _fl_tmp_245.DConstructor.body;
                     FL_Array* cparams = fl_array_new(0, 0, NULL);
                     fl_int pi = 0;
                     while (pi < fl_array_len_int(params)) {
                         fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                        FL_Option_fl_self_hosted_ast_Param _fl_tmp_250 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                        fl_self_hosted_ast_Param p = ((_fl_tmp_250.tag == 1) ? _fl_tmp_250.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                        FL_Option_fl_self_hosted_ast_Param _fl_tmp_246 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                        fl_self_hosted_ast_Param p = ((_fl_tmp_246.tag == 1) ? _fl_tmp_246.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                         if (!fl_string_eq(p.name, _fl_str_self_hosted_typechecker_28)) {
-                            fl_self_hosted_typechecker_TCTypeBox _fl_tmp_251 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann));
-                            FL_Array* _fl_old_252 = cparams;
-                            cparams = fl_array_push_sized(cparams, (&_fl_tmp_251), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                            if (_fl_old_252 != cparams) {
-                                fl_array_release(_fl_old_252);
+                            fl_self_hosted_typechecker_TCTypeBox _fl_tmp_247 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann));
+                            FL_Array* _fl_old_248 = cparams;
+                            cparams = fl_array_push_sized(cparams, (&_fl_tmp_247), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                            if (_fl_old_248 != cparams) {
+                                fl_array_release(_fl_old_248);
                             }
                         }
                         fl_int _fl_e_9;
@@ -15115,12 +15075,12 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
                     }
                     fl_self_hosted_typechecker_TCType cret = fl_self_hosted_typechecker_resolve_type_expr(s, ret);
                     info.ctor_names = fl_array_push_ptr(info.ctor_names, cname);
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_253 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_253) = cret;
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_249 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_249) = cret;
                     fl_array_retain(cparams);
-                    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_254 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-                    (*_fl_tmp_254) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cparams, .ret = _fl_tmp_253, .is_pure = fl_false, .is_variadic = fl_false}});
-                    info.ctor_types = fl_map_set_str(info.ctor_types, cname, ((void*)_fl_tmp_254));
+                    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_250 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+                    (*_fl_tmp_250) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cparams, .ret = _fl_tmp_249, .is_pure = fl_false, .is_variadic = fl_false}});
+                    info.ctor_types = fl_map_set_str(info.ctor_types, cname, ((void*)_fl_tmp_250));
                     break;
                 }
             }
@@ -15128,9 +15088,9 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
             FL_CHECKED_ADD(ci, 1, &_fl_e_10);
             ci = _fl_e_10;
         }
-        fl_self_hosted_typechecker_TypeInfo* _fl_tmp_255 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
-        (*_fl_tmp_255) = info;
-        s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_255));
+        fl_self_hosted_typechecker_TypeInfo* _fl_tmp_251 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
+        (*_fl_tmp_251) = info;
+        s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_251));
     }
 }
 
@@ -15145,22 +15105,22 @@ void fl_self_hosted_typechecker_register_enum_decl(fl_self_hosted_typechecker_TC
     fl_int i = 0;
     while (i < fl_array_len_int(variants)) {
         fl_string_retain(_fl_str_self_hosted_typechecker_0);
-        FL_Option_fl_self_hosted_ast_EnumVariantDecl _fl_tmp_256 = FL_OPT_DEREF_AS(fl_array_get_safe(variants, i), fl_self_hosted_ast_EnumVariantDecl, FL_Option_fl_self_hosted_ast_EnumVariantDecl);
-        fl_self_hosted_ast_EnumVariantDecl v = ((_fl_tmp_256.tag == 1) ? _fl_tmp_256.value : (fl_self_hosted_ast_EnumVariantDecl){.name = _fl_str_self_hosted_typechecker_0, .has_value = fl_false, .value = 0, .id = 0, .line = 0, .col = 0});
+        FL_Option_fl_self_hosted_ast_EnumVariantDecl _fl_tmp_252 = FL_OPT_DEREF_AS(fl_array_get_safe(variants, i), fl_self_hosted_ast_EnumVariantDecl, FL_Option_fl_self_hosted_ast_EnumVariantDecl);
+        fl_self_hosted_ast_EnumVariantDecl v = ((_fl_tmp_252.tag == 1) ? _fl_tmp_252.value : (fl_self_hosted_ast_EnumVariantDecl){.name = _fl_str_self_hosted_typechecker_0, .has_value = fl_false, .value = 0, .id = 0, .line = 0, .col = 0});
         fl_int val = next_val;
         if (v.has_value) {
             val = v.value;
         }
-        FL_Array* _fl_old_257 = resolved_variants;
+        FL_Array* _fl_old_253 = resolved_variants;
         resolved_variants = fl_array_push_ptr(resolved_variants, v.name);
-        if (_fl_old_257 != resolved_variants) {
-            fl_array_release(_fl_old_257);
+        if (_fl_old_253 != resolved_variants) {
+            fl_array_release(_fl_old_253);
         }
-        fl_int _fl_tmp_258 = val;
-        FL_Array* _fl_old_259 = resolved_values;
-        resolved_values = fl_array_push_sized(resolved_values, (&_fl_tmp_258), sizeof(fl_int));
-        if (_fl_old_259 != resolved_values) {
-            fl_array_release(_fl_old_259);
+        fl_int _fl_tmp_254 = val;
+        FL_Array* _fl_old_255 = resolved_values;
+        resolved_values = fl_array_push_sized(resolved_values, (&_fl_tmp_254), sizeof(fl_int));
+        if (_fl_old_255 != resolved_values) {
+            fl_array_release(_fl_old_255);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(val, 1, &_fl_e_1);
@@ -15178,20 +15138,20 @@ void fl_self_hosted_typechecker_register_enum_decl(fl_self_hosted_typechecker_TC
     info.enum_type_box = fl_self_hosted_typechecker_tc_box(enum_type);
     fl_int j = 0;
     while (j < fl_array_len_int(resolved_variants)) {
-        FL_Option_ptr _fl_tmp_260 = fl_array_get_safe(resolved_variants, j);
-        FL_String* vname = ((_fl_tmp_260.tag == 1) ? _fl_tmp_260.value : _fl_str_self_hosted_typechecker_0);
+        FL_Option_ptr _fl_tmp_256 = fl_array_get_safe(resolved_variants, j);
+        FL_String* vname = ((_fl_tmp_256.tag == 1) ? _fl_tmp_256.value : _fl_str_self_hosted_typechecker_0);
         fl_string_retain(vname);
         info.static_names = fl_array_push_ptr(info.static_names, vname);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_261 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_261) = fl_self_hosted_typechecker_tc_box(enum_type);
-        info.static_types = fl_map_set_str(info.static_types, vname, ((void*)_fl_tmp_261));
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_257 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_257) = fl_self_hosted_typechecker_tc_box(enum_type);
+        info.static_types = fl_map_set_str(info.static_types, vname, ((void*)_fl_tmp_257));
         fl_int _fl_e_3;
         FL_CHECKED_ADD(j, 1, &_fl_e_3);
         j = _fl_e_3;
     }
-    fl_self_hosted_typechecker_TypeInfo* _fl_tmp_262 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
-    (*_fl_tmp_262) = info;
-    s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_262));
+    fl_self_hosted_typechecker_TypeInfo* _fl_tmp_258 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
+    (*_fl_tmp_258) = info;
+    s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_258));
     fl_array_release(resolved_variants);
     fl_array_release(resolved_values);
 }
@@ -15201,13 +15161,13 @@ void fl_self_hosted_typechecker_register_imported_types(fl_self_hosted_typecheck
     FL_Array* imported_decl_keys = fl_map_keys(s->imported_module_decls);
     fl_int i = 0;
     while (i < fl_array_len_int(imported_decl_keys)) {
-        FL_Option_ptr _fl_tmp_263 = fl_array_get_safe(imported_decl_keys, i);
-        FL_String* mod_key = ((_fl_tmp_263.tag == 1) ? _fl_tmp_263.value : _fl_str_self_hosted_typechecker_0);
+        FL_Option_ptr _fl_tmp_259 = fl_array_get_safe(imported_decl_keys, i);
+        FL_String* mod_key = ((_fl_tmp_259.tag == 1) ? _fl_tmp_259.value : _fl_str_self_hosted_typechecker_0);
         fl_string_retain(mod_key);
         FL_Option_fl_self_hosted_ast_Module mod_opt = FL_OPT_DEREF_AS(fl_map_get_str(s->imported_module_decls, mod_key), fl_self_hosted_ast_Module, FL_Option_fl_self_hosted_ast_Module);
-        FL_Option_fl_self_hosted_ast_Module _fl_tmp_264 = mod_opt;
-        if (_fl_tmp_264.tag == 1) {
-            fl_self_hosted_ast_Module mod = _fl_tmp_264.value;
+        FL_Option_fl_self_hosted_ast_Module _fl_tmp_260 = mod_opt;
+        if (_fl_tmp_260.tag == 1) {
+            fl_self_hosted_ast_Module mod = _fl_tmp_260.value;
             fl_self_hosted_typechecker_register_imported_module_types(s, mod_key, mod);
         }
         fl_int _fl_e_1;
@@ -15221,37 +15181,37 @@ void fl_self_hosted_typechecker_register_imported_types(fl_self_hosted_typecheck
 void fl_self_hosted_typechecker_register_imported_module_types(fl_self_hosted_typechecker_TCState* s, FL_String* mod_key, fl_self_hosted_ast_Module mod) {
     fl_int i = 0;
     while (i < fl_array_len_int(mod.decls)) {
-        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_265 = FL_OPT_DEREF_AS(fl_array_get_safe(mod.decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-        fl_self_hosted_ast_Decl d = ((_fl_tmp_265.tag == 1) ? _fl_tmp_265.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-        fl_self_hosted_ast_Decl _fl_tmp_266 = d;
-        switch (_fl_tmp_266.tag) {
+        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_261 = FL_OPT_DEREF_AS(fl_array_get_safe(mod.decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+        fl_self_hosted_ast_Decl d = ((_fl_tmp_261.tag == 1) ? _fl_tmp_261.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+        fl_self_hosted_ast_Decl _fl_tmp_262 = d;
+        switch (_fl_tmp_262.tag) {
             case 3: {
-                fl_int nid = _fl_tmp_266.DType.id;
-                fl_int l = _fl_tmp_266.DType.line;
-                fl_int c = _fl_tmp_266.DType.col;
-                FL_String* name = _fl_tmp_266.DType.name;
-                FL_Array* type_params = _fl_tmp_266.DType.type_params;
-                FL_Array* fields = _fl_tmp_266.DType.fields;
-                FL_Array* methods = _fl_tmp_266.DType.methods;
-                FL_Array* ctors = _fl_tmp_266.DType.constructors;
-                FL_Array* statics = _fl_tmp_266.DType.static_members;
-                FL_Array* ifaces = _fl_tmp_266.DType.interfaces;
-                fl_bool is_export = _fl_tmp_266.DType.is_export;
-                fl_bool is_sum_type = _fl_tmp_266.DType.is_sum_type;
-                FL_Array* variants = _fl_tmp_266.DType.variants;
-                fl_bool is_mut = _fl_tmp_266.DType.is_mut;
+                fl_int nid = _fl_tmp_262.DType.id;
+                fl_int l = _fl_tmp_262.DType.line;
+                fl_int c = _fl_tmp_262.DType.col;
+                FL_String* name = _fl_tmp_262.DType.name;
+                FL_Array* type_params = _fl_tmp_262.DType.type_params;
+                FL_Array* fields = _fl_tmp_262.DType.fields;
+                FL_Array* methods = _fl_tmp_262.DType.methods;
+                FL_Array* ctors = _fl_tmp_262.DType.constructors;
+                FL_Array* statics = _fl_tmp_262.DType.static_members;
+                FL_Array* ifaces = _fl_tmp_262.DType.interfaces;
+                fl_bool is_export = _fl_tmp_262.DType.is_export;
+                fl_bool is_sum_type = _fl_tmp_262.DType.is_sum_type;
+                FL_Array* variants = _fl_tmp_262.DType.variants;
+                fl_bool is_mut = _fl_tmp_262.DType.is_mut;
                 if (is_export && (!fl_map_has_str(s->type_registry, name))) {
                     fl_self_hosted_typechecker_register_type_decl(s, name, type_params, fields, methods, ctors, statics, ifaces, is_sum_type, variants, mod_key);
                 }
                 break;
             }
             case 6: {
-                fl_int nid = _fl_tmp_266.DEnum.id;
-                fl_int l = _fl_tmp_266.DEnum.line;
-                fl_int c = _fl_tmp_266.DEnum.col;
-                FL_String* name = _fl_tmp_266.DEnum.name;
-                FL_Array* variants = _fl_tmp_266.DEnum.variants;
-                fl_bool is_export = _fl_tmp_266.DEnum.is_export;
+                fl_int nid = _fl_tmp_262.DEnum.id;
+                fl_int l = _fl_tmp_262.DEnum.line;
+                fl_int c = _fl_tmp_262.DEnum.col;
+                FL_String* name = _fl_tmp_262.DEnum.name;
+                FL_Array* variants = _fl_tmp_262.DEnum.variants;
+                fl_bool is_export = _fl_tmp_262.DEnum.is_export;
                 if (is_export && (!fl_map_has_str(s->type_registry, name))) {
                     fl_self_hosted_typechecker_register_enum_decl(s, name, variants, mod_key);
                 }
@@ -15269,136 +15229,136 @@ void fl_self_hosted_typechecker_register_builtin_interfaces(fl_self_hosted_typec
     fl_self_hosted_typechecker_InterfaceInfo exc_info = fl_self_hosted_typechecker_empty_iface_info(_fl_str_self_hosted_typechecker_46);
     exc_info.type_param_names = fl_array_push_ptr(exc_info.type_param_names, _fl_str_self_hosted_typechecker_47);
     FL_Array* exc_msg_params = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCType* _fl_tmp_267 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_267) = (fl_self_hosted_typechecker_TCType){.tag = 6};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_263 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_263) = (fl_self_hosted_typechecker_TCType){.tag = 6};
     fl_array_retain(exc_msg_params);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_268 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_268) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = exc_msg_params, .ret = _fl_tmp_267, .is_pure = fl_false, .is_variadic = fl_false}});
-    exc_info.method_types = fl_map_set_str(exc_info.method_types, _fl_str_self_hosted_typechecker_48, ((void*)_fl_tmp_268));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_264 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_264) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = exc_msg_params, .ret = _fl_tmp_263, .is_pure = fl_false, .is_variadic = fl_false}});
+    exc_info.method_types = fl_map_set_str(exc_info.method_types, _fl_str_self_hosted_typechecker_48, ((void*)_fl_tmp_264));
     FL_Array* exc_data_params = fl_array_new(0, 0, NULL);
     fl_string_retain(_fl_str_self_hosted_typechecker_47);
-    fl_self_hosted_typechecker_TCType* _fl_tmp_269 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_269) = (fl_self_hosted_typechecker_TCType){.tag = 22, .TCTypeVar = (fl_self_hosted_typechecker_TCType_TCTypeVar){.name = _fl_str_self_hosted_typechecker_47}};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_265 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_265) = (fl_self_hosted_typechecker_TCType){.tag = 22, .TCTypeVar = (fl_self_hosted_typechecker_TCType_TCTypeVar){.name = _fl_str_self_hosted_typechecker_47}};
     fl_array_retain(exc_data_params);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_270 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_270) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = exc_data_params, .ret = _fl_tmp_269, .is_pure = fl_false, .is_variadic = fl_false}});
-    exc_info.method_types = fl_map_set_str(exc_info.method_types, _fl_str_self_hosted_typechecker_49, ((void*)_fl_tmp_270));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_266 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_266) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = exc_data_params, .ret = _fl_tmp_265, .is_pure = fl_false, .is_variadic = fl_false}});
+    exc_info.method_types = fl_map_set_str(exc_info.method_types, _fl_str_self_hosted_typechecker_49, ((void*)_fl_tmp_266));
     FL_Array* exc_orig_params = fl_array_new(0, 0, NULL);
     fl_string_retain(_fl_str_self_hosted_typechecker_47);
-    fl_self_hosted_typechecker_TCType* _fl_tmp_271 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_271) = (fl_self_hosted_typechecker_TCType){.tag = 22, .TCTypeVar = (fl_self_hosted_typechecker_TCType_TCTypeVar){.name = _fl_str_self_hosted_typechecker_47}};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_267 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_267) = (fl_self_hosted_typechecker_TCType){.tag = 22, .TCTypeVar = (fl_self_hosted_typechecker_TCType_TCTypeVar){.name = _fl_str_self_hosted_typechecker_47}};
     fl_array_retain(exc_orig_params);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_272 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_272) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = exc_orig_params, .ret = _fl_tmp_271, .is_pure = fl_false, .is_variadic = fl_false}});
-    exc_info.method_types = fl_map_set_str(exc_info.method_types, _fl_str_self_hosted_typechecker_50, ((void*)_fl_tmp_272));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_268 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_268) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = exc_orig_params, .ret = _fl_tmp_267, .is_pure = fl_false, .is_variadic = fl_false}});
+    exc_info.method_types = fl_map_set_str(exc_info.method_types, _fl_str_self_hosted_typechecker_50, ((void*)_fl_tmp_268));
     exc_info.method_names = fl_array_push_ptr(exc_info.method_names, _fl_str_self_hosted_typechecker_48);
     exc_info.method_names = fl_array_push_ptr(exc_info.method_names, _fl_str_self_hosted_typechecker_49);
     exc_info.method_names = fl_array_push_ptr(exc_info.method_names, _fl_str_self_hosted_typechecker_50);
-    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_273 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
-    (*_fl_tmp_273) = exc_info;
-    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_46, ((void*)_fl_tmp_273));
+    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_269 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
+    (*_fl_tmp_269) = exc_info;
+    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_46, ((void*)_fl_tmp_269));
     fl_self_hosted_typechecker_InterfaceInfo cmp_info = fl_self_hosted_typechecker_empty_iface_info(_fl_str_self_hosted_typechecker_51);
     FL_Array* cmp_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_274 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 24});
-    FL_Array* _fl_old_275 = cmp_p;
-    cmp_p = fl_array_push_sized(cmp_p, (&_fl_tmp_274), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_275 != cmp_p) {
-        fl_array_release(_fl_old_275);
+    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_270 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 24});
+    FL_Array* _fl_old_271 = cmp_p;
+    cmp_p = fl_array_push_sized(cmp_p, (&_fl_tmp_270), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_271 != cmp_p) {
+        fl_array_release(_fl_old_271);
     }
-    fl_self_hosted_typechecker_TCType* _fl_tmp_276 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_276) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_272 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_272) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
     fl_array_retain(cmp_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_277 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_277) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cmp_p, .ret = _fl_tmp_276, .is_pure = fl_true, .is_variadic = fl_false}});
-    cmp_info.method_types = fl_map_set_str(cmp_info.method_types, _fl_str_self_hosted_typechecker_52, ((void*)_fl_tmp_277));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_273 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_273) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cmp_p, .ret = _fl_tmp_272, .is_pure = fl_true, .is_variadic = fl_false}});
+    cmp_info.method_types = fl_map_set_str(cmp_info.method_types, _fl_str_self_hosted_typechecker_52, ((void*)_fl_tmp_273));
     cmp_info.method_names = fl_array_push_ptr(cmp_info.method_names, _fl_str_self_hosted_typechecker_52);
-    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_278 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
-    (*_fl_tmp_278) = cmp_info;
-    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_51, ((void*)_fl_tmp_278));
+    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_274 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
+    (*_fl_tmp_274) = cmp_info;
+    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_51, ((void*)_fl_tmp_274));
     fl_self_hosted_typechecker_InterfaceInfo num_info = fl_self_hosted_typechecker_empty_iface_info(_fl_str_self_hosted_typechecker_53);
     FL_Array* neg_p = fl_array_new(0, 0, NULL);
+    fl_self_hosted_typechecker_TCType* _fl_tmp_275 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_275) = (fl_self_hosted_typechecker_TCType){.tag = 24};
+    fl_array_retain(neg_p);
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_276 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_276) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = neg_p, .ret = _fl_tmp_275, .is_pure = fl_true, .is_variadic = fl_false}});
+    num_info.method_types = fl_map_set_str(num_info.method_types, _fl_str_self_hosted_typechecker_54, ((void*)_fl_tmp_276));
+    FL_Array* add_p = fl_array_new(0, 0, NULL);
+    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_277 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 24});
+    FL_Array* _fl_old_278 = add_p;
+    add_p = fl_array_push_sized(add_p, (&_fl_tmp_277), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_278 != add_p) {
+        fl_array_release(_fl_old_278);
+    }
     fl_self_hosted_typechecker_TCType* _fl_tmp_279 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
     (*_fl_tmp_279) = (fl_self_hosted_typechecker_TCType){.tag = 24};
-    fl_array_retain(neg_p);
+    fl_array_retain(add_p);
     fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_280 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_280) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = neg_p, .ret = _fl_tmp_279, .is_pure = fl_true, .is_variadic = fl_false}});
-    num_info.method_types = fl_map_set_str(num_info.method_types, _fl_str_self_hosted_typechecker_54, ((void*)_fl_tmp_280));
-    FL_Array* add_p = fl_array_new(0, 0, NULL);
+    (*_fl_tmp_280) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = add_p, .ret = _fl_tmp_279, .is_pure = fl_true, .is_variadic = fl_false}});
+    num_info.method_types = fl_map_set_str(num_info.method_types, _fl_str_self_hosted_typechecker_55, ((void*)_fl_tmp_280));
+    FL_Array* sub_p = fl_array_new(0, 0, NULL);
     fl_self_hosted_typechecker_TCTypeBox _fl_tmp_281 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 24});
-    FL_Array* _fl_old_282 = add_p;
-    add_p = fl_array_push_sized(add_p, (&_fl_tmp_281), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_282 != add_p) {
+    FL_Array* _fl_old_282 = sub_p;
+    sub_p = fl_array_push_sized(sub_p, (&_fl_tmp_281), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_282 != sub_p) {
         fl_array_release(_fl_old_282);
     }
     fl_self_hosted_typechecker_TCType* _fl_tmp_283 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
     (*_fl_tmp_283) = (fl_self_hosted_typechecker_TCType){.tag = 24};
-    fl_array_retain(add_p);
+    fl_array_retain(sub_p);
     fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_284 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_284) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = add_p, .ret = _fl_tmp_283, .is_pure = fl_true, .is_variadic = fl_false}});
-    num_info.method_types = fl_map_set_str(num_info.method_types, _fl_str_self_hosted_typechecker_55, ((void*)_fl_tmp_284));
-    FL_Array* sub_p = fl_array_new(0, 0, NULL);
+    (*_fl_tmp_284) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = sub_p, .ret = _fl_tmp_283, .is_pure = fl_true, .is_variadic = fl_false}});
+    num_info.method_types = fl_map_set_str(num_info.method_types, _fl_str_self_hosted_typechecker_56, ((void*)_fl_tmp_284));
+    FL_Array* mul_p = fl_array_new(0, 0, NULL);
     fl_self_hosted_typechecker_TCTypeBox _fl_tmp_285 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 24});
-    FL_Array* _fl_old_286 = sub_p;
-    sub_p = fl_array_push_sized(sub_p, (&_fl_tmp_285), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_286 != sub_p) {
+    FL_Array* _fl_old_286 = mul_p;
+    mul_p = fl_array_push_sized(mul_p, (&_fl_tmp_285), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_286 != mul_p) {
         fl_array_release(_fl_old_286);
     }
     fl_self_hosted_typechecker_TCType* _fl_tmp_287 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
     (*_fl_tmp_287) = (fl_self_hosted_typechecker_TCType){.tag = 24};
-    fl_array_retain(sub_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_288 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_288) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = sub_p, .ret = _fl_tmp_287, .is_pure = fl_true, .is_variadic = fl_false}});
-    num_info.method_types = fl_map_set_str(num_info.method_types, _fl_str_self_hosted_typechecker_56, ((void*)_fl_tmp_288));
-    FL_Array* mul_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_289 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 24});
-    FL_Array* _fl_old_290 = mul_p;
-    mul_p = fl_array_push_sized(mul_p, (&_fl_tmp_289), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_290 != mul_p) {
-        fl_array_release(_fl_old_290);
-    }
-    fl_self_hosted_typechecker_TCType* _fl_tmp_291 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_291) = (fl_self_hosted_typechecker_TCType){.tag = 24};
     fl_array_retain(mul_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_292 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_292) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mul_p, .ret = _fl_tmp_291, .is_pure = fl_true, .is_variadic = fl_false}});
-    num_info.method_types = fl_map_set_str(num_info.method_types, _fl_str_self_hosted_typechecker_57, ((void*)_fl_tmp_292));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_288 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_288) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mul_p, .ret = _fl_tmp_287, .is_pure = fl_true, .is_variadic = fl_false}});
+    num_info.method_types = fl_map_set_str(num_info.method_types, _fl_str_self_hosted_typechecker_57, ((void*)_fl_tmp_288));
     num_info.method_names = fl_array_push_ptr(num_info.method_names, _fl_str_self_hosted_typechecker_54);
     num_info.method_names = fl_array_push_ptr(num_info.method_names, _fl_str_self_hosted_typechecker_55);
     num_info.method_names = fl_array_push_ptr(num_info.method_names, _fl_str_self_hosted_typechecker_56);
     num_info.method_names = fl_array_push_ptr(num_info.method_names, _fl_str_self_hosted_typechecker_57);
-    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_293 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
-    (*_fl_tmp_293) = num_info;
-    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_53, ((void*)_fl_tmp_293));
+    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_289 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
+    (*_fl_tmp_289) = num_info;
+    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_53, ((void*)_fl_tmp_289));
     fl_self_hosted_typechecker_InterfaceInfo eq_info = fl_self_hosted_typechecker_empty_iface_info(_fl_str_self_hosted_typechecker_58);
     FL_Array* eq_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_294 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 24});
-    FL_Array* _fl_old_295 = eq_p;
-    eq_p = fl_array_push_sized(eq_p, (&_fl_tmp_294), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_295 != eq_p) {
-        fl_array_release(_fl_old_295);
+    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_290 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 24});
+    FL_Array* _fl_old_291 = eq_p;
+    eq_p = fl_array_push_sized(eq_p, (&_fl_tmp_290), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_291 != eq_p) {
+        fl_array_release(_fl_old_291);
     }
-    fl_self_hosted_typechecker_TCType* _fl_tmp_296 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_296) = (fl_self_hosted_typechecker_TCType){.tag = 2};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_292 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_292) = (fl_self_hosted_typechecker_TCType){.tag = 2};
     fl_array_retain(eq_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_297 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_297) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = eq_p, .ret = _fl_tmp_296, .is_pure = fl_true, .is_variadic = fl_false}});
-    eq_info.method_types = fl_map_set_str(eq_info.method_types, _fl_str_self_hosted_typechecker_59, ((void*)_fl_tmp_297));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_293 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_293) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = eq_p, .ret = _fl_tmp_292, .is_pure = fl_true, .is_variadic = fl_false}});
+    eq_info.method_types = fl_map_set_str(eq_info.method_types, _fl_str_self_hosted_typechecker_59, ((void*)_fl_tmp_293));
     eq_info.method_names = fl_array_push_ptr(eq_info.method_names, _fl_str_self_hosted_typechecker_59);
-    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_298 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
-    (*_fl_tmp_298) = eq_info;
-    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_58, ((void*)_fl_tmp_298));
+    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_294 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
+    (*_fl_tmp_294) = eq_info;
+    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_58, ((void*)_fl_tmp_294));
     fl_self_hosted_typechecker_InterfaceInfo show_info = fl_self_hosted_typechecker_empty_iface_info(_fl_str_self_hosted_typechecker_60);
     FL_Array* show_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCType* _fl_tmp_299 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_299) = (fl_self_hosted_typechecker_TCType){.tag = 6};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_295 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_295) = (fl_self_hosted_typechecker_TCType){.tag = 6};
     fl_array_retain(show_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_300 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_300) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = show_p, .ret = _fl_tmp_299, .is_pure = fl_true, .is_variadic = fl_false}});
-    show_info.method_types = fl_map_set_str(show_info.method_types, _fl_str_self_hosted_typechecker_61, ((void*)_fl_tmp_300));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_296 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_296) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = show_p, .ret = _fl_tmp_295, .is_pure = fl_true, .is_variadic = fl_false}});
+    show_info.method_types = fl_map_set_str(show_info.method_types, _fl_str_self_hosted_typechecker_61, ((void*)_fl_tmp_296));
     show_info.method_names = fl_array_push_ptr(show_info.method_names, _fl_str_self_hosted_typechecker_61);
-    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_301 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
-    (*_fl_tmp_301) = show_info;
-    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_60, ((void*)_fl_tmp_301));
+    fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_297 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
+    (*_fl_tmp_297) = show_info;
+    s->iface_registry = fl_map_set_str(s->iface_registry, _fl_str_self_hosted_typechecker_60, ((void*)_fl_tmp_297));
     fl_array_release(exc_msg_params);
     fl_array_release(exc_data_params);
     fl_array_release(exc_orig_params);
@@ -15433,8 +15393,8 @@ void fl_self_hosted_typechecker_register_builtin_fulfillments(fl_self_hosted_typ
 /* Flow: self_hosted.typechecker.is_showable */
 fl_bool fl_self_hosted_typechecker_is_showable(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_typechecker_TCType t) {
     FL_String* tname = fl_self_hosted_typechecker_type_name(t);
-    FL_Option_ptr _fl_tmp_302 = fl_map_get_str(s->builtin_fulfillments, tname);
-    FL_String* ifaces_str = ((_fl_tmp_302.tag == 1) ? _fl_tmp_302.value : _fl_str_self_hosted_typechecker_0);
+    FL_Option_ptr _fl_tmp_298 = fl_map_get_str(s->builtin_fulfillments, tname);
+    FL_String* ifaces_str = ((_fl_tmp_298.tag == 1) ? _fl_tmp_298.value : _fl_str_self_hosted_typechecker_0);
     fl_string_retain(ifaces_str);
     fl_string_release(tname);
     return fl_string_contains(ifaces_str, _fl_str_self_hosted_typechecker_60);
@@ -15443,350 +15403,350 @@ fl_bool fl_self_hosted_typechecker_is_showable(fl_self_hosted_typechecker_TCStat
 /* Flow: self_hosted.typechecker.register_builtin_method_sigs */
 void fl_self_hosted_typechecker_register_builtin_method_sigs(fl_self_hosted_typechecker_TCState* s) {
     FL_Array* int_types = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCType _fl_tmp_303 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
+    fl_self_hosted_typechecker_TCType _fl_tmp_299 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
+    FL_Array* _fl_old_300 = int_types;
+    int_types = fl_array_push_sized(int_types, (&_fl_tmp_299), sizeof(fl_self_hosted_typechecker_TCType));
+    if (_fl_old_300 != int_types) {
+        fl_array_release(_fl_old_300);
+    }
+    fl_self_hosted_typechecker_TCType _fl_tmp_301 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 64, .is_signed = fl_true}};
+    FL_Array* _fl_old_302 = int_types;
+    int_types = fl_array_push_sized(int_types, (&_fl_tmp_301), sizeof(fl_self_hosted_typechecker_TCType));
+    if (_fl_old_302 != int_types) {
+        fl_array_release(_fl_old_302);
+    }
+    fl_self_hosted_typechecker_TCType _fl_tmp_303 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 16, .is_signed = fl_true}};
     FL_Array* _fl_old_304 = int_types;
     int_types = fl_array_push_sized(int_types, (&_fl_tmp_303), sizeof(fl_self_hosted_typechecker_TCType));
     if (_fl_old_304 != int_types) {
         fl_array_release(_fl_old_304);
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_305 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 64, .is_signed = fl_true}};
+    fl_self_hosted_typechecker_TCType _fl_tmp_305 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_false}};
     FL_Array* _fl_old_306 = int_types;
     int_types = fl_array_push_sized(int_types, (&_fl_tmp_305), sizeof(fl_self_hosted_typechecker_TCType));
     if (_fl_old_306 != int_types) {
         fl_array_release(_fl_old_306);
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_307 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 16, .is_signed = fl_true}};
+    fl_self_hosted_typechecker_TCType _fl_tmp_307 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 16, .is_signed = fl_false}};
     FL_Array* _fl_old_308 = int_types;
     int_types = fl_array_push_sized(int_types, (&_fl_tmp_307), sizeof(fl_self_hosted_typechecker_TCType));
     if (_fl_old_308 != int_types) {
         fl_array_release(_fl_old_308);
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_309 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_false}};
+    fl_self_hosted_typechecker_TCType _fl_tmp_309 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 64, .is_signed = fl_false}};
     FL_Array* _fl_old_310 = int_types;
     int_types = fl_array_push_sized(int_types, (&_fl_tmp_309), sizeof(fl_self_hosted_typechecker_TCType));
     if (_fl_old_310 != int_types) {
         fl_array_release(_fl_old_310);
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_311 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 16, .is_signed = fl_false}};
-    FL_Array* _fl_old_312 = int_types;
-    int_types = fl_array_push_sized(int_types, (&_fl_tmp_311), sizeof(fl_self_hosted_typechecker_TCType));
-    if (_fl_old_312 != int_types) {
-        fl_array_release(_fl_old_312);
-    }
-    fl_self_hosted_typechecker_TCType _fl_tmp_313 = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 64, .is_signed = fl_false}};
-    FL_Array* _fl_old_314 = int_types;
-    int_types = fl_array_push_sized(int_types, (&_fl_tmp_313), sizeof(fl_self_hosted_typechecker_TCType));
-    if (_fl_old_314 != int_types) {
-        fl_array_release(_fl_old_314);
-    }
     fl_int i = 0;
     while (i < fl_array_len_int(int_types)) {
-        FL_Option_fl_self_hosted_typechecker_TCType _fl_tmp_315 = FL_OPT_DEREF_AS(fl_array_get_safe(int_types, i), fl_self_hosted_typechecker_TCType, FL_Option_fl_self_hosted_typechecker_TCType);
-        fl_self_hosted_typechecker_TCType t = ((_fl_tmp_315.tag == 1) ? _fl_tmp_315.value : (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}});
+        FL_Option_fl_self_hosted_typechecker_TCType _fl_tmp_311 = FL_OPT_DEREF_AS(fl_array_get_safe(int_types, i), fl_self_hosted_typechecker_TCType, FL_Option_fl_self_hosted_typechecker_TCType);
+        fl_self_hosted_typechecker_TCType t = ((_fl_tmp_311.tag == 1) ? _fl_tmp_311.value : (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}});
         FL_String* tn = fl_self_hosted_typechecker_type_name(t);
         FL_Array* cmp_p = fl_array_new(0, 0, NULL);
-        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_316 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_317 = cmp_p;
-        cmp_p = fl_array_push_sized(cmp_p, (&_fl_tmp_316), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_317 != cmp_p) {
-            fl_array_release(_fl_old_317);
+        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_312 = fl_self_hosted_typechecker_tc_box(t);
+        FL_Array* _fl_old_313 = cmp_p;
+        cmp_p = fl_array_push_sized(cmp_p, (&_fl_tmp_312), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_313 != cmp_p) {
+            fl_array_release(_fl_old_313);
         }
-        fl_self_hosted_typechecker_TCType* _fl_tmp_318 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-        (*_fl_tmp_318) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
+        fl_self_hosted_typechecker_TCType* _fl_tmp_314 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+        (*_fl_tmp_314) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
         fl_array_retain(cmp_p);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_319 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_319) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cmp_p, .ret = _fl_tmp_318, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_65), ((void*)_fl_tmp_319));
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_315 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_315) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cmp_p, .ret = _fl_tmp_314, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_65), ((void*)_fl_tmp_315));
         FL_Array* neg_p = fl_array_new(0, 0, NULL);
+        fl_self_hosted_typechecker_TCType* _fl_tmp_316 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+        (*_fl_tmp_316) = t;
+        fl_array_retain(neg_p);
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_317 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_317) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = neg_p, .ret = _fl_tmp_316, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_66), ((void*)_fl_tmp_317));
+        FL_Array* add_p = fl_array_new(0, 0, NULL);
+        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_318 = fl_self_hosted_typechecker_tc_box(t);
+        FL_Array* _fl_old_319 = add_p;
+        add_p = fl_array_push_sized(add_p, (&_fl_tmp_318), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_319 != add_p) {
+            fl_array_release(_fl_old_319);
+        }
         fl_self_hosted_typechecker_TCType* _fl_tmp_320 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
         (*_fl_tmp_320) = t;
-        fl_array_retain(neg_p);
+        fl_array_retain(add_p);
         fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_321 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_321) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = neg_p, .ret = _fl_tmp_320, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_66), ((void*)_fl_tmp_321));
-        FL_Array* add_p = fl_array_new(0, 0, NULL);
+        (*_fl_tmp_321) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = add_p, .ret = _fl_tmp_320, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_67), ((void*)_fl_tmp_321));
+        FL_Array* sub_p = fl_array_new(0, 0, NULL);
         fl_self_hosted_typechecker_TCTypeBox _fl_tmp_322 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_323 = add_p;
-        add_p = fl_array_push_sized(add_p, (&_fl_tmp_322), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_323 != add_p) {
+        FL_Array* _fl_old_323 = sub_p;
+        sub_p = fl_array_push_sized(sub_p, (&_fl_tmp_322), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_323 != sub_p) {
             fl_array_release(_fl_old_323);
         }
         fl_self_hosted_typechecker_TCType* _fl_tmp_324 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
         (*_fl_tmp_324) = t;
-        fl_array_retain(add_p);
+        fl_array_retain(sub_p);
         fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_325 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_325) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = add_p, .ret = _fl_tmp_324, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_67), ((void*)_fl_tmp_325));
-        FL_Array* sub_p = fl_array_new(0, 0, NULL);
+        (*_fl_tmp_325) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = sub_p, .ret = _fl_tmp_324, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_68), ((void*)_fl_tmp_325));
+        FL_Array* mul_p = fl_array_new(0, 0, NULL);
         fl_self_hosted_typechecker_TCTypeBox _fl_tmp_326 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_327 = sub_p;
-        sub_p = fl_array_push_sized(sub_p, (&_fl_tmp_326), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_327 != sub_p) {
+        FL_Array* _fl_old_327 = mul_p;
+        mul_p = fl_array_push_sized(mul_p, (&_fl_tmp_326), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_327 != mul_p) {
             fl_array_release(_fl_old_327);
         }
         fl_self_hosted_typechecker_TCType* _fl_tmp_328 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
         (*_fl_tmp_328) = t;
-        fl_array_retain(sub_p);
+        fl_array_retain(mul_p);
         fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_329 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_329) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = sub_p, .ret = _fl_tmp_328, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_68), ((void*)_fl_tmp_329));
-        FL_Array* mul_p = fl_array_new(0, 0, NULL);
+        (*_fl_tmp_329) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mul_p, .ret = _fl_tmp_328, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_69), ((void*)_fl_tmp_329));
+        FL_Array* eq_p = fl_array_new(0, 0, NULL);
         fl_self_hosted_typechecker_TCTypeBox _fl_tmp_330 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_331 = mul_p;
-        mul_p = fl_array_push_sized(mul_p, (&_fl_tmp_330), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_331 != mul_p) {
+        FL_Array* _fl_old_331 = eq_p;
+        eq_p = fl_array_push_sized(eq_p, (&_fl_tmp_330), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_331 != eq_p) {
             fl_array_release(_fl_old_331);
         }
         fl_self_hosted_typechecker_TCType* _fl_tmp_332 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-        (*_fl_tmp_332) = t;
-        fl_array_retain(mul_p);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_333 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_333) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mul_p, .ret = _fl_tmp_332, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_69), ((void*)_fl_tmp_333));
-        FL_Array* eq_p = fl_array_new(0, 0, NULL);
-        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_334 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_335 = eq_p;
-        eq_p = fl_array_push_sized(eq_p, (&_fl_tmp_334), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_335 != eq_p) {
-            fl_array_release(_fl_old_335);
-        }
-        fl_self_hosted_typechecker_TCType* _fl_tmp_336 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-        (*_fl_tmp_336) = (fl_self_hosted_typechecker_TCType){.tag = 2};
+        (*_fl_tmp_332) = (fl_self_hosted_typechecker_TCType){.tag = 2};
         fl_array_retain(eq_p);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_337 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_337) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = eq_p, .ret = _fl_tmp_336, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_70), ((void*)_fl_tmp_337));
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_333 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_333) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = eq_p, .ret = _fl_tmp_332, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_70), ((void*)_fl_tmp_333));
         FL_Array* ts_p = fl_array_new(0, 0, NULL);
-        fl_self_hosted_typechecker_TCType* _fl_tmp_338 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-        (*_fl_tmp_338) = (fl_self_hosted_typechecker_TCType){.tag = 6};
+        fl_self_hosted_typechecker_TCType* _fl_tmp_334 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+        (*_fl_tmp_334) = (fl_self_hosted_typechecker_TCType){.tag = 6};
         fl_array_retain(ts_p);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_339 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_339) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = ts_p, .ret = _fl_tmp_338, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_71), ((void*)_fl_tmp_339));
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_335 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_335) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = ts_p, .ret = _fl_tmp_334, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_71), ((void*)_fl_tmp_335));
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
     FL_Array* float_types = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCType _fl_tmp_340 = (fl_self_hosted_typechecker_TCType){.tag = 1, .TCFloat = (fl_self_hosted_typechecker_TCType_TCFloat){.width = 64}};
-    FL_Array* _fl_old_341 = float_types;
-    float_types = fl_array_push_sized(float_types, (&_fl_tmp_340), sizeof(fl_self_hosted_typechecker_TCType));
-    if (_fl_old_341 != float_types) {
-        fl_array_release(_fl_old_341);
+    fl_self_hosted_typechecker_TCType _fl_tmp_336 = (fl_self_hosted_typechecker_TCType){.tag = 1, .TCFloat = (fl_self_hosted_typechecker_TCType_TCFloat){.width = 64}};
+    FL_Array* _fl_old_337 = float_types;
+    float_types = fl_array_push_sized(float_types, (&_fl_tmp_336), sizeof(fl_self_hosted_typechecker_TCType));
+    if (_fl_old_337 != float_types) {
+        fl_array_release(_fl_old_337);
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_342 = (fl_self_hosted_typechecker_TCType){.tag = 1, .TCFloat = (fl_self_hosted_typechecker_TCType_TCFloat){.width = 32}};
-    FL_Array* _fl_old_343 = float_types;
-    float_types = fl_array_push_sized(float_types, (&_fl_tmp_342), sizeof(fl_self_hosted_typechecker_TCType));
-    if (_fl_old_343 != float_types) {
-        fl_array_release(_fl_old_343);
+    fl_self_hosted_typechecker_TCType _fl_tmp_338 = (fl_self_hosted_typechecker_TCType){.tag = 1, .TCFloat = (fl_self_hosted_typechecker_TCType_TCFloat){.width = 32}};
+    FL_Array* _fl_old_339 = float_types;
+    float_types = fl_array_push_sized(float_types, (&_fl_tmp_338), sizeof(fl_self_hosted_typechecker_TCType));
+    if (_fl_old_339 != float_types) {
+        fl_array_release(_fl_old_339);
     }
     fl_int fi = 0;
     while (fi < fl_array_len_int(float_types)) {
-        FL_Option_fl_self_hosted_typechecker_TCType _fl_tmp_344 = FL_OPT_DEREF_AS(fl_array_get_safe(float_types, fi), fl_self_hosted_typechecker_TCType, FL_Option_fl_self_hosted_typechecker_TCType);
-        fl_self_hosted_typechecker_TCType t = ((_fl_tmp_344.tag == 1) ? _fl_tmp_344.value : (fl_self_hosted_typechecker_TCType){.tag = 1, .TCFloat = (fl_self_hosted_typechecker_TCType_TCFloat){.width = 64}});
+        FL_Option_fl_self_hosted_typechecker_TCType _fl_tmp_340 = FL_OPT_DEREF_AS(fl_array_get_safe(float_types, fi), fl_self_hosted_typechecker_TCType, FL_Option_fl_self_hosted_typechecker_TCType);
+        fl_self_hosted_typechecker_TCType t = ((_fl_tmp_340.tag == 1) ? _fl_tmp_340.value : (fl_self_hosted_typechecker_TCType){.tag = 1, .TCFloat = (fl_self_hosted_typechecker_TCType_TCFloat){.width = 64}});
         FL_String* tn = fl_self_hosted_typechecker_type_name(t);
         FL_Array* cmp_p = fl_array_new(0, 0, NULL);
-        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_345 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_346 = cmp_p;
-        cmp_p = fl_array_push_sized(cmp_p, (&_fl_tmp_345), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_346 != cmp_p) {
-            fl_array_release(_fl_old_346);
+        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_341 = fl_self_hosted_typechecker_tc_box(t);
+        FL_Array* _fl_old_342 = cmp_p;
+        cmp_p = fl_array_push_sized(cmp_p, (&_fl_tmp_341), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_342 != cmp_p) {
+            fl_array_release(_fl_old_342);
         }
-        fl_self_hosted_typechecker_TCType* _fl_tmp_347 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-        (*_fl_tmp_347) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
+        fl_self_hosted_typechecker_TCType* _fl_tmp_343 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+        (*_fl_tmp_343) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
         fl_array_retain(cmp_p);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_348 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_348) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cmp_p, .ret = _fl_tmp_347, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_65), ((void*)_fl_tmp_348));
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_344 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_344) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cmp_p, .ret = _fl_tmp_343, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_65), ((void*)_fl_tmp_344));
         FL_Array* neg_p = fl_array_new(0, 0, NULL);
+        fl_self_hosted_typechecker_TCType* _fl_tmp_345 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+        (*_fl_tmp_345) = t;
+        fl_array_retain(neg_p);
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_346 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_346) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = neg_p, .ret = _fl_tmp_345, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_66), ((void*)_fl_tmp_346));
+        FL_Array* add_p = fl_array_new(0, 0, NULL);
+        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_347 = fl_self_hosted_typechecker_tc_box(t);
+        FL_Array* _fl_old_348 = add_p;
+        add_p = fl_array_push_sized(add_p, (&_fl_tmp_347), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_348 != add_p) {
+            fl_array_release(_fl_old_348);
+        }
         fl_self_hosted_typechecker_TCType* _fl_tmp_349 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
         (*_fl_tmp_349) = t;
-        fl_array_retain(neg_p);
+        fl_array_retain(add_p);
         fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_350 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_350) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = neg_p, .ret = _fl_tmp_349, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_66), ((void*)_fl_tmp_350));
-        FL_Array* add_p = fl_array_new(0, 0, NULL);
+        (*_fl_tmp_350) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = add_p, .ret = _fl_tmp_349, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_67), ((void*)_fl_tmp_350));
+        FL_Array* sub_p = fl_array_new(0, 0, NULL);
         fl_self_hosted_typechecker_TCTypeBox _fl_tmp_351 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_352 = add_p;
-        add_p = fl_array_push_sized(add_p, (&_fl_tmp_351), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_352 != add_p) {
+        FL_Array* _fl_old_352 = sub_p;
+        sub_p = fl_array_push_sized(sub_p, (&_fl_tmp_351), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_352 != sub_p) {
             fl_array_release(_fl_old_352);
         }
         fl_self_hosted_typechecker_TCType* _fl_tmp_353 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
         (*_fl_tmp_353) = t;
-        fl_array_retain(add_p);
+        fl_array_retain(sub_p);
         fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_354 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_354) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = add_p, .ret = _fl_tmp_353, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_67), ((void*)_fl_tmp_354));
-        FL_Array* sub_p = fl_array_new(0, 0, NULL);
+        (*_fl_tmp_354) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = sub_p, .ret = _fl_tmp_353, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_68), ((void*)_fl_tmp_354));
+        FL_Array* mul_p = fl_array_new(0, 0, NULL);
         fl_self_hosted_typechecker_TCTypeBox _fl_tmp_355 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_356 = sub_p;
-        sub_p = fl_array_push_sized(sub_p, (&_fl_tmp_355), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_356 != sub_p) {
+        FL_Array* _fl_old_356 = mul_p;
+        mul_p = fl_array_push_sized(mul_p, (&_fl_tmp_355), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_356 != mul_p) {
             fl_array_release(_fl_old_356);
         }
         fl_self_hosted_typechecker_TCType* _fl_tmp_357 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
         (*_fl_tmp_357) = t;
-        fl_array_retain(sub_p);
+        fl_array_retain(mul_p);
         fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_358 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_358) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = sub_p, .ret = _fl_tmp_357, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_68), ((void*)_fl_tmp_358));
-        FL_Array* mul_p = fl_array_new(0, 0, NULL);
+        (*_fl_tmp_358) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mul_p, .ret = _fl_tmp_357, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_69), ((void*)_fl_tmp_358));
+        FL_Array* eq_p = fl_array_new(0, 0, NULL);
         fl_self_hosted_typechecker_TCTypeBox _fl_tmp_359 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_360 = mul_p;
-        mul_p = fl_array_push_sized(mul_p, (&_fl_tmp_359), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_360 != mul_p) {
+        FL_Array* _fl_old_360 = eq_p;
+        eq_p = fl_array_push_sized(eq_p, (&_fl_tmp_359), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+        if (_fl_old_360 != eq_p) {
             fl_array_release(_fl_old_360);
         }
         fl_self_hosted_typechecker_TCType* _fl_tmp_361 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-        (*_fl_tmp_361) = t;
-        fl_array_retain(mul_p);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_362 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_362) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mul_p, .ret = _fl_tmp_361, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_69), ((void*)_fl_tmp_362));
-        FL_Array* eq_p = fl_array_new(0, 0, NULL);
-        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_363 = fl_self_hosted_typechecker_tc_box(t);
-        FL_Array* _fl_old_364 = eq_p;
-        eq_p = fl_array_push_sized(eq_p, (&_fl_tmp_363), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-        if (_fl_old_364 != eq_p) {
-            fl_array_release(_fl_old_364);
-        }
-        fl_self_hosted_typechecker_TCType* _fl_tmp_365 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-        (*_fl_tmp_365) = (fl_self_hosted_typechecker_TCType){.tag = 2};
+        (*_fl_tmp_361) = (fl_self_hosted_typechecker_TCType){.tag = 2};
         fl_array_retain(eq_p);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_366 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_366) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = eq_p, .ret = _fl_tmp_365, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_70), ((void*)_fl_tmp_366));
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_362 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_362) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = eq_p, .ret = _fl_tmp_361, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_70), ((void*)_fl_tmp_362));
         FL_Array* ts_p = fl_array_new(0, 0, NULL);
-        fl_self_hosted_typechecker_TCType* _fl_tmp_367 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-        (*_fl_tmp_367) = (fl_self_hosted_typechecker_TCType){.tag = 6};
+        fl_self_hosted_typechecker_TCType* _fl_tmp_363 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+        (*_fl_tmp_363) = (fl_self_hosted_typechecker_TCType){.tag = 6};
         fl_array_retain(ts_p);
-        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_368 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-        (*_fl_tmp_368) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = ts_p, .ret = _fl_tmp_367, .is_pure = fl_true, .is_variadic = fl_false}});
-        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_71), ((void*)_fl_tmp_368));
+        fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_364 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+        (*_fl_tmp_364) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = ts_p, .ret = _fl_tmp_363, .is_pure = fl_true, .is_variadic = fl_false}});
+        s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, fl_string_concat(tn, _fl_str_self_hosted_typechecker_71), ((void*)_fl_tmp_364));
         fl_int _fl_e_2;
         FL_CHECKED_ADD(fi, 1, &_fl_e_2);
         fi = _fl_e_2;
     }
     FL_Array* scmp_p = fl_array_new(0, 0, NULL);
+    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_365 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 6});
+    FL_Array* _fl_old_366 = scmp_p;
+    scmp_p = fl_array_push_sized(scmp_p, (&_fl_tmp_365), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_366 != scmp_p) {
+        fl_array_release(_fl_old_366);
+    }
+    fl_self_hosted_typechecker_TCType* _fl_tmp_367 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_367) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
+    fl_array_retain(scmp_p);
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_368 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_368) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = scmp_p, .ret = _fl_tmp_367, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_72, ((void*)_fl_tmp_368));
+    FL_Array* seq_p = fl_array_new(0, 0, NULL);
     fl_self_hosted_typechecker_TCTypeBox _fl_tmp_369 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 6});
-    FL_Array* _fl_old_370 = scmp_p;
-    scmp_p = fl_array_push_sized(scmp_p, (&_fl_tmp_369), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_370 != scmp_p) {
+    FL_Array* _fl_old_370 = seq_p;
+    seq_p = fl_array_push_sized(seq_p, (&_fl_tmp_369), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_370 != seq_p) {
         fl_array_release(_fl_old_370);
     }
     fl_self_hosted_typechecker_TCType* _fl_tmp_371 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_371) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
-    fl_array_retain(scmp_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_372 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_372) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = scmp_p, .ret = _fl_tmp_371, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_72, ((void*)_fl_tmp_372));
-    FL_Array* seq_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_373 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 6});
-    FL_Array* _fl_old_374 = seq_p;
-    seq_p = fl_array_push_sized(seq_p, (&_fl_tmp_373), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_374 != seq_p) {
-        fl_array_release(_fl_old_374);
-    }
-    fl_self_hosted_typechecker_TCType* _fl_tmp_375 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_375) = (fl_self_hosted_typechecker_TCType){.tag = 2};
+    (*_fl_tmp_371) = (fl_self_hosted_typechecker_TCType){.tag = 2};
     fl_array_retain(seq_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_376 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_376) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = seq_p, .ret = _fl_tmp_375, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_73, ((void*)_fl_tmp_376));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_372 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_372) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = seq_p, .ret = _fl_tmp_371, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_73, ((void*)_fl_tmp_372));
     FL_Array* sts_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCType* _fl_tmp_377 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_377) = (fl_self_hosted_typechecker_TCType){.tag = 6};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_373 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_373) = (fl_self_hosted_typechecker_TCType){.tag = 6};
     fl_array_retain(sts_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_378 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_378) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = sts_p, .ret = _fl_tmp_377, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_74, ((void*)_fl_tmp_378));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_374 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_374) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = sts_p, .ret = _fl_tmp_373, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_74, ((void*)_fl_tmp_374));
     FL_Array* beq_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_379 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 2});
-    FL_Array* _fl_old_380 = beq_p;
-    beq_p = fl_array_push_sized(beq_p, (&_fl_tmp_379), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_380 != beq_p) {
-        fl_array_release(_fl_old_380);
+    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_375 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 2});
+    FL_Array* _fl_old_376 = beq_p;
+    beq_p = fl_array_push_sized(beq_p, (&_fl_tmp_375), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_376 != beq_p) {
+        fl_array_release(_fl_old_376);
     }
-    fl_self_hosted_typechecker_TCType* _fl_tmp_381 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_381) = (fl_self_hosted_typechecker_TCType){.tag = 2};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_377 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_377) = (fl_self_hosted_typechecker_TCType){.tag = 2};
     fl_array_retain(beq_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_382 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_382) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = beq_p, .ret = _fl_tmp_381, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_75, ((void*)_fl_tmp_382));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_378 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_378) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = beq_p, .ret = _fl_tmp_377, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_75, ((void*)_fl_tmp_378));
     FL_Array* bts_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCType* _fl_tmp_383 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_383) = (fl_self_hosted_typechecker_TCType){.tag = 6};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_379 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_379) = (fl_self_hosted_typechecker_TCType){.tag = 6};
     fl_array_retain(bts_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_384 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_384) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = bts_p, .ret = _fl_tmp_383, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_76, ((void*)_fl_tmp_384));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_380 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_380) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = bts_p, .ret = _fl_tmp_379, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_76, ((void*)_fl_tmp_380));
     FL_Array* ccmp_p = fl_array_new(0, 0, NULL);
+    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_381 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 3});
+    FL_Array* _fl_old_382 = ccmp_p;
+    ccmp_p = fl_array_push_sized(ccmp_p, (&_fl_tmp_381), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_382 != ccmp_p) {
+        fl_array_release(_fl_old_382);
+    }
+    fl_self_hosted_typechecker_TCType* _fl_tmp_383 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_383) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
+    fl_array_retain(ccmp_p);
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_384 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_384) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = ccmp_p, .ret = _fl_tmp_383, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_77, ((void*)_fl_tmp_384));
+    FL_Array* ceq_p = fl_array_new(0, 0, NULL);
     fl_self_hosted_typechecker_TCTypeBox _fl_tmp_385 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 3});
-    FL_Array* _fl_old_386 = ccmp_p;
-    ccmp_p = fl_array_push_sized(ccmp_p, (&_fl_tmp_385), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_386 != ccmp_p) {
+    FL_Array* _fl_old_386 = ceq_p;
+    ceq_p = fl_array_push_sized(ceq_p, (&_fl_tmp_385), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_386 != ceq_p) {
         fl_array_release(_fl_old_386);
     }
     fl_self_hosted_typechecker_TCType* _fl_tmp_387 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_387) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
-    fl_array_retain(ccmp_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_388 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_388) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = ccmp_p, .ret = _fl_tmp_387, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_77, ((void*)_fl_tmp_388));
-    FL_Array* ceq_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_389 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 3});
-    FL_Array* _fl_old_390 = ceq_p;
-    ceq_p = fl_array_push_sized(ceq_p, (&_fl_tmp_389), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_390 != ceq_p) {
-        fl_array_release(_fl_old_390);
-    }
-    fl_self_hosted_typechecker_TCType* _fl_tmp_391 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_391) = (fl_self_hosted_typechecker_TCType){.tag = 2};
+    (*_fl_tmp_387) = (fl_self_hosted_typechecker_TCType){.tag = 2};
     fl_array_retain(ceq_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_392 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_392) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = ceq_p, .ret = _fl_tmp_391, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_78, ((void*)_fl_tmp_392));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_388 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_388) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = ceq_p, .ret = _fl_tmp_387, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_78, ((void*)_fl_tmp_388));
     FL_Array* cts_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCType* _fl_tmp_393 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_393) = (fl_self_hosted_typechecker_TCType){.tag = 6};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_389 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_389) = (fl_self_hosted_typechecker_TCType){.tag = 6};
     fl_array_retain(cts_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_394 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_394) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cts_p, .ret = _fl_tmp_393, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_79, ((void*)_fl_tmp_394));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_390 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_390) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = cts_p, .ret = _fl_tmp_389, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_79, ((void*)_fl_tmp_390));
     FL_Array* bycmp_p = fl_array_new(0, 0, NULL);
+    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_391 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 4});
+    FL_Array* _fl_old_392 = bycmp_p;
+    bycmp_p = fl_array_push_sized(bycmp_p, (&_fl_tmp_391), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_392 != bycmp_p) {
+        fl_array_release(_fl_old_392);
+    }
+    fl_self_hosted_typechecker_TCType* _fl_tmp_393 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_393) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
+    fl_array_retain(bycmp_p);
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_394 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_394) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = bycmp_p, .ret = _fl_tmp_393, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_80, ((void*)_fl_tmp_394));
+    FL_Array* byeq_p = fl_array_new(0, 0, NULL);
     fl_self_hosted_typechecker_TCTypeBox _fl_tmp_395 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 4});
-    FL_Array* _fl_old_396 = bycmp_p;
-    bycmp_p = fl_array_push_sized(bycmp_p, (&_fl_tmp_395), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_396 != bycmp_p) {
+    FL_Array* _fl_old_396 = byeq_p;
+    byeq_p = fl_array_push_sized(byeq_p, (&_fl_tmp_395), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+    if (_fl_old_396 != byeq_p) {
         fl_array_release(_fl_old_396);
     }
     fl_self_hosted_typechecker_TCType* _fl_tmp_397 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_397) = (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
-    fl_array_retain(bycmp_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_398 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_398) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = bycmp_p, .ret = _fl_tmp_397, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_80, ((void*)_fl_tmp_398));
-    FL_Array* byeq_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_399 = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 4});
-    FL_Array* _fl_old_400 = byeq_p;
-    byeq_p = fl_array_push_sized(byeq_p, (&_fl_tmp_399), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-    if (_fl_old_400 != byeq_p) {
-        fl_array_release(_fl_old_400);
-    }
-    fl_self_hosted_typechecker_TCType* _fl_tmp_401 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_401) = (fl_self_hosted_typechecker_TCType){.tag = 2};
+    (*_fl_tmp_397) = (fl_self_hosted_typechecker_TCType){.tag = 2};
     fl_array_retain(byeq_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_402 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_402) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = byeq_p, .ret = _fl_tmp_401, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_81, ((void*)_fl_tmp_402));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_398 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_398) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = byeq_p, .ret = _fl_tmp_397, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_81, ((void*)_fl_tmp_398));
     FL_Array* byts_p = fl_array_new(0, 0, NULL);
-    fl_self_hosted_typechecker_TCType* _fl_tmp_403 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-    (*_fl_tmp_403) = (fl_self_hosted_typechecker_TCType){.tag = 6};
+    fl_self_hosted_typechecker_TCType* _fl_tmp_399 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+    (*_fl_tmp_399) = (fl_self_hosted_typechecker_TCType){.tag = 6};
     fl_array_retain(byts_p);
-    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_404 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-    (*_fl_tmp_404) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = byts_p, .ret = _fl_tmp_403, .is_pure = fl_true, .is_variadic = fl_false}});
-    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_82, ((void*)_fl_tmp_404));
+    fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_400 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+    (*_fl_tmp_400) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = byts_p, .ret = _fl_tmp_399, .is_pure = fl_true, .is_variadic = fl_false}});
+    s->builtin_method_sigs = fl_map_set_str(s->builtin_method_sigs, _fl_str_self_hosted_typechecker_82, ((void*)_fl_tmp_400));
     fl_array_release(int_types);
     fl_array_release(float_types);
     fl_array_release(scmp_p);
@@ -15808,24 +15768,24 @@ void fl_self_hosted_typechecker_build_interface_registry(fl_self_hosted_typechec
     FL_Array* decls = s->src_module.decls;
     fl_array_retain(decls);
     while (i < fl_array_len_int(decls)) {
-        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_405 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-        fl_self_hosted_ast_Decl d = ((_fl_tmp_405.tag == 1) ? _fl_tmp_405.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-        fl_self_hosted_ast_Decl _fl_tmp_406 = d;
-        switch (_fl_tmp_406.tag) {
+        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_401 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+        fl_self_hosted_ast_Decl d = ((_fl_tmp_401.tag == 1) ? _fl_tmp_401.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+        fl_self_hosted_ast_Decl _fl_tmp_402 = d;
+        switch (_fl_tmp_402.tag) {
             case 4: {
-                fl_int nid = _fl_tmp_406.DInterface.id;
-                fl_int l = _fl_tmp_406.DInterface.line;
-                fl_int c = _fl_tmp_406.DInterface.col;
-                FL_String* name = _fl_tmp_406.DInterface.name;
-                FL_Array* type_params = _fl_tmp_406.DInterface.type_params;
-                FL_Array* methods = _fl_tmp_406.DInterface.methods;
-                fl_bool is_export = _fl_tmp_406.DInterface.is_export;
+                fl_int nid = _fl_tmp_402.DInterface.id;
+                fl_int l = _fl_tmp_402.DInterface.line;
+                fl_int c = _fl_tmp_402.DInterface.col;
+                FL_String* name = _fl_tmp_402.DInterface.name;
+                FL_Array* type_params = _fl_tmp_402.DInterface.type_params;
+                FL_Array* methods = _fl_tmp_402.DInterface.methods;
+                fl_bool is_export = _fl_tmp_402.DInterface.is_export;
                 fl_self_hosted_typechecker_InterfaceInfo iface_info = fl_self_hosted_typechecker_empty_iface_info(name);
                 fl_int ti = 0;
                 while (ti < fl_array_len_int(type_params)) {
                     fl_string_retain(_fl_str_self_hosted_typechecker_0);
-                    FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_407 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, ti), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
-                    fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_407.tag == 1) ? _fl_tmp_407.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                    FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_403 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, ti), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
+                    fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_403.tag == 1) ? _fl_tmp_403.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
                     iface_info.type_param_names = fl_array_push_ptr(iface_info.type_param_names, tp.name);
                     fl_int _fl_e_1;
                     FL_CHECKED_ADD(ti, 1, &_fl_e_1);
@@ -15833,37 +15793,37 @@ void fl_self_hosted_typechecker_build_interface_registry(fl_self_hosted_typechec
                 }
                 fl_int mi = 0;
                 while (mi < fl_array_len_int(methods)) {
-                    FL_Option_fl_self_hosted_ast_Decl _fl_tmp_408 = FL_OPT_DEREF_AS(fl_array_get_safe(methods, mi), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-                    fl_self_hosted_ast_Decl m = ((_fl_tmp_408.tag == 1) ? _fl_tmp_408.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-                    fl_self_hosted_ast_Decl _fl_tmp_409 = m;
-                    switch (_fl_tmp_409.tag) {
+                    FL_Option_fl_self_hosted_ast_Decl _fl_tmp_404 = FL_OPT_DEREF_AS(fl_array_get_safe(methods, mi), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+                    fl_self_hosted_ast_Decl m = ((_fl_tmp_404.tag == 1) ? _fl_tmp_404.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+                    fl_self_hosted_ast_Decl _fl_tmp_405 = m;
+                    switch (_fl_tmp_405.tag) {
                         case 2: {
-                            fl_int fnid = _fl_tmp_409.DFn.id;
-                            fl_int fl = _fl_tmp_409.DFn.line;
-                            fl_int fc = _fl_tmp_409.DFn.col;
-                            FL_String* mname = _fl_tmp_409.DFn.name;
-                            FL_Array* ftp = _fl_tmp_409.DFn.type_params;
-                            FL_Array* fparams = _fl_tmp_409.DFn.params;
-                            fl_bool fhrt = _fl_tmp_409.DFn.has_return_type;
-                            fl_self_hosted_ast_TypeExpr fret = _fl_tmp_409.DFn.return_type;
-                            FL_Array* fbody = _fl_tmp_409.DFn.body;
-                            fl_bool fip = _fl_tmp_409.DFn.is_pure;
-                            fl_bool fie = _fl_tmp_409.DFn.is_export;
-                            fl_bool fis = _fl_tmp_409.DFn.is_static;
-                            fl_bool fhf = _fl_tmp_409.DFn.has_finally;
-                            FL_Array* ffb = _fl_tmp_409.DFn.finally_body;
+                            fl_int fnid = _fl_tmp_405.DFn.id;
+                            fl_int fl = _fl_tmp_405.DFn.line;
+                            fl_int fc = _fl_tmp_405.DFn.col;
+                            FL_String* mname = _fl_tmp_405.DFn.name;
+                            FL_Array* ftp = _fl_tmp_405.DFn.type_params;
+                            FL_Array* fparams = _fl_tmp_405.DFn.params;
+                            fl_bool fhrt = _fl_tmp_405.DFn.has_return_type;
+                            fl_self_hosted_ast_TypeExpr fret = _fl_tmp_405.DFn.return_type;
+                            FL_Array* fbody = _fl_tmp_405.DFn.body;
+                            fl_bool fip = _fl_tmp_405.DFn.is_pure;
+                            fl_bool fie = _fl_tmp_405.DFn.is_export;
+                            fl_bool fis = _fl_tmp_405.DFn.is_static;
+                            fl_bool fhf = _fl_tmp_405.DFn.has_finally;
+                            FL_Array* ffb = _fl_tmp_405.DFn.finally_body;
                             FL_Array* mparams = fl_array_new(0, 0, NULL);
                             fl_int pi = 0;
                             while (pi < fl_array_len_int(fparams)) {
                                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                                FL_Option_fl_self_hosted_ast_Param _fl_tmp_410 = FL_OPT_DEREF_AS(fl_array_get_safe(fparams, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                                fl_self_hosted_ast_Param p = ((_fl_tmp_410.tag == 1) ? _fl_tmp_410.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                                FL_Option_fl_self_hosted_ast_Param _fl_tmp_406 = FL_OPT_DEREF_AS(fl_array_get_safe(fparams, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                                fl_self_hosted_ast_Param p = ((_fl_tmp_406.tag == 1) ? _fl_tmp_406.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                                 if (!fl_string_eq(p.name, _fl_str_self_hosted_typechecker_28)) {
-                                    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_411 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann));
-                                    FL_Array* _fl_old_412 = mparams;
-                                    mparams = fl_array_push_sized(mparams, (&_fl_tmp_411), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                                    if (_fl_old_412 != mparams) {
-                                        fl_array_release(_fl_old_412);
+                                    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_407 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann));
+                                    FL_Array* _fl_old_408 = mparams;
+                                    mparams = fl_array_push_sized(mparams, (&_fl_tmp_407), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                                    if (_fl_old_408 != mparams) {
+                                        fl_array_release(_fl_old_408);
                                     }
                                 }
                                 fl_int _fl_e_2;
@@ -15872,12 +15832,12 @@ void fl_self_hosted_typechecker_build_interface_registry(fl_self_hosted_typechec
                             }
                             fl_self_hosted_typechecker_TCType mret = fl_self_hosted_typechecker_resolve_type_expr_opt(s, fhrt, fret);
                             iface_info.method_names = fl_array_push_ptr(iface_info.method_names, mname);
-                            fl_self_hosted_typechecker_TCType* _fl_tmp_413 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                            (*_fl_tmp_413) = mret;
+                            fl_self_hosted_typechecker_TCType* _fl_tmp_409 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                            (*_fl_tmp_409) = mret;
                             fl_array_retain(mparams);
-                            fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_414 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-                            (*_fl_tmp_414) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mparams, .ret = _fl_tmp_413, .is_pure = fip, .is_variadic = fl_false}});
-                            iface_info.method_types = fl_map_set_str(iface_info.method_types, mname, ((void*)_fl_tmp_414));
+                            fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_410 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+                            (*_fl_tmp_410) = fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = mparams, .ret = _fl_tmp_409, .is_pure = fip, .is_variadic = fl_false}});
+                            iface_info.method_types = fl_map_set_str(iface_info.method_types, mname, ((void*)_fl_tmp_410));
                             break;
                         }
                     }
@@ -15885,9 +15845,9 @@ void fl_self_hosted_typechecker_build_interface_registry(fl_self_hosted_typechec
                     FL_CHECKED_ADD(mi, 1, &_fl_e_3);
                     mi = _fl_e_3;
                 }
-                fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_415 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
-                (*_fl_tmp_415) = iface_info;
-                s->iface_registry = fl_map_set_str(s->iface_registry, name, ((void*)_fl_tmp_415));
+                fl_self_hosted_typechecker_InterfaceInfo* _fl_tmp_411 = ((fl_self_hosted_typechecker_InterfaceInfo*)malloc(sizeof(fl_self_hosted_typechecker_InterfaceInfo)));
+                (*_fl_tmp_411) = iface_info;
+                s->iface_registry = fl_map_set_str(s->iface_registry, name, ((void*)_fl_tmp_411));
                 break;
             }
         }
@@ -15904,66 +15864,66 @@ void fl_self_hosted_typechecker_register_top_level_types(fl_self_hosted_typechec
     FL_Array* decls = s->src_module.decls;
     fl_array_retain(decls);
     while (i < fl_array_len_int(decls)) {
-        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_416 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-        fl_self_hosted_ast_Decl d = ((_fl_tmp_416.tag == 1) ? _fl_tmp_416.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-        fl_self_hosted_ast_Decl _fl_tmp_417 = d;
-        switch (_fl_tmp_417.tag) {
+        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_412 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+        fl_self_hosted_ast_Decl d = ((_fl_tmp_412.tag == 1) ? _fl_tmp_412.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+        fl_self_hosted_ast_Decl _fl_tmp_413 = d;
+        switch (_fl_tmp_413.tag) {
             case 2: {
-                fl_int nid = _fl_tmp_417.DFn.id;
-                fl_int l = _fl_tmp_417.DFn.line;
-                fl_int c = _fl_tmp_417.DFn.col;
-                FL_String* name = _fl_tmp_417.DFn.name;
-                FL_Array* type_params = _fl_tmp_417.DFn.type_params;
-                FL_Array* params = _fl_tmp_417.DFn.params;
-                fl_bool hrt = _fl_tmp_417.DFn.has_return_type;
-                fl_self_hosted_ast_TypeExpr ret = _fl_tmp_417.DFn.return_type;
-                FL_Array* body = _fl_tmp_417.DFn.body;
-                fl_bool is_pure = _fl_tmp_417.DFn.is_pure;
-                fl_bool is_export = _fl_tmp_417.DFn.is_export;
-                fl_bool is_static = _fl_tmp_417.DFn.is_static;
-                fl_bool hf = _fl_tmp_417.DFn.has_finally;
-                FL_Array* fb = _fl_tmp_417.DFn.finally_body;
+                fl_int nid = _fl_tmp_413.DFn.id;
+                fl_int l = _fl_tmp_413.DFn.line;
+                fl_int c = _fl_tmp_413.DFn.col;
+                FL_String* name = _fl_tmp_413.DFn.name;
+                FL_Array* type_params = _fl_tmp_413.DFn.type_params;
+                FL_Array* params = _fl_tmp_413.DFn.params;
+                fl_bool hrt = _fl_tmp_413.DFn.has_return_type;
+                fl_self_hosted_ast_TypeExpr ret = _fl_tmp_413.DFn.return_type;
+                FL_Array* body = _fl_tmp_413.DFn.body;
+                fl_bool is_pure = _fl_tmp_413.DFn.is_pure;
+                fl_bool is_export = _fl_tmp_413.DFn.is_export;
+                fl_bool is_static = _fl_tmp_413.DFn.is_static;
+                fl_bool hf = _fl_tmp_413.DFn.has_finally;
+                FL_Array* fb = _fl_tmp_413.DFn.finally_body;
                 fl_self_hosted_typechecker_TCType ft = fl_self_hosted_typechecker_fn_decl_type(s, d);
                 fl_self_hosted_typechecker_scope_define(s, name, ft);
                 s->purity_map = fl_map_set_str(s->purity_map, name, fl_box_bool(is_pure));
                 break;
             }
             case 3: {
-                fl_int nid = _fl_tmp_417.DType.id;
-                fl_int l = _fl_tmp_417.DType.line;
-                fl_int c = _fl_tmp_417.DType.col;
-                FL_String* name = _fl_tmp_417.DType.name;
-                FL_Array* type_params = _fl_tmp_417.DType.type_params;
-                FL_Array* fields = _fl_tmp_417.DType.fields;
-                FL_Array* methods = _fl_tmp_417.DType.methods;
-                FL_Array* ctors = _fl_tmp_417.DType.constructors;
-                FL_Array* statics = _fl_tmp_417.DType.static_members;
-                FL_Array* ifaces = _fl_tmp_417.DType.interfaces;
-                fl_bool is_export = _fl_tmp_417.DType.is_export;
-                fl_bool is_sum_type = _fl_tmp_417.DType.is_sum_type;
-                FL_Array* variants = _fl_tmp_417.DType.variants;
-                fl_bool is_mut = _fl_tmp_417.DType.is_mut;
+                fl_int nid = _fl_tmp_413.DType.id;
+                fl_int l = _fl_tmp_413.DType.line;
+                fl_int c = _fl_tmp_413.DType.col;
+                FL_String* name = _fl_tmp_413.DType.name;
+                FL_Array* type_params = _fl_tmp_413.DType.type_params;
+                FL_Array* fields = _fl_tmp_413.DType.fields;
+                FL_Array* methods = _fl_tmp_413.DType.methods;
+                FL_Array* ctors = _fl_tmp_413.DType.constructors;
+                FL_Array* statics = _fl_tmp_413.DType.static_members;
+                FL_Array* ifaces = _fl_tmp_413.DType.interfaces;
+                fl_bool is_export = _fl_tmp_413.DType.is_export;
+                fl_bool is_sum_type = _fl_tmp_413.DType.is_sum_type;
+                FL_Array* variants = _fl_tmp_413.DType.variants;
+                fl_bool is_mut = _fl_tmp_413.DType.is_mut;
                 FL_Option_fl_self_hosted_typechecker_TypeInfo info_opt = FL_OPT_DEREF_AS(fl_map_get_str(s->type_registry, name), fl_self_hosted_typechecker_TypeInfo, FL_Option_fl_self_hosted_typechecker_TypeInfo);
-                FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_418 = info_opt;
-                if (_fl_tmp_418.tag == 1) {
-                    fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_418.value;
+                FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_414 = info_opt;
+                if (_fl_tmp_414.tag == 1) {
+                    fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_414.value;
                     if (info.is_sum_type && info.has_sum_type) {
                         fl_self_hosted_typechecker_scope_define(s, name, info.sum_type_box.tc);
-                        fl_self_hosted_typechecker_TCType _fl_tmp_419 = info.sum_type_box.tc;
-                        switch (_fl_tmp_419.tag) {
+                        fl_self_hosted_typechecker_TCType _fl_tmp_415 = info.sum_type_box.tc;
+                        switch (_fl_tmp_415.tag) {
                             case 20: {
-                                FL_String* sname = _fl_tmp_419.TCSumType.name;
-                                FL_String* smod_path = _fl_tmp_419.TCSumType.mod_path;
-                                FL_Array* svariants = _fl_tmp_419.TCSumType.variants;
+                                FL_String* sname = _fl_tmp_415.TCSumType.name;
+                                FL_String* smod_path = _fl_tmp_415.TCSumType.mod_path;
+                                FL_Array* svariants = _fl_tmp_415.TCSumType.variants;
                                 fl_int vi = 0;
                                 while (vi < fl_array_len_int(svariants)) {
-                                    FL_Option_fl_self_hosted_typechecker_TCSumVariant _fl_tmp_420 = FL_OPT_DEREF_AS(fl_array_get_safe(svariants, vi), fl_self_hosted_typechecker_TCSumVariant, FL_Option_fl_self_hosted_typechecker_TCSumVariant);
-                                    fl_self_hosted_typechecker_TCSumVariant v = ((_fl_tmp_420.tag == 1) ? _fl_tmp_420.value : fl_self_hosted_typechecker_make_sum_variant(_fl_str_self_hosted_typechecker_0));
+                                    FL_Option_fl_self_hosted_typechecker_TCSumVariant _fl_tmp_416 = FL_OPT_DEREF_AS(fl_array_get_safe(svariants, vi), fl_self_hosted_typechecker_TCSumVariant, FL_Option_fl_self_hosted_typechecker_TCSumVariant);
+                                    fl_self_hosted_typechecker_TCSumVariant v = ((_fl_tmp_416.tag == 1) ? _fl_tmp_416.value : fl_self_hosted_typechecker_make_sum_variant(_fl_str_self_hosted_typechecker_0));
                                     if (v.has_fields) {
-                                        fl_self_hosted_typechecker_TCType* _fl_tmp_421 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                                        (*_fl_tmp_421) = info.sum_type_box.tc;
+                                        fl_self_hosted_typechecker_TCType* _fl_tmp_417 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                                        (*_fl_tmp_417) = info.sum_type_box.tc;
                                         fl_array_retain(v.field_types_box);
-                                        fl_self_hosted_typechecker_scope_define(s, v.name, (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = v.field_types_box, .ret = _fl_tmp_421, .is_pure = fl_false, .is_variadic = fl_false}});
+                                        fl_self_hosted_typechecker_scope_define(s, v.name, (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = v.field_types_box, .ret = _fl_tmp_417, .is_pure = fl_false, .is_variadic = fl_false}});
                                     } else {
                                         fl_self_hosted_typechecker_scope_define(s, v.name, info.sum_type_box.tc);
                                     }
@@ -15981,8 +15941,8 @@ void fl_self_hosted_typechecker_register_top_level_types(fl_self_hosted_typechec
                     }
                     fl_int ci = 0;
                     while (ci < fl_array_len_int(info.ctor_names)) {
-                        FL_Option_ptr _fl_tmp_422 = fl_array_get_safe(info.ctor_names, ci);
-                        FL_String* cname = ((_fl_tmp_422.tag == 1) ? _fl_tmp_422.value : _fl_str_self_hosted_typechecker_0);
+                        FL_Option_ptr _fl_tmp_418 = fl_array_get_safe(info.ctor_names, ci);
+                        FL_String* cname = ((_fl_tmp_418.tag == 1) ? _fl_tmp_418.value : _fl_str_self_hosted_typechecker_0);
                         fl_string_retain(cname);
                         fl_self_hosted_typechecker_TCType ctype = fl_self_hosted_typechecker_tc_map_get(info.ctor_types, cname);
                         fl_self_hosted_typechecker_scope_define(s, cname, ctype);
@@ -15998,54 +15958,54 @@ void fl_self_hosted_typechecker_register_top_level_types(fl_self_hosted_typechec
                 break;
             }
             case 4: {
-                fl_int nid = _fl_tmp_417.DInterface.id;
-                fl_int l = _fl_tmp_417.DInterface.line;
-                fl_int c = _fl_tmp_417.DInterface.col;
-                FL_String* name = _fl_tmp_417.DInterface.name;
-                FL_Array* type_params = _fl_tmp_417.DInterface.type_params;
-                FL_Array* methods = _fl_tmp_417.DInterface.methods;
-                fl_bool is_export = _fl_tmp_417.DInterface.is_export;
+                fl_int nid = _fl_tmp_413.DInterface.id;
+                fl_int l = _fl_tmp_413.DInterface.line;
+                fl_int c = _fl_tmp_413.DInterface.col;
+                FL_String* name = _fl_tmp_413.DInterface.name;
+                FL_Array* type_params = _fl_tmp_413.DInterface.type_params;
+                FL_Array* methods = _fl_tmp_413.DInterface.methods;
+                fl_bool is_export = _fl_tmp_413.DInterface.is_export;
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
                 fl_string_retain(name);
                 fl_self_hosted_typechecker_scope_define(s, name, (fl_self_hosted_typechecker_TCType){.tag = 19, .TCNamed = (fl_self_hosted_typechecker_TCType_TCNamed){.mod_path = _fl_str_self_hosted_typechecker_0, .name = name, .type_args = fl_array_new(0, 0, NULL)}});
                 break;
             }
             case 5: {
-                fl_int nid = _fl_tmp_417.DAlias.id;
-                fl_int l = _fl_tmp_417.DAlias.line;
-                fl_int c = _fl_tmp_417.DAlias.col;
-                FL_String* name = _fl_tmp_417.DAlias.name;
-                FL_Array* type_params = _fl_tmp_417.DAlias.type_params;
-                fl_self_hosted_ast_TypeExpr target = _fl_tmp_417.DAlias.target;
-                fl_bool is_export = _fl_tmp_417.DAlias.is_export;
+                fl_int nid = _fl_tmp_413.DAlias.id;
+                fl_int l = _fl_tmp_413.DAlias.line;
+                fl_int c = _fl_tmp_413.DAlias.col;
+                FL_String* name = _fl_tmp_413.DAlias.name;
+                FL_Array* type_params = _fl_tmp_413.DAlias.type_params;
+                fl_self_hosted_ast_TypeExpr target = _fl_tmp_413.DAlias.target;
+                fl_bool is_export = _fl_tmp_413.DAlias.is_export;
                 fl_self_hosted_typechecker_TCType target_t = fl_self_hosted_typechecker_resolve_type_expr(s, target);
-                fl_self_hosted_typechecker_TCType* _fl_tmp_423 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_423) = target_t;
+                fl_self_hosted_typechecker_TCType* _fl_tmp_419 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_419) = target_t;
                 fl_string_retain(name);
-                fl_self_hosted_typechecker_scope_define(s, name, (fl_self_hosted_typechecker_TCType){.tag = 25, .TCAlias = (fl_self_hosted_typechecker_TCType_TCAlias){.name = name, .underlying = _fl_tmp_423}});
+                fl_self_hosted_typechecker_scope_define(s, name, (fl_self_hosted_typechecker_TCType){.tag = 25, .TCAlias = (fl_self_hosted_typechecker_TCType_TCAlias){.name = name, .underlying = _fl_tmp_419}});
                 break;
             }
             case 9: {
-                fl_int nid = _fl_tmp_417.DExternFn.id;
-                fl_int l = _fl_tmp_417.DExternFn.line;
-                fl_int c = _fl_tmp_417.DExternFn.col;
-                FL_String* name = _fl_tmp_417.DExternFn.name;
-                FL_Array* type_params = _fl_tmp_417.DExternFn.type_params;
-                FL_Array* params = _fl_tmp_417.DExternFn.params;
-                fl_bool hrt = _fl_tmp_417.DExternFn.has_return_type;
-                fl_self_hosted_ast_TypeExpr ret = _fl_tmp_417.DExternFn.return_type;
-                fl_bool is_export = _fl_tmp_417.DExternFn.is_export;
-                FL_String* c_name = _fl_tmp_417.DExternFn.c_name;
+                fl_int nid = _fl_tmp_413.DExternFn.id;
+                fl_int l = _fl_tmp_413.DExternFn.line;
+                fl_int c = _fl_tmp_413.DExternFn.col;
+                FL_String* name = _fl_tmp_413.DExternFn.name;
+                FL_Array* type_params = _fl_tmp_413.DExternFn.type_params;
+                FL_Array* params = _fl_tmp_413.DExternFn.params;
+                fl_bool hrt = _fl_tmp_413.DExternFn.has_return_type;
+                fl_self_hosted_ast_TypeExpr ret = _fl_tmp_413.DExternFn.return_type;
+                fl_bool is_export = _fl_tmp_413.DExternFn.is_export;
+                FL_String* c_name = _fl_tmp_413.DExternFn.c_name;
                 fl_self_hosted_typechecker_TCType ft = fl_self_hosted_typechecker_extern_fn_decl_type(s, d);
                 fl_self_hosted_typechecker_scope_define(s, name, ft);
                 break;
             }
             case 8: {
-                fl_int nid = _fl_tmp_417.DExternType.id;
-                fl_int l = _fl_tmp_417.DExternType.line;
-                fl_int c = _fl_tmp_417.DExternType.col;
-                FL_String* name = _fl_tmp_417.DExternType.name;
-                fl_bool is_export = _fl_tmp_417.DExternType.is_export;
+                fl_int nid = _fl_tmp_413.DExternType.id;
+                fl_int l = _fl_tmp_413.DExternType.line;
+                fl_int c = _fl_tmp_413.DExternType.col;
+                FL_String* name = _fl_tmp_413.DExternType.name;
+                fl_bool is_export = _fl_tmp_413.DExternType.is_export;
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
                 fl_string_retain(name);
                 fl_self_hosted_typechecker_scope_define(s, name, (fl_self_hosted_typechecker_TCType){.tag = 19, .TCNamed = (fl_self_hosted_typechecker_TCType_TCNamed){.mod_path = _fl_str_self_hosted_typechecker_0, .name = name, .type_args = fl_array_new(0, 0, NULL)}});
@@ -16064,31 +16024,31 @@ void fl_self_hosted_typechecker_register_top_level_types(fl_self_hosted_typechec
 /* Flow: self_hosted.typechecker.infer_type_env_from_call */
 FL_Map* fl_self_hosted_typechecker_infer_type_env_from_call(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Decl decl, FL_Array* arg_types) {
     FL_Map* env = fl_map_new();
-    fl_self_hosted_ast_Decl _fl_tmp_424 = decl;
-    switch (_fl_tmp_424.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_420 = decl;
+    switch (_fl_tmp_420.tag) {
         case 2: {
-            fl_int nid = _fl_tmp_424.DFn.id;
-            fl_int l = _fl_tmp_424.DFn.line;
-            fl_int c = _fl_tmp_424.DFn.col;
-            FL_String* name = _fl_tmp_424.DFn.name;
-            FL_Array* type_params = _fl_tmp_424.DFn.type_params;
-            FL_Array* params = _fl_tmp_424.DFn.params;
-            fl_bool hrt = _fl_tmp_424.DFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_424.DFn.return_type;
-            FL_Array* body = _fl_tmp_424.DFn.body;
-            fl_bool is_pure = _fl_tmp_424.DFn.is_pure;
-            fl_bool is_export = _fl_tmp_424.DFn.is_export;
-            fl_bool is_static = _fl_tmp_424.DFn.is_static;
-            fl_bool hf = _fl_tmp_424.DFn.has_finally;
-            FL_Array* fb = _fl_tmp_424.DFn.finally_body;
+            fl_int nid = _fl_tmp_420.DFn.id;
+            fl_int l = _fl_tmp_420.DFn.line;
+            fl_int c = _fl_tmp_420.DFn.col;
+            FL_String* name = _fl_tmp_420.DFn.name;
+            FL_Array* type_params = _fl_tmp_420.DFn.type_params;
+            FL_Array* params = _fl_tmp_420.DFn.params;
+            fl_bool hrt = _fl_tmp_420.DFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_420.DFn.return_type;
+            FL_Array* body = _fl_tmp_420.DFn.body;
+            fl_bool is_pure = _fl_tmp_420.DFn.is_pure;
+            fl_bool is_export = _fl_tmp_420.DFn.is_export;
+            fl_bool is_static = _fl_tmp_420.DFn.is_static;
+            fl_bool hf = _fl_tmp_420.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_420.DFn.finally_body;
             fl_int i = 0;
             while ((i < fl_array_len_int(params)) && (i < fl_array_len_int(arg_types))) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_Param _fl_tmp_425 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                fl_self_hosted_ast_Param p = ((_fl_tmp_425.tag == 1) ? _fl_tmp_425.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                FL_Option_fl_self_hosted_ast_Param _fl_tmp_421 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                fl_self_hosted_ast_Param p = ((_fl_tmp_421.tag == 1) ? _fl_tmp_421.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                 fl_self_hosted_typechecker_TCType param_t = fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann);
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_426 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCTypeBox arg_b = ((_fl_tmp_426.tag == 1) ? _fl_tmp_426.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_422 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCTypeBox arg_b = ((_fl_tmp_422.tag == 1) ? _fl_tmp_422.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                 fl_self_hosted_typechecker_match_type_env(param_t, arg_b.tc, (&env));
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -16097,24 +16057,24 @@ FL_Map* fl_self_hosted_typechecker_infer_type_env_from_call(fl_self_hosted_typec
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_424.DExternFn.id;
-            fl_int l = _fl_tmp_424.DExternFn.line;
-            fl_int c = _fl_tmp_424.DExternFn.col;
-            FL_String* name = _fl_tmp_424.DExternFn.name;
-            FL_Array* type_params = _fl_tmp_424.DExternFn.type_params;
-            FL_Array* params = _fl_tmp_424.DExternFn.params;
-            fl_bool hrt = _fl_tmp_424.DExternFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_424.DExternFn.return_type;
-            fl_bool is_export = _fl_tmp_424.DExternFn.is_export;
-            FL_String* c_name = _fl_tmp_424.DExternFn.c_name;
+            fl_int nid = _fl_tmp_420.DExternFn.id;
+            fl_int l = _fl_tmp_420.DExternFn.line;
+            fl_int c = _fl_tmp_420.DExternFn.col;
+            FL_String* name = _fl_tmp_420.DExternFn.name;
+            FL_Array* type_params = _fl_tmp_420.DExternFn.type_params;
+            FL_Array* params = _fl_tmp_420.DExternFn.params;
+            fl_bool hrt = _fl_tmp_420.DExternFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_420.DExternFn.return_type;
+            fl_bool is_export = _fl_tmp_420.DExternFn.is_export;
+            FL_String* c_name = _fl_tmp_420.DExternFn.c_name;
             fl_int i = 0;
             while ((i < fl_array_len_int(params)) && (i < fl_array_len_int(arg_types))) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_Param _fl_tmp_427 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                fl_self_hosted_ast_Param p = ((_fl_tmp_427.tag == 1) ? _fl_tmp_427.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                FL_Option_fl_self_hosted_ast_Param _fl_tmp_423 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                fl_self_hosted_ast_Param p = ((_fl_tmp_423.tag == 1) ? _fl_tmp_423.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                 fl_self_hosted_typechecker_TCType param_t = fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann);
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_428 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCTypeBox arg_b = ((_fl_tmp_428.tag == 1) ? _fl_tmp_428.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_424 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCTypeBox arg_b = ((_fl_tmp_424.tag == 1) ? _fl_tmp_424.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                 fl_self_hosted_typechecker_match_type_env(param_t, arg_b.tc, (&env));
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -16128,29 +16088,29 @@ FL_Map* fl_self_hosted_typechecker_infer_type_env_from_call(fl_self_hosted_typec
 
 /* Flow: self_hosted.typechecker.match_type_env */
 void fl_self_hosted_typechecker_match_type_env(fl_self_hosted_typechecker_TCType param_t, fl_self_hosted_typechecker_TCType arg_t, FL_Map** env) {
-    fl_self_hosted_typechecker_TCType _fl_tmp_429 = param_t;
-    switch (_fl_tmp_429.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_425 = param_t;
+    switch (_fl_tmp_425.tag) {
         case 22: {
-            FL_String* name = _fl_tmp_429.TCTypeVar.name;
+            FL_String* name = _fl_tmp_425.TCTypeVar.name;
             fl_bool already = fl_map_has_str((*env), name);
             if (!already) {
                 fl_self_hosted_typechecker_TCTypeBox boxed = fl_self_hosted_typechecker_tc_box(arg_t);
-                fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_430 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
-                (*_fl_tmp_430) = boxed;
-                FL_Map* _fl_old_431 = (*env);
-                (*env) = fl_map_set_str((*env), name, ((void*)_fl_tmp_430));
-                if (_fl_old_431 != (*env)) {
-                    fl_map_release(_fl_old_431);
+                fl_self_hosted_typechecker_TCTypeBox* _fl_tmp_426 = ((fl_self_hosted_typechecker_TCTypeBox*)malloc(sizeof(fl_self_hosted_typechecker_TCTypeBox)));
+                (*_fl_tmp_426) = boxed;
+                FL_Map* _fl_old_427 = (*env);
+                (*env) = fl_map_set_str((*env), name, ((void*)_fl_tmp_426));
+                if (_fl_old_427 != (*env)) {
+                    fl_map_release(_fl_old_427);
                 }
             }
             break;
         }
         case 8: {
-            fl_self_hosted_typechecker_TCType inner_p = (*_fl_tmp_429.TCOption.inner);
-            fl_self_hosted_typechecker_TCType _fl_tmp_432 = arg_t;
-            switch (_fl_tmp_432.tag) {
+            fl_self_hosted_typechecker_TCType inner_p = (*_fl_tmp_425.TCOption.inner);
+            fl_self_hosted_typechecker_TCType _fl_tmp_428 = arg_t;
+            switch (_fl_tmp_428.tag) {
                 case 8: {
-                    fl_self_hosted_typechecker_TCType inner_a = (*_fl_tmp_432.TCOption.inner);
+                    fl_self_hosted_typechecker_TCType inner_a = (*_fl_tmp_428.TCOption.inner);
                     fl_self_hosted_typechecker_match_type_env(inner_p, inner_a, (&(*env)));
                     break;
                 }
@@ -16162,11 +16122,11 @@ void fl_self_hosted_typechecker_match_type_env(fl_self_hosted_typechecker_TCType
             break;
         }
         case 11: {
-            fl_self_hosted_typechecker_TCType ep = (*_fl_tmp_429.TCArray.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_433 = arg_t;
-            switch (_fl_tmp_433.tag) {
+            fl_self_hosted_typechecker_TCType ep = (*_fl_tmp_425.TCArray.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_429 = arg_t;
+            switch (_fl_tmp_429.tag) {
                 case 11: {
-                    fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_433.TCArray.elem);
+                    fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_429.TCArray.elem);
                     fl_self_hosted_typechecker_match_type_env(ep, ea, (&(*env)));
                     break;
                 }
@@ -16174,11 +16134,11 @@ void fl_self_hosted_typechecker_match_type_env(fl_self_hosted_typechecker_TCType
             break;
         }
         case 12: {
-            fl_self_hosted_typechecker_TCType ep = (*_fl_tmp_429.TCStream.elem);
-            fl_self_hosted_typechecker_TCType _fl_tmp_434 = arg_t;
-            switch (_fl_tmp_434.tag) {
+            fl_self_hosted_typechecker_TCType ep = (*_fl_tmp_425.TCStream.elem);
+            fl_self_hosted_typechecker_TCType _fl_tmp_430 = arg_t;
+            switch (_fl_tmp_430.tag) {
                 case 12: {
-                    fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_434.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType ea = (*_fl_tmp_430.TCStream.elem);
                     fl_self_hosted_typechecker_match_type_env(ep, ea, (&(*env)));
                     break;
                 }
@@ -16186,13 +16146,13 @@ void fl_self_hosted_typechecker_match_type_env(fl_self_hosted_typechecker_TCType
             break;
         }
         case 15: {
-            fl_self_hosted_typechecker_TCType kp = (*_fl_tmp_429.TCMap.key);
-            fl_self_hosted_typechecker_TCType vp = (*_fl_tmp_429.TCMap.val);
-            fl_self_hosted_typechecker_TCType _fl_tmp_435 = arg_t;
-            switch (_fl_tmp_435.tag) {
+            fl_self_hosted_typechecker_TCType kp = (*_fl_tmp_425.TCMap.key);
+            fl_self_hosted_typechecker_TCType vp = (*_fl_tmp_425.TCMap.val);
+            fl_self_hosted_typechecker_TCType _fl_tmp_431 = arg_t;
+            switch (_fl_tmp_431.tag) {
                 case 15: {
-                    fl_self_hosted_typechecker_TCType ka = (*_fl_tmp_435.TCMap.key);
-                    fl_self_hosted_typechecker_TCType va = (*_fl_tmp_435.TCMap.val);
+                    fl_self_hosted_typechecker_TCType ka = (*_fl_tmp_431.TCMap.key);
+                    fl_self_hosted_typechecker_TCType va = (*_fl_tmp_431.TCMap.val);
                     fl_self_hosted_typechecker_match_type_env(kp, ka, (&(*env)));
                     fl_self_hosted_typechecker_match_type_env(vp, va, (&(*env)));
                     break;
@@ -16201,23 +16161,23 @@ void fl_self_hosted_typechecker_match_type_env(fl_self_hosted_typechecker_TCType
             break;
         }
         case 17: {
-            FL_Array* pp = _fl_tmp_429.TCFn.params;
-            fl_self_hosted_typechecker_TCType rp = (*_fl_tmp_429.TCFn.ret);
-            fl_bool ip = _fl_tmp_429.TCFn.is_pure;
-            fl_bool ivp = _fl_tmp_429.TCFn.is_variadic;
-            fl_self_hosted_typechecker_TCType _fl_tmp_436 = arg_t;
-            switch (_fl_tmp_436.tag) {
+            FL_Array* pp = _fl_tmp_425.TCFn.params;
+            fl_self_hosted_typechecker_TCType rp = (*_fl_tmp_425.TCFn.ret);
+            fl_bool ip = _fl_tmp_425.TCFn.is_pure;
+            fl_bool ivp = _fl_tmp_425.TCFn.is_variadic;
+            fl_self_hosted_typechecker_TCType _fl_tmp_432 = arg_t;
+            switch (_fl_tmp_432.tag) {
                 case 17: {
-                    FL_Array* pa = _fl_tmp_436.TCFn.params;
-                    fl_self_hosted_typechecker_TCType ra = (*_fl_tmp_436.TCFn.ret);
-                    fl_bool ia = _fl_tmp_436.TCFn.is_pure;
-                    fl_bool iva = _fl_tmp_436.TCFn.is_variadic;
+                    FL_Array* pa = _fl_tmp_432.TCFn.params;
+                    fl_self_hosted_typechecker_TCType ra = (*_fl_tmp_432.TCFn.ret);
+                    fl_bool ia = _fl_tmp_432.TCFn.is_pure;
+                    fl_bool iva = _fl_tmp_432.TCFn.is_variadic;
                     fl_int i = 0;
                     while ((i < fl_array_len_int(pp)) && (i < fl_array_len_int(pa))) {
-                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_437 = FL_OPT_DEREF_AS(fl_array_get_safe(pp, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                        fl_self_hosted_typechecker_TCTypeBox ppb = ((_fl_tmp_437.tag == 1) ? _fl_tmp_437.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
-                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_438 = FL_OPT_DEREF_AS(fl_array_get_safe(pa, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                        fl_self_hosted_typechecker_TCTypeBox pab = ((_fl_tmp_438.tag == 1) ? _fl_tmp_438.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_433 = FL_OPT_DEREF_AS(fl_array_get_safe(pp, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                        fl_self_hosted_typechecker_TCTypeBox ppb = ((_fl_tmp_433.tag == 1) ? _fl_tmp_433.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                        FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_434 = FL_OPT_DEREF_AS(fl_array_get_safe(pa, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                        fl_self_hosted_typechecker_TCTypeBox pab = ((_fl_tmp_434.tag == 1) ? _fl_tmp_434.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                         fl_self_hosted_typechecker_match_type_env(ppb.tc, pab.tc, (&(*env)));
                         fl_int _fl_e_1;
                         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -16230,22 +16190,22 @@ void fl_self_hosted_typechecker_match_type_env(fl_self_hosted_typechecker_TCType
             break;
         }
         case 19: {
-            FL_String* mod_path_p = _fl_tmp_429.TCNamed.mod_path;
-            FL_String* np = _fl_tmp_429.TCNamed.name;
-            FL_Array* args_p = _fl_tmp_429.TCNamed.type_args;
-            fl_self_hosted_typechecker_TCType _fl_tmp_439 = arg_t;
-            switch (_fl_tmp_439.tag) {
+            FL_String* mod_path_p = _fl_tmp_425.TCNamed.mod_path;
+            FL_String* np = _fl_tmp_425.TCNamed.name;
+            FL_Array* args_p = _fl_tmp_425.TCNamed.type_args;
+            fl_self_hosted_typechecker_TCType _fl_tmp_435 = arg_t;
+            switch (_fl_tmp_435.tag) {
                 case 19: {
-                    FL_String* mod_path_a = _fl_tmp_439.TCNamed.mod_path;
-                    FL_String* na = _fl_tmp_439.TCNamed.name;
-                    FL_Array* args_a = _fl_tmp_439.TCNamed.type_args;
+                    FL_String* mod_path_a = _fl_tmp_435.TCNamed.mod_path;
+                    FL_String* na = _fl_tmp_435.TCNamed.name;
+                    FL_Array* args_a = _fl_tmp_435.TCNamed.type_args;
                     if (fl_string_eq(np, na)) {
                         fl_int i = 0;
                         while ((i < fl_array_len_int(args_p)) && (i < fl_array_len_int(args_a))) {
-                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_440 = FL_OPT_DEREF_AS(fl_array_get_safe(args_p, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                            fl_self_hosted_typechecker_TCTypeBox apb = ((_fl_tmp_440.tag == 1) ? _fl_tmp_440.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
-                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_441 = FL_OPT_DEREF_AS(fl_array_get_safe(args_a, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                            fl_self_hosted_typechecker_TCTypeBox aab = ((_fl_tmp_441.tag == 1) ? _fl_tmp_441.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_436 = FL_OPT_DEREF_AS(fl_array_get_safe(args_p, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                            fl_self_hosted_typechecker_TCTypeBox apb = ((_fl_tmp_436.tag == 1) ? _fl_tmp_436.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_437 = FL_OPT_DEREF_AS(fl_array_get_safe(args_a, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                            fl_self_hosted_typechecker_TCTypeBox aab = ((_fl_tmp_437.tag == 1) ? _fl_tmp_437.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                             fl_self_hosted_typechecker_match_type_env(apb.tc, aab.tc, (&(*env)));
                             fl_int _fl_e_2;
                             FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -16264,32 +16224,32 @@ void fl_self_hosted_typechecker_match_type_env(fl_self_hosted_typechecker_TCType
 FL_Array* fl_self_hosted_typechecker_get_decl_type_param_names(fl_self_hosted_ast_Decl decl) {
     FL_Array* names = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(names, 1);
-    fl_self_hosted_ast_Decl _fl_tmp_442 = decl;
-    switch (_fl_tmp_442.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_438 = decl;
+    switch (_fl_tmp_438.tag) {
         case 2: {
-            fl_int nid = _fl_tmp_442.DFn.id;
-            fl_int l = _fl_tmp_442.DFn.line;
-            fl_int c = _fl_tmp_442.DFn.col;
-            FL_String* name = _fl_tmp_442.DFn.name;
-            FL_Array* type_params = _fl_tmp_442.DFn.type_params;
-            FL_Array* params = _fl_tmp_442.DFn.params;
-            fl_bool hrt = _fl_tmp_442.DFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_442.DFn.return_type;
-            FL_Array* body = _fl_tmp_442.DFn.body;
-            fl_bool is_pure = _fl_tmp_442.DFn.is_pure;
-            fl_bool is_export = _fl_tmp_442.DFn.is_export;
-            fl_bool is_static = _fl_tmp_442.DFn.is_static;
-            fl_bool hf = _fl_tmp_442.DFn.has_finally;
-            FL_Array* fb = _fl_tmp_442.DFn.finally_body;
+            fl_int nid = _fl_tmp_438.DFn.id;
+            fl_int l = _fl_tmp_438.DFn.line;
+            fl_int c = _fl_tmp_438.DFn.col;
+            FL_String* name = _fl_tmp_438.DFn.name;
+            FL_Array* type_params = _fl_tmp_438.DFn.type_params;
+            FL_Array* params = _fl_tmp_438.DFn.params;
+            fl_bool hrt = _fl_tmp_438.DFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_438.DFn.return_type;
+            FL_Array* body = _fl_tmp_438.DFn.body;
+            fl_bool is_pure = _fl_tmp_438.DFn.is_pure;
+            fl_bool is_export = _fl_tmp_438.DFn.is_export;
+            fl_bool is_static = _fl_tmp_438.DFn.is_static;
+            fl_bool hf = _fl_tmp_438.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_438.DFn.finally_body;
             fl_int i = 0;
             while (i < fl_array_len_int(type_params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
-                FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_443 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, i), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
-                fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_443.tag == 1) ? _fl_tmp_443.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
-                FL_Array* _fl_old_444 = names;
+                FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_439 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, i), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
+                fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_439.tag == 1) ? _fl_tmp_439.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                FL_Array* _fl_old_440 = names;
                 names = fl_array_push_ptr(names, tp.name);
-                if (_fl_old_444 != names) {
-                    fl_array_release(_fl_old_444);
+                if (_fl_old_440 != names) {
+                    fl_array_release(_fl_old_440);
                 }
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -16298,25 +16258,25 @@ FL_Array* fl_self_hosted_typechecker_get_decl_type_param_names(fl_self_hosted_as
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_442.DExternFn.id;
-            fl_int l = _fl_tmp_442.DExternFn.line;
-            fl_int c = _fl_tmp_442.DExternFn.col;
-            FL_String* name = _fl_tmp_442.DExternFn.name;
-            FL_Array* type_params = _fl_tmp_442.DExternFn.type_params;
-            FL_Array* params = _fl_tmp_442.DExternFn.params;
-            fl_bool hrt = _fl_tmp_442.DExternFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_442.DExternFn.return_type;
-            fl_bool is_export = _fl_tmp_442.DExternFn.is_export;
-            FL_String* c_name = _fl_tmp_442.DExternFn.c_name;
+            fl_int nid = _fl_tmp_438.DExternFn.id;
+            fl_int l = _fl_tmp_438.DExternFn.line;
+            fl_int c = _fl_tmp_438.DExternFn.col;
+            FL_String* name = _fl_tmp_438.DExternFn.name;
+            FL_Array* type_params = _fl_tmp_438.DExternFn.type_params;
+            FL_Array* params = _fl_tmp_438.DExternFn.params;
+            fl_bool hrt = _fl_tmp_438.DExternFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_438.DExternFn.return_type;
+            fl_bool is_export = _fl_tmp_438.DExternFn.is_export;
+            FL_String* c_name = _fl_tmp_438.DExternFn.c_name;
             fl_int i = 0;
             while (i < fl_array_len_int(type_params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
-                FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_445 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, i), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
-                fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_445.tag == 1) ? _fl_tmp_445.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
-                FL_Array* _fl_old_446 = names;
+                FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_441 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, i), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
+                fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_441.tag == 1) ? _fl_tmp_441.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                FL_Array* _fl_old_442 = names;
                 names = fl_array_push_ptr(names, tp.name);
-                if (_fl_old_446 != names) {
-                    fl_array_release(_fl_old_446);
+                if (_fl_old_442 != names) {
+                    fl_array_release(_fl_old_442);
                 }
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -16330,37 +16290,37 @@ FL_Array* fl_self_hosted_typechecker_get_decl_type_param_names(fl_self_hosted_as
 
 /* Flow: self_hosted.typechecker.decl_has_type_params */
 fl_bool fl_self_hosted_typechecker_decl_has_type_params(fl_self_hosted_ast_Decl decl) {
-    fl_self_hosted_ast_Decl _fl_tmp_447 = decl;
-    switch (_fl_tmp_447.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_443 = decl;
+    switch (_fl_tmp_443.tag) {
         case 2: {
-            fl_int nid = _fl_tmp_447.DFn.id;
-            fl_int l = _fl_tmp_447.DFn.line;
-            fl_int c = _fl_tmp_447.DFn.col;
-            FL_String* name = _fl_tmp_447.DFn.name;
-            FL_Array* type_params = _fl_tmp_447.DFn.type_params;
-            FL_Array* params = _fl_tmp_447.DFn.params;
-            fl_bool hrt = _fl_tmp_447.DFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_447.DFn.return_type;
-            FL_Array* body = _fl_tmp_447.DFn.body;
-            fl_bool is_pure = _fl_tmp_447.DFn.is_pure;
-            fl_bool is_export = _fl_tmp_447.DFn.is_export;
-            fl_bool is_static = _fl_tmp_447.DFn.is_static;
-            fl_bool hf = _fl_tmp_447.DFn.has_finally;
-            FL_Array* fb = _fl_tmp_447.DFn.finally_body;
+            fl_int nid = _fl_tmp_443.DFn.id;
+            fl_int l = _fl_tmp_443.DFn.line;
+            fl_int c = _fl_tmp_443.DFn.col;
+            FL_String* name = _fl_tmp_443.DFn.name;
+            FL_Array* type_params = _fl_tmp_443.DFn.type_params;
+            FL_Array* params = _fl_tmp_443.DFn.params;
+            fl_bool hrt = _fl_tmp_443.DFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_443.DFn.return_type;
+            FL_Array* body = _fl_tmp_443.DFn.body;
+            fl_bool is_pure = _fl_tmp_443.DFn.is_pure;
+            fl_bool is_export = _fl_tmp_443.DFn.is_export;
+            fl_bool is_static = _fl_tmp_443.DFn.is_static;
+            fl_bool hf = _fl_tmp_443.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_443.DFn.finally_body;
             return (fl_array_len_int(type_params) > 0);
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_447.DExternFn.id;
-            fl_int l = _fl_tmp_447.DExternFn.line;
-            fl_int c = _fl_tmp_447.DExternFn.col;
-            FL_String* name = _fl_tmp_447.DExternFn.name;
-            FL_Array* type_params = _fl_tmp_447.DExternFn.type_params;
-            FL_Array* params = _fl_tmp_447.DExternFn.params;
-            fl_bool hrt = _fl_tmp_447.DExternFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_447.DExternFn.return_type;
-            fl_bool is_export = _fl_tmp_447.DExternFn.is_export;
-            FL_String* c_name = _fl_tmp_447.DExternFn.c_name;
+            fl_int nid = _fl_tmp_443.DExternFn.id;
+            fl_int l = _fl_tmp_443.DExternFn.line;
+            fl_int c = _fl_tmp_443.DExternFn.col;
+            FL_String* name = _fl_tmp_443.DExternFn.name;
+            FL_Array* type_params = _fl_tmp_443.DExternFn.type_params;
+            FL_Array* params = _fl_tmp_443.DExternFn.params;
+            fl_bool hrt = _fl_tmp_443.DExternFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_443.DExternFn.return_type;
+            fl_bool is_export = _fl_tmp_443.DExternFn.is_export;
+            FL_String* c_name = _fl_tmp_443.DExternFn.c_name;
             return (fl_array_len_int(type_params) > 0);
             break;
         }
@@ -16373,41 +16333,41 @@ fl_bool fl_self_hosted_typechecker_decl_has_type_params(fl_self_hosted_ast_Decl 
 
 /* Flow: self_hosted.typechecker.lookup_method */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_lookup_method(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_typechecker_TCType recv_t, FL_String* method_name) {
-    fl_self_hosted_typechecker_TCType _fl_tmp_448 = recv_t;
-    switch (_fl_tmp_448.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_444 = recv_t;
+    switch (_fl_tmp_444.tag) {
         case 19: {
-            FL_String* mod_path = _fl_tmp_448.TCNamed.mod_path;
-            FL_String* name = _fl_tmp_448.TCNamed.name;
-            FL_Array* type_args = _fl_tmp_448.TCNamed.type_args;
+            FL_String* mod_path = _fl_tmp_444.TCNamed.mod_path;
+            FL_String* name = _fl_tmp_444.TCNamed.name;
+            FL_Array* type_args = _fl_tmp_444.TCNamed.type_args;
             FL_Option_fl_self_hosted_typechecker_TypeInfo info_opt = FL_OPT_DEREF_AS(fl_map_get_str(s->type_registry, name), fl_self_hosted_typechecker_TypeInfo, FL_Option_fl_self_hosted_typechecker_TypeInfo);
-            FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_449 = info_opt;
-            if (_fl_tmp_449.tag == 1) {
-                fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_449.value;
+            FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_445 = info_opt;
+            if (_fl_tmp_445.tag == 1) {
+                fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_445.value;
                 return fl_self_hosted_typechecker_tc_map_get(info.method_types, method_name);
             }
             break;
         }
     }
     FL_String* tname = fl_self_hosted_typechecker_type_name(recv_t);
-    FL_String* _fl_tmp_450 = fl_string_concat(tname, _fl_str_self_hosted_typechecker_2);
-    FL_String* key = fl_string_concat(_fl_tmp_450, method_name);
-    fl_string_release(_fl_tmp_450);
+    FL_String* _fl_tmp_446 = fl_string_concat(tname, _fl_str_self_hosted_typechecker_2);
+    FL_String* key = fl_string_concat(_fl_tmp_446, method_name);
+    fl_string_release(_fl_tmp_446);
     fl_string_release(tname);
     return fl_self_hosted_typechecker_tc_map_get(s->builtin_method_sigs, key);
 }
 
 /* Flow: self_hosted.typechecker.lookup_field */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_lookup_field(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_typechecker_TCType recv_t, FL_String* field_name) {
-    fl_self_hosted_typechecker_TCType _fl_tmp_451 = recv_t;
-    switch (_fl_tmp_451.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_447 = recv_t;
+    switch (_fl_tmp_447.tag) {
         case 19: {
-            FL_String* mod_path = _fl_tmp_451.TCNamed.mod_path;
-            FL_String* name = _fl_tmp_451.TCNamed.name;
-            FL_Array* type_args = _fl_tmp_451.TCNamed.type_args;
+            FL_String* mod_path = _fl_tmp_447.TCNamed.mod_path;
+            FL_String* name = _fl_tmp_447.TCNamed.name;
+            FL_Array* type_args = _fl_tmp_447.TCNamed.type_args;
             FL_Option_fl_self_hosted_typechecker_TypeInfo info_opt = FL_OPT_DEREF_AS(fl_map_get_str(s->type_registry, name), fl_self_hosted_typechecker_TypeInfo, FL_Option_fl_self_hosted_typechecker_TypeInfo);
-            FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_452 = info_opt;
-            if (_fl_tmp_452.tag == 1) {
-                fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_452.value;
+            FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_448 = info_opt;
+            if (_fl_tmp_448.tag == 1) {
+                fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_448.value;
                 if (fl_self_hosted_typechecker_tc_map_has(info.field_types, field_name)) {
                     return fl_self_hosted_typechecker_tc_map_get(info.field_types, field_name);
                 }
@@ -16418,28 +16378,28 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_lookup_field(fl_sel
             break;
         }
         case 10: {
-            FL_Array* elements = _fl_tmp_451.TCTuple.elements;
+            FL_Array* elements = _fl_tmp_447.TCTuple.elements;
             FL_Option_int idx_opt = fl_conv_string_to_int(field_name);
-            FL_Option_int _fl_tmp_453 = idx_opt;
-            if (_fl_tmp_453.tag == 1) {
-                fl_int idx = _fl_tmp_453.value;
-                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_454 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, idx), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                fl_self_hosted_typechecker_TCTypeBox eb = ((_fl_tmp_454.tag == 1) ? _fl_tmp_454.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+            FL_Option_int _fl_tmp_449 = idx_opt;
+            if (_fl_tmp_449.tag == 1) {
+                fl_int idx = _fl_tmp_449.value;
+                FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_450 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, idx), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                fl_self_hosted_typechecker_TCTypeBox eb = ((_fl_tmp_450.tag == 1) ? _fl_tmp_450.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                 return eb.tc;
             }
             break;
         }
         case 18: {
-            FL_Array* field_names = _fl_tmp_451.TCRecord.field_names;
-            FL_Array* field_types = _fl_tmp_451.TCRecord.field_types;
+            FL_Array* field_names = _fl_tmp_447.TCRecord.field_names;
+            FL_Array* field_types = _fl_tmp_447.TCRecord.field_types;
             fl_int i = 0;
             while (i < fl_array_len_int(field_names)) {
-                FL_Option_ptr _fl_tmp_455 = fl_array_get_safe(field_names, i);
-                FL_String* fn2 = ((_fl_tmp_455.tag == 1) ? _fl_tmp_455.value : _fl_str_self_hosted_typechecker_0);
+                FL_Option_ptr _fl_tmp_451 = fl_array_get_safe(field_names, i);
+                FL_String* fn2 = ((_fl_tmp_451.tag == 1) ? _fl_tmp_451.value : _fl_str_self_hosted_typechecker_0);
                 fl_string_retain(fn2);
                 if (fl_string_eq(fn2, field_name)) {
-                    FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_456 = FL_OPT_DEREF_AS(fl_array_get_safe(field_types, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                    fl_self_hosted_typechecker_TCTypeBox fb = ((_fl_tmp_456.tag == 1) ? _fl_tmp_456.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                    FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_452 = FL_OPT_DEREF_AS(fl_array_get_safe(field_types, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                    fl_self_hosted_typechecker_TCTypeBox fb = ((_fl_tmp_452.tag == 1) ? _fl_tmp_452.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                     return fb.tc;
                 }
                 fl_int _fl_e_1;
@@ -16461,14 +16421,14 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr(fl_self_
 
 /* Flow: self_hosted.typechecker.infer_expr_inner */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Expr e) {
-    fl_self_hosted_ast_Expr _fl_tmp_457 = e;
-    switch (_fl_tmp_457.tag) {
+    fl_self_hosted_ast_Expr _fl_tmp_453 = e;
+    switch (_fl_tmp_453.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_457.EIntLit.id;
-            fl_int l = _fl_tmp_457.EIntLit.line;
-            fl_int c = _fl_tmp_457.EIntLit.col;
-            fl_int v = _fl_tmp_457.EIntLit.value;
-            FL_String* suffix = _fl_tmp_457.EIntLit.suffix;
+            fl_int nid = _fl_tmp_453.EIntLit.id;
+            fl_int l = _fl_tmp_453.EIntLit.line;
+            fl_int c = _fl_tmp_453.EIntLit.col;
+            fl_int v = _fl_tmp_453.EIntLit.value;
+            FL_String* suffix = _fl_tmp_453.EIntLit.suffix;
             if (fl_string_eq(suffix, _fl_str_self_hosted_typechecker_83)) {
                 return (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 16, .is_signed = fl_true}};
             }
@@ -16491,11 +16451,11 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_457.EFloatLit.id;
-            fl_int l = _fl_tmp_457.EFloatLit.line;
-            fl_int c = _fl_tmp_457.EFloatLit.col;
-            FL_String* v = _fl_tmp_457.EFloatLit.value_text;
-            FL_String* suffix = _fl_tmp_457.EFloatLit.suffix;
+            fl_int nid = _fl_tmp_453.EFloatLit.id;
+            fl_int l = _fl_tmp_453.EFloatLit.line;
+            fl_int c = _fl_tmp_453.EFloatLit.col;
+            FL_String* v = _fl_tmp_453.EFloatLit.value_text;
+            FL_String* suffix = _fl_tmp_453.EFloatLit.suffix;
             if (fl_string_eq(suffix, _fl_str_self_hosted_typechecker_89)) {
                 return (fl_self_hosted_typechecker_TCType){.tag = 1, .TCFloat = (fl_self_hosted_typechecker_TCType_TCFloat){.width = 32}};
             }
@@ -16503,68 +16463,68 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_457.EBoolLit.id;
-            fl_int l = _fl_tmp_457.EBoolLit.line;
-            fl_int c = _fl_tmp_457.EBoolLit.col;
-            fl_bool v = _fl_tmp_457.EBoolLit.value;
+            fl_int nid = _fl_tmp_453.EBoolLit.id;
+            fl_int l = _fl_tmp_453.EBoolLit.line;
+            fl_int c = _fl_tmp_453.EBoolLit.col;
+            fl_bool v = _fl_tmp_453.EBoolLit.value;
             return (fl_self_hosted_typechecker_TCType){.tag = 2};
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_457.EStringLit.id;
-            fl_int l = _fl_tmp_457.EStringLit.line;
-            fl_int c = _fl_tmp_457.EStringLit.col;
-            FL_String* v = _fl_tmp_457.EStringLit.value;
+            fl_int nid = _fl_tmp_453.EStringLit.id;
+            fl_int l = _fl_tmp_453.EStringLit.line;
+            fl_int c = _fl_tmp_453.EStringLit.col;
+            FL_String* v = _fl_tmp_453.EStringLit.value;
             return (fl_self_hosted_typechecker_TCType){.tag = 6};
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_457.ECharLit.id;
-            fl_int l = _fl_tmp_457.ECharLit.line;
-            fl_int c = _fl_tmp_457.ECharLit.col;
-            fl_int v = _fl_tmp_457.ECharLit.value;
+            fl_int nid = _fl_tmp_453.ECharLit.id;
+            fl_int l = _fl_tmp_453.ECharLit.line;
+            fl_int c = _fl_tmp_453.ECharLit.col;
+            fl_int v = _fl_tmp_453.ECharLit.value;
             return (fl_self_hosted_typechecker_TCType){.tag = 3};
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_457.ENoneLit.id;
-            fl_int l = _fl_tmp_457.ENoneLit.line;
-            fl_int c = _fl_tmp_457.ENoneLit.col;
-            fl_self_hosted_typechecker_TCType* _fl_tmp_458 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_458) = (fl_self_hosted_typechecker_TCType){.tag = 23};
-            return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_458}};
+            fl_int nid = _fl_tmp_453.ENoneLit.id;
+            fl_int l = _fl_tmp_453.ENoneLit.line;
+            fl_int c = _fl_tmp_453.ENoneLit.col;
+            fl_self_hosted_typechecker_TCType* _fl_tmp_454 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_454) = (fl_self_hosted_typechecker_TCType){.tag = 23};
+            return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_454}};
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_457.ENamedArg.id;
-            fl_int l = _fl_tmp_457.ENamedArg.line;
-            fl_int c = _fl_tmp_457.ENamedArg.col;
-            FL_String* name = _fl_tmp_457.ENamedArg.name;
-            fl_self_hosted_ast_Expr val = (*_fl_tmp_457.ENamedArg.value);
+            fl_int nid = _fl_tmp_453.ENamedArg.id;
+            fl_int l = _fl_tmp_453.ENamedArg.line;
+            fl_int c = _fl_tmp_453.ENamedArg.col;
+            FL_String* name = _fl_tmp_453.ENamedArg.name;
+            fl_self_hosted_ast_Expr val = (*_fl_tmp_453.ENamedArg.value);
             return fl_self_hosted_typechecker_infer_expr(s, val);
             break;
         }
         case 10: {
-            fl_int nid = _fl_tmp_457.ESpread.id;
-            fl_int l = _fl_tmp_457.ESpread.line;
-            fl_int c = _fl_tmp_457.ESpread.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.ESpread.inner);
+            fl_int nid = _fl_tmp_453.ESpread.id;
+            fl_int l = _fl_tmp_453.ESpread.line;
+            fl_int c = _fl_tmp_453.ESpread.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.ESpread.inner);
             return fl_self_hosted_typechecker_infer_expr(s, inner);
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_457.EIdent.id;
-            fl_int l = _fl_tmp_457.EIdent.line;
-            fl_int c = _fl_tmp_457.EIdent.col;
-            FL_String* name = _fl_tmp_457.EIdent.name;
-            FL_Array* mp = _fl_tmp_457.EIdent.module_path;
+            fl_int nid = _fl_tmp_453.EIdent.id;
+            fl_int l = _fl_tmp_453.EIdent.line;
+            fl_int c = _fl_tmp_453.EIdent.col;
+            FL_String* name = _fl_tmp_453.EIdent.name;
+            FL_Array* mp = _fl_tmp_453.EIdent.module_path;
             if (fl_array_len_int(mp) > 0) {
-                FL_Option_ptr _fl_tmp_459 = fl_array_get_safe(mp, 0);
-                FL_String* ns = ((_fl_tmp_459.tag == 1) ? _fl_tmp_459.value : _fl_str_self_hosted_typechecker_0);
+                FL_Option_ptr _fl_tmp_455 = fl_array_get_safe(mp, 0);
+                FL_String* ns = ((_fl_tmp_455.tag == 1) ? _fl_tmp_455.value : _fl_str_self_hosted_typechecker_0);
                 fl_string_retain(ns);
                 fl_self_hosted_typechecker_TCType t = fl_self_hosted_typechecker_scope_lookup(s, ns);
-                fl_self_hosted_typechecker_TCType _fl_tmp_460 = t;
-                switch (_fl_tmp_460.tag) {
+                fl_self_hosted_typechecker_TCType _fl_tmp_456 = t;
+                switch (_fl_tmp_456.tag) {
                     case 23: {
                         return fl_self_hosted_typechecker_mod_scope_lookup(s, ns);
                         break;
@@ -16577,10 +16537,10 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                 }
             }
             fl_self_hosted_typechecker_TCType t = fl_self_hosted_typechecker_scope_lookup(s, name);
-            fl_self_hosted_typechecker_TCType _fl_tmp_461 = t;
-            switch (_fl_tmp_461.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_457 = t;
+            switch (_fl_tmp_457.tag) {
                 case 12: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_461.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_457.TCStream.elem);
                     fl_self_hosted_typechecker_check_stream_consumption(s, name, nid);
                     return t;
                     break;
@@ -16590,9 +16550,9 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                 fl_self_hosted_resolver_Symbol sym = fl_self_hosted_typechecker_sym_lookup_by_id(s, nid);
                 if (sym.kind == fl_self_hosted_resolver_SymbolKind_SK_IMPORT) {
                     FL_Option_fl_self_hosted_ast_Decl decl_opt = fl_self_hosted_typechecker_find_decl_by_id(s, sym.decl_id, sym.module_key);
-                    FL_Option_fl_self_hosted_ast_Decl _fl_tmp_462 = decl_opt;
-                    if (_fl_tmp_462.tag == 1) {
-                        fl_self_hosted_ast_Decl d = _fl_tmp_462.value;
+                    FL_Option_fl_self_hosted_ast_Decl _fl_tmp_458 = decl_opt;
+                    if (_fl_tmp_458.tag == 1) {
+                        fl_self_hosted_ast_Decl d = _fl_tmp_458.value;
                         return fl_self_hosted_typechecker_decl_fn_type(s, d);
                     }
                 }
@@ -16601,24 +16561,24 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_457.EBinOp.id;
-            fl_int l = _fl_tmp_457.EBinOp.line;
-            fl_int c = _fl_tmp_457.EBinOp.col;
-            FL_String* op = _fl_tmp_457.EBinOp.op;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_457.EBinOp.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_457.EBinOp.right);
+            fl_int nid = _fl_tmp_453.EBinOp.id;
+            fl_int l = _fl_tmp_453.EBinOp.line;
+            fl_int c = _fl_tmp_453.EBinOp.col;
+            FL_String* op = _fl_tmp_453.EBinOp.op;
+            fl_self_hosted_ast_Expr left = (*_fl_tmp_453.EBinOp.left);
+            fl_self_hosted_ast_Expr right = (*_fl_tmp_453.EBinOp.right);
             fl_self_hosted_typechecker_TCType lt = fl_self_hosted_typechecker_infer_expr(s, left);
             fl_self_hosted_typechecker_TCType rt = fl_self_hosted_typechecker_infer_expr(s, right);
             if ((((((fl_string_eq(op, _fl_str_self_hosted_typechecker_90) || fl_string_eq(op, _fl_str_self_hosted_typechecker_91)) || fl_string_eq(op, _fl_str_self_hosted_typechecker_92)) || fl_string_eq(op, _fl_str_self_hosted_typechecker_93)) || fl_string_eq(op, _fl_str_self_hosted_typechecker_94)) || fl_string_eq(op, _fl_str_self_hosted_typechecker_95)) || fl_string_eq(op, _fl_str_self_hosted_typechecker_96)) {
                 if (fl_string_eq(op, _fl_str_self_hosted_typechecker_90)) {
-                    fl_self_hosted_typechecker_TCType _fl_tmp_463 = lt;
-                    switch (_fl_tmp_463.tag) {
+                    fl_self_hosted_typechecker_TCType _fl_tmp_459 = lt;
+                    switch (_fl_tmp_459.tag) {
                         case 6: {
                             if (fl_self_hosted_typechecker_is_showable(s, rt)) {
                                 return (fl_self_hosted_typechecker_TCType){.tag = 6};
                             }
-                            fl_self_hosted_typechecker_TCType _fl_tmp_464 = rt;
-                            switch (_fl_tmp_464.tag) {
+                            fl_self_hosted_typechecker_TCType _fl_tmp_460 = rt;
+                            switch (_fl_tmp_460.tag) {
                                 case 6: {
                                     return (fl_self_hosted_typechecker_TCType){.tag = 6};
                                     break;
@@ -16627,8 +16587,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                             break;
                         }
                     }
-                    fl_self_hosted_typechecker_TCType _fl_tmp_465 = rt;
-                    switch (_fl_tmp_465.tag) {
+                    fl_self_hosted_typechecker_TCType _fl_tmp_461 = rt;
+                    switch (_fl_tmp_461.tag) {
                         case 6: {
                             if (fl_self_hosted_typechecker_is_showable(s, lt)) {
                                 return (fl_self_hosted_typechecker_TCType){.tag = 6};
@@ -16646,51 +16606,51 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_457.EUnaryOp.id;
-            fl_int l = _fl_tmp_457.EUnaryOp.line;
-            fl_int c = _fl_tmp_457.EUnaryOp.col;
-            FL_String* op = _fl_tmp_457.EUnaryOp.op;
-            fl_self_hosted_ast_Expr operand = (*_fl_tmp_457.EUnaryOp.operand);
+            fl_int nid = _fl_tmp_453.EUnaryOp.id;
+            fl_int l = _fl_tmp_453.EUnaryOp.line;
+            fl_int c = _fl_tmp_453.EUnaryOp.col;
+            FL_String* op = _fl_tmp_453.EUnaryOp.op;
+            fl_self_hosted_ast_Expr operand = (*_fl_tmp_453.EUnaryOp.operand);
             fl_self_hosted_typechecker_TCType ot = fl_self_hosted_typechecker_infer_expr(s, operand);
             return ot;
             break;
         }
         case 11: {
-            fl_int nid = _fl_tmp_457.ECall.id;
-            fl_int l = _fl_tmp_457.ECall.line;
-            fl_int c = _fl_tmp_457.ECall.col;
-            fl_self_hosted_ast_Expr callee = (*_fl_tmp_457.ECall.callee);
-            FL_Array* args = _fl_tmp_457.ECall.args;
+            fl_int nid = _fl_tmp_453.ECall.id;
+            fl_int l = _fl_tmp_453.ECall.line;
+            fl_int c = _fl_tmp_453.ECall.col;
+            fl_self_hosted_ast_Expr callee = (*_fl_tmp_453.ECall.callee);
+            FL_Array* args = _fl_tmp_453.ECall.args;
             fl_self_hosted_typechecker_TCType callee_t = fl_self_hosted_typechecker_infer_expr(s, callee);
             FL_Array* arg_types = fl_array_new(0, 0, NULL);
             fl_int i = 0;
             while (i < fl_array_len_int(args)) {
-                FL_Option_fl_self_hosted_ast_Expr _fl_tmp_466 = FL_OPT_DEREF_AS(fl_array_get_safe(args, i), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
-                fl_self_hosted_ast_Expr a = ((_fl_tmp_466.tag == 1) ? _fl_tmp_466.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_467 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_infer_expr(s, a));
-                FL_Array* _fl_old_468 = arg_types;
-                arg_types = fl_array_push_sized(arg_types, (&_fl_tmp_467), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_468 != arg_types) {
-                    fl_array_release(_fl_old_468);
+                FL_Option_fl_self_hosted_ast_Expr _fl_tmp_462 = FL_OPT_DEREF_AS(fl_array_get_safe(args, i), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
+                fl_self_hosted_ast_Expr a = ((_fl_tmp_462.tag == 1) ? _fl_tmp_462.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_463 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_infer_expr(s, a));
+                FL_Array* _fl_old_464 = arg_types;
+                arg_types = fl_array_push_sized(arg_types, (&_fl_tmp_463), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_464 != arg_types) {
+                    fl_array_release(_fl_old_464);
                 }
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(i, 1, &_fl_e_1);
                 i = _fl_e_1;
             }
-            fl_self_hosted_typechecker_TCType _fl_tmp_469 = callee_t;
-            switch (_fl_tmp_469.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_465 = callee_t;
+            switch (_fl_tmp_465.tag) {
                 case 17: {
-                    FL_Array* params = _fl_tmp_469.TCFn.params;
-                    fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_469.TCFn.ret);
-                    fl_bool is_pure = _fl_tmp_469.TCFn.is_pure;
-                    fl_bool is_variadic = _fl_tmp_469.TCFn.is_variadic;
+                    FL_Array* params = _fl_tmp_465.TCFn.params;
+                    fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_465.TCFn.ret);
+                    fl_bool is_pure = _fl_tmp_465.TCFn.is_pure;
+                    fl_bool is_variadic = _fl_tmp_465.TCFn.is_variadic;
                     fl_int callee_id = fl_self_hosted_ast_expr_id(callee);
                     if (fl_self_hosted_typechecker_sym_has_by_id(s, callee_id)) {
                         fl_self_hosted_resolver_Symbol sym = fl_self_hosted_typechecker_sym_lookup_by_id(s, callee_id);
                         FL_Option_fl_self_hosted_ast_Decl decl_opt = fl_self_hosted_typechecker_find_decl_by_id(s, sym.decl_id, sym.module_key);
-                        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_470 = decl_opt;
-                        if (_fl_tmp_470.tag == 1) {
-                            fl_self_hosted_ast_Decl d = _fl_tmp_470.value;
+                        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_466 = decl_opt;
+                        if (_fl_tmp_466.tag == 1) {
+                            fl_self_hosted_ast_Decl d = _fl_tmp_466.value;
                             if (fl_self_hosted_typechecker_decl_has_type_params(d)) {
                                 FL_Map* env = fl_self_hosted_typechecker_infer_type_env_from_call(s, d, arg_types);
                                 fl_array_release(arg_types);
@@ -16711,12 +16671,12 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 12: {
-            fl_int nid = _fl_tmp_457.EMethodCall.id;
-            fl_int l = _fl_tmp_457.EMethodCall.line;
-            fl_int c = _fl_tmp_457.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_457.EMethodCall.receiver);
-            FL_String* method_name = _fl_tmp_457.EMethodCall.method;
-            FL_Array* args = _fl_tmp_457.EMethodCall.args;
+            fl_int nid = _fl_tmp_453.EMethodCall.id;
+            fl_int l = _fl_tmp_453.EMethodCall.line;
+            fl_int c = _fl_tmp_453.EMethodCall.col;
+            fl_self_hosted_ast_Expr recv = (*_fl_tmp_453.EMethodCall.receiver);
+            FL_String* method_name = _fl_tmp_453.EMethodCall.method;
+            FL_Array* args = _fl_tmp_453.EMethodCall.args;
             if (fl_self_hosted_typechecker_sym_has_by_id(s, nid)) {
                 fl_self_hosted_resolver_Symbol sym = fl_self_hosted_typechecker_sym_lookup_by_id(s, nid);
                 if ((sym.kind == fl_self_hosted_resolver_SymbolKind_SK_FN) || (sym.kind == fl_self_hosted_resolver_SymbolKind_SK_IMPORT)) {
@@ -16724,30 +16684,30 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                     FL_Array* arg_types = fl_array_new(0, 0, NULL);
                     fl_int i = 0;
                     while (i < fl_array_len_int(args)) {
-                        FL_Option_fl_self_hosted_ast_Expr _fl_tmp_471 = FL_OPT_DEREF_AS(fl_array_get_safe(args, i), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
-                        fl_self_hosted_ast_Expr a = ((_fl_tmp_471.tag == 1) ? _fl_tmp_471.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
-                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_472 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_infer_expr(s, a));
-                        FL_Array* _fl_old_473 = arg_types;
-                        arg_types = fl_array_push_sized(arg_types, (&_fl_tmp_472), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                        if (_fl_old_473 != arg_types) {
-                            fl_array_release(_fl_old_473);
+                        FL_Option_fl_self_hosted_ast_Expr _fl_tmp_467 = FL_OPT_DEREF_AS(fl_array_get_safe(args, i), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
+                        fl_self_hosted_ast_Expr a = ((_fl_tmp_467.tag == 1) ? _fl_tmp_467.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
+                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_468 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_infer_expr(s, a));
+                        FL_Array* _fl_old_469 = arg_types;
+                        arg_types = fl_array_push_sized(arg_types, (&_fl_tmp_468), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                        if (_fl_old_469 != arg_types) {
+                            fl_array_release(_fl_old_469);
                         }
                         fl_int _fl_e_2;
                         FL_CHECKED_ADD(i, 1, &_fl_e_2);
                         i = _fl_e_2;
                     }
                     FL_Option_fl_self_hosted_ast_Decl decl_opt = fl_self_hosted_typechecker_find_decl_by_id(s, sym.decl_id, sym.module_key);
-                    FL_Option_fl_self_hosted_ast_Decl _fl_tmp_474 = decl_opt;
-                    if (_fl_tmp_474.tag == 1) {
-                        fl_self_hosted_ast_Decl d = _fl_tmp_474.value;
+                    FL_Option_fl_self_hosted_ast_Decl _fl_tmp_470 = decl_opt;
+                    if (_fl_tmp_470.tag == 1) {
+                        fl_self_hosted_ast_Decl d = _fl_tmp_470.value;
                         fl_self_hosted_typechecker_TCType ft = fl_self_hosted_typechecker_decl_fn_type(s, d);
-                        fl_self_hosted_typechecker_TCType _fl_tmp_475 = ft;
-                        switch (_fl_tmp_475.tag) {
+                        fl_self_hosted_typechecker_TCType _fl_tmp_471 = ft;
+                        switch (_fl_tmp_471.tag) {
                             case 17: {
-                                FL_Array* params = _fl_tmp_475.TCFn.params;
-                                fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_475.TCFn.ret);
-                                fl_bool is_pure = _fl_tmp_475.TCFn.is_pure;
-                                fl_bool is_variadic = _fl_tmp_475.TCFn.is_variadic;
+                                FL_Array* params = _fl_tmp_471.TCFn.params;
+                                fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_471.TCFn.ret);
+                                fl_bool is_pure = _fl_tmp_471.TCFn.is_pure;
+                                fl_bool is_variadic = _fl_tmp_471.TCFn.is_variadic;
                                 if (fl_self_hosted_typechecker_decl_has_type_params(d)) {
                                     FL_Map* env = fl_self_hosted_typechecker_infer_type_env_from_call(s, d, arg_types);
                                     fl_array_release(arg_types);
@@ -16765,17 +16725,17 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                         }
                     } else {
                         FL_Option_fl_self_hosted_ast_Decl ext_opt = fl_self_hosted_typechecker_find_extern_decl_by_id(s, sym.decl_id, sym.module_key);
-                        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_476 = ext_opt;
-                        if (_fl_tmp_476.tag == 1) {
-                            fl_self_hosted_ast_Decl d = _fl_tmp_476.value;
+                        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_472 = ext_opt;
+                        if (_fl_tmp_472.tag == 1) {
+                            fl_self_hosted_ast_Decl d = _fl_tmp_472.value;
                             fl_self_hosted_typechecker_TCType ft = fl_self_hosted_typechecker_extern_fn_decl_type(s, d);
-                            fl_self_hosted_typechecker_TCType _fl_tmp_477 = ft;
-                            switch (_fl_tmp_477.tag) {
+                            fl_self_hosted_typechecker_TCType _fl_tmp_473 = ft;
+                            switch (_fl_tmp_473.tag) {
                                 case 17: {
-                                    FL_Array* params = _fl_tmp_477.TCFn.params;
-                                    fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_477.TCFn.ret);
-                                    fl_bool is_pure = _fl_tmp_477.TCFn.is_pure;
-                                    fl_bool is_variadic = _fl_tmp_477.TCFn.is_variadic;
+                                    FL_Array* params = _fl_tmp_473.TCFn.params;
+                                    fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_473.TCFn.ret);
+                                    fl_bool is_pure = _fl_tmp_473.TCFn.is_pure;
+                                    fl_bool is_variadic = _fl_tmp_473.TCFn.is_variadic;
                                     if (fl_self_hosted_typechecker_decl_has_type_params(d)) {
                                         FL_Map* env = fl_self_hosted_typechecker_infer_type_env_from_call(s, d, arg_types);
                                         fl_array_release(arg_types);
@@ -16802,28 +16762,28 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             FL_Array* arg_types2 = fl_array_new(0, 0, NULL);
             fl_int ai = 0;
             while (ai < fl_array_len_int(args)) {
-                FL_Option_fl_self_hosted_ast_Expr _fl_tmp_478 = FL_OPT_DEREF_AS(fl_array_get_safe(args, ai), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
-                fl_self_hosted_ast_Expr a = ((_fl_tmp_478.tag == 1) ? _fl_tmp_478.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_479 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_infer_expr(s, a));
-                FL_Array* _fl_old_480 = arg_types2;
-                arg_types2 = fl_array_push_sized(arg_types2, (&_fl_tmp_479), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_480 != arg_types2) {
-                    fl_array_release(_fl_old_480);
+                FL_Option_fl_self_hosted_ast_Expr _fl_tmp_474 = FL_OPT_DEREF_AS(fl_array_get_safe(args, ai), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
+                fl_self_hosted_ast_Expr a = ((_fl_tmp_474.tag == 1) ? _fl_tmp_474.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_475 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_infer_expr(s, a));
+                FL_Array* _fl_old_476 = arg_types2;
+                arg_types2 = fl_array_push_sized(arg_types2, (&_fl_tmp_475), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_476 != arg_types2) {
+                    fl_array_release(_fl_old_476);
                 }
                 fl_int _fl_e_3;
                 FL_CHECKED_ADD(ai, 1, &_fl_e_3);
                 ai = _fl_e_3;
             }
-            fl_self_hosted_typechecker_TCType _fl_tmp_481 = recv_t;
-            switch (_fl_tmp_481.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_477 = recv_t;
+            switch (_fl_tmp_477.tag) {
                 case 13: {
-                    fl_self_hosted_typechecker_TCType yield_type = (*_fl_tmp_481.TCCoroutine.yield_type);
-                    fl_self_hosted_typechecker_TCType send_type = (*_fl_tmp_481.TCCoroutine.send_type);
+                    fl_self_hosted_typechecker_TCType yield_type = (*_fl_tmp_477.TCCoroutine.yield_type);
+                    fl_self_hosted_typechecker_TCType send_type = (*_fl_tmp_477.TCCoroutine.send_type);
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_105) || fl_string_eq(method_name, _fl_str_self_hosted_typechecker_106)) {
-                        fl_self_hosted_typechecker_TCType* _fl_tmp_482 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                        (*_fl_tmp_482) = yield_type;
+                        fl_self_hosted_typechecker_TCType* _fl_tmp_478 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                        (*_fl_tmp_478) = yield_type;
                         fl_array_release(arg_types2);
-                        return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_482}};
+                        return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_478}};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_107)) {
                         fl_array_release(arg_types2);
@@ -16842,26 +16802,26 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                     break;
                 }
                 case 12: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_481.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_477.TCStream.elem);
                     if ((fl_string_eq(method_name, _fl_str_self_hosted_typechecker_111) || fl_string_eq(method_name, _fl_str_self_hosted_typechecker_112)) || fl_string_eq(method_name, _fl_str_self_hosted_typechecker_113)) {
                         fl_array_release(arg_types2);
                         return recv_t;
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_42)) {
                         if (fl_array_len_int(arg_types2) > 0) {
-                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_483 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types2, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                            fl_self_hosted_typechecker_TCTypeBox ab = ((_fl_tmp_483.tag == 1) ? _fl_tmp_483.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
-                            fl_self_hosted_typechecker_TCType _fl_tmp_484 = ab.tc;
-                            switch (_fl_tmp_484.tag) {
+                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_479 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types2, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                            fl_self_hosted_typechecker_TCTypeBox ab = ((_fl_tmp_479.tag == 1) ? _fl_tmp_479.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                            fl_self_hosted_typechecker_TCType _fl_tmp_480 = ab.tc;
+                            switch (_fl_tmp_480.tag) {
                                 case 17: {
-                                    FL_Array* params = _fl_tmp_484.TCFn.params;
-                                    fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_484.TCFn.ret);
-                                    fl_bool is_pure = _fl_tmp_484.TCFn.is_pure;
-                                    fl_bool is_variadic = _fl_tmp_484.TCFn.is_variadic;
-                                    fl_self_hosted_typechecker_TCType* _fl_tmp_485 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                                    (*_fl_tmp_485) = ret;
+                                    FL_Array* params = _fl_tmp_480.TCFn.params;
+                                    fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_480.TCFn.ret);
+                                    fl_bool is_pure = _fl_tmp_480.TCFn.is_pure;
+                                    fl_bool is_variadic = _fl_tmp_480.TCFn.is_variadic;
+                                    fl_self_hosted_typechecker_TCType* _fl_tmp_481 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                                    (*_fl_tmp_481) = ret;
                                     fl_array_release(arg_types2);
-                                    return (fl_self_hosted_typechecker_TCType){.tag = 12, .TCStream = (fl_self_hosted_typechecker_TCType_TCStream){.elem = _fl_tmp_485}};
+                                    return (fl_self_hosted_typechecker_TCType){.tag = 12, .TCStream = (fl_self_hosted_typechecker_TCType_TCStream){.elem = _fl_tmp_481}};
                                     break;
                                 }
                             }
@@ -16870,26 +16830,26 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                         return recv_t;
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_114)) {
-                        fl_self_hosted_typechecker_TCType* _fl_tmp_486 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                        (*_fl_tmp_486) = elem;
+                        fl_self_hosted_typechecker_TCType* _fl_tmp_482 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                        (*_fl_tmp_482) = elem;
                         fl_array_release(arg_types2);
-                        return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_486}};
+                        return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_482}};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_115)) {
                         fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_116)) {
-                        fl_self_hosted_typechecker_TCType* _fl_tmp_487 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                        (*_fl_tmp_487) = elem;
+                        fl_self_hosted_typechecker_TCType* _fl_tmp_483 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                        (*_fl_tmp_483) = elem;
                         fl_array_release(arg_types2);
-                        return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_487}};
+                        return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_483}};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_117)) {
                         if (fl_array_len_int(arg_types2) > 0) {
-                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_488 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types2, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_484 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types2, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
                             fl_array_release(arg_types2);
-                            return ((_fl_tmp_488.tag == 1) ? _fl_tmp_488.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
+                            return ((_fl_tmp_484.tag == 1) ? _fl_tmp_484.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
                         }
                         fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 23};
@@ -16904,13 +16864,13 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                 }
             }
             fl_self_hosted_typechecker_TCType m = fl_self_hosted_typechecker_lookup_method(s, recv_t, method_name);
-            fl_self_hosted_typechecker_TCType _fl_tmp_489 = m;
-            switch (_fl_tmp_489.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_485 = m;
+            switch (_fl_tmp_485.tag) {
                 case 17: {
-                    FL_Array* params = _fl_tmp_489.TCFn.params;
-                    fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_489.TCFn.ret);
-                    fl_bool is_pure = _fl_tmp_489.TCFn.is_pure;
-                    fl_bool is_variadic = _fl_tmp_489.TCFn.is_variadic;
+                    FL_Array* params = _fl_tmp_485.TCFn.params;
+                    fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_485.TCFn.ret);
+                    fl_bool is_pure = _fl_tmp_485.TCFn.is_pure;
+                    fl_bool is_variadic = _fl_tmp_485.TCFn.is_variadic;
                     fl_array_release(arg_types2);
                     return ret;
                     break;
@@ -16921,11 +16881,11 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 13: {
-            fl_int nid = _fl_tmp_457.EFieldAccess.id;
-            fl_int l = _fl_tmp_457.EFieldAccess.line;
-            fl_int c = _fl_tmp_457.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_457.EFieldAccess.receiver);
-            FL_String* field_name = _fl_tmp_457.EFieldAccess.field;
+            fl_int nid = _fl_tmp_453.EFieldAccess.id;
+            fl_int l = _fl_tmp_453.EFieldAccess.line;
+            fl_int c = _fl_tmp_453.EFieldAccess.col;
+            fl_self_hosted_ast_Expr recv = (*_fl_tmp_453.EFieldAccess.receiver);
+            FL_String* field_name = _fl_tmp_453.EFieldAccess.field;
             if (fl_self_hosted_typechecker_sym_has_by_id(s, nid)) {
                 fl_self_hosted_resolver_Symbol sym = fl_self_hosted_typechecker_sym_lookup_by_id(s, nid);
                 if (sym.kind == fl_self_hosted_resolver_SymbolKind_SK_STATIC) {
@@ -16938,41 +16898,41 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 14: {
-            fl_int nid = _fl_tmp_457.EIndexAccess.id;
-            fl_int l = _fl_tmp_457.EIndexAccess.line;
-            fl_int c = _fl_tmp_457.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_457.EIndexAccess.receiver);
-            fl_self_hosted_ast_Expr idx = (*_fl_tmp_457.EIndexAccess.index);
+            fl_int nid = _fl_tmp_453.EIndexAccess.id;
+            fl_int l = _fl_tmp_453.EIndexAccess.line;
+            fl_int c = _fl_tmp_453.EIndexAccess.col;
+            fl_self_hosted_ast_Expr recv = (*_fl_tmp_453.EIndexAccess.receiver);
+            fl_self_hosted_ast_Expr idx = (*_fl_tmp_453.EIndexAccess.index);
             fl_self_hosted_typechecker_infer_expr(s, idx);
             fl_self_hosted_typechecker_TCType recv_t = fl_self_hosted_typechecker_infer_expr(s, recv);
-            fl_self_hosted_typechecker_TCType _fl_tmp_490 = recv_t;
-            switch (_fl_tmp_490.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_486 = recv_t;
+            switch (_fl_tmp_486.tag) {
                 case 11: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_490.TCArray.elem);
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_491 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_491) = elem;
-                    return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_491}};
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_486.TCArray.elem);
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_487 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_487) = elem;
+                    return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_487}};
                     break;
                 }
                 case 12: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_490.TCStream.elem);
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_492 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_492) = elem;
-                    return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_492}};
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_486.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_488 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_488) = elem;
+                    return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_488}};
                     break;
                 }
                 case 15: {
-                    fl_self_hosted_typechecker_TCType key = (*_fl_tmp_490.TCMap.key);
-                    fl_self_hosted_typechecker_TCType val = (*_fl_tmp_490.TCMap.val);
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_493 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_493) = val;
-                    return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_493}};
+                    fl_self_hosted_typechecker_TCType key = (*_fl_tmp_486.TCMap.key);
+                    fl_self_hosted_typechecker_TCType val = (*_fl_tmp_486.TCMap.val);
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_489 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_489) = val;
+                    return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_489}};
                     break;
                 }
                 case 6: {
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_494 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_494) = (fl_self_hosted_typechecker_TCType){.tag = 3};
-                    return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_494}};
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_490 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_490) = (fl_self_hosted_typechecker_TCType){.tag = 3};
+                    return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_490}};
                     break;
                 }
                 default: {
@@ -16983,25 +16943,25 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 15: {
-            fl_int nid = _fl_tmp_457.ELambda.id;
-            fl_int l = _fl_tmp_457.ELambda.line;
-            fl_int c = _fl_tmp_457.ELambda.col;
-            FL_Array* params = _fl_tmp_457.ELambda.params;
-            fl_self_hosted_ast_Expr body = (*_fl_tmp_457.ELambda.body);
+            fl_int nid = _fl_tmp_453.ELambda.id;
+            fl_int l = _fl_tmp_453.ELambda.line;
+            fl_int c = _fl_tmp_453.ELambda.col;
+            FL_Array* params = _fl_tmp_453.ELambda.params;
+            fl_self_hosted_ast_Expr body = (*_fl_tmp_453.ELambda.body);
             FL_Array* param_types = fl_array_new(0, 0, NULL);
             fl_self_hosted_typechecker_scope_push_frame(s);
             fl_int i = 0;
             while (i < fl_array_len_int(params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_Param _fl_tmp_495 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                fl_self_hosted_ast_Param p = ((_fl_tmp_495.tag == 1) ? _fl_tmp_495.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                FL_Option_fl_self_hosted_ast_Param _fl_tmp_491 = FL_OPT_DEREF_AS(fl_array_get_safe(params, i), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                fl_self_hosted_ast_Param p = ((_fl_tmp_491.tag == 1) ? _fl_tmp_491.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                 fl_self_hosted_typechecker_TCType pt = fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann);
                 fl_self_hosted_typechecker_scope_define(s, p.name, pt);
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_496 = fl_self_hosted_typechecker_tc_box(pt);
-                FL_Array* _fl_old_497 = param_types;
-                param_types = fl_array_push_sized(param_types, (&_fl_tmp_496), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_497 != param_types) {
-                    fl_array_release(_fl_old_497);
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_492 = fl_self_hosted_typechecker_tc_box(pt);
+                FL_Array* _fl_old_493 = param_types;
+                param_types = fl_array_push_sized(param_types, (&_fl_tmp_492), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_493 != param_types) {
+                    fl_array_release(_fl_old_493);
                 }
                 fl_int _fl_e_4;
                 FL_CHECKED_ADD(i, 1, &_fl_e_4);
@@ -17009,27 +16969,27 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             }
             fl_self_hosted_typechecker_TCType ret_t = fl_self_hosted_typechecker_infer_expr(s, body);
             fl_self_hosted_typechecker_scope_pop_frame(s);
-            fl_self_hosted_typechecker_TCType* _fl_tmp_498 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_498) = ret_t;
+            fl_self_hosted_typechecker_TCType* _fl_tmp_494 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_494) = ret_t;
             fl_array_retain(param_types);
-            return (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = param_types, .ret = _fl_tmp_498, .is_pure = fl_false, .is_variadic = fl_false}};
+            return (fl_self_hosted_typechecker_TCType){.tag = 17, .TCFn = (fl_self_hosted_typechecker_TCType_TCFn){.params = param_types, .ret = _fl_tmp_494, .is_pure = fl_false, .is_variadic = fl_false}};
             break;
         }
         case 16: {
-            fl_int nid = _fl_tmp_457.ETupleExpr.id;
-            fl_int l = _fl_tmp_457.ETupleExpr.line;
-            fl_int c = _fl_tmp_457.ETupleExpr.col;
-            FL_Array* elems = _fl_tmp_457.ETupleExpr.elements;
+            fl_int nid = _fl_tmp_453.ETupleExpr.id;
+            fl_int l = _fl_tmp_453.ETupleExpr.line;
+            fl_int c = _fl_tmp_453.ETupleExpr.col;
+            FL_Array* elems = _fl_tmp_453.ETupleExpr.elements;
             FL_Array* elem_types = fl_array_new(0, 0, NULL);
             fl_int i = 0;
             while (i < fl_array_len_int(elems)) {
-                FL_Option_fl_self_hosted_ast_Expr _fl_tmp_499 = FL_OPT_DEREF_AS(fl_array_get_safe(elems, i), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
-                fl_self_hosted_ast_Expr elem = ((_fl_tmp_499.tag == 1) ? _fl_tmp_499.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_500 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_infer_expr(s, elem));
-                FL_Array* _fl_old_501 = elem_types;
-                elem_types = fl_array_push_sized(elem_types, (&_fl_tmp_500), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_501 != elem_types) {
-                    fl_array_release(_fl_old_501);
+                FL_Option_fl_self_hosted_ast_Expr _fl_tmp_495 = FL_OPT_DEREF_AS(fl_array_get_safe(elems, i), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
+                fl_self_hosted_ast_Expr elem = ((_fl_tmp_495.tag == 1) ? _fl_tmp_495.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_496 = fl_self_hosted_typechecker_tc_box(fl_self_hosted_typechecker_infer_expr(s, elem));
+                FL_Array* _fl_old_497 = elem_types;
+                elem_types = fl_array_push_sized(elem_types, (&_fl_tmp_496), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_497 != elem_types) {
+                    fl_array_release(_fl_old_497);
                 }
                 fl_int _fl_e_5;
                 FL_CHECKED_ADD(i, 1, &_fl_e_5);
@@ -17040,56 +17000,56 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 17: {
-            fl_int nid = _fl_tmp_457.EArrayLit.id;
-            fl_int l = _fl_tmp_457.EArrayLit.line;
-            fl_int c = _fl_tmp_457.EArrayLit.col;
-            FL_Array* elems = _fl_tmp_457.EArrayLit.elements;
+            fl_int nid = _fl_tmp_453.EArrayLit.id;
+            fl_int l = _fl_tmp_453.EArrayLit.line;
+            fl_int c = _fl_tmp_453.EArrayLit.col;
+            FL_Array* elems = _fl_tmp_453.EArrayLit.elements;
             if (fl_array_len_int(elems) == 0) {
-                fl_self_hosted_typechecker_TCType* _fl_tmp_502 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                (*_fl_tmp_502) = (fl_self_hosted_typechecker_TCType){.tag = 23};
-                return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_502}};
+                fl_self_hosted_typechecker_TCType* _fl_tmp_498 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                (*_fl_tmp_498) = (fl_self_hosted_typechecker_TCType){.tag = 23};
+                return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_498}};
             }
-            FL_Option_fl_self_hosted_ast_Expr _fl_tmp_503 = FL_OPT_DEREF_AS(fl_array_get_safe(elems, 0), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr first = ((_fl_tmp_503.tag == 1) ? _fl_tmp_503.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
+            FL_Option_fl_self_hosted_ast_Expr _fl_tmp_499 = FL_OPT_DEREF_AS(fl_array_get_safe(elems, 0), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr first = ((_fl_tmp_499.tag == 1) ? _fl_tmp_499.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
             fl_self_hosted_typechecker_TCType elem_t = fl_self_hosted_typechecker_infer_expr(s, first);
             fl_int i = 1;
             while (i < fl_array_len_int(elems)) {
-                FL_Option_fl_self_hosted_ast_Expr _fl_tmp_504 = FL_OPT_DEREF_AS(fl_array_get_safe(elems, i), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
-                fl_self_hosted_ast_Expr e = ((_fl_tmp_504.tag == 1) ? _fl_tmp_504.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
+                FL_Option_fl_self_hosted_ast_Expr _fl_tmp_500 = FL_OPT_DEREF_AS(fl_array_get_safe(elems, i), fl_self_hosted_ast_Expr, FL_Option_fl_self_hosted_ast_Expr);
+                fl_self_hosted_ast_Expr e = ((_fl_tmp_500.tag == 1) ? _fl_tmp_500.value : (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}});
                 fl_self_hosted_typechecker_infer_expr(s, e);
                 fl_int _fl_e_6;
                 FL_CHECKED_ADD(i, 1, &_fl_e_6);
                 i = _fl_e_6;
             }
-            fl_self_hosted_typechecker_TCType* _fl_tmp_505 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_505) = elem_t;
-            return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_505}};
+            fl_self_hosted_typechecker_TCType* _fl_tmp_501 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_501) = elem_t;
+            return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_501}};
             break;
         }
         case 18: {
-            fl_int nid = _fl_tmp_457.ERecordLit.id;
-            fl_int l = _fl_tmp_457.ERecordLit.line;
-            fl_int c = _fl_tmp_457.ERecordLit.col;
-            FL_Array* fields = _fl_tmp_457.ERecordLit.fields;
+            fl_int nid = _fl_tmp_453.ERecordLit.id;
+            fl_int l = _fl_tmp_453.ERecordLit.line;
+            fl_int c = _fl_tmp_453.ERecordLit.col;
+            FL_Array* fields = _fl_tmp_453.ERecordLit.fields;
             FL_Array* fn2s = fl_array_new(0, 0, NULL);
             fl_array_set_elem_type(fn2s, 1);
             FL_Array* ftypes = fl_array_new(0, 0, NULL);
             fl_int i = 0;
             while (i < fl_array_len_int(fields)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
-                FL_Option_fl_self_hosted_ast_ExprField _fl_tmp_506 = FL_OPT_DEREF_AS(fl_array_get_safe(fields, i), fl_self_hosted_ast_ExprField, FL_Option_fl_self_hosted_ast_ExprField);
-                fl_self_hosted_ast_ExprField f = ((_fl_tmp_506.tag == 1) ? _fl_tmp_506.value : (fl_self_hosted_ast_ExprField){.name = _fl_str_self_hosted_typechecker_0, .value = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}});
+                FL_Option_fl_self_hosted_ast_ExprField _fl_tmp_502 = FL_OPT_DEREF_AS(fl_array_get_safe(fields, i), fl_self_hosted_ast_ExprField, FL_Option_fl_self_hosted_ast_ExprField);
+                fl_self_hosted_ast_ExprField f = ((_fl_tmp_502.tag == 1) ? _fl_tmp_502.value : (fl_self_hosted_ast_ExprField){.name = _fl_str_self_hosted_typechecker_0, .value = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}});
                 fl_self_hosted_typechecker_TCType ft = fl_self_hosted_typechecker_infer_expr(s, f.value);
-                FL_Array* _fl_old_507 = fn2s;
+                FL_Array* _fl_old_503 = fn2s;
                 fn2s = fl_array_push_ptr(fn2s, f.name);
-                if (_fl_old_507 != fn2s) {
-                    fl_array_release(_fl_old_507);
+                if (_fl_old_503 != fn2s) {
+                    fl_array_release(_fl_old_503);
                 }
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_508 = fl_self_hosted_typechecker_tc_box(ft);
-                FL_Array* _fl_old_509 = ftypes;
-                ftypes = fl_array_push_sized(ftypes, (&_fl_tmp_508), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_509 != ftypes) {
-                    fl_array_release(_fl_old_509);
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_504 = fl_self_hosted_typechecker_tc_box(ft);
+                FL_Array* _fl_old_505 = ftypes;
+                ftypes = fl_array_push_sized(ftypes, (&_fl_tmp_504), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_505 != ftypes) {
+                    fl_array_release(_fl_old_505);
                 }
                 fl_int _fl_e_7;
                 FL_CHECKED_ADD(i, 1, &_fl_e_7);
@@ -17101,19 +17061,19 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 19: {
-            fl_int nid = _fl_tmp_457.ETypeLit.id;
-            fl_int l = _fl_tmp_457.ETypeLit.line;
-            fl_int c = _fl_tmp_457.ETypeLit.col;
-            FL_String* type_name_str = _fl_tmp_457.ETypeLit.type_name;
-            FL_Array* fields = _fl_tmp_457.ETypeLit.fields;
-            fl_bool has_spread = _fl_tmp_457.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr spread_expr = (*_fl_tmp_457.ETypeLit.spread);
+            fl_int nid = _fl_tmp_453.ETypeLit.id;
+            fl_int l = _fl_tmp_453.ETypeLit.line;
+            fl_int c = _fl_tmp_453.ETypeLit.col;
+            FL_String* type_name_str = _fl_tmp_453.ETypeLit.type_name;
+            FL_Array* fields = _fl_tmp_453.ETypeLit.fields;
+            fl_bool has_spread = _fl_tmp_453.ETypeLit.has_spread;
+            fl_self_hosted_ast_Expr spread_expr = (*_fl_tmp_453.ETypeLit.spread);
             FL_Option_fl_self_hosted_typechecker_TypeInfo info_opt = FL_OPT_DEREF_AS(fl_map_get_str(s->type_registry, type_name_str), fl_self_hosted_typechecker_TypeInfo, FL_Option_fl_self_hosted_typechecker_TypeInfo);
             fl_int i = 0;
             while (i < fl_array_len_int(fields)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
-                FL_Option_fl_self_hosted_ast_ExprField _fl_tmp_510 = FL_OPT_DEREF_AS(fl_array_get_safe(fields, i), fl_self_hosted_ast_ExprField, FL_Option_fl_self_hosted_ast_ExprField);
-                fl_self_hosted_ast_ExprField f = ((_fl_tmp_510.tag == 1) ? _fl_tmp_510.value : (fl_self_hosted_ast_ExprField){.name = _fl_str_self_hosted_typechecker_0, .value = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}});
+                FL_Option_fl_self_hosted_ast_ExprField _fl_tmp_506 = FL_OPT_DEREF_AS(fl_array_get_safe(fields, i), fl_self_hosted_ast_ExprField, FL_Option_fl_self_hosted_ast_ExprField);
+                fl_self_hosted_ast_ExprField f = ((_fl_tmp_506.tag == 1) ? _fl_tmp_506.value : (fl_self_hosted_ast_ExprField){.name = _fl_str_self_hosted_typechecker_0, .value = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}});
                 fl_self_hosted_typechecker_infer_expr(s, f.value);
                 fl_int _fl_e_8;
                 FL_CHECKED_ADD(i, 1, &_fl_e_8);
@@ -17122,9 +17082,9 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             if (has_spread) {
                 fl_self_hosted_typechecker_infer_expr(s, spread_expr);
             }
-            FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_511 = info_opt;
-            if (_fl_tmp_511.tag == 1) {
-                fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_511.value;
+            FL_Option_fl_self_hosted_typechecker_TypeInfo _fl_tmp_507 = info_opt;
+            if (_fl_tmp_507.tag == 1) {
+                fl_self_hosted_typechecker_TypeInfo info = _fl_tmp_507.value;
                 if (info.is_sum_type && info.has_sum_type) {
                     return info.sum_type_box.tc;
                 }
@@ -17139,12 +17099,12 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 20: {
-            fl_int nid = _fl_tmp_457.EIfExpr.id;
-            fl_int l = _fl_tmp_457.EIfExpr.line;
-            fl_int c = _fl_tmp_457.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_457.EIfExpr.condition);
-            FL_Array* then_stmts = _fl_tmp_457.EIfExpr.then_stmts;
-            FL_Array* else_stmts = _fl_tmp_457.EIfExpr.else_stmts;
+            fl_int nid = _fl_tmp_453.EIfExpr.id;
+            fl_int l = _fl_tmp_453.EIfExpr.line;
+            fl_int c = _fl_tmp_453.EIfExpr.col;
+            fl_self_hosted_ast_Expr cond = (*_fl_tmp_453.EIfExpr.condition);
+            FL_Array* then_stmts = _fl_tmp_453.EIfExpr.then_stmts;
+            FL_Array* else_stmts = _fl_tmp_453.EIfExpr.else_stmts;
             fl_self_hosted_typechecker_infer_expr(s, cond);
             fl_self_hosted_typechecker_check_block(s, then_stmts);
             fl_self_hosted_typechecker_check_block(s, else_stmts);
@@ -17152,23 +17112,23 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 21: {
-            fl_int nid = _fl_tmp_457.EMatchExpr.id;
-            fl_int l = _fl_tmp_457.EMatchExpr.line;
-            fl_int c = _fl_tmp_457.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = (*_fl_tmp_457.EMatchExpr.subject);
-            FL_Array* arms = _fl_tmp_457.EMatchExpr.arms;
+            fl_int nid = _fl_tmp_453.EMatchExpr.id;
+            fl_int l = _fl_tmp_453.EMatchExpr.line;
+            fl_int c = _fl_tmp_453.EMatchExpr.col;
+            fl_self_hosted_ast_Expr subj = (*_fl_tmp_453.EMatchExpr.subject);
+            FL_Array* arms = _fl_tmp_453.EMatchExpr.arms;
             fl_self_hosted_typechecker_TCType subj_t = fl_self_hosted_typechecker_infer_expr(s, subj);
             fl_self_hosted_typechecker_TCType result_t = (fl_self_hosted_typechecker_TCType){.tag = 23};
             fl_int i = 0;
             while (i < fl_array_len_int(arms)) {
-                FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_512 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
-                fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_512.tag == 1) ? _fl_tmp_512.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_508 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
+                fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_508.tag == 1) ? _fl_tmp_508.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
                 fl_self_hosted_typechecker_scope_push_frame(s);
                 fl_self_hosted_typechecker_bind_pattern_types(s, arm.pattern, subj_t);
                 fl_int j = 0;
                 while (j < fl_array_len_int(arm.body_stmts)) {
-                    FL_Option_fl_self_hosted_ast_Stmt _fl_tmp_513 = FL_OPT_DEREF_AS(fl_array_get_safe(arm.body_stmts, j), fl_self_hosted_ast_Stmt, FL_Option_fl_self_hosted_ast_Stmt);
-                    fl_self_hosted_ast_Stmt stmt = ((_fl_tmp_513.tag == 1) ? _fl_tmp_513.value : (fl_self_hosted_ast_Stmt){.tag = 6, .SBreak = (fl_self_hosted_ast_Stmt_SBreak){.id = 0, .line = 0, .col = 0}});
+                    FL_Option_fl_self_hosted_ast_Stmt _fl_tmp_509 = FL_OPT_DEREF_AS(fl_array_get_safe(arm.body_stmts, j), fl_self_hosted_ast_Stmt, FL_Option_fl_self_hosted_ast_Stmt);
+                    fl_self_hosted_ast_Stmt stmt = ((_fl_tmp_509.tag == 1) ? _fl_tmp_509.value : (fl_self_hosted_ast_Stmt){.tag = 6, .SBreak = (fl_self_hosted_ast_Stmt_SBreak){.id = 0, .line = 0, .col = 0}});
                     fl_self_hosted_typechecker_check_stmt(s, stmt);
                     fl_int _fl_e_9;
                     FL_CHECKED_ADD(j, 1, &_fl_e_9);
@@ -17183,12 +17143,12 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 22: {
-            fl_int nid = _fl_tmp_457.ETernary.id;
-            fl_int l = _fl_tmp_457.ETernary.line;
-            fl_int c = _fl_tmp_457.ETernary.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_457.ETernary.condition);
-            fl_self_hosted_ast_Expr then_e = (*_fl_tmp_457.ETernary.then_expr);
-            fl_self_hosted_ast_Expr else_e = (*_fl_tmp_457.ETernary.else_expr);
+            fl_int nid = _fl_tmp_453.ETernary.id;
+            fl_int l = _fl_tmp_453.ETernary.line;
+            fl_int c = _fl_tmp_453.ETernary.col;
+            fl_self_hosted_ast_Expr cond = (*_fl_tmp_453.ETernary.condition);
+            fl_self_hosted_ast_Expr then_e = (*_fl_tmp_453.ETernary.then_expr);
+            fl_self_hosted_ast_Expr else_e = (*_fl_tmp_453.ETernary.else_expr);
             fl_self_hosted_typechecker_infer_expr(s, cond);
             fl_self_hosted_typechecker_TCType tt = fl_self_hosted_typechecker_infer_expr(s, then_e);
             fl_self_hosted_typechecker_infer_expr(s, else_e);
@@ -17196,74 +17156,74 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 23: {
-            fl_int nid = _fl_tmp_457.ECopy.id;
-            fl_int l = _fl_tmp_457.ECopy.line;
-            fl_int c = _fl_tmp_457.ECopy.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.ECopy.inner);
+            fl_int nid = _fl_tmp_453.ECopy.id;
+            fl_int l = _fl_tmp_453.ECopy.line;
+            fl_int c = _fl_tmp_453.ECopy.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.ECopy.inner);
             return fl_self_hosted_typechecker_infer_expr(s, inner);
             break;
         }
         case 24: {
-            fl_int nid = _fl_tmp_457.ERef.id;
-            fl_int l = _fl_tmp_457.ERef.line;
-            fl_int c = _fl_tmp_457.ERef.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.ERef.inner);
+            fl_int nid = _fl_tmp_453.ERef.id;
+            fl_int l = _fl_tmp_453.ERef.line;
+            fl_int c = _fl_tmp_453.ERef.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.ERef.inner);
             return fl_self_hosted_typechecker_infer_expr(s, inner);
             break;
         }
         case 25: {
-            fl_int nid = _fl_tmp_457.ESome.id;
-            fl_int l = _fl_tmp_457.ESome.line;
-            fl_int c = _fl_tmp_457.ESome.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.ESome.inner);
+            fl_int nid = _fl_tmp_453.ESome.id;
+            fl_int l = _fl_tmp_453.ESome.line;
+            fl_int c = _fl_tmp_453.ESome.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.ESome.inner);
             fl_self_hosted_typechecker_TCType it = fl_self_hosted_typechecker_infer_expr(s, inner);
-            fl_self_hosted_typechecker_TCType* _fl_tmp_514 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_514) = it;
-            return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_514}};
+            fl_self_hosted_typechecker_TCType* _fl_tmp_510 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_510) = it;
+            return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_510}};
             break;
         }
         case 26: {
-            fl_int nid = _fl_tmp_457.EOk.id;
-            fl_int l = _fl_tmp_457.EOk.line;
-            fl_int c = _fl_tmp_457.EOk.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.EOk.inner);
+            fl_int nid = _fl_tmp_453.EOk.id;
+            fl_int l = _fl_tmp_453.EOk.line;
+            fl_int c = _fl_tmp_453.EOk.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.EOk.inner);
             fl_self_hosted_typechecker_TCType it = fl_self_hosted_typechecker_infer_expr(s, inner);
-            fl_self_hosted_typechecker_TCType* _fl_tmp_515 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_515) = it;
-            fl_self_hosted_typechecker_TCType* _fl_tmp_516 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_516) = (fl_self_hosted_typechecker_TCType){.tag = 23};
-            return (fl_self_hosted_typechecker_TCType){.tag = 9, .TCResult = (fl_self_hosted_typechecker_TCType_TCResult){.ok_type = _fl_tmp_515, .err_type = _fl_tmp_516}};
+            fl_self_hosted_typechecker_TCType* _fl_tmp_511 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_511) = it;
+            fl_self_hosted_typechecker_TCType* _fl_tmp_512 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_512) = (fl_self_hosted_typechecker_TCType){.tag = 23};
+            return (fl_self_hosted_typechecker_TCType){.tag = 9, .TCResult = (fl_self_hosted_typechecker_TCType_TCResult){.ok_type = _fl_tmp_511, .err_type = _fl_tmp_512}};
             break;
         }
         case 27: {
-            fl_int nid = _fl_tmp_457.EErr.id;
-            fl_int l = _fl_tmp_457.EErr.line;
-            fl_int c = _fl_tmp_457.EErr.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.EErr.inner);
+            fl_int nid = _fl_tmp_453.EErr.id;
+            fl_int l = _fl_tmp_453.EErr.line;
+            fl_int c = _fl_tmp_453.EErr.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.EErr.inner);
             fl_self_hosted_typechecker_TCType it = fl_self_hosted_typechecker_infer_expr(s, inner);
-            fl_self_hosted_typechecker_TCType* _fl_tmp_517 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_517) = (fl_self_hosted_typechecker_TCType){.tag = 23};
-            fl_self_hosted_typechecker_TCType* _fl_tmp_518 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-            (*_fl_tmp_518) = it;
-            return (fl_self_hosted_typechecker_TCType){.tag = 9, .TCResult = (fl_self_hosted_typechecker_TCType_TCResult){.ok_type = _fl_tmp_517, .err_type = _fl_tmp_518}};
+            fl_self_hosted_typechecker_TCType* _fl_tmp_513 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_513) = (fl_self_hosted_typechecker_TCType){.tag = 23};
+            fl_self_hosted_typechecker_TCType* _fl_tmp_514 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+            (*_fl_tmp_514) = it;
+            return (fl_self_hosted_typechecker_TCType){.tag = 9, .TCResult = (fl_self_hosted_typechecker_TCType_TCResult){.ok_type = _fl_tmp_513, .err_type = _fl_tmp_514}};
             break;
         }
         case 28: {
-            fl_int nid = _fl_tmp_457.EPropagate.id;
-            fl_int l = _fl_tmp_457.EPropagate.line;
-            fl_int c = _fl_tmp_457.EPropagate.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.EPropagate.inner);
+            fl_int nid = _fl_tmp_453.EPropagate.id;
+            fl_int l = _fl_tmp_453.EPropagate.line;
+            fl_int c = _fl_tmp_453.EPropagate.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.EPropagate.inner);
             fl_self_hosted_typechecker_TCType it = fl_self_hosted_typechecker_infer_expr(s, inner);
-            fl_self_hosted_typechecker_TCType _fl_tmp_519 = it;
-            switch (_fl_tmp_519.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_515 = it;
+            switch (_fl_tmp_515.tag) {
                 case 8: {
-                    fl_self_hosted_typechecker_TCType inner_t = (*_fl_tmp_519.TCOption.inner);
+                    fl_self_hosted_typechecker_TCType inner_t = (*_fl_tmp_515.TCOption.inner);
                     return inner_t;
                     break;
                 }
                 case 9: {
-                    fl_self_hosted_typechecker_TCType ok_t = (*_fl_tmp_519.TCResult.ok_type);
-                    fl_self_hosted_typechecker_TCType err_t = (*_fl_tmp_519.TCResult.err_type);
+                    fl_self_hosted_typechecker_TCType ok_t = (*_fl_tmp_515.TCResult.ok_type);
+                    fl_self_hosted_typechecker_TCType err_t = (*_fl_tmp_515.TCResult.err_type);
                     return ok_t;
                     break;
                 }
@@ -17275,17 +17235,17 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 29: {
-            fl_int nid = _fl_tmp_457.ENullCoalesce.id;
-            fl_int l = _fl_tmp_457.ENullCoalesce.line;
-            fl_int c = _fl_tmp_457.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_457.ENullCoalesce.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_457.ENullCoalesce.right);
+            fl_int nid = _fl_tmp_453.ENullCoalesce.id;
+            fl_int l = _fl_tmp_453.ENullCoalesce.line;
+            fl_int c = _fl_tmp_453.ENullCoalesce.col;
+            fl_self_hosted_ast_Expr left = (*_fl_tmp_453.ENullCoalesce.left);
+            fl_self_hosted_ast_Expr right = (*_fl_tmp_453.ENullCoalesce.right);
             fl_self_hosted_typechecker_TCType lt = fl_self_hosted_typechecker_infer_expr(s, left);
             fl_self_hosted_typechecker_infer_expr(s, right);
-            fl_self_hosted_typechecker_TCType _fl_tmp_520 = lt;
-            switch (_fl_tmp_520.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_516 = lt;
+            switch (_fl_tmp_516.tag) {
                 case 8: {
-                    fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_520.TCOption.inner);
+                    fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_516.TCOption.inner);
                     return inner;
                     break;
                 }
@@ -17297,42 +17257,42 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 30: {
-            fl_int nid = _fl_tmp_457.ETypeof.id;
-            fl_int l = _fl_tmp_457.ETypeof.line;
-            fl_int c = _fl_tmp_457.ETypeof.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.ETypeof.inner);
+            fl_int nid = _fl_tmp_453.ETypeof.id;
+            fl_int l = _fl_tmp_453.ETypeof.line;
+            fl_int c = _fl_tmp_453.ETypeof.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.ETypeof.inner);
             fl_self_hosted_typechecker_infer_expr(s, inner);
             return (fl_self_hosted_typechecker_TCType){.tag = 6};
             break;
         }
         case 31: {
-            fl_int nid = _fl_tmp_457.ECast.id;
-            fl_int l = _fl_tmp_457.ECast.line;
-            fl_int c = _fl_tmp_457.ECast.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.ECast.inner);
-            fl_int target_id = _fl_tmp_457.ECast.target_id;
+            fl_int nid = _fl_tmp_453.ECast.id;
+            fl_int l = _fl_tmp_453.ECast.line;
+            fl_int c = _fl_tmp_453.ECast.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.ECast.inner);
+            fl_int target_id = _fl_tmp_453.ECast.target_id;
             fl_self_hosted_typechecker_infer_expr(s, inner);
             return (fl_self_hosted_typechecker_TCType){.tag = 23};
             break;
         }
         case 32: {
-            fl_int nid = _fl_tmp_457.ECoerce.id;
-            fl_int l = _fl_tmp_457.ECoerce.line;
-            fl_int c = _fl_tmp_457.ECoerce.col;
-            fl_self_hosted_ast_Expr inner = (*_fl_tmp_457.ECoerce.inner);
+            fl_int nid = _fl_tmp_453.ECoerce.id;
+            fl_int l = _fl_tmp_453.ECoerce.line;
+            fl_int c = _fl_tmp_453.ECoerce.col;
+            fl_self_hosted_ast_Expr inner = (*_fl_tmp_453.ECoerce.inner);
             return fl_self_hosted_typechecker_infer_expr(s, inner);
             break;
         }
         case 33: {
-            fl_int nid = _fl_tmp_457.EFString.id;
-            fl_int l = _fl_tmp_457.EFString.line;
-            fl_int c = _fl_tmp_457.EFString.col;
-            FL_Array* parts = _fl_tmp_457.EFString.parts;
+            fl_int nid = _fl_tmp_453.EFString.id;
+            fl_int l = _fl_tmp_453.EFString.line;
+            fl_int c = _fl_tmp_453.EFString.col;
+            FL_Array* parts = _fl_tmp_453.EFString.parts;
             fl_int i = 0;
             while (i < fl_array_len_int(parts)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
-                FL_Option_fl_self_hosted_ast_FStringPart _fl_tmp_521 = FL_OPT_DEREF_AS(fl_array_get_safe(parts, i), fl_self_hosted_ast_FStringPart, FL_Option_fl_self_hosted_ast_FStringPart);
-                fl_self_hosted_ast_FStringPart p = ((_fl_tmp_521.tag == 1) ? _fl_tmp_521.value : (fl_self_hosted_ast_FStringPart){.tag = 0, .FPText = (fl_self_hosted_ast_FStringPart_FPText){.text = _fl_str_self_hosted_typechecker_0}});
+                FL_Option_fl_self_hosted_ast_FStringPart _fl_tmp_517 = FL_OPT_DEREF_AS(fl_array_get_safe(parts, i), fl_self_hosted_ast_FStringPart, FL_Option_fl_self_hosted_ast_FStringPart);
+                fl_self_hosted_ast_FStringPart p = ((_fl_tmp_517.tag == 1) ? _fl_tmp_517.value : (fl_self_hosted_ast_FStringPart){.tag = 0, .FPText = (fl_self_hosted_ast_FStringPart_FPText){.text = _fl_str_self_hosted_typechecker_0}});
                 if (fl_self_hosted_ast_fsp_is_expr(p)) {
                     fl_self_hosted_typechecker_infer_expr(s, fl_self_hosted_ast_fsp_get_expr(p));
                 }
@@ -17344,23 +17304,23 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 34: {
-            fl_int nid = _fl_tmp_457.ECompositionChain.id;
-            fl_int l = _fl_tmp_457.ECompositionChain.line;
-            fl_int c = _fl_tmp_457.ECompositionChain.col;
-            FL_Array* elems = _fl_tmp_457.ECompositionChain.elements;
+            fl_int nid = _fl_tmp_453.ECompositionChain.id;
+            fl_int l = _fl_tmp_453.ECompositionChain.line;
+            fl_int c = _fl_tmp_453.ECompositionChain.col;
+            FL_Array* elems = _fl_tmp_453.ECompositionChain.elements;
             return fl_self_hosted_typechecker_infer_chain(s, elems, nid);
             break;
         }
         case 35: {
-            fl_int nid = _fl_tmp_457.EFanOut.id;
-            fl_int l = _fl_tmp_457.EFanOut.line;
-            fl_int c = _fl_tmp_457.EFanOut.col;
-            FL_Array* branches = _fl_tmp_457.EFanOut.branches;
-            fl_bool is_parallel = _fl_tmp_457.EFanOut.is_parallel;
+            fl_int nid = _fl_tmp_453.EFanOut.id;
+            fl_int l = _fl_tmp_453.EFanOut.line;
+            fl_int c = _fl_tmp_453.EFanOut.col;
+            FL_Array* branches = _fl_tmp_453.EFanOut.branches;
+            fl_bool is_parallel = _fl_tmp_453.EFanOut.is_parallel;
             fl_int i = 0;
             while (i < fl_array_len_int(branches)) {
-                FL_Option_fl_self_hosted_ast_ChainElement _fl_tmp_522 = FL_OPT_DEREF_AS(fl_array_get_safe(branches, i), fl_self_hosted_ast_ChainElement, FL_Option_fl_self_hosted_ast_ChainElement);
-                fl_self_hosted_ast_ChainElement br = ((_fl_tmp_522.tag == 1) ? _fl_tmp_522.value : (fl_self_hosted_ast_ChainElement){.expr = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .id = 0, .line = 0, .col = 0});
+                FL_Option_fl_self_hosted_ast_ChainElement _fl_tmp_518 = FL_OPT_DEREF_AS(fl_array_get_safe(branches, i), fl_self_hosted_ast_ChainElement, FL_Option_fl_self_hosted_ast_ChainElement);
+                fl_self_hosted_ast_ChainElement br = ((_fl_tmp_518.tag == 1) ? _fl_tmp_518.value : (fl_self_hosted_ast_ChainElement){.expr = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .id = 0, .line = 0, .col = 0});
                 fl_self_hosted_typechecker_infer_expr(s, br.expr);
                 fl_int _fl_e_12;
                 FL_CHECKED_ADD(i, 1, &_fl_e_12);
@@ -17370,20 +17330,20 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 36: {
-            fl_int nid = _fl_tmp_457.ECoroutineStart.id;
-            fl_int l = _fl_tmp_457.ECoroutineStart.line;
-            fl_int c = _fl_tmp_457.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = (*_fl_tmp_457.ECoroutineStart.call);
+            fl_int nid = _fl_tmp_453.ECoroutineStart.id;
+            fl_int l = _fl_tmp_453.ECoroutineStart.line;
+            fl_int c = _fl_tmp_453.ECoroutineStart.col;
+            fl_self_hosted_ast_Expr call = (*_fl_tmp_453.ECoroutineStart.call);
             fl_self_hosted_typechecker_TCType call_t = fl_self_hosted_typechecker_infer_expr(s, call);
-            fl_self_hosted_typechecker_TCType _fl_tmp_523 = call_t;
-            switch (_fl_tmp_523.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_519 = call_t;
+            switch (_fl_tmp_519.tag) {
                 case 12: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_523.TCStream.elem);
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_524 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_524) = elem;
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_525 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_525) = (fl_self_hosted_typechecker_TCType){.tag = 23};
-                    return (fl_self_hosted_typechecker_TCType){.tag = 13, .TCCoroutine = (fl_self_hosted_typechecker_TCType_TCCoroutine){.yield_type = _fl_tmp_524, .send_type = _fl_tmp_525}};
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_519.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_520 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_520) = elem;
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_521 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_521) = (fl_self_hosted_typechecker_TCType){.tag = 23};
+                    return (fl_self_hosted_typechecker_TCType){.tag = 13, .TCCoroutine = (fl_self_hosted_typechecker_TCType_TCCoroutine){.yield_type = _fl_tmp_520, .send_type = _fl_tmp_521}};
                     break;
                 }
                 default: {
@@ -17394,30 +17354,30 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
             break;
         }
         case 37: {
-            fl_int nid = _fl_tmp_457.ECoroutinePipeline.id;
-            fl_int l = _fl_tmp_457.ECoroutinePipeline.line;
-            fl_int c = _fl_tmp_457.ECoroutinePipeline.col;
-            FL_Array* stages = _fl_tmp_457.ECoroutinePipeline.stages;
+            fl_int nid = _fl_tmp_453.ECoroutinePipeline.id;
+            fl_int l = _fl_tmp_453.ECoroutinePipeline.line;
+            fl_int c = _fl_tmp_453.ECoroutinePipeline.col;
+            FL_Array* stages = _fl_tmp_453.ECoroutinePipeline.stages;
             fl_int i = 0;
             fl_self_hosted_typechecker_TCType last_t = (fl_self_hosted_typechecker_TCType){.tag = 23};
             while (i < fl_array_len_int(stages)) {
-                FL_Option_fl_self_hosted_ast_PipelineStage _fl_tmp_526 = FL_OPT_DEREF_AS(fl_array_get_safe(stages, i), fl_self_hosted_ast_PipelineStage, FL_Option_fl_self_hosted_ast_PipelineStage);
-                fl_self_hosted_ast_PipelineStage stage = ((_fl_tmp_526.tag == 1) ? _fl_tmp_526.value : (fl_self_hosted_ast_PipelineStage){.call = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .has_pool_size = fl_false, .pool_size = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .id = 0, .line = 0, .col = 0});
+                FL_Option_fl_self_hosted_ast_PipelineStage _fl_tmp_522 = FL_OPT_DEREF_AS(fl_array_get_safe(stages, i), fl_self_hosted_ast_PipelineStage, FL_Option_fl_self_hosted_ast_PipelineStage);
+                fl_self_hosted_ast_PipelineStage stage = ((_fl_tmp_522.tag == 1) ? _fl_tmp_522.value : (fl_self_hosted_ast_PipelineStage){.call = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .has_pool_size = fl_false, .pool_size = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .id = 0, .line = 0, .col = 0});
                 fl_self_hosted_typechecker_TCType stage_t = fl_self_hosted_typechecker_infer_expr(s, stage.call);
                 last_t = stage_t;
                 fl_int _fl_e_13;
                 FL_CHECKED_ADD(i, 1, &_fl_e_13);
                 i = _fl_e_13;
             }
-            fl_self_hosted_typechecker_TCType _fl_tmp_527 = last_t;
-            switch (_fl_tmp_527.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_523 = last_t;
+            switch (_fl_tmp_523.tag) {
                 case 12: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_527.TCStream.elem);
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_528 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_528) = elem;
-                    fl_self_hosted_typechecker_TCType* _fl_tmp_529 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                    (*_fl_tmp_529) = (fl_self_hosted_typechecker_TCType){.tag = 23};
-                    return (fl_self_hosted_typechecker_TCType){.tag = 13, .TCCoroutine = (fl_self_hosted_typechecker_TCType_TCCoroutine){.yield_type = _fl_tmp_528, .send_type = _fl_tmp_529}};
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_523.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_524 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_524) = elem;
+                    fl_self_hosted_typechecker_TCType* _fl_tmp_525 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                    (*_fl_tmp_525) = (fl_self_hosted_typechecker_TCType){.tag = 23};
+                    return (fl_self_hosted_typechecker_TCType){.tag = 13, .TCCoroutine = (fl_self_hosted_typechecker_TCType_TCCoroutine){.yield_type = _fl_tmp_524, .send_type = _fl_tmp_525}};
                     break;
                 }
                 default: {
@@ -17438,62 +17398,62 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_chain(fl_self
     FL_Array* stack = fl_array_new(0, 0, NULL);
     fl_int i = 0;
     while (i < fl_array_len_int(elems)) {
-        FL_Option_fl_self_hosted_ast_ChainElement _fl_tmp_530 = FL_OPT_DEREF_AS(fl_array_get_safe(elems, i), fl_self_hosted_ast_ChainElement, FL_Option_fl_self_hosted_ast_ChainElement);
-        fl_self_hosted_ast_ChainElement elem = ((_fl_tmp_530.tag == 1) ? _fl_tmp_530.value : (fl_self_hosted_ast_ChainElement){.expr = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .id = 0, .line = 0, .col = 0});
+        FL_Option_fl_self_hosted_ast_ChainElement _fl_tmp_526 = FL_OPT_DEREF_AS(fl_array_get_safe(elems, i), fl_self_hosted_ast_ChainElement, FL_Option_fl_self_hosted_ast_ChainElement);
+        fl_self_hosted_ast_ChainElement elem = ((_fl_tmp_526.tag == 1) ? _fl_tmp_526.value : (fl_self_hosted_ast_ChainElement){.expr = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .id = 0, .line = 0, .col = 0});
         fl_self_hosted_typechecker_TCType et = fl_self_hosted_typechecker_infer_expr(s, elem.expr);
-        fl_self_hosted_typechecker_TCType _fl_tmp_531 = et;
-        switch (_fl_tmp_531.tag) {
+        fl_self_hosted_typechecker_TCType _fl_tmp_527 = et;
+        switch (_fl_tmp_527.tag) {
             case 17: {
-                FL_Array* params = _fl_tmp_531.TCFn.params;
-                fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_531.TCFn.ret);
-                fl_bool is_pure = _fl_tmp_531.TCFn.is_pure;
-                fl_bool is_variadic = _fl_tmp_531.TCFn.is_variadic;
+                FL_Array* params = _fl_tmp_527.TCFn.params;
+                fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_527.TCFn.ret);
+                fl_bool is_pure = _fl_tmp_527.TCFn.is_pure;
+                fl_bool is_variadic = _fl_tmp_527.TCFn.is_variadic;
                 fl_int arity = fl_array_len_int(params);
                 if (arity == 0) {
-                    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_532 = fl_self_hosted_typechecker_tc_box(ret);
-                    FL_Array* _fl_old_533 = stack;
-                    stack = fl_array_push_sized(stack, (&_fl_tmp_532), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                    if (_fl_old_533 != stack) {
-                        fl_array_release(_fl_old_533);
+                    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_528 = fl_self_hosted_typechecker_tc_box(ret);
+                    FL_Array* _fl_old_529 = stack;
+                    stack = fl_array_push_sized(stack, (&_fl_tmp_528), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                    if (_fl_old_529 != stack) {
+                        fl_array_release(_fl_old_529);
                     }
                 } else {
                     if (fl_array_len_int(stack) >= arity) {
                         fl_int _fl_e_1;
                         FL_CHECKED_SUB(fl_array_len_int(stack), arity, &_fl_e_1);
                         fl_int new_len = _fl_e_1;
-                        FL_Array* _fl_old_534 = stack;
+                        FL_Array* _fl_old_530 = stack;
                         stack = fl_array_slice__self_hosted_typechecker_TCTypeBox(stack, 0, new_len);
-                        if (_fl_old_534 != stack) {
-                            fl_array_release(_fl_old_534);
+                        if (_fl_old_530 != stack) {
+                            fl_array_release(_fl_old_530);
                         }
-                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_535 = fl_self_hosted_typechecker_tc_box(ret);
-                        FL_Array* _fl_old_536 = stack;
-                        stack = fl_array_push_sized(stack, (&_fl_tmp_535), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                        if (_fl_old_536 != stack) {
-                            fl_array_release(_fl_old_536);
+                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_531 = fl_self_hosted_typechecker_tc_box(ret);
+                        FL_Array* _fl_old_532 = stack;
+                        stack = fl_array_push_sized(stack, (&_fl_tmp_531), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                        if (_fl_old_532 != stack) {
+                            fl_array_release(_fl_old_532);
                         }
                     } else {
-                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_537 = fl_self_hosted_typechecker_tc_box(ret);
-                        FL_Array* _fl_old_538 = stack;
-                        stack = fl_array_push_sized(stack, (&_fl_tmp_537), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                        if (_fl_old_538 != stack) {
-                            fl_array_release(_fl_old_538);
+                        fl_self_hosted_typechecker_TCTypeBox _fl_tmp_533 = fl_self_hosted_typechecker_tc_box(ret);
+                        FL_Array* _fl_old_534 = stack;
+                        stack = fl_array_push_sized(stack, (&_fl_tmp_533), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                        if (_fl_old_534 != stack) {
+                            fl_array_release(_fl_old_534);
                         }
                     }
                 }
                 break;
             }
             case 10: {
-                FL_Array* elements = _fl_tmp_531.TCTuple.elements;
+                FL_Array* elements = _fl_tmp_527.TCTuple.elements;
                 fl_int j = 0;
                 while (j < fl_array_len_int(elements)) {
-                    FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_539 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, j), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                    fl_self_hosted_typechecker_TCTypeBox eb = ((_fl_tmp_539.tag == 1) ? _fl_tmp_539.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
-                    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_540 = eb;
-                    FL_Array* _fl_old_541 = stack;
-                    stack = fl_array_push_sized(stack, (&_fl_tmp_540), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                    if (_fl_old_541 != stack) {
-                        fl_array_release(_fl_old_541);
+                    FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_535 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, j), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                    fl_self_hosted_typechecker_TCTypeBox eb = ((_fl_tmp_535.tag == 1) ? _fl_tmp_535.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                    fl_self_hosted_typechecker_TCTypeBox _fl_tmp_536 = eb;
+                    FL_Array* _fl_old_537 = stack;
+                    stack = fl_array_push_sized(stack, (&_fl_tmp_536), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                    if (_fl_old_537 != stack) {
+                        fl_array_release(_fl_old_537);
                     }
                     fl_int _fl_e_2;
                     FL_CHECKED_ADD(j, 1, &_fl_e_2);
@@ -17502,11 +17462,11 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_chain(fl_self
                 break;
             }
             default: {
-                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_542 = fl_self_hosted_typechecker_tc_box(et);
-                FL_Array* _fl_old_543 = stack;
-                stack = fl_array_push_sized(stack, (&_fl_tmp_542), sizeof(fl_self_hosted_typechecker_TCTypeBox));
-                if (_fl_old_543 != stack) {
-                    fl_array_release(_fl_old_543);
+                fl_self_hosted_typechecker_TCTypeBox _fl_tmp_538 = fl_self_hosted_typechecker_tc_box(et);
+                FL_Array* _fl_old_539 = stack;
+                stack = fl_array_push_sized(stack, (&_fl_tmp_538), sizeof(fl_self_hosted_typechecker_TCTypeBox));
+                if (_fl_old_539 != stack) {
+                    fl_array_release(_fl_old_539);
                 }
                 break;
             }
@@ -17517,148 +17477,148 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_chain(fl_self
     }
     fl_int _fl_e_4;
     FL_CHECKED_SUB(fl_array_len_int(stack), 1, &_fl_e_4);
-    FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_544 = FL_OPT_DEREF_AS(fl_array_get_safe(stack, _fl_e_4), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-    fl_self_hosted_typechecker_TCTypeBox last = ((_fl_tmp_544.tag == 1) ? _fl_tmp_544.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 7}));
+    FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_540 = FL_OPT_DEREF_AS(fl_array_get_safe(stack, _fl_e_4), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+    fl_self_hosted_typechecker_TCTypeBox last = ((_fl_tmp_540.tag == 1) ? _fl_tmp_540.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 7}));
     fl_array_release(stack);
     return last.tc;
 }
 
 /* Flow: self_hosted.typechecker.stmt_line_num */
 fl_int fl_self_hosted_typechecker_stmt_line_num(fl_self_hosted_ast_Stmt stmt) {
-    fl_self_hosted_ast_Stmt _fl_tmp_545 = stmt;
-    switch (_fl_tmp_545.tag) {
+    fl_self_hosted_ast_Stmt _fl_tmp_541 = stmt;
+    switch (_fl_tmp_541.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_545.SLet.id;
-            fl_int l = _fl_tmp_545.SLet.line;
-            fl_int c = _fl_tmp_545.SLet.col;
-            FL_String* n = _fl_tmp_545.SLet.name;
-            fl_bool h = _fl_tmp_545.SLet.has_type_ann;
-            fl_self_hosted_ast_TypeExpr t = _fl_tmp_545.SLet.type_ann;
-            fl_self_hosted_ast_Expr v = _fl_tmp_545.SLet.value;
+            fl_int nid = _fl_tmp_541.SLet.id;
+            fl_int l = _fl_tmp_541.SLet.line;
+            fl_int c = _fl_tmp_541.SLet.col;
+            FL_String* n = _fl_tmp_541.SLet.name;
+            fl_bool h = _fl_tmp_541.SLet.has_type_ann;
+            fl_self_hosted_ast_TypeExpr t = _fl_tmp_541.SLet.type_ann;
+            fl_self_hosted_ast_Expr v = _fl_tmp_541.SLet.value;
             return l;
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_545.SAssign.id;
-            fl_int l = _fl_tmp_545.SAssign.line;
-            fl_int c = _fl_tmp_545.SAssign.col;
-            fl_self_hosted_ast_Expr t = _fl_tmp_545.SAssign.target;
-            fl_self_hosted_ast_Expr v = _fl_tmp_545.SAssign.value;
+            fl_int nid = _fl_tmp_541.SAssign.id;
+            fl_int l = _fl_tmp_541.SAssign.line;
+            fl_int c = _fl_tmp_541.SAssign.col;
+            fl_self_hosted_ast_Expr t = _fl_tmp_541.SAssign.target;
+            fl_self_hosted_ast_Expr v = _fl_tmp_541.SAssign.value;
             return l;
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_545.SUpdate.id;
-            fl_int l = _fl_tmp_545.SUpdate.line;
-            fl_int c = _fl_tmp_545.SUpdate.col;
-            fl_self_hosted_ast_Expr t = _fl_tmp_545.SUpdate.target;
-            FL_String* o = _fl_tmp_545.SUpdate.op;
-            fl_bool h = _fl_tmp_545.SUpdate.has_value;
-            fl_self_hosted_ast_Expr v = _fl_tmp_545.SUpdate.value;
+            fl_int nid = _fl_tmp_541.SUpdate.id;
+            fl_int l = _fl_tmp_541.SUpdate.line;
+            fl_int c = _fl_tmp_541.SUpdate.col;
+            fl_self_hosted_ast_Expr t = _fl_tmp_541.SUpdate.target;
+            FL_String* o = _fl_tmp_541.SUpdate.op;
+            fl_bool h = _fl_tmp_541.SUpdate.has_value;
+            fl_self_hosted_ast_Expr v = _fl_tmp_541.SUpdate.value;
             return l;
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_545.SReturn.id;
-            fl_int l = _fl_tmp_545.SReturn.line;
-            fl_int c = _fl_tmp_545.SReturn.col;
-            fl_bool h = _fl_tmp_545.SReturn.has_value;
-            fl_self_hosted_ast_Expr v = _fl_tmp_545.SReturn.value;
+            fl_int nid = _fl_tmp_541.SReturn.id;
+            fl_int l = _fl_tmp_541.SReturn.line;
+            fl_int c = _fl_tmp_541.SReturn.col;
+            fl_bool h = _fl_tmp_541.SReturn.has_value;
+            fl_self_hosted_ast_Expr v = _fl_tmp_541.SReturn.value;
             return l;
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_545.SYield.id;
-            fl_int l = _fl_tmp_545.SYield.line;
-            fl_int c = _fl_tmp_545.SYield.col;
-            fl_self_hosted_ast_Expr v = _fl_tmp_545.SYield.value;
+            fl_int nid = _fl_tmp_541.SYield.id;
+            fl_int l = _fl_tmp_541.SYield.line;
+            fl_int c = _fl_tmp_541.SYield.col;
+            fl_self_hosted_ast_Expr v = _fl_tmp_541.SYield.value;
             return l;
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_545.SThrow.id;
-            fl_int l = _fl_tmp_545.SThrow.line;
-            fl_int c = _fl_tmp_545.SThrow.col;
-            fl_self_hosted_ast_Expr v = _fl_tmp_545.SThrow.exception;
+            fl_int nid = _fl_tmp_541.SThrow.id;
+            fl_int l = _fl_tmp_541.SThrow.line;
+            fl_int c = _fl_tmp_541.SThrow.col;
+            fl_self_hosted_ast_Expr v = _fl_tmp_541.SThrow.exception;
             return l;
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_545.SBreak.id;
-            fl_int l = _fl_tmp_545.SBreak.line;
-            fl_int c = _fl_tmp_545.SBreak.col;
+            fl_int nid = _fl_tmp_541.SBreak.id;
+            fl_int l = _fl_tmp_541.SBreak.line;
+            fl_int c = _fl_tmp_541.SBreak.col;
             return l;
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_545.SContinue.id;
-            fl_int l = _fl_tmp_545.SContinue.line;
-            fl_int c = _fl_tmp_545.SContinue.col;
+            fl_int nid = _fl_tmp_541.SContinue.id;
+            fl_int l = _fl_tmp_541.SContinue.line;
+            fl_int c = _fl_tmp_541.SContinue.col;
             return l;
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_545.SExpr.id;
-            fl_int l = _fl_tmp_545.SExpr.line;
-            fl_int c = _fl_tmp_545.SExpr.col;
-            fl_self_hosted_ast_Expr e = _fl_tmp_545.SExpr.expr;
+            fl_int nid = _fl_tmp_541.SExpr.id;
+            fl_int l = _fl_tmp_541.SExpr.line;
+            fl_int c = _fl_tmp_541.SExpr.col;
+            fl_self_hosted_ast_Expr e = _fl_tmp_541.SExpr.expr;
             return l;
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_545.SIf.id;
-            fl_int l = _fl_tmp_545.SIf.line;
-            fl_int c = _fl_tmp_545.SIf.col;
-            fl_self_hosted_ast_Expr co = _fl_tmp_545.SIf.condition;
-            FL_Array* th = _fl_tmp_545.SIf.then_stmts;
-            fl_bool he = _fl_tmp_545.SIf.has_else;
-            FL_Array* el = _fl_tmp_545.SIf.else_stmts;
+            fl_int nid = _fl_tmp_541.SIf.id;
+            fl_int l = _fl_tmp_541.SIf.line;
+            fl_int c = _fl_tmp_541.SIf.col;
+            fl_self_hosted_ast_Expr co = _fl_tmp_541.SIf.condition;
+            FL_Array* th = _fl_tmp_541.SIf.then_stmts;
+            fl_bool he = _fl_tmp_541.SIf.has_else;
+            FL_Array* el = _fl_tmp_541.SIf.else_stmts;
             return l;
             break;
         }
         case 10: {
-            fl_int nid = _fl_tmp_545.SWhile.id;
-            fl_int l = _fl_tmp_545.SWhile.line;
-            fl_int c = _fl_tmp_545.SWhile.col;
-            fl_self_hosted_ast_Expr co = _fl_tmp_545.SWhile.condition;
-            FL_Array* bo = _fl_tmp_545.SWhile.body;
-            fl_bool hf = _fl_tmp_545.SWhile.has_finally;
-            FL_Array* fb = _fl_tmp_545.SWhile.finally_body;
+            fl_int nid = _fl_tmp_541.SWhile.id;
+            fl_int l = _fl_tmp_541.SWhile.line;
+            fl_int c = _fl_tmp_541.SWhile.col;
+            fl_self_hosted_ast_Expr co = _fl_tmp_541.SWhile.condition;
+            FL_Array* bo = _fl_tmp_541.SWhile.body;
+            fl_bool hf = _fl_tmp_541.SWhile.has_finally;
+            FL_Array* fb = _fl_tmp_541.SWhile.finally_body;
             return l;
             break;
         }
         case 11: {
-            fl_int nid = _fl_tmp_545.SFor.id;
-            fl_int l = _fl_tmp_545.SFor.line;
-            fl_int c = _fl_tmp_545.SFor.col;
-            FL_String* vn = _fl_tmp_545.SFor.var_name;
-            fl_bool hvt = _fl_tmp_545.SFor.has_var_type;
-            fl_self_hosted_ast_TypeExpr vt = _fl_tmp_545.SFor.var_type;
-            fl_self_hosted_ast_Expr it = _fl_tmp_545.SFor.iterable;
-            FL_Array* bo = _fl_tmp_545.SFor.body;
-            fl_bool hf = _fl_tmp_545.SFor.has_finally;
-            FL_Array* fb = _fl_tmp_545.SFor.finally_body;
+            fl_int nid = _fl_tmp_541.SFor.id;
+            fl_int l = _fl_tmp_541.SFor.line;
+            fl_int c = _fl_tmp_541.SFor.col;
+            FL_String* vn = _fl_tmp_541.SFor.var_name;
+            fl_bool hvt = _fl_tmp_541.SFor.has_var_type;
+            fl_self_hosted_ast_TypeExpr vt = _fl_tmp_541.SFor.var_type;
+            fl_self_hosted_ast_Expr it = _fl_tmp_541.SFor.iterable;
+            FL_Array* bo = _fl_tmp_541.SFor.body;
+            fl_bool hf = _fl_tmp_541.SFor.has_finally;
+            FL_Array* fb = _fl_tmp_541.SFor.finally_body;
             return l;
             break;
         }
         case 12: {
-            fl_int nid = _fl_tmp_545.SMatch.id;
-            fl_int l = _fl_tmp_545.SMatch.line;
-            fl_int c = _fl_tmp_545.SMatch.col;
-            fl_self_hosted_ast_Expr su = _fl_tmp_545.SMatch.subject;
-            FL_Array* ar = _fl_tmp_545.SMatch.arms;
+            fl_int nid = _fl_tmp_541.SMatch.id;
+            fl_int l = _fl_tmp_541.SMatch.line;
+            fl_int c = _fl_tmp_541.SMatch.col;
+            fl_self_hosted_ast_Expr su = _fl_tmp_541.SMatch.subject;
+            FL_Array* ar = _fl_tmp_541.SMatch.arms;
             return l;
             break;
         }
         case 13: {
-            fl_int nid = _fl_tmp_545.STry.id;
-            fl_int l = _fl_tmp_545.STry.line;
-            fl_int c = _fl_tmp_545.STry.col;
-            FL_Array* bo = _fl_tmp_545.STry.body;
-            FL_Array* re = _fl_tmp_545.STry.retry_blocks;
-            FL_Array* ca = _fl_tmp_545.STry.catches;
-            fl_bool hf = _fl_tmp_545.STry.has_finally;
-            FL_Array* fb = _fl_tmp_545.STry.finally_body;
+            fl_int nid = _fl_tmp_541.STry.id;
+            fl_int l = _fl_tmp_541.STry.line;
+            fl_int c = _fl_tmp_541.STry.col;
+            FL_Array* bo = _fl_tmp_541.STry.body;
+            FL_Array* re = _fl_tmp_541.STry.retry_blocks;
+            FL_Array* ca = _fl_tmp_541.STry.catches;
+            fl_bool hf = _fl_tmp_541.STry.has_finally;
+            FL_Array* fb = _fl_tmp_541.STry.finally_body;
             return l;
             break;
         }
@@ -17667,28 +17627,28 @@ fl_int fl_self_hosted_typechecker_stmt_line_num(fl_self_hosted_ast_Stmt stmt) {
 
 /* Flow: self_hosted.typechecker.check_stmt */
 void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Stmt stmt) {
-    fl_self_hosted_ast_Stmt _fl_tmp_546 = stmt;
-    switch (_fl_tmp_546.tag) {
+    fl_self_hosted_ast_Stmt _fl_tmp_542 = stmt;
+    switch (_fl_tmp_542.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_546.SLet.id;
-            fl_int l = _fl_tmp_546.SLet.line;
-            fl_int c = _fl_tmp_546.SLet.col;
-            FL_String* name = _fl_tmp_546.SLet.name;
-            fl_bool has_type_ann = _fl_tmp_546.SLet.has_type_ann;
-            fl_self_hosted_ast_TypeExpr type_ann = _fl_tmp_546.SLet.type_ann;
-            fl_self_hosted_ast_Expr val_expr = _fl_tmp_546.SLet.value;
+            fl_int nid = _fl_tmp_542.SLet.id;
+            fl_int l = _fl_tmp_542.SLet.line;
+            fl_int c = _fl_tmp_542.SLet.col;
+            FL_String* name = _fl_tmp_542.SLet.name;
+            fl_bool has_type_ann = _fl_tmp_542.SLet.has_type_ann;
+            fl_self_hosted_ast_TypeExpr type_ann = _fl_tmp_542.SLet.type_ann;
+            fl_self_hosted_ast_Expr val_expr = _fl_tmp_542.SLet.value;
             fl_self_hosted_typechecker_TCType val_t = fl_self_hosted_typechecker_infer_expr(s, val_expr);
             if (has_type_ann) {
                 fl_self_hosted_typechecker_TCType expected = fl_self_hosted_typechecker_resolve_type_expr(s, type_ann);
-                fl_self_hosted_typechecker_TCType _fl_tmp_547 = expected;
-                switch (_fl_tmp_547.tag) {
+                fl_self_hosted_typechecker_TCType _fl_tmp_543 = expected;
+                switch (_fl_tmp_543.tag) {
                     case 5: {
-                        fl_self_hosted_ast_Expr _fl_tmp_548 = val_expr;
-                        switch (_fl_tmp_548.tag) {
+                        fl_self_hosted_ast_Expr _fl_tmp_544 = val_expr;
+                        switch (_fl_tmp_544.tag) {
                             case 5: {
-                                fl_int en = _fl_tmp_548.ENoneLit.id;
-                                fl_int el = _fl_tmp_548.ENoneLit.line;
-                                fl_int ec = _fl_tmp_548.ENoneLit.col;
+                                fl_int en = _fl_tmp_544.ENoneLit.id;
+                                fl_int el = _fl_tmp_544.ENoneLit.line;
+                                fl_int ec = _fl_tmp_544.ENoneLit.col;
                                 val_t = (fl_self_hosted_typechecker_TCType){.tag = 5};
                                 break;
                             }
@@ -17696,11 +17656,11 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
                         break;
                     }
                     case 8: {
-                        fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_547.TCOption.inner);
-                        fl_self_hosted_typechecker_TCType _fl_tmp_549 = val_t;
-                        switch (_fl_tmp_549.tag) {
+                        fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_543.TCOption.inner);
+                        fl_self_hosted_typechecker_TCType _fl_tmp_545 = val_t;
+                        switch (_fl_tmp_545.tag) {
                             case 8: {
-                                fl_self_hosted_typechecker_TCType vi = (*_fl_tmp_549.TCOption.inner);
+                                fl_self_hosted_typechecker_TCType vi = (*_fl_tmp_545.TCOption.inner);
                                 break;
                             }
                             case 23: {
@@ -17708,9 +17668,9 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
                             }
                             default: {
                                 if (fl_self_hosted_typechecker_is_assignable(val_t, inner)) {
-                                    fl_self_hosted_typechecker_TCType* _fl_tmp_550 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                                    (*_fl_tmp_550) = val_t;
-                                    val_t = (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_550}};
+                                    fl_self_hosted_typechecker_TCType* _fl_tmp_546 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                                    (*_fl_tmp_546) = val_t;
+                                    val_t = (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_546}};
                                 }
                                 break;
                             }
@@ -17725,23 +17685,23 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_546.SAssign.id;
-            fl_int l = _fl_tmp_546.SAssign.line;
-            fl_int c = _fl_tmp_546.SAssign.col;
-            fl_self_hosted_ast_Expr target = _fl_tmp_546.SAssign.target;
-            fl_self_hosted_ast_Expr val_expr = _fl_tmp_546.SAssign.value;
+            fl_int nid = _fl_tmp_542.SAssign.id;
+            fl_int l = _fl_tmp_542.SAssign.line;
+            fl_int c = _fl_tmp_542.SAssign.col;
+            fl_self_hosted_ast_Expr target = _fl_tmp_542.SAssign.target;
+            fl_self_hosted_ast_Expr val_expr = _fl_tmp_542.SAssign.value;
             fl_self_hosted_typechecker_infer_expr(s, val_expr);
             fl_self_hosted_typechecker_infer_expr(s, target);
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_546.SUpdate.id;
-            fl_int l = _fl_tmp_546.SUpdate.line;
-            fl_int c = _fl_tmp_546.SUpdate.col;
-            fl_self_hosted_ast_Expr target = _fl_tmp_546.SUpdate.target;
-            FL_String* op = _fl_tmp_546.SUpdate.op;
-            fl_bool has_val = _fl_tmp_546.SUpdate.has_value;
-            fl_self_hosted_ast_Expr val_expr = _fl_tmp_546.SUpdate.value;
+            fl_int nid = _fl_tmp_542.SUpdate.id;
+            fl_int l = _fl_tmp_542.SUpdate.line;
+            fl_int c = _fl_tmp_542.SUpdate.col;
+            fl_self_hosted_ast_Expr target = _fl_tmp_542.SUpdate.target;
+            FL_String* op = _fl_tmp_542.SUpdate.op;
+            fl_bool has_val = _fl_tmp_542.SUpdate.has_value;
+            fl_self_hosted_ast_Expr val_expr = _fl_tmp_542.SUpdate.value;
             fl_self_hosted_typechecker_infer_expr(s, target);
             if (has_val) {
                 fl_self_hosted_typechecker_infer_expr(s, val_expr);
@@ -17749,31 +17709,31 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_546.SReturn.id;
-            fl_int l = _fl_tmp_546.SReturn.line;
-            fl_int c = _fl_tmp_546.SReturn.col;
-            fl_bool has_val = _fl_tmp_546.SReturn.has_value;
-            fl_self_hosted_ast_Expr val_expr = _fl_tmp_546.SReturn.value;
+            fl_int nid = _fl_tmp_542.SReturn.id;
+            fl_int l = _fl_tmp_542.SReturn.line;
+            fl_int c = _fl_tmp_542.SReturn.col;
+            fl_bool has_val = _fl_tmp_542.SReturn.has_value;
+            fl_self_hosted_ast_Expr val_expr = _fl_tmp_542.SReturn.value;
             if (has_val) {
                 fl_self_hosted_typechecker_TCType val_t = fl_self_hosted_typechecker_infer_expr(s, val_expr);
                 if (s->has_return_type) {
                     fl_self_hosted_typechecker_TCType expected = s->current_return_type;
-                    fl_self_hosted_typechecker_TCType _fl_tmp_551 = expected;
-                    switch (_fl_tmp_551.tag) {
+                    fl_self_hosted_typechecker_TCType _fl_tmp_547 = expected;
+                    switch (_fl_tmp_547.tag) {
                         case 5: {
-                            fl_self_hosted_ast_Expr _fl_tmp_552 = val_expr;
-                            switch (_fl_tmp_552.tag) {
+                            fl_self_hosted_ast_Expr _fl_tmp_548 = val_expr;
+                            switch (_fl_tmp_548.tag) {
                                 case 5: {
-                                    fl_int en = _fl_tmp_552.ENoneLit.id;
-                                    fl_int el = _fl_tmp_552.ENoneLit.line;
-                                    fl_int ec = _fl_tmp_552.ENoneLit.col;
+                                    fl_int en = _fl_tmp_548.ENoneLit.id;
+                                    fl_int el = _fl_tmp_548.ENoneLit.line;
+                                    fl_int ec = _fl_tmp_548.ENoneLit.col;
                                     break;
                                 }
                             }
                             break;
                         }
                         case 8: {
-                            fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_551.TCOption.inner);
+                            fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_547.TCOption.inner);
                             break;
                         }
                     }
@@ -17782,49 +17742,49 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_546.SYield.id;
-            fl_int l = _fl_tmp_546.SYield.line;
-            fl_int c = _fl_tmp_546.SYield.col;
-            fl_self_hosted_ast_Expr val_expr = _fl_tmp_546.SYield.value;
+            fl_int nid = _fl_tmp_542.SYield.id;
+            fl_int l = _fl_tmp_542.SYield.line;
+            fl_int c = _fl_tmp_542.SYield.col;
+            fl_self_hosted_ast_Expr val_expr = _fl_tmp_542.SYield.value;
             fl_self_hosted_typechecker_infer_expr(s, val_expr);
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_546.SThrow.id;
-            fl_int l = _fl_tmp_546.SThrow.line;
-            fl_int c = _fl_tmp_546.SThrow.col;
-            fl_self_hosted_ast_Expr exc_expr = _fl_tmp_546.SThrow.exception;
+            fl_int nid = _fl_tmp_542.SThrow.id;
+            fl_int l = _fl_tmp_542.SThrow.line;
+            fl_int c = _fl_tmp_542.SThrow.col;
+            fl_self_hosted_ast_Expr exc_expr = _fl_tmp_542.SThrow.exception;
             fl_self_hosted_typechecker_infer_expr(s, exc_expr);
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_546.SBreak.id;
-            fl_int l = _fl_tmp_546.SBreak.line;
-            fl_int c = _fl_tmp_546.SBreak.col;
+            fl_int nid = _fl_tmp_542.SBreak.id;
+            fl_int l = _fl_tmp_542.SBreak.line;
+            fl_int c = _fl_tmp_542.SBreak.col;
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_546.SContinue.id;
-            fl_int l = _fl_tmp_546.SContinue.line;
-            fl_int c = _fl_tmp_546.SContinue.col;
+            fl_int nid = _fl_tmp_542.SContinue.id;
+            fl_int l = _fl_tmp_542.SContinue.line;
+            fl_int c = _fl_tmp_542.SContinue.col;
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_546.SExpr.id;
-            fl_int l = _fl_tmp_546.SExpr.line;
-            fl_int c = _fl_tmp_546.SExpr.col;
-            fl_self_hosted_ast_Expr ex = _fl_tmp_546.SExpr.expr;
+            fl_int nid = _fl_tmp_542.SExpr.id;
+            fl_int l = _fl_tmp_542.SExpr.line;
+            fl_int c = _fl_tmp_542.SExpr.col;
+            fl_self_hosted_ast_Expr ex = _fl_tmp_542.SExpr.expr;
             fl_self_hosted_typechecker_infer_expr(s, ex);
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_546.SIf.id;
-            fl_int l = _fl_tmp_546.SIf.line;
-            fl_int c = _fl_tmp_546.SIf.col;
-            fl_self_hosted_ast_Expr cond = _fl_tmp_546.SIf.condition;
-            FL_Array* then_b = _fl_tmp_546.SIf.then_stmts;
-            fl_bool has_else = _fl_tmp_546.SIf.has_else;
-            FL_Array* else_b = _fl_tmp_546.SIf.else_stmts;
+            fl_int nid = _fl_tmp_542.SIf.id;
+            fl_int l = _fl_tmp_542.SIf.line;
+            fl_int c = _fl_tmp_542.SIf.col;
+            fl_self_hosted_ast_Expr cond = _fl_tmp_542.SIf.condition;
+            FL_Array* then_b = _fl_tmp_542.SIf.then_stmts;
+            fl_bool has_else = _fl_tmp_542.SIf.has_else;
+            FL_Array* else_b = _fl_tmp_542.SIf.else_stmts;
             fl_self_hosted_typechecker_infer_expr(s, cond);
             fl_self_hosted_typechecker_check_block(s, then_b);
             if (has_else) {
@@ -17833,13 +17793,13 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             break;
         }
         case 10: {
-            fl_int nid = _fl_tmp_546.SWhile.id;
-            fl_int l = _fl_tmp_546.SWhile.line;
-            fl_int c = _fl_tmp_546.SWhile.col;
-            fl_self_hosted_ast_Expr cond = _fl_tmp_546.SWhile.condition;
-            FL_Array* body = _fl_tmp_546.SWhile.body;
-            fl_bool has_finally = _fl_tmp_546.SWhile.has_finally;
-            FL_Array* finally_b = _fl_tmp_546.SWhile.finally_body;
+            fl_int nid = _fl_tmp_542.SWhile.id;
+            fl_int l = _fl_tmp_542.SWhile.line;
+            fl_int c = _fl_tmp_542.SWhile.col;
+            fl_self_hosted_ast_Expr cond = _fl_tmp_542.SWhile.condition;
+            FL_Array* body = _fl_tmp_542.SWhile.body;
+            fl_bool has_finally = _fl_tmp_542.SWhile.has_finally;
+            FL_Array* finally_b = _fl_tmp_542.SWhile.finally_body;
             fl_self_hosted_typechecker_infer_expr(s, cond);
             fl_self_hosted_typechecker_check_block(s, body);
             if (has_finally) {
@@ -17848,27 +17808,27 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             break;
         }
         case 11: {
-            fl_int nid = _fl_tmp_546.SFor.id;
-            fl_int l = _fl_tmp_546.SFor.line;
-            fl_int c = _fl_tmp_546.SFor.col;
-            FL_String* var_name = _fl_tmp_546.SFor.var_name;
-            fl_bool has_var_type = _fl_tmp_546.SFor.has_var_type;
-            fl_self_hosted_ast_TypeExpr var_type = _fl_tmp_546.SFor.var_type;
-            fl_self_hosted_ast_Expr iterable = _fl_tmp_546.SFor.iterable;
-            FL_Array* body = _fl_tmp_546.SFor.body;
-            fl_bool has_finally = _fl_tmp_546.SFor.has_finally;
-            FL_Array* finally_b = _fl_tmp_546.SFor.finally_body;
+            fl_int nid = _fl_tmp_542.SFor.id;
+            fl_int l = _fl_tmp_542.SFor.line;
+            fl_int c = _fl_tmp_542.SFor.col;
+            FL_String* var_name = _fl_tmp_542.SFor.var_name;
+            fl_bool has_var_type = _fl_tmp_542.SFor.has_var_type;
+            fl_self_hosted_ast_TypeExpr var_type = _fl_tmp_542.SFor.var_type;
+            fl_self_hosted_ast_Expr iterable = _fl_tmp_542.SFor.iterable;
+            FL_Array* body = _fl_tmp_542.SFor.body;
+            fl_bool has_finally = _fl_tmp_542.SFor.has_finally;
+            FL_Array* finally_b = _fl_tmp_542.SFor.finally_body;
             fl_self_hosted_typechecker_TCType iter_t = fl_self_hosted_typechecker_infer_expr(s, iterable);
             fl_self_hosted_typechecker_TCType elem_t = (fl_self_hosted_typechecker_TCType){.tag = 23};
-            fl_self_hosted_typechecker_TCType _fl_tmp_553 = iter_t;
-            switch (_fl_tmp_553.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_549 = iter_t;
+            switch (_fl_tmp_549.tag) {
                 case 12: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_553.TCStream.elem);
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_549.TCStream.elem);
                     elem_t = elem;
                     break;
                 }
                 case 11: {
-                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_553.TCArray.elem);
+                    fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_549.TCArray.elem);
                     elem_t = elem;
                     break;
                 }
@@ -17886,23 +17846,23 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             break;
         }
         case 12: {
-            fl_int nid = _fl_tmp_546.SMatch.id;
-            fl_int l = _fl_tmp_546.SMatch.line;
-            fl_int c = _fl_tmp_546.SMatch.col;
-            fl_self_hosted_ast_Expr subj = _fl_tmp_546.SMatch.subject;
-            FL_Array* arms = _fl_tmp_546.SMatch.arms;
+            fl_int nid = _fl_tmp_542.SMatch.id;
+            fl_int l = _fl_tmp_542.SMatch.line;
+            fl_int c = _fl_tmp_542.SMatch.col;
+            fl_self_hosted_ast_Expr subj = _fl_tmp_542.SMatch.subject;
+            FL_Array* arms = _fl_tmp_542.SMatch.arms;
             fl_self_hosted_typechecker_TCType subj_t = fl_self_hosted_typechecker_infer_expr(s, subj);
             fl_self_hosted_typechecker_check_exhaustiveness(s, subj_t, arms, l, c);
             fl_int i = 0;
             while (i < fl_array_len_int(arms)) {
-                FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_554 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
-                fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_554.tag == 1) ? _fl_tmp_554.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_550 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
+                fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_550.tag == 1) ? _fl_tmp_550.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
                 fl_self_hosted_typechecker_scope_push_frame(s);
                 fl_self_hosted_typechecker_bind_pattern_types(s, arm.pattern, subj_t);
                 fl_int j = 0;
                 while (j < fl_array_len_int(arm.body_stmts)) {
-                    FL_Option_fl_self_hosted_ast_Stmt _fl_tmp_555 = FL_OPT_DEREF_AS(fl_array_get_safe(arm.body_stmts, j), fl_self_hosted_ast_Stmt, FL_Option_fl_self_hosted_ast_Stmt);
-                    fl_self_hosted_ast_Stmt bs = ((_fl_tmp_555.tag == 1) ? _fl_tmp_555.value : (fl_self_hosted_ast_Stmt){.tag = 6, .SBreak = (fl_self_hosted_ast_Stmt_SBreak){.id = 0, .line = 0, .col = 0}});
+                    FL_Option_fl_self_hosted_ast_Stmt _fl_tmp_551 = FL_OPT_DEREF_AS(fl_array_get_safe(arm.body_stmts, j), fl_self_hosted_ast_Stmt, FL_Option_fl_self_hosted_ast_Stmt);
+                    fl_self_hosted_ast_Stmt bs = ((_fl_tmp_551.tag == 1) ? _fl_tmp_551.value : (fl_self_hosted_ast_Stmt){.tag = 6, .SBreak = (fl_self_hosted_ast_Stmt_SBreak){.id = 0, .line = 0, .col = 0}});
                     fl_self_hosted_typechecker_check_stmt(s, bs);
                     fl_int _fl_e_1;
                     FL_CHECKED_ADD(j, 1, &_fl_e_1);
@@ -17916,22 +17876,22 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             break;
         }
         case 13: {
-            fl_int nid = _fl_tmp_546.STry.id;
-            fl_int l = _fl_tmp_546.STry.line;
-            fl_int c = _fl_tmp_546.STry.col;
-            FL_Array* body = _fl_tmp_546.STry.body;
-            FL_Array* retry_blocks = _fl_tmp_546.STry.retry_blocks;
-            FL_Array* catches = _fl_tmp_546.STry.catches;
-            fl_bool has_finally = _fl_tmp_546.STry.has_finally;
-            FL_Array* finally_b = _fl_tmp_546.STry.finally_body;
+            fl_int nid = _fl_tmp_542.STry.id;
+            fl_int l = _fl_tmp_542.STry.line;
+            fl_int c = _fl_tmp_542.STry.col;
+            FL_Array* body = _fl_tmp_542.STry.body;
+            FL_Array* retry_blocks = _fl_tmp_542.STry.retry_blocks;
+            FL_Array* catches = _fl_tmp_542.STry.catches;
+            fl_bool has_finally = _fl_tmp_542.STry.has_finally;
+            FL_Array* finally_b = _fl_tmp_542.STry.finally_body;
             fl_self_hosted_typechecker_check_block(s, body);
             fl_int ri = 0;
             while (ri < fl_array_len_int(retry_blocks)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_RetryBlock _fl_tmp_556 = FL_OPT_DEREF_AS(fl_array_get_safe(retry_blocks, ri), fl_self_hosted_ast_RetryBlock, FL_Option_fl_self_hosted_ast_RetryBlock);
-                fl_self_hosted_ast_RetryBlock rb = ((_fl_tmp_556.tag == 1) ? _fl_tmp_556.value : (fl_self_hosted_ast_RetryBlock){.target_fn = _fl_str_self_hosted_typechecker_0, .exception_var = _fl_str_self_hosted_typechecker_0, .exception_type = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, .has_attempts = fl_false, .attempts = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .body = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                FL_Option_fl_self_hosted_ast_RetryBlock _fl_tmp_552 = FL_OPT_DEREF_AS(fl_array_get_safe(retry_blocks, ri), fl_self_hosted_ast_RetryBlock, FL_Option_fl_self_hosted_ast_RetryBlock);
+                fl_self_hosted_ast_RetryBlock rb = ((_fl_tmp_552.tag == 1) ? _fl_tmp_552.value : (fl_self_hosted_ast_RetryBlock){.target_fn = _fl_str_self_hosted_typechecker_0, .exception_var = _fl_str_self_hosted_typechecker_0, .exception_type = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, .has_attempts = fl_false, .attempts = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}}, .body = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
                 fl_self_hosted_typechecker_scope_push_frame(s);
                 fl_self_hosted_typechecker_TCType exc_t = fl_self_hosted_typechecker_resolve_type_expr(s, rb.exception_type);
                 fl_self_hosted_typechecker_scope_define(s, rb.exception_var, exc_t);
@@ -17945,8 +17905,8 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
             while (ci < fl_array_len_int(catches)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_CatchClause _fl_tmp_557 = FL_OPT_DEREF_AS(fl_array_get_safe(catches, ci), fl_self_hosted_ast_CatchClause, FL_Option_fl_self_hosted_ast_CatchClause);
-                fl_self_hosted_ast_CatchClause cb = ((_fl_tmp_557.tag == 1) ? _fl_tmp_557.value : (fl_self_hosted_ast_CatchClause){.exception_var = _fl_str_self_hosted_typechecker_0, .exception_type = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, .body = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                FL_Option_fl_self_hosted_ast_CatchClause _fl_tmp_553 = FL_OPT_DEREF_AS(fl_array_get_safe(catches, ci), fl_self_hosted_ast_CatchClause, FL_Option_fl_self_hosted_ast_CatchClause);
+                fl_self_hosted_ast_CatchClause cb = ((_fl_tmp_553.tag == 1) ? _fl_tmp_553.value : (fl_self_hosted_ast_CatchClause){.exception_var = _fl_str_self_hosted_typechecker_0, .exception_type = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, .body = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
                 fl_self_hosted_typechecker_scope_push_frame(s);
                 fl_self_hosted_typechecker_TCType exc_t = fl_self_hosted_typechecker_resolve_type_expr(s, cb.exception_type);
                 fl_self_hosted_typechecker_scope_define(s, cb.exception_var, exc_t);
@@ -17969,8 +17929,8 @@ void fl_self_hosted_typechecker_check_block(fl_self_hosted_typechecker_TCState* 
     fl_self_hosted_typechecker_scope_push_frame(s);
     fl_int i = 0;
     while (i < fl_array_len_int(stmts)) {
-        FL_Option_fl_self_hosted_ast_Stmt _fl_tmp_558 = FL_OPT_DEREF_AS(fl_array_get_safe(stmts, i), fl_self_hosted_ast_Stmt, FL_Option_fl_self_hosted_ast_Stmt);
-        fl_self_hosted_ast_Stmt stmt = ((_fl_tmp_558.tag == 1) ? _fl_tmp_558.value : (fl_self_hosted_ast_Stmt){.tag = 6, .SBreak = (fl_self_hosted_ast_Stmt_SBreak){.id = 0, .line = 0, .col = 0}});
+        FL_Option_fl_self_hosted_ast_Stmt _fl_tmp_554 = FL_OPT_DEREF_AS(fl_array_get_safe(stmts, i), fl_self_hosted_ast_Stmt, FL_Option_fl_self_hosted_ast_Stmt);
+        fl_self_hosted_ast_Stmt stmt = ((_fl_tmp_554.tag == 1) ? _fl_tmp_554.value : (fl_self_hosted_ast_Stmt){.tag = 6, .SBreak = (fl_self_hosted_ast_Stmt_SBreak){.id = 0, .line = 0, .col = 0}});
         fl_self_hosted_typechecker_check_stmt(s, stmt);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -17981,39 +17941,39 @@ void fl_self_hosted_typechecker_check_block(fl_self_hosted_typechecker_TCState* 
 
 /* Flow: self_hosted.typechecker.bind_pattern_types */
 void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Pattern pat, fl_self_hosted_typechecker_TCType subj_t) {
-    fl_self_hosted_ast_Pattern _fl_tmp_559 = pat;
-    switch (_fl_tmp_559.tag) {
+    fl_self_hosted_ast_Pattern _fl_tmp_555 = pat;
+    switch (_fl_tmp_555.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_559.PWildcard.id;
-            fl_int l = _fl_tmp_559.PWildcard.line;
-            fl_int c = _fl_tmp_559.PWildcard.col;
+            fl_int nid = _fl_tmp_555.PWildcard.id;
+            fl_int l = _fl_tmp_555.PWildcard.line;
+            fl_int c = _fl_tmp_555.PWildcard.col;
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_559.PLiteral.id;
-            fl_int l = _fl_tmp_559.PLiteral.line;
-            fl_int c = _fl_tmp_559.PLiteral.col;
-            fl_int vid = _fl_tmp_559.PLiteral.value_id;
+            fl_int nid = _fl_tmp_555.PLiteral.id;
+            fl_int l = _fl_tmp_555.PLiteral.line;
+            fl_int c = _fl_tmp_555.PLiteral.col;
+            fl_int vid = _fl_tmp_555.PLiteral.value_id;
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_559.PBind.id;
-            fl_int l = _fl_tmp_559.PBind.line;
-            fl_int c = _fl_tmp_559.PBind.col;
-            FL_String* name = _fl_tmp_559.PBind.name;
+            fl_int nid = _fl_tmp_555.PBind.id;
+            fl_int l = _fl_tmp_555.PBind.line;
+            fl_int c = _fl_tmp_555.PBind.col;
+            FL_String* name = _fl_tmp_555.PBind.name;
             fl_self_hosted_typechecker_scope_define(s, name, subj_t);
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_559.PSome.id;
-            fl_int l = _fl_tmp_559.PSome.line;
-            fl_int c = _fl_tmp_559.PSome.col;
-            FL_String* inner_var = _fl_tmp_559.PSome.inner_var;
+            fl_int nid = _fl_tmp_555.PSome.id;
+            fl_int l = _fl_tmp_555.PSome.line;
+            fl_int c = _fl_tmp_555.PSome.col;
+            FL_String* inner_var = _fl_tmp_555.PSome.inner_var;
             fl_self_hosted_typechecker_TCType inner_t = subj_t;
-            fl_self_hosted_typechecker_TCType _fl_tmp_560 = subj_t;
-            switch (_fl_tmp_560.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_556 = subj_t;
+            switch (_fl_tmp_556.tag) {
                 case 8: {
-                    fl_self_hosted_typechecker_TCType it = (*_fl_tmp_560.TCOption.inner);
+                    fl_self_hosted_typechecker_TCType it = (*_fl_tmp_556.TCOption.inner);
                     inner_t = it;
                     break;
                 }
@@ -18022,22 +17982,22 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_559.PNone.id;
-            fl_int l = _fl_tmp_559.PNone.line;
-            fl_int c = _fl_tmp_559.PNone.col;
+            fl_int nid = _fl_tmp_555.PNone.id;
+            fl_int l = _fl_tmp_555.PNone.line;
+            fl_int c = _fl_tmp_555.PNone.col;
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_559.POk.id;
-            fl_int l = _fl_tmp_559.POk.line;
-            fl_int c = _fl_tmp_559.POk.col;
-            FL_String* inner_var = _fl_tmp_559.POk.inner_var;
+            fl_int nid = _fl_tmp_555.POk.id;
+            fl_int l = _fl_tmp_555.POk.line;
+            fl_int c = _fl_tmp_555.POk.col;
+            FL_String* inner_var = _fl_tmp_555.POk.inner_var;
             fl_self_hosted_typechecker_TCType ok_t = (fl_self_hosted_typechecker_TCType){.tag = 23};
-            fl_self_hosted_typechecker_TCType _fl_tmp_561 = subj_t;
-            switch (_fl_tmp_561.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_557 = subj_t;
+            switch (_fl_tmp_557.tag) {
                 case 9: {
-                    fl_self_hosted_typechecker_TCType ot = (*_fl_tmp_561.TCResult.ok_type);
-                    fl_self_hosted_typechecker_TCType et = (*_fl_tmp_561.TCResult.err_type);
+                    fl_self_hosted_typechecker_TCType ot = (*_fl_tmp_557.TCResult.ok_type);
+                    fl_self_hosted_typechecker_TCType et = (*_fl_tmp_557.TCResult.err_type);
                     ok_t = ot;
                     break;
                 }
@@ -18046,16 +18006,16 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_559.PErr.id;
-            fl_int l = _fl_tmp_559.PErr.line;
-            fl_int c = _fl_tmp_559.PErr.col;
-            FL_String* inner_var = _fl_tmp_559.PErr.inner_var;
+            fl_int nid = _fl_tmp_555.PErr.id;
+            fl_int l = _fl_tmp_555.PErr.line;
+            fl_int c = _fl_tmp_555.PErr.col;
+            FL_String* inner_var = _fl_tmp_555.PErr.inner_var;
             fl_self_hosted_typechecker_TCType err_t = (fl_self_hosted_typechecker_TCType){.tag = 23};
-            fl_self_hosted_typechecker_TCType _fl_tmp_562 = subj_t;
-            switch (_fl_tmp_562.tag) {
+            fl_self_hosted_typechecker_TCType _fl_tmp_558 = subj_t;
+            switch (_fl_tmp_558.tag) {
                 case 9: {
-                    fl_self_hosted_typechecker_TCType ot = (*_fl_tmp_562.TCResult.ok_type);
-                    fl_self_hosted_typechecker_TCType et = (*_fl_tmp_562.TCResult.err_type);
+                    fl_self_hosted_typechecker_TCType ot = (*_fl_tmp_558.TCResult.ok_type);
+                    fl_self_hosted_typechecker_TCType et = (*_fl_tmp_558.TCResult.err_type);
                     err_t = et;
                     break;
                 }
@@ -18064,32 +18024,32 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_559.PVariant.id;
-            fl_int l = _fl_tmp_559.PVariant.line;
-            fl_int c = _fl_tmp_559.PVariant.col;
-            FL_String* variant_name = _fl_tmp_559.PVariant.variant_name;
-            FL_Array* bindings = _fl_tmp_559.PVariant.bindings;
-            fl_self_hosted_typechecker_TCType _fl_tmp_563 = subj_t;
-            switch (_fl_tmp_563.tag) {
+            fl_int nid = _fl_tmp_555.PVariant.id;
+            fl_int l = _fl_tmp_555.PVariant.line;
+            fl_int c = _fl_tmp_555.PVariant.col;
+            FL_String* variant_name = _fl_tmp_555.PVariant.variant_name;
+            FL_Array* bindings = _fl_tmp_555.PVariant.bindings;
+            fl_self_hosted_typechecker_TCType _fl_tmp_559 = subj_t;
+            switch (_fl_tmp_559.tag) {
                 case 20: {
-                    FL_String* sname = _fl_tmp_563.TCSumType.name;
-                    FL_String* smod_path = _fl_tmp_563.TCSumType.mod_path;
-                    FL_Array* svariants = _fl_tmp_563.TCSumType.variants;
+                    FL_String* sname = _fl_tmp_559.TCSumType.name;
+                    FL_String* smod_path = _fl_tmp_559.TCSumType.mod_path;
+                    FL_Array* svariants = _fl_tmp_559.TCSumType.variants;
                     fl_int vi = 0;
                     fl_bool found = fl_false;
                     while ((vi < fl_array_len_int(svariants)) && (!found)) {
-                        FL_Option_fl_self_hosted_typechecker_TCSumVariant _fl_tmp_564 = FL_OPT_DEREF_AS(fl_array_get_safe(svariants, vi), fl_self_hosted_typechecker_TCSumVariant, FL_Option_fl_self_hosted_typechecker_TCSumVariant);
-                        fl_self_hosted_typechecker_TCSumVariant v = ((_fl_tmp_564.tag == 1) ? _fl_tmp_564.value : fl_self_hosted_typechecker_make_sum_variant(_fl_str_self_hosted_typechecker_0));
+                        FL_Option_fl_self_hosted_typechecker_TCSumVariant _fl_tmp_560 = FL_OPT_DEREF_AS(fl_array_get_safe(svariants, vi), fl_self_hosted_typechecker_TCSumVariant, FL_Option_fl_self_hosted_typechecker_TCSumVariant);
+                        fl_self_hosted_typechecker_TCSumVariant v = ((_fl_tmp_560.tag == 1) ? _fl_tmp_560.value : fl_self_hosted_typechecker_make_sum_variant(_fl_str_self_hosted_typechecker_0));
                         if (fl_string_eq(v.name, variant_name) && v.has_fields) {
                             fl_int bi = 0;
                             while (bi < fl_array_len_int(bindings)) {
-                                FL_Option_ptr _fl_tmp_565 = fl_array_get_safe(bindings, bi);
-                                FL_String* bname = ((_fl_tmp_565.tag == 1) ? _fl_tmp_565.value : _fl_str_self_hosted_typechecker_0);
+                                FL_Option_ptr _fl_tmp_561 = fl_array_get_safe(bindings, bi);
+                                FL_String* bname = ((_fl_tmp_561.tag == 1) ? _fl_tmp_561.value : _fl_str_self_hosted_typechecker_0);
                                 fl_string_retain(bname);
                                 fl_self_hosted_typechecker_TCType field_t = (fl_self_hosted_typechecker_TCType){.tag = 23};
                                 if (bi < fl_array_len_int(v.field_types_box)) {
-                                    FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_566 = FL_OPT_DEREF_AS(fl_array_get_safe(v.field_types_box, bi), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                                    fl_self_hosted_typechecker_TCTypeBox fb = ((_fl_tmp_566.tag == 1) ? _fl_tmp_566.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                                    FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_562 = FL_OPT_DEREF_AS(fl_array_get_safe(v.field_types_box, bi), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                                    fl_self_hosted_typechecker_TCTypeBox fb = ((_fl_tmp_562.tag == 1) ? _fl_tmp_562.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                                     field_t = fb.tc;
                                 }
                                 fl_self_hosted_typechecker_scope_define(s, bname, field_t);
@@ -18106,8 +18066,8 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
                     if (!found) {
                         fl_int bi = 0;
                         while (bi < fl_array_len_int(bindings)) {
-                            FL_Option_ptr _fl_tmp_567 = fl_array_get_safe(bindings, bi);
-                            FL_String* bname = ((_fl_tmp_567.tag == 1) ? _fl_tmp_567.value : _fl_str_self_hosted_typechecker_0);
+                            FL_Option_ptr _fl_tmp_563 = fl_array_get_safe(bindings, bi);
+                            FL_String* bname = ((_fl_tmp_563.tag == 1) ? _fl_tmp_563.value : _fl_str_self_hosted_typechecker_0);
                             fl_string_retain(bname);
                             fl_self_hosted_typechecker_scope_define(s, bname, (fl_self_hosted_typechecker_TCType){.tag = 23});
                             fl_int _fl_e_3;
@@ -18120,8 +18080,8 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
                 default: {
                     fl_int bi = 0;
                     while (bi < fl_array_len_int(bindings)) {
-                        FL_Option_ptr _fl_tmp_568 = fl_array_get_safe(bindings, bi);
-                        FL_String* bname = ((_fl_tmp_568.tag == 1) ? _fl_tmp_568.value : _fl_str_self_hosted_typechecker_0);
+                        FL_Option_ptr _fl_tmp_564 = fl_array_get_safe(bindings, bi);
+                        FL_String* bname = ((_fl_tmp_564.tag == 1) ? _fl_tmp_564.value : _fl_str_self_hosted_typechecker_0);
                         fl_string_retain(bname);
                         fl_self_hosted_typechecker_scope_define(s, bname, (fl_self_hosted_typechecker_TCType){.tag = 23});
                         fl_int _fl_e_4;
@@ -18134,22 +18094,22 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_559.PTuple.id;
-            fl_int l = _fl_tmp_559.PTuple.line;
-            fl_int c = _fl_tmp_559.PTuple.col;
-            FL_Array* elements = _fl_tmp_559.PTuple.elements;
-            fl_self_hosted_typechecker_TCType _fl_tmp_569 = subj_t;
-            switch (_fl_tmp_569.tag) {
+            fl_int nid = _fl_tmp_555.PTuple.id;
+            fl_int l = _fl_tmp_555.PTuple.line;
+            fl_int c = _fl_tmp_555.PTuple.col;
+            FL_Array* elements = _fl_tmp_555.PTuple.elements;
+            fl_self_hosted_typechecker_TCType _fl_tmp_565 = subj_t;
+            switch (_fl_tmp_565.tag) {
                 case 10: {
-                    FL_Array* elem_types = _fl_tmp_569.TCTuple.elements;
+                    FL_Array* elem_types = _fl_tmp_565.TCTuple.elements;
                     fl_int i = 0;
                     while (i < fl_array_len_int(elements)) {
-                        FL_Option_fl_self_hosted_ast_Pattern _fl_tmp_570 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, i), fl_self_hosted_ast_Pattern, FL_Option_fl_self_hosted_ast_Pattern);
-                        fl_self_hosted_ast_Pattern ep = ((_fl_tmp_570.tag == 1) ? _fl_tmp_570.value : (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}});
+                        FL_Option_fl_self_hosted_ast_Pattern _fl_tmp_566 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, i), fl_self_hosted_ast_Pattern, FL_Option_fl_self_hosted_ast_Pattern);
+                        fl_self_hosted_ast_Pattern ep = ((_fl_tmp_566.tag == 1) ? _fl_tmp_566.value : (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}});
                         fl_self_hosted_typechecker_TCType et = (fl_self_hosted_typechecker_TCType){.tag = 23};
                         if (i < fl_array_len_int(elem_types)) {
-                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_571 = FL_OPT_DEREF_AS(fl_array_get_safe(elem_types, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
-                            fl_self_hosted_typechecker_TCTypeBox eb = ((_fl_tmp_571.tag == 1) ? _fl_tmp_571.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
+                            FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_567 = FL_OPT_DEREF_AS(fl_array_get_safe(elem_types, i), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                            fl_self_hosted_typechecker_TCTypeBox eb = ((_fl_tmp_567.tag == 1) ? _fl_tmp_567.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                             et = eb.tc;
                         }
                         fl_self_hosted_typechecker_bind_pattern_types(s, ep, et);
@@ -18162,8 +18122,8 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
                 default: {
                     fl_int i = 0;
                     while (i < fl_array_len_int(elements)) {
-                        FL_Option_fl_self_hosted_ast_Pattern _fl_tmp_572 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, i), fl_self_hosted_ast_Pattern, FL_Option_fl_self_hosted_ast_Pattern);
-                        fl_self_hosted_ast_Pattern ep = ((_fl_tmp_572.tag == 1) ? _fl_tmp_572.value : (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}});
+                        FL_Option_fl_self_hosted_ast_Pattern _fl_tmp_568 = FL_OPT_DEREF_AS(fl_array_get_safe(elements, i), fl_self_hosted_ast_Pattern, FL_Option_fl_self_hosted_ast_Pattern);
+                        fl_self_hosted_ast_Pattern ep = ((_fl_tmp_568.tag == 1) ? _fl_tmp_568.value : (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}});
                         fl_self_hosted_typechecker_bind_pattern_types(s, ep, (fl_self_hosted_typechecker_TCType){.tag = 23});
                         fl_int _fl_e_6;
                         FL_CHECKED_ADD(i, 1, &_fl_e_6);
@@ -18181,22 +18141,22 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
 void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_typechecker_TCType subj_t, FL_Array* arms, fl_int line, fl_int col) {
     fl_int i = 0;
     while (i < fl_array_len_int(arms)) {
-        FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_573 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
-        fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_573.tag == 1) ? _fl_tmp_573.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
-        fl_self_hosted_ast_Pattern _fl_tmp_574 = arm.pattern;
-        switch (_fl_tmp_574.tag) {
+        FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_569 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
+        fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_569.tag == 1) ? _fl_tmp_569.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+        fl_self_hosted_ast_Pattern _fl_tmp_570 = arm.pattern;
+        switch (_fl_tmp_570.tag) {
             case 0: {
-                fl_int nid = _fl_tmp_574.PWildcard.id;
-                fl_int l = _fl_tmp_574.PWildcard.line;
-                fl_int c = _fl_tmp_574.PWildcard.col;
+                fl_int nid = _fl_tmp_570.PWildcard.id;
+                fl_int l = _fl_tmp_570.PWildcard.line;
+                fl_int c = _fl_tmp_570.PWildcard.col;
                 return;
                 break;
             }
             case 2: {
-                fl_int nid = _fl_tmp_574.PBind.id;
-                fl_int l = _fl_tmp_574.PBind.line;
-                fl_int c = _fl_tmp_574.PBind.col;
-                FL_String* name = _fl_tmp_574.PBind.name;
+                fl_int nid = _fl_tmp_570.PBind.id;
+                fl_int l = _fl_tmp_570.PBind.line;
+                fl_int c = _fl_tmp_570.PBind.col;
+                FL_String* name = _fl_tmp_570.PBind.name;
                 return;
                 break;
             }
@@ -18205,29 +18165,29 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    fl_self_hosted_typechecker_TCType _fl_tmp_575 = subj_t;
-    switch (_fl_tmp_575.tag) {
+    fl_self_hosted_typechecker_TCType _fl_tmp_571 = subj_t;
+    switch (_fl_tmp_571.tag) {
         case 20: {
-            FL_String* sname = _fl_tmp_575.TCSumType.name;
-            FL_String* smod_path = _fl_tmp_575.TCSumType.mod_path;
-            FL_Array* svariants = _fl_tmp_575.TCSumType.variants;
+            FL_String* sname = _fl_tmp_571.TCSumType.name;
+            FL_String* smod_path = _fl_tmp_571.TCSumType.mod_path;
+            FL_Array* svariants = _fl_tmp_571.TCSumType.variants;
             fl_int vi = 0;
             while (vi < fl_array_len_int(svariants)) {
-                FL_Option_fl_self_hosted_typechecker_TCSumVariant _fl_tmp_576 = FL_OPT_DEREF_AS(fl_array_get_safe(svariants, vi), fl_self_hosted_typechecker_TCSumVariant, FL_Option_fl_self_hosted_typechecker_TCSumVariant);
-                fl_self_hosted_typechecker_TCSumVariant v = ((_fl_tmp_576.tag == 1) ? _fl_tmp_576.value : fl_self_hosted_typechecker_make_sum_variant(_fl_str_self_hosted_typechecker_0));
+                FL_Option_fl_self_hosted_typechecker_TCSumVariant _fl_tmp_572 = FL_OPT_DEREF_AS(fl_array_get_safe(svariants, vi), fl_self_hosted_typechecker_TCSumVariant, FL_Option_fl_self_hosted_typechecker_TCSumVariant);
+                fl_self_hosted_typechecker_TCSumVariant v = ((_fl_tmp_572.tag == 1) ? _fl_tmp_572.value : fl_self_hosted_typechecker_make_sum_variant(_fl_str_self_hosted_typechecker_0));
                 fl_bool covered = fl_false;
                 fl_int ai = 0;
                 while (ai < fl_array_len_int(arms)) {
-                    FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_577 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, ai), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
-                    fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_577.tag == 1) ? _fl_tmp_577.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
-                    fl_self_hosted_ast_Pattern _fl_tmp_578 = arm.pattern;
-                    switch (_fl_tmp_578.tag) {
+                    FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_573 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, ai), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
+                    fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_573.tag == 1) ? _fl_tmp_573.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                    fl_self_hosted_ast_Pattern _fl_tmp_574 = arm.pattern;
+                    switch (_fl_tmp_574.tag) {
                         case 7: {
-                            fl_int nid = _fl_tmp_578.PVariant.id;
-                            fl_int al = _fl_tmp_578.PVariant.line;
-                            fl_int ac = _fl_tmp_578.PVariant.col;
-                            FL_String* vname = _fl_tmp_578.PVariant.variant_name;
-                            FL_Array* bindings = _fl_tmp_578.PVariant.bindings;
+                            fl_int nid = _fl_tmp_574.PVariant.id;
+                            fl_int al = _fl_tmp_574.PVariant.line;
+                            fl_int ac = _fl_tmp_574.PVariant.col;
+                            FL_String* vname = _fl_tmp_574.PVariant.variant_name;
+                            FL_Array* bindings = _fl_tmp_574.PVariant.bindings;
                             FL_String* svn = vname;
                             if (fl_string_eq(svn, v.name)) {
                                 covered = fl_true;
@@ -18240,12 +18200,12 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
                     ai = _fl_e_2;
                 }
                 if (!covered) {
-                    FL_String* _fl_tmp_579 = fl_string_concat(_fl_str_self_hosted_typechecker_119, sname);
-                    FL_String* _fl_tmp_580 = fl_string_concat(_fl_tmp_579, _fl_str_self_hosted_typechecker_120);
-                    FL_String* _fl_tmp_581 = fl_string_concat(_fl_tmp_580, v.name);
-                    fl_self_hosted_errors_CompileError* _fl_tmp_582 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                    (*_fl_tmp_582) = fl_self_hosted_errors_type_error(_fl_tmp_581, s->filename, line, col);
-                    _fl_throw(((void*)_fl_tmp_582), 461109476);
+                    FL_String* _fl_tmp_575 = fl_string_concat(_fl_str_self_hosted_typechecker_119, sname);
+                    FL_String* _fl_tmp_576 = fl_string_concat(_fl_tmp_575, _fl_str_self_hosted_typechecker_120);
+                    FL_String* _fl_tmp_577 = fl_string_concat(_fl_tmp_576, v.name);
+                    fl_self_hosted_errors_CompileError* _fl_tmp_578 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                    (*_fl_tmp_578) = fl_self_hosted_errors_type_error(_fl_tmp_577, s->filename, line, col);
+                    _fl_throw(((void*)_fl_tmp_578), 461109476);
                 }
                 fl_int _fl_e_3;
                 FL_CHECKED_ADD(vi, 1, &_fl_e_3);
@@ -18254,27 +18214,27 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
             break;
         }
         case 8: {
-            fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_575.TCOption.inner);
+            fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_571.TCOption.inner);
             fl_bool has_some = fl_false;
             fl_bool has_none = fl_false;
             fl_int i = 0;
             while (i < fl_array_len_int(arms)) {
-                FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_583 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
-                fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_583.tag == 1) ? _fl_tmp_583.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
-                fl_self_hosted_ast_Pattern _fl_tmp_584 = arm.pattern;
-                switch (_fl_tmp_584.tag) {
+                FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_579 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
+                fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_579.tag == 1) ? _fl_tmp_579.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                fl_self_hosted_ast_Pattern _fl_tmp_580 = arm.pattern;
+                switch (_fl_tmp_580.tag) {
                     case 3: {
-                        fl_int nid = _fl_tmp_584.PSome.id;
-                        fl_int l = _fl_tmp_584.PSome.line;
-                        fl_int c = _fl_tmp_584.PSome.col;
-                        FL_String* iv = _fl_tmp_584.PSome.inner_var;
+                        fl_int nid = _fl_tmp_580.PSome.id;
+                        fl_int l = _fl_tmp_580.PSome.line;
+                        fl_int c = _fl_tmp_580.PSome.col;
+                        FL_String* iv = _fl_tmp_580.PSome.inner_var;
                         has_some = fl_true;
                         break;
                     }
                     case 4: {
-                        fl_int nid = _fl_tmp_584.PNone.id;
-                        fl_int l = _fl_tmp_584.PNone.line;
-                        fl_int c = _fl_tmp_584.PNone.col;
+                        fl_int nid = _fl_tmp_580.PNone.id;
+                        fl_int l = _fl_tmp_580.PNone.line;
+                        fl_int c = _fl_tmp_580.PNone.col;
                         has_none = fl_true;
                         break;
                     }
@@ -18284,36 +18244,36 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
                 i = _fl_e_4;
             }
             if ((!has_some) || (!has_none)) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_585 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                (*_fl_tmp_585) = fl_self_hosted_errors_type_error(_fl_str_self_hosted_typechecker_121, s->filename, line, col);
-                _fl_throw(((void*)_fl_tmp_585), 461109476);
+                fl_self_hosted_errors_CompileError* _fl_tmp_581 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                (*_fl_tmp_581) = fl_self_hosted_errors_type_error(_fl_str_self_hosted_typechecker_121, s->filename, line, col);
+                _fl_throw(((void*)_fl_tmp_581), 461109476);
             }
             break;
         }
         case 9: {
-            fl_self_hosted_typechecker_TCType ok_t = (*_fl_tmp_575.TCResult.ok_type);
-            fl_self_hosted_typechecker_TCType err_t = (*_fl_tmp_575.TCResult.err_type);
+            fl_self_hosted_typechecker_TCType ok_t = (*_fl_tmp_571.TCResult.ok_type);
+            fl_self_hosted_typechecker_TCType err_t = (*_fl_tmp_571.TCResult.err_type);
             fl_bool has_ok = fl_false;
             fl_bool has_err = fl_false;
             fl_int i = 0;
             while (i < fl_array_len_int(arms)) {
-                FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_586 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
-                fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_586.tag == 1) ? _fl_tmp_586.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
-                fl_self_hosted_ast_Pattern _fl_tmp_587 = arm.pattern;
-                switch (_fl_tmp_587.tag) {
+                FL_Option_fl_self_hosted_ast_MatchArm _fl_tmp_582 = FL_OPT_DEREF_AS(fl_array_get_safe(arms, i), fl_self_hosted_ast_MatchArm, FL_Option_fl_self_hosted_ast_MatchArm);
+                fl_self_hosted_ast_MatchArm arm = ((_fl_tmp_582.tag == 1) ? _fl_tmp_582.value : (fl_self_hosted_ast_MatchArm){.pattern = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}}, .body_stmts = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                fl_self_hosted_ast_Pattern _fl_tmp_583 = arm.pattern;
+                switch (_fl_tmp_583.tag) {
                     case 5: {
-                        fl_int nid = _fl_tmp_587.POk.id;
-                        fl_int l = _fl_tmp_587.POk.line;
-                        fl_int c = _fl_tmp_587.POk.col;
-                        FL_String* iv = _fl_tmp_587.POk.inner_var;
+                        fl_int nid = _fl_tmp_583.POk.id;
+                        fl_int l = _fl_tmp_583.POk.line;
+                        fl_int c = _fl_tmp_583.POk.col;
+                        FL_String* iv = _fl_tmp_583.POk.inner_var;
                         has_ok = fl_true;
                         break;
                     }
                     case 6: {
-                        fl_int nid = _fl_tmp_587.PErr.id;
-                        fl_int l = _fl_tmp_587.PErr.line;
-                        fl_int c = _fl_tmp_587.PErr.col;
-                        FL_String* iv = _fl_tmp_587.PErr.inner_var;
+                        fl_int nid = _fl_tmp_583.PErr.id;
+                        fl_int l = _fl_tmp_583.PErr.line;
+                        fl_int c = _fl_tmp_583.PErr.col;
+                        FL_String* iv = _fl_tmp_583.PErr.inner_var;
                         has_err = fl_true;
                         break;
                     }
@@ -18323,9 +18283,9 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
                 i = _fl_e_5;
             }
             if ((!has_ok) || (!has_err)) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_588 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                (*_fl_tmp_588) = fl_self_hosted_errors_type_error(_fl_str_self_hosted_typechecker_122, s->filename, line, col);
-                _fl_throw(((void*)_fl_tmp_588), 461109476);
+                fl_self_hosted_errors_CompileError* _fl_tmp_584 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                (*_fl_tmp_584) = fl_self_hosted_errors_type_error(_fl_str_self_hosted_typechecker_122, s->filename, line, col);
+                _fl_throw(((void*)_fl_tmp_584), 461109476);
             }
             break;
         }
@@ -18336,15 +18296,15 @@ void fl_self_hosted_typechecker_check_exhaustiveness(fl_self_hosted_typechecker_
 void fl_self_hosted_typechecker_check_stream_consumption(fl_self_hosted_typechecker_TCState* s, FL_String* name, fl_int node_id) {
     fl_int i = 0;
     while (i < fl_array_len_int(s->consumed_stream_names)) {
-        FL_Option_ptr _fl_tmp_589 = fl_array_get_safe(s->consumed_stream_names, i);
-        FL_String* n = ((_fl_tmp_589.tag == 1) ? _fl_tmp_589.value : _fl_str_self_hosted_typechecker_0);
+        FL_Option_ptr _fl_tmp_585 = fl_array_get_safe(s->consumed_stream_names, i);
+        FL_String* n = ((_fl_tmp_585.tag == 1) ? _fl_tmp_585.value : _fl_str_self_hosted_typechecker_0);
         fl_string_retain(n);
         if (fl_string_eq(n, name)) {
-            FL_String* _fl_tmp_590 = fl_string_concat(_fl_str_self_hosted_typechecker_123, name);
-            FL_String* _fl_tmp_591 = fl_string_concat(_fl_tmp_590, _fl_str_self_hosted_typechecker_124);
-            fl_self_hosted_errors_CompileError* _fl_tmp_592 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_592) = fl_self_hosted_errors_type_error(_fl_tmp_591, s->filename, 0, 0);
-            _fl_throw(((void*)_fl_tmp_592), 461109476);
+            FL_String* _fl_tmp_586 = fl_string_concat(_fl_str_self_hosted_typechecker_123, name);
+            FL_String* _fl_tmp_587 = fl_string_concat(_fl_tmp_586, _fl_str_self_hosted_typechecker_124);
+            fl_self_hosted_errors_CompileError* _fl_tmp_588 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_588) = fl_self_hosted_errors_type_error(_fl_tmp_587, s->filename, 0, 0);
+            _fl_throw(((void*)_fl_tmp_588), 461109476);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -18359,43 +18319,43 @@ void fl_self_hosted_typechecker_check_all_bodies(fl_self_hosted_typechecker_TCSt
     FL_Array* decls = s->src_module.decls;
     fl_array_retain(decls);
     while (i < fl_array_len_int(decls)) {
-        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_593 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-        fl_self_hosted_ast_Decl d = ((_fl_tmp_593.tag == 1) ? _fl_tmp_593.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-        fl_self_hosted_ast_Decl _fl_tmp_594 = d;
-        switch (_fl_tmp_594.tag) {
+        FL_Option_fl_self_hosted_ast_Decl _fl_tmp_589 = FL_OPT_DEREF_AS(fl_array_get_safe(decls, i), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+        fl_self_hosted_ast_Decl d = ((_fl_tmp_589.tag == 1) ? _fl_tmp_589.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+        fl_self_hosted_ast_Decl _fl_tmp_590 = d;
+        switch (_fl_tmp_590.tag) {
             case 2: {
-                fl_int nid = _fl_tmp_594.DFn.id;
-                fl_int l = _fl_tmp_594.DFn.line;
-                fl_int c = _fl_tmp_594.DFn.col;
-                FL_String* name = _fl_tmp_594.DFn.name;
-                FL_Array* type_params = _fl_tmp_594.DFn.type_params;
-                FL_Array* params = _fl_tmp_594.DFn.params;
-                fl_bool hrt = _fl_tmp_594.DFn.has_return_type;
-                fl_self_hosted_ast_TypeExpr ret = _fl_tmp_594.DFn.return_type;
-                FL_Array* body = _fl_tmp_594.DFn.body;
-                fl_bool is_pure = _fl_tmp_594.DFn.is_pure;
-                fl_bool is_export = _fl_tmp_594.DFn.is_export;
-                fl_bool is_static = _fl_tmp_594.DFn.is_static;
-                fl_bool hf = _fl_tmp_594.DFn.has_finally;
-                FL_Array* fb = _fl_tmp_594.DFn.finally_body;
+                fl_int nid = _fl_tmp_590.DFn.id;
+                fl_int l = _fl_tmp_590.DFn.line;
+                fl_int c = _fl_tmp_590.DFn.col;
+                FL_String* name = _fl_tmp_590.DFn.name;
+                FL_Array* type_params = _fl_tmp_590.DFn.type_params;
+                FL_Array* params = _fl_tmp_590.DFn.params;
+                fl_bool hrt = _fl_tmp_590.DFn.has_return_type;
+                fl_self_hosted_ast_TypeExpr ret = _fl_tmp_590.DFn.return_type;
+                FL_Array* body = _fl_tmp_590.DFn.body;
+                fl_bool is_pure = _fl_tmp_590.DFn.is_pure;
+                fl_bool is_export = _fl_tmp_590.DFn.is_export;
+                fl_bool is_static = _fl_tmp_590.DFn.is_static;
+                fl_bool hf = _fl_tmp_590.DFn.has_finally;
+                FL_Array* fb = _fl_tmp_590.DFn.finally_body;
                 fl_self_hosted_typechecker_check_fn_body(s, d);
                 break;
             }
             case 3: {
-                fl_int nid = _fl_tmp_594.DType.id;
-                fl_int l = _fl_tmp_594.DType.line;
-                fl_int c = _fl_tmp_594.DType.col;
-                FL_String* name = _fl_tmp_594.DType.name;
-                FL_Array* type_params = _fl_tmp_594.DType.type_params;
-                FL_Array* fields = _fl_tmp_594.DType.fields;
-                FL_Array* methods = _fl_tmp_594.DType.methods;
-                FL_Array* ctors = _fl_tmp_594.DType.constructors;
-                FL_Array* statics = _fl_tmp_594.DType.static_members;
-                FL_Array* ifaces = _fl_tmp_594.DType.interfaces;
-                fl_bool is_export = _fl_tmp_594.DType.is_export;
-                fl_bool is_sum_type = _fl_tmp_594.DType.is_sum_type;
-                FL_Array* variants = _fl_tmp_594.DType.variants;
-                fl_bool is_mut = _fl_tmp_594.DType.is_mut;
+                fl_int nid = _fl_tmp_590.DType.id;
+                fl_int l = _fl_tmp_590.DType.line;
+                fl_int c = _fl_tmp_590.DType.col;
+                FL_String* name = _fl_tmp_590.DType.name;
+                FL_Array* type_params = _fl_tmp_590.DType.type_params;
+                FL_Array* fields = _fl_tmp_590.DType.fields;
+                FL_Array* methods = _fl_tmp_590.DType.methods;
+                FL_Array* ctors = _fl_tmp_590.DType.constructors;
+                FL_Array* statics = _fl_tmp_590.DType.static_members;
+                FL_Array* ifaces = _fl_tmp_590.DType.interfaces;
+                fl_bool is_export = _fl_tmp_590.DType.is_export;
+                fl_bool is_sum_type = _fl_tmp_590.DType.is_sum_type;
+                FL_Array* variants = _fl_tmp_590.DType.variants;
+                fl_bool is_mut = _fl_tmp_590.DType.is_mut;
                 fl_self_hosted_typechecker_check_type_decl_bodies(s, d);
                 break;
             }
@@ -18409,23 +18369,23 @@ void fl_self_hosted_typechecker_check_all_bodies(fl_self_hosted_typechecker_TCSt
 
 /* Flow: self_hosted.typechecker.check_fn_body */
 void fl_self_hosted_typechecker_check_fn_body(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Decl decl) {
-    fl_self_hosted_ast_Decl _fl_tmp_595 = decl;
-    switch (_fl_tmp_595.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_591 = decl;
+    switch (_fl_tmp_591.tag) {
         case 2: {
-            fl_int nid = _fl_tmp_595.DFn.id;
-            fl_int l = _fl_tmp_595.DFn.line;
-            fl_int c = _fl_tmp_595.DFn.col;
-            FL_String* name = _fl_tmp_595.DFn.name;
-            FL_Array* type_params = _fl_tmp_595.DFn.type_params;
-            FL_Array* params = _fl_tmp_595.DFn.params;
-            fl_bool hrt = _fl_tmp_595.DFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_595.DFn.return_type;
-            FL_Array* body = _fl_tmp_595.DFn.body;
-            fl_bool is_pure = _fl_tmp_595.DFn.is_pure;
-            fl_bool is_export = _fl_tmp_595.DFn.is_export;
-            fl_bool is_static = _fl_tmp_595.DFn.is_static;
-            fl_bool hf = _fl_tmp_595.DFn.has_finally;
-            FL_Array* fb = _fl_tmp_595.DFn.finally_body;
+            fl_int nid = _fl_tmp_591.DFn.id;
+            fl_int l = _fl_tmp_591.DFn.line;
+            fl_int c = _fl_tmp_591.DFn.col;
+            FL_String* name = _fl_tmp_591.DFn.name;
+            FL_Array* type_params = _fl_tmp_591.DFn.type_params;
+            FL_Array* params = _fl_tmp_591.DFn.params;
+            fl_bool hrt = _fl_tmp_591.DFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_591.DFn.return_type;
+            FL_Array* body = _fl_tmp_591.DFn.body;
+            fl_bool is_pure = _fl_tmp_591.DFn.is_pure;
+            fl_bool is_export = _fl_tmp_591.DFn.is_export;
+            fl_bool is_static = _fl_tmp_591.DFn.is_static;
+            fl_bool hf = _fl_tmp_591.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_591.DFn.finally_body;
             if ((fl_array_len_int(body) == 0) && (!hf)) {
                 return;
             }
@@ -18438,8 +18398,8 @@ void fl_self_hosted_typechecker_check_fn_body(fl_self_hosted_typechecker_TCState
             fl_int ti = 0;
             while (ti < fl_array_len_int(type_params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_0);
-                FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_596 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, ti), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
-                fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_596.tag == 1) ? _fl_tmp_596.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
+                FL_Option_fl_self_hosted_ast_TypeParam _fl_tmp_592 = FL_OPT_DEREF_AS(fl_array_get_safe(type_params, ti), fl_self_hosted_ast_TypeParam, FL_Option_fl_self_hosted_ast_TypeParam);
+                fl_self_hosted_ast_TypeParam tp = ((_fl_tmp_592.tag == 1) ? _fl_tmp_592.value : (fl_self_hosted_ast_TypeParam){.name = _fl_str_self_hosted_typechecker_0, .bounds = fl_array_new(0, 0, NULL), .id = 0, .line = 0, .col = 0});
                 fl_string_retain(tp.name);
                 fl_self_hosted_typechecker_scope_define(s, tp.name, (fl_self_hosted_typechecker_TCType){.tag = 22, .TCTypeVar = (fl_self_hosted_typechecker_TCType_TCTypeVar){.name = tp.name}});
                 fl_int _fl_e_1;
@@ -18449,14 +18409,14 @@ void fl_self_hosted_typechecker_check_fn_body(fl_self_hosted_typechecker_TCState
             fl_int pi = 0;
             while (pi < fl_array_len_int(params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_Param _fl_tmp_597 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                fl_self_hosted_ast_Param p = ((_fl_tmp_597.tag == 1) ? _fl_tmp_597.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                FL_Option_fl_self_hosted_ast_Param _fl_tmp_593 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                fl_self_hosted_ast_Param p = ((_fl_tmp_593.tag == 1) ? _fl_tmp_593.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                 if (!fl_string_eq(p.name, _fl_str_self_hosted_typechecker_28)) {
                     fl_self_hosted_typechecker_TCType pt = fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann);
                     if (p.is_variadic) {
-                        fl_self_hosted_typechecker_TCType* _fl_tmp_598 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
-                        (*_fl_tmp_598) = pt;
-                        fl_self_hosted_typechecker_scope_define(s, p.name, (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_598}});
+                        fl_self_hosted_typechecker_TCType* _fl_tmp_594 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
+                        (*_fl_tmp_594) = pt;
+                        fl_self_hosted_typechecker_scope_define(s, p.name, (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_594}});
                     } else {
                         fl_self_hosted_typechecker_scope_define(s, p.name, pt);
                     }
@@ -18495,38 +18455,38 @@ void fl_self_hosted_typechecker_check_fn_body(fl_self_hosted_typechecker_TCState
 
 /* Flow: self_hosted.typechecker.check_type_decl_bodies */
 void fl_self_hosted_typechecker_check_type_decl_bodies(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Decl decl) {
-    fl_self_hosted_ast_Decl _fl_tmp_599 = decl;
-    switch (_fl_tmp_599.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_595 = decl;
+    switch (_fl_tmp_595.tag) {
         case 3: {
-            fl_int nid = _fl_tmp_599.DType.id;
-            fl_int l = _fl_tmp_599.DType.line;
-            fl_int c = _fl_tmp_599.DType.col;
-            FL_String* name = _fl_tmp_599.DType.name;
-            FL_Array* type_params = _fl_tmp_599.DType.type_params;
-            FL_Array* fields = _fl_tmp_599.DType.fields;
-            FL_Array* methods = _fl_tmp_599.DType.methods;
-            FL_Array* ctors = _fl_tmp_599.DType.constructors;
-            FL_Array* statics = _fl_tmp_599.DType.static_members;
-            FL_Array* ifaces = _fl_tmp_599.DType.interfaces;
-            fl_bool is_export = _fl_tmp_599.DType.is_export;
-            fl_bool is_sum_type = _fl_tmp_599.DType.is_sum_type;
-            FL_Array* variants = _fl_tmp_599.DType.variants;
-            fl_bool is_mut = _fl_tmp_599.DType.is_mut;
+            fl_int nid = _fl_tmp_595.DType.id;
+            fl_int l = _fl_tmp_595.DType.line;
+            fl_int c = _fl_tmp_595.DType.col;
+            FL_String* name = _fl_tmp_595.DType.name;
+            FL_Array* type_params = _fl_tmp_595.DType.type_params;
+            FL_Array* fields = _fl_tmp_595.DType.fields;
+            FL_Array* methods = _fl_tmp_595.DType.methods;
+            FL_Array* ctors = _fl_tmp_595.DType.constructors;
+            FL_Array* statics = _fl_tmp_595.DType.static_members;
+            FL_Array* ifaces = _fl_tmp_595.DType.interfaces;
+            fl_bool is_export = _fl_tmp_595.DType.is_export;
+            fl_bool is_sum_type = _fl_tmp_595.DType.is_sum_type;
+            FL_Array* variants = _fl_tmp_595.DType.variants;
+            fl_bool is_mut = _fl_tmp_595.DType.is_mut;
             fl_int si = 0;
             while (si < fl_array_len_int(statics)) {
-                FL_Option_fl_self_hosted_ast_Decl _fl_tmp_600 = FL_OPT_DEREF_AS(fl_array_get_safe(statics, si), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-                fl_self_hosted_ast_Decl sm = ((_fl_tmp_600.tag == 1) ? _fl_tmp_600.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
-                fl_self_hosted_ast_Decl _fl_tmp_601 = sm;
-                switch (_fl_tmp_601.tag) {
+                FL_Option_fl_self_hosted_ast_Decl _fl_tmp_596 = FL_OPT_DEREF_AS(fl_array_get_safe(statics, si), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+                fl_self_hosted_ast_Decl sm = ((_fl_tmp_596.tag == 1) ? _fl_tmp_596.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+                fl_self_hosted_ast_Decl _fl_tmp_597 = sm;
+                switch (_fl_tmp_597.tag) {
                     case 11: {
-                        fl_int snid = _fl_tmp_601.DStaticMember.id;
-                        fl_int sl = _fl_tmp_601.DStaticMember.line;
-                        fl_int sc = _fl_tmp_601.DStaticMember.col;
-                        FL_String* sname = _fl_tmp_601.DStaticMember.name;
-                        fl_self_hosted_ast_TypeExpr type_ann = _fl_tmp_601.DStaticMember.type_ann;
-                        fl_bool smut = _fl_tmp_601.DStaticMember.is_mut;
-                        fl_bool hv = _fl_tmp_601.DStaticMember.has_value;
-                        fl_self_hosted_ast_Expr val = _fl_tmp_601.DStaticMember.value;
+                        fl_int snid = _fl_tmp_597.DStaticMember.id;
+                        fl_int sl = _fl_tmp_597.DStaticMember.line;
+                        fl_int sc = _fl_tmp_597.DStaticMember.col;
+                        FL_String* sname = _fl_tmp_597.DStaticMember.name;
+                        fl_self_hosted_ast_TypeExpr type_ann = _fl_tmp_597.DStaticMember.type_ann;
+                        fl_bool smut = _fl_tmp_597.DStaticMember.is_mut;
+                        fl_bool hv = _fl_tmp_597.DStaticMember.has_value;
+                        fl_self_hosted_ast_Expr val = _fl_tmp_597.DStaticMember.value;
                         if (hv) {
                             fl_self_hosted_typechecker_infer_expr(s, val);
                         }
@@ -18539,8 +18499,8 @@ void fl_self_hosted_typechecker_check_type_decl_bodies(fl_self_hosted_typechecke
             }
             fl_int mi = 0;
             while (mi < fl_array_len_int(methods)) {
-                FL_Option_fl_self_hosted_ast_Decl _fl_tmp_602 = FL_OPT_DEREF_AS(fl_array_get_safe(methods, mi), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-                fl_self_hosted_ast_Decl m = ((_fl_tmp_602.tag == 1) ? _fl_tmp_602.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+                FL_Option_fl_self_hosted_ast_Decl _fl_tmp_598 = FL_OPT_DEREF_AS(fl_array_get_safe(methods, mi), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+                fl_self_hosted_ast_Decl m = ((_fl_tmp_598.tag == 1) ? _fl_tmp_598.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
                 fl_self_hosted_typechecker_check_method_body(s, m, name);
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(mi, 1, &_fl_e_2);
@@ -18548,8 +18508,8 @@ void fl_self_hosted_typechecker_check_type_decl_bodies(fl_self_hosted_typechecke
             }
             fl_int ci = 0;
             while (ci < fl_array_len_int(ctors)) {
-                FL_Option_fl_self_hosted_ast_Decl _fl_tmp_603 = FL_OPT_DEREF_AS(fl_array_get_safe(ctors, ci), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
-                fl_self_hosted_ast_Decl ctor = ((_fl_tmp_603.tag == 1) ? _fl_tmp_603.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
+                FL_Option_fl_self_hosted_ast_Decl _fl_tmp_599 = FL_OPT_DEREF_AS(fl_array_get_safe(ctors, ci), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
+                fl_self_hosted_ast_Decl ctor = ((_fl_tmp_599.tag == 1) ? _fl_tmp_599.value : (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}});
                 fl_self_hosted_typechecker_check_ctor_body(s, ctor, name);
                 fl_int _fl_e_3;
                 FL_CHECKED_ADD(ci, 1, &_fl_e_3);
@@ -18562,23 +18522,23 @@ void fl_self_hosted_typechecker_check_type_decl_bodies(fl_self_hosted_typechecke
 
 /* Flow: self_hosted.typechecker.check_method_body */
 void fl_self_hosted_typechecker_check_method_body(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Decl decl, FL_String* type_name_str) {
-    fl_self_hosted_ast_Decl _fl_tmp_604 = decl;
-    switch (_fl_tmp_604.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_600 = decl;
+    switch (_fl_tmp_600.tag) {
         case 2: {
-            fl_int nid = _fl_tmp_604.DFn.id;
-            fl_int l = _fl_tmp_604.DFn.line;
-            fl_int c = _fl_tmp_604.DFn.col;
-            FL_String* name = _fl_tmp_604.DFn.name;
-            FL_Array* type_params = _fl_tmp_604.DFn.type_params;
-            FL_Array* params = _fl_tmp_604.DFn.params;
-            fl_bool hrt = _fl_tmp_604.DFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_604.DFn.return_type;
-            FL_Array* body = _fl_tmp_604.DFn.body;
-            fl_bool is_pure = _fl_tmp_604.DFn.is_pure;
-            fl_bool is_export = _fl_tmp_604.DFn.is_export;
-            fl_bool is_static = _fl_tmp_604.DFn.is_static;
-            fl_bool hf = _fl_tmp_604.DFn.has_finally;
-            FL_Array* fb = _fl_tmp_604.DFn.finally_body;
+            fl_int nid = _fl_tmp_600.DFn.id;
+            fl_int l = _fl_tmp_600.DFn.line;
+            fl_int c = _fl_tmp_600.DFn.col;
+            FL_String* name = _fl_tmp_600.DFn.name;
+            FL_Array* type_params = _fl_tmp_600.DFn.type_params;
+            FL_Array* params = _fl_tmp_600.DFn.params;
+            fl_bool hrt = _fl_tmp_600.DFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_600.DFn.return_type;
+            FL_Array* body = _fl_tmp_600.DFn.body;
+            fl_bool is_pure = _fl_tmp_600.DFn.is_pure;
+            fl_bool is_export = _fl_tmp_600.DFn.is_export;
+            fl_bool is_static = _fl_tmp_600.DFn.is_static;
+            fl_bool hf = _fl_tmp_600.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_600.DFn.finally_body;
             if ((fl_array_len_int(body) == 0) && (!hf)) {
                 return;
             }
@@ -18593,8 +18553,8 @@ void fl_self_hosted_typechecker_check_method_body(fl_self_hosted_typechecker_TCS
             fl_int pi = 0;
             while (pi < fl_array_len_int(params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_Param _fl_tmp_605 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                fl_self_hosted_ast_Param p = ((_fl_tmp_605.tag == 1) ? _fl_tmp_605.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                FL_Option_fl_self_hosted_ast_Param _fl_tmp_601 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                fl_self_hosted_ast_Param p = ((_fl_tmp_601.tag == 1) ? _fl_tmp_601.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                 if (!fl_string_eq(p.name, _fl_str_self_hosted_typechecker_28)) {
                     fl_self_hosted_typechecker_scope_define(s, p.name, fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann));
                 }
@@ -18629,16 +18589,16 @@ void fl_self_hosted_typechecker_check_method_body(fl_self_hosted_typechecker_TCS
 
 /* Flow: self_hosted.typechecker.check_ctor_body */
 void fl_self_hosted_typechecker_check_ctor_body(fl_self_hosted_typechecker_TCState* s, fl_self_hosted_ast_Decl decl, FL_String* type_name_str) {
-    fl_self_hosted_ast_Decl _fl_tmp_606 = decl;
-    switch (_fl_tmp_606.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_602 = decl;
+    switch (_fl_tmp_602.tag) {
         case 10: {
-            fl_int nid = _fl_tmp_606.DConstructor.id;
-            fl_int l = _fl_tmp_606.DConstructor.line;
-            fl_int c = _fl_tmp_606.DConstructor.col;
-            FL_String* name = _fl_tmp_606.DConstructor.name;
-            FL_Array* params = _fl_tmp_606.DConstructor.params;
-            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_606.DConstructor.return_type;
-            FL_Array* body = _fl_tmp_606.DConstructor.body;
+            fl_int nid = _fl_tmp_602.DConstructor.id;
+            fl_int l = _fl_tmp_602.DConstructor.line;
+            fl_int c = _fl_tmp_602.DConstructor.col;
+            FL_String* name = _fl_tmp_602.DConstructor.name;
+            FL_Array* params = _fl_tmp_602.DConstructor.params;
+            fl_self_hosted_ast_TypeExpr ret = _fl_tmp_602.DConstructor.return_type;
+            FL_Array* body = _fl_tmp_602.DConstructor.body;
             s->scope_count = s->mod_scope_watermark;
             if (fl_array_len_int(s->scope_names) > s->mod_scope_watermark) {
                 s->scope_names = fl_array_slice__string(s->scope_names, 0, s->mod_scope_watermark);
@@ -18650,8 +18610,8 @@ void fl_self_hosted_typechecker_check_ctor_body(fl_self_hosted_typechecker_TCSta
             fl_int pi = 0;
             while (pi < fl_array_len_int(params)) {
                 fl_string_retain(_fl_str_self_hosted_typechecker_27);
-                FL_Option_fl_self_hosted_ast_Param _fl_tmp_607 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
-                fl_self_hosted_ast_Param p = ((_fl_tmp_607.tag == 1) ? _fl_tmp_607.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
+                FL_Option_fl_self_hosted_ast_Param _fl_tmp_603 = FL_OPT_DEREF_AS(fl_array_get_safe(params, pi), fl_self_hosted_ast_Param, FL_Option_fl_self_hosted_ast_Param);
+                fl_self_hosted_ast_Param p = ((_fl_tmp_603.tag == 1) ? _fl_tmp_603.value : fl_self_hosted_ast_param(_fl_str_self_hosted_typechecker_0, (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 0, .line = 0, .col = 0, .name = _fl_str_self_hosted_typechecker_27, .module_path = fl_array_new(0, 0, NULL)}}, 0, 0, 0));
                 if (!fl_string_eq(p.name, _fl_str_self_hosted_typechecker_28)) {
                     fl_self_hosted_typechecker_scope_define(s, p.name, fl_self_hosted_typechecker_resolve_type_expr(s, p.type_ann));
                 }
@@ -18680,21 +18640,21 @@ void fl_self_hosted_typechecker_check_ctor_body(fl_self_hosted_typechecker_TCSta
 
 /* Flow: self_hosted.typechecker.find_decl_by_id */
 FL_Option_fl_self_hosted_ast_Decl fl_self_hosted_typechecker_find_decl_by_id(fl_self_hosted_typechecker_TCState* s, fl_int decl_id, FL_String* module_key) {
-    FL_String* _fl_tmp_608 = fl_string_concat(module_key, _fl_str_self_hosted_typechecker_45);
-    FL_String* _fl_tmp_609 = fl_conv_to_string__int(decl_id);
-    FL_String* key = fl_string_concat(_fl_tmp_608, _fl_tmp_609);
-    fl_string_release(_fl_tmp_608);
-    fl_string_release(_fl_tmp_609);
+    FL_String* _fl_tmp_604 = fl_string_concat(module_key, _fl_str_self_hosted_typechecker_45);
+    FL_String* _fl_tmp_605 = fl_conv_to_string__int(decl_id);
+    FL_String* key = fl_string_concat(_fl_tmp_604, _fl_tmp_605);
+    fl_string_release(_fl_tmp_604);
+    fl_string_release(_fl_tmp_605);
     return FL_OPT_DEREF_AS(fl_map_get_str(s->decl_cache, key), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
 }
 
 /* Flow: self_hosted.typechecker.find_extern_decl_by_id */
 FL_Option_fl_self_hosted_ast_Decl fl_self_hosted_typechecker_find_extern_decl_by_id(fl_self_hosted_typechecker_TCState* s, fl_int decl_id, FL_String* module_key) {
-    FL_String* _fl_tmp_610 = fl_string_concat(module_key, _fl_str_self_hosted_typechecker_45);
-    FL_String* _fl_tmp_611 = fl_conv_to_string__int(decl_id);
-    FL_String* key = fl_string_concat(_fl_tmp_610, _fl_tmp_611);
-    fl_string_release(_fl_tmp_610);
-    fl_string_release(_fl_tmp_611);
+    FL_String* _fl_tmp_606 = fl_string_concat(module_key, _fl_str_self_hosted_typechecker_45);
+    FL_String* _fl_tmp_607 = fl_conv_to_string__int(decl_id);
+    FL_String* key = fl_string_concat(_fl_tmp_606, _fl_tmp_607);
+    fl_string_release(_fl_tmp_606);
+    fl_string_release(_fl_tmp_607);
     return FL_OPT_DEREF_AS(fl_map_get_str(s->decl_cache, key), fl_self_hosted_ast_Decl, FL_Option_fl_self_hosted_ast_Decl);
 }
 

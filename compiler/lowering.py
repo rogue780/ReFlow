@@ -1812,6 +1812,32 @@ class Lowerer:
         return False
 
     def _lower_assign(self, stmt: AssignStmt) -> list[LStmt]:
+        # In-place string append: x = x + y → fl_string_append(&x, y)
+        # This avoids allocating a new string when x has refcount 1.
+        if (isinstance(stmt.target, Ident)
+                and isinstance(stmt.value, BinOp)
+                and stmt.value.op == "+"
+                and isinstance(self._type_of(stmt.value), TString)
+                and isinstance(stmt.value.left, Ident)
+                and stmt.value.left.name == stmt.target.name):
+            target = self._lower_expr(stmt.target)
+            right = self._lower_expr(stmt.value.right)
+            # Coerce RHS to string if needed (Showable auto-coercion)
+            right_type = self._type_of(stmt.value.right)
+            if not isinstance(right_type, TString):
+                right = self._to_string_expr(right, right_type)
+            # Hoist string temp for the RHS if it's a call
+            right = self._hoist_string_temp(right)
+            stmts = list(self._pending_stmts)
+            self._pending_stmts = []
+            stmts.append(LExprStmt(LCall(
+                "fl_string_append",
+                [LAddrOf(target, LPtr(self._STRING_LTYPE)), right],
+                LVoid())))
+            stmts.extend(self._post_stmts)
+            self._post_stmts = []
+            return stmts
+
         target = self._lower_expr(stmt.target)
         value = self._lower_expr(stmt.value)
 

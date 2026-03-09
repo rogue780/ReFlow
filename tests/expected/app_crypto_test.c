@@ -214,23 +214,15 @@ FL_String* fl_crypto_bytes_to_hex(void* p, fl_int len) {
         if (_fl_tmp_0.tag == 1) {
             fl_char hi_c = _fl_tmp_0.value;
             FL_String* _fl_tmp_1 = fl_char_to_string(hi_c);
-            FL_String* _fl_old_2 = result;
-            result = fl_string_concat(result, _fl_tmp_1);
-            if (_fl_old_2 != result) {
-                fl_string_release(_fl_old_2);
-            }
+            fl_string_append((&result), _fl_tmp_1);
             fl_string_release(_fl_tmp_1);
         }
-        FL_Option_char _fl_tmp_3 = fl_string_char_at(hex_chars, lo);
-        if (_fl_tmp_3.tag == 1) {
-            fl_char lo_c = _fl_tmp_3.value;
-            FL_String* _fl_tmp_4 = fl_char_to_string(lo_c);
-            FL_String* _fl_old_5 = result;
-            result = fl_string_concat(result, _fl_tmp_4);
-            if (_fl_old_5 != result) {
-                fl_string_release(_fl_old_5);
-            }
-            fl_string_release(_fl_tmp_4);
+        FL_Option_char _fl_tmp_2 = fl_string_char_at(hex_chars, lo);
+        if (_fl_tmp_2.tag == 1) {
+            fl_char lo_c = _fl_tmp_2.value;
+            FL_String* _fl_tmp_3 = fl_char_to_string(lo_c);
+            fl_string_append((&result), _fl_tmp_3);
+            fl_string_release(_fl_tmp_3);
         }
         fl_int _fl_e_3;
         FL_CHECKED_ADD(i, 1, &_fl_e_3);
@@ -288,10 +280,10 @@ FL_Array* fl_crypto_random_bytes(fl_int n) {
     FL_Array* result = fl_array_new(0, 0, NULL);
     fl_int i = 0;
     while (i < n) {
-        FL_Array* _fl_old_6 = result;
+        FL_Array* _fl_old_4 = result;
         result = fl_array_push_byte(result, fl_mem_read_byte(buf, ((fl_int64)i)));
-        if (_fl_old_6 != result) {
-            fl_array_release(_fl_old_6);
+        if (_fl_old_4 != result) {
+            fl_array_release(_fl_old_4);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);

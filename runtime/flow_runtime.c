@@ -93,6 +93,39 @@ FL_String* fl_string_concat(FL_String* a, FL_String* b) {
     return s;
 }
 
+/* In-place append: *a = concat(*a, b), with realloc when refcount==1.
+ * This replaces the release-on-reassignment pattern for string concat:
+ *   _fl_old = result;
+ *   result = fl_string_concat(result, x);
+ *   if (_fl_old != result) fl_string_release(_fl_old);
+ * Avoiding the old-pointer save eliminates the dangling-pointer issue
+ * that prevents in-place realloc in fl_string_concat. */
+void fl_string_append(FL_String** a, FL_String* b) {
+    if (!a || !*a || !b) fl_panic("fl_string_append: NULL argument");
+    FL_String* old = *a;
+    fl_int64 total = old->len + b->len;
+    if (atomic_load(&old->refcount) == 1) {
+        /* Exclusive owner — realloc in place */
+        FL_String* s = (FL_String*)realloc(old, sizeof(FL_String) + (size_t)total + 1);
+        if (!s) fl_panic("fl_string_append: out of memory");
+        memcpy(s->data + s->len, b->data, (size_t)b->len);
+        s->len = total;
+        s->data[total] = '\0';
+        *a = s;
+    } else {
+        /* Shared — allocate new, release old reference */
+        FL_String* s = (FL_String*)malloc(sizeof(FL_String) + (size_t)total + 1);
+        if (!s) fl_panic("fl_string_append: out of memory");
+        s->refcount = 1;
+        s->len = total;
+        memcpy(s->data, old->data, (size_t)old->len);
+        memcpy(s->data + old->len, b->data, (size_t)b->len);
+        s->data[total] = '\0';
+        fl_string_release(old);
+        *a = s;
+    }
+}
+
 // RUNTIME-DEBT: would be eliminated by mutable byte buffer type in Flow
 FL_String* fl_string_join_array(FL_Array* parts) {
     if (!parts) return fl_string_from_cstr("");

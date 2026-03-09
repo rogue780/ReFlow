@@ -618,11 +618,7 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                                 fl_array_set_elem_type(current_row, 1);
                             } else {
                                 FL_String* _fl_tmp_12 = fl_char_to_string(c);
-                                FL_String* _fl_old_13 = field;
-                                field = fl_string_concat(field, _fl_tmp_12);
-                                if (_fl_old_13 != field) {
-                                    fl_string_release(_fl_old_13);
-                                }
+                                fl_string_append((&field), _fl_tmp_12);
                                 fl_string_release(_fl_tmp_12);
                                 state = 1;
                             }
@@ -632,40 +628,40 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
             } else {
                 if (state == 1) {
                     if (c == delim) {
-                        FL_Array* _fl_old_14 = current_row;
+                        FL_Array* _fl_old_13 = current_row;
                         current_row = fl_array_push_ptr(current_row, field);
-                        if (_fl_old_14 != current_row) {
-                            fl_array_release(_fl_old_14);
+                        if (_fl_old_13 != current_row) {
+                            fl_array_release(_fl_old_13);
                         }
-                        FL_String* _fl_old_15 = field;
+                        FL_String* _fl_old_14 = field;
                         field = _fl_str_csv_0;
-                        if (_fl_old_15 != field) {
+                        if (_fl_old_14 != field) {
                             fl_string_retain(field);
-                            fl_string_release(_fl_old_15);
+                            fl_string_release(_fl_old_14);
                         }
                         state = 0;
                     } else {
                         if (c == 13) {
-                            FL_Array* _fl_old_16 = current_row;
+                            FL_Array* _fl_old_15 = current_row;
                             current_row = fl_array_push_ptr(current_row, field);
-                            if (_fl_old_16 != current_row) {
-                                fl_array_release(_fl_old_16);
+                            if (_fl_old_15 != current_row) {
+                                fl_array_release(_fl_old_15);
                             }
-                            FL_String* _fl_old_17 = field;
+                            FL_String* _fl_old_16 = field;
                             field = _fl_str_csv_0;
-                            if (_fl_old_17 != field) {
+                            if (_fl_old_16 != field) {
                                 fl_string_retain(field);
-                                fl_string_release(_fl_old_17);
+                                fl_string_release(_fl_old_16);
                             }
-                            FL_Array* _fl_old_18 = rows;
+                            FL_Array* _fl_old_17 = rows;
                             rows = fl_array_push_ptr(rows, current_row);
-                            if (_fl_old_18 != rows) {
-                                fl_array_release(_fl_old_18);
+                            if (_fl_old_17 != rows) {
+                                fl_array_release(_fl_old_17);
                             }
-                            FL_Array* _fl_old_19 = current_row;
+                            FL_Array* _fl_old_18 = current_row;
                             current_row = fl_array_new(0, 0, NULL);
-                            if (_fl_old_19 != current_row) {
-                                fl_array_release(_fl_old_19);
+                            if (_fl_old_18 != current_row) {
+                                fl_array_release(_fl_old_18);
                             }
                             fl_array_set_elem_type(current_row, 1);
                             fl_int _fl_e_4;
@@ -673,9 +669,9 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                             if (_fl_e_4 < len) {
                                 fl_int _fl_e_5;
                                 FL_CHECKED_ADD(i, 1, &_fl_e_5);
-                                FL_Option_char _fl_tmp_20 = fl_string_char_at(s, _fl_e_5);
-                                if (_fl_tmp_20.tag == 1) {
-                                    fl_char nc = _fl_tmp_20.value;
+                                FL_Option_char _fl_tmp_19 = fl_string_char_at(s, _fl_e_5);
+                                if (_fl_tmp_19.tag == 1) {
+                                    fl_char nc = _fl_tmp_19.value;
                                     if (nc == 10) {
                                         fl_int _fl_e_6;
                                         FL_CHECKED_ADD(i, 1, &_fl_e_6);
@@ -686,37 +682,33 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                             state = 0;
                         } else {
                             if (c == 10) {
-                                FL_Array* _fl_old_21 = current_row;
+                                FL_Array* _fl_old_20 = current_row;
                                 current_row = fl_array_push_ptr(current_row, field);
-                                if (_fl_old_21 != current_row) {
-                                    fl_array_release(_fl_old_21);
+                                if (_fl_old_20 != current_row) {
+                                    fl_array_release(_fl_old_20);
                                 }
-                                FL_String* _fl_old_22 = field;
+                                FL_String* _fl_old_21 = field;
                                 field = _fl_str_csv_0;
-                                if (_fl_old_22 != field) {
+                                if (_fl_old_21 != field) {
                                     fl_string_retain(field);
-                                    fl_string_release(_fl_old_22);
+                                    fl_string_release(_fl_old_21);
                                 }
-                                FL_Array* _fl_old_23 = rows;
+                                FL_Array* _fl_old_22 = rows;
                                 rows = fl_array_push_ptr(rows, current_row);
-                                if (_fl_old_23 != rows) {
-                                    fl_array_release(_fl_old_23);
+                                if (_fl_old_22 != rows) {
+                                    fl_array_release(_fl_old_22);
                                 }
-                                FL_Array* _fl_old_24 = current_row;
+                                FL_Array* _fl_old_23 = current_row;
                                 current_row = fl_array_new(0, 0, NULL);
-                                if (_fl_old_24 != current_row) {
-                                    fl_array_release(_fl_old_24);
+                                if (_fl_old_23 != current_row) {
+                                    fl_array_release(_fl_old_23);
                                 }
                                 fl_array_set_elem_type(current_row, 1);
                                 state = 0;
                             } else {
-                                FL_String* _fl_tmp_25 = fl_char_to_string(c);
-                                FL_String* _fl_old_26 = field;
-                                field = fl_string_concat(field, _fl_tmp_25);
-                                if (_fl_old_26 != field) {
-                                    fl_string_release(_fl_old_26);
-                                }
-                                fl_string_release(_fl_tmp_25);
+                                FL_String* _fl_tmp_24 = fl_char_to_string(c);
+                                fl_string_append((&field), _fl_tmp_24);
+                                fl_string_release(_fl_tmp_24);
                             }
                         }
                     }
@@ -725,58 +717,50 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                         if (c == 34) {
                             state = 3;
                         } else {
-                            FL_String* _fl_tmp_27 = fl_char_to_string(c);
-                            FL_String* _fl_old_28 = field;
-                            field = fl_string_concat(field, _fl_tmp_27);
-                            if (_fl_old_28 != field) {
-                                fl_string_release(_fl_old_28);
-                            }
-                            fl_string_release(_fl_tmp_27);
+                            FL_String* _fl_tmp_25 = fl_char_to_string(c);
+                            fl_string_append((&field), _fl_tmp_25);
+                            fl_string_release(_fl_tmp_25);
                         }
                     } else {
                         if (c == 34) {
-                            FL_String* _fl_old_29 = field;
-                            field = fl_string_concat(field, _fl_str_csv_1);
-                            if (_fl_old_29 != field) {
-                                fl_string_release(_fl_old_29);
-                            }
+                            fl_string_append((&field), _fl_str_csv_1);
                             state = 2;
                         } else {
                             if (c == delim) {
-                                FL_Array* _fl_old_30 = current_row;
+                                FL_Array* _fl_old_26 = current_row;
                                 current_row = fl_array_push_ptr(current_row, field);
-                                if (_fl_old_30 != current_row) {
-                                    fl_array_release(_fl_old_30);
+                                if (_fl_old_26 != current_row) {
+                                    fl_array_release(_fl_old_26);
                                 }
-                                FL_String* _fl_old_31 = field;
+                                FL_String* _fl_old_27 = field;
                                 field = _fl_str_csv_0;
-                                if (_fl_old_31 != field) {
+                                if (_fl_old_27 != field) {
                                     fl_string_retain(field);
-                                    fl_string_release(_fl_old_31);
+                                    fl_string_release(_fl_old_27);
                                 }
                                 state = 0;
                             } else {
                                 if (c == 13) {
-                                    FL_Array* _fl_old_32 = current_row;
+                                    FL_Array* _fl_old_28 = current_row;
                                     current_row = fl_array_push_ptr(current_row, field);
-                                    if (_fl_old_32 != current_row) {
-                                        fl_array_release(_fl_old_32);
+                                    if (_fl_old_28 != current_row) {
+                                        fl_array_release(_fl_old_28);
                                     }
-                                    FL_String* _fl_old_33 = field;
+                                    FL_String* _fl_old_29 = field;
                                     field = _fl_str_csv_0;
-                                    if (_fl_old_33 != field) {
+                                    if (_fl_old_29 != field) {
                                         fl_string_retain(field);
-                                        fl_string_release(_fl_old_33);
+                                        fl_string_release(_fl_old_29);
                                     }
-                                    FL_Array* _fl_old_34 = rows;
+                                    FL_Array* _fl_old_30 = rows;
                                     rows = fl_array_push_ptr(rows, current_row);
-                                    if (_fl_old_34 != rows) {
-                                        fl_array_release(_fl_old_34);
+                                    if (_fl_old_30 != rows) {
+                                        fl_array_release(_fl_old_30);
                                     }
-                                    FL_Array* _fl_old_35 = current_row;
+                                    FL_Array* _fl_old_31 = current_row;
                                     current_row = fl_array_new(0, 0, NULL);
-                                    if (_fl_old_35 != current_row) {
-                                        fl_array_release(_fl_old_35);
+                                    if (_fl_old_31 != current_row) {
+                                        fl_array_release(_fl_old_31);
                                     }
                                     fl_array_set_elem_type(current_row, 1);
                                     fl_int _fl_e_7;
@@ -784,9 +768,9 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                                     if (_fl_e_7 < len) {
                                         fl_int _fl_e_8;
                                         FL_CHECKED_ADD(i, 1, &_fl_e_8);
-                                        FL_Option_char _fl_tmp_36 = fl_string_char_at(s, _fl_e_8);
-                                        if (_fl_tmp_36.tag == 1) {
-                                            fl_char nc = _fl_tmp_36.value;
+                                        FL_Option_char _fl_tmp_32 = fl_string_char_at(s, _fl_e_8);
+                                        if (_fl_tmp_32.tag == 1) {
+                                            fl_char nc = _fl_tmp_32.value;
                                             if (nc == 10) {
                                                 fl_int _fl_e_9;
                                                 FL_CHECKED_ADD(i, 1, &_fl_e_9);
@@ -797,37 +781,33 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
                                     state = 0;
                                 } else {
                                     if (c == 10) {
-                                        FL_Array* _fl_old_37 = current_row;
+                                        FL_Array* _fl_old_33 = current_row;
                                         current_row = fl_array_push_ptr(current_row, field);
-                                        if (_fl_old_37 != current_row) {
-                                            fl_array_release(_fl_old_37);
+                                        if (_fl_old_33 != current_row) {
+                                            fl_array_release(_fl_old_33);
                                         }
-                                        FL_String* _fl_old_38 = field;
+                                        FL_String* _fl_old_34 = field;
                                         field = _fl_str_csv_0;
-                                        if (_fl_old_38 != field) {
+                                        if (_fl_old_34 != field) {
                                             fl_string_retain(field);
-                                            fl_string_release(_fl_old_38);
+                                            fl_string_release(_fl_old_34);
                                         }
-                                        FL_Array* _fl_old_39 = rows;
+                                        FL_Array* _fl_old_35 = rows;
                                         rows = fl_array_push_ptr(rows, current_row);
-                                        if (_fl_old_39 != rows) {
-                                            fl_array_release(_fl_old_39);
+                                        if (_fl_old_35 != rows) {
+                                            fl_array_release(_fl_old_35);
                                         }
-                                        FL_Array* _fl_old_40 = current_row;
+                                        FL_Array* _fl_old_36 = current_row;
                                         current_row = fl_array_new(0, 0, NULL);
-                                        if (_fl_old_40 != current_row) {
-                                            fl_array_release(_fl_old_40);
+                                        if (_fl_old_36 != current_row) {
+                                            fl_array_release(_fl_old_36);
                                         }
                                         fl_array_set_elem_type(current_row, 1);
                                         state = 0;
                                     } else {
-                                        FL_String* _fl_tmp_41 = fl_char_to_string(c);
-                                        FL_String* _fl_old_42 = field;
-                                        field = fl_string_concat(field, _fl_tmp_41);
-                                        if (_fl_old_42 != field) {
-                                            fl_string_release(_fl_old_42);
-                                        }
-                                        fl_string_release(_fl_tmp_41);
+                                        FL_String* _fl_tmp_37 = fl_char_to_string(c);
+                                        fl_string_append((&field), _fl_tmp_37);
+                                        fl_string_release(_fl_tmp_37);
                                         state = 1;
                                     }
                                 }
@@ -842,15 +822,15 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
         i = _fl_e_10;
     }
     if (((fl_string_len(field) > 0) || (state != 0)) || (fl_array_len_int(current_row) > 0)) {
-        FL_Array* _fl_old_43 = current_row;
+        FL_Array* _fl_old_38 = current_row;
         current_row = fl_array_push_ptr(current_row, field);
-        if (_fl_old_43 != current_row) {
-            fl_array_release(_fl_old_43);
+        if (_fl_old_38 != current_row) {
+            fl_array_release(_fl_old_38);
         }
-        FL_Array* _fl_old_44 = rows;
+        FL_Array* _fl_old_39 = rows;
         rows = fl_array_push_ptr(rows, current_row);
-        if (_fl_old_44 != rows) {
-            fl_array_release(_fl_old_44);
+        if (_fl_old_39 != rows) {
+            fl_array_release(_fl_old_39);
         }
     }
     fl_array_release(current_row);
@@ -863,9 +843,9 @@ fl_bool fl_csv_needs_quoting(FL_String* s, fl_char delim) {
     fl_int len = fl_string_len(s);
     fl_int i = 0;
     while (i < len) {
-        FL_Option_char _fl_tmp_45 = fl_string_char_at(s, i);
-        if (_fl_tmp_45.tag == 1) {
-            fl_char c = _fl_tmp_45.value;
+        FL_Option_char _fl_tmp_40 = fl_string_char_at(s, i);
+        if (_fl_tmp_40.tag == 1) {
+            fl_char c = _fl_tmp_40.value;
             if ((((c == delim) || (c == 34)) || (c == 10)) || (c == 13)) {
                 return fl_true;
             }
@@ -884,34 +864,22 @@ FL_String* fl_csv_quote_field(FL_String* s) {
     fl_string_retain(result);
     fl_int i = 0;
     while (i < len) {
-        FL_Option_char _fl_tmp_46 = fl_string_char_at(s, i);
-        if (_fl_tmp_46.tag == 1) {
-            fl_char c = _fl_tmp_46.value;
+        FL_Option_char _fl_tmp_41 = fl_string_char_at(s, i);
+        if (_fl_tmp_41.tag == 1) {
+            fl_char c = _fl_tmp_41.value;
             if (c == 34) {
-                FL_String* _fl_old_47 = result;
-                result = fl_string_concat(result, _fl_str_csv_2);
-                if (_fl_old_47 != result) {
-                    fl_string_release(_fl_old_47);
-                }
+                fl_string_append((&result), _fl_str_csv_2);
             } else {
-                FL_String* _fl_tmp_48 = fl_char_to_string(c);
-                FL_String* _fl_old_49 = result;
-                result = fl_string_concat(result, _fl_tmp_48);
-                if (_fl_old_49 != result) {
-                    fl_string_release(_fl_old_49);
-                }
-                fl_string_release(_fl_tmp_48);
+                FL_String* _fl_tmp_42 = fl_char_to_string(c);
+                fl_string_append((&result), _fl_tmp_42);
+                fl_string_release(_fl_tmp_42);
             }
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
-    FL_String* _fl_old_50 = result;
-    result = fl_string_concat(result, _fl_str_csv_1);
-    if (_fl_old_50 != result) {
-        fl_string_release(_fl_old_50);
-    }
+    fl_string_append((&result), _fl_str_csv_1);
     return result;
 }
 
@@ -924,9 +892,9 @@ FL_Array* fl_csv_parse(FL_String* s) {
 FL_Array* fl_csv_parse_row(FL_String* s) {
     FL_Array* rows = fl_csv_parse_impl(s, 44);
     if (fl_array_len_int(rows) > 0) {
-        FL_Option_ptr _fl_tmp_51 = fl_array_get_safe(rows, 0);
-        if (_fl_tmp_51.tag == 1) {
-            FL_Array* row = _fl_tmp_51.value;
+        FL_Option_ptr _fl_tmp_43 = fl_array_get_safe(rows, 0);
+        if (_fl_tmp_43.tag == 1) {
+            FL_Array* row = _fl_tmp_43.value;
             fl_array_retain(row);
             fl_array_release(rows);
             return row;
@@ -947,22 +915,14 @@ FL_String* fl_csv_to_string(FL_Array* rows) {
     fl_int i = 0;
     while (i < n) {
         if (i > 0) {
-            FL_String* _fl_old_52 = result;
-            result = fl_string_concat(result, _fl_str_csv_3);
-            if (_fl_old_52 != result) {
-                fl_string_release(_fl_old_52);
-            }
+            fl_string_append((&result), _fl_str_csv_3);
         }
-        FL_Option_ptr _fl_tmp_53 = fl_array_get_safe(rows, i);
-        FL_Array* row = ((_fl_tmp_53.tag == 1) ? _fl_tmp_53.value : fl_array_new(0, 0, NULL));
+        FL_Option_ptr _fl_tmp_44 = fl_array_get_safe(rows, i);
+        FL_Array* row = ((_fl_tmp_44.tag == 1) ? _fl_tmp_44.value : fl_array_new(0, 0, NULL));
         fl_array_retain(row);
-        FL_String* _fl_tmp_54 = fl_csv_row_to_string(row);
-        FL_String* _fl_old_55 = result;
-        result = fl_string_concat(result, _fl_tmp_54);
-        if (_fl_old_55 != result) {
-            fl_string_release(_fl_old_55);
-        }
-        fl_string_release(_fl_tmp_54);
+        FL_String* _fl_tmp_45 = fl_csv_row_to_string(row);
+        fl_string_append((&result), _fl_tmp_45);
+        fl_string_release(_fl_tmp_45);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
@@ -978,29 +938,17 @@ FL_String* fl_csv_row_to_string(FL_Array* fields) {
     fl_int i = 0;
     while (i < n) {
         if (i > 0) {
-            FL_String* _fl_old_56 = result;
-            result = fl_string_concat(result, _fl_str_csv_4);
-            if (_fl_old_56 != result) {
-                fl_string_release(_fl_old_56);
-            }
+            fl_string_append((&result), _fl_str_csv_4);
         }
-        FL_Option_ptr _fl_tmp_57 = fl_array_get_safe(fields, i);
-        FL_String* f = ((_fl_tmp_57.tag == 1) ? _fl_tmp_57.value : _fl_str_csv_0);
+        FL_Option_ptr _fl_tmp_46 = fl_array_get_safe(fields, i);
+        FL_String* f = ((_fl_tmp_46.tag == 1) ? _fl_tmp_46.value : _fl_str_csv_0);
         fl_string_retain(f);
         if (fl_csv_needs_quoting(f, 44)) {
-            FL_String* _fl_tmp_58 = fl_csv_quote_field(f);
-            FL_String* _fl_old_59 = result;
-            result = fl_string_concat(result, _fl_tmp_58);
-            if (_fl_old_59 != result) {
-                fl_string_release(_fl_old_59);
-            }
-            fl_string_release(_fl_tmp_58);
+            FL_String* _fl_tmp_47 = fl_csv_quote_field(f);
+            fl_string_append((&result), _fl_tmp_47);
+            fl_string_release(_fl_tmp_47);
         } else {
-            FL_String* _fl_old_60 = result;
-            result = fl_string_concat(result, f);
-            if (_fl_old_60 != result) {
-                fl_string_release(_fl_old_60);
-            }
+            fl_string_append((&result), f);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -1022,14 +970,14 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
     }
     FL_Array* headers = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(headers, 1);
-    FL_Option_ptr _fl_tmp_61 = fl_array_get_safe(rows, 0);
-    if (_fl_tmp_61.tag == 1) {
-        FL_Array* h = _fl_tmp_61.value;
-        FL_Array* _fl_old_62 = headers;
+    FL_Option_ptr _fl_tmp_48 = fl_array_get_safe(rows, 0);
+    if (_fl_tmp_48.tag == 1) {
+        FL_Array* h = _fl_tmp_48.value;
+        FL_Array* _fl_old_49 = headers;
         headers = h;
-        if (_fl_old_62 != headers) {
+        if (_fl_old_49 != headers) {
             fl_array_retain(headers);
-            fl_array_release(_fl_old_62);
+            fl_array_release(_fl_old_49);
         }
     } else {
         fl_array_release(headers);
@@ -1040,37 +988,37 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
     fl_array_set_elem_type(result, 3);
     fl_int i = 1;
     while (i < nrows) {
-        FL_Option_ptr _fl_tmp_63 = fl_array_get_safe(rows, i);
-        FL_Array* row = ((_fl_tmp_63.tag == 1) ? _fl_tmp_63.value : fl_array_new(0, 0, NULL));
+        FL_Option_ptr _fl_tmp_50 = fl_array_get_safe(rows, i);
+        FL_Array* row = ((_fl_tmp_50.tag == 1) ? _fl_tmp_50.value : fl_array_new(0, 0, NULL));
         fl_array_retain(row);
         FL_Map* m = fl_map_new();
         fl_int row_len = fl_array_len_int(row);
         fl_int j = 0;
         while (j < ncols) {
-            FL_Option_ptr _fl_tmp_64 = fl_array_get_safe(headers, j);
-            FL_String* key = ((_fl_tmp_64.tag == 1) ? _fl_tmp_64.value : _fl_str_csv_0);
+            FL_Option_ptr _fl_tmp_51 = fl_array_get_safe(headers, j);
+            FL_String* key = ((_fl_tmp_51.tag == 1) ? _fl_tmp_51.value : _fl_str_csv_0);
             fl_string_retain(key);
-            FL_String* _fl_tmp_65;
+            FL_String* _fl_tmp_52;
             if (j < row_len) {
-                FL_Option_ptr _fl_tmp_66 = fl_array_get_safe(row, j);
-                _fl_tmp_65 = ((_fl_tmp_66.tag == 1) ? _fl_tmp_66.value : _fl_str_csv_0);
+                FL_Option_ptr _fl_tmp_53 = fl_array_get_safe(row, j);
+                _fl_tmp_52 = ((_fl_tmp_53.tag == 1) ? _fl_tmp_53.value : _fl_str_csv_0);
             } else {
-                _fl_tmp_65 = _fl_str_csv_0;
+                _fl_tmp_52 = _fl_str_csv_0;
             }
-            FL_String* val = _fl_tmp_65;
-            FL_Map* _fl_old_67 = m;
+            FL_String* val = _fl_tmp_52;
+            FL_Map* _fl_old_54 = m;
             m = fl_map_set_str(m, key, val);
-            if (_fl_old_67 != m) {
-                fl_map_release(_fl_old_67);
+            if (_fl_old_54 != m) {
+                fl_map_release(_fl_old_54);
             }
             fl_int _fl_e_1;
             FL_CHECKED_ADD(j, 1, &_fl_e_1);
             j = _fl_e_1;
         }
-        FL_Array* _fl_old_68 = result;
+        FL_Array* _fl_old_55 = result;
         result = fl_array_push_ptr(result, m);
-        if (_fl_old_68 != result) {
-            fl_array_release(_fl_old_68);
+        if (_fl_old_55 != result) {
+            fl_array_release(_fl_old_55);
         }
         fl_int _fl_e_2;
         FL_CHECKED_ADD(i, 1, &_fl_e_2);
