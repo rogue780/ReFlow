@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -852,6 +853,8 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
             fl_array_release(_fl_old_44);
         }
     }
+    fl_array_release(current_row);
+    fl_string_release(field);
     return rows;
 }
 
@@ -924,6 +927,7 @@ FL_Array* fl_csv_parse_row(FL_String* s) {
         FL_Option_ptr _fl_tmp_51 = fl_array_get_safe(rows, 0);
         if (_fl_tmp_51.tag == 1) {
             FL_Array* row = _fl_tmp_51.value;
+            fl_array_retain(row);
             return row;
         } else {
             return fl_array_new(0, 0, NULL);
@@ -1021,6 +1025,7 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
             fl_array_release(_fl_old_60);
         }
     } else {
+        fl_array_release(headers);
         return fl_array_new(0, 0, NULL);
     }
     fl_int ncols = fl_array_len_int(headers);
@@ -1046,7 +1051,6 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
                 _fl_tmp_63 = _fl_str_csv_0;
             }
             FL_String* val = _fl_tmp_63;
-            fl_string_retain(val);
             FL_Map* _fl_old_65 = m;
             m = fl_map_set_str(m, key, val);
             if (_fl_old_65 != m) {
@@ -1065,6 +1069,7 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
         FL_CHECKED_ADD(i, 1, &_fl_e_2);
         i = _fl_e_2;
     }
+    fl_array_release(headers);
     return result;
 }
 

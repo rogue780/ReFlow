@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -736,6 +737,12 @@ void fl_tests_stdlib_generic_array_main(void) {
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_26);
     }
+    fl_array_release(strs);
+    fl_array_release(nums);
+    fl_array_release(floats);
+    fl_array_release(a);
+    fl_array_release(b);
+    fl_array_release(bools);
 }
 
 static void _fl_init_statics(void) {

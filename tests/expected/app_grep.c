@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -636,8 +637,12 @@ fl_bool fl_tests_app_grep_matches_line(FL_String* line, FL_String* pattern, fl_b
     }
     fl_bool found = fl_string_contains(haystack, needle);
     if (invert) {
+        fl_string_release(haystack);
+        fl_string_release(needle);
         return (!found);
     }
+    fl_string_release(haystack);
+    fl_string_release(needle);
     return found;
 }
 
@@ -794,6 +799,7 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
         FL_CHECKED_ADD(mi, 1, &_fl_e_10);
         mi = _fl_e_10;
     }
+    fl_array_release(match_indices);
     return match_count;
 }
 

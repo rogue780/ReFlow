@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -586,8 +587,10 @@ FL_String* fl_tests_app_node_id_test_lookup(FL_Map* types, fl_int id) {
     FL_Option_ptr _fl_tmp_0 = fl_map_get_str(types, fl_conv_to_string__int(id));
     if (_fl_tmp_0.tag == 1) {
         FL_String* v = _fl_tmp_0.value;
+        fl_string_retain(v);
         return v;
     } else {
+        fl_string_retain(_fl_str_tests_app_node_id_test_0);
         return _fl_str_tests_app_node_id_test_0;
     }
 }
@@ -621,12 +624,14 @@ fl_int fl_tests_app_node_id_test_get_id(fl_tests_app_node_id_test_Expr expr) {
 
 /* Flow: tests.app_node_id_test.main */
 fl_int fl_tests_app_node_id_test_main(void) {
+    fl_string_retain(_fl_str_tests_app_node_id_test_1);
     fl_tests_app_node_id_test_Expr node_x = (fl_tests_app_node_id_test_Expr){.tag = 2, .Ident = (fl_tests_app_node_id_test_Expr_Ident){.id = 1, .name = _fl_str_tests_app_node_id_test_1}};
     fl_tests_app_node_id_test_Expr node_42 = (fl_tests_app_node_id_test_Expr){.tag = 0, .IntLit = (fl_tests_app_node_id_test_Expr_IntLit){.id = 2, .value = 42}};
     fl_tests_app_node_id_test_Expr* _fl_tmp_2 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
     (*_fl_tmp_2) = node_x;
     fl_tests_app_node_id_test_Expr* _fl_tmp_3 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
     (*_fl_tmp_3) = node_42;
+    fl_string_retain(_fl_str_tests_app_node_id_test_2);
     fl_tests_app_node_id_test_Expr node_add = (fl_tests_app_node_id_test_Expr){.tag = 1, .BinOp = (fl_tests_app_node_id_test_Expr_BinOp){.id = 3, .op = _fl_str_tests_app_node_id_test_2, .left = _fl_tmp_2, .right = _fl_tmp_3}};
     FL_Map* types = fl_map_new();
     FL_Map* _fl_old_4 = types;
@@ -676,6 +681,7 @@ fl_int fl_tests_app_node_id_test_main(void) {
         _fl_tmp_12 = (_fl_tmp_12 + 1);
     }
     fl_println(_fl_str_tests_app_node_id_test_11);
+    fl_map_release(types);
     return 0;
 }
 

@@ -1108,6 +1108,14 @@ class Lowerer:
                 expr_result = self._lower_expr(fn.body)
                 body = list(self._pending_stmts)
                 self._pending_stmts = []
+                # Owned-return: retain non-allocating expression body
+                if not self._is_allocating_expr(fn.body):
+                    retain_fn = self._RETAIN_FN.get(
+                        type(self._current_fn_return_type)
+                    ) if self._current_fn_return_type else None
+                    if retain_fn:
+                        body.append(LExprStmt(LCall(
+                            retain_fn, [expr_result], c_type=LVoid())))
                 body.append(LReturn(expr_result))
 
         # Scope-exit cleanup: release container locals before returns
@@ -1192,6 +1200,14 @@ class Lowerer:
                     expr_result = self._lower_expr(method.body)
                     body = list(self._pending_stmts)
                     self._pending_stmts = []
+                    # Owned-return: retain non-allocating expression body
+                    if not self._is_allocating_expr(method.body):
+                        retain_fn = self._RETAIN_FN.get(
+                            type(self._current_fn_return_type)
+                        ) if self._current_fn_return_type else None
+                        if retain_fn:
+                            body.append(LExprStmt(LCall(
+                                retain_fn, [expr_result], c_type=LVoid())))
                     body.append(LReturn(expr_result))
 
             # Scope-exit cleanup: release container locals before returns
@@ -1366,7 +1382,18 @@ class Lowerer:
             if (isinstance(last.expr, LCall)
                     and last.expr.fn_name == "_fl_throw"):
                 return
-            stmts[-1] = LReturn(last.expr)
+            expr = last.expr
+            # Owned-return: retain non-allocating tail expressions
+            if not self._is_allocating_lir_expr(expr):
+                ret_type = self._current_fn_return_type
+                if ret_type is not None:
+                    retain_fn = self._RETAIN_FN.get(type(ret_type))
+                    if retain_fn:
+                        stmts[-1] = LExprStmt(LCall(
+                            retain_fn, [expr], c_type=LVoid()))
+                        stmts.append(LReturn(expr))
+                        return
+            stmts[-1] = LReturn(expr)
         elif isinstance(last, LIf):
             self._inject_tail_returns(last.then)
             self._inject_tail_returns(last.else_)
@@ -1573,20 +1600,25 @@ class Lowerer:
         # Only top-level function scope (depth 0) — inner block vars
         # are not tracked to avoid releasing already-dead variables.
         # Skip auto-lifted bindings: the variable is option<T>, not T.
-        # Only non-allocating bindings: they are retained at bind (above),
-        # so scope-exit release is always safe (balanced +1/-1).
-        # Skip :mut bindings: the bind-time retain targets the initial value
-        # but scope-exit release targets the final value.  When a :mut var
-        # is reassigned via an allocating expression, the new value is NOT
-        # retained (release-on-reassignment only releases the old value),
-        # so the scope-exit release would be unbalanced and cause UAF.
+        #
+        # Two categories of locals are registered:
+        # 1. Non-allocating bindings (any mutability): retained at bind,
+        #    so scope-exit release balances the +1 retain.
+        # 2. :mut allocating bindings: the allocation owns refcount=1.
+        #    If the :mut local is later embedded in a struct, the struct
+        #    construction retain (via _retain_struct_fields) bumps to 2.
+        #    Scope-exit release brings it to 1 — struct ref survives.
         is_mut_binding = isinstance(stmt.type_ann, MutType)
-        if (not auto_lifted
-                and not self._is_allocating_expr(stmt.value)
-                and not is_mut_binding):
-            release_fn = self._get_release_fn(val_type)
-            if release_fn and self._scope_depth == 0:
-                self._container_locals.append((stmt.name, c_type, release_fn))
+        if not auto_lifted:
+            should_register = False
+            if not self._is_allocating_expr(stmt.value):
+                should_register = True  # retained at bind
+            elif is_mut_binding:
+                should_register = True  # allocating init, :mut convention
+            if should_register:
+                release_fn = self._get_release_fn(val_type)
+                if release_fn and self._scope_depth == 0:
+                    self._container_locals.append((stmt.name, c_type, release_fn))
 
         return stmts
 
@@ -1630,6 +1662,23 @@ class Lowerer:
     def _get_release_fn(self, t: Type) -> str | None:
         """Return the release function name for a container type, or None."""
         return self._RELEASE_FN.get(type(t))
+
+    def _retain_struct_fields(self, fields: list[tuple[str, LExpr]],
+                              ast_args: list[Expr]) -> None:
+        """Retain borrowed refcounted field values in struct/variant construction.
+
+        For each field whose AST expression is non-allocating and whose type
+        is refcounted, emit a retain call via _pending_stmts.  This ensures
+        the struct owns its own references, enabling safe scope-exit cleanup
+        of the local variables that were embedded.
+        """
+        for (fname, lowered_val), ast_val in zip(fields, ast_args):
+            if not self._is_allocating_expr(ast_val):
+                val_type = self._type_of(ast_val)
+                retain_fn = self._RETAIN_FN.get(type(val_type))
+                if retain_fn:
+                    self._pending_stmts.append(
+                        LExprStmt(LCall(retain_fn, [lowered_val], LVoid())))
 
     def _intern_string(self, c_literal: str) -> LVar:
         """Return an LVar referencing an interned static string global.
@@ -1715,7 +1764,12 @@ class Lowerer:
         """
         return isinstance(expr, (Call, MethodCall, BinOp, SomeExpr, OkExpr,
                                  ErrExpr, ArrayLit, RecordLit, FStringExpr,
-                                 CopyExpr))
+                                 CopyExpr, IfExpr, MatchExpr))
+
+    @staticmethod
+    def _is_allocating_lir_expr(expr: LExpr) -> bool:
+        """Check if an LIR expression produces a freshly-allocated value."""
+        return isinstance(expr, (LCall, LIndirectCall, LCompound))
 
     def _call_passes_var_by_mut_ref(self, call_expr: Expr, var_name: str) -> bool:
         """Check if a Call passes `var_name` as a :mut (by-reference) argument.
@@ -1856,7 +1910,29 @@ class Lowerer:
         if stmt.value is None:
             return [LReturn(None)]
         value = self._lower_expr(stmt.value)
-        return [LReturn(value)]
+        # Owned-return convention: retain non-allocating return values of
+        # refcounted types so every function return transfers ownership.
+        if not self._is_allocating_expr(stmt.value):
+            ret_type = self._type_of(stmt.value)
+            retain_fn = self._RETAIN_FN.get(type(ret_type))
+            if retain_fn is not None:
+                # Skip simple variable returns that are tracked for scope-exit
+                # cleanup — already owned by the binding, and
+                # _inject_scope_cleanup skips releasing them (returned_names).
+                tracked_names = {n for n, _, _ in self._container_locals}
+                is_tracked_local = (isinstance(stmt.value, Ident)
+                                    and stmt.value.name in tracked_names)
+                if not is_tracked_local:
+                    stmts = list(self._pending_stmts)
+                    self._pending_stmts = []
+                    stmts.append(LExprStmt(LCall(
+                        retain_fn, [value], c_type=LVoid())))
+                    stmts.append(LReturn(value))
+                    return stmts
+        stmts = list(self._pending_stmts)
+        self._pending_stmts = []
+        stmts.append(LReturn(value))
+        return stmts
 
     def _lower_inner_block(self, block: Block) -> list[LStmt]:
         """Lower an inner block with scope depth tracking."""
@@ -3360,13 +3436,15 @@ class Lowerer:
             # Sum type variant constructor — inline as compound literal
             if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                     and isinstance(sym.decl, SumVariantDecl)):
-                return self._lower_variant_ctor(name, sym.decl, t, lt, lowered_args)
+                return self._lower_variant_ctor(name, sym.decl, t, lt, lowered_args,
+                                                list(expr.args))
             # Struct constructor — inline as compound literal
             if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                     and isinstance(sym.decl, ConstructorDecl)):
                 ctor_decl: ConstructorDecl = sym.decl
                 fields = [(p.name, arg)
                           for p, arg in zip(ctor_decl.params, lowered_args)]
+                self._retain_struct_fields(fields, list(expr.args))
                 return LCompound(fields=fields, c_type=lt)
             # Positional struct construction via type name: MyStruct(a, b, c)
             if (sym is not None and sym.kind == SymbolKind.TYPE
@@ -3380,6 +3458,7 @@ class Lowerer:
                 struct_mod = getattr(sym, 'module_path', None) or self._module_path
                 struct_lt = LStruct(mangle(struct_mod, type_decl.name,
                                           file=self._file, line=expr.line, col=expr.col))
+                self._retain_struct_fields(fields, list(expr.args))
                 return LCompound(fields=fields, c_type=struct_lt)
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
                 # Check if this is a bounded generic — monomorphize it (SG-3-4-2)
@@ -3436,13 +3515,15 @@ class Lowerer:
                 if (fa_sym.kind == SymbolKind.CONSTRUCTOR
                         and isinstance(fa_sym.decl, SumVariantDecl)):
                     return self._lower_variant_ctor(
-                        fa_name, fa_sym.decl, t, lt, lowered_args)
+                        fa_name, fa_sym.decl, t, lt, lowered_args,
+                        list(expr.args))
                 # Struct constructor via namespace: mod.MyStruct(...)
                 if (fa_sym.kind == SymbolKind.CONSTRUCTOR
                         and isinstance(fa_sym.decl, ConstructorDecl)):
                     ctor_decl: ConstructorDecl = fa_sym.decl
                     fields = [(p.name, arg)
                               for p, arg in zip(ctor_decl.params, lowered_args)]
+                    self._retain_struct_fields(fields, list(expr.args))
                     return LCompound(fields=fields, c_type=lt)
                 # Positional struct construction via namespace: mod.Type(a, b)
                 if (fa_sym.kind == SymbolKind.TYPE
@@ -3454,6 +3535,7 @@ class Lowerer:
                     struct_mod = getattr(fa_sym, 'module_path', None) or self._module_path
                     struct_lt = LStruct(mangle(struct_mod, type_decl.name,
                                               file=self._file, line=expr.line, col=expr.col))
+                    self._retain_struct_fields(fields, list(expr.args))
                     return LCompound(fields=fields, c_type=struct_lt)
                 # Regular function via namespace: mod.func(...)
                 if fa_sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
@@ -3524,7 +3606,8 @@ class Lowerer:
 
     def _lower_variant_ctor(self, name: str, decl: SumVariantDecl,
                             t: Type, lt: LType,
-                            lowered_args: list[LExpr]) -> LExpr:
+                            lowered_args: list[LExpr],
+                            ast_args: list[Expr] | None = None) -> LExpr:
         """Lower a sum type variant constructor to a compound literal.
 
         Circle(5.0) → (Shape){.tag = 0, .Circle = {.radius = 5.0}}
@@ -3597,6 +3680,26 @@ class Lowerer:
             else:
                 inner_fields.append((fname, arg))
 
+        # Retain borrowed refcounted fields in non-recursive variant payload
+        if ast_args is not None:
+            non_recursive: list[tuple[tuple[str, LExpr], Expr]] = []
+            for i, ((fname, lval), ast_val) in enumerate(
+                    zip(inner_fields, ast_args)):
+                is_recursive = (
+                    variant.fields is not None
+                    and i < len(variant.fields)
+                    and self._is_recursive_sum_field(
+                        variant.fields[i], t.name,
+                        (decl.fields[i][1]
+                         if decl.fields and i < len(decl.fields)
+                         else None)))
+                if not is_recursive:
+                    non_recursive.append(((fname, lval), ast_val))
+            if non_recursive:
+                nr_fields = [f for f, _ in non_recursive]
+                nr_ast = [a for _, a in non_recursive]
+                self._retain_struct_fields(nr_fields, nr_ast)
+
         fields: list[tuple[str, LExpr]] = [("tag", LLit(str(tag), LByte()))]
         if inner_fields:
             fields.append((name, LCompound(
@@ -3655,7 +3758,8 @@ class Lowerer:
                 and isinstance(resolved_sym.decl, SumVariantDecl)):
             lowered_args = [self._lower_expr(a) for a in expr.args]
             return self._lower_variant_ctor(
-                expr.method, resolved_sym.decl, t, lt, lowered_args)
+                expr.method, resolved_sym.decl, t, lt, lowered_args,
+                list(expr.args))
 
         # Struct constructor via namespace: mod.MyStruct(a, b) (ConstructorDecl)
         if (resolved_sym is not None
@@ -3665,6 +3769,7 @@ class Lowerer:
             lowered_args = [self._lower_expr(a) for a in expr.args]
             fields = [(p.name, arg)
                       for p, arg in zip(ctor_decl.params, lowered_args)]
+            self._retain_struct_fields(fields, list(expr.args))
             return LCompound(fields=fields, c_type=lt)
 
         # Positional struct construction via namespace: mod.Type(a, b) (TypeDecl)
@@ -3679,6 +3784,7 @@ class Lowerer:
             struct_mod = getattr(resolved_sym, 'module_path', None) or self._module_path
             struct_lt = LStruct(mangle(struct_mod, type_decl.name,
                                       file=self._file, line=expr.line, col=expr.col))
+            self._retain_struct_fields(fields, list(expr.args))
             return LCompound(fields=fields, c_type=struct_lt)
 
         if resolved_sym is not None and resolved_sym.kind in (
@@ -4881,6 +4987,12 @@ class Lowerer:
         body_result = self._lower_expr(expr.body)
         impl_body.extend(self._pending_stmts)
         self._pending_stmts = saved_pending
+        # Owned-return: retain non-allocating lambda body
+        if not self._is_allocating_expr(expr.body):
+            retain_fn = self._RETAIN_FN.get(type(t.ret)) if t.ret else None
+            if retain_fn:
+                impl_body.append(LExprStmt(LCall(
+                    retain_fn, [body_result], c_type=LVoid())))
         impl_body.append(LReturn(body_result))
 
         self._capture_remap = saved_remap
@@ -7598,6 +7710,14 @@ class Lowerer:
                     expr_result = self._lower_expr(fn_decl.body)
                     body = list(self._pending_stmts)
                     self._pending_stmts = []
+                    # Owned-return: retain non-allocating expression body
+                    if not self._is_allocating_expr(fn_decl.body):
+                        retain_fn = self._RETAIN_FN.get(
+                            type(self._current_fn_return_type)
+                        ) if self._current_fn_return_type else None
+                        if retain_fn:
+                            body.append(LExprStmt(LCall(
+                                retain_fn, [expr_result], c_type=LVoid())))
                     body.append(LReturn(expr_result))
 
         # Scope-exit cleanup for monomorphized functions

@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -537,8 +538,10 @@ FL_String* fl_tests_map_for_each_test_get_or_default(FL_Map* m, FL_String* key) 
     FL_Option_ptr _fl_tmp_0 = fl_map_get_str(m, key);
     if (_fl_tmp_0.tag == 1) {
         FL_String* v = _fl_tmp_0.value;
+        fl_string_retain(v);
         return v;
     } else {
+        fl_string_retain(_fl_str_tests_map_for_each_test_0);
         return _fl_str_tests_map_for_each_test_0;
     }
 }

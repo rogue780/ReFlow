@@ -10,6 +10,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -80,11 +81,14 @@ FL_String* _fl_str_main_2 = NULL;
 /* Flow: main.color_name */
 FL_String* fl_main_color_name(fl_int c) {
     if (c == fl_main_Color_Red) {
+        fl_string_retain(_fl_str_main_0);
         return _fl_str_main_0;
     }
     if (c == fl_main_Color_Green) {
+        fl_string_retain(_fl_str_main_1);
         return _fl_str_main_1;
     }
+    fl_string_retain(_fl_str_main_2);
     return _fl_str_main_2;
 }
 

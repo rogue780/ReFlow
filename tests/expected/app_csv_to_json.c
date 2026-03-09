@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -773,6 +774,7 @@ void fl_string_builder_append_float(fl_string_builder_StringBuilder sb, fl_float
 FL_String* fl_string_builder_build(fl_string_builder_StringBuilder sb) {
     fl_int64 cur_len = fl_string_builder_get_len(sb);
     if (cur_len == 0) {
+        fl_string_retain(_fl_str_string_builder_0);
         return _fl_str_string_builder_0;
     }
     void* data = fl_string_builder_get_data(sb);
@@ -912,6 +914,7 @@ fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_validate(fl_tests_app_c
 FL_String* fl_tests_app_csv_to_json_escape_json(FL_String* s) {
     FL_String* r1 = fl_string_replace(s, _fl_str_tests_app_csv_to_json_4, _fl_str_tests_app_csv_to_json_5);
     FL_String* r2 = fl_string_replace(r1, _fl_str_tests_app_csv_to_json_6, _fl_str_tests_app_csv_to_json_7);
+    fl_string_retain(r2);
     return r2;
 }
 

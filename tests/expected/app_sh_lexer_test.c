@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -598,22 +599,27 @@ FL_String* fl_self_hosted_errors_kind_name(fl_self_hosted_errors_ErrorKind k) {
     fl_self_hosted_errors_ErrorKind _fl_tmp_0 = k;
     switch (_fl_tmp_0.tag) {
         case 0: {
+            fl_string_retain(_fl_str_self_hosted_errors_0);
             return _fl_str_self_hosted_errors_0;
             break;
         }
         case 1: {
+            fl_string_retain(_fl_str_self_hosted_errors_1);
             return _fl_str_self_hosted_errors_1;
             break;
         }
         case 2: {
+            fl_string_retain(_fl_str_self_hosted_errors_2);
             return _fl_str_self_hosted_errors_2;
             break;
         }
         case 3: {
+            fl_string_retain(_fl_str_self_hosted_errors_3);
             return _fl_str_self_hosted_errors_3;
             break;
         }
         case 4: {
+            fl_string_retain(_fl_str_self_hosted_errors_4);
             return _fl_str_self_hosted_errors_4;
             break;
         }
@@ -1395,27 +1401,35 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
     }
     fl_char ch = fl_self_hosted_lexer_advance(s);
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_45)) {
+        fl_string_retain(_fl_str_self_hosted_lexer_43);
         return _fl_str_self_hosted_lexer_43;
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_46)) {
+        fl_string_retain(_fl_str_self_hosted_lexer_47);
         return _fl_str_self_hosted_lexer_47;
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
+        fl_string_retain(_fl_str_self_hosted_lexer_48);
         return _fl_str_self_hosted_lexer_48;
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49)) {
+        fl_string_retain(_fl_str_self_hosted_lexer_49);
         return _fl_str_self_hosted_lexer_49;
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_50)) {
+        fl_string_retain(_fl_str_self_hosted_lexer_50);
         return _fl_str_self_hosted_lexer_50;
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_51)) {
+        fl_string_retain(_fl_str_self_hosted_lexer_52);
         return _fl_str_self_hosted_lexer_52;
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_53)) {
+        fl_string_retain(_fl_str_self_hosted_lexer_54);
         return _fl_str_self_hosted_lexer_54;
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) {
+        fl_string_retain(_fl_str_self_hosted_lexer_55);
         return _fl_str_self_hosted_lexer_55;
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_56)) {
@@ -1447,11 +1461,13 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
             (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_61, s->filename, s->line, s->col);
             _fl_throw(((void*)_fl_tmp_9), 461109476);
         }
+        fl_string_retain(_fl_str_self_hosted_lexer_62);
         return _fl_str_self_hosted_lexer_62;
     }
     fl_self_hosted_errors_CompileError* _fl_tmp_10 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
     (*_fl_tmp_10) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_63, s->filename, s->line, s->col);
     _fl_throw(((void*)_fl_tmp_10), 461109476);
+    fl_string_retain(_fl_str_self_hosted_lexer_58);
     return _fl_str_self_hosted_lexer_58;
 }
 
@@ -1549,6 +1565,7 @@ void fl_self_hosted_lexer_scan_string(fl_self_hosted_lexer_LexState* s) {
     fl_self_hosted_errors_CompileError* _fl_tmp_14 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
     (*_fl_tmp_14) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
     _fl_throw(((void*)_fl_tmp_14), 461109476);
+    fl_string_release(chars);
 }
 
 /* Flow: self_hosted.lexer.scan_char_lit */
@@ -1584,6 +1601,7 @@ void fl_self_hosted_lexer_scan_char_lit(fl_self_hosted_lexer_LexState* s) {
     }
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_CHAR_LIT, ch_val, start_line, start_col));
+    fl_string_release(ch_val);
 }
 
 /* Flow: self_hosted.lexer.scan_comment */
@@ -1923,6 +1941,7 @@ void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s) {
     if (fl_string_len(chars) > 0) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, chars, start_line, start_col));
     }
+    fl_string_release(chars);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring_expr */
@@ -2056,174 +2075,230 @@ FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename) 
         fl_self_hosted_lexer_scan_operator((&s));
     }
     fl_self_hosted_lexer_emit((&s), fl_self_hosted_lexer_make_token(s, fl_self_hosted_lexer_TokenType_TK_EOF, _fl_str_self_hosted_lexer_58, s.line, s.col));
+    fl_array_retain(s.tokens);
     return s.tokens;
 }
 
 /* Flow: self_hosted.lexer.token_type_name */
 FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype) {
     if (ttype == fl_self_hosted_lexer_TokenType_TK_MODULE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_118);
         return _fl_str_self_hosted_lexer_118;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_IMPORT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_119);
         return _fl_str_self_hosted_lexer_119;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_EXPORT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_120);
         return _fl_str_self_hosted_lexer_120;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LET) {
+        fl_string_retain(_fl_str_self_hosted_lexer_121);
         return _fl_str_self_hosted_lexer_121;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_FN) {
+        fl_string_retain(_fl_str_self_hosted_lexer_122);
         return _fl_str_self_hosted_lexer_122;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_RETURN) {
+        fl_string_retain(_fl_str_self_hosted_lexer_123);
         return _fl_str_self_hosted_lexer_123;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_IF) {
+        fl_string_retain(_fl_str_self_hosted_lexer_124);
         return _fl_str_self_hosted_lexer_124;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ELSE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_125);
         return _fl_str_self_hosted_lexer_125;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_WHILE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_126);
         return _fl_str_self_hosted_lexer_126;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_FOR) {
+        fl_string_retain(_fl_str_self_hosted_lexer_127);
         return _fl_str_self_hosted_lexer_127;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_MATCH) {
+        fl_string_retain(_fl_str_self_hosted_lexer_128);
         return _fl_str_self_hosted_lexer_128;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_TYPE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_129);
         return _fl_str_self_hosted_lexer_129;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_INTERFACE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_130);
         return _fl_str_self_hosted_lexer_130;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_NONE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_131);
         return _fl_str_self_hosted_lexer_131;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_SOME) {
+        fl_string_retain(_fl_str_self_hosted_lexer_132);
         return _fl_str_self_hosted_lexer_132;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_OK) {
+        fl_string_retain(_fl_str_self_hosted_lexer_133);
         return _fl_str_self_hosted_lexer_133;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ERR) {
+        fl_string_retain(_fl_str_self_hosted_lexer_134);
         return _fl_str_self_hosted_lexer_134;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_BOOL_LIT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_135);
         return _fl_str_self_hosted_lexer_135;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_136);
         return _fl_str_self_hosted_lexer_136;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_137);
         return _fl_str_self_hosted_lexer_137;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_STRING_LIT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_138);
         return _fl_str_self_hosted_lexer_138;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_CHAR_LIT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_139);
         return _fl_str_self_hosted_lexer_139;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_140);
         return _fl_str_self_hosted_lexer_140;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_COMMENT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_141);
         return _fl_str_self_hosted_lexer_141;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_NEWLINE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_142);
         return _fl_str_self_hosted_lexer_142;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_EOF) {
+        fl_string_retain(_fl_str_self_hosted_lexer_143);
         return _fl_str_self_hosted_lexer_143;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_PLUS) {
+        fl_string_retain(_fl_str_self_hosted_lexer_144);
         return _fl_str_self_hosted_lexer_144;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_MINUS) {
+        fl_string_retain(_fl_str_self_hosted_lexer_145);
         return _fl_str_self_hosted_lexer_145;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_STAR) {
+        fl_string_retain(_fl_str_self_hosted_lexer_146);
         return _fl_str_self_hosted_lexer_146;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_SLASH) {
+        fl_string_retain(_fl_str_self_hosted_lexer_147);
         return _fl_str_self_hosted_lexer_147;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ASSIGN) {
+        fl_string_retain(_fl_str_self_hosted_lexer_148);
         return _fl_str_self_hosted_lexer_148;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_DOUBLE_EQ) {
+        fl_string_retain(_fl_str_self_hosted_lexer_149);
         return _fl_str_self_hosted_lexer_149;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_NOT_EQ) {
+        fl_string_retain(_fl_str_self_hosted_lexer_150);
         return _fl_str_self_hosted_lexer_150;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_151);
         return _fl_str_self_hosted_lexer_151;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_GT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_152);
         return _fl_str_self_hosted_lexer_152;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LPAREN) {
+        fl_string_retain(_fl_str_self_hosted_lexer_153);
         return _fl_str_self_hosted_lexer_153;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_RPAREN) {
+        fl_string_retain(_fl_str_self_hosted_lexer_154);
         return _fl_str_self_hosted_lexer_154;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LBRACE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_155);
         return _fl_str_self_hosted_lexer_155;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_RBRACE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_156);
         return _fl_str_self_hosted_lexer_156;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_LBRACKET) {
+        fl_string_retain(_fl_str_self_hosted_lexer_157);
         return _fl_str_self_hosted_lexer_157;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_RBRACKET) {
+        fl_string_retain(_fl_str_self_hosted_lexer_158);
         return _fl_str_self_hosted_lexer_158;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_COLON) {
+        fl_string_retain(_fl_str_self_hosted_lexer_159);
         return _fl_str_self_hosted_lexer_159;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_COMMA) {
+        fl_string_retain(_fl_str_self_hosted_lexer_160);
         return _fl_str_self_hosted_lexer_160;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_DOT) {
+        fl_string_retain(_fl_str_self_hosted_lexer_161);
         return _fl_str_self_hosted_lexer_161;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ARROW) {
+        fl_string_retain(_fl_str_self_hosted_lexer_162);
         return _fl_str_self_hosted_lexer_162;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_PIPE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_163);
         return _fl_str_self_hosted_lexer_163;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_QUESTION) {
+        fl_string_retain(_fl_str_self_hosted_lexer_164);
         return _fl_str_self_hosted_lexer_164;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_SPREAD) {
+        fl_string_retain(_fl_str_self_hosted_lexer_165);
         return _fl_str_self_hosted_lexer_165;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_AND) {
+        fl_string_retain(_fl_str_self_hosted_lexer_166);
         return _fl_str_self_hosted_lexer_166;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_OR) {
+        fl_string_retain(_fl_str_self_hosted_lexer_167);
         return _fl_str_self_hosted_lexer_167;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_COERCE) {
+        fl_string_retain(_fl_str_self_hosted_lexer_168);
         return _fl_str_self_hosted_lexer_168;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_CAST) {
+        fl_string_retain(_fl_str_self_hosted_lexer_169);
         return _fl_str_self_hosted_lexer_169;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_THROW) {
+        fl_string_retain(_fl_str_self_hosted_lexer_170);
         return _fl_str_self_hosted_lexer_170;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_EXTERN) {
+        fl_string_retain(_fl_str_self_hosted_lexer_171);
         return _fl_str_self_hosted_lexer_171;
     }
     if (ttype == fl_self_hosted_lexer_TokenType_TK_ENUM) {
+        fl_string_retain(_fl_str_self_hosted_lexer_172);
         return _fl_str_self_hosted_lexer_172;
     }
     FL_String* _fl_tmp_27 = fl_string_concat(_fl_str_self_hosted_lexer_173, fl_conv_to_string__int(ttype));

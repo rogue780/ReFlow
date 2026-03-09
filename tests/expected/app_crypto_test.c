@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -243,6 +244,7 @@ FL_String* fl_crypto_bytes_to_hex(void* p, fl_int len) {
 FL_String* fl_crypto_do_digest(void* md_ptr, FL_String* data, fl_int digest_len) {
     void* ctx = EVP_MD_CTX_new();
     if (fl_ptr_is_null(ctx)) {
+        fl_string_retain(_fl_str_crypto_1);
         return _fl_str_crypto_1;
     }
     EVP_DigestInit_ex(ctx, md_ptr, fl_ptr_null());
@@ -252,6 +254,7 @@ FL_String* fl_crypto_do_digest(void* md_ptr, FL_String* data, fl_int digest_len)
     EVP_MD_CTX_free(ctx);
     FL_String* hex = fl_crypto_bytes_to_hex(buf, digest_len);
     fl_mem_free(buf);
+    fl_string_retain(hex);
     return hex;
 }
 
@@ -276,6 +279,7 @@ FL_String* fl_crypto_hmac_sha256(FL_String* key, FL_String* data) {
     HMAC(EVP_sha256(), fl_string_to_cptr(key), fl_string_len(key), fl_string_to_cptr(data), ((fl_int64)fl_string_len(data)), buf, fl_ptr_null());
     FL_String* hex = fl_crypto_bytes_to_hex(buf, 32);
     fl_mem_free(buf);
+    fl_string_retain(hex);
     return hex;
 }
 
@@ -315,6 +319,7 @@ FL_String* fl_crypto_base64_encode(FL_String* data) {
     fl_int written = EVP_EncodeBlock(buf, fl_string_to_cptr(data), in_len);
     FL_String* result = fl_string_from_cptr(buf, written);
     fl_mem_free(buf);
+    fl_string_retain(result);
     return result;
 }
 
@@ -343,6 +348,7 @@ FL_String* fl_crypto_base64_decode(FL_String* data) {
     fl_int actual_len = _fl_e_4;
     FL_String* result = fl_string_from_cptr(buf, actual_len);
     fl_mem_free(buf);
+    fl_string_retain(result);
     return result;
 }
 

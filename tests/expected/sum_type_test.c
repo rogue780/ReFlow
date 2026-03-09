@@ -10,6 +10,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -158,18 +159,22 @@ FL_String* fl_tests_sum_type_test_dir_name(fl_tests_sum_type_test_Direction d) {
     fl_tests_sum_type_test_Direction _fl_tmp_2 = d;
     switch (_fl_tmp_2.tag) {
         case 0: {
+            fl_string_retain(_fl_str_tests_sum_type_test_0);
             return _fl_str_tests_sum_type_test_0;
             break;
         }
         case 1: {
+            fl_string_retain(_fl_str_tests_sum_type_test_1);
             return _fl_str_tests_sum_type_test_1;
             break;
         }
         case 2: {
+            fl_string_retain(_fl_str_tests_sum_type_test_2);
             return _fl_str_tests_sum_type_test_2;
             break;
         }
         case 3: {
+            fl_string_retain(_fl_str_tests_sum_type_test_3);
             return _fl_str_tests_sum_type_test_3;
             break;
         }

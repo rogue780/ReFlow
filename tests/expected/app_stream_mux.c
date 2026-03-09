@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -571,14 +572,18 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 /* Flow: tests.app_stream_mux.route */
 FL_String* fl_tests_app_stream_mux_route(fl_tests_app_stream_mux_Record r) {
     if (fl_string_eq(r.category, _fl_str_tests_app_stream_mux_0)) {
+        fl_string_retain(_fl_str_tests_app_stream_mux_1);
         return _fl_str_tests_app_stream_mux_1;
     }
     if (fl_string_eq(r.category, _fl_str_tests_app_stream_mux_2)) {
+        fl_string_retain(_fl_str_tests_app_stream_mux_3);
         return _fl_str_tests_app_stream_mux_3;
     }
     if (fl_string_eq(r.category, _fl_str_tests_app_stream_mux_4)) {
+        fl_string_retain(_fl_str_tests_app_stream_mux_5);
         return _fl_str_tests_app_stream_mux_5;
     }
+    fl_string_retain(_fl_str_tests_app_stream_mux_6);
     return _fl_str_tests_app_stream_mux_6;
 }
 
@@ -635,6 +640,7 @@ void fl_tests_app_stream_mux_main(void) {
         fl_println(((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : _fl_str_tests_app_stream_mux_17));
         _fl_tmp_8 = (_fl_tmp_8 + 1);
     }
+    fl_map_release(destinations);
 }
 
 static void _fl_init_statics(void) {

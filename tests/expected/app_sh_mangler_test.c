@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -706,6 +707,7 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 
 /* Flow: self_hosted.mangler.prefix */
 FL_String* fl_self_hosted_mangler_prefix(void) {
+    fl_string_retain(_fl_str_self_hosted_mangler_0);
     return _fl_str_self_hosted_mangler_0;
 }
 
@@ -872,53 +874,70 @@ fl_bool fl_self_hosted_mangler_is_builtin_type(FL_String* name) {
 /* Flow: self_hosted.mangler.mangle_builtin_type */
 FL_String* fl_self_hosted_mangler_mangle_builtin_type(FL_String* name) {
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_18)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_48);
         return _fl_str_self_hosted_mangler_48;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_35)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_49);
         return _fl_str_self_hosted_mangler_49;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_36)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_50);
         return _fl_str_self_hosted_mangler_50;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_37)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_51);
         return _fl_str_self_hosted_mangler_51;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_38)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_52);
         return _fl_str_self_hosted_mangler_52;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_39)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_53);
         return _fl_str_self_hosted_mangler_53;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_40)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_54);
         return _fl_str_self_hosted_mangler_54;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_41)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_55);
         return _fl_str_self_hosted_mangler_55;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_13)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_56);
         return _fl_str_self_hosted_mangler_56;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_42)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_57);
         return _fl_str_self_hosted_mangler_57;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_43)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_58);
         return _fl_str_self_hosted_mangler_58;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_44)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_59);
         return _fl_str_self_hosted_mangler_59;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_45)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_60);
         return _fl_str_self_hosted_mangler_60;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_4)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_61);
         return _fl_str_self_hosted_mangler_61;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_46)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_62);
         return _fl_str_self_hosted_mangler_62;
     }
     if (fl_string_eq(name, _fl_str_self_hosted_mangler_47)) {
+        fl_string_retain(_fl_str_self_hosted_mangler_32);
         return _fl_str_self_hosted_mangler_32;
     }
+    fl_string_retain(_fl_str_self_hosted_mangler_63);
     return _fl_str_self_hosted_mangler_63;
 }
 

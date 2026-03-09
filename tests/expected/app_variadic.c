@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -557,8 +558,10 @@ fl_int fl_tests_app_variadic_count(FL_Array* items) {
 FL_String* fl_tests_app_variadic_first_or(FL_String* fallback, FL_Array* items) {
     if (fl_array_len_int(items) > 0) {
         FL_Option_ptr _fl_tmp_1 = fl_array_get_safe(items, 0);
+        fl_string_retain(((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fallback));
         return ((_fl_tmp_1.tag == 1) ? _fl_tmp_1.value : fallback);
     }
+    fl_string_retain(fallback);
     return fallback;
 }
 

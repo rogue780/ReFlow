@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -590,11 +591,14 @@ fl_int fl_tests_app_parallel_enrich_compute_score(fl_int value) {
 /* Flow: tests.app_parallel_enrich.categorize */
 FL_String* fl_tests_app_parallel_enrich_categorize(fl_int value) {
     if (value > 80) {
+        fl_string_retain(_fl_str_tests_app_parallel_enrich_0);
         return _fl_str_tests_app_parallel_enrich_0;
     }
     if (value > 40) {
+        fl_string_retain(_fl_str_tests_app_parallel_enrich_1);
         return _fl_str_tests_app_parallel_enrich_1;
     }
+    fl_string_retain(_fl_str_tests_app_parallel_enrich_2);
     return _fl_str_tests_app_parallel_enrich_2;
 }
 

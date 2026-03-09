@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -599,6 +600,7 @@ void fl_tests_stdlib_generic_map_main(void) {
     FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, fl_int64_to_string(fl_map_len(m)));
     fl_string_release(_fl_tmp_19);
     fl_println(_fl_tmp_20);
+    fl_map_release(m);
 }
 
 static void _fl_init_statics(void) {

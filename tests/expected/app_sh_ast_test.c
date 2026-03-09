@@ -130,6 +130,7 @@ FL_String* _fl_str_string_0 = NULL;
 FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
     fl_int n = fl_array_len_int(parts);
     if (n == 0) {
+        fl_string_retain(_fl_str_string_0);
         return _fl_str_string_0;
     }
     FL_Option_ptr _fl_tmp_0 = fl_array_get_safe(parts, 0);
@@ -3420,7 +3421,9 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     fl_string_release(_fl_tmp_0);
     fl_string_release(_fl_tmp_1);
     fl_string_release(_fl_tmp_2);
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_3);
     fl_self_hosted_ast_TypeExpr t_int = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 1, .line = 1, .col = 1, .name = _fl_str_tests_programs_app_sh_ast_test_3, .module_path = fl_array_new(0, 0, NULL)}};
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_4);
     fl_self_hosted_ast_TypeExpr t_str = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 2, .line = 1, .col = 5, .name = _fl_str_tests_programs_app_sh_ast_test_4, .module_path = fl_array_new(0, 0, NULL)}};
     FL_String* _fl_tmp_3 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_5, fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_int)));
     fl_println(_fl_tmp_3);
@@ -3438,6 +3441,7 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_Array* fn_params3 = fl_array_push_sized(fn_params2, (&_fl_tmp_7), sizeof(fl_self_hosted_ast_TypeExpr));
     fl_self_hosted_ast_TypeExpr* _fl_tmp_8 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
     (*_fl_tmp_8) = t_int;
+    fl_array_retain(fn_params3);
     fl_self_hosted_ast_TypeExpr t_fn = (fl_self_hosted_ast_TypeExpr){.tag = 3, .TFnType = (fl_self_hosted_ast_TypeExpr_TFnType){.id = 4, .line = 2, .col = 1, .params = fn_params3, .ret = _fl_tmp_8}};
     FL_String* _fl_tmp_9 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_7, fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_fn)));
     fl_println(_fl_tmp_9);
@@ -3447,17 +3451,21 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_Array* gen_args2 = fl_array_push_sized(gen_args, (&_fl_tmp_10), sizeof(fl_self_hosted_ast_TypeExpr));
     fl_self_hosted_ast_TypeExpr* _fl_tmp_11 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
     (*_fl_tmp_11) = t_str;
+    fl_array_retain(gen_args2);
     fl_self_hosted_ast_TypeExpr t_gen = (fl_self_hosted_ast_TypeExpr){.tag = 1, .TGenericType = (fl_self_hosted_ast_TypeExpr_TGenericType){.id = 5, .line = 3, .col = 1, .base = _fl_tmp_11, .args = gen_args2}};
     FL_String* _fl_tmp_12 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_8, fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_gen)));
     fl_println(_fl_tmp_12);
     fl_string_release(_fl_tmp_12);
     fl_self_hosted_ast_Pattern p_wild = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 10, .line = 5, .col = 1}};
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_9);
     fl_self_hosted_ast_Pattern p_bind = (fl_self_hosted_ast_Pattern){.tag = 2, .PBind = (fl_self_hosted_ast_Pattern_PBind){.id = 11, .line = 5, .col = 3, .name = _fl_str_tests_programs_app_sh_ast_test_9}};
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_10);
     fl_self_hosted_ast_Pattern p_some = (fl_self_hosted_ast_Pattern){.tag = 3, .PSome = (fl_self_hosted_ast_Pattern_PSome){.id = 12, .line = 6, .col = 1, .inner_var = _fl_str_tests_programs_app_sh_ast_test_10}};
     fl_self_hosted_ast_Pattern p_none = (fl_self_hosted_ast_Pattern){.tag = 4, .PNone = (fl_self_hosted_ast_Pattern_PNone){.id = 13, .line = 6, .col = 5}};
     FL_Array* _fl_tmp_13 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_ast_test_12});
     fl_array_set_elem_type(_fl_tmp_13, 1);
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_12);
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_11);
     fl_self_hosted_ast_Pattern p_var = (fl_self_hosted_ast_Pattern){.tag = 7, .PVariant = (fl_self_hosted_ast_Pattern_PVariant){.id = 14, .line = 7, .col = 1, .variant_name = _fl_str_tests_programs_app_sh_ast_test_11, .bindings = _fl_tmp_13}};
     FL_String* _fl_tmp_14 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_13, fl_conv_to_string__int(fl_self_hosted_ast_pattern_id(p_wild)));
     fl_println(_fl_tmp_14);
@@ -3468,7 +3476,9 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_16 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_15, fl_conv_to_string__int(fl_self_hosted_ast_pattern_id(p_var)));
     fl_println(_fl_tmp_16);
     fl_string_release(_fl_tmp_16);
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_16);
     fl_self_hosted_ast_Expr e_int = (fl_self_hosted_ast_Expr){.tag = 0, .EIntLit = (fl_self_hosted_ast_Expr_EIntLit){.id = 20, .line = 10, .col = 1, .value = 42, .suffix = _fl_str_tests_programs_app_sh_ast_test_16}};
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_17);
     fl_self_hosted_ast_Expr e_str = (fl_self_hosted_ast_Expr){.tag = 3, .EStringLit = (fl_self_hosted_ast_Expr_EStringLit){.id = 21, .line = 10, .col = 5, .value = _fl_str_tests_programs_app_sh_ast_test_17}};
     fl_self_hosted_ast_Expr e_bool = (fl_self_hosted_ast_Expr){.tag = 2, .EBoolLit = (fl_self_hosted_ast_Expr_EBoolLit){.id = 22, .line = 10, .col = 12, .value = fl_true}};
     fl_self_hosted_ast_Expr e_none = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 23, .line = 10, .col = 20}};
@@ -3482,10 +3492,12 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     (*_fl_tmp_19) = e_int;
     fl_self_hosted_ast_Expr* _fl_tmp_20 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
     (*_fl_tmp_20) = e_int;
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_20);
     fl_self_hosted_ast_Expr e_add = (fl_self_hosted_ast_Expr){.tag = 7, .EBinOp = (fl_self_hosted_ast_Expr_EBinOp){.id = 30, .line = 11, .col = 1, .op = _fl_str_tests_programs_app_sh_ast_test_20, .left = _fl_tmp_19, .right = _fl_tmp_20}};
     FL_String* _fl_tmp_21 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_21, fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_add)));
     fl_println(_fl_tmp_21);
     fl_string_release(_fl_tmp_21);
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_22);
     fl_self_hosted_ast_Expr e_fn = (fl_self_hosted_ast_Expr){.tag = 6, .EIdent = (fl_self_hosted_ast_Expr_EIdent){.id = 31, .line = 12, .col = 1, .name = _fl_str_tests_programs_app_sh_ast_test_22, .module_path = fl_array_new(0, 0, NULL)}};
     FL_Array* call_args = fl_array_new(0, 0, NULL);
     fl_self_hosted_ast_Expr _fl_tmp_22 = e_int;
@@ -3494,16 +3506,19 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_Array* call_args3 = fl_array_push_sized(call_args2, (&_fl_tmp_23), sizeof(fl_self_hosted_ast_Expr));
     fl_self_hosted_ast_Expr* _fl_tmp_24 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
     (*_fl_tmp_24) = e_fn;
+    fl_array_retain(call_args3);
     fl_self_hosted_ast_Expr e_call = (fl_self_hosted_ast_Expr){.tag = 11, .ECall = (fl_self_hosted_ast_Expr_ECall){.id = 32, .line = 12, .col = 1, .callee = _fl_tmp_24, .args = call_args3}};
     FL_String* _fl_tmp_25 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_23, fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_call)));
     fl_println(_fl_tmp_25);
     fl_string_release(_fl_tmp_25);
     fl_self_hosted_ast_Expr* _fl_tmp_26 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
     (*_fl_tmp_26) = e_fn;
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_24);
     fl_self_hosted_ast_Expr e_field = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = 33, .line = 13, .col = 1, .receiver = _fl_tmp_26, .field = _fl_str_tests_programs_app_sh_ast_test_24}};
     FL_String* _fl_tmp_27 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_25, fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_field)));
     fl_println(_fl_tmp_27);
     fl_string_release(_fl_tmp_27);
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_9);
     fl_self_hosted_ast_Stmt s_let = (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = 40, .line = 20, .col = 1, .name = _fl_str_tests_programs_app_sh_ast_test_9, .has_type_ann = fl_true, .type_ann = t_int, .value = e_int}};
     fl_self_hosted_ast_Stmt s_ret = (fl_self_hosted_ast_Stmt){.tag = 3, .SReturn = (fl_self_hosted_ast_Stmt_SReturn){.id = 41, .line = 21, .col = 1, .has_value = fl_true, .value = e_int}};
     fl_self_hosted_ast_Stmt s_expr = (fl_self_hosted_ast_Stmt){.tag = 8, .SExpr = (fl_self_hosted_ast_Stmt_SExpr){.id = 42, .line = 22, .col = 1, .expr = e_call}};
@@ -3527,6 +3542,9 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_Array* fn_body = fl_array_new(0, 0, NULL);
     fl_self_hosted_ast_Stmt _fl_tmp_33 = s_ret;
     FL_Array* fn_body2 = fl_array_push_sized(fn_body, (&_fl_tmp_33), sizeof(fl_self_hosted_ast_Stmt));
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_30);
+    fl_array_retain(fn_params_d2);
+    fl_array_retain(fn_body2);
     fl_self_hosted_ast_Decl d_fn = (fl_self_hosted_ast_Decl){.tag = 2, .DFn = (fl_self_hosted_ast_Decl_DFn){.id = 60, .line = 30, .col = 1, .name = _fl_str_tests_programs_app_sh_ast_test_30, .type_params = fl_array_new(0, 0, NULL), .params = fn_params_d2, .has_return_type = fl_true, .return_type = t_int, .body = fn_body2, .is_pure = fl_false, .is_export = fl_true, .is_static = fl_false}};
     FL_Array* _fl_tmp_34 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_ast_test_31, _fl_str_tests_programs_app_sh_ast_test_32});
     fl_array_set_elem_type(_fl_tmp_34, 1);
@@ -3536,6 +3554,7 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_Array* _fl_tmp_35 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_programs_app_sh_ast_test_33});
     fl_array_set_elem_type(_fl_tmp_35, 1);
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_33);
+    fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_16);
     fl_self_hosted_ast_Decl d_imp = (fl_self_hosted_ast_Decl){.tag = 1, .DImport = (fl_self_hosted_ast_Decl_DImport){.id = 62, .line = 2, .col = 1, .path = _fl_tmp_35, .names = fl_array_new(0, 0, NULL), .import_alias = _fl_str_tests_programs_app_sh_ast_test_16}};
     FL_String* _fl_tmp_36 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_34, fl_conv_to_string__int(fl_self_hosted_ast_decl_id(d_fn)));
     fl_println(_fl_tmp_36);
