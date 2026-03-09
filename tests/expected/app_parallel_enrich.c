@@ -619,6 +619,10 @@ FL_String* fl_tests_app_parallel_enrich_format_result(fl_int score, FL_String* c
     FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, category);
     FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_str_tests_app_parallel_enrich_5);
     FL_String* _fl_tmp_5 = fl_conv_to_string__int(hash);
+    fl_string_release(_fl_tmp_0);
+    fl_string_release(_fl_tmp_1);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_3);
     return fl_string_concat(_fl_tmp_4, _fl_tmp_5);
 }
 

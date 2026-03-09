@@ -594,6 +594,10 @@ FL_String* fl_tests_app_stream_mux_format_record(fl_tests_app_stream_mux_Record 
     FL_String* _fl_tmp_2 = fl_conv_to_string__int(r.priority);
     FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_1, _fl_tmp_2);
     FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_str_tests_app_stream_mux_9);
+    fl_string_release(_fl_tmp_0);
+    fl_string_release(_fl_tmp_1);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_3);
     return fl_string_concat(_fl_tmp_4, r.data);
 }
 

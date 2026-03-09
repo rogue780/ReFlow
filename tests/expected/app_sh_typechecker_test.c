@@ -638,6 +638,15 @@ FL_String* fl_self_hosted_errors_format(fl_self_hosted_errors_CompileError e) {
     FL_String* _fl_tmp_8 = fl_self_hosted_errors_kind_name(e.kind);
     FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_7, _fl_tmp_8);
     FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_str_self_hosted_errors_6);
+    fl_string_release(_fl_tmp_1);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_3);
+    fl_string_release(_fl_tmp_4);
+    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_6);
+    fl_string_release(_fl_tmp_7);
+    fl_string_release(_fl_tmp_8);
+    fl_string_release(_fl_tmp_9);
     return fl_string_concat(_fl_tmp_10, e.message);
 }
 
@@ -2317,6 +2326,7 @@ FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype) {
     }
     FL_String* _fl_tmp_28 = fl_conv_to_string__int(ttype);
     FL_String* _fl_tmp_29 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_28);
+    fl_string_release(_fl_tmp_28);
     return fl_string_concat(_fl_tmp_29, _fl_str_self_hosted_lexer_102);
 }
 
@@ -13291,6 +13301,7 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             fl_self_hosted_typechecker_TCType inner = (*_fl_tmp_62.TCOption.inner);
             FL_String* _fl_tmp_66 = fl_self_hosted_typechecker_type_name(inner);
             FL_String* _fl_tmp_67 = fl_string_concat(_fl_str_self_hosted_typechecker_12, _fl_tmp_66);
+            fl_string_release(_fl_tmp_66);
             return fl_string_concat(_fl_tmp_67, _fl_str_self_hosted_typechecker_13);
             break;
         }
@@ -13302,6 +13313,10 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             FL_String* _fl_tmp_70 = fl_string_concat(_fl_tmp_69, _fl_str_self_hosted_typechecker_15);
             FL_String* _fl_tmp_71 = fl_self_hosted_typechecker_type_name(err_type);
             FL_String* _fl_tmp_72 = fl_string_concat(_fl_tmp_70, _fl_tmp_71);
+            fl_string_release(_fl_tmp_68);
+            fl_string_release(_fl_tmp_69);
+            fl_string_release(_fl_tmp_70);
+            fl_string_release(_fl_tmp_71);
             return fl_string_concat(_fl_tmp_72, _fl_str_self_hosted_typechecker_13);
             break;
         }
@@ -13339,6 +13354,7 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_62.TCArray.elem);
             FL_String* _fl_tmp_77 = fl_self_hosted_typechecker_type_name(elem);
             FL_String* _fl_tmp_78 = fl_string_concat(_fl_str_self_hosted_typechecker_18, _fl_tmp_77);
+            fl_string_release(_fl_tmp_77);
             return fl_string_concat(_fl_tmp_78, _fl_str_self_hosted_typechecker_13);
             break;
         }
@@ -13346,6 +13362,7 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_62.TCStream.elem);
             FL_String* _fl_tmp_79 = fl_self_hosted_typechecker_type_name(elem);
             FL_String* _fl_tmp_80 = fl_string_concat(_fl_str_self_hosted_typechecker_19, _fl_tmp_79);
+            fl_string_release(_fl_tmp_79);
             return fl_string_concat(_fl_tmp_80, _fl_str_self_hosted_typechecker_13);
             break;
         }
@@ -13357,6 +13374,10 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             FL_String* _fl_tmp_83 = fl_string_concat(_fl_tmp_82, _fl_str_self_hosted_typechecker_15);
             FL_String* _fl_tmp_84 = fl_self_hosted_typechecker_type_name(send_type);
             FL_String* _fl_tmp_85 = fl_string_concat(_fl_tmp_83, _fl_tmp_84);
+            fl_string_release(_fl_tmp_81);
+            fl_string_release(_fl_tmp_82);
+            fl_string_release(_fl_tmp_83);
+            fl_string_release(_fl_tmp_84);
             return fl_string_concat(_fl_tmp_85, _fl_str_self_hosted_typechecker_13);
             break;
         }
@@ -13364,6 +13385,7 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_62.TCBuffer.elem);
             FL_String* _fl_tmp_86 = fl_self_hosted_typechecker_type_name(elem);
             FL_String* _fl_tmp_87 = fl_string_concat(_fl_str_self_hosted_typechecker_21, _fl_tmp_86);
+            fl_string_release(_fl_tmp_86);
             return fl_string_concat(_fl_tmp_87, _fl_str_self_hosted_typechecker_13);
             break;
         }
@@ -13375,6 +13397,10 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             FL_String* _fl_tmp_90 = fl_string_concat(_fl_tmp_89, _fl_str_self_hosted_typechecker_15);
             FL_String* _fl_tmp_91 = fl_self_hosted_typechecker_type_name(val);
             FL_String* _fl_tmp_92 = fl_string_concat(_fl_tmp_90, _fl_tmp_91);
+            fl_string_release(_fl_tmp_88);
+            fl_string_release(_fl_tmp_89);
+            fl_string_release(_fl_tmp_90);
+            fl_string_release(_fl_tmp_91);
             return fl_string_concat(_fl_tmp_92, _fl_str_self_hosted_typechecker_13);
             break;
         }
@@ -13382,6 +13408,7 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
             fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_62.TCSet.elem);
             FL_String* _fl_tmp_93 = fl_self_hosted_typechecker_type_name(elem);
             FL_String* _fl_tmp_94 = fl_string_concat(_fl_str_self_hosted_typechecker_23, _fl_tmp_93);
+            fl_string_release(_fl_tmp_93);
             return fl_string_concat(_fl_tmp_94, _fl_str_self_hosted_typechecker_13);
             break;
         }

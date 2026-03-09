@@ -675,6 +675,9 @@ FL_String* fl_tests_app_log_pipeline_write_archive(fl_tests_app_log_pipeline_Log
     FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, _fl_str_tests_app_log_pipeline_12);
     FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, entry.source);
     FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, _fl_str_tests_app_log_pipeline_4);
+    fl_string_release(_fl_tmp_12);
+    fl_string_release(_fl_tmp_13);
+    fl_string_release(_fl_tmp_14);
     return fl_string_concat(_fl_tmp_15, entry.message);
 }
 
@@ -682,6 +685,7 @@ FL_String* fl_tests_app_log_pipeline_write_archive(fl_tests_app_log_pipeline_Log
 FL_String* fl_tests_app_log_pipeline_update_stats(fl_tests_app_log_pipeline_LogEntry entry) {
     FL_String* _fl_tmp_16 = fl_string_concat(_fl_str_tests_app_log_pipeline_13, entry.severity.name);
     FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, _fl_str_tests_app_log_pipeline_14);
+    fl_string_release(_fl_tmp_16);
     return fl_string_concat(_fl_tmp_17, entry.source);
 }
 

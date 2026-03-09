@@ -1343,19 +1343,35 @@ class Lowerer:
             self._post_stmts = []
             lowered = self._lower_stmt(stmt)
             result.extend(self._pending_stmts)
-            # Don't emit post_stmts after terminal control flow.
-            # - return: temps may be part of the returned expression; the
-            #   function is exiting anyway so leaking here is acceptable.
-            # - throw: never returns, cleanup is unreachable.
+            # Handle post_stmts around terminal control flow.
+            # - return: insert releases BEFORE the return (the return
+            #   value is a fresh allocation, not the hoisted temp).
+            #   Skip temps referenced in the return expression.
+            # - throw: never returns, cleanup is unreachable — drop.
             if self._post_stmts and lowered:
                 last = lowered[-1]
-                is_terminal = (isinstance(last, LReturn)
-                               or (isinstance(last, LExprStmt)
-                                   and isinstance(last.expr, LCall)
-                                   and last.expr.fn_name == "_fl_throw"))
-                if is_terminal:
+                is_throw = (isinstance(last, LExprStmt)
+                            and isinstance(last.expr, LCall)
+                            and last.expr.fn_name == "_fl_throw")
+                if isinstance(last, LReturn):
+                    # Insert releases before the return, but skip any
+                    # temps referenced in the return expression
+                    returned_names = self._collect_referenced_vars(last.value)
+                    safe_posts = []
+                    for ps in self._post_stmts:
+                        if (isinstance(ps, LExprStmt)
+                                and isinstance(ps.expr, LCall)
+                                and ps.expr.args
+                                and isinstance(ps.expr.args[0], LVar)
+                                and ps.expr.args[0].c_name in returned_names):
+                            continue  # skip — temp is the returned value
+                        safe_posts.append(ps)
+                    result.extend(lowered[:-1])  # all stmts before return
+                    result.extend(safe_posts)
+                    result.append(last)  # the return
+                elif is_throw:
                     result.extend(lowered)
-                    # Drop post_stmts — cannot safely release before return/throw
+                    # Drop post_stmts — throw never returns
                 else:
                     result.extend(lowered)
                     result.extend(self._post_stmts)
