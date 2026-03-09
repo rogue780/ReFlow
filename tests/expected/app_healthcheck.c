@@ -805,9 +805,11 @@ fl_int fl_tests_app_healthcheck_parse_http_status(FL_String* response) {
             fl_int sp2 = _fl_tmp_7.value;
             FL_String* _fl_tmp_8 = fl_string_substring(after, 0, sp2);
             FL_Option_int _fl_tmp_9 = fl_conv_string_to_int(_fl_tmp_8);
+            fl_string_release(after);
             return ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 0);
         }
         FL_Option_int _fl_tmp_10 = fl_conv_string_to_int(after);
+        fl_string_release(after);
         return ((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : 0);
     }
     return 0;
@@ -840,10 +842,14 @@ fl_tests_app_healthcheck_CheckStatus fl_tests_app_healthcheck_check_url(FL_Strin
             FL_String* resp = fl_string_from_bytes(data);
             fl_int status_code = fl_tests_app_healthcheck_parse_http_status(resp);
             if (status_code == expected) {
+                fl_string_release(req);
+                fl_string_release(resp);
                 return (fl_tests_app_healthcheck_CheckStatus){.tag = 0, .Pass = (fl_tests_app_healthcheck_CheckStatus_Pass){.code = status_code}};
             }
             FL_String* _fl_tmp_16 = fl_string_concat(_fl_str_tests_app_healthcheck_14, fl_conv_to_string__int(expected));
             FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, _fl_str_tests_app_healthcheck_15);
+            fl_string_release(req);
+            fl_string_release(resp);
             return (fl_tests_app_healthcheck_CheckStatus){.tag = 2, .Warn = (fl_tests_app_healthcheck_CheckStatus_Warn){.code = status_code, .reason = fl_string_concat(_fl_tmp_17, fl_conv_to_string__int(status_code))}};
         }
         fl_net_close(sock);

@@ -1462,6 +1462,7 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
             _fl_throw(((void*)_fl_tmp_9), 461109476);
         }
         fl_string_retain(_fl_str_self_hosted_lexer_62);
+        fl_string_release(hex);
         return _fl_str_self_hosted_lexer_62;
     }
     fl_self_hosted_errors_CompileError* _fl_tmp_10 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
@@ -7282,6 +7283,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_let_stmt(fl_self_hosted_pars
             fl_array_retain(stages);
             fl_self_hosted_ast_Expr coro_expr = (fl_self_hosted_ast_Expr){.tag = 37, .ECoroutinePipeline = (fl_self_hosted_ast_Expr_ECoroutinePipeline){.id = fl_self_hosted_parser_fresh_id(s), .line = coro_tok.line, .col = coro_tok.col, .stages = stages}};
             fl_string_retain(name_tok.value);
+            fl_array_release(stages);
             return (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .has_type_ann = fl_false, .type_ann = fl_self_hosted_parser_placeholder_type(), .value = coro_expr}};
         } else {
             fl_self_hosted_ast_Expr* _fl_tmp_128 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
@@ -13370,6 +13372,7 @@ FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCTyp
                 i = _fl_e_2;
             }
             FL_String* _fl_tmp_80 = fl_string_concat(parts, _fl_str_self_hosted_typechecker_25);
+            fl_string_release(parts);
             return fl_string_concat(_fl_tmp_80, fl_self_hosted_typechecker_type_name(ret));
             break;
         }
@@ -14242,6 +14245,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 fl_self_hosted_typechecker_TCType inner = ((_fl_tmp_137.tag == 1) ? _fl_tmp_137.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_138 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_138) = inner;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
                 return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_138}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_38)) {
@@ -14253,6 +14258,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 (*_fl_tmp_141) = ok_t;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_142 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_142) = err_t;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
                 return (fl_self_hosted_typechecker_TCType){.tag = 9, .TCResult = (fl_self_hosted_typechecker_TCType_TCResult){.ok_type = _fl_tmp_141, .err_type = _fl_tmp_142}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_39)) {
@@ -14260,6 +14267,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_143.tag == 1) ? _fl_tmp_143.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_144 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_144) = elem;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
                 return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_144}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_40)) {
@@ -14267,6 +14276,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_145.tag == 1) ? _fl_tmp_145.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_146 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_146) = elem;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
                 return (fl_self_hosted_typechecker_TCType){.tag = 12, .TCStream = (fl_self_hosted_typechecker_TCType_TCStream){.elem = _fl_tmp_146}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_41)) {
@@ -14274,6 +14285,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_147.tag == 1) ? _fl_tmp_147.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_148 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_148) = elem;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
                 return (fl_self_hosted_typechecker_TCType){.tag = 14, .TCBuffer = (fl_self_hosted_typechecker_TCType_TCBuffer){.elem = _fl_tmp_148}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_42)) {
@@ -14285,6 +14298,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 (*_fl_tmp_151) = k;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_152 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_152) = v;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
                 return (fl_self_hosted_typechecker_TCType){.tag = 15, .TCMap = (fl_self_hosted_typechecker_TCType_TCMap){.key = _fl_tmp_151, .val = _fl_tmp_152}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_43)) {
@@ -14292,6 +14307,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 fl_self_hosted_typechecker_TCType elem = ((_fl_tmp_153.tag == 1) ? _fl_tmp_153.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_154 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_154) = elem;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
                 return (fl_self_hosted_typechecker_TCType){.tag = 16, .TCSet = (fl_self_hosted_typechecker_TCType_TCSet){.elem = _fl_tmp_154}};
             }
             if (fl_string_eq(base_name, _fl_str_self_hosted_typechecker_44)) {
@@ -14303,6 +14320,8 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_resolve_type_expr(f
                 (*_fl_tmp_157) = yt;
                 fl_self_hosted_typechecker_TCType* _fl_tmp_158 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                 (*_fl_tmp_158) = st;
+                fl_array_release(resolved_args);
+                fl_string_release(base_name);
                 return (fl_self_hosted_typechecker_TCType){.tag = 13, .TCCoroutine = (fl_self_hosted_typechecker_TCType_TCCoroutine){.yield_type = _fl_tmp_157, .send_type = _fl_tmp_158}};
             }
             fl_string_retain(_fl_str_self_hosted_typechecker_0);
@@ -16477,6 +16496,7 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                         break;
                     }
                     default: {
+                        fl_string_release(ns);
                         return t;
                         break;
                     }
@@ -16599,14 +16619,17 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                             fl_self_hosted_ast_Decl d = _fl_tmp_449.value;
                             if (fl_self_hosted_typechecker_decl_has_type_params(d)) {
                                 FL_Map* env = fl_self_hosted_typechecker_infer_type_env_from_call(s, d, arg_types);
+                                fl_array_release(arg_types);
                                 return fl_self_hosted_typechecker_apply_env(ret, env);
                             }
                         }
                     }
+                    fl_array_release(arg_types);
                     return ret;
                     break;
                 }
                 default: {
+                    fl_array_release(arg_types);
                     return (fl_self_hosted_typechecker_TCType){.tag = 23};
                     break;
                 }
@@ -16653,12 +16676,15 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                                 fl_bool is_variadic = _fl_tmp_454.TCFn.is_variadic;
                                 if (fl_self_hosted_typechecker_decl_has_type_params(d)) {
                                     FL_Map* env = fl_self_hosted_typechecker_infer_type_env_from_call(s, d, arg_types);
+                                    fl_array_release(arg_types);
                                     return fl_self_hosted_typechecker_apply_env(ret, env);
                                 }
+                                fl_array_release(arg_types);
                                 return ret;
                                 break;
                             }
                             default: {
+                                fl_array_release(arg_types);
                                 return (fl_self_hosted_typechecker_TCType){.tag = 23};
                                 break;
                             }
@@ -16678,17 +16704,21 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                                     fl_bool is_variadic = _fl_tmp_456.TCFn.is_variadic;
                                     if (fl_self_hosted_typechecker_decl_has_type_params(d)) {
                                         FL_Map* env = fl_self_hosted_typechecker_infer_type_env_from_call(s, d, arg_types);
+                                        fl_array_release(arg_types);
                                         return fl_self_hosted_typechecker_apply_env(ret, env);
                                     }
+                                    fl_array_release(arg_types);
                                     return ret;
                                     break;
                                 }
                                 default: {
+                                    fl_array_release(arg_types);
                                     return (fl_self_hosted_typechecker_TCType){.tag = 23};
                                     break;
                                 }
                             }
                         } else {
+                            fl_array_release(arg_types);
                             return (fl_self_hosted_typechecker_TCType){.tag = 23};
                         }
                     }
@@ -16718,23 +16748,29 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_105) || fl_string_eq(method_name, _fl_str_self_hosted_typechecker_106)) {
                         fl_self_hosted_typechecker_TCType* _fl_tmp_461 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                         (*_fl_tmp_461) = yield_type;
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_461}};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_107)) {
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 2};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_108)) {
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 7};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_109) || fl_string_eq(method_name, _fl_str_self_hosted_typechecker_110)) {
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 7};
                     }
+                    fl_array_release(arg_types2);
                     return (fl_self_hosted_typechecker_TCType){.tag = 23};
                     break;
                 }
                 case 12: {
                     fl_self_hosted_typechecker_TCType elem = (*_fl_tmp_460.TCStream.elem);
                     if ((fl_string_eq(method_name, _fl_str_self_hosted_typechecker_111) || fl_string_eq(method_name, _fl_str_self_hosted_typechecker_112)) || fl_string_eq(method_name, _fl_str_self_hosted_typechecker_113)) {
+                        fl_array_release(arg_types2);
                         return recv_t;
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_42)) {
@@ -16750,36 +16786,45 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                                     fl_bool is_variadic = _fl_tmp_463.TCFn.is_variadic;
                                     fl_self_hosted_typechecker_TCType* _fl_tmp_464 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                                     (*_fl_tmp_464) = ret;
+                                    fl_array_release(arg_types2);
                                     return (fl_self_hosted_typechecker_TCType){.tag = 12, .TCStream = (fl_self_hosted_typechecker_TCType_TCStream){.elem = _fl_tmp_464}};
                                     break;
                                 }
                             }
                         }
+                        fl_array_release(arg_types2);
                         return recv_t;
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_114)) {
                         fl_self_hosted_typechecker_TCType* _fl_tmp_465 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                         (*_fl_tmp_465) = elem;
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 11, .TCArray = (fl_self_hosted_typechecker_TCType_TCArray){.elem = _fl_tmp_465}};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_115)) {
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 0, .TCInt = (fl_self_hosted_typechecker_TCType_TCInt){.width = 32, .is_signed = fl_true}};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_116)) {
                         fl_self_hosted_typechecker_TCType* _fl_tmp_466 = ((fl_self_hosted_typechecker_TCType*)malloc(sizeof(fl_self_hosted_typechecker_TCType)));
                         (*_fl_tmp_466) = elem;
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 8, .TCOption = (fl_self_hosted_typechecker_TCType_TCOption){.inner = _fl_tmp_466}};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_117)) {
                         if (fl_array_len_int(arg_types2) > 0) {
                             FL_Option_fl_self_hosted_typechecker_TCTypeBox _fl_tmp_467 = FL_OPT_DEREF_AS(fl_array_get_safe(arg_types2, 0), fl_self_hosted_typechecker_TCTypeBox, FL_Option_fl_self_hosted_typechecker_TCTypeBox);
+                            fl_array_release(arg_types2);
                             return ((_fl_tmp_467.tag == 1) ? _fl_tmp_467.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23})).tc;
                         }
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 23};
                     }
                     if (fl_string_eq(method_name, _fl_str_self_hosted_typechecker_27) || fl_string_eq(method_name, _fl_str_self_hosted_typechecker_118)) {
+                        fl_array_release(arg_types2);
                         return (fl_self_hosted_typechecker_TCType){.tag = 2};
                     }
+                    fl_array_release(arg_types2);
                     return (fl_self_hosted_typechecker_TCType){.tag = 23};
                     break;
                 }
@@ -16792,10 +16837,12 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                     fl_self_hosted_typechecker_TCType ret = (*_fl_tmp_468.TCFn.ret);
                     fl_bool is_pure = _fl_tmp_468.TCFn.is_pure;
                     fl_bool is_variadic = _fl_tmp_468.TCFn.is_variadic;
+                    fl_array_release(arg_types2);
                     return ret;
                     break;
                 }
             }
+            fl_array_release(arg_types2);
             return (fl_self_hosted_typechecker_TCType){.tag = 23};
             break;
         }

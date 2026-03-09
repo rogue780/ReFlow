@@ -721,7 +721,7 @@ class Lowerer:
         # Scope-exit cleanup: track container-typed locals at function level
         # so we can release them before each return statement.
         # Each entry: (var_name, c_type, release_fn_name)
-        self._container_locals: list[tuple[str, LType, str]] = []
+        self._container_locals: list[tuple[str, LType, str, int]] = []
         self._scope_depth: int = 0
 
         # String literal interning: deduplicate string constants as static
@@ -1122,9 +1122,11 @@ class Lowerer:
         if self._container_locals:
             self._inject_scope_cleanup(body)
             # For void functions without explicit return, append cleanup
+            # Only depth-0 locals (inner-scope vars out of C scope here)
             if isinstance(ret_lt, LVoid):
                 body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
-                             for n, ct, fn_name in self._container_locals])
+                             for n, ct, fn_name, depth in self._container_locals
+                             if depth == 0])
 
         self._fn_defs.append(LFnDef(
             c_name=c_name,
@@ -1215,7 +1217,8 @@ class Lowerer:
                 self._inject_scope_cleanup(body)
                 if isinstance(ret_lt, LVoid):
                     body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
-                                 for n, ct, fn_name in self._container_locals])
+                                 for n, ct, fn_name, depth in self._container_locals
+                                 if depth == 0])
 
             self._fn_defs.append(LFnDef(
                 c_name=m_c_name,
@@ -1448,7 +1451,7 @@ class Lowerer:
         """
         if declared is None:
             declared = set()
-        container_names = {name for name, _, _ in self._container_locals}
+        container_names = {name for name, _, _, _ in self._container_locals}
         i = 0
         while i < len(stmts):
             s = stmts[i]
@@ -1460,7 +1463,7 @@ class Lowerer:
                 returned_names = self._collect_referenced_vars(s.value)
                 # Build release calls for declared locals, skip referenced vars
                 cleanup: list[LStmt] = []
-                for name, ct, fn_name in self._container_locals:
+                for name, ct, fn_name, _depth in self._container_locals:
                     if name not in declared or name in returned_names:
                         continue
                     cleanup.append(LExprStmt(
@@ -1601,16 +1604,34 @@ class Lowerer:
         # are not tracked to avoid releasing already-dead variables.
         # Skip auto-lifted bindings: the variable is option<T>, not T.
         #
-        # All refcounted locals are registered:
+        # All refcounted locals are registered for scope-exit cleanup:
         # - Non-allocating: retained at bind (+1), scope-exit release (-1).
         # - Allocating (including :mut): owned-return convention gives
         #   refcount=1. If embedded in a struct, struct-construction
         #   retain (_retain_struct_fields) bumps to 2. Scope-exit
         #   release brings to 1 — struct ref survives.
+        # Both depth-0 and inner-scope locals are registered.
+        # _inject_scope_cleanup handles block scoping via the `declared`
+        # set. Void-function trailing cleanup only uses depth-0 locals
+        # (inner-scope vars are out of C scope at function end).
         if not auto_lifted:
             release_fn = self._get_release_fn(val_type)
-            if release_fn and self._scope_depth == 0:
-                self._container_locals.append((stmt.name, c_type, release_fn))
+            if release_fn:
+                # Avoid duplicates when same name appears at different depths
+                # (e.g. `raw` in both hex and decimal paths of scan_number).
+                # Keep the shallowest depth entry for void-function cleanup.
+                dup_idx = None
+                for idx, (n, _, _, d) in enumerate(self._container_locals):
+                    if n == stmt.name:
+                        dup_idx = idx
+                        break
+                if dup_idx is not None:
+                    if self._scope_depth < self._container_locals[dup_idx][3]:
+                        self._container_locals[dup_idx] = (
+                            stmt.name, c_type, release_fn, self._scope_depth)
+                else:
+                    self._container_locals.append(
+                        (stmt.name, c_type, release_fn, self._scope_depth))
 
         return stmts
 
@@ -1911,7 +1932,7 @@ class Lowerer:
                 # Skip simple variable returns that are tracked for scope-exit
                 # cleanup — already owned by the binding, and
                 # _inject_scope_cleanup skips releasing them (returned_names).
-                tracked_names = {n for n, _, _ in self._container_locals}
+                tracked_names = {n for n, _, _, _ in self._container_locals}
                 is_tracked_local = (isinstance(stmt.value, Ident)
                                     and stmt.value.name in tracked_names)
                 if not is_tracked_local:
@@ -7717,7 +7738,8 @@ class Lowerer:
             self._inject_scope_cleanup(body)
             if isinstance(ret_lt, LVoid):
                 body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
-                             for n, ct, fn_name in self._container_locals])
+                             for n, ct, fn_name, depth in self._container_locals
+                             if depth == 0])
 
         # Restore state
         self._types = original_types

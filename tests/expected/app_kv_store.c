@@ -3033,6 +3033,9 @@ FL_Tuple_FL_Map_ptr_FL_String_ptr fl_tests_app_kv_store_dispatch_command(FL_Stri
             }
             FL_String* value = fl_string_join(_fl_str_tests_app_kv_store_1, val_parts);
             FL_Map* new_store = fl_map_set_str(store, key, value);
+            fl_string_release(key);
+            fl_array_release(val_parts);
+            fl_string_release(value);
             return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = new_store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_9)};
         } else {
             if (fl_string_eq(_fl_tmp_15, _fl_str_tests_app_kv_store_10)) {
@@ -3045,8 +3048,10 @@ FL_Tuple_FL_Map_ptr_FL_String_ptr fl_tests_app_kv_store_dispatch_command(FL_Stri
                 FL_Option_ptr _fl_tmp_20 = fl_map_get_str(store, key);
                 if (_fl_tmp_20.tag == 1) {
                     FL_String* val = _fl_tmp_20.value;
+                    fl_string_release(key);
                     return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(val)};
                 } else {
+                    fl_string_release(key);
                     return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_12)};
                 }
             } else {
@@ -3059,14 +3064,17 @@ FL_Tuple_FL_Map_ptr_FL_String_ptr fl_tests_app_kv_store_dispatch_command(FL_Stri
                     fl_string_retain(key);
                     if (fl_map_has_str(store, key)) {
                         FL_Map* new_store = fl_map_remove_str(store, key);
+                        fl_string_release(key);
                         return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = new_store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_15)};
                     } else {
+                        fl_string_release(key);
                         return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_16)};
                     }
                 } else {
                     if (fl_string_eq(_fl_tmp_15, _fl_str_tests_app_kv_store_17)) {
                         FL_Array* keys = fl_map_keys(store);
                         FL_String* result = fl_string_join(_fl_str_tests_app_kv_store_1, keys);
+                        fl_array_release(keys);
                         return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(result)};
                     } else {
                         if (fl_string_eq(_fl_tmp_15, _fl_str_tests_app_kv_store_18)) {
@@ -3081,8 +3089,10 @@ FL_Tuple_FL_Map_ptr_FL_String_ptr fl_tests_app_kv_store_dispatch_command(FL_Stri
                                 FL_String* key = ((_fl_tmp_22.tag == 1) ? _fl_tmp_22.value : _fl_str_tests_app_kv_store_0);
                                 fl_string_retain(key);
                                 if (fl_map_has_str(store, key)) {
+                                    fl_string_release(key);
                                     return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_15)};
                                 } else {
+                                    fl_string_release(key);
                                     return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_16)};
                                 }
                             } else {
