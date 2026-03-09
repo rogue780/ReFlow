@@ -737,6 +737,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_number(FL_String*
     FL_String* num_str = fl_string_substring(input, start, p);
     FL_Option_float _fl_tmp_5 = fl_conv_string_to_float(num_str);
     fl_float value = ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : 0.0);
+    fl_string_release(num_str);
     return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 0, .Literal = (fl_tests_app_calc_Expr_Literal){.value = value}}, ._1 = p};
 }
 
@@ -792,13 +793,16 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_primary(FL_String
             FL_Option_char _fl_tmp_8 = fl_string_char_at(input, close_pos);
             fl_char close_ch = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : 32);
             if (fl_string_eq(fl_char_to_string(close_ch), _fl_str_tests_app_calc_4)) {
+                fl_string_release(cs);
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(close_pos, 1, &_fl_e_2);
                 return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = inner._0, ._1 = _fl_e_2};
             }
         }
+        fl_string_release(cs);
         return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = inner._0, ._1 = inner._1};
     }
+    fl_string_release(cs);
     fl_int _fl_e_3;
     FL_CHECKED_ADD(p, 1, &_fl_e_3);
     return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 0, .Literal = (fl_tests_app_calc_Expr_Literal){.value = 0.0}}, ._1 = _fl_e_3};

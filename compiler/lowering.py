@@ -1601,24 +1601,16 @@ class Lowerer:
         # are not tracked to avoid releasing already-dead variables.
         # Skip auto-lifted bindings: the variable is option<T>, not T.
         #
-        # Two categories of locals are registered:
-        # 1. Non-allocating bindings (any mutability): retained at bind,
-        #    so scope-exit release balances the +1 retain.
-        # 2. :mut allocating bindings: the allocation owns refcount=1.
-        #    If the :mut local is later embedded in a struct, the struct
-        #    construction retain (via _retain_struct_fields) bumps to 2.
-        #    Scope-exit release brings it to 1 — struct ref survives.
-        is_mut_binding = isinstance(stmt.type_ann, MutType)
+        # All refcounted locals are registered:
+        # - Non-allocating: retained at bind (+1), scope-exit release (-1).
+        # - Allocating (including :mut): owned-return convention gives
+        #   refcount=1. If embedded in a struct, struct-construction
+        #   retain (_retain_struct_fields) bumps to 2. Scope-exit
+        #   release brings to 1 — struct ref survives.
         if not auto_lifted:
-            should_register = False
-            if not self._is_allocating_expr(stmt.value):
-                should_register = True  # retained at bind
-            elif is_mut_binding:
-                should_register = True  # allocating init, :mut convention
-            if should_register:
-                release_fn = self._get_release_fn(val_type)
-                if release_fn and self._scope_depth == 0:
-                    self._container_locals.append((stmt.name, c_type, release_fn))
+            release_fn = self._get_release_fn(val_type)
+            if release_fn and self._scope_depth == 0:
+                self._container_locals.append((stmt.name, c_type, release_fn))
 
         return stmts
 

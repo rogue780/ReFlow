@@ -636,6 +636,13 @@ fl_int fl_tests_array_put_test_main(void) {
     fl_println(fl_conv_to_string__int(((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : 0)));
     FL_Array* safe = fl_array_put__string(names, 99, _fl_str_tests_array_put_test_7);
     fl_println(fl_conv_to_string__int(fl_array_len_int(safe)));
+    fl_array_release(names);
+    fl_array_release(updated);
+    fl_array_release(first);
+    fl_array_release(last);
+    fl_array_release(nums);
+    fl_array_release(nums2);
+    fl_array_release(safe);
     return 0;
 }
 

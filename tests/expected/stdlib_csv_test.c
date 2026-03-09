@@ -928,11 +928,14 @@ FL_Array* fl_csv_parse_row(FL_String* s) {
         if (_fl_tmp_51.tag == 1) {
             FL_Array* row = _fl_tmp_51.value;
             fl_array_retain(row);
+            fl_array_release(rows);
             return row;
         } else {
+            fl_array_release(rows);
             return fl_array_new(0, 0, NULL);
         }
     }
+    fl_array_release(rows);
     return fl_array_new(0, 0, NULL);
 }
 
@@ -1207,6 +1210,13 @@ void fl_tests_stdlib_csv_test_main(void) {
         fl_println(_fl_str_tests_stdlib_csv_test_3);
     }
     fl_println(_fl_str_tests_stdlib_csv_test_15);
+    fl_array_release(rows);
+    fl_array_release(row0);
+    fl_array_release(row1);
+    fl_array_release(fields);
+    fl_string_release(row_str);
+    fl_array_release(hrows);
+    fl_array_release(records);
 }
 
 static void _fl_init_statics(void) {

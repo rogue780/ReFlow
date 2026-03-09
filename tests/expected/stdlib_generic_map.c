@@ -601,6 +601,8 @@ void fl_tests_stdlib_generic_map_main(void) {
     fl_string_release(_fl_tmp_19);
     fl_println(_fl_tmp_20);
     fl_map_release(m);
+    fl_array_release(ks);
+    fl_array_release(vs);
 }
 
 static void _fl_init_statics(void) {

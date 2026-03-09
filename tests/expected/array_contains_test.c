@@ -669,6 +669,13 @@ fl_int fl_tests_array_contains_test_main(void) {
     fl_println(fl_conv_to_string__int(fl_array_len_int(empty_slice)));
     FL_Array* over = fl_array_slice__string(names, 1, 100);
     fl_println(fl_conv_to_string__int(fl_array_len_int(over)));
+    fl_array_release(names);
+    fl_array_release(nums);
+    fl_array_release(empty);
+    fl_array_release(sliced);
+    fl_array_release(from_start);
+    fl_array_release(empty_slice);
+    fl_array_release(over);
     return 0;
 }
 

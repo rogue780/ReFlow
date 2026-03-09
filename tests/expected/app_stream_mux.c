@@ -640,7 +640,9 @@ void fl_tests_app_stream_mux_main(void) {
         fl_println(((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : _fl_str_tests_app_stream_mux_17));
         _fl_tmp_8 = (_fl_tmp_8 + 1);
     }
+    fl_array_release(records);
     fl_map_release(destinations);
+    fl_array_release(ks);
 }
 
 static void _fl_init_statics(void) {

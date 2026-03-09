@@ -885,6 +885,8 @@ fl_int fl_tests_path_walk_test_main(void) {
         fl_println(_fl_str_tests_path_walk_test_10);
     }
     fl_tmpfile_remove(base);
+    fl_string_release(base);
+    fl_string_release(dir);
     return 0;
 }
 

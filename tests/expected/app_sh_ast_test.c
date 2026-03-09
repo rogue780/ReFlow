@@ -3568,6 +3568,18 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     fl_println(_fl_str_tests_programs_app_sh_ast_test_37);
     fl_println(_fl_str_tests_programs_app_sh_ast_test_38);
     fl_println(_fl_str_tests_programs_app_sh_ast_test_39);
+    fl_array_release(fn_params);
+    fl_array_release(fn_params2);
+    fl_array_release(fn_params3);
+    fl_array_release(gen_args);
+    fl_array_release(gen_args2);
+    fl_array_release(call_args);
+    fl_array_release(call_args2);
+    fl_array_release(call_args3);
+    fl_array_release(fn_params_d);
+    fl_array_release(fn_params_d2);
+    fl_array_release(fn_body);
+    fl_array_release(fn_body2);
     return 0;
 }
 

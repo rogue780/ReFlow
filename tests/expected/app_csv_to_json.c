@@ -914,7 +914,7 @@ fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_validate(fl_tests_app_c
 FL_String* fl_tests_app_csv_to_json_escape_json(FL_String* s) {
     FL_String* r1 = fl_string_replace(s, _fl_str_tests_app_csv_to_json_4, _fl_str_tests_app_csv_to_json_5);
     FL_String* r2 = fl_string_replace(r1, _fl_str_tests_app_csv_to_json_6, _fl_str_tests_app_csv_to_json_7);
-    fl_string_retain(r2);
+    fl_string_release(r1);
     return r2;
 }
 
@@ -1026,6 +1026,7 @@ void fl_tests_app_csv_to_json_main(void) {
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
     }
+    fl_array_release(lines);
 }
 
 static void _fl_init_statics(void) {

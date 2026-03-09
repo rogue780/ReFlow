@@ -589,6 +589,7 @@ FL_Map* fl_string_set_union(FL_Map* a, FL_Map* b) {
         }
         _fl_tmp_2 = (_fl_tmp_2 + 1);
     }
+    fl_array_release(b_keys);
     return result;
 }
 
@@ -608,6 +609,7 @@ FL_Map* fl_string_set_difference(FL_Map* a, FL_Map* b) {
         }
         _fl_tmp_4 = (_fl_tmp_4 + 1);
     }
+    fl_array_release(a_keys);
     return result;
 }
 
@@ -627,6 +629,7 @@ FL_Map* fl_string_set_intersection(FL_Map* a, FL_Map* b) {
         }
         _fl_tmp_6 = (_fl_tmp_6 + 1);
     }
+    fl_array_release(a_keys);
     return result;
 }
 
@@ -721,6 +724,18 @@ fl_int fl_tests_set_test_main(void) {
     fl_println(fl_conv_to_string__int64(fl_string_set_size(inter)));
     fl_println(fl_conv_to_string__bool(fl_string_set_has(inter, _fl_str_tests_set_test_7)));
     fl_println(fl_conv_to_string__bool(fl_string_set_has(inter, _fl_str_tests_set_test_0)));
+    fl_map_release(s);
+    fl_map_release(s2);
+    fl_map_release(s3);
+    fl_map_release(s4);
+    fl_map_release(s5);
+    fl_array_release(arr);
+    fl_map_release(s6);
+    fl_map_release(sa);
+    fl_map_release(sb);
+    fl_map_release(u);
+    fl_map_release(d);
+    fl_map_release(inter);
     return 0;
 }
 

@@ -565,6 +565,10 @@ fl_int fl_tests_map_for_each_test_main(void) {
     FL_Map* empty = fl_map_new();
     FL_Array* empty_ks = fl_map_keys(empty);
     fl_println(fl_conv_to_string__int(fl_array_len_int(empty_ks)));
+    fl_map_release(m);
+    fl_array_release(ks);
+    fl_map_release(empty);
+    fl_array_release(empty_ks);
     return 0;
 }
 

@@ -625,6 +625,10 @@ void fl_array_push_sum_test_main(void) {
         fl_println(_fl_str_array_push_sum_test_4);
     }
     fl_println(_fl_str_array_push_sum_test_5);
+    fl_array_release(shapes);
+    fl_array_release(shapes2);
+    fl_array_release(shapes3);
+    fl_array_release(shapes4);
 }
 
 static void _fl_init_statics(void) {

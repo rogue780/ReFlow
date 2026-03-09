@@ -742,6 +742,7 @@ void fl_tests_stdlib_generic_array_main(void) {
     fl_array_release(floats);
     fl_array_release(a);
     fl_array_release(b);
+    fl_array_release(ab);
     fl_array_release(bools);
 }
 

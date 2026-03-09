@@ -1996,16 +1996,20 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_number(FL_String* s, f
         FL_Option_float _fl_tmp_28 = fl_conv_string_to_float(num_str);
         if (_fl_tmp_28.tag == 1) {
             fl_float f = _fl_tmp_28.value;
+            fl_string_release(num_str);
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 3, .Float = (fl_json_JsonValue_Float){.val = f}}, ._1 = p}};
         } else {
+            fl_string_release(num_str);
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
     } else {
         FL_Option_int64 _fl_tmp_29 = fl_conv_string_to_int64(num_str);
         if (_fl_tmp_29.tag == 1) {
             fl_int64 n = _fl_tmp_29.value;
+            fl_string_release(num_str);
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 2, .Int = (fl_json_JsonValue_Int){.val = n}}, ._1 = p}};
         } else {
+            fl_string_release(num_str);
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
     }
@@ -2095,10 +2099,12 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_literal(FL_String* s, 
     FL_CHECKED_ADD(pos, elen, &_fl_e_2);
     FL_String* actual = fl_string_substring(s, pos, _fl_e_2);
     if (fl_string_eq(actual, expected)) {
+        fl_string_release(actual);
         fl_int _fl_e_3;
         FL_CHECKED_ADD(pos, elen, &_fl_e_3);
         return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = val, ._1 = _fl_e_3}};
     }
+    fl_string_release(actual);
     return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
 }
 
@@ -2709,6 +2715,7 @@ void fl_tests_app_json_query_run_query(fl_json_JsonValue root, FL_String* query,
         fl_println(_fl_str_tests_app_json_query_16);
         fl_array_release(segments);
         fl_string_release(parse_err);
+        fl_array_release(results);
         return;
     }
     fl_int i = 0;
@@ -2724,6 +2731,7 @@ void fl_tests_app_json_query_run_query(fl_json_JsonValue root, FL_String* query,
     }
     fl_array_release(segments);
     fl_string_release(parse_err);
+    fl_array_release(results);
 }
 
 /* Flow: tests.app_json_query.main */

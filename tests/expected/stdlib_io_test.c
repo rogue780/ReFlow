@@ -111,6 +111,7 @@ void fl_tests_stdlib_io_test_main(void) {
         fl_println(_fl_str_tests_stdlib_io_test_9);
     }
     fl_tmpfile_remove(tmp);
+    fl_string_release(tmp);
 }
 
 static void _fl_init_statics(void) {

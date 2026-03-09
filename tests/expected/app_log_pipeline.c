@@ -626,6 +626,7 @@ fl_tests_app_log_pipeline_LogEntry fl_tests_app_log_pipeline_parse_kv_log(FL_Str
     fl_string_retain(ts);
     fl_string_retain(src);
     fl_string_retain(msg);
+    fl_array_release(parts);
     return (fl_tests_app_log_pipeline_LogEntry){.timestamp = ts, .severity = fl_tests_app_log_pipeline_make_severity(level), .source = src, .message = msg};
 }
 
@@ -639,6 +640,7 @@ fl_tests_app_log_pipeline_LogEntry fl_tests_app_log_pipeline_parse_csv_log(FL_St
     fl_string_retain(((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_app_log_pipeline_5));
     FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(parts, 3);
     fl_string_retain(((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_log_pipeline_5));
+    fl_array_release(parts);
     return (fl_tests_app_log_pipeline_LogEntry){.timestamp = ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_app_log_pipeline_5), .severity = fl_tests_app_log_pipeline_make_severity(((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : _fl_str_tests_app_log_pipeline_5)), .source = ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_app_log_pipeline_5), .message = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_log_pipeline_5)};
 }
 
@@ -652,6 +654,7 @@ fl_tests_app_log_pipeline_LogEntry fl_tests_app_log_pipeline_parse_simple_log(FL
     fl_string_retain(((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : _fl_str_tests_app_log_pipeline_5));
     FL_Option_ptr _fl_tmp_11 = fl_array_get_safe(parts, 3);
     fl_string_retain(((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : _fl_str_tests_app_log_pipeline_5));
+    fl_array_release(parts);
     return (fl_tests_app_log_pipeline_LogEntry){.timestamp = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_app_log_pipeline_5), .severity = fl_tests_app_log_pipeline_make_severity(((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : _fl_str_tests_app_log_pipeline_5)), .source = ((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : _fl_str_tests_app_log_pipeline_5), .message = ((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : _fl_str_tests_app_log_pipeline_5)};
 }
 
@@ -740,6 +743,7 @@ void fl_tests_app_log_pipeline_main(void) {
         }
         _fl_tmp_20 = (_fl_tmp_20 + 1);
     }
+    fl_array_release(lines);
 }
 
 static void _fl_init_statics(void) {

@@ -575,6 +575,7 @@ fl_int fl_tests_app_variadic_main(void) {
     FL_Array* nums = fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30});
     fl_println(fl_conv_to_string__int(fl_tests_app_variadic_sum(nums)));
     fl_println(fl_conv_to_string__int(fl_tests_app_variadic_count(fl_array_new(4, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_3, _fl_str_tests_app_variadic_4, _fl_str_tests_app_variadic_5, _fl_str_tests_app_variadic_6}))));
+    fl_array_release(nums);
     return 0;
 }
 

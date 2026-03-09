@@ -774,6 +774,8 @@ void fl_tests_app_parallel_enrich_main(void) {
             j = _fl_e_2;
         }
     }
+    fl_array_release(names);
+    fl_array_release(values);
 }
 
 static void _fl_init_statics(void) {

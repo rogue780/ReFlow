@@ -578,6 +578,8 @@ void fl_stdlib_generic_sort_main(void) {
         fl_println(s);
         _fl_tmp_2 = (_fl_tmp_2 + 1);
     }
+    fl_array_release(ints);
+    fl_array_release(strs);
 }
 
 /* Flow: sort.sort::lambda0 */

@@ -79,6 +79,7 @@ void fl_tests_array_test_main(void) {
         _fl_tmp_3 = (_fl_tmp_3 + 1);
     }
     fl_array_release(_fl_tmp_4);
+    fl_array_release(nums);
 }
 
 static void _fl_init_statics(void) {

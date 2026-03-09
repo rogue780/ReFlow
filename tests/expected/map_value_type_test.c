@@ -602,6 +602,14 @@ void fl_map_value_type_test_main(void) {
         fl_println(_fl_str_map_value_type_test_13);
     }
     fl_println(_fl_str_map_value_type_test_14);
+    fl_map_release(mf);
+    fl_map_release(mf2);
+    fl_map_release(mf3);
+    fl_map_release(mi);
+    fl_map_release(mi2);
+    fl_map_release(mi3);
+    fl_map_release(mb);
+    fl_map_release(mb2);
 }
 
 static void _fl_init_statics(void) {

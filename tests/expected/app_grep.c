@@ -707,6 +707,7 @@ fl_int fl_tests_app_grep_search_and_print(FL_String* filepath, FL_String* patter
         FL_CHECKED_ADD(idx, 1, &_fl_e_3);
         idx = _fl_e_3;
     }
+    fl_array_release(lines);
     return match_count;
 }
 
@@ -799,6 +800,7 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
         FL_CHECKED_ADD(mi, 1, &_fl_e_10);
         mi = _fl_e_10;
     }
+    fl_array_release(lines);
     fl_array_release(match_indices);
     return match_count;
 }
@@ -881,6 +883,8 @@ void fl_tests_app_grep_main(void) {
     fl_tmpfile_remove(log_file);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_30);
+    fl_string_release(txt_file);
+    fl_string_release(log_file);
 }
 
 static void _fl_init_statics(void) {

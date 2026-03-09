@@ -160,6 +160,11 @@ void fl_tests_stdlib_string_test_main(void) {
     fl_string_release(_fl_tmp_21);
     fl_println(_fl_tmp_22);
     fl_string_release(s);
+    fl_string_release(sub);
+    fl_string_release(lower);
+    fl_string_release(upper);
+    fl_string_release(trimmed);
+    fl_string_release(replaced);
 }
 
 static void _fl_init_statics(void) {

@@ -682,6 +682,8 @@ fl_int fl_tests_app_node_id_test_main(void) {
     }
     fl_println(_fl_str_tests_app_node_id_test_11);
     fl_map_release(types);
+    fl_array_release(keys);
+    fl_array_release(all_nodes);
     return 0;
 }
 

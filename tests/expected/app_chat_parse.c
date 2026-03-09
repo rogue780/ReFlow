@@ -153,6 +153,7 @@ FL_String* _fl_str_tests_app_chat_parse_41 = NULL;
 FL_Tuple_FL_String_ptr_FL_String_ptr fl_tests_app_chat_parse_parse_message(FL_String* raw) {
     FL_String* trimmed = fl_string_trim(raw);
     if (fl_string_len(trimmed) == 0) {
+        fl_string_release(trimmed);
         return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = _fl_str_tests_app_chat_parse_0, ._1 = _fl_str_tests_app_chat_parse_1};
     }
     if (fl_string_starts_with(trimmed, _fl_str_tests_app_chat_parse_2)) {
@@ -165,6 +166,7 @@ FL_Tuple_FL_String_ptr_FL_String_ptr fl_tests_app_chat_parse_parse_message(FL_St
             FL_String* _fl_tmp_1 = fl_string_substring(trimmed, _fl_e_1, fl_string_len(trimmed));
             FL_String* arg = fl_string_trim(_fl_tmp_1);
             fl_string_release(_fl_tmp_1);
+            fl_string_release(trimmed);
             return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = cmd, ._1 = arg};
         } else {
             return (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = trimmed, ._1 = _fl_str_tests_app_chat_parse_1};
