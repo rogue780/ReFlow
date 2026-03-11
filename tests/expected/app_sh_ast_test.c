@@ -3620,6 +3620,8 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     fl_array_release(fn_params_d2);
     fl_array_release(fn_body);
     fl_array_release(fn_body2);
+    fl_string_release(s.file);
+    fl_string_release(p1.name);
     return 0;
 }
 

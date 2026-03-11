@@ -100,6 +100,8 @@ void fl_tests_congruence_test_main(void) {
     } else {
         fl_println(_fl_str_tests_congruence_test_5);
     }
+    fl_string_release(a.source);
+    fl_string_release(b.source);
 }
 
 static void _fl_init_statics(void) {

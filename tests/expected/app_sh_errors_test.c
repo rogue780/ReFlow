@@ -703,6 +703,16 @@ fl_int fl_tests_programs_app_sh_errors_test_main(void) {
     fl_println(e1.message);
     fl_println(e1.file);
     fl_println(_fl_str_tests_programs_app_sh_errors_test_10);
+    fl_string_release(e1.message);
+    fl_string_release(e1.file);
+    fl_string_release(e2.message);
+    fl_string_release(e2.file);
+    fl_string_release(e3.message);
+    fl_string_release(e3.file);
+    fl_string_release(e4.message);
+    fl_string_release(e4.file);
+    fl_string_release(e5.message);
+    fl_string_release(e5.file);
     return 0;
 }
 

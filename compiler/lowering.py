@@ -722,6 +722,10 @@ class Lowerer:
         # so we can release them before each return statement.
         # Each entry: (var_name, c_type, release_fn_name)
         self._container_locals: list[tuple[str, LType, str, int]] = []
+        # Struct field cleanup: when a struct-typed local goes out of scope,
+        # release its refcounted fields.  Each entry:
+        # (struct_var_name, field_name, struct_c_type, release_fn, depth)
+        self._struct_field_cleanup: list[tuple[str, str, LType, str, int]] = []
         self._scope_depth: int = 0
 
         # String literal interning: deduplicate string constants as static
@@ -1075,6 +1079,8 @@ class Lowerer:
         self._mut_params = set()
         saved_container_locals = self._container_locals
         self._container_locals = []
+        saved_struct_field_cleanup = self._struct_field_cleanup
+        self._struct_field_cleanup = []
         saved_scope_depth = self._scope_depth
         self._scope_depth = 0
 
@@ -1119,13 +1125,17 @@ class Lowerer:
                 body.append(LReturn(expr_result))
 
         # Scope-exit cleanup: release container locals before returns
-        if self._container_locals:
+        if self._container_locals or self._struct_field_cleanup:
             self._inject_scope_cleanup(body)
             # For void functions without explicit return, append cleanup
             # Only depth-0 locals (inner-scope vars out of C scope here)
             if isinstance(ret_lt, LVoid):
                 body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
                              for n, ct, fn_name, depth in self._container_locals
+                             if depth == 0])
+                body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
+                             for sv, fn, sct, rel, depth
+                             in self._struct_field_cleanup
                              if depth == 0])
 
         self._fn_defs.append(LFnDef(
@@ -1142,6 +1152,7 @@ class Lowerer:
         self._let_var_ltypes = saved_let_var_ltypes
         self._mut_params = saved_mut_params
         self._container_locals = saved_container_locals
+        self._struct_field_cleanup = saved_struct_field_cleanup
         self._scope_depth = saved_scope_depth
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
@@ -1171,6 +1182,8 @@ class Lowerer:
             self._let_var_ltypes = {}
             saved_container_locals = self._container_locals
             self._container_locals = []
+            saved_struct_field_cleanup = self._struct_field_cleanup
+            self._struct_field_cleanup = []
             saved_scope_depth = self._scope_depth
             self._scope_depth = 0
             params: list[tuple[str, LType]] = []
@@ -1213,11 +1226,15 @@ class Lowerer:
                     body.append(LReturn(expr_result))
 
             # Scope-exit cleanup: release container locals before returns
-            if self._container_locals:
+            if self._container_locals or self._struct_field_cleanup:
                 self._inject_scope_cleanup(body)
                 if isinstance(ret_lt, LVoid):
                     body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
                                  for n, ct, fn_name, depth in self._container_locals
+                                 if depth == 0])
+                    body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
+                                 for sv, fn, sct, rel, depth
+                                 in self._struct_field_cleanup
                                  if depth == 0])
 
             self._fn_defs.append(LFnDef(
@@ -1233,6 +1250,7 @@ class Lowerer:
             self._mut_params = saved_mut_params
             self._let_var_ltypes = saved_let_var_ltypes
             self._container_locals = saved_container_locals
+            self._struct_field_cleanup = saved_struct_field_cleanup
             self._scope_depth = saved_scope_depth
 
         # Lower constructors
@@ -1456,6 +1474,47 @@ class Lowerer:
                             stack.append(field_val)
         return refs
 
+    @staticmethod
+    def _collect_returned_field_keys(expr: LExpr | None) -> set[str]:
+        """Collect dotted field access keys from a return expression.
+
+        For struct construction like TypedModule{src_module: s.src_module, ...},
+        this returns {'s.src_module', ...} so we know which struct fields are
+        being transferred to the return value and should NOT be released.
+        """
+        keys: set[str] = set()
+        if expr is None:
+            return keys
+        stack: list[LExpr] = [expr]
+        while stack:
+            e = stack.pop()
+            if isinstance(e, LFieldAccess) and isinstance(e.obj, LVar):
+                keys.add(f"{e.obj.c_name}.{e.field}")
+            # Also handle nested: s.parsed_module.body
+            if (isinstance(e, LFieldAccess) and isinstance(e.obj, LFieldAccess)
+                    and isinstance(e.obj.obj, LVar)):
+                keys.add(f"{e.obj.obj.c_name}.{e.obj.field}.{e.field}")
+            # Walk into sub-expressions
+            for attr in ('left', 'right', 'cond', 'then_expr', 'else_expr',
+                         'value', 'inner', 'operand', 'expr', 'base',
+                         'obj', 'ptr'):
+                child = getattr(e, attr, None)
+                if isinstance(child, LExpr):
+                    stack.append(child)
+            for attr in ('args', 'elements'):
+                child_list = getattr(e, attr, None)
+                if isinstance(child_list, list):
+                    for item in child_list:
+                        if isinstance(item, LExpr):
+                            stack.append(item)
+            if hasattr(e, 'fields') and isinstance(getattr(e, 'fields'), list):
+                for item in e.fields:
+                    if isinstance(item, tuple) and len(item) == 2:
+                        _, field_val = item
+                        if isinstance(field_val, LExpr):
+                            stack.append(field_val)
+        return keys
+
     def _inject_scope_cleanup(self, stmts: list[LStmt],
                               declared: set[str] | None = None) -> None:
         """Insert release calls for container locals before each LReturn.
@@ -1464,19 +1523,28 @@ class Lowerer:
         release calls for container locals that have already been declared,
         skipping variables referenced in the return expression (to avoid
         use-after-free on returned compound literals).
+
+        Also emits release calls for refcounted fields of struct-typed locals
+        via _struct_field_cleanup.
         """
         if declared is None:
             declared = set()
         container_names = {name for name, _, _, _ in self._container_locals}
+        # Struct field cleanup uses the struct var name as the base
+        struct_field_base_names = {sv for sv, _, _, _, _ in self._struct_field_cleanup}
+        all_trackable = container_names | struct_field_base_names
         i = 0
         while i < len(stmts):
             s = stmts[i]
-            # Track declarations of container locals
-            if isinstance(s, LVarDecl) and s.c_name in container_names:
+            # Track declarations of container locals and struct bases
+            if isinstance(s, LVarDecl) and s.c_name in all_trackable:
                 declared.add(s.c_name)
             elif isinstance(s, LReturn):
                 # Collect ALL variable names referenced in the return expr
                 returned_names = self._collect_referenced_vars(s.value)
+                # Also collect field access patterns from the return expr
+                # to avoid releasing struct fields that are being returned
+                returned_field_keys = self._collect_returned_field_keys(s.value)
                 # Build release calls for declared locals, skip referenced vars
                 cleanup: list[LStmt] = []
                 for name, ct, fn_name, _depth in self._container_locals:
@@ -1484,6 +1552,20 @@ class Lowerer:
                         continue
                     cleanup.append(LExprStmt(
                         LCall(fn_name, [LVar(name, ct)], LVoid())))
+                # Struct field releases: release refcounted fields of struct locals
+                for sv, fn, sct, rel_fn, _depth in self._struct_field_cleanup:
+                    base_name = sv.split(".")[0]
+                    if base_name not in declared:
+                        continue
+                    # Skip if the struct itself is being returned (caller owns it)
+                    if base_name in returned_names:
+                        continue
+                    # Skip if this specific field is referenced in the return
+                    field_key = f"{sv}.{fn}"
+                    if field_key in returned_field_keys:
+                        continue
+                    cleanup.append(self._emit_struct_field_release(
+                        sv, fn, sct, rel_fn))
                 # Insert cleanup before the return
                 for j, c_stmt in enumerate(cleanup):
                     stmts.insert(i + j, c_stmt)
@@ -1649,6 +1731,44 @@ class Lowerer:
                     self._container_locals.append(
                         (stmt.name, c_type, release_fn, self._scope_depth))
 
+        # Register struct field releases for :imut struct-typed locals.
+        # When a struct goes out of scope, its refcounted fields (strings,
+        # arrays, maps) must be individually released.
+        #
+        # IMPORTANT: Skip :mut locals — their fields may be reassigned
+        # through :mut pointer parameters, and the final field values at
+        # scope exit may already be freed or shared in ways we can't track.
+        #
+        # For TypeLit/RecordLit: _retain_struct_fields already retained
+        # fields at construction.  Just register for release.
+        #
+        # For Call/allocating sources: the callee enforces owned-return
+        # convention via _inject_struct_return_retains, which retains
+        # fields at every return site.  Just register for release.
+        #
+        # For non-allocating sources (Ident, FieldAccess): the fields are
+        # shared with the original.  Retain each field so we own our
+        # reference, then release at scope exit.
+        is_mut = isinstance(stmt.type_ann, MutType)
+        if not auto_lifted and not is_mut and not self._get_release_fn(val_type):
+            fields = self._get_struct_fields_cross_module(val_type)
+            if fields:
+                # For non-allocating, non-TypeLit sources (e.g. copying a
+                # struct from another local), retain each refcounted field.
+                if (not isinstance(stmt.value, (TypeLit, RecordLit))
+                        and not self._is_allocating_expr(stmt.value)):
+                    for field_name, field_type in fields.items():
+                        retain_fn = self._RETAIN_FN.get(type(field_type))
+                        if retain_fn:
+                            stmts.append(LExprStmt(LCall(
+                                retain_fn,
+                                [LFieldAccess(
+                                    LVar(stmt.name, c_type),
+                                    field_name, LPtr(LVoid()))],
+                                LVoid())))
+                self._register_struct_field_releases(
+                    stmt.name, val_type, c_type, self._scope_depth)
+
         return stmts
 
     # Type → release/retain function mappings.
@@ -1691,6 +1811,86 @@ class Lowerer:
     def _get_release_fn(self, t: Type) -> str | None:
         """Return the release function name for a container type, or None."""
         return self._RELEASE_FN.get(type(t))
+
+    def _get_struct_fields_cross_module(self, t: Type,
+                                         visited: set[str] | None = None,
+                                         ) -> dict[str, Type] | None:
+        """Get field name->type mapping for a struct, searching all modules.
+
+        Unlike _get_struct_fields which only searches the current module,
+        this also searches _all_typed for cross-module TNamed types.
+        Returns None for non-struct types.
+        """
+        if isinstance(t, TRecord):
+            return dict(t.fields)
+        if not isinstance(t, TNamed):
+            return None
+        name = t.name
+        # Search local module first
+        for decl in self._module.decls:
+            if isinstance(decl, TypeDecl) and decl.name == name and not decl.is_sum_type:
+                fields: dict[str, Type] = {}
+                for f in decl.fields:
+                    ft = self._types.get(f.type_ann)
+                    if ft is None:
+                        ft = self._resolve_type_ann(f.type_ann) if f.type_ann else TAny()
+                    fields[f.name] = ft
+                return fields
+        # Search imported modules
+        if self._all_typed:
+            for _, typed_mod in self._all_typed.items():
+                for decl in typed_mod.module.decls:
+                    if isinstance(decl, TypeDecl) and decl.name == name and not decl.is_sum_type:
+                        fields = {}
+                        for f in decl.fields:
+                            ft = typed_mod.types.get(f.type_ann)
+                            if ft is None:
+                                ft = self._resolve_type_ann(f.type_ann) if f.type_ann else TAny()
+                            fields[f.name] = ft
+                        return fields
+        return None
+
+    def _register_struct_field_releases(self, var_name: str, val_type: Type,
+                                         c_type: LType, depth: int) -> None:
+        """Register release calls for refcounted fields inside a struct local.
+
+        When a struct-typed local goes out of scope, its refcounted fields
+        (strings, arrays, maps, etc.) must be individually released.
+        This method walks the struct's DIRECT fields only and registers
+        cleanup entries in _struct_field_cleanup for each refcounted field.
+
+        We do NOT recurse into nested struct fields because embedded structs
+        are value copies — their pointer fields share ownership with the
+        original source, and releasing them would cause double-free.
+        """
+        # Only process struct types (TNamed, TRecord) that are NOT themselves
+        # directly refcounted (those are already in _container_locals).
+        if self._get_release_fn(val_type) is not None:
+            return
+        fields = self._get_struct_fields_cross_module(val_type)
+        if fields is None:
+            return
+        for field_name, field_type in fields.items():
+            release_fn = self._get_release_fn(field_type)
+            if release_fn is not None:
+                self._struct_field_cleanup.append(
+                    (var_name, field_name, c_type, release_fn, depth))
+
+    def _emit_struct_field_release(self, struct_var: str, field_name: str,
+                                    struct_c_type: LType,
+                                    release_fn: str) -> LStmt:
+        """Build an LExprStmt that calls release_fn on struct_var.field_name.
+
+        Handles dotted struct_var names for nested struct access
+        (e.g. "rm.parsed_module" + "body" -> rm.parsed_module.body).
+        """
+        # Build the base LVar, handling nested dotted paths
+        parts = struct_var.split(".")
+        base_var: LExpr = LVar(parts[0], struct_c_type)
+        for part in parts[1:]:
+            base_var = LFieldAccess(base_var, part, struct_c_type)
+        access = LFieldAccess(base_var, field_name, LPtr(LVoid()))
+        return LExprStmt(LCall(release_fn, [access], LVoid()))
 
     def _retain_struct_fields(self, fields: list[tuple[str, LExpr]],
                               ast_args: list[Expr]) -> None:
@@ -7723,6 +7923,8 @@ class Lowerer:
         self._mono_caller_module_path = saved_module_path
         saved_container_locals = self._container_locals
         self._container_locals = []
+        saved_struct_field_cleanup = self._struct_field_cleanup
+        self._struct_field_cleanup = []
         saved_scope_depth = self._scope_depth
         self._scope_depth = 0
 
@@ -7764,11 +7966,15 @@ class Lowerer:
                     body.append(LReturn(expr_result))
 
         # Scope-exit cleanup for monomorphized functions
-        if self._container_locals:
+        if self._container_locals or self._struct_field_cleanup:
             self._inject_scope_cleanup(body)
             if isinstance(ret_lt, LVoid):
                 body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
                              for n, ct, fn_name, depth in self._container_locals
+                             if depth == 0])
+                body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
+                             for sv, fn, sct, rel, depth
+                             in self._struct_field_cleanup
                              if depth == 0])
 
         # Restore state
@@ -7781,6 +7987,7 @@ class Lowerer:
         self._mono_type_env = saved_mono_type_env
         self._mono_caller_module_path = saved_mono_caller
         self._container_locals = saved_container_locals
+        self._struct_field_cleanup = saved_struct_field_cleanup
         self._scope_depth = saved_scope_depth
 
         return LFnDef(

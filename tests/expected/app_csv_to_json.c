@@ -1034,6 +1034,8 @@ void fl_tests_app_csv_to_json_main(void) {
         i = _fl_e_1;
     }
     fl_array_release(lines);
+    fl_array_release(schema.columns);
+    fl_array_release(schema.required);
 }
 
 static void _fl_init_statics(void) {
