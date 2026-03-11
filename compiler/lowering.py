@@ -1820,13 +1820,9 @@ class Lowerer:
                     self._container_locals.append(
                         (stmt.name, c_type, release_fn, self._scope_depth))
 
-        # Register struct field releases for :imut struct-typed locals.
+        # Register struct field releases for struct-typed locals.
         # When a struct goes out of scope, its refcounted fields (strings,
         # arrays, maps) must be individually released.
-        #
-        # IMPORTANT: Skip :mut locals — their fields may be reassigned
-        # through :mut pointer parameters, and the final field values at
-        # scope exit may already be freed or shared in ways we can't track.
         #
         # For TypeLit/RecordLit: _retain_struct_fields already retained
         # fields at construction.  Just register for release.
@@ -1838,8 +1834,12 @@ class Lowerer:
         # For Call/allocating sources: the callee enforces the "owned
         # return" convention via return-site retains in
         # _inject_scope_cleanup.  Just register for release at scope exit.
-        is_mut = isinstance(stmt.type_ann, MutType)
-        if not auto_lifted and not is_mut and not self._get_release_fn(val_type):
+        #
+        # :mut structs are included — their fields may be reassigned via
+        # FieldAccess, but release-on-reassignment in _lower_assign
+        # handles intermediate values.  Scope-exit release covers the
+        # final field values.
+        if not auto_lifted and not self._get_release_fn(val_type):
             fields = self._get_struct_fields_cross_module(val_type)
             if fields:
                 if isinstance(stmt.value, (TypeLit, RecordLit)):
@@ -2227,6 +2227,34 @@ class Lowerer:
                 return [
                     LVarDecl(c_name=old_tmp, c_type=old_c_type, init=target),
                     LAssign(target=target, value=value),
+                    LIf(
+                        cond=LBinOp("!=", old_var, target,
+                                    c_type=LBool()),
+                        then=[LExprStmt(LCall(release_fn, [old_var],
+                                              c_type=LVoid()))],
+                        else_=[],
+                    ),
+                ]
+
+        # Retain-on-store for FieldAccess targets with non-allocating RHS.
+        # When assigning a shared reference (e.g. s.mod_scope_map = s.scope_map),
+        # retain the new value (creating an additional reference) and release
+        # the old value.  Without this, aliased fields cause double-free at
+        # scope exit.
+        if isinstance(stmt.target, FieldAccess) and not self._is_allocating_expr(stmt.value):
+            target_type = self._type_of(stmt.target)
+            release_fn = self._get_release_fn(target_type)
+            retain_fn = self._RETAIN_FN.get(type(target_type))
+            if release_fn is not None and retain_fn is not None:
+                old_tmp = f"_fl_old_{self._tmp_counter}"
+                self._tmp_counter += 1
+                old_c_type = target.c_type
+                old_var = LVar(old_tmp, old_c_type)
+                return [
+                    LVarDecl(c_name=old_tmp, c_type=old_c_type, init=target),
+                    LAssign(target=target, value=value),
+                    LExprStmt(LCall(retain_fn, [target],
+                                    c_type=LVoid())),
                     LIf(
                         cond=LBinOp("!=", old_var, target,
                                     c_type=LBool()),
