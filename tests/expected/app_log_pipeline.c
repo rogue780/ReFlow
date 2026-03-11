@@ -751,6 +751,7 @@ void fl_tests_app_log_pipeline_main(void) {
                 fl_string_release(_fl_tmp_32);
                 fl_string_release(_fl_tmp_33);
             }
+            fl_string_release(output);
             _fl_exception_pop();
         } else {
             _fl_exception_pop();

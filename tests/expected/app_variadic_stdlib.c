@@ -1575,6 +1575,7 @@ void fl_json_serialize(fl_string_builder_StringBuilder b, fl_json_JsonValue val)
                 fl_string_release(key);
             }
             fl_string_builder_append_char(b, 125);
+            fl_array_release(ks);
             break;
         }
     }
@@ -1698,6 +1699,7 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
                 fl_json_emit_indent(b, _fl_e_11);
                 fl_string_builder_append_char(b, 125);
             }
+            fl_array_release(ks);
             break;
         }
     }
@@ -1812,6 +1814,7 @@ FL_Option_FL_Tuple_FL_String_ptr_fl_int fl_json_parse_string_value(FL_String* s,
                                                             } else {
                                                                 return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
                                                             }
+                                                            fl_string_release(hex_str);
                                                         } else {
                                                             return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
                                                         }
@@ -2273,6 +2276,7 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
             } else {
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
             }
+            fl_string_release(key);
         } else {
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }

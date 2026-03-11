@@ -762,6 +762,8 @@ _fl_state_1:;
                         }
                     }
                     fl_net_write_string(frame->client, frame->response);
+                    fl_string_release(frame->request);
+                    fl_string_release(frame->response);
                 }
                 fl_net_close(frame->client);
             }
@@ -863,6 +865,7 @@ fl_tests_app_healthcheck_CheckStatus fl_tests_app_healthcheck_check_url(FL_Strin
         }
         fl_net_close(sock);
         _fl_throw(((void*)_fl_str_tests_app_healthcheck_16), 0);
+        fl_string_release(req);
     }
     _fl_throw(((void*)_fl_str_tests_app_healthcheck_17), 0);
 }
@@ -1246,6 +1249,7 @@ _fl_tmp_87:;
         FL_String* _fl_tmp_119 = fl_string_concat(_fl_str_tests_app_healthcheck_50, ((_fl_tmp_118.tag == 1) ? _fl_tmp_118.value : _fl_str_tests_app_healthcheck_33));
         fl_println(_fl_tmp_119);
         fl_string_release(_fl_tmp_119);
+        fl_array_release(rparts);
     } else {
         fl_println(_fl_str_tests_app_healthcheck_51);
     }

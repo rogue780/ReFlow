@@ -1575,6 +1575,7 @@ void fl_json_serialize(fl_string_builder_StringBuilder b, fl_json_JsonValue val)
                 fl_string_release(key);
             }
             fl_string_builder_append_char(b, 125);
+            fl_array_release(ks);
             break;
         }
     }
@@ -1698,6 +1699,7 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
                 fl_json_emit_indent(b, _fl_e_11);
                 fl_string_builder_append_char(b, 125);
             }
+            fl_array_release(ks);
             break;
         }
     }
@@ -1812,6 +1814,7 @@ FL_Option_FL_Tuple_FL_String_ptr_fl_int fl_json_parse_string_value(FL_String* s,
                                                             } else {
                                                                 return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
                                                             }
+                                                            fl_string_release(hex_str);
                                                         } else {
                                                             return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
                                                         }
@@ -2273,6 +2276,7 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
             } else {
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
             }
+            fl_string_release(key);
         } else {
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
@@ -3276,6 +3280,7 @@ _fl_state_0:;
                 frame->_state = 1;
                 return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(_fl_tmp_62, frame->resp)))};
 _fl_state_1:;
+                fl_string_release(frame->resp);
             } else {
                 frame->_state = 2;
                 return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(frame->cmd, _fl_str_tests_app_kv_store_35)))};
@@ -3431,6 +3436,10 @@ _fl_state_0:;
                                 }
                             }
                         }
+                        fl_string_release(frame->sender_addr);
+                        fl_string_release(frame->line);
+                        fl_string_release(frame->cmd);
+                        fl_array_release(frame->args);
                     }
                 }
             }
@@ -3499,6 +3508,7 @@ _fl_state_0:;
                 return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(_fl_tmp_87, frame->raw)))};
 _fl_state_1:;
             }
+            fl_string_release(frame->raw);
         }
     }
 _fl_stream_done:;
@@ -3855,6 +3865,8 @@ void fl_tests_app_kv_store_main(void) {
         FL_String* _fl_tmp_179 = fl_string_concat(_fl_str_tests_app_kv_store_80, v2);
         fl_println(_fl_tmp_179);
         fl_string_release(_fl_tmp_179);
+        fl_string_release(v1);
+        fl_string_release(v2);
     } else {
         fl_println(_fl_str_tests_app_kv_store_81);
     }

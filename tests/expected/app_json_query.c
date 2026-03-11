@@ -1575,6 +1575,7 @@ void fl_json_serialize(fl_string_builder_StringBuilder b, fl_json_JsonValue val)
                 fl_string_release(key);
             }
             fl_string_builder_append_char(b, 125);
+            fl_array_release(ks);
             break;
         }
     }
@@ -1698,6 +1699,7 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
                 fl_json_emit_indent(b, _fl_e_11);
                 fl_string_builder_append_char(b, 125);
             }
+            fl_array_release(ks);
             break;
         }
     }
@@ -1812,6 +1814,7 @@ FL_Option_FL_Tuple_FL_String_ptr_fl_int fl_json_parse_string_value(FL_String* s,
                                                             } else {
                                                                 return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
                                                             }
+                                                            fl_string_release(hex_str);
                                                         } else {
                                                             return (FL_Option_FL_Tuple_FL_String_ptr_fl_int){.tag = 0};
                                                         }
@@ -2273,6 +2276,7 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
             } else {
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
             }
+            fl_string_release(key);
         } else {
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
@@ -2511,6 +2515,7 @@ FL_Tuple_FL_Array_ptr_FL_String_ptr fl_tests_app_json_query_parse_path(FL_String
             FL_CHECKED_ADD(i, 1, &_fl_e_2);
             i = _fl_e_2;
         }
+        fl_array_release(parts);
     }
     if (has_type_suffix) {
         FL_Array* _fl_old_5 = segments;
@@ -2687,6 +2692,7 @@ FL_Array* fl_tests_app_json_query_resolve(fl_json_JsonValue root, FL_Array* segm
                 fl_array_retain(current);
                 fl_array_release(_fl_old_21);
             }
+            fl_array_release(next);
         }
         fl_int _fl_e_2;
         FL_CHECKED_ADD(i, 1, &_fl_e_2);

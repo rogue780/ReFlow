@@ -571,6 +571,7 @@ fl_int fl_tests_file_read_lines_test_main(void) {
         FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(lines, 2);
         fl_println(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_file_read_lines_test_2));
         fl_file_close(f);
+        fl_array_release(lines);
     } else {
         fl_println(_fl_str_tests_file_read_lines_test_3);
     }

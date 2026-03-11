@@ -904,6 +904,7 @@ fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_validate(fl_tests_app_c
                 FL_String* _fl_tmp_6 = fl_conv_to_string__int(row.index);
                 _fl_throw(((void*)fl_string_concat(_fl_tmp_5, _fl_tmp_6)), 0);
             }
+            fl_string_release(field_val);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
@@ -1006,6 +1007,7 @@ void fl_tests_app_csv_to_json_main(void) {
             fl_array_retain(validated.fields);
             FL_String* json_str = fl_tests_app_csv_to_json_to_json(validated, schema);
             fl_println(json_str);
+            fl_string_release(json_str);
             _fl_exception_pop();
         } else {
             _fl_exception_pop();
@@ -1021,6 +1023,7 @@ void fl_tests_app_csv_to_json_main(void) {
                     fl_array_retain(validated.fields);
                     FL_String* json_str = fl_tests_app_csv_to_json_to_json(validated, schema);
                     fl_println(json_str);
+                    fl_string_release(fixed);
                     _fl_exception_pop();
                 } else {
                     _fl_exception_pop();

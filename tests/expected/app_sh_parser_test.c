@@ -698,6 +698,10 @@ void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s);
 
 void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s);
 
+void _fl_destroy_fl_self_hosted_lexer_Token(void* _ptr);
+
+void _fl_retain_fl_self_hosted_lexer_Token(void* _ptr);
+
 FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename);
 
 FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype);
@@ -1931,6 +1935,7 @@ void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s) {
                 fl_self_hosted_lexer_advance(s);
                 FL_String* escaped = fl_self_hosted_lexer_scan_escape(s);
                 fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, escaped, esc_line, esc_col));
+                fl_string_release(escaped);
             } else {
                 fl_self_hosted_lexer_scan_fstring_text(s);
             }
@@ -2045,11 +2050,27 @@ void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
     }
 }
 
+/* Flow: destructor for fl_self_hosted_lexer_Token */
+void _fl_destroy_fl_self_hosted_lexer_Token(void* _ptr) {
+    fl_self_hosted_lexer_Token* _s = ((fl_self_hosted_lexer_Token*)_ptr);
+    fl_string_release(_s->value);
+    fl_string_release(_s->file);
+}
+
+/* Flow: retainer for fl_self_hosted_lexer_Token */
+void _fl_retain_fl_self_hosted_lexer_Token(void* _ptr) {
+    fl_self_hosted_lexer_Token* _s = ((fl_self_hosted_lexer_Token*)_ptr);
+    fl_string_retain(_s->value);
+    fl_string_retain(_s->file);
+}
+
 /* Flow: self_hosted.lexer.tokenize */
 FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename) {
     fl_string_retain(source);
     fl_string_retain(filename);
-    fl_self_hosted_lexer_LexState s = (fl_self_hosted_lexer_LexState){.source = source, .filename = filename, .src_len = fl_string_len(source), .pos = 0, .line = 1, .col = 1, .tokens = fl_array_new(0, 0, NULL)};
+    FL_Array* _fl_tmp_28 = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(_fl_tmp_28, _fl_destroy_fl_self_hosted_lexer_Token, _fl_retain_fl_self_hosted_lexer_Token);
+    fl_self_hosted_lexer_LexState s = (fl_self_hosted_lexer_LexState){.source = source, .filename = filename, .src_len = fl_string_len(source), .pos = 0, .line = 1, .col = 1, .tokens = _fl_tmp_28};
     while (s.pos < s.src_len) {
         fl_char ch = fl_self_hosted_lexer_peek(s, 0);
         if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_115) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_47)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_54)) {
@@ -2321,12 +2342,12 @@ FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype) {
         fl_string_retain(_fl_str_self_hosted_lexer_172);
         return _fl_str_self_hosted_lexer_172;
     }
-    FL_String* _fl_tmp_28 = fl_conv_to_string__int(ttype);
-    FL_String* _fl_tmp_29 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_28);
-    FL_String* _fl_ret_30 = fl_string_concat(_fl_tmp_29, _fl_str_self_hosted_lexer_102);
-    fl_string_release(_fl_tmp_28);
+    FL_String* _fl_tmp_29 = fl_conv_to_string__int(ttype);
+    FL_String* _fl_tmp_30 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_29);
+    FL_String* _fl_ret_31 = fl_string_concat(_fl_tmp_30, _fl_str_self_hosted_lexer_102);
     fl_string_release(_fl_tmp_29);
-    return _fl_ret_30;
+    fl_string_release(_fl_tmp_30);
+    return _fl_ret_31;
 }
 
 /* From: self_hosted/ast.flow */
@@ -5909,6 +5930,7 @@ fl_int fl_self_hosted_parser_hex_to_int(FL_String* s) {
         if (fl_string_eq(prefix, _fl_str_self_hosted_parser_19) || fl_string_eq(prefix, _fl_str_self_hosted_parser_20)) {
             start = 2;
         }
+        fl_string_release(prefix);
     }
     fl_int result = 0;
     fl_int i = start;
@@ -8394,6 +8416,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                         fl_string_retain(ft.value);
                         fl_array_retain(args);
                         left = (fl_self_hosted_ast_Expr){.tag = 12, .EMethodCall = (fl_self_hosted_ast_Expr_EMethodCall){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_240, .method = ft.value, .args = args}};
+                        fl_array_release(args);
                     } else {
                         fl_self_hosted_ast_Expr* _fl_tmp_241 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
                         (*_fl_tmp_241) = left;
@@ -9502,6 +9525,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ident_or_type_lit(fl_self_ho
             return _fl_ret_372;
         }
         s->pos = saved_pos;
+        fl_array_release(module_path);
+        fl_string_release(current_name);
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACE) && fl_self_hosted_parser_is_first_upper(name)) {
         fl_self_hosted_ast_Expr _fl_ret_373 = fl_self_hosted_parser_parse_type_construction_lit(s, first_tok, name, fl_array_new(0, 0, NULL));
@@ -9575,6 +9600,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_type_construction_lit(fl_sel
             fl_string_release(_fl_old_379);
         }
         fl_string_release(_fl_tmp_378);
+        fl_string_release(prefix);
     }
     fl_self_hosted_ast_Expr* _fl_tmp_380 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
     (*_fl_tmp_380) = spread;

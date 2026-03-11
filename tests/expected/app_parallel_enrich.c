@@ -787,6 +787,7 @@ void fl_tests_app_parallel_enrich_main(void) {
             fl_int _fl_e_2;
             FL_CHECKED_ADD(j, 1, &_fl_e_2);
             j = _fl_e_2;
+            fl_string_release(cat);
         }
     }
     fl_array_release(names);

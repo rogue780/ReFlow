@@ -765,6 +765,7 @@ FL_Tuple_FL_String_ptr_fl_int fl_tests_app_calc_parse_ident(FL_String* input, fl
             } else {
                 break;
             }
+            fl_string_release(cs);
         }
     }
     return (FL_Tuple_FL_String_ptr_fl_int){._0 = fl_string_substring(input, start, p), ._1 = p};
@@ -911,6 +912,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
                     }
                 }
             }
+            fl_string_release(ch);
         }
     }
     return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = left, ._1 = cur};
@@ -955,6 +957,7 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_additive(FL_Strin
                     running = fl_false;
                 }
             }
+            fl_string_release(ch);
         }
     }
     return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = left, ._1 = cur};

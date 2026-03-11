@@ -2108,6 +2108,9 @@ class Lowerer:
                 return True
             if self._sum_type_has_cleanup_fields(ft):
                 return True
+            # Recurse into nested struct fields
+            if self._has_refcounted_fields(ft):
+                return True
         return False
 
     def _get_sum_type_decl_cross_module(self, t: Type) -> TypeDecl | None:
@@ -2318,6 +2321,19 @@ class Lowerer:
                                         field_name, field_lt),
                                  LPtr(field_lt))],
                         LVoid())))
+            elif self._has_refcounted_fields(field_type):
+                # Nested struct with refcounted fields — call its destructor
+                field_lt = self._lower_type(field_type)
+                nested_handlers = self._get_or_emit_struct_handlers(
+                    field_type, field_lt)
+                if nested_handlers:
+                    nested_destructor, _ = nested_handlers
+                    destroy_body.append(LExprStmt(LCall(
+                        nested_destructor,
+                        [LAddrOf(LArrow(LVar(local_name, struct_ptr_lt),
+                                        field_name, field_lt),
+                                 LPtr(field_lt))],
+                        LVoid())))
         self._fn_defs.append(LFnDef(
             c_name=destructor,
             params=[ptr_param],
@@ -2348,6 +2364,19 @@ class Lowerer:
                     _, sum_retainer = sum_handlers
                     retain_body.append(LExprStmt(LCall(
                         sum_retainer,
+                        [LAddrOf(LArrow(LVar(local_name, struct_ptr_lt),
+                                        field_name, field_lt),
+                                 LPtr(field_lt))],
+                        LVoid())))
+            elif self._has_refcounted_fields(field_type):
+                # Nested struct with refcounted fields — call its retainer
+                field_lt = self._lower_type(field_type)
+                nested_handlers = self._get_or_emit_struct_handlers(
+                    field_type, field_lt)
+                if nested_handlers:
+                    _, nested_retainer = nested_handlers
+                    retain_body.append(LExprStmt(LCall(
+                        nested_retainer,
                         [LAddrOf(LArrow(LVar(local_name, struct_ptr_lt),
                                         field_name, field_lt),
                                  LPtr(field_lt))],
@@ -2797,9 +2826,100 @@ class Lowerer:
     def _lower_inner_block(self, block: Block) -> list[LStmt]:
         """Lower an inner block with scope depth tracking."""
         self._scope_depth += 1
+        cl_snapshot = len(self._container_locals)
+        sf_snapshot = len(self._struct_field_cleanup)
+        sum_sf_snapshot = len(self._sum_field_cleanup)
         result = self._lower_block(block)
+        self._emit_block_exit_cleanup(result, self._scope_depth,
+                                      cl_snapshot, sf_snapshot,
+                                      sum_sf_snapshot)
         self._scope_depth -= 1
         return result
+
+    @staticmethod
+    def _all_paths_exit(stmt: LStmt) -> bool:
+        """Return True if every leaf path in stmt ends with LReturn/LBreak/LContinue.
+
+        Used to detect unreachable code after control-flow statements whose
+        every branch exits, avoiding injection of dead cleanup code that
+        _inject_tail_returns would misinterpret as a return value.
+        """
+        if isinstance(stmt, (LReturn, LBreak, LContinue)):
+            return True
+        if isinstance(stmt, LSwitch):
+            if not stmt.cases and not stmt.default:
+                return False
+            for _, case_stmts in stmt.cases:
+                if not case_stmts or not Lowerer._all_paths_exit(case_stmts[-1]):
+                    return False
+            if not stmt.default or not Lowerer._all_paths_exit(stmt.default[-1]):
+                return False
+            return True
+        if isinstance(stmt, LIf):
+            if not stmt.then or not stmt.else_:
+                return False
+            return (Lowerer._all_paths_exit(stmt.then[-1])
+                    and Lowerer._all_paths_exit(stmt.else_[-1]))
+        return False
+
+    def _emit_block_exit_cleanup(self, body: list[LStmt],
+                                  block_depth: int,
+                                  cl_snapshot: int,
+                                  sf_snapshot: int,
+                                  sum_sf_snapshot: int) -> None:
+        """Emit release calls at the end of an inner block for locals in it.
+
+        Container locals declared inside an inner block (if/else, match arm)
+        go out of C scope when the block ends.  The void-function trailing
+        cleanup only handles depth-0 locals.  This method handles inner-depth
+        locals by appending cleanup at the end of the block.
+
+        Skips if the block ends with LReturn, LBreak, or LContinue since
+        those exit paths are handled elsewhere.
+        """
+        if not body:
+            return
+        last = body[-1]
+        if isinstance(last, (LReturn, LBreak, LContinue)):
+            return
+        # If the last statement is a control-flow construct (LSwitch, LIf)
+        # where all leaf paths exit via LReturn, the code after the switch
+        # is unreachable.  Skip cleanup to avoid _inject_tail_returns from
+        # misinterpreting the cleanup call as the function's return value.
+        if self._all_paths_exit(last):
+            return
+
+        top_decls: set[str] = set()
+        for s in body:
+            if isinstance(s, LVarDecl):
+                top_decls.add(s.c_name)
+
+        push_ptr_vars = self._collect_push_ptr_vars(body)
+
+        cleanup: list[LStmt] = []
+
+        # Container locals registered during this block
+        seen_containers: set[str] = set()
+        for name, ct, fn_name, depth in self._container_locals[cl_snapshot:]:
+            if depth != block_depth or name in seen_containers:
+                continue
+            if name not in top_decls:
+                continue
+            if name in self._transferred_struct_vars:
+                continue
+            if name in push_ptr_vars:
+                continue
+            seen_containers.add(name)
+            cleanup.append(LExprStmt(
+                LCall(fn_name, [LVar(name, ct)], LVoid())))
+
+        # NOTE: struct field and sum field releases are NOT emitted at block
+        # exit.  Struct fields may be shared with other references (e.g.,
+        # structs from function calls or array access), and releasing them
+        # at block exit can cause use-after-free.  They are only released
+        # at function exit (depth 0) via _inject_scope_cleanup.
+
+        body.extend(cleanup)
 
     def _lower_if_stmt(self, stmt: IfStmt) -> list[LStmt]:
         cond = self._lower_expr(stmt.condition)
@@ -6754,6 +6874,24 @@ class Lowerer:
                              LLit(str(tag), LInt(64, True))],
                             LVoid())))
                         lowered_val = LVar(tmp, arr_lt)
+                    elif self._has_refcounted_fields(decl_t.element):
+                        elem_lt = self._lower_type(decl_t.element)
+                        handlers = self._get_or_emit_struct_handlers(
+                            decl_t.element, elem_lt)
+                        if handlers:
+                            destructor, retainer = handlers
+                            arr_lt = self._lower_type(TArray(decl_t.element))
+                            tmp = self._fresh_temp()
+                            self._pending_stmts.append(
+                                LVarDecl(c_name=tmp, c_type=arr_lt,
+                                         init=lowered_val))
+                            self._pending_stmts.append(LExprStmt(LCall(
+                                "fl_array_set_struct_handlers",
+                                [LVar(tmp, arr_lt),
+                                 LVar(destructor, LPtr(LVoid())),
+                                 LVar(retainer, LPtr(LVoid()))],
+                                LVoid())))
+                            lowered_val = LVar(tmp, arr_lt)
 
             # Set val_type on map.new() fields whose declared type is
             # map<K, RefcountedType> — matching the _ELEM_TYPE_TAG entries.

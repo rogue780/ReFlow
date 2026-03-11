@@ -90,6 +90,7 @@ void fl_tests_exception_test_main(void) {
     if (setjmp(_fl_ef_0.jmp) == 0) {
         FL_String* r = fl_tests_exception_test_might_fail(1);
         fl_println(r);
+        fl_string_release(r);
         _fl_exception_pop();
     } else {
         _fl_exception_pop();
