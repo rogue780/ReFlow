@@ -726,6 +726,10 @@ class Lowerer:
         # release its refcounted fields.  Each entry:
         # (struct_var_name, field_name, struct_c_type, release_fn, depth)
         self._struct_field_cleanup: list[tuple[str, str, LType, str, int]] = []
+        # Sum type field cleanup: when a struct local with an embedded sum type
+        # field goes out of scope, call the sum type destructor on the field.
+        # (struct_var_name, field_name, struct_c_type, destructor_fn, field_lt, depth)
+        self._sum_field_cleanup: list[tuple[str, str, LType, str, LType, int]] = []
         self._scope_depth: int = 0
         # Track struct variables whose contents have been heap-boxed and
         # stored in a container (map/array).  The shallow copy means the
@@ -1090,6 +1094,8 @@ class Lowerer:
         self._container_locals = []
         saved_struct_field_cleanup = self._struct_field_cleanup
         self._struct_field_cleanup = []
+        saved_sum_field_cleanup = self._sum_field_cleanup
+        self._sum_field_cleanup = []
         saved_transferred_struct_vars = self._transferred_struct_vars
         self._transferred_struct_vars = set()
         saved_scope_depth = self._scope_depth
@@ -1136,7 +1142,7 @@ class Lowerer:
                 body.append(LReturn(expr_result))
 
         # Scope-exit cleanup: release container locals before returns
-        if self._container_locals or self._struct_field_cleanup:
+        if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup:
             self._inject_scope_cleanup(body)
             # For void functions without explicit return, append cleanup
             # Only depth-0 locals (inner-scope vars out of C scope here)
@@ -1147,6 +1153,11 @@ class Lowerer:
                 body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
                              for sv, fn, sct, rel, depth
                              in self._struct_field_cleanup
+                             if depth == 0
+                             and sv not in self._transferred_struct_vars])
+                body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
+                             for sv, fn, sct, dest, flt, depth
+                             in self._sum_field_cleanup
                              if depth == 0
                              and sv not in self._transferred_struct_vars])
 
@@ -1165,6 +1176,7 @@ class Lowerer:
         self._mut_params = saved_mut_params
         self._container_locals = saved_container_locals
         self._struct_field_cleanup = saved_struct_field_cleanup
+        self._sum_field_cleanup = saved_sum_field_cleanup
         self._scope_depth = saved_scope_depth
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
@@ -1196,6 +1208,8 @@ class Lowerer:
             self._container_locals = []
             saved_struct_field_cleanup = self._struct_field_cleanup
             self._struct_field_cleanup = []
+            saved_sum_field_cleanup = self._sum_field_cleanup
+            self._sum_field_cleanup = []
             saved_transferred_struct_vars = self._transferred_struct_vars
             self._transferred_struct_vars = set()
             saved_scope_depth = self._scope_depth
@@ -1240,7 +1254,7 @@ class Lowerer:
                     body.append(LReturn(expr_result))
 
             # Scope-exit cleanup: release container locals before returns
-            if self._container_locals or self._struct_field_cleanup:
+            if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup:
                 self._inject_scope_cleanup(body)
                 if isinstance(ret_lt, LVoid):
                     body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
@@ -1249,6 +1263,11 @@ class Lowerer:
                     body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
                                  for sv, fn, sct, rel, depth
                                  in self._struct_field_cleanup
+                                 if depth == 0
+                                 and sv not in self._transferred_struct_vars])
+                    body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
+                                 for sv, fn, sct, dest, flt, depth
+                                 in self._sum_field_cleanup
                                  if depth == 0
                                  and sv not in self._transferred_struct_vars])
 
@@ -1266,6 +1285,7 @@ class Lowerer:
             self._let_var_ltypes = saved_let_var_ltypes
             self._container_locals = saved_container_locals
             self._struct_field_cleanup = saved_struct_field_cleanup
+            self._sum_field_cleanup = saved_sum_field_cleanup
             self._transferred_struct_vars = saved_transferred_struct_vars
             self._scope_depth = saved_scope_depth
 
@@ -1615,7 +1635,8 @@ class Lowerer:
         container_names = {name for name, _, _, _ in self._container_locals}
         # Struct field cleanup uses the struct var name as the base
         struct_field_base_names = {sv for sv, _, _, _, _ in self._struct_field_cleanup}
-        all_trackable = container_names | struct_field_base_names
+        sum_field_base_names = {sv for sv, _, _, _, _, _ in self._sum_field_cleanup}
+        all_trackable = container_names | struct_field_base_names | sum_field_base_names
         i = 0
         while i < len(stmts):
             s = stmts[i]
@@ -1689,6 +1710,24 @@ class Lowerer:
                     seen_fields.add(field_key)
                     cleanup.append(self._emit_struct_field_release(
                         sv, fn, sct, rel_fn))
+
+                # Sum type field releases.
+                for sv, fn, sct, dest_fn, flt, _depth in self._sum_field_cleanup:
+                    field_key = f"{sv}.{fn}"
+                    base_name = sv.split(".")[0]
+                    if base_name not in declared or field_key in seen_fields:
+                        continue
+                    if not needs_hoist and base_name in returned_names:
+                        continue
+                    if base_name in transferred_bases:
+                        continue
+                    if sv in self._transferred_struct_vars:
+                        continue
+                    if field_key in returned_field_keys:
+                        continue
+                    seen_fields.add(field_key)
+                    cleanup.append(self._emit_sum_field_release(
+                        sv, fn, sct, dest_fn, flt))
 
                 if needs_hoist and cleanup:
                     # Hoist: tmp = <expr>; <cleanup>; return tmp;
@@ -2042,15 +2081,184 @@ class Lowerer:
             if release_fn is not None:
                 self._struct_field_cleanup.append(
                     (var_name, field_name, c_type, release_fn, depth))
+            elif self._sum_type_has_cleanup_fields(field_type):
+                # Sum type field — register destructor call at scope exit
+                field_lt = self._lower_type(field_type)
+                sum_handlers = self._get_or_emit_sum_type_handlers(
+                    field_type, field_lt)
+                if sum_handlers:
+                    destructor, _ = sum_handlers
+                    self._sum_field_cleanup.append(
+                        (var_name, field_name, c_type, destructor, field_lt,
+                         depth))
 
     def _has_refcounted_fields(self, elem_type: Type) -> bool:
-        """Return True if elem_type is a struct with at least one refcounted field."""
+        """Return True if elem_type is a struct with at least one field needing cleanup.
+
+        Checks for directly refcounted fields (string, array, map) AND
+        sum type fields that have variants with refcounted fields.
+        """
         if self._get_release_fn(elem_type) is not None:
             return False  # Directly refcounted types handled by _ELEM_TYPE_TAG
         fields = self._get_struct_fields_cross_module(elem_type)
         if not fields:
             return False
-        return any(self._get_release_fn(ft) is not None for ft in fields.values())
+        for ft in fields.values():
+            if self._get_release_fn(ft) is not None:
+                return True
+            if self._sum_type_has_cleanup_fields(ft):
+                return True
+        return False
+
+    def _get_sum_type_decl_cross_module(self, t: Type) -> TypeDecl | None:
+        """Find the TypeDecl for a sum type, searching all modules."""
+        if not isinstance(t, TNamed):
+            return None
+        name = t.name
+        for decl in self._module.decls:
+            if isinstance(decl, TypeDecl) and decl.name == name and decl.is_sum_type:
+                return decl
+        if self._all_typed:
+            for _, typed_mod in self._all_typed.items():
+                for decl in typed_mod.module.decls:
+                    if isinstance(decl, TypeDecl) and decl.name == name and decl.is_sum_type:
+                        return decl
+        return None
+
+    def _sum_type_has_cleanup_fields(self, t: Type) -> bool:
+        """Check if a sum type has any variants with directly refcounted fields.
+
+        Currently disabled: sum type values (AST, LIR, resolver, typechecker
+        types) form shared graph structures across pipeline passes.  Generating
+        destructors/retainers for them causes heap-use-after-free because the
+        same nodes are referenced from multiple owners.  A proper solution
+        requires an arena allocator or explicit ownership annotations.
+        """
+        return False
+
+    def _get_or_emit_sum_type_handlers(self, sum_type: Type,
+                                        sum_lt: LType) -> tuple[str, str] | None:
+        """Emit destructor/retainer for a sum type with tag-based dispatch.
+
+        Returns (destructor_name, retainer_name) or None.
+        Only emits each pair once per C type.
+        """
+        from compiler.mangler import (mangle_struct_elem_destructor,
+                                       mangle_struct_elem_retainer)
+        if not self._sum_type_has_cleanup_fields(sum_type):
+            return None
+
+        c_name = _ltype_c_name(sum_lt)
+        destructor = mangle_struct_elem_destructor(c_name)
+        retainer = mangle_struct_elem_retainer(c_name)
+        if c_name in self._struct_handler_emitted:
+            return (destructor, retainer)
+        self._struct_handler_emitted.add(c_name)
+
+        decl = self._get_sum_type_decl_cross_module(sum_type)
+        if decl is None:
+            return None
+
+        # Resolve field types using the correct module's types map
+        src_types = self._types
+        if self._all_typed:
+            for _, typed_mod in self._all_typed.items():
+                for d in typed_mod.module.decls:
+                    if d is decl:
+                        src_types = typed_mod.types
+                        break
+
+        ptr_param = ("_ptr", LPtr(LVoid()))
+        struct_ptr_lt = LPtr(sum_lt)
+        cast_expr = LCast(LVar("_ptr", LPtr(LVoid())), struct_ptr_lt)
+        local_name = "_s"
+        s_var = LVar(local_name, struct_ptr_lt)
+
+        destroy_cases: list[tuple[int, list[LStmt]]] = []
+        retain_cases: list[tuple[int, list[LStmt]]] = []
+
+        saved_types = self._types
+        self._types = src_types
+        try:
+            for i, variant in enumerate(decl.variants):
+                if variant.fields is None:
+                    continue
+                destroy_stmts: list[LStmt] = []
+                retain_stmts: list[LStmt] = []
+
+                variant_c_name = f"{c_name}_{variant.name}"
+                variant_lt = LStruct(variant_c_name)
+                variant_access = LArrow(s_var, variant.name, variant_lt)
+
+                for fname, ftype_expr in variant.fields:
+                    f_type = self._type_of(ftype_expr) if ftype_expr else TNone()
+                    field_lt = self._lower_type(f_type)
+                    is_recursive = self._is_recursive_sum_field(
+                        f_type, decl.name, ftype_expr)
+                    if is_recursive:
+                        field_lt = LPtr(field_lt)
+
+                    field_expr = LFieldAccess(variant_access, fname, field_lt)
+                    release_fn = self._get_release_fn(f_type)
+                    retain_fn = self._RETAIN_FN.get(type(f_type))
+
+                    if release_fn is not None:
+                        destroy_stmts.append(LExprStmt(LCall(
+                            release_fn, [field_expr], LVoid())))
+                        if retain_fn:
+                            retain_stmts.append(LExprStmt(LCall(
+                                retain_fn, [field_expr], LVoid())))
+                    # Skip recursive sum type pointer fields — they may be
+                    # shared (e.g., AST nodes) and freeing them causes UAF.
+
+                if destroy_stmts:
+                    destroy_stmts.append(LBreak())
+                    destroy_cases.append((i, destroy_stmts))
+                if retain_stmts:
+                    retain_stmts.append(LBreak())
+                    retain_cases.append((i, retain_stmts))
+        finally:
+            self._types = saved_types
+
+        # Destructor function
+        destroy_body: list[LStmt] = [
+            LVarDecl(c_name=local_name, c_type=struct_ptr_lt,
+                     init=cast_expr),
+            LSwitch(
+                value=LArrow(s_var, "tag", LByte()),
+                cases=destroy_cases,
+                default=[LBreak()],
+            ),
+        ]
+        self._fn_defs.append(LFnDef(
+            c_name=destructor,
+            params=[ptr_param],
+            ret=LVoid(),
+            body=destroy_body,
+            is_pure=True,
+            source_name=f"sum destructor for {c_name}",
+        ))
+
+        # Retainer function
+        retain_body: list[LStmt] = [
+            LVarDecl(c_name=local_name, c_type=struct_ptr_lt,
+                     init=cast_expr),
+            LSwitch(
+                value=LArrow(s_var, "tag", LByte()),
+                cases=retain_cases,
+                default=[LBreak()],
+            ),
+        ]
+        self._fn_defs.append(LFnDef(
+            c_name=retainer,
+            params=[ptr_param],
+            ret=LVoid(),
+            body=retain_body,
+            is_pure=True,
+            source_name=f"sum retainer for {c_name}",
+        ))
+
+        return (destructor, retainer)
 
     def _get_or_emit_struct_handlers(self, elem_type: Type,
                                       elem_lt: LType) -> tuple[str, str] | None:
@@ -2097,6 +2305,19 @@ class Lowerer:
                     [LArrow(LVar(local_name, struct_ptr_lt), field_name,
                             self._lower_type(field_type))],
                     LVoid())))
+            elif self._sum_type_has_cleanup_fields(field_type):
+                # Sum type field — call its destructor on the field address
+                field_lt = self._lower_type(field_type)
+                sum_handlers = self._get_or_emit_sum_type_handlers(
+                    field_type, field_lt)
+                if sum_handlers:
+                    sum_destructor, _ = sum_handlers
+                    destroy_body.append(LExprStmt(LCall(
+                        sum_destructor,
+                        [LAddrOf(LArrow(LVar(local_name, struct_ptr_lt),
+                                        field_name, field_lt),
+                                 LPtr(field_lt))],
+                        LVoid())))
         self._fn_defs.append(LFnDef(
             c_name=destructor,
             params=[ptr_param],
@@ -2118,6 +2339,19 @@ class Lowerer:
                     [LArrow(LVar(local_name, struct_ptr_lt), field_name,
                             self._lower_type(field_type))],
                     LVoid())))
+            elif self._sum_type_has_cleanup_fields(field_type):
+                # Sum type field — call its retainer on the field address
+                field_lt = self._lower_type(field_type)
+                sum_handlers = self._get_or_emit_sum_type_handlers(
+                    field_type, field_lt)
+                if sum_handlers:
+                    _, sum_retainer = sum_handlers
+                    retain_body.append(LExprStmt(LCall(
+                        sum_retainer,
+                        [LAddrOf(LArrow(LVar(local_name, struct_ptr_lt),
+                                        field_name, field_lt),
+                                 LPtr(field_lt))],
+                        LVoid())))
         self._fn_defs.append(LFnDef(
             c_name=retainer,
             params=[ptr_param],
@@ -2160,6 +2394,23 @@ class Lowerer:
             base_var = LFieldAccess(base_var, part, struct_c_type)
         access = LFieldAccess(base_var, field_name, LPtr(LVoid()))
         return LExprStmt(LCall(release_fn, [access], LVoid()))
+
+    def _emit_sum_field_release(self, struct_var: str, field_name: str,
+                                 struct_c_type: LType,
+                                 destructor_fn: str,
+                                 field_lt: LType) -> LStmt:
+        """Build an LExprStmt that calls destructor_fn(&struct_var.field_name).
+
+        For sum type fields embedded by value in a struct, the destructor
+        expects a void* pointer, so we take the address of the field.
+        """
+        parts = struct_var.split(".")
+        base_var: LExpr = LVar(parts[0], struct_c_type)
+        for part in parts[1:]:
+            base_var = LFieldAccess(base_var, part, struct_c_type)
+        access = LFieldAccess(base_var, field_name, field_lt)
+        return LExprStmt(LCall(destructor_fn,
+                               [LAddrOf(access, LPtr(field_lt))], LVoid()))
 
     def _retain_struct_fields(self, fields: list[tuple[str, LExpr]],
                               ast_args: list[Expr]) -> None:
@@ -2617,7 +2868,8 @@ class Lowerer:
     def _emit_loop_end_cleanup(self, body: list[LStmt],
                                loop_depth: int,
                                cl_snapshot: int,
-                               sf_snapshot: int) -> None:
+                               sf_snapshot: int,
+                               sum_sf_snapshot: int = 0) -> None:
         """Append release calls at end of loop body for loop-scoped variables.
 
         For container locals: only release if the variable was retained in
@@ -2674,6 +2926,22 @@ class Lowerer:
             cleanup.append(self._emit_struct_field_release(
                 sv, fn, sct, rel_fn))
 
+        # Sum type field releases: only those registered during this body
+        for sv, fn, sct, dest_fn, flt, depth in self._sum_field_cleanup[sum_sf_snapshot:]:
+            if depth != loop_depth:
+                continue
+            field_key = f"{sv}.{fn}"
+            if field_key in seen_fields:
+                continue
+            base = sv.split(".")[0]
+            if base not in top_decls:
+                continue
+            if sv in self._transferred_struct_vars:
+                continue
+            seen_fields.add(field_key)
+            cleanup.append(self._emit_sum_field_release(
+                sv, fn, sct, dest_fn, flt))
+
         body.extend(cleanup)
 
     def _lower_while(self, stmt: WhileStmt) -> list[LStmt]:
@@ -2681,9 +2949,11 @@ class Lowerer:
         self._scope_depth += 1
         cl_snapshot = len(self._container_locals)
         sf_snapshot = len(self._struct_field_cleanup)
+        sum_sf_snapshot = len(self._sum_field_cleanup)
         body = self._lower_block(stmt.body)
         self._emit_loop_end_cleanup(body, self._scope_depth,
-                                     cl_snapshot, sf_snapshot)
+                                     cl_snapshot, sf_snapshot,
+                                     sum_sf_snapshot)
         self._scope_depth -= 1
         result: list[LStmt] = [LWhile(cond=cond, body=body)]
         if stmt.finally_block is not None:
@@ -2758,12 +3028,14 @@ class Lowerer:
         self._scope_depth += 1
         cl_snapshot = len(self._container_locals)
         sf_snapshot = len(self._struct_field_cleanup)
+        sum_sf_snapshot = len(self._sum_field_cleanup)
         inner_body = self._lower_block(stmt.body)
         loop_depth = self._scope_depth
         self._scope_depth -= 1
         body_stmts = [item_decl] + inner_body + [increment]
         self._emit_loop_end_cleanup(body_stmts, loop_depth,
-                                     cl_snapshot, sf_snapshot)
+                                     cl_snapshot, sf_snapshot,
+                                     sum_sf_snapshot)
         result: list[LStmt] = []
 
         if cleanup_needed:
@@ -8130,13 +8402,20 @@ class Lowerer:
         return LCall("fl_array_push_sized",
                      [lowered_args[0], addr_of, size_of], lt)
 
-    def _heap_box_struct(self, expr: LExpr, struct_lt: LStruct) -> LExpr:
+    def _heap_box_struct(self, expr: LExpr, struct_lt: LStruct,
+                         orig_type: Type | None = None) -> LExpr:
         """Heap-box a struct value for passing through void* generic params.
 
         Generates:
             Type* _fl_tmp_N = (Type*)malloc(sizeof(Type));
             *_fl_tmp_N = expr;
         Returns LVar pointing to the temp.
+
+        When the same variable is heap-boxed multiple times (e.g. stored
+        in a map twice for the same key), the first copy's destruction
+        would free shared fields.  On subsequent transfers, retain the
+        struct's refcounted fields so they survive the first copy's
+        destruction.
         """
         tmp = self._fresh_temp()
         ptr_type = LPtr(struct_lt)
@@ -8150,7 +8429,24 @@ class Lowerer:
         # The shallow copy (*tmp = expr) transfers internal pointers.
         # If expr is an LVar, mark it so scope-exit cleanup skips its fields.
         if isinstance(expr, LVar):
-            self._transferred_struct_vars.add(expr.c_name)
+            if expr.c_name in self._transferred_struct_vars:
+                # Second+ transfer: retain refcounted fields before the
+                # shallow copy so they survive the first copy's destruction
+                # (e.g. when a map overwrites the same key).
+                if orig_type is not None:
+                    fields = self._get_struct_fields_cross_module(orig_type)
+                    if fields:
+                        var_expr = LVar(expr.c_name, struct_lt)
+                        for fn, ft in fields.items():
+                            retain_fn = self._RETAIN_FN.get(type(ft))
+                            if retain_fn:
+                                self._pending_stmts.append(LExprStmt(
+                                    LCall(retain_fn,
+                                          [LFieldAccess(var_expr, fn,
+                                                        self._lower_type(ft))],
+                                          LVoid())))
+            else:
+                self._transferred_struct_vars.add(expr.c_name)
         self._pending_stmts.append(LAssign(
             LDeref(LVar(tmp, ptr_type), struct_lt),
             expr,
@@ -8224,7 +8520,8 @@ class Lowerer:
                         arg = LCall(box_fn, [arg], LPtr(LVoid()))
                     elif isinstance(concrete_lt, LStruct):
                         # Struct value type: heap-box via address-of cast
-                        arg = self._heap_box_struct(arg, concrete_lt)
+                        arg = self._heap_box_struct(arg, concrete_lt,
+                                                    orig_type=concrete)
             boxed_args.append(arg)
 
         # Hoist string temporaries in args so they get released after the call
@@ -8511,6 +8808,8 @@ class Lowerer:
         self._container_locals = []
         saved_struct_field_cleanup = self._struct_field_cleanup
         self._struct_field_cleanup = []
+        saved_sum_field_cleanup = self._sum_field_cleanup
+        self._sum_field_cleanup = []
         saved_transferred_struct_vars = self._transferred_struct_vars
         self._transferred_struct_vars = set()
         saved_scope_depth = self._scope_depth
@@ -8554,7 +8853,7 @@ class Lowerer:
                     body.append(LReturn(expr_result))
 
         # Scope-exit cleanup for monomorphized functions
-        if self._container_locals or self._struct_field_cleanup:
+        if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup:
             self._inject_scope_cleanup(body)
             if isinstance(ret_lt, LVoid):
                 body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
@@ -8563,6 +8862,11 @@ class Lowerer:
                 body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
                              for sv, fn, sct, rel, depth
                              in self._struct_field_cleanup
+                             if depth == 0
+                             and sv not in self._transferred_struct_vars])
+                body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
+                             for sv, fn, sct, dest, flt, depth
+                             in self._sum_field_cleanup
                              if depth == 0
                              and sv not in self._transferred_struct_vars])
 
@@ -8577,6 +8881,7 @@ class Lowerer:
         self._mono_caller_module_path = saved_mono_caller
         self._container_locals = saved_container_locals
         self._struct_field_cleanup = saved_struct_field_cleanup
+        self._sum_field_cleanup = saved_sum_field_cleanup
         self._transferred_struct_vars = saved_transferred_struct_vars
         self._scope_depth = saved_scope_depth
 

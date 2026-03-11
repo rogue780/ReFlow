@@ -11247,6 +11247,8 @@ void fl_self_hosted_resolver_build_member_scope(fl_self_hosted_resolver_Resolver
                                 fl_map_release(_fl_old_78);
                             }
                             fl_self_hosted_resolver_Symbol* _fl_tmp_79 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_79) = sym;
                             FL_Map* _fl_old_80 = mm;
                             mm = fl_map_set_str(mm, sn, ((void*)_fl_tmp_79));
@@ -12791,6 +12793,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_210.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_210.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_211 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_211) = sym;
                             FL_Map* _fl_old_212 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_211));
@@ -12871,6 +12875,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_222.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_222.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_223 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_223) = sym;
                             FL_Map* _fl_old_224 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_223));
@@ -12894,6 +12900,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_225.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_225.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_226 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_226) = sym;
                             FL_Map* _fl_old_227 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_226));
@@ -12916,6 +12924,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_228.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_228.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_229 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_229) = sym;
                             FL_Map* _fl_old_230 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_229));
@@ -12942,6 +12952,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_231.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_231.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_232 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_232) = sym;
                             FL_Map* _fl_old_233 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_232));
@@ -12963,6 +12975,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_234.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_234.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_235 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_235) = sym;
                             FL_Map* _fl_old_236 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_235));
@@ -16333,6 +16347,20 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
         fl_self_hosted_typechecker_TCType final_sum = (fl_self_hosted_typechecker_TCType){.tag = 20, .TCSumType = (fl_self_hosted_typechecker_TCType_TCSumType){.name = name, .mod_path = module_path, .variants = sum_variants}};
         info.sum_type_box = fl_self_hosted_typechecker_tc_box(final_sum);
         fl_self_hosted_typechecker_TypeInfo* _fl_tmp_288 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
+        fl_string_retain(info.name);
+        fl_array_retain(info.type_param_names);
+        fl_array_retain(info.field_names);
+        fl_map_retain(info.field_types);
+        fl_map_retain(info.field_muts);
+        fl_array_retain(info.method_names);
+        fl_map_retain(info.method_types);
+        fl_array_retain(info.static_names);
+        fl_map_retain(info.static_types);
+        fl_map_retain(info.static_muts);
+        fl_array_retain(info.ctor_names);
+        fl_map_retain(info.ctor_types);
+        fl_array_retain(info.interface_exprs);
+        fl_string_retain(info.module_path);
         (*_fl_tmp_288) = info;
         FL_Map* _fl_old_289 = s->type_registry;
         s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_288));
@@ -16530,6 +16558,20 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
             ci = _fl_e_10;
         }
         fl_self_hosted_typechecker_TypeInfo* _fl_tmp_319 = ((fl_self_hosted_typechecker_TypeInfo*)malloc(sizeof(fl_self_hosted_typechecker_TypeInfo)));
+        fl_string_retain(info.name);
+        fl_array_retain(info.type_param_names);
+        fl_array_retain(info.field_names);
+        fl_map_retain(info.field_types);
+        fl_map_retain(info.field_muts);
+        fl_array_retain(info.method_names);
+        fl_map_retain(info.method_types);
+        fl_array_retain(info.static_names);
+        fl_map_retain(info.static_types);
+        fl_map_retain(info.static_muts);
+        fl_array_retain(info.ctor_names);
+        fl_map_retain(info.ctor_types);
+        fl_array_retain(info.interface_exprs);
+        fl_string_retain(info.module_path);
         (*_fl_tmp_319) = info;
         FL_Map* _fl_old_320 = s->type_registry;
         s->type_registry = fl_map_set_str(s->type_registry, name, ((void*)_fl_tmp_319));

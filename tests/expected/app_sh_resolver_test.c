@@ -11247,6 +11247,8 @@ void fl_self_hosted_resolver_build_member_scope(fl_self_hosted_resolver_Resolver
                                 fl_map_release(_fl_old_78);
                             }
                             fl_self_hosted_resolver_Symbol* _fl_tmp_79 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_79) = sym;
                             FL_Map* _fl_old_80 = mm;
                             mm = fl_map_set_str(mm, sn, ((void*)_fl_tmp_79));
@@ -12791,6 +12793,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_210.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_210.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_211 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_211) = sym;
                             FL_Map* _fl_old_212 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_211));
@@ -12871,6 +12875,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_222.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_222.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_223 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_223) = sym;
                             FL_Map* _fl_old_224 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_223));
@@ -12894,6 +12900,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_225.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_225.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_226 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_226) = sym;
                             FL_Map* _fl_old_227 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_226));
@@ -12916,6 +12924,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_228.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_228.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_229 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_229) = sym;
                             FL_Map* _fl_old_230 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_229));
@@ -12942,6 +12952,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_231.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_231.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_232 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_232) = sym;
                             FL_Map* _fl_old_233 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_232));
@@ -12963,6 +12975,8 @@ fl_self_hosted_resolver_ModuleScope fl_self_hosted_resolver_build_module_scope(f
                         if (_fl_tmp_234.tag == 1) {
                             fl_self_hosted_resolver_Symbol sym = _fl_tmp_234.value;
                             fl_self_hosted_resolver_Symbol* _fl_tmp_235 = ((fl_self_hosted_resolver_Symbol*)malloc(sizeof(fl_self_hosted_resolver_Symbol)));
+                            fl_string_retain(sym.name);
+                            fl_string_retain(sym.module_key);
                             (*_fl_tmp_235) = sym;
                             FL_Map* _fl_old_236 = exports;
                             exports = fl_map_set_str(exports, name, ((void*)_fl_tmp_235));
