@@ -2131,6 +2131,9 @@ class Lowerer:
         StringLit is NOT allocating — interned as a static global with a
         pinned refcount, so retain/release is a no-op on it.
         """
+        # Unwrap NamedArg wrapper (named function/constructor arguments)
+        if isinstance(expr, NamedArg):
+            expr = expr.value
         return isinstance(expr, (Call, MethodCall, BinOp, SomeExpr, OkExpr,
                                  ErrExpr, ArrayLit, RecordLit, FStringExpr,
                                  CopyExpr, IfExpr, MatchExpr))
@@ -3888,14 +3891,14 @@ class Lowerer:
             if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                     and isinstance(sym.decl, SumVariantDecl)):
                 return self._lower_variant_ctor(name, sym.decl, t, lt, lowered_args,
-                                                list(expr.args))
+                                                list(call_args))
             # Struct constructor — inline as compound literal
             if (sym is not None and sym.kind == SymbolKind.CONSTRUCTOR
                     and isinstance(sym.decl, ConstructorDecl)):
                 ctor_decl: ConstructorDecl = sym.decl
                 fields = [(p.name, arg)
                           for p, arg in zip(ctor_decl.params, lowered_args)]
-                self._retain_struct_fields(fields, list(expr.args))
+                self._retain_struct_fields(fields, list(call_args))
                 return LCompound(fields=fields, c_type=lt)
             # Positional struct construction via type name: MyStruct(a, b, c)
             if (sym is not None and sym.kind == SymbolKind.TYPE
@@ -3909,7 +3912,7 @@ class Lowerer:
                 struct_mod = getattr(sym, 'module_path', None) or self._module_path
                 struct_lt = LStruct(mangle(struct_mod, type_decl.name,
                                           file=self._file, line=expr.line, col=expr.col))
-                self._retain_struct_fields(fields, list(expr.args))
+                self._retain_struct_fields(fields, list(call_args))
                 return LCompound(fields=fields, c_type=struct_lt)
             if sym is not None and sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
                 # Check if this is a bounded generic — monomorphize it (SG-3-4-2)
