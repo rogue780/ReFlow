@@ -1384,21 +1384,44 @@ class Lowerer:
                             and isinstance(last.expr, LCall)
                             and last.expr.fn_name == "_fl_throw")
                 if isinstance(last, LReturn):
-                    # Insert releases before the return, but skip any
-                    # temps referenced in the return expression
+                    # Insert releases before the return, but handle
+                    # temps referenced in the return expression.
                     returned_names = self._collect_referenced_vars(last.value)
                     safe_posts = []
+                    blocked_posts = []
                     for ps in self._post_stmts:
                         if (isinstance(ps, LExprStmt)
                                 and isinstance(ps.expr, LCall)
                                 and ps.expr.args
                                 and isinstance(ps.expr.args[0], LVar)
                                 and ps.expr.args[0].c_name in returned_names):
-                            continue  # skip — temp is the returned value
-                        safe_posts.append(ps)
+                            blocked_posts.append(ps)
+                        else:
+                            safe_posts.append(ps)
                     result.extend(lowered[:-1])  # all stmts before return
-                    result.extend(safe_posts)
-                    result.append(last)  # the return
+                    if blocked_posts and last.value is not None:
+                        # Hoist the return expr so blocked temps can
+                        # be released before the return.
+                        if isinstance(last.value, LVar):
+                            # Direct var return — skip releases for
+                            # the var itself (it IS the return value)
+                            result.extend(safe_posts)
+                            result.append(last)
+                        else:
+                            ret_tmp = f"_fl_ret_{self._tmp_counter}"
+                            self._tmp_counter += 1
+                            ret_ct = last.value.c_type
+                            result.append(LVarDecl(
+                                c_name=ret_tmp, c_type=ret_ct,
+                                init=last.value))
+                            result.extend(safe_posts)
+                            result.extend(blocked_posts)
+                            result.append(LReturn(
+                                value=LVar(ret_tmp, ret_ct),
+                                source_line=last.source_line))
+                    else:
+                        result.extend(safe_posts)
+                        result.append(last)
                 elif is_throw:
                     result.extend(lowered)
                     # Drop post_stmts — throw never returns
@@ -3532,9 +3555,13 @@ class Lowerer:
 
         # String equality
         if op == "==" and isinstance(left_type, TString):
-            return LCall("fl_string_eq", [left_expr, right_expr], LBool())
+            args = self._hoist_string_args("fl_string_eq",
+                                           [left_expr, right_expr])
+            return LCall("fl_string_eq", args, LBool())
         if op == "!=" and isinstance(left_type, TString):
-            return LUnary("!", LCall("fl_string_eq", [left_expr, right_expr], LBool()),
+            args = self._hoist_string_args("fl_string_eq",
+                                           [left_expr, right_expr])
+            return LUnary("!", LCall("fl_string_eq", args, LBool()),
                           LBool())
 
         # Congruence operator — compile-time structural type comparison
@@ -6723,7 +6750,8 @@ class Lowerer:
         """Create an equality comparison for pattern matching."""
         val_expr = self._lower_expr(val)
         if isinstance(subj_type, TString):
-            return LCall("fl_string_eq", [subj, val_expr], LBool())
+            args = self._hoist_string_args("fl_string_eq", [subj, val_expr])
+            return LCall("fl_string_eq", args, LBool())
         return LBinOp(op="==", left=subj, right=val_expr, c_type=LBool())
 
     # ------------------------------------------------------------------

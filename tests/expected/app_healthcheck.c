@@ -843,21 +843,23 @@ fl_tests_app_healthcheck_CheckStatus fl_tests_app_healthcheck_check_url(FL_Strin
             FL_String* resp = fl_string_from_bytes(data);
             fl_int status_code = fl_tests_app_healthcheck_parse_http_status(resp);
             if (status_code == expected) {
-                fl_tests_app_healthcheck_CheckStatus _fl_ret_20 = (fl_tests_app_healthcheck_CheckStatus){.tag = 0, .Pass = (fl_tests_app_healthcheck_CheckStatus_Pass){.code = status_code}};
+                fl_tests_app_healthcheck_CheckStatus _fl_ret_21 = (fl_tests_app_healthcheck_CheckStatus){.tag = 0, .Pass = (fl_tests_app_healthcheck_CheckStatus_Pass){.code = status_code}};
                 fl_string_release(req);
                 fl_string_release(resp);
-                return _fl_ret_20;
+                return _fl_ret_21;
             }
             FL_String* _fl_tmp_16 = fl_conv_to_string__int(expected);
             FL_String* _fl_tmp_17 = fl_string_concat(_fl_str_tests_app_healthcheck_14, _fl_tmp_16);
             FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, _fl_str_tests_app_healthcheck_15);
             FL_String* _fl_tmp_19 = fl_conv_to_string__int(status_code);
+            fl_tests_app_healthcheck_CheckStatus _fl_ret_20 = (fl_tests_app_healthcheck_CheckStatus){.tag = 2, .Warn = (fl_tests_app_healthcheck_CheckStatus_Warn){.code = status_code, .reason = fl_string_concat(_fl_tmp_18, _fl_tmp_19)}};
             fl_string_release(_fl_tmp_16);
             fl_string_release(_fl_tmp_17);
-            fl_tests_app_healthcheck_CheckStatus _fl_ret_21 = (fl_tests_app_healthcheck_CheckStatus){.tag = 2, .Warn = (fl_tests_app_healthcheck_CheckStatus_Warn){.code = status_code, .reason = fl_string_concat(_fl_tmp_18, _fl_tmp_19)}};
+            fl_string_release(_fl_tmp_18);
+            fl_string_release(_fl_tmp_19);
             fl_string_release(req);
             fl_string_release(resp);
-            return _fl_ret_21;
+            return _fl_ret_20;
         }
         fl_net_close(sock);
         _fl_throw(((void*)_fl_str_tests_app_healthcheck_16), 0);
