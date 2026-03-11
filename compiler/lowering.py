@@ -2066,9 +2066,11 @@ class Lowerer:
         their arguments.  Functions like array.push, map.set, etc. store the
         pointer so releasing the temp would cause use-after-free.
         """
-        # Functions that store string arguments — never hoist for these
+        # Functions that store string arguments — never hoist for these.
+        # fl_map_set_str is NOT excluded: it copies key bytes, doesn't
+        # store the FL_String* pointer, so key temps can be released.
         if fn_name in ("fl_array_push_ptr", "fl_array_push_sized",
-                        "fl_map_set_str", "fl_map_set",
+                        "fl_map_set",
                         "fl_array_put__string", "_fl_throw",
                         "fl_string_retain", "fl_string_release"):
             return args
@@ -7798,8 +7800,11 @@ class Lowerer:
                         arg = self._heap_box_struct(arg, concrete_lt)
             boxed_args.append(arg)
 
+        # Hoist string temporaries in args so they get released after the call
+        c_fn = _get_c_fn_name(fn_decl)
+        boxed_args = self._hoist_string_args(c_fn, boxed_args)
         # Make the call with void*-based types
-        call = LCall(_get_c_fn_name(fn_decl), boxed_args,
+        call = LCall(c_fn, boxed_args,
                      LStruct("FL_Option_ptr")
                      if self._return_is_option_of_typevar(fn_decl, env)
                      else result_lt)

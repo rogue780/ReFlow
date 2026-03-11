@@ -626,24 +626,26 @@ void fl_tests_app_stream_mux_main(void) {
         FL_String* existing = ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_app_stream_mux_17);
         fl_string_retain(existing);
         FL_String* _fl_tmp_7 = fl_string_concat(existing, line);
-        FL_Map* _fl_old_8 = destinations;
-        destinations = fl_map_set_str(destinations, dest, fl_string_concat(_fl_tmp_7, _fl_str_tests_app_stream_mux_18));
-        if (_fl_old_8 != destinations) {
-            fl_map_release(_fl_old_8);
+        FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, _fl_str_tests_app_stream_mux_18);
+        FL_Map* _fl_old_9 = destinations;
+        destinations = fl_map_set_str(destinations, dest, _fl_tmp_8);
+        if (_fl_old_9 != destinations) {
+            fl_map_release(_fl_old_9);
         }
         fl_string_release(_fl_tmp_7);
+        fl_string_release(_fl_tmp_8);
         _fl_tmp_5 = (_fl_tmp_5 + 1);
     }
     FL_Array* ks = fl_map_keys(destinations);
-    fl_int64 _fl_tmp_9 = 0;
-    while (_fl_tmp_9 < fl_array_len(ks)) {
-        FL_String* key = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_9)));
-        FL_String* _fl_tmp_10 = fl_string_concat(_fl_str_tests_app_stream_mux_19, key);
-        fl_println(fl_string_concat(_fl_tmp_10, _fl_str_tests_app_stream_mux_20));
-        fl_string_release(_fl_tmp_10);
-        FL_Option_ptr _fl_tmp_11 = fl_map_get_str(destinations, key);
-        fl_println(((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : _fl_str_tests_app_stream_mux_17));
-        _fl_tmp_9 = (_fl_tmp_9 + 1);
+    fl_int64 _fl_tmp_10 = 0;
+    while (_fl_tmp_10 < fl_array_len(ks)) {
+        FL_String* key = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_10)));
+        FL_String* _fl_tmp_11 = fl_string_concat(_fl_str_tests_app_stream_mux_19, key);
+        fl_println(fl_string_concat(_fl_tmp_11, _fl_str_tests_app_stream_mux_20));
+        fl_string_release(_fl_tmp_11);
+        FL_Option_ptr _fl_tmp_12 = fl_map_get_str(destinations, key);
+        fl_println(((_fl_tmp_12.tag == 1) ? _fl_tmp_12.value : _fl_str_tests_app_stream_mux_17));
+        _fl_tmp_10 = (_fl_tmp_10 + 1);
     }
     fl_array_release(records);
     fl_map_release(destinations);
