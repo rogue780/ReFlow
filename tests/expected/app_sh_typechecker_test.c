@@ -20284,6 +20284,7 @@ void fl_self_hosted_typechecker_check_fn_body(fl_self_hosted_typechecker_TCState
             if (_fl_old_770 != s->consumed_stream_names) {
                 fl_array_release(_fl_old_770);
             }
+            fl_array_set_elem_type(s->consumed_stream_names, 1);
             fl_self_hosted_typechecker_check_block(s, body);
             if (hf) {
                 fl_self_hosted_typechecker_check_block(s, fb);
@@ -20443,6 +20444,7 @@ void fl_self_hosted_typechecker_check_method_body(fl_self_hosted_typechecker_TCS
             if (_fl_old_782 != s->consumed_stream_names) {
                 fl_array_release(_fl_old_782);
             }
+            fl_array_set_elem_type(s->consumed_stream_names, 1);
             fl_self_hosted_typechecker_check_block(s, body);
             if (hf) {
                 fl_self_hosted_typechecker_check_block(s, fb);

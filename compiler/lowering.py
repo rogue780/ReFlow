@@ -2236,7 +2236,10 @@ class Lowerer:
         # Functions that store string arguments — never hoist for these.
         # fl_map_set_str is NOT excluded: it copies key bytes, doesn't
         # store the FL_String* pointer, so key temps can be released.
-        if fn_name in ("fl_array_push_ptr", "fl_array_push_sized",
+        # fl_array_push_ptr is NOT excluded: push retains elements when
+        # FL_ELEM_STRING is set, so releasing the hoisted temp is safe.
+        # Empty-array reassignment now properly sets elem_type.
+        if fn_name in ("fl_array_push_sized",
                         "fl_map_set",
                         "fl_array_put__string", "_fl_throw",
                         "fl_string_retain", "fl_string_release"):
@@ -2352,6 +2355,19 @@ class Lowerer:
                                 "fl_array_set_elem_type",
                                 [target, LLit(str(tag), LInt(64, True))],
                                 LVoid())))
+                        # Struct elements with refcounted fields
+                        elif self._has_refcounted_fields(target_type.element):
+                            elem_lt = self._lower_type(target_type.element)
+                            handlers = self._get_or_emit_struct_handlers(
+                                target_type.element, elem_lt)
+                            if handlers:
+                                destructor, retainer = handlers
+                                result.append(LExprStmt(LCall(
+                                    "fl_array_set_struct_handlers",
+                                    [target,
+                                     LVar(destructor, LPtr(LVoid())),
+                                     LVar(retainer, LPtr(LVoid()))],
+                                    LVoid())))
                 return result
 
         # Non-allocating RHS (borrowed value): retain new, release old.
@@ -2396,7 +2412,7 @@ class Lowerer:
                 self._tmp_counter += 1
                 old_c_type = target.c_type
                 old_var = LVar(old_tmp, old_c_type)
-                return [
+                result = [
                     LVarDecl(c_name=old_tmp, c_type=old_c_type, init=target),
                     LAssign(target=target, value=value),
                     LIf(
@@ -2407,6 +2423,30 @@ class Lowerer:
                         else_=[],
                     ),
                 ]
+                # Set elem_type on empty array reassignment so pushed
+                # elements are retained by the runtime.
+                if isinstance(stmt.value, ArrayLit) and not stmt.value.elements:
+                    if isinstance(target_type, TArray):
+                        tag = self._ELEM_TYPE_TAG.get(type(target_type.element))
+                        if tag is not None:
+                            result.append(LExprStmt(LCall(
+                                "fl_array_set_elem_type",
+                                [target, LLit(str(tag), LInt(64, True))],
+                                LVoid())))
+                        # Struct elements with refcounted fields
+                        elif self._has_refcounted_fields(target_type.element):
+                            elem_lt = self._lower_type(target_type.element)
+                            handlers = self._get_or_emit_struct_handlers(
+                                target_type.element, elem_lt)
+                            if handlers:
+                                destructor, retainer = handlers
+                                result.append(LExprStmt(LCall(
+                                    "fl_array_set_struct_handlers",
+                                    [target,
+                                     LVar(destructor, LPtr(LVoid())),
+                                     LVar(retainer, LPtr(LVoid()))],
+                                    LVoid())))
+                return result
 
         # Retain-on-store for FieldAccess targets with non-allocating RHS.
         # When assigning a shared reference (e.g. s.mod_scope_map = s.scope_map),
