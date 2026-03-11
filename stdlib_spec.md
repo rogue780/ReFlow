@@ -317,6 +317,15 @@ String manipulation. All functions are `pure`.
 - `url_decode` decodes percent-encoded strings (`%20` → space, `+` → space).
 - `url_encode` encodes non-URL-safe characters as `%XX`.
 
+### Optimization: In-place `:mut` String Concatenation
+
+When a `:mut` string binding is concatenated with itself (`s = s + rhs`), the
+compiler generates an in-place append instead of allocating a new string. If
+the string's refcount is 1 (sole owner), the existing buffer is reallocated
+in place. If shared (refcount > 1), a new string is allocated and the old one
+is released. This avoids O(n^2) behavior for loop-based string building with
+`:mut` bindings while preserving correct refcounting semantics.
+
 ---
 
 ## Module: `string_builder`

@@ -1886,6 +1886,22 @@ let a = (@buf).drain() -> process_a
 let b = buf.drain() -> process_b
 ```
 
+### Automatic Reference Counting Rules
+
+Flow uses automatic reference counting to achieve deterministic, zero-leak memory management. The compiler generates all necessary retain and release calls. No manual memory management is required.
+
+**Refcounted types.** Strings, arrays, maps, closures, streams, and buffers are heap-allocated and refcounted. Value types (int, float, bool, byte, char) and stack-allocated structs are not refcounted.
+
+**Owned-return convention.** All function returns transfer ownership. The returned value has a refcount of at least 1, owned by the caller. When a function returns a non-allocating expression (e.g., a local variable or parameter), the compiler inserts a retain before the return to give the caller its own +1. Allocating expressions (function calls, struct construction, array/map literals) already produce a fresh value with refcount 1 and need no extra retain.
+
+**Scope-exit release.** When a refcounted local goes out of scope — whether at function exit or block exit — the compiler inserts a release call. This applies to all refcounted locals regardless of mutability (`:mut` or default `:imut`), and regardless of whether the binding was initialized by an allocating or non-allocating expression.
+
+**Struct-construction retain.** When a refcounted value is placed into a struct field (whether via positional construction `Type(a, b)`, brace construction `Type { field: val }`, or variant construction `Variant(a, b)`), the compiler retains the value to give the struct its own +1. This ensures the struct's reference survives independently of the original binding. If the value is itself an allocating expression (a function call, literal, etc.), no extra retain is needed since the expression already produces a fresh +1.
+
+**Struct field release.** When a struct-typed local goes out of scope, the compiler releases each of its refcounted fields individually. This ensures that arrays, maps, and strings embedded in structs are freed when the struct is no longer needed.
+
+**Release-before-reassign.** When a `:mut` binding of a refcounted type is reassigned (`arr = array.push(arr, val)`), the compiler releases the old value before storing the new one.
+
 ---
 
 ## Reading Mutable Statics

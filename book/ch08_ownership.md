@@ -577,6 +577,51 @@ scope, not in bulk during a collection cycle. For latency-sensitive
 applications --- servers, real-time data processing --- this is a
 significant advantage.
 
+### 8.4.5 What the Compiler Generates
+
+You never write retain or release calls yourself --- the compiler inserts
+them automatically. Here is what happens behind the scenes:
+
+**Scope-exit release.** When a refcounted local (string, array, map,
+closure) goes out of scope --- whether at the end of a function or at the
+end of an `if`/`while`/`for` block --- the compiler inserts a release call.
+This applies to all refcounted locals, whether `:mut` or default immutable.
+
+**Owned returns.** Every function return transfers ownership to the caller.
+The returned value has a refcount of at least 1. If the function returns an
+existing variable (not a freshly allocated value), the compiler inserts a
+retain before the return so the caller gets its own +1.
+
+**Struct-construction retain.** When you place a refcounted value into a
+struct field, the struct gets its own +1 via an automatic retain. This
+ensures the struct's reference is independent of the original binding:
+
+```flow
+let name = "Alice"
+let user = User(name, 30)
+// name has refcount 2: one for the binding, one for the struct field
+// when name goes out of scope, refcount drops to 1 --- the struct survives
+```
+
+**Struct field release.** When a struct-typed local goes out of scope, the
+compiler releases each of its refcounted fields individually. Arrays, maps,
+and strings inside the struct are freed automatically.
+
+**Release-before-reassign.** When a `:mut` binding is reassigned, the
+compiler releases the old value before storing the new one:
+
+```flow
+let items:array<string>:mut = ["a", "b"]
+items = array.push(items, "c")
+// The old ["a", "b"] array is released before items points to ["a", "b", "c"]
+```
+
+**In-place `:mut` string append.** When you write `s = s + rhs` on a
+`:mut` string, the compiler optimizes this to an in-place buffer extension
+when the string has a refcount of 1. This avoids the O(n^2) cost of
+repeated concatenation in loops without requiring `string_builder` for
+simple cases.
+
 ---
 
 ## 8.5 Snapshot Values
