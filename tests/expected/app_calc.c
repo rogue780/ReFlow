@@ -737,8 +737,9 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_number(FL_String*
     FL_String* num_str = fl_string_substring(input, start, p);
     FL_Option_float _fl_tmp_5 = fl_conv_string_to_float(num_str);
     fl_float value = ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : 0.0);
+    FL_Tuple_fl_tests_app_calc_Expr_fl_int _fl_ret_6 = (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 0, .Literal = (fl_tests_app_calc_Expr_Literal){.value = value}}, ._1 = p};
     fl_string_release(num_str);
-    return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 0, .Literal = (fl_tests_app_calc_Expr_Literal){.value = value}}, ._1 = p};
+    return _fl_ret_6;
 }
 
 /* Flow: tests.app_calc.parse_ident */
@@ -747,8 +748,8 @@ FL_Tuple_FL_String_ptr_fl_int fl_tests_app_calc_parse_ident(FL_String* input, fl
     fl_int p = pos;
     fl_int length = fl_string_len(input);
     while (p < length) {
-        FL_Option_char _fl_tmp_6 = fl_string_char_at(input, p);
-        fl_char ch = ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : 32);
+        FL_Option_char _fl_tmp_7 = fl_string_char_at(input, p);
+        fl_char ch = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : 32);
         if (fl_char_is_alphanumeric(ch)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(p, 1, &_fl_e_1);
@@ -773,8 +774,8 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_primary(FL_String
     if (p >= fl_string_len(input)) {
         return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 0, .Literal = (fl_tests_app_calc_Expr_Literal){.value = 0.0}}, ._1 = p};
     }
-    FL_Option_char _fl_tmp_7 = fl_string_char_at(input, p);
-    fl_char ch = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : 32);
+    FL_Option_char _fl_tmp_8 = fl_string_char_at(input, p);
+    fl_char ch = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : 32);
     if (fl_char_is_digit(ch)) {
         return fl_tests_app_calc_parse_number(input, p);
     }
@@ -790,37 +791,39 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_primary(FL_String
         FL_Tuple_fl_tests_app_calc_Expr_fl_int inner = fl_tests_app_calc_parse_expr(input, _fl_e_1);
         fl_int close_pos = fl_tests_app_calc_skip_ws(input, inner._1);
         if (close_pos < fl_string_len(input)) {
-            FL_Option_char _fl_tmp_8 = fl_string_char_at(input, close_pos);
-            fl_char close_ch = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : 32);
+            FL_Option_char _fl_tmp_9 = fl_string_char_at(input, close_pos);
+            fl_char close_ch = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 32);
             if (fl_string_eq(fl_char_to_string(close_ch), _fl_str_tests_app_calc_4)) {
-                fl_string_release(cs);
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(close_pos, 1, &_fl_e_2);
-                return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = inner._0, ._1 = _fl_e_2};
+                FL_Tuple_fl_tests_app_calc_Expr_fl_int _fl_ret_10 = (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = inner._0, ._1 = _fl_e_2};
+                fl_string_release(cs);
+                return _fl_ret_10;
             }
         }
         fl_string_release(cs);
         return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = inner._0, ._1 = inner._1};
     }
-    fl_string_release(cs);
     fl_int _fl_e_3;
     FL_CHECKED_ADD(p, 1, &_fl_e_3);
-    return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 0, .Literal = (fl_tests_app_calc_Expr_Literal){.value = 0.0}}, ._1 = _fl_e_3};
+    FL_Tuple_fl_tests_app_calc_Expr_fl_int _fl_ret_11 = (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 0, .Literal = (fl_tests_app_calc_Expr_Literal){.value = 0.0}}, ._1 = _fl_e_3};
+    fl_string_release(cs);
+    return _fl_ret_11;
 }
 
 /* Flow: tests.app_calc.parse_unary */
 FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_unary(FL_String* input, fl_int pos) {
     fl_int p = fl_tests_app_calc_skip_ws(input, pos);
     if (p < fl_string_len(input)) {
-        FL_Option_char _fl_tmp_9 = fl_string_char_at(input, p);
-        fl_char ch = ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 32);
+        FL_Option_char _fl_tmp_12 = fl_string_char_at(input, p);
+        fl_char ch = ((_fl_tmp_12.tag == 1) ? _fl_tmp_12.value : 32);
         if (fl_string_eq(fl_char_to_string(ch), _fl_str_tests_app_calc_5)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(p, 1, &_fl_e_1);
             FL_Tuple_fl_tests_app_calc_Expr_fl_int result = fl_tests_app_calc_parse_unary(input, _fl_e_1);
-            fl_tests_app_calc_Expr* _fl_tmp_10 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-            (*_fl_tmp_10) = result._0;
-            return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 2, .Neg = (fl_tests_app_calc_Expr_Neg){.inner = _fl_tmp_10}}, ._1 = result._1};
+            fl_tests_app_calc_Expr* _fl_tmp_13 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+            (*_fl_tmp_13) = result._0;
+            return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 2, .Neg = (fl_tests_app_calc_Expr_Neg){.inner = _fl_tmp_13}}, ._1 = result._1};
         }
     }
     return fl_tests_app_calc_parse_primary(input, p);
@@ -831,18 +834,18 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_power(FL_String* 
     FL_Tuple_fl_tests_app_calc_Expr_fl_int base = fl_tests_app_calc_parse_unary(input, pos);
     fl_int p = fl_tests_app_calc_skip_ws(input, base._1);
     if (p < fl_string_len(input)) {
-        FL_Option_char _fl_tmp_11 = fl_string_char_at(input, p);
-        fl_char ch = ((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : 32);
+        FL_Option_char _fl_tmp_14 = fl_string_char_at(input, p);
+        fl_char ch = ((_fl_tmp_14.tag == 1) ? _fl_tmp_14.value : 32);
         if (fl_string_eq(fl_char_to_string(ch), _fl_str_tests_app_calc_6)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(p, 1, &_fl_e_1);
             FL_Tuple_fl_tests_app_calc_Expr_fl_int exp = fl_tests_app_calc_parse_power(input, _fl_e_1);
-            fl_tests_app_calc_Expr* _fl_tmp_12 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-            (*_fl_tmp_12) = base._0;
-            fl_tests_app_calc_Expr* _fl_tmp_13 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-            (*_fl_tmp_13) = exp._0;
+            fl_tests_app_calc_Expr* _fl_tmp_15 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+            (*_fl_tmp_15) = base._0;
+            fl_tests_app_calc_Expr* _fl_tmp_16 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+            (*_fl_tmp_16) = exp._0;
             fl_string_retain(_fl_str_tests_app_calc_6);
-            return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_6, .left = _fl_tmp_12, .right = _fl_tmp_13}}, ._1 = exp._1};
+            return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_6, .left = _fl_tmp_15, .right = _fl_tmp_16}}, ._1 = exp._1};
         }
     }
     return (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = base._0, ._1 = base._1};
@@ -864,36 +867,36 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(p, 1, &_fl_e_1);
                 FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_1);
-                fl_tests_app_calc_Expr* _fl_tmp_14 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                (*_fl_tmp_14) = left;
-                fl_tests_app_calc_Expr* _fl_tmp_15 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                (*_fl_tmp_15) = rhs._0;
+                fl_tests_app_calc_Expr* _fl_tmp_17 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                (*_fl_tmp_17) = left;
+                fl_tests_app_calc_Expr* _fl_tmp_18 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                (*_fl_tmp_18) = rhs._0;
                 fl_string_retain(_fl_str_tests_app_calc_7);
-                left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_7, .left = _fl_tmp_14, .right = _fl_tmp_15}};
+                left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_7, .left = _fl_tmp_17, .right = _fl_tmp_18}};
                 cur = rhs._1;
             } else {
                 if (fl_string_eq(ch, _fl_str_tests_app_calc_8)) {
                     fl_int _fl_e_2;
                     FL_CHECKED_ADD(p, 1, &_fl_e_2);
                     FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_2);
-                    fl_tests_app_calc_Expr* _fl_tmp_16 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                    (*_fl_tmp_16) = left;
-                    fl_tests_app_calc_Expr* _fl_tmp_17 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                    (*_fl_tmp_17) = rhs._0;
+                    fl_tests_app_calc_Expr* _fl_tmp_19 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                    (*_fl_tmp_19) = left;
+                    fl_tests_app_calc_Expr* _fl_tmp_20 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                    (*_fl_tmp_20) = rhs._0;
                     fl_string_retain(_fl_str_tests_app_calc_8);
-                    left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_8, .left = _fl_tmp_16, .right = _fl_tmp_17}};
+                    left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_8, .left = _fl_tmp_19, .right = _fl_tmp_20}};
                     cur = rhs._1;
                 } else {
                     if (fl_string_eq(ch, _fl_str_tests_app_calc_9)) {
                         fl_int _fl_e_3;
                         FL_CHECKED_ADD(p, 1, &_fl_e_3);
                         FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_3);
-                        fl_tests_app_calc_Expr* _fl_tmp_18 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                        (*_fl_tmp_18) = left;
-                        fl_tests_app_calc_Expr* _fl_tmp_19 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                        (*_fl_tmp_19) = rhs._0;
+                        fl_tests_app_calc_Expr* _fl_tmp_21 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                        (*_fl_tmp_21) = left;
+                        fl_tests_app_calc_Expr* _fl_tmp_22 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                        (*_fl_tmp_22) = rhs._0;
                         fl_string_retain(_fl_str_tests_app_calc_9);
-                        left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_9, .left = _fl_tmp_18, .right = _fl_tmp_19}};
+                        left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_9, .left = _fl_tmp_21, .right = _fl_tmp_22}};
                         cur = rhs._1;
                     } else {
                         running = fl_false;
@@ -921,24 +924,24 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_additive(FL_Strin
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(p, 1, &_fl_e_1);
                 FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_multiplicative(input, _fl_e_1);
-                fl_tests_app_calc_Expr* _fl_tmp_20 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                (*_fl_tmp_20) = left;
-                fl_tests_app_calc_Expr* _fl_tmp_21 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                (*_fl_tmp_21) = rhs._0;
+                fl_tests_app_calc_Expr* _fl_tmp_23 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                (*_fl_tmp_23) = left;
+                fl_tests_app_calc_Expr* _fl_tmp_24 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                (*_fl_tmp_24) = rhs._0;
                 fl_string_retain(_fl_str_tests_app_calc_10);
-                left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_10, .left = _fl_tmp_20, .right = _fl_tmp_21}};
+                left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_10, .left = _fl_tmp_23, .right = _fl_tmp_24}};
                 cur = rhs._1;
             } else {
                 if (fl_string_eq(ch, _fl_str_tests_app_calc_5)) {
                     fl_int _fl_e_2;
                     FL_CHECKED_ADD(p, 1, &_fl_e_2);
                     FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_multiplicative(input, _fl_e_2);
-                    fl_tests_app_calc_Expr* _fl_tmp_22 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                    (*_fl_tmp_22) = left;
-                    fl_tests_app_calc_Expr* _fl_tmp_23 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                    (*_fl_tmp_23) = rhs._0;
+                    fl_tests_app_calc_Expr* _fl_tmp_25 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                    (*_fl_tmp_25) = left;
+                    fl_tests_app_calc_Expr* _fl_tmp_26 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
+                    (*_fl_tmp_26) = rhs._0;
                     fl_string_retain(_fl_str_tests_app_calc_5);
-                    left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_5, .left = _fl_tmp_22, .right = _fl_tmp_23}};
+                    left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_5, .left = _fl_tmp_25, .right = _fl_tmp_26}};
                     cur = rhs._1;
                 } else {
                     running = fl_false;
@@ -956,28 +959,28 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_expr(FL_String* i
 
 /* Flow: tests.app_calc.eval */
 fl_float fl_tests_app_calc_eval(fl_tests_app_calc_Expr expr, FL_Map* env) {
-    fl_tests_app_calc_Expr _fl_tmp_24 = expr;
-    switch (_fl_tmp_24.tag) {
+    fl_tests_app_calc_Expr _fl_tmp_27 = expr;
+    switch (_fl_tmp_27.tag) {
         case 0: {
-            fl_float n = _fl_tmp_24.Literal.value;
+            fl_float n = _fl_tmp_27.Literal.value;
             return n;
             break;
         }
         case 1: {
-            FL_String* name = _fl_tmp_24.Var.name;
-            FL_Option_float _fl_tmp_25 = fl_opt_unbox_float(fl_map_get_str(env, name));
-            return ((_fl_tmp_25.tag == 1) ? _fl_tmp_25.value : 0.0);
+            FL_String* name = _fl_tmp_27.Var.name;
+            FL_Option_float _fl_tmp_28 = fl_opt_unbox_float(fl_map_get_str(env, name));
+            return ((_fl_tmp_28.tag == 1) ? _fl_tmp_28.value : 0.0);
             break;
         }
         case 2: {
-            fl_tests_app_calc_Expr inner = (*_fl_tmp_24.Neg.inner);
+            fl_tests_app_calc_Expr inner = (*_fl_tmp_27.Neg.inner);
             return (0.0 - fl_tests_app_calc_eval(inner, env));
             break;
         }
         case 3: {
-            FL_String* op = _fl_tmp_24.BinOp.op;
-            fl_tests_app_calc_Expr left = (*_fl_tmp_24.BinOp.left);
-            fl_tests_app_calc_Expr right = (*_fl_tmp_24.BinOp.right);
+            FL_String* op = _fl_tmp_27.BinOp.op;
+            fl_tests_app_calc_Expr left = (*_fl_tmp_27.BinOp.left);
+            fl_tests_app_calc_Expr right = (*_fl_tmp_27.BinOp.right);
             fl_float lv = fl_tests_app_calc_eval(left, env);
             fl_float rv = fl_tests_app_calc_eval(right, env);
             if (fl_string_eq(op, _fl_str_tests_app_calc_10)) {
@@ -1032,13 +1035,13 @@ FL_String* fl_tests_app_calc_format_result(fl_float value) {
 void fl_tests_app_calc_eval_and_print(FL_String* label, FL_String* input, FL_Map* env) {
     FL_Tuple_fl_tests_app_calc_Expr_fl_int parsed = fl_tests_app_calc_parse_expr(input, 0);
     fl_float result = fl_tests_app_calc_eval(parsed._0, env);
-    FL_String* _fl_tmp_26 = fl_string_concat(label, _fl_str_tests_app_calc_11);
-    FL_String* _fl_tmp_27 = fl_tests_app_calc_format_result(result);
-    FL_String* _fl_tmp_28 = fl_string_concat(_fl_tmp_26, _fl_tmp_27);
-    fl_println(_fl_tmp_28);
-    fl_string_release(_fl_tmp_26);
-    fl_string_release(_fl_tmp_27);
-    fl_string_release(_fl_tmp_28);
+    FL_String* _fl_tmp_29 = fl_string_concat(label, _fl_str_tests_app_calc_11);
+    FL_String* _fl_tmp_30 = fl_tests_app_calc_format_result(result);
+    FL_String* _fl_tmp_31 = fl_string_concat(_fl_tmp_29, _fl_tmp_30);
+    fl_println(_fl_tmp_31);
+    fl_string_release(_fl_tmp_29);
+    fl_string_release(_fl_tmp_30);
+    fl_string_release(_fl_tmp_31);
 }
 
 /* Flow: tests.app_calc.main */
@@ -1057,15 +1060,15 @@ void fl_tests_app_calc_main(void) {
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_22, _fl_str_tests_app_calc_22, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_23, _fl_str_tests_app_calc_23, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_24, _fl_str_tests_app_calc_24, env);
-    FL_Map* _fl_old_29 = env;
+    FL_Map* _fl_old_32 = env;
     env = fl_map_set_str(env, _fl_str_tests_app_calc_25, fl_box_float(10.0));
-    if (_fl_old_29 != env) {
-        fl_map_release(_fl_old_29);
+    if (_fl_old_32 != env) {
+        fl_map_release(_fl_old_32);
     }
-    FL_Map* _fl_old_30 = env;
+    FL_Map* _fl_old_33 = env;
     env = fl_map_set_str(env, _fl_str_tests_app_calc_26, fl_box_float(5.0));
-    if (_fl_old_30 != env) {
-        fl_map_release(_fl_old_30);
+    if (_fl_old_33 != env) {
+        fl_map_release(_fl_old_33);
     }
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_27, _fl_str_tests_app_calc_27, env);
     fl_tests_app_calc_eval_and_print(_fl_str_tests_app_calc_28, _fl_str_tests_app_calc_28, env);

@@ -626,36 +626,43 @@ fl_tests_app_log_pipeline_LogEntry fl_tests_app_log_pipeline_parse_kv_log(FL_Str
     fl_string_retain(ts);
     fl_string_retain(src);
     fl_string_retain(msg);
+    fl_tests_app_log_pipeline_LogEntry _fl_ret_4 = (fl_tests_app_log_pipeline_LogEntry){.timestamp = ts, .severity = fl_tests_app_log_pipeline_make_severity(level), .source = src, .message = msg};
     fl_array_release(parts);
-    return (fl_tests_app_log_pipeline_LogEntry){.timestamp = ts, .severity = fl_tests_app_log_pipeline_make_severity(level), .source = src, .message = msg};
+    fl_string_release(ts);
+    fl_string_release(level);
+    fl_string_release(src);
+    fl_string_release(msg);
+    return _fl_ret_4;
 }
 
 /* Flow: tests.app_log_pipeline.parse_csv_log */
 fl_tests_app_log_pipeline_LogEntry fl_tests_app_log_pipeline_parse_csv_log(FL_String* line) {
     FL_Array* parts = fl_string_split(line, _fl_str_tests_app_log_pipeline_10);
-    FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(parts, 0);
-    fl_string_retain(((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_app_log_pipeline_5));
-    FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(parts, 1);
-    FL_Option_ptr _fl_tmp_6 = fl_array_get_safe(parts, 2);
-    fl_string_retain(((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_app_log_pipeline_5));
-    FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(parts, 3);
+    FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(parts, 0);
+    fl_string_retain(((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : _fl_str_tests_app_log_pipeline_5));
+    FL_Option_ptr _fl_tmp_6 = fl_array_get_safe(parts, 1);
+    FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(parts, 2);
     fl_string_retain(((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_log_pipeline_5));
+    FL_Option_ptr _fl_tmp_8 = fl_array_get_safe(parts, 3);
+    fl_string_retain(((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_app_log_pipeline_5));
+    fl_tests_app_log_pipeline_LogEntry _fl_ret_9 = (fl_tests_app_log_pipeline_LogEntry){.timestamp = ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : _fl_str_tests_app_log_pipeline_5), .severity = fl_tests_app_log_pipeline_make_severity(((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_app_log_pipeline_5)), .source = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_log_pipeline_5), .message = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_app_log_pipeline_5)};
     fl_array_release(parts);
-    return (fl_tests_app_log_pipeline_LogEntry){.timestamp = ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : _fl_str_tests_app_log_pipeline_5), .severity = fl_tests_app_log_pipeline_make_severity(((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : _fl_str_tests_app_log_pipeline_5)), .source = ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : _fl_str_tests_app_log_pipeline_5), .message = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_log_pipeline_5)};
+    return _fl_ret_9;
 }
 
 /* Flow: tests.app_log_pipeline.parse_simple_log */
 fl_tests_app_log_pipeline_LogEntry fl_tests_app_log_pipeline_parse_simple_log(FL_String* line) {
     FL_Array* parts = fl_string_split(line, _fl_str_tests_app_log_pipeline_4);
-    FL_Option_ptr _fl_tmp_8 = fl_array_get_safe(parts, 0);
-    fl_string_retain(((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_app_log_pipeline_5));
-    FL_Option_ptr _fl_tmp_9 = fl_array_get_safe(parts, 2);
-    FL_Option_ptr _fl_tmp_10 = fl_array_get_safe(parts, 1);
+    FL_Option_ptr _fl_tmp_10 = fl_array_get_safe(parts, 0);
     fl_string_retain(((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : _fl_str_tests_app_log_pipeline_5));
-    FL_Option_ptr _fl_tmp_11 = fl_array_get_safe(parts, 3);
-    fl_string_retain(((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : _fl_str_tests_app_log_pipeline_5));
+    FL_Option_ptr _fl_tmp_11 = fl_array_get_safe(parts, 2);
+    FL_Option_ptr _fl_tmp_12 = fl_array_get_safe(parts, 1);
+    fl_string_retain(((_fl_tmp_12.tag == 1) ? _fl_tmp_12.value : _fl_str_tests_app_log_pipeline_5));
+    FL_Option_ptr _fl_tmp_13 = fl_array_get_safe(parts, 3);
+    fl_string_retain(((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : _fl_str_tests_app_log_pipeline_5));
+    fl_tests_app_log_pipeline_LogEntry _fl_ret_14 = (fl_tests_app_log_pipeline_LogEntry){.timestamp = ((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : _fl_str_tests_app_log_pipeline_5), .severity = fl_tests_app_log_pipeline_make_severity(((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : _fl_str_tests_app_log_pipeline_5)), .source = ((_fl_tmp_12.tag == 1) ? _fl_tmp_12.value : _fl_str_tests_app_log_pipeline_5), .message = ((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : _fl_str_tests_app_log_pipeline_5)};
     fl_array_release(parts);
-    return (fl_tests_app_log_pipeline_LogEntry){.timestamp = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_app_log_pipeline_5), .severity = fl_tests_app_log_pipeline_make_severity(((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : _fl_str_tests_app_log_pipeline_5)), .source = ((_fl_tmp_10.tag == 1) ? _fl_tmp_10.value : _fl_str_tests_app_log_pipeline_5), .message = ((_fl_tmp_11.tag == 1) ? _fl_tmp_11.value : _fl_str_tests_app_log_pipeline_5)};
+    return _fl_ret_14;
 }
 
 /* Flow: tests.app_log_pipeline.detect_and_parse */
@@ -671,69 +678,72 @@ fl_tests_app_log_pipeline_LogEntry fl_tests_app_log_pipeline_detect_and_parse(FL
 
 /* Flow: tests.app_log_pipeline.write_archive */
 FL_String* fl_tests_app_log_pipeline_write_archive(fl_tests_app_log_pipeline_LogEntry entry) {
-    FL_String* _fl_tmp_12 = fl_string_concat(_fl_str_tests_app_log_pipeline_11, entry.timestamp);
-    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, _fl_str_tests_app_log_pipeline_12);
-    FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, entry.source);
-    FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, _fl_str_tests_app_log_pipeline_4);
-    fl_string_release(_fl_tmp_12);
-    fl_string_release(_fl_tmp_13);
-    fl_string_release(_fl_tmp_14);
-    return fl_string_concat(_fl_tmp_15, entry.message);
+    FL_String* _fl_tmp_15 = fl_string_concat(_fl_str_tests_app_log_pipeline_11, entry.timestamp);
+    FL_String* _fl_tmp_16 = fl_string_concat(_fl_tmp_15, _fl_str_tests_app_log_pipeline_12);
+    FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, entry.source);
+    FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, _fl_str_tests_app_log_pipeline_4);
+    fl_string_release(_fl_tmp_15);
+    fl_string_release(_fl_tmp_16);
+    fl_string_release(_fl_tmp_17);
+    return fl_string_concat(_fl_tmp_18, entry.message);
 }
 
 /* Flow: tests.app_log_pipeline.update_stats */
 FL_String* fl_tests_app_log_pipeline_update_stats(fl_tests_app_log_pipeline_LogEntry entry) {
-    FL_String* _fl_tmp_16 = fl_string_concat(_fl_str_tests_app_log_pipeline_13, entry.severity.name);
-    FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, _fl_str_tests_app_log_pipeline_14);
-    fl_string_release(_fl_tmp_16);
-    return fl_string_concat(_fl_tmp_17, entry.source);
+    FL_String* _fl_tmp_19 = fl_string_concat(_fl_str_tests_app_log_pipeline_13, entry.severity.name);
+    FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, _fl_str_tests_app_log_pipeline_14);
+    fl_string_release(_fl_tmp_19);
+    return fl_string_concat(_fl_tmp_20, entry.source);
 }
 
 /* Flow: tests.app_log_pipeline.combine_output */
 FL_String* fl_tests_app_log_pipeline_combine_output(FL_String* archived, FL_String* stats) {
-    FL_String* _fl_tmp_18 = fl_string_concat(archived, _fl_str_tests_app_log_pipeline_15);
-    return fl_string_concat(_fl_tmp_18, stats);
+    FL_String* _fl_tmp_21 = fl_string_concat(archived, _fl_str_tests_app_log_pipeline_15);
+    return fl_string_concat(_fl_tmp_21, stats);
 }
 
 /* Flow: tests.app_log_pipeline.main */
 void fl_tests_app_log_pipeline_main(void) {
-    FL_Array* _fl_tmp_19 = fl_array_new(5, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_log_pipeline_16, _fl_str_tests_app_log_pipeline_17, _fl_str_tests_app_log_pipeline_18, _fl_str_tests_app_log_pipeline_19, _fl_str_tests_app_log_pipeline_20});
-    fl_array_set_elem_type(_fl_tmp_19, 1);
+    FL_Array* _fl_tmp_22 = fl_array_new(5, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_log_pipeline_16, _fl_str_tests_app_log_pipeline_17, _fl_str_tests_app_log_pipeline_18, _fl_str_tests_app_log_pipeline_19, _fl_str_tests_app_log_pipeline_20});
+    fl_array_set_elem_type(_fl_tmp_22, 1);
     fl_string_retain(_fl_str_tests_app_log_pipeline_16);
     fl_string_retain(_fl_str_tests_app_log_pipeline_17);
     fl_string_retain(_fl_str_tests_app_log_pipeline_18);
     fl_string_retain(_fl_str_tests_app_log_pipeline_19);
     fl_string_retain(_fl_str_tests_app_log_pipeline_20);
-    FL_Array* lines = _fl_tmp_19;
-    fl_int64 _fl_tmp_20 = 0;
-    while (_fl_tmp_20 < fl_array_len(lines)) {
-        FL_String* line = (*((FL_String**)fl_array_get_ptr(lines, _fl_tmp_20)));
+    FL_Array* lines = _fl_tmp_22;
+    fl_int64 _fl_tmp_23 = 0;
+    while (_fl_tmp_23 < fl_array_len(lines)) {
+        FL_String* line = (*((FL_String**)fl_array_get_ptr(lines, _fl_tmp_23)));
         FL_ExceptionFrame _fl_ef_0;
         _fl_exception_push((&_fl_ef_0));
         if (setjmp(_fl_ef_0.jmp) == 0) {
             fl_tests_app_log_pipeline_LogEntry entry = fl_tests_app_log_pipeline_detect_and_parse(line);
+            fl_string_retain(entry.timestamp);
+            fl_string_retain(entry.source);
+            fl_string_retain(entry.message);
             if (fl_string_len(entry.timestamp) == 0) {
                 _fl_throw(((void*)_fl_str_tests_app_log_pipeline_21), 0);
             }
             if (fl_string_len(entry.source) == 0) {
                 _fl_throw(((void*)_fl_str_tests_app_log_pipeline_22), 0);
             }
-            fl_tests_app_log_pipeline_LogEntry _fl_tmp_21 = entry;
-            FL_String* _fl_tmp_22 = fl_tests_app_log_pipeline_write_archive(_fl_tmp_21);
-            FL_String* _fl_tmp_23 = fl_tests_app_log_pipeline_update_stats(_fl_tmp_21);
-            FL_String* output = fl_tests_app_log_pipeline_combine_output(_fl_tmp_22, _fl_tmp_23);
+            fl_tests_app_log_pipeline_LogEntry _fl_tmp_24 = entry;
+            FL_String* _fl_tmp_25 = fl_tests_app_log_pipeline_write_archive(_fl_tmp_24);
+            FL_String* _fl_tmp_26 = fl_tests_app_log_pipeline_update_stats(_fl_tmp_24);
+            FL_String* output = fl_tests_app_log_pipeline_combine_output(_fl_tmp_25, _fl_tmp_26);
             fl_string_retain(output);
             fl_println(output);
             if (entry.severity.level <= 1) {
-                FL_String* _fl_tmp_24 = fl_string_concat(_fl_str_tests_app_log_pipeline_23, entry.severity.name);
-                FL_String* _fl_tmp_25 = fl_string_concat(_fl_tmp_24, _fl_str_tests_app_log_pipeline_24);
-                FL_String* _fl_tmp_26 = fl_string_concat(_fl_tmp_25, entry.source);
-                FL_String* _fl_tmp_27 = fl_string_concat(_fl_tmp_26, _fl_str_tests_app_log_pipeline_25);
-                fl_println(fl_string_concat(_fl_tmp_27, entry.message));
-                fl_string_release(_fl_tmp_24);
-                fl_string_release(_fl_tmp_25);
-                fl_string_release(_fl_tmp_26);
+                FL_String* _fl_tmp_27 = fl_string_concat(_fl_str_tests_app_log_pipeline_23, entry.severity.name);
+                FL_String* _fl_tmp_28 = fl_string_concat(_fl_tmp_27, _fl_str_tests_app_log_pipeline_24);
+                FL_String* _fl_tmp_29 = fl_string_concat(_fl_tmp_28, entry.source);
+                FL_String* _fl_tmp_30 = fl_string_concat(_fl_tmp_29, _fl_str_tests_app_log_pipeline_25);
+                fl_println(fl_string_concat(_fl_tmp_30, entry.message));
                 fl_string_release(_fl_tmp_27);
+                fl_string_release(_fl_tmp_28);
+                fl_string_release(_fl_tmp_29);
+                fl_string_release(_fl_tmp_30);
             }
             _fl_exception_pop();
         } else {
@@ -745,7 +755,7 @@ void fl_tests_app_log_pipeline_main(void) {
                 _fl_throw(_fl_ef_0.exception, _fl_ef_0.exception_tag);
             }
         }
-        _fl_tmp_20 = (_fl_tmp_20 + 1);
+        _fl_tmp_23 = (_fl_tmp_23 + 1);
     }
     fl_array_release(lines);
 }

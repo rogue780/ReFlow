@@ -1996,8 +1996,9 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_number(FL_String* s, f
         FL_Option_float _fl_tmp_28 = fl_conv_string_to_float(num_str);
         if (_fl_tmp_28.tag == 1) {
             fl_float f = _fl_tmp_28.value;
+            FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_30 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 3, .Float = (fl_json_JsonValue_Float){.val = f}}, ._1 = p}};
             fl_string_release(num_str);
-            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 3, .Float = (fl_json_JsonValue_Float){.val = f}}, ._1 = p}};
+            return _fl_ret_30;
         } else {
             fl_string_release(num_str);
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
@@ -2006,8 +2007,9 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_number(FL_String* s, f
         FL_Option_int64 _fl_tmp_29 = fl_conv_string_to_int64(num_str);
         if (_fl_tmp_29.tag == 1) {
             fl_int64 n = _fl_tmp_29.value;
+            FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_31 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 2, .Int = (fl_json_JsonValue_Int){.val = n}}, ._1 = p}};
             fl_string_release(num_str);
-            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 2, .Int = (fl_json_JsonValue_Int){.val = n}}, ._1 = p}};
+            return _fl_ret_31;
         } else {
             fl_string_release(num_str);
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
@@ -2020,9 +2022,9 @@ fl_int fl_json_eat_digits(FL_String* s, fl_int pos, fl_int len) {
     fl_int p = pos;
     fl_bool running = fl_true;
     while ((p < len) && running) {
-        FL_Option_char _fl_tmp_30 = fl_string_char_at(s, p);
-        if (_fl_tmp_30.tag == 1) {
-            fl_char c = _fl_tmp_30.value;
+        FL_Option_char _fl_tmp_32 = fl_string_char_at(s, p);
+        if (_fl_tmp_32.tag == 1) {
+            fl_char c = _fl_tmp_32.value;
             if (fl_char_is_digit(c)) {
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(p, 1, &_fl_e_1);
@@ -2043,13 +2045,13 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_value(FL_String* s, fl
     if (p >= len) {
         return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
     }
-    FL_Option_char _fl_tmp_31 = fl_string_char_at(s, p);
-    if (_fl_tmp_31.tag == 1) {
-        fl_char c = _fl_tmp_31.value;
+    FL_Option_char _fl_tmp_33 = fl_string_char_at(s, p);
+    if (_fl_tmp_33.tag == 1) {
+        fl_char c = _fl_tmp_33.value;
         if (c == 34) {
-            FL_Option_FL_Tuple_FL_String_ptr_fl_int _fl_tmp_32 = fl_json_parse_string_value(s, p, len);
-            if (_fl_tmp_32.tag == 1) {
-                FL_Tuple_FL_String_ptr_fl_int result = _fl_tmp_32.value;
+            FL_Option_FL_Tuple_FL_String_ptr_fl_int _fl_tmp_34 = fl_json_parse_string_value(s, p, len);
+            if (_fl_tmp_34.tag == 1) {
+                FL_Tuple_FL_String_ptr_fl_int result = _fl_tmp_34.value;
                 fl_string_retain(result._0);
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 4, .Str = (fl_json_JsonValue_Str){.val = result._0}}, ._1 = result._1}};
             } else {
@@ -2099,10 +2101,11 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_literal(FL_String* s, 
     FL_CHECKED_ADD(pos, elen, &_fl_e_2);
     FL_String* actual = fl_string_substring(s, pos, _fl_e_2);
     if (fl_string_eq(actual, expected)) {
-        fl_string_release(actual);
         fl_int _fl_e_3;
         FL_CHECKED_ADD(pos, elen, &_fl_e_3);
-        return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = val, ._1 = _fl_e_3}};
+        FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_35 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = val, ._1 = _fl_e_3}};
+        fl_string_release(actual);
+        return _fl_ret_35;
     }
     fl_string_release(actual);
     return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
@@ -2116,33 +2119,35 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl
     p = fl_json_skip_ws(s, p, len);
     FL_Array* items = fl_array_new(0, 0, NULL);
     if (p < len) {
-        FL_Option_char _fl_tmp_33 = fl_string_char_at(s, p);
-        if (_fl_tmp_33.tag == 1) {
-            fl_char c = _fl_tmp_33.value;
+        FL_Option_char _fl_tmp_36 = fl_string_char_at(s, p);
+        if (_fl_tmp_36.tag == 1) {
+            fl_char c = _fl_tmp_36.value;
             if (c == 93) {
                 fl_array_retain(items);
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(p, 1, &_fl_e_2);
-                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}}, ._1 = _fl_e_2}};
+                FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_41 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}}, ._1 = _fl_e_2}};
+                fl_array_release(items);
+                return _fl_ret_41;
             }
         }
     }
     fl_bool parsing = fl_true;
     while (parsing && (p < len)) {
-        FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_34 = fl_json_parse_value(s, p, len);
-        if (_fl_tmp_34.tag == 1) {
-            FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_34.value;
-            fl_json_JsonValue _fl_tmp_35 = result._0;
-            FL_Array* _fl_old_36 = items;
-            items = fl_array_push_sized(items, (&_fl_tmp_35), sizeof(fl_json_JsonValue));
-            if (_fl_old_36 != items) {
-                fl_array_release(_fl_old_36);
+        FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_37 = fl_json_parse_value(s, p, len);
+        if (_fl_tmp_37.tag == 1) {
+            FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_37.value;
+            fl_json_JsonValue _fl_tmp_38 = result._0;
+            FL_Array* _fl_old_39 = items;
+            items = fl_array_push_sized(items, (&_fl_tmp_38), sizeof(fl_json_JsonValue));
+            if (_fl_old_39 != items) {
+                fl_array_release(_fl_old_39);
             }
             p = fl_json_skip_ws(s, result._1, len);
             if (p < len) {
-                FL_Option_char _fl_tmp_37 = fl_string_char_at(s, p);
-                if (_fl_tmp_37.tag == 1) {
-                    fl_char c = _fl_tmp_37.value;
+                FL_Option_char _fl_tmp_40 = fl_string_char_at(s, p);
+                if (_fl_tmp_40.tag == 1) {
+                    fl_char c = _fl_tmp_40.value;
                     if (c == 44) {
                         fl_int _fl_e_3;
                         FL_CHECKED_ADD(p, 1, &_fl_e_3);
@@ -2179,14 +2184,16 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
     p = fl_json_skip_ws(s, p, len);
     FL_Map* entries = fl_map_new();
     if (p < len) {
-        FL_Option_char _fl_tmp_38 = fl_string_char_at(s, p);
-        if (_fl_tmp_38.tag == 1) {
-            fl_char c = _fl_tmp_38.value;
+        FL_Option_char _fl_tmp_42 = fl_string_char_at(s, p);
+        if (_fl_tmp_42.tag == 1) {
+            fl_char c = _fl_tmp_42.value;
             if (c == 125) {
                 fl_map_retain(entries);
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(p, 1, &_fl_e_2);
-                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}}, ._1 = _fl_e_2}};
+                FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_50 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}}, ._1 = _fl_e_2}};
+                fl_map_release(entries);
+                return _fl_ret_50;
             }
         }
     }
@@ -2196,27 +2203,27 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
         if (p >= len) {
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
-        FL_Option_char _fl_tmp_39 = fl_string_char_at(s, p);
-        if (_fl_tmp_39.tag == 1) {
-            fl_char c = _fl_tmp_39.value;
+        FL_Option_char _fl_tmp_43 = fl_string_char_at(s, p);
+        if (_fl_tmp_43.tag == 1) {
+            fl_char c = _fl_tmp_43.value;
             if (c != 34) {
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
             }
         } else {
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
-        FL_Option_FL_Tuple_FL_String_ptr_fl_int _fl_tmp_40 = fl_json_parse_string_value(s, p, len);
-        if (_fl_tmp_40.tag == 1) {
-            FL_Tuple_FL_String_ptr_fl_int key_result = _fl_tmp_40.value;
+        FL_Option_FL_Tuple_FL_String_ptr_fl_int _fl_tmp_44 = fl_json_parse_string_value(s, p, len);
+        if (_fl_tmp_44.tag == 1) {
+            FL_Tuple_FL_String_ptr_fl_int key_result = _fl_tmp_44.value;
             FL_String* key = key_result._0;
             fl_string_retain(key);
             p = fl_json_skip_ws(s, key_result._1, len);
             if (p >= len) {
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
             }
-            FL_Option_char _fl_tmp_41 = fl_string_char_at(s, p);
-            if (_fl_tmp_41.tag == 1) {
-                fl_char c = _fl_tmp_41.value;
+            FL_Option_char _fl_tmp_45 = fl_string_char_at(s, p);
+            if (_fl_tmp_45.tag == 1) {
+                fl_char c = _fl_tmp_45.value;
                 if (c != 58) {
                     return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
                 }
@@ -2226,21 +2233,21 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
             fl_int _fl_e_3;
             FL_CHECKED_ADD(p, 1, &_fl_e_3);
             p = _fl_e_3;
-            FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_42 = fl_json_parse_value(s, p, len);
-            if (_fl_tmp_42.tag == 1) {
-                FL_Tuple_fl_json_JsonValue_fl_int val_result = _fl_tmp_42.value;
-                fl_json_JsonValue* _fl_tmp_43 = ((fl_json_JsonValue*)malloc(sizeof(fl_json_JsonValue)));
-                (*_fl_tmp_43) = val_result._0;
-                FL_Map* _fl_old_44 = entries;
-                entries = fl_map_set_str(entries, key, ((void*)_fl_tmp_43));
-                if (_fl_old_44 != entries) {
-                    fl_map_release(_fl_old_44);
+            FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_46 = fl_json_parse_value(s, p, len);
+            if (_fl_tmp_46.tag == 1) {
+                FL_Tuple_fl_json_JsonValue_fl_int val_result = _fl_tmp_46.value;
+                fl_json_JsonValue* _fl_tmp_47 = ((fl_json_JsonValue*)malloc(sizeof(fl_json_JsonValue)));
+                (*_fl_tmp_47) = val_result._0;
+                FL_Map* _fl_old_48 = entries;
+                entries = fl_map_set_str(entries, key, ((void*)_fl_tmp_47));
+                if (_fl_old_48 != entries) {
+                    fl_map_release(_fl_old_48);
                 }
                 p = fl_json_skip_ws(s, val_result._1, len);
                 if (p < len) {
-                    FL_Option_char _fl_tmp_45 = fl_string_char_at(s, p);
-                    if (_fl_tmp_45.tag == 1) {
-                        fl_char ch = _fl_tmp_45.value;
+                    FL_Option_char _fl_tmp_49 = fl_string_char_at(s, p);
+                    if (_fl_tmp_49.tag == 1) {
+                        fl_char ch = _fl_tmp_49.value;
                         if (ch == 44) {
                             fl_int _fl_e_4;
                             FL_CHECKED_ADD(p, 1, &_fl_e_4);
@@ -2275,9 +2282,9 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
 /* Flow: json.parse */
 FL_Option_fl_json_JsonValue fl_json_parse(FL_String* s) {
     fl_int len = fl_string_len(s);
-    FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_46 = fl_json_parse_value(s, 0, len);
-    if (_fl_tmp_46.tag == 1) {
-        FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_46.value;
+    FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_51 = fl_json_parse_value(s, 0, len);
+    if (_fl_tmp_51.tag == 1) {
+        FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_51.value;
         fl_int p = fl_json_skip_ws(s, result._1, len);
         if (p == len) {
             return (FL_Option_fl_json_JsonValue){.tag = 1, .value = result._0};
@@ -2588,7 +2595,9 @@ FL_Option_ptr fl_path_walk(FL_String* dir) {
             _fl_tmp_17 = (_fl_tmp_17 + 1);
         }
         fl_array_retain(result);
-        return (FL_Option_ptr){.tag = 1, .value = result};
+        FL_Option_ptr _fl_ret_21 = (FL_Option_ptr){.tag = 1, .value = result};
+        fl_array_release(result);
+        return _fl_ret_21;
     } else {
         return (FL_Option_ptr){.tag = 0};
     }

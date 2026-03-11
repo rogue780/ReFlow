@@ -1515,6 +1515,50 @@ class Lowerer:
                             stack.append(field_val)
         return keys
 
+    @staticmethod
+    def _collect_transferred_struct_bases(expr: LExpr | None) -> set[str]:
+        """Collect LVar names used as compound literal field values.
+
+        When a struct variable appears as a field value in a compound literal
+        (e.g., ParseResult{.parsed_module = local_struct}), its internal
+        fields become part of the return value via shallow copy. Those fields
+        must NOT be released because the return value shares the pointers.
+
+        This is distinct from variables passed as function call arguments —
+        those are only *read* by the callee, and their fields can be safely
+        released after the call completes (i.e. after hoisting).
+        """
+        bases: set[str] = set()
+        if expr is None:
+            return bases
+        stack: list[LExpr] = [expr]
+        while stack:
+            e = stack.pop()
+            # LCompound fields: list of (name, expr) tuples
+            if hasattr(e, 'fields') and isinstance(getattr(e, 'fields'), list):
+                for item in e.fields:
+                    if isinstance(item, tuple) and len(item) == 2:
+                        _, field_val = item
+                        if isinstance(field_val, LVar):
+                            bases.add(field_val.c_name)
+                        elif isinstance(field_val, LExpr):
+                            stack.append(field_val)
+                continue  # Don't re-walk into field values
+            # Walk into sub-expressions
+            for attr in ('left', 'right', 'cond', 'then_expr', 'else_expr',
+                         'value', 'inner', 'operand', 'expr', 'base',
+                         'obj', 'ptr'):
+                child = getattr(e, attr, None)
+                if isinstance(child, LExpr):
+                    stack.append(child)
+            for attr in ('args', 'elements'):
+                child_list = getattr(e, attr, None)
+                if isinstance(child_list, list):
+                    for item in child_list:
+                        if isinstance(item, LExpr):
+                            stack.append(item)
+        return bases
+
     def _inject_scope_cleanup(self, stmts: list[LStmt],
                               declared: set[str] | None = None) -> None:
         """Insert release calls for container locals before each LReturn.
@@ -1542,34 +1586,79 @@ class Lowerer:
             elif isinstance(s, LReturn):
                 # Collect ALL variable names referenced in the return expr
                 returned_names = self._collect_referenced_vars(s.value)
-                # Also collect field access patterns from the return expr
-                # to avoid releasing struct fields that are being returned
+                # Collect field access patterns transferred to the return
                 returned_field_keys = self._collect_returned_field_keys(s.value)
-                # Build release calls for declared locals, skip referenced vars
+                # Collect struct variables embedded in compound literals —
+                # these are transferred by shallow copy so their internal
+                # fields must never be released.
+                transferred_bases = self._collect_transferred_struct_bases(
+                    s.value)
+
+                # Determine if we need to hoist the return expression.
+                # Hoisting evaluates the return expr into a temp BEFORE
+                # cleanup, so variables referenced in the expr (e.g.
+                # arguments to a function call) stay alive during
+                # evaluation. Without hoisting, cleanup runs before the
+                # return expr is evaluated → use-after-free.
+                needs_hoist = (
+                    s.value is not None
+                    and not isinstance(s.value, LVar)
+                    and len(returned_names) > 0
+                )
+
+                # Build release calls for container locals
                 cleanup: list[LStmt] = []
                 for name, ct, fn_name, _depth in self._container_locals:
-                    if name not in declared or name in returned_names:
+                    if name not in declared:
+                        continue
+                    # Without hoist: skip vars referenced in return expr
+                    if not needs_hoist and name in returned_names:
                         continue
                     cleanup.append(LExprStmt(
                         LCall(fn_name, [LVar(name, ct)], LVoid())))
-                # Struct field releases: release refcounted fields of struct locals
+
+                # Struct field releases
                 for sv, fn, sct, rel_fn, _depth in self._struct_field_cleanup:
                     base_name = sv.split(".")[0]
                     if base_name not in declared:
                         continue
-                    # Skip if the struct itself is being returned (caller owns it)
-                    if base_name in returned_names:
+                    # Without hoist: skip if struct is referenced in
+                    # the return expression (it needs its fields alive)
+                    if not needs_hoist and base_name in returned_names:
                         continue
-                    # Skip if this specific field is referenced in the return
+                    # Always skip struct fields when the struct is
+                    # transferred into a compound literal — its fields
+                    # become part of the return value via shallow copy.
+                    if base_name in transferred_bases:
+                        continue
+                    # Skip specific fields transferred to the return value
                     field_key = f"{sv}.{fn}"
                     if field_key in returned_field_keys:
                         continue
                     cleanup.append(self._emit_struct_field_release(
                         sv, fn, sct, rel_fn))
-                # Insert cleanup before the return
-                for j, c_stmt in enumerate(cleanup):
-                    stmts.insert(i + j, c_stmt)
-                i += len(cleanup) + 1
+
+                if needs_hoist and cleanup:
+                    # Hoist: tmp = <expr>; <cleanup>; return tmp;
+                    ret_tmp = f"_fl_ret_{self._tmp_counter}"
+                    self._tmp_counter += 1
+                    ret_c_type = s.value.c_type
+                    replacement = (
+                        [LVarDecl(c_name=ret_tmp, c_type=ret_c_type,
+                                  init=s.value)]
+                        + cleanup
+                        + [LReturn(value=LVar(ret_tmp, ret_c_type),
+                                   source_line=s.source_line)]
+                    )
+                    stmts[i:i + 1] = replacement
+                    i += len(replacement)
+                elif cleanup:
+                    # Insert cleanup before the return (no hoist needed)
+                    for j, c_stmt in enumerate(cleanup):
+                        stmts.insert(i + j, c_stmt)
+                    i += len(cleanup) + 1
+                else:
+                    i += 1
                 continue
             # Recurse into compound statements, passing a copy of declared
             # so both branches see what's been declared before the branch
@@ -1742,21 +1831,34 @@ class Lowerer:
         # For TypeLit/RecordLit: _retain_struct_fields already retained
         # fields at construction.  Just register for release.
         #
-        # For Call/allocating sources: the callee enforces owned-return
-        # convention via _inject_struct_return_retains, which retains
-        # fields at every return site.  Just register for release.
-        #
         # For non-allocating sources (Ident, FieldAccess): the fields are
         # shared with the original.  Retain each field so we own our
         # reference, then release at scope exit.
+        #
+        # For Call/allocating sources: the callee enforces the "owned
+        # return" convention via return-site retains in
+        # _inject_scope_cleanup.  Just register for release at scope exit.
         is_mut = isinstance(stmt.type_ann, MutType)
         if not auto_lifted and not is_mut and not self._get_release_fn(val_type):
             fields = self._get_struct_fields_cross_module(val_type)
             if fields:
-                # For non-allocating, non-TypeLit sources (e.g. copying a
-                # struct from another local), retain each refcounted field.
-                if (not isinstance(stmt.value, (TypeLit, RecordLit))
-                        and not self._is_allocating_expr(stmt.value)):
+                if isinstance(stmt.value, (TypeLit, RecordLit)):
+                    # Already retained at construction, just register
+                    # for release at scope exit.
+                    self._register_struct_field_releases(
+                        stmt.name, val_type, c_type, self._scope_depth)
+                elif (self._is_allocating_expr(stmt.value)
+                        and self._scope_depth == 0):
+                    # Call/allocating source at function scope: register
+                    # for release at scope exit.  Don't retain — callee
+                    # TypeLit construction already retained fields.
+                    # Restricted to depth 0 to avoid retain-without-release
+                    # in loops (while bodies don't get scope cleanup).
+                    self._register_struct_field_releases(
+                        stmt.name, val_type, c_type, self._scope_depth)
+                else:
+                    # Non-allocating source: retain each refcounted field
+                    # so we own our reference, then register for release.
                     for field_name, field_type in fields.items():
                         retain_fn = self._RETAIN_FN.get(type(field_type))
                         if retain_fn:
@@ -1766,8 +1868,8 @@ class Lowerer:
                                     LVar(stmt.name, c_type),
                                     field_name, LPtr(LVoid()))],
                                 LVoid())))
-                self._register_struct_field_releases(
-                    stmt.name, val_type, c_type, self._scope_depth)
+                    self._register_struct_field_releases(
+                        stmt.name, val_type, c_type, self._scope_depth)
 
         return stmts
 
@@ -2106,6 +2208,30 @@ class Lowerer:
                             LExprStmt(LCall(release_fn, [old_var],
                                             c_type=LVoid())),
                         ],
+                        else_=[],
+                    ),
+                ]
+
+        # Release-on-reassignment for FieldAccess targets (e.g. s.tokens).
+        # Handles patterns like s.tokens = array.push(s.tokens, tok) where
+        # the old array must be released after the new one is assigned.
+        # Only for allocating RHS with refcounted field types.
+        if isinstance(stmt.target, FieldAccess) and self._is_allocating_expr(stmt.value):
+            target_type = self._type_of(stmt.target)
+            release_fn = self._get_release_fn(target_type)
+            if release_fn is not None:
+                old_tmp = f"_fl_old_{self._tmp_counter}"
+                self._tmp_counter += 1
+                old_c_type = target.c_type
+                old_var = LVar(old_tmp, old_c_type)
+                return [
+                    LVarDecl(c_name=old_tmp, c_type=old_c_type, init=target),
+                    LAssign(target=target, value=value),
+                    LIf(
+                        cond=LBinOp("!=", old_var, target,
+                                    c_type=LBool()),
+                        then=[LExprStmt(LCall(release_fn, [old_var],
+                                              c_type=LVoid()))],
                         else_=[],
                     ),
                 ]

@@ -806,7 +806,9 @@ FL_Option_ptr fl_path_walk(FL_String* dir) {
             _fl_tmp_17 = (_fl_tmp_17 + 1);
         }
         fl_array_retain(result);
-        return (FL_Option_ptr){.tag = 1, .value = result};
+        FL_Option_ptr _fl_ret_21 = (FL_Option_ptr){.tag = 1, .value = result};
+        fl_array_release(result);
+        return _fl_ret_21;
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
