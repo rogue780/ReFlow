@@ -4587,6 +4587,23 @@ class Lowerer:
                             [LVar(tmp, lt), LLit(str(val_tag), LInt(64, True))],
                             LVoid())))
                         return LVar(tmp, lt)
+                    # Map with struct values that have refcounted fields
+                    if self._has_refcounted_fields(t.value):
+                        val_lt = self._lower_type(t.value)
+                        handlers = self._get_or_emit_struct_handlers(t.value, val_lt)
+                        if handlers:
+                            destructor, retainer = handlers
+                            tmp = self._fresh_temp()
+                            self._pending_stmts.append(
+                                LVarDecl(c_name=tmp, c_type=lt, init=call_result))
+                            self._pending_stmts.append(LExprStmt(LCall(
+                                "fl_map_set_val_destructor",
+                                [LVar(tmp, lt),
+                                 LVar(destructor, LPtr(LVoid())),
+                                 LVar(retainer, LPtr(LVoid())),
+                                 LSizeOf(val_lt)],
+                                LVoid())))
+                            return LVar(tmp, lt)
                 return call_result
             # Non-native imported function — use mangled name from source module
             if isinstance(fn_decl, FnDecl):
@@ -6485,6 +6502,25 @@ class Lowerer:
                                  LLit(str(val_tag), LInt(64, True))],
                                 LVoid())))
                             lowered_val = LVar(tmp, map_lt)
+                        elif self._has_refcounted_fields(decl_t.value):
+                            val_lt = self._lower_type(decl_t.value)
+                            handlers = self._get_or_emit_struct_handlers(
+                                decl_t.value, val_lt)
+                            if handlers:
+                                destructor, retainer = handlers
+                                map_lt = self._lower_type(decl_t)
+                                tmp = self._fresh_temp()
+                                self._pending_stmts.append(
+                                    LVarDecl(c_name=tmp, c_type=map_lt,
+                                             init=lowered_val))
+                                self._pending_stmts.append(LExprStmt(LCall(
+                                    "fl_map_set_val_destructor",
+                                    [LVar(tmp, map_lt),
+                                     LVar(destructor, LPtr(LVoid())),
+                                     LVar(retainer, LPtr(LVoid())),
+                                     LSizeOf(val_lt)],
+                                    LVoid())))
+                                lowered_val = LVar(tmp, map_lt)
 
             # Retain-on-store: retain borrowed refcounted field values
             if not self._is_allocating_expr(val):

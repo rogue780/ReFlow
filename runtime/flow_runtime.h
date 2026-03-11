@@ -480,6 +480,9 @@ FL_Array*     fl_map_values(FL_Map* m);
 
 /* Element type setter for map value cleanup */
 void fl_map_set_val_type(FL_Map* m, fl_int t);
+/* Heap-boxed struct value destructor for maps */
+void fl_map_set_val_destructor(FL_Map* m, void (*destructor)(void*),
+                               void (*retainer)(void*), fl_int64 elem_size);
 
 /* ========================================================================
  * Set (RT-1-6-2)

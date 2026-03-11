@@ -10357,19 +10357,19 @@ FL_Array* fl_array_put__string(FL_Array* arr, fl_int idx, FL_String* val) {
     fl_int i = 0;
     while (i < s) {
         if (i == idx) {
-            FL_Array* _fl_old_245 = result;
+            FL_Array* _fl_old_248 = result;
             result = fl_array_push_ptr(result, val);
-            if (_fl_old_245 != result) {
-                fl_array_release(_fl_old_245);
+            if (_fl_old_248 != result) {
+                fl_array_release(_fl_old_248);
             }
         } else {
-            FL_Option_ptr _fl_tmp_246 = fl_array_get_safe(arr, i);
-            if (_fl_tmp_246.tag == 1) {
-                FL_String* v = _fl_tmp_246.value;
-                FL_Array* _fl_old_247 = result;
+            FL_Option_ptr _fl_tmp_249 = fl_array_get_safe(arr, i);
+            if (_fl_tmp_249.tag == 1) {
+                FL_String* v = _fl_tmp_249.value;
+                FL_Array* _fl_old_250 = result;
                 result = fl_array_push_ptr(result, v);
-                if (_fl_old_247 != result) {
-                    fl_array_release(_fl_old_247);
+                if (_fl_old_250 != result) {
+                    fl_array_release(_fl_old_250);
                 }
             }
         }
@@ -10385,14 +10385,14 @@ FL_Array* fl_array_slice__int(FL_Array* arr, fl_int start, fl_int end_idx) {
     FL_Array* result = fl_array_new(0, 0, NULL);
     fl_int i = start;
     while (i < end_idx) {
-        FL_Option_int _fl_tmp_248 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_int, FL_Option_int);
-        if (_fl_tmp_248.tag == 1) {
-            fl_int val = _fl_tmp_248.value;
-            fl_int _fl_tmp_249 = val;
-            FL_Array* _fl_old_250 = result;
-            result = fl_array_push_sized(result, (&_fl_tmp_249), sizeof(fl_int));
-            if (_fl_old_250 != result) {
-                fl_array_release(_fl_old_250);
+        FL_Option_int _fl_tmp_251 = FL_OPT_DEREF_AS(fl_array_get_safe(arr, i), fl_int, FL_Option_int);
+        if (_fl_tmp_251.tag == 1) {
+            fl_int val = _fl_tmp_251.value;
+            fl_int _fl_tmp_252 = val;
+            FL_Array* _fl_old_253 = result;
+            result = fl_array_push_sized(result, (&_fl_tmp_252), sizeof(fl_int));
+            if (_fl_old_253 != result) {
+                fl_array_release(_fl_old_253);
             }
         } else {
             return result;
@@ -10410,13 +10410,13 @@ FL_Array* fl_array_slice__string(FL_Array* arr, fl_int start, fl_int end_idx) {
     fl_array_set_elem_type(result, 1);
     fl_int i = start;
     while (i < end_idx) {
-        FL_Option_ptr _fl_tmp_251 = fl_array_get_safe(arr, i);
-        if (_fl_tmp_251.tag == 1) {
-            FL_String* val = _fl_tmp_251.value;
-            FL_Array* _fl_old_252 = result;
+        FL_Option_ptr _fl_tmp_254 = fl_array_get_safe(arr, i);
+        if (_fl_tmp_254.tag == 1) {
+            FL_String* val = _fl_tmp_254.value;
+            FL_Array* _fl_old_255 = result;
             result = fl_array_push_ptr(result, val);
-            if (_fl_old_252 != result) {
-                fl_array_release(_fl_old_252);
+            if (_fl_old_255 != result) {
+                fl_array_release(_fl_old_255);
             }
         } else {
             return result;
@@ -12993,17 +12993,23 @@ fl_self_hosted_resolver_ResolvedModule fl_self_hosted_resolver_resolve(fl_self_h
     fl_map_retain(imported_modules);
     FL_Array* _fl_tmp_238 = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(_fl_tmp_238, 1);
-    FL_Array* _fl_tmp_239 = fl_array_new(0, 0, NULL);
-    fl_array_set_elem_type(_fl_tmp_239, 1);
+    FL_Map* _fl_tmp_239 = fl_map_new();
+    fl_map_set_val_destructor(_fl_tmp_239, _fl_destroy_fl_self_hosted_resolver_Symbol, _fl_retain_fl_self_hosted_resolver_Symbol, sizeof(fl_self_hosted_resolver_Symbol));
     FL_Array* _fl_tmp_240 = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(_fl_tmp_240, 1);
-    FL_Map* _fl_tmp_241 = fl_map_new();
-    fl_map_set_val_type(_fl_tmp_241, 2);
+    FL_Array* _fl_tmp_241 = fl_array_new(0, 0, NULL);
+    fl_array_set_elem_type(_fl_tmp_241, 1);
     FL_Map* _fl_tmp_242 = fl_map_new();
-    fl_map_set_val_type(_fl_tmp_242, 3);
+    fl_map_set_val_destructor(_fl_tmp_242, _fl_destroy_fl_self_hosted_resolver_Symbol, _fl_retain_fl_self_hosted_resolver_Symbol, sizeof(fl_self_hosted_resolver_Symbol));
     FL_Map* _fl_tmp_243 = fl_map_new();
-    fl_map_set_val_type(_fl_tmp_243, 3);
-    fl_self_hosted_resolver_ResolverState state = (fl_self_hosted_resolver_ResolverState){.src_module = mod, .filename = filename, .imported_modules = imported_modules, .bind_names = _fl_tmp_238, .bind_symbols = fl_map_new(), .bind_depths = _fl_tmp_239, .binding_count = 0, .frame_watermarks = _fl_tmp_240, .frame_count = 0, .current_depth = 0, .symbols = fl_map_new(), .captures = _fl_tmp_241, .type_member_scopes = _fl_tmp_242, .static_member_scopes = _fl_tmp_243, .in_method = fl_false, .in_constructor = fl_false, .in_stream_fn = fl_false, .cap_lambda_ids = fl_array_new(0, 0, NULL), .cap_entry_depths = fl_array_new(0, 0, NULL), .cap_sym_counts = fl_array_new(0, 0, NULL), .cap_sym_store = fl_map_new(), .cap_name_store = fl_map_new(), .cap_count = 0};
+    fl_map_set_val_type(_fl_tmp_243, 2);
+    FL_Map* _fl_tmp_244 = fl_map_new();
+    fl_map_set_val_type(_fl_tmp_244, 3);
+    FL_Map* _fl_tmp_245 = fl_map_new();
+    fl_map_set_val_type(_fl_tmp_245, 3);
+    FL_Map* _fl_tmp_246 = fl_map_new();
+    fl_map_set_val_destructor(_fl_tmp_246, _fl_destroy_fl_self_hosted_resolver_Symbol, _fl_retain_fl_self_hosted_resolver_Symbol, sizeof(fl_self_hosted_resolver_Symbol));
+    fl_self_hosted_resolver_ResolverState state = (fl_self_hosted_resolver_ResolverState){.src_module = mod, .filename = filename, .imported_modules = imported_modules, .bind_names = _fl_tmp_238, .bind_symbols = _fl_tmp_239, .bind_depths = _fl_tmp_240, .binding_count = 0, .frame_watermarks = _fl_tmp_241, .frame_count = 0, .current_depth = 0, .symbols = _fl_tmp_242, .captures = _fl_tmp_243, .type_member_scopes = _fl_tmp_244, .static_member_scopes = _fl_tmp_245, .in_method = fl_false, .in_constructor = fl_false, .in_stream_fn = fl_false, .cap_lambda_ids = fl_array_new(0, 0, NULL), .cap_entry_depths = fl_array_new(0, 0, NULL), .cap_sym_counts = fl_array_new(0, 0, NULL), .cap_sym_store = _fl_tmp_246, .cap_name_store = fl_map_new(), .cap_count = 0};
     fl_self_hosted_resolver_pre_pass((&state));
     fl_self_hosted_resolver_resolve_imports((&state));
     fl_self_hosted_resolver_build_type_member_scopes((&state));
@@ -13011,7 +13017,7 @@ fl_self_hosted_resolver_ResolvedModule fl_self_hosted_resolver_resolve(fl_self_h
     fl_self_hosted_resolver_ModuleScope ms = fl_self_hosted_resolver_build_module_scope((&state));
     fl_map_retain(state.symbols);
     fl_map_retain(state.captures);
-    fl_self_hosted_resolver_ResolvedModule _fl_ret_244 = (fl_self_hosted_resolver_ResolvedModule){.src_module = mod, .symbols = state.symbols, .captures = state.captures, .mod_scope = ms};
+    fl_self_hosted_resolver_ResolvedModule _fl_ret_247 = (fl_self_hosted_resolver_ResolvedModule){.src_module = mod, .symbols = state.symbols, .captures = state.captures, .mod_scope = ms};
     fl_string_release(state.filename);
     fl_map_release(state.imported_modules);
     fl_array_release(state.bind_names);
@@ -13025,7 +13031,7 @@ fl_self_hosted_resolver_ResolvedModule fl_self_hosted_resolver_resolve(fl_self_h
     fl_array_release(state.cap_sym_counts);
     fl_map_release(state.cap_sym_store);
     fl_map_release(state.cap_name_store);
-    return _fl_ret_244;
+    return _fl_ret_247;
 }
 
 fl_self_hosted_resolver_ResolvedModule fl_tests_programs_app_sh_resolver_test_resolve_source(FL_String* src);

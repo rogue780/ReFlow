@@ -1550,6 +1550,9 @@ struct FL_Map {
     FL_MapEntry* entries;
     fl_bool      owns_entries;  /* false = shared entries, don't free on release */
     FL_ElemType  val_type;      /* value refcount kind; 0 = no cleanup */
+    void (*val_destructor)(void*);  /* heap-boxed struct destructor: release internal fields */
+    void (*val_retainer)(void*);    /* heap-boxed struct retainer: retain internal fields */
+    fl_int64 val_elem_size;         /* sizeof(StructType) for deep copy; 0 = not set */
 };
 
 static fl_uint64 fl__fnv1a(const void* key, fl_int64 len) {
@@ -1572,6 +1575,9 @@ static FL_Map* fl__map_alloc(fl_int64 capacity) {
     if (!m->entries) fl_panic("fl_map: out of memory");
     m->owns_entries = fl_true;
     m->val_type = FL_ELEM_NONE;
+    m->val_destructor = NULL;
+    m->val_retainer = NULL;
+    m->val_elem_size = 0;
     return m;
 }
 
@@ -1632,6 +1638,9 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         out->entries = m->entries;
         out->owns_entries = fl_true;
         out->val_type = m->val_type;
+        out->val_destructor = m->val_destructor;
+        out->val_retainer = m->val_retainer;
+        out->val_elem_size = m->val_elem_size;
         /* Retain the inserted value */
         if (out->val_type != FL_ELEM_NONE) {
             _fl_elem_retain(out->val_type, &e->val, NULL);
@@ -1647,6 +1656,9 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
 
     FL_Map* n = fl__map_alloc(new_cap);
     n->val_type = m->val_type;
+    n->val_destructor = m->val_destructor;
+    n->val_retainer = m->val_retainer;
+    n->val_elem_size = m->val_elem_size;
 
     /* Copy existing entries (except the one being overwritten) */
     for (fl_int64 i = 0; i < m->capacity; i++) {
@@ -1660,10 +1672,19 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         fl_int64 idx = fl__map_probe(n, key_copy, e->key_len);
         n->entries[idx].key = key_copy;
         n->entries[idx].key_len = e->key_len;
-        n->entries[idx].val = e->val;
-        /* Retain all copied values (shared with old map) */
-        if (n->val_type != FL_ELEM_NONE) {
-            _fl_elem_retain(n->val_type, &n->entries[idx].val, NULL);
+        /* Deep-copy heap-boxed struct values; retain internal fields */
+        if (n->val_destructor && n->val_elem_size > 0 && e->val) {
+            void* val_copy = malloc((size_t)n->val_elem_size);
+            if (!val_copy) fl_panic("fl_map: out of memory");
+            memcpy(val_copy, e->val, (size_t)n->val_elem_size);
+            if (n->val_retainer) n->val_retainer(val_copy);
+            n->entries[idx].val = val_copy;
+        } else {
+            n->entries[idx].val = e->val;
+            /* Retain all copied values (shared with old map) */
+            if (n->val_type != FL_ELEM_NONE) {
+                _fl_elem_retain(n->val_type, &n->entries[idx].val, NULL);
+            }
         }
         n->entries[idx].occupied = fl_true;
         n->count++;
@@ -1715,7 +1736,11 @@ void fl_map_release(FL_Map* m) {
     if (m->owns_entries) {
         for (fl_int64 i = 0; i < m->capacity; i++) {
             if (m->entries[i].occupied) {
-                if (m->val_type != FL_ELEM_NONE) {
+                if (m->val_destructor && m->entries[i].val) {
+                    /* Heap-boxed struct: release internal fields then free */
+                    m->val_destructor(m->entries[i].val);
+                    free(m->entries[i].val);
+                } else if (m->val_type != FL_ELEM_NONE) {
                     _fl_elem_release(m->val_type, &m->entries[i].val, NULL);
                 }
                 free(m->entries[i].key);
@@ -3767,6 +3792,14 @@ void fl_map_set_val_type(FL_Map* m, fl_int t) {
     if (m) m->val_type = (FL_ElemType)t;
 }
 
+void fl_map_set_val_destructor(FL_Map* m, void (*destructor)(void*),
+                               void (*retainer)(void*), fl_int64 elem_size) {
+    if (!m) return;
+    m->val_destructor = destructor;
+    m->val_retainer = retainer;
+    m->val_elem_size = elem_size;
+}
+
 /* ========================================================================
  * String extensions: repeat, URL encode/decode
  * ======================================================================== */
@@ -3886,7 +3919,10 @@ FL_Map* fl_map_remove_str(FL_Map* m, FL_String* key) {
         FL_MapEntry* e = &m->entries[idx];
         if (!e->occupied) break;
         if (e->key_len == key->len && memcmp(e->key, key->data, (size_t)key->len) == 0) {
-            if (m->val_type != FL_ELEM_NONE) {
+            if (m->val_destructor && e->val) {
+                m->val_destructor(e->val);
+                free(e->val);
+            } else if (m->val_type != FL_ELEM_NONE) {
                 _fl_elem_release(m->val_type, &e->val, NULL);
             }
             e->occupied = 0;
