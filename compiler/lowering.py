@@ -727,6 +727,11 @@ class Lowerer:
         # (struct_var_name, field_name, struct_c_type, release_fn, depth)
         self._struct_field_cleanup: list[tuple[str, str, LType, str, int]] = []
         self._scope_depth: int = 0
+        # Track struct variables whose contents have been heap-boxed and
+        # stored in a container (map/array).  The shallow copy means the
+        # container now shares the struct's internal pointers — releasing
+        # those fields at scope exit would cause a use-after-free.
+        self._transferred_struct_vars: set[str] = set()
 
         # String literal interning: deduplicate string constants as static
         # globals, initialized once in _fl_init_statics with high refcount
@@ -1081,6 +1086,8 @@ class Lowerer:
         self._container_locals = []
         saved_struct_field_cleanup = self._struct_field_cleanup
         self._struct_field_cleanup = []
+        saved_transferred_struct_vars = self._transferred_struct_vars
+        self._transferred_struct_vars = set()
         saved_scope_depth = self._scope_depth
         self._scope_depth = 0
 
@@ -1136,7 +1143,8 @@ class Lowerer:
                 body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
                              for sv, fn, sct, rel, depth
                              in self._struct_field_cleanup
-                             if depth == 0])
+                             if depth == 0
+                             and sv not in self._transferred_struct_vars])
 
         self._fn_defs.append(LFnDef(
             c_name=c_name,
@@ -1184,6 +1192,8 @@ class Lowerer:
             self._container_locals = []
             saved_struct_field_cleanup = self._struct_field_cleanup
             self._struct_field_cleanup = []
+            saved_transferred_struct_vars = self._transferred_struct_vars
+            self._transferred_struct_vars = set()
             saved_scope_depth = self._scope_depth
             self._scope_depth = 0
             params: list[tuple[str, LType]] = []
@@ -1235,7 +1245,8 @@ class Lowerer:
                     body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
                                  for sv, fn, sct, rel, depth
                                  in self._struct_field_cleanup
-                                 if depth == 0])
+                                 if depth == 0
+                                 and sv not in self._transferred_struct_vars])
 
             self._fn_defs.append(LFnDef(
                 c_name=m_c_name,
@@ -1251,6 +1262,7 @@ class Lowerer:
             self._let_var_ltypes = saved_let_var_ltypes
             self._container_locals = saved_container_locals
             self._struct_field_cleanup = saved_struct_field_cleanup
+            self._transferred_struct_vars = saved_transferred_struct_vars
             self._scope_depth = saved_scope_depth
 
         # Lower constructors
@@ -1606,21 +1618,29 @@ class Lowerer:
                     and len(returned_names) > 0
                 )
 
-                # Build release calls for container locals
+                # Build release calls for container locals.
+                # Deduplicate: same variable may be registered at multiple
+                # depths (re-declared in nested scopes like match arms).
                 cleanup: list[LStmt] = []
+                seen_containers: set[str] = set()
                 for name, ct, fn_name, _depth in self._container_locals:
-                    if name not in declared:
+                    if name not in declared or name in seen_containers:
                         continue
                     # Without hoist: skip vars referenced in return expr
                     if not needs_hoist and name in returned_names:
                         continue
+                    seen_containers.add(name)
                     cleanup.append(LExprStmt(
                         LCall(fn_name, [LVar(name, ct)], LVoid())))
 
-                # Struct field releases
+                # Struct field releases.
+                # Deduplicate: same (var, field) may be registered multiple
+                # times when the variable is declared in multiple branches.
+                seen_fields: set[str] = set()
                 for sv, fn, sct, rel_fn, _depth in self._struct_field_cleanup:
+                    field_key = f"{sv}.{fn}"
                     base_name = sv.split(".")[0]
-                    if base_name not in declared:
+                    if base_name not in declared or field_key in seen_fields:
                         continue
                     # Without hoist: skip if struct is referenced in
                     # the return expression (it needs its fields alive)
@@ -1631,10 +1651,15 @@ class Lowerer:
                     # become part of the return value via shallow copy.
                     if base_name in transferred_bases:
                         continue
+                    # Skip struct fields when the struct was heap-boxed
+                    # and stored in a container (map/array) — the
+                    # container now owns those internal pointers.
+                    if sv in self._transferred_struct_vars:
+                        continue
                     # Skip specific fields transferred to the return value
-                    field_key = f"{sv}.{fn}"
                     if field_key in returned_field_keys:
                         continue
+                    seen_fields.add(field_key)
                     cleanup.append(self._emit_struct_field_release(
                         sv, fn, sct, rel_fn))
 
@@ -7724,6 +7749,10 @@ class Lowerer:
                 LCall("malloc", [LSizeOf(struct_lt)], LPtr(LVoid())),
                 ptr_type),
         ))
+        # The shallow copy (*tmp = expr) transfers internal pointers.
+        # If expr is an LVar, mark it so scope-exit cleanup skips its fields.
+        if isinstance(expr, LVar):
+            self._transferred_struct_vars.add(expr.c_name)
         self._pending_stmts.append(LAssign(
             LDeref(LVar(tmp, ptr_type), struct_lt),
             expr,
@@ -8084,6 +8113,8 @@ class Lowerer:
         self._container_locals = []
         saved_struct_field_cleanup = self._struct_field_cleanup
         self._struct_field_cleanup = []
+        saved_transferred_struct_vars = self._transferred_struct_vars
+        self._transferred_struct_vars = set()
         saved_scope_depth = self._scope_depth
         self._scope_depth = 0
 
@@ -8134,7 +8165,8 @@ class Lowerer:
                 body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
                              for sv, fn, sct, rel, depth
                              in self._struct_field_cleanup
-                             if depth == 0])
+                             if depth == 0
+                             and sv not in self._transferred_struct_vars])
 
         # Restore state
         self._types = original_types
@@ -8147,6 +8179,7 @@ class Lowerer:
         self._mono_caller_module_path = saved_mono_caller
         self._container_locals = saved_container_locals
         self._struct_field_cleanup = saved_struct_field_cleanup
+        self._transferred_struct_vars = saved_transferred_struct_vars
         self._scope_depth = saved_scope_depth
 
         return LFnDef(

@@ -9477,8 +9477,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_string_release(tok.value);
         fl_string_release(tok.file);
         fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
         return _fl_ret_405;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_OK) {
@@ -9493,8 +9491,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_string_release(tok.value);
         fl_string_release(tok.file);
         fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
         return _fl_ret_406;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_ERR) {
@@ -9508,8 +9504,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_self_hosted_ast_Pattern _fl_ret_407 = (fl_self_hosted_ast_Pattern){.tag = 6, .PErr = (fl_self_hosted_ast_Pattern_PErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
         fl_string_release(tok.value);
         fl_string_release(tok.file);
-        fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
         fl_string_release(inner_tok.file);
         return _fl_ret_407;
     }

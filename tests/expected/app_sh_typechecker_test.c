@@ -9477,8 +9477,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_string_release(tok.value);
         fl_string_release(tok.file);
         fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
         return _fl_ret_405;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_OK) {
@@ -9493,8 +9491,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_string_release(tok.value);
         fl_string_release(tok.file);
         fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
         return _fl_ret_406;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_ERR) {
@@ -9508,8 +9504,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_self_hosted_ast_Pattern _fl_ret_407 = (fl_self_hosted_ast_Pattern){.tag = 6, .PErr = (fl_self_hosted_ast_Pattern_PErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
         fl_string_release(tok.value);
         fl_string_release(tok.file);
-        fl_string_release(inner_tok.file);
-        fl_string_release(inner_tok.file);
         fl_string_release(inner_tok.file);
         return _fl_ret_407;
     }
@@ -16125,20 +16119,6 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
             fl_map_release(_fl_old_306);
         }
     }
-    fl_string_release(info.name);
-    fl_array_release(info.type_param_names);
-    fl_array_release(info.field_names);
-    fl_map_release(info.field_types);
-    fl_map_release(info.field_muts);
-    fl_array_release(info.method_names);
-    fl_map_release(info.method_types);
-    fl_array_release(info.static_names);
-    fl_map_release(info.static_types);
-    fl_map_release(info.static_muts);
-    fl_array_release(info.ctor_names);
-    fl_map_release(info.ctor_types);
-    fl_array_release(info.interface_exprs);
-    fl_string_release(info.module_path);
 }
 
 /* Flow: self_hosted.typechecker.register_enum_decl */
@@ -16219,20 +16199,6 @@ void fl_self_hosted_typechecker_register_enum_decl(fl_self_hosted_typechecker_TC
     }
     fl_array_release(resolved_variants);
     fl_array_release(resolved_values);
-    fl_string_release(info.name);
-    fl_array_release(info.type_param_names);
-    fl_array_release(info.field_names);
-    fl_map_release(info.field_types);
-    fl_map_release(info.field_muts);
-    fl_array_release(info.method_names);
-    fl_map_release(info.method_types);
-    fl_array_release(info.static_names);
-    fl_map_release(info.static_types);
-    fl_map_release(info.static_muts);
-    fl_array_release(info.ctor_names);
-    fl_map_release(info.ctor_types);
-    fl_array_release(info.interface_exprs);
-    fl_string_release(info.module_path);
 }
 
 /* Flow: self_hosted.typechecker.register_imported_types */
@@ -16552,31 +16518,6 @@ void fl_self_hosted_typechecker_register_builtin_interfaces(fl_self_hosted_typec
     fl_array_release(mul_p);
     fl_array_release(eq_p);
     fl_array_release(show_p);
-    fl_string_release(exc_info.name);
-    fl_array_release(exc_info.type_param_names);
-    fl_array_release(exc_info.method_names);
-    fl_map_release(exc_info.method_types);
-    fl_string_release(exc_info.ctor_name);
-    fl_string_release(cmp_info.name);
-    fl_array_release(cmp_info.type_param_names);
-    fl_array_release(cmp_info.method_names);
-    fl_map_release(cmp_info.method_types);
-    fl_string_release(cmp_info.ctor_name);
-    fl_string_release(num_info.name);
-    fl_array_release(num_info.type_param_names);
-    fl_array_release(num_info.method_names);
-    fl_map_release(num_info.method_types);
-    fl_string_release(num_info.ctor_name);
-    fl_string_release(eq_info.name);
-    fl_array_release(eq_info.type_param_names);
-    fl_array_release(eq_info.method_names);
-    fl_map_release(eq_info.method_types);
-    fl_string_release(eq_info.ctor_name);
-    fl_string_release(show_info.name);
-    fl_array_release(show_info.type_param_names);
-    fl_array_release(show_info.method_names);
-    fl_map_release(show_info.method_types);
-    fl_string_release(show_info.ctor_name);
 }
 
 /* Flow: self_hosted.typechecker.register_builtin_fulfillments */
@@ -18001,12 +17942,6 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                         fl_self_hosted_typechecker_TCType _fl_ret_674 = fl_self_hosted_typechecker_decl_fn_type(s, d);
                         fl_string_release(sym.name);
                         fl_string_release(sym.module_key);
-                        fl_string_release(sym.name);
-                        fl_string_release(sym.module_key);
-                        fl_string_release(sym.name);
-                        fl_string_release(sym.module_key);
-                        fl_string_release(sym.name);
-                        fl_string_release(sym.module_key);
                         return _fl_ret_674;
                     }
                 }
@@ -18114,12 +18049,6 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                                 fl_map_release(env);
                                 fl_string_release(sym.name);
                                 fl_string_release(sym.module_key);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
                                 return _fl_ret_675;
                             }
                         }
@@ -18183,21 +18112,9 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                                     fl_map_release(env);
                                     fl_string_release(sym.name);
                                     fl_string_release(sym.module_key);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
                                     return _fl_ret_676;
                                 }
                                 fl_array_release(arg_types);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
                                 fl_string_release(sym.name);
                                 fl_string_release(sym.module_key);
                                 return ret;
@@ -18205,12 +18122,6 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                             }
                             default: {
                                 fl_array_release(arg_types);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
-                                fl_string_release(sym.name);
-                                fl_string_release(sym.module_key);
                                 fl_string_release(sym.name);
                                 fl_string_release(sym.module_key);
                                 return (fl_self_hosted_typechecker_TCType){.tag = 23};
@@ -18237,21 +18148,9 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                                         fl_map_release(env);
                                         fl_string_release(sym.name);
                                         fl_string_release(sym.module_key);
-                                        fl_string_release(sym.name);
-                                        fl_string_release(sym.module_key);
-                                        fl_string_release(sym.name);
-                                        fl_string_release(sym.module_key);
-                                        fl_string_release(sym.name);
-                                        fl_string_release(sym.module_key);
                                         return _fl_ret_677;
                                     }
                                     fl_array_release(arg_types);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
                                     fl_string_release(sym.name);
                                     fl_string_release(sym.module_key);
                                     return ret;
@@ -18261,24 +18160,12 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                                     fl_array_release(arg_types);
                                     fl_string_release(sym.name);
                                     fl_string_release(sym.module_key);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
-                                    fl_string_release(sym.name);
-                                    fl_string_release(sym.module_key);
                                     return (fl_self_hosted_typechecker_TCType){.tag = 23};
                                     break;
                                 }
                             }
                         } else {
                             fl_array_release(arg_types);
-                            fl_string_release(sym.name);
-                            fl_string_release(sym.module_key);
-                            fl_string_release(sym.name);
-                            fl_string_release(sym.module_key);
-                            fl_string_release(sym.name);
-                            fl_string_release(sym.module_key);
                             fl_string_release(sym.name);
                             fl_string_release(sym.module_key);
                             return (fl_self_hosted_typechecker_TCType){.tag = 23};
@@ -18425,12 +18312,6 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                 if (sym.kind == fl_self_hosted_resolver_SymbolKind_SK_STATIC) {
                     fl_self_hosted_typechecker_TCType recv_t2 = fl_self_hosted_typechecker_infer_expr(s, recv);
                     fl_self_hosted_typechecker_TCType _fl_ret_682 = fl_self_hosted_typechecker_lookup_field(s, recv_t2, field_name);
-                    fl_string_release(sym.name);
-                    fl_string_release(sym.module_key);
-                    fl_string_release(sym.name);
-                    fl_string_release(sym.module_key);
-                    fl_string_release(sym.name);
-                    fl_string_release(sym.module_key);
                     fl_string_release(sym.name);
                     fl_string_release(sym.module_key);
                     return _fl_ret_682;
