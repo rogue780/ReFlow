@@ -699,6 +699,7 @@ fl_int fl_tests_app_node_id_test_main(void) {
         fl_string_release(_fl_tmp_24);
         fl_string_release(_fl_tmp_25);
         _fl_tmp_21 = (_fl_tmp_21 + 1);
+        fl_string_release(t);
     }
     fl_println(_fl_str_tests_app_node_id_test_11);
     fl_map_release(types);

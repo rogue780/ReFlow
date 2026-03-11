@@ -709,6 +709,7 @@ fl_int fl_tests_app_grep_search_and_print(FL_String* filepath, FL_String* patter
         fl_int _fl_e_3;
         FL_CHECKED_ADD(idx, 1, &_fl_e_3);
         idx = _fl_e_3;
+        fl_string_release(line);
     }
     fl_array_release(lines);
     return match_count;
@@ -734,6 +735,7 @@ fl_int fl_tests_app_grep_search_with_context(FL_String* filepath, FL_String* pat
         fl_int _fl_e_1;
         FL_CHECKED_ADD(idx, 1, &_fl_e_1);
         idx = _fl_e_1;
+        fl_string_release(line);
     }
     fl_int match_count = fl_array_len_int(match_indices);
     fl_int printed_up_to = (-1);

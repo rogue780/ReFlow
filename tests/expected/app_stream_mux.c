@@ -637,6 +637,9 @@ void fl_tests_app_stream_mux_main(void) {
         fl_string_release(_fl_tmp_8);
         fl_string_release(_fl_tmp_9);
         _fl_tmp_6 = (_fl_tmp_6 + 1);
+        fl_string_release(dest);
+        fl_string_release(line);
+        fl_string_release(existing);
     }
     FL_Array* ks = fl_map_keys(destinations);
     fl_int64 _fl_tmp_11 = 0;

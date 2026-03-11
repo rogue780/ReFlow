@@ -5949,6 +5949,8 @@ void fl_self_hosted_parser_skip_comments(fl_self_hosted_parser_ParserState* s) {
         } else {
             return;
         }
+        fl_string_release(t.value);
+        fl_string_release(t.file);
     }
 }
 
@@ -5965,6 +5967,8 @@ void fl_self_hosted_parser_skip_newlines(fl_self_hosted_parser_ParserState* s) {
         } else {
             return;
         }
+        fl_string_release(t.value);
+        fl_string_release(t.file);
     }
 }
 
@@ -6064,6 +6068,8 @@ void fl_self_hosted_parser_synchronize(fl_self_hosted_parser_ParserState* s) {
             return;
         }
         fl_self_hosted_parser_advance(s);
+        fl_string_release(tok.value);
+        fl_string_release(tok.file);
     }
 }
 
@@ -6308,6 +6314,8 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_named_or_generic_type(fl
             fl_string_retain(name);
             fl_string_release(_fl_old_36);
         }
+        fl_string_release(next_tok.value);
+        fl_string_release(next_tok.file);
     }
     fl_string_retain(name);
     fl_array_retain(module_path);
@@ -6392,6 +6400,8 @@ FL_Array* fl_self_hosted_parser_parse_dotted_name(fl_self_hosted_parser_ParserSt
         if (_fl_old_45 != parts) {
             fl_array_release(_fl_old_45);
         }
+        fl_string_release(next_tok.value);
+        fl_string_release(next_tok.file);
     }
     fl_string_release(name_tok.value);
     fl_string_release(name_tok.file);
@@ -6427,6 +6437,8 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_import_decl(fl_self_hosted_p
                 if (_fl_old_47 != names) {
                     fl_array_release(_fl_old_47);
                 }
+                fl_string_release(n2.value);
+                fl_string_release(n2.file);
             }
         }
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
@@ -6493,6 +6505,10 @@ FL_Array* fl_self_hosted_parser_parse_fn_modifiers(fl_self_hosted_parser_ParserS
                 is_static = fl_true;
             }
         }
+        fl_string_release(next_tok.value);
+        fl_string_release(next_tok.file);
+        fl_string_release(mod_tok.value);
+        fl_string_release(mod_tok.file);
     }
     FL_Array* result = fl_array_new(0, 0, NULL);
     fl_bool _fl_tmp_53 = is_pure;
@@ -6896,6 +6912,8 @@ fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_sel
                 if (_fl_old_106 != fields) {
                     fl_array_release(_fl_old_106);
                 }
+                fl_string_release(fname2.value);
+                fl_string_release(fname2.file);
             }
         }
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
@@ -6987,6 +7005,8 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_p
                 }
             }
         }
+        fl_string_release(member_tok.value);
+        fl_string_release(member_tok.file);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
     fl_string_retain(name);
@@ -7143,6 +7163,8 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_interface_decl(fl_self_hoste
                 }
             }
         }
+        fl_string_release(member_tok.value);
+        fl_string_release(member_tok.file);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
     fl_string_retain(name_tok.value);
@@ -7240,6 +7262,8 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_enum_decl(fl_self_hosted_par
             fl_array_release(_fl_old_141);
         }
         fl_self_hosted_parser_skip_newlines(s);
+        fl_string_release(v_tok.value);
+        fl_string_release(v_tok.file);
     }
     if (fl_array_len_int(variants) == 0) {
         fl_self_hosted_errors_CompileError* _fl_tmp_142 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
@@ -7840,6 +7864,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_match_stmt(fl_self_hosted_pa
             fl_array_release(_fl_old_204);
         }
         fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
+        fl_array_release(arm.body_stmts);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
     fl_array_retain(arms);
@@ -8228,6 +8253,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
             }
         }
         break;
+        fl_string_release(tok.value);
+        fl_string_release(tok.file);
     }
     return left;
 }
@@ -8507,6 +8534,8 @@ fl_bool fl_self_hosted_parser_is_fanout(fl_self_hosted_parser_ParserState* s) {
                 }
             }
         }
+        fl_string_release(tok.value);
+        fl_string_release(tok.file);
     }
     s->pos = saved;
     return fl_false;
@@ -8902,6 +8931,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_
                 }
             }
         }
+        fl_string_release(raw_tok.value);
+        fl_string_release(raw_tok.file);
     }
     fl_array_retain(parts);
     fl_self_hosted_ast_Expr _fl_ret_324 = (fl_self_hosted_ast_Expr){.tag = 33, .EFString = (fl_self_hosted_ast_Expr_EFString){.id = fl_self_hosted_parser_fresh_id(s), .line = start_tok.line, .col = start_tok.col, .parts = parts}};
@@ -9021,6 +9052,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_match_expr(fl_self_hosted_pa
             fl_array_release(_fl_old_340);
         }
         fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
+        fl_array_release(arm.body_stmts);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
     fl_self_hosted_ast_Expr* _fl_tmp_341 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
@@ -9221,6 +9253,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_record_lit(fl_self_hosted_pa
             if (_fl_old_368 != fields) {
                 fl_array_release(_fl_old_368);
             }
+            fl_string_release(fname2.value);
+            fl_string_release(fname2.file);
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
@@ -9265,6 +9299,10 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ident_or_type_lit(fl_self_ho
                 fl_string_retain(current_name);
                 fl_string_release(_fl_old_371);
             }
+            fl_string_release(next_after_dot.value);
+            fl_string_release(next_after_dot.file);
+            fl_string_release(next_tok.value);
+            fl_string_release(next_tok.file);
         }
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACE) && fl_self_hosted_parser_is_first_upper(current_name)) {
             fl_self_hosted_ast_Expr _fl_ret_372 = fl_self_hosted_parser_parse_type_construction_lit(s, first_tok, current_name, module_path);
@@ -9321,6 +9359,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_type_construction_lit(fl_sel
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) {
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
         }
+        fl_string_release(fname.value);
+        fl_string_release(fname.file);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
     FL_String* full_name = type_name;
@@ -9603,6 +9643,8 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
                     if (_fl_old_402 != bindings) {
                         fl_array_release(_fl_old_402);
                     }
+                    fl_string_release(b2.value);
+                    fl_string_release(b2.file);
                 }
             }
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);

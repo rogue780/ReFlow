@@ -1572,6 +1572,7 @@ void fl_json_serialize(fl_string_builder_StringBuilder b, fl_json_JsonValue val)
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
                 i = _fl_e_2;
+                fl_string_release(key);
             }
             fl_string_builder_append_char(b, 125);
             break;
@@ -1689,6 +1690,7 @@ void fl_json_serialize_pretty(fl_string_builder_StringBuilder b, fl_json_JsonVal
                     fl_int _fl_e_10;
                     FL_CHECKED_ADD(i, 1, &_fl_e_10);
                     i = _fl_e_10;
+                    fl_string_release(key);
                 }
                 fl_string_builder_append_char(b, 10);
                 fl_int _fl_e_11;

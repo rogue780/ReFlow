@@ -2402,10 +2402,129 @@ class Lowerer:
                 else_body = self._lower_if_stmt(stmt.else_branch)
         return [LIf(cond=cond, then=then_body, else_=else_body)]
 
+    _RETAIN_CALLS = frozenset({
+        "fl_string_retain", "fl_array_retain", "fl_map_retain",
+    })
+
+    def _collect_retained_vars(self, stmts: list[LStmt]) -> set[str]:
+        """Find variables that received a retain call in a statement list."""
+        retained: set[str] = set()
+        for s in stmts:
+            if isinstance(s, LExprStmt) and isinstance(s.expr, LCall):
+                if (s.expr.fn_name in self._RETAIN_CALLS
+                        and s.expr.args
+                        and isinstance(s.expr.args[0], LVar)):
+                    retained.add(s.expr.args[0].c_name)
+            elif isinstance(s, LIf):
+                retained |= self._collect_retained_vars(s.then)
+                retained |= self._collect_retained_vars(s.else_)
+            elif isinstance(s, LSwitch):
+                for _, case_stmts in s.cases:
+                    retained |= self._collect_retained_vars(case_stmts)
+                retained |= self._collect_retained_vars(s.default)
+        return retained
+
+    _CONTAINER_STORE_FNS = frozenset({
+        "fl_array_push_ptr",
+        "fl_map_set_str",
+        "fl_map_set",
+    })
+
+    def _collect_push_ptr_vars(self, stmts: list[LStmt]) -> set[str]:
+        """Find variables stored by reference in containers via push_ptr/map_set."""
+        consumed: set[str] = set()
+        for s in stmts:
+            # container = fl_array_push_ptr(container, var)
+            # container = fl_map_set_str(container, key, var)
+            if isinstance(s, LAssign) and isinstance(s.value, LCall):
+                if (s.value.fn_name in self._CONTAINER_STORE_FNS
+                        and len(s.value.args) >= 2):
+                    # Last arg is the value being stored
+                    last_arg = s.value.args[-1]
+                    if isinstance(last_arg, LVar):
+                        consumed.add(last_arg.c_name)
+                    # For map_set, also check cast-wrapped args: (void*)var
+                    elif isinstance(last_arg, LCast) and isinstance(last_arg.inner, LVar):
+                        consumed.add(last_arg.inner.c_name)
+            elif isinstance(s, LIf):
+                consumed |= self._collect_push_ptr_vars(s.then)
+                consumed |= self._collect_push_ptr_vars(s.else_)
+            elif isinstance(s, LSwitch):
+                for _, case_stmts in s.cases:
+                    consumed |= self._collect_push_ptr_vars(case_stmts)
+                consumed |= self._collect_push_ptr_vars(s.default)
+        return consumed
+
+    def _emit_loop_end_cleanup(self, body: list[LStmt],
+                               loop_depth: int,
+                               cl_snapshot: int,
+                               sf_snapshot: int) -> None:
+        """Append release calls at end of loop body for loop-scoped variables.
+
+        For container locals: only release if the variable was retained in
+        the body (balancing the retain) AND not stored by reference in an
+        outer container via push_ptr.
+
+        For struct fields: only use entries registered DURING the loop body
+        lowering (after the snapshot indices) to avoid using entries from
+        sibling scopes (e.g., different match arms at the same depth).
+
+        Only releases variables whose LVarDecl appears at the top level of
+        the body (not inside conditionals).
+        """
+        # Find top-level declarations in the body
+        top_decls: set[str] = set()
+        for s in body:
+            if isinstance(s, LVarDecl):
+                top_decls.add(s.c_name)
+
+        retained_vars = self._collect_retained_vars(body)
+        push_ptr_vars = self._collect_push_ptr_vars(body)
+
+        cleanup: list[LStmt] = []
+
+        # Container locals: only those registered during this body
+        seen_containers: set[str] = set()
+        for name, ct, fn_name, depth in self._container_locals[cl_snapshot:]:
+            if depth != loop_depth or name in seen_containers:
+                continue
+            if name not in top_decls:
+                continue
+            if name in self._transferred_struct_vars:
+                continue
+            if name in push_ptr_vars:
+                continue
+            seen_containers.add(name)
+            cleanup.append(LExprStmt(
+                LCall(fn_name, [LVar(name, ct)], LVoid())))
+
+        # Struct field releases: only those registered during this body
+        seen_fields: set[str] = set()
+        for sv, fn, sct, rel_fn, depth in self._struct_field_cleanup[sf_snapshot:]:
+            if depth != loop_depth:
+                continue
+            field_key = f"{sv}.{fn}"
+            if field_key in seen_fields:
+                continue
+            base = sv.split(".")[0]
+            if base not in top_decls:
+                continue
+            if sv in self._transferred_struct_vars:
+                continue
+            seen_fields.add(field_key)
+            cleanup.append(self._emit_struct_field_release(
+                sv, fn, sct, rel_fn))
+
+        body.extend(cleanup)
+
     def _lower_while(self, stmt: WhileStmt) -> list[LStmt]:
         cond = self._lower_expr(stmt.condition)
         self._scope_depth += 1
+        cl_snapshot = len(self._container_locals)
+        sf_snapshot = len(self._struct_field_cleanup)
         body = self._lower_block(stmt.body)
+        self._emit_loop_end_cleanup(body, self._scope_depth,
+                                     cl_snapshot, sf_snapshot)
         self._scope_depth -= 1
         result: list[LStmt] = [LWhile(cond=cond, body=body)]
         if stmt.finally_block is not None:
@@ -2478,9 +2597,14 @@ class Lowerer:
         )
 
         self._scope_depth += 1
+        cl_snapshot = len(self._container_locals)
+        sf_snapshot = len(self._struct_field_cleanup)
         inner_body = self._lower_block(stmt.body)
+        loop_depth = self._scope_depth
         self._scope_depth -= 1
         body_stmts = [item_decl] + inner_body + [increment]
+        self._emit_loop_end_cleanup(body_stmts, loop_depth,
+                                     cl_snapshot, sf_snapshot)
         result: list[LStmt] = []
 
         if cleanup_needed:
@@ -6172,6 +6296,26 @@ class Lowerer:
                              LLit(str(tag), LInt(64, True))],
                             LVoid())))
                         lowered_val = LVar(tmp, arr_lt)
+
+            # Set val_type on map.new() fields whose declared type is
+            # map<K, RefcountedType> — matching the _ELEM_TYPE_TAG entries.
+            if isinstance(val, MethodCall) and isinstance(lowered_val, LCall):
+                if lowered_val.fn_name == "fl_map_new":
+                    decl_t = decl_field_types.get(name)
+                    if isinstance(decl_t, TMap):
+                        val_tag = self._ELEM_TYPE_TAG.get(type(decl_t.value))
+                        if val_tag is not None:
+                            map_lt = self._lower_type(decl_t)
+                            tmp = self._fresh_temp()
+                            self._pending_stmts.append(
+                                LVarDecl(c_name=tmp, c_type=map_lt,
+                                         init=lowered_val))
+                            self._pending_stmts.append(LExprStmt(LCall(
+                                "fl_map_set_val_type",
+                                [LVar(tmp, map_lt),
+                                 LLit(str(val_tag), LInt(64, True))],
+                                LVoid())))
+                            lowered_val = LVar(tmp, map_lt)
 
             # Retain-on-store: retain borrowed refcounted field values
             if not self._is_allocating_expr(val):

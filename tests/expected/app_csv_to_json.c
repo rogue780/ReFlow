@@ -908,6 +908,7 @@ fl_tests_app_csv_to_json_CsvRow fl_tests_app_csv_to_json_validate(fl_tests_app_c
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(col_name);
     }
     fl_array_release(cols);
     return row;
@@ -955,6 +956,8 @@ FL_String* fl_tests_app_csv_to_json_to_json(fl_tests_app_csv_to_json_CsvRow row,
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(col_name);
+        fl_string_release(field_val);
     }
     fl_string_builder_append(b, _fl_str_tests_app_csv_to_json_11);
     FL_String* _fl_ret_11 = fl_string_builder_build(b);
@@ -1041,6 +1044,7 @@ void fl_tests_app_csv_to_json_main(void) {
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(line);
     }
     fl_array_release(lines);
     fl_array_release(schema.columns);

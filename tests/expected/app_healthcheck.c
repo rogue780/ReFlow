@@ -1209,6 +1209,10 @@ _fl_tmp_82:;
         fl_int _fl_e_2;
         FL_CHECKED_ADD(idx, 1, &_fl_e_2);
         idx = _fl_e_2;
+        fl_string_release(target_str);
+        fl_array_release(parts);
+        fl_string_release(host);
+        fl_string_release(url_path);
     }
     fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_18));
     FL_Option_ptr _fl_tmp_106 = fl_coroutine_next(agg);

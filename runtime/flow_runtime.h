@@ -283,6 +283,7 @@ typedef enum {
     FL_ELEM_CLOSURE = 4,
     FL_ELEM_STREAM  = 5,
     FL_ELEM_BUFFER  = 6,
+    FL_ELEM_HEAP_BOX = 7,  /* reserved — not yet used */
 } FL_ElemType;
 
 typedef struct FL_Array {

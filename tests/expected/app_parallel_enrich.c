@@ -746,6 +746,8 @@ void fl_tests_app_parallel_enrich_main(void) {
         FL_CHECKED_ADD(idx, 1, &_fl_e_1);
         idx = _fl_e_1;
         _fl_tmp_8 = (_fl_tmp_8 + 1);
+        fl_string_release(output);
+        fl_string_release(name);
     }
     fl_println(_fl_str_tests_app_parallel_enrich_13);
     FL_Stream* _fl_tmp_19 = fl_tests_app_parallel_enrich_produce_values();

@@ -926,6 +926,7 @@ FL_String* fl_csv_to_string(FL_Array* rows) {
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_array_release(row);
     }
     return result;
 }
@@ -953,6 +954,7 @@ FL_String* fl_csv_row_to_string(FL_Array* fields) {
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(f);
     }
     return result;
 }
@@ -1014,6 +1016,7 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(j, 1, &_fl_e_1);
             j = _fl_e_1;
+            fl_string_release(key);
         }
         FL_Array* _fl_old_55 = result;
         result = fl_array_push_ptr(result, m);
@@ -1023,6 +1026,7 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
         fl_int _fl_e_2;
         FL_CHECKED_ADD(i, 1, &_fl_e_2);
         i = _fl_e_2;
+        fl_array_release(row);
     }
     fl_array_release(headers);
     return result;

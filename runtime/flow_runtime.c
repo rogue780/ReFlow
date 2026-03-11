@@ -263,6 +263,7 @@ static void _fl_elem_release(FL_ElemType t, void* slot) {
         case FL_ELEM_CLOSURE: fl_closure_release((FL_Closure*)p); break;
         case FL_ELEM_STREAM:  fl_stream_release((FL_Stream*)p); break;
         case FL_ELEM_BUFFER:  fl_buffer_release((FL_Buffer*)p); break;
+        case FL_ELEM_HEAP_BOX: free(p); break;
         default: break;
     }
 }
@@ -1628,11 +1629,11 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         n->entries[idx].key = key_copy;
         n->entries[idx].key_len = e->key_len;
         n->entries[idx].val = e->val;
-        n->entries[idx].occupied = fl_true;
         /* Retain all copied values (shared with old map) */
         if (n->val_type != FL_ELEM_NONE) {
             _fl_elem_retain(n->val_type, &n->entries[idx].val);
         }
+        n->entries[idx].occupied = fl_true;
         n->count++;
     }
 
