@@ -549,57 +549,69 @@ void fl_tests_stdlib_generic_map_main(void) {
     if (_fl_old_1 != m) {
         fl_map_release(_fl_old_1);
     }
-    FL_String* _fl_tmp_2 = _fl_str_tests_stdlib_generic_map_4;
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_0)));
+    FL_String* _fl_tmp_2 = fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_0));
+    FL_String* _fl_tmp_3 = _fl_str_tests_stdlib_generic_map_4;
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_tmp_2);
     fl_string_release(_fl_tmp_2);
-    fl_println(_fl_tmp_3);
-    FL_String* _fl_tmp_4 = _fl_str_tests_stdlib_generic_map_5;
-    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_6)));
-    fl_string_release(_fl_tmp_4);
-    fl_println(_fl_tmp_5);
-    FL_Option_ptr _fl_tmp_6 = fl_map_get_str(m, _fl_str_tests_stdlib_generic_map_0);
-    if (_fl_tmp_6.tag == 1) {
-        FL_String* v = _fl_tmp_6.value;
-        FL_String* _fl_tmp_7 = _fl_str_tests_stdlib_generic_map_7;
-        FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, v);
-        fl_string_release(_fl_tmp_7);
-        fl_println(_fl_tmp_8);
+    fl_string_release(_fl_tmp_3);
+    fl_println(_fl_tmp_4);
+    FL_String* _fl_tmp_5 = fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_6));
+    FL_String* _fl_tmp_6 = _fl_str_tests_stdlib_generic_map_5;
+    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, _fl_tmp_5);
+    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_7);
+    FL_Option_ptr _fl_tmp_8 = fl_map_get_str(m, _fl_str_tests_stdlib_generic_map_0);
+    if (_fl_tmp_8.tag == 1) {
+        FL_String* v = _fl_tmp_8.value;
+        FL_String* _fl_tmp_9 = _fl_str_tests_stdlib_generic_map_7;
+        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, v);
+        fl_string_release(_fl_tmp_9);
+        fl_println(_fl_tmp_10);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_map_8);
     }
-    FL_Option_ptr _fl_tmp_9 = fl_map_get_str(m, _fl_str_tests_stdlib_generic_map_2);
-    if (_fl_tmp_9.tag == 1) {
-        FL_String* v = _fl_tmp_9.value;
-        FL_String* _fl_tmp_10 = _fl_str_tests_stdlib_generic_map_9;
-        FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, v);
-        fl_string_release(_fl_tmp_10);
-        fl_println(_fl_tmp_11);
+    FL_Option_ptr _fl_tmp_11 = fl_map_get_str(m, _fl_str_tests_stdlib_generic_map_2);
+    if (_fl_tmp_11.tag == 1) {
+        FL_String* v = _fl_tmp_11.value;
+        FL_String* _fl_tmp_12 = _fl_str_tests_stdlib_generic_map_9;
+        FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, v);
+        fl_string_release(_fl_tmp_12);
+        fl_println(_fl_tmp_13);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_map_10);
     }
     FL_Array* ks = fl_map_keys(m);
-    FL_String* _fl_tmp_12 = _fl_str_tests_stdlib_generic_map_11;
-    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, fl_int_to_string(fl_array_len_int(ks)));
-    fl_string_release(_fl_tmp_12);
-    fl_println(_fl_tmp_13);
-    FL_Array* vs = fl_map_values(m);
-    FL_String* _fl_tmp_14 = _fl_str_tests_stdlib_generic_map_12;
-    FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, fl_int_to_string(fl_array_len_int(vs)));
+    FL_String* _fl_tmp_14 = fl_int_to_string(fl_array_len_int(ks));
+    FL_String* _fl_tmp_15 = _fl_str_tests_stdlib_generic_map_11;
+    FL_String* _fl_tmp_16 = fl_string_concat(_fl_tmp_15, _fl_tmp_14);
     fl_string_release(_fl_tmp_14);
-    fl_println(_fl_tmp_15);
-    FL_Map* _fl_old_16 = m;
-    m = fl_map_remove_str(m, _fl_str_tests_stdlib_generic_map_0);
-    if (_fl_old_16 != m) {
-        fl_map_release(_fl_old_16);
-    }
-    FL_String* _fl_tmp_17 = _fl_str_tests_stdlib_generic_map_13;
-    FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_0)));
+    fl_string_release(_fl_tmp_15);
+    fl_println(_fl_tmp_16);
+    FL_Array* vs = fl_map_values(m);
+    FL_String* _fl_tmp_17 = fl_int_to_string(fl_array_len_int(vs));
+    FL_String* _fl_tmp_18 = _fl_str_tests_stdlib_generic_map_12;
+    FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, _fl_tmp_17);
     fl_string_release(_fl_tmp_17);
-    fl_println(_fl_tmp_18);
-    FL_String* _fl_tmp_19 = _fl_str_tests_stdlib_generic_map_14;
-    FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, fl_int64_to_string(fl_map_len(m)));
-    fl_string_release(_fl_tmp_19);
-    fl_println(_fl_tmp_20);
+    fl_string_release(_fl_tmp_18);
+    fl_println(_fl_tmp_19);
+    FL_Map* _fl_old_20 = m;
+    m = fl_map_remove_str(m, _fl_str_tests_stdlib_generic_map_0);
+    if (_fl_old_20 != m) {
+        fl_map_release(_fl_old_20);
+    }
+    FL_String* _fl_tmp_21 = fl_bool_to_string(fl_map_has_str(m, _fl_str_tests_stdlib_generic_map_0));
+    FL_String* _fl_tmp_22 = _fl_str_tests_stdlib_generic_map_13;
+    FL_String* _fl_tmp_23 = fl_string_concat(_fl_tmp_22, _fl_tmp_21);
+    fl_string_release(_fl_tmp_21);
+    fl_string_release(_fl_tmp_22);
+    fl_println(_fl_tmp_23);
+    FL_String* _fl_tmp_24 = fl_int64_to_string(fl_map_len(m));
+    FL_String* _fl_tmp_25 = _fl_str_tests_stdlib_generic_map_14;
+    FL_String* _fl_tmp_26 = fl_string_concat(_fl_tmp_25, _fl_tmp_24);
+    fl_string_release(_fl_tmp_24);
+    fl_string_release(_fl_tmp_25);
+    fl_println(_fl_tmp_26);
     fl_map_release(m);
     fl_array_release(ks);
     fl_array_release(vs);

@@ -95,18 +95,20 @@ void fl_tests_stdlib_io_test_main(void) {
         fl_println(_fl_str_tests_stdlib_io_test_5);
     }
     fl_bool wrote = fl_write_file(tmp, _fl_str_tests_stdlib_io_test_6);
-    FL_String* _fl_tmp_6 = _fl_str_tests_stdlib_io_test_7;
-    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_bool_to_string(wrote));
+    FL_String* _fl_tmp_6 = fl_bool_to_string(wrote);
+    FL_String* _fl_tmp_7 = _fl_str_tests_stdlib_io_test_7;
+    FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, _fl_tmp_6);
     fl_string_release(_fl_tmp_6);
-    fl_println(_fl_tmp_7);
+    fl_string_release(_fl_tmp_7);
+    fl_println(_fl_tmp_8);
     FL_Option_ptr contents2 = fl_read_file(tmp);
-    FL_Option_ptr _fl_tmp_8 = contents2;
-    if (_fl_tmp_8.tag == 1) {
-        FL_String* s = _fl_tmp_8.value;
-        FL_String* _fl_tmp_9 = _fl_str_tests_stdlib_io_test_8;
-        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, s);
-        fl_string_release(_fl_tmp_9);
-        fl_println(_fl_tmp_10);
+    FL_Option_ptr _fl_tmp_9 = contents2;
+    if (_fl_tmp_9.tag == 1) {
+        FL_String* s = _fl_tmp_9.value;
+        FL_String* _fl_tmp_10 = _fl_str_tests_stdlib_io_test_8;
+        FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, s);
+        fl_string_release(_fl_tmp_10);
+        fl_println(_fl_tmp_11);
     } else {
         fl_println(_fl_str_tests_stdlib_io_test_9);
     }

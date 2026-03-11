@@ -199,10 +199,12 @@ void fl_tests_coroutine_pool_test_main(void) {
             count = _fl_e_1;
         }
     }
-    FL_String* _fl_tmp_9 = _fl_str_tests_coroutine_pool_test_0;
-    FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_int_to_string(count));
+    FL_String* _fl_tmp_9 = fl_int_to_string(count);
+    FL_String* _fl_tmp_10 = _fl_str_tests_coroutine_pool_test_0;
+    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, _fl_tmp_9);
     fl_string_release(_fl_tmp_9);
-    fl_println(_fl_tmp_10);
+    fl_string_release(_fl_tmp_10);
+    fl_println(_fl_tmp_11);
     fl_println(_fl_str_tests_coroutine_pool_test_1);
 }
 

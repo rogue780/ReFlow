@@ -127,26 +127,30 @@ void fl_tests_coroutine_kill_test_main(void) {
     FL_Option_int _fl_tmp_3 = _fl_tmp_2;
     if (_fl_tmp_3.tag == 1) {
         fl_int v = _fl_tmp_3.value;
-        FL_String* _fl_tmp_4 = _fl_str_tests_coroutine_kill_test_0;
-        FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_int_to_string(v));
+        FL_String* _fl_tmp_4 = fl_int_to_string(v);
+        FL_String* _fl_tmp_5 = _fl_str_tests_coroutine_kill_test_0;
+        FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, _fl_tmp_4);
         fl_string_release(_fl_tmp_4);
-        fl_println(_fl_tmp_5);
+        fl_string_release(_fl_tmp_5);
+        fl_println(_fl_tmp_6);
     } else {
         fl_println(_fl_str_tests_coroutine_kill_test_1);
     }
-    FL_Option_ptr _fl_tmp_6 = fl_coroutine_next(h);
-    FL_Option_int _fl_tmp_7;
-    _fl_tmp_7.tag = _fl_tmp_6.tag;
-    if (_fl_tmp_6.tag == 1) {
-        _fl_tmp_7.value = ((fl_int)((fl_int64)_fl_tmp_6.value));
+    FL_Option_ptr _fl_tmp_7 = fl_coroutine_next(h);
+    FL_Option_int _fl_tmp_8;
+    _fl_tmp_8.tag = _fl_tmp_7.tag;
+    if (_fl_tmp_7.tag == 1) {
+        _fl_tmp_8.value = ((fl_int)((fl_int64)_fl_tmp_7.value));
     }
-    FL_Option_int _fl_tmp_8 = _fl_tmp_7;
-    if (_fl_tmp_8.tag == 1) {
-        fl_int v = _fl_tmp_8.value;
-        FL_String* _fl_tmp_9 = _fl_str_tests_coroutine_kill_test_0;
-        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_int_to_string(v));
-        fl_string_release(_fl_tmp_9);
-        fl_println(_fl_tmp_10);
+    FL_Option_int _fl_tmp_9 = _fl_tmp_8;
+    if (_fl_tmp_9.tag == 1) {
+        fl_int v = _fl_tmp_9.value;
+        FL_String* _fl_tmp_10 = fl_int_to_string(v);
+        FL_String* _fl_tmp_11 = _fl_str_tests_coroutine_kill_test_0;
+        FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, _fl_tmp_10);
+        fl_string_release(_fl_tmp_10);
+        fl_string_release(_fl_tmp_11);
+        fl_println(_fl_tmp_12);
     } else {
         fl_println(_fl_str_tests_coroutine_kill_test_1);
     }

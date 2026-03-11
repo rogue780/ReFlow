@@ -106,10 +106,12 @@ void fl_tests_recursive_sum_main(void) {
     fl_tests_recursive_sum_Tree* _fl_tmp_4 = ((fl_tests_recursive_sum_Tree*)malloc(sizeof(fl_tests_recursive_sum_Tree)));
     (*_fl_tmp_4) = (fl_tests_recursive_sum_Tree){.tag = 0, .Leaf = (fl_tests_recursive_sum_Tree_Leaf){.value = 3}};
     fl_tests_recursive_sum_Tree tree = (fl_tests_recursive_sum_Tree){.tag = 1, .Node = (fl_tests_recursive_sum_Tree_Node){.left = _fl_tmp_3, .right = _fl_tmp_4}};
-    FL_String* _fl_tmp_5 = _fl_str_tests_recursive_sum_0;
-    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_int_to_string(fl_tests_recursive_sum_sum_tree(tree)));
+    FL_String* _fl_tmp_5 = fl_int_to_string(fl_tests_recursive_sum_sum_tree(tree));
+    FL_String* _fl_tmp_6 = _fl_str_tests_recursive_sum_0;
+    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, _fl_tmp_5);
     fl_string_release(_fl_tmp_5);
-    fl_println(_fl_tmp_6);
+    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_7);
 }
 
 static void _fl_init_statics(void) {

@@ -175,73 +175,81 @@ void fl_tests_stream_helpers_test_main(void) {
             break;
         }
         fl_int x = ((fl_int)((fl_uint64)_fl_tmp_0.value));
-        FL_String* _fl_tmp_2 = _fl_str_tests_stream_helpers_test_0;
-        FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(x));
+        FL_String* _fl_tmp_2 = fl_int_to_string(x);
+        FL_String* _fl_tmp_3 = _fl_str_tests_stream_helpers_test_0;
+        FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_tmp_2);
         fl_string_release(_fl_tmp_2);
-        fl_println(_fl_tmp_3);
+        fl_string_release(_fl_tmp_3);
+        fl_println(_fl_tmp_4);
     }
     fl_stream_release(_fl_tmp_1);
-    FL_Stream* _fl_tmp_5 = fl_stream_skip(fl_tests_stream_helpers_test_range(5), 2);
+    FL_Stream* _fl_tmp_6 = fl_stream_skip(fl_tests_stream_helpers_test_range(5), 2);
     while (1) {
-        FL_Option_ptr _fl_tmp_4 = fl_stream_next(_fl_tmp_5);
-        if (_fl_tmp_4.tag == 0) {
+        FL_Option_ptr _fl_tmp_5 = fl_stream_next(_fl_tmp_6);
+        if (_fl_tmp_5.tag == 0) {
             break;
         }
-        fl_int x = ((fl_int)((fl_uint64)_fl_tmp_4.value));
-        FL_String* _fl_tmp_6 = _fl_str_tests_stream_helpers_test_1;
-        FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(x));
-        fl_string_release(_fl_tmp_6);
-        fl_println(_fl_tmp_7);
+        fl_int x = ((fl_int)((fl_uint64)_fl_tmp_5.value));
+        FL_String* _fl_tmp_7 = fl_int_to_string(x);
+        FL_String* _fl_tmp_8 = _fl_str_tests_stream_helpers_test_1;
+        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_tmp_7);
+        fl_string_release(_fl_tmp_7);
+        fl_string_release(_fl_tmp_8);
+        fl_println(_fl_tmp_9);
     }
-    fl_stream_release(_fl_tmp_5);
-    FL_Closure* _fl_tmp_8 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_8->refcount = 1;
-    _fl_tmp_8->fn = ((void*)_fl_clfn_tests_stream_helpers_test_main_0);
-    _fl_tmp_8->env = NULL;
-    FL_Closure* _fl_tmp_9 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_9->refcount = 1;
-    _fl_tmp_9->fn = ((void*)_fl_clfn_tests_stream_helpers_test_main_1);
-    _fl_tmp_9->env = NULL;
+    fl_stream_release(_fl_tmp_6);
     FL_Closure* _fl_tmp_10 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_10->fn = ((void*)_fl_swrap_tests_stream_helpers_test_main_2);
-    _fl_tmp_10->env = ((void*)_fl_tmp_9);
-    FL_Stream* _fl_tmp_12 = fl_stream_map(fl_tests_stream_helpers_test_range(5), _fl_tmp_10);
+    _fl_tmp_10->refcount = 1;
+    _fl_tmp_10->fn = ((void*)_fl_clfn_tests_stream_helpers_test_main_0);
+    _fl_tmp_10->env = NULL;
+    FL_Closure* _fl_tmp_11 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_11->refcount = 1;
+    _fl_tmp_11->fn = ((void*)_fl_clfn_tests_stream_helpers_test_main_1);
+    _fl_tmp_11->env = NULL;
+    FL_Closure* _fl_tmp_12 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_12->fn = ((void*)_fl_swrap_tests_stream_helpers_test_main_2);
+    _fl_tmp_12->env = ((void*)_fl_tmp_11);
+    FL_Stream* _fl_tmp_14 = fl_stream_map(fl_tests_stream_helpers_test_range(5), _fl_tmp_12);
     while (1) {
-        FL_Option_ptr _fl_tmp_11 = fl_stream_next(_fl_tmp_12);
-        if (_fl_tmp_11.tag == 0) {
+        FL_Option_ptr _fl_tmp_13 = fl_stream_next(_fl_tmp_14);
+        if (_fl_tmp_13.tag == 0) {
             break;
         }
-        fl_int x = ((fl_int)((fl_uint64)_fl_tmp_11.value));
-        FL_String* _fl_tmp_13 = _fl_str_tests_stream_helpers_test_2;
-        FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, fl_int_to_string(x));
-        fl_string_release(_fl_tmp_13);
-        fl_println(_fl_tmp_14);
+        fl_int x = ((fl_int)((fl_uint64)_fl_tmp_13.value));
+        FL_String* _fl_tmp_15 = fl_int_to_string(x);
+        FL_String* _fl_tmp_16 = _fl_str_tests_stream_helpers_test_2;
+        FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, _fl_tmp_15);
+        fl_string_release(_fl_tmp_15);
+        fl_string_release(_fl_tmp_16);
+        fl_println(_fl_tmp_17);
     }
-    fl_stream_release(_fl_tmp_12);
-    FL_Closure* _fl_tmp_15 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_15->refcount = 1;
-    _fl_tmp_15->fn = ((void*)_fl_clfn_tests_stream_helpers_test_main_3);
-    _fl_tmp_15->env = NULL;
-    FL_Closure* _fl_tmp_16 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_16->refcount = 1;
-    _fl_tmp_16->fn = ((void*)_fl_clfn_tests_stream_helpers_test_main_4);
-    _fl_tmp_16->env = NULL;
-    FL_Closure* _fl_tmp_17 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
-    _fl_tmp_17->fn = ((void*)_fl_swrap_tests_stream_helpers_test_main_5);
-    _fl_tmp_17->env = ((void*)_fl_tmp_16);
-    FL_Stream* _fl_tmp_19 = fl_stream_filter(fl_tests_stream_helpers_test_range(10), _fl_tmp_17);
+    fl_stream_release(_fl_tmp_14);
+    FL_Closure* _fl_tmp_18 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_18->refcount = 1;
+    _fl_tmp_18->fn = ((void*)_fl_clfn_tests_stream_helpers_test_main_3);
+    _fl_tmp_18->env = NULL;
+    FL_Closure* _fl_tmp_19 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_19->refcount = 1;
+    _fl_tmp_19->fn = ((void*)_fl_clfn_tests_stream_helpers_test_main_4);
+    _fl_tmp_19->env = NULL;
+    FL_Closure* _fl_tmp_20 = ((FL_Closure*)malloc(sizeof(FL_Closure)));
+    _fl_tmp_20->fn = ((void*)_fl_swrap_tests_stream_helpers_test_main_5);
+    _fl_tmp_20->env = ((void*)_fl_tmp_19);
+    FL_Stream* _fl_tmp_22 = fl_stream_filter(fl_tests_stream_helpers_test_range(10), _fl_tmp_20);
     while (1) {
-        FL_Option_ptr _fl_tmp_18 = fl_stream_next(_fl_tmp_19);
-        if (_fl_tmp_18.tag == 0) {
+        FL_Option_ptr _fl_tmp_21 = fl_stream_next(_fl_tmp_22);
+        if (_fl_tmp_21.tag == 0) {
             break;
         }
-        fl_int x = ((fl_int)((fl_uint64)_fl_tmp_18.value));
-        FL_String* _fl_tmp_20 = _fl_str_tests_stream_helpers_test_3;
-        FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, fl_int_to_string(x));
-        fl_string_release(_fl_tmp_20);
-        fl_println(_fl_tmp_21);
+        fl_int x = ((fl_int)((fl_uint64)_fl_tmp_21.value));
+        FL_String* _fl_tmp_23 = fl_int_to_string(x);
+        FL_String* _fl_tmp_24 = _fl_str_tests_stream_helpers_test_3;
+        FL_String* _fl_tmp_25 = fl_string_concat(_fl_tmp_24, _fl_tmp_23);
+        fl_string_release(_fl_tmp_23);
+        fl_string_release(_fl_tmp_24);
+        fl_println(_fl_tmp_25);
     }
-    fl_stream_release(_fl_tmp_19);
+    fl_stream_release(_fl_tmp_22);
 }
 
 static void _fl_init_statics(void) {

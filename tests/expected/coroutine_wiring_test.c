@@ -202,58 +202,66 @@ void fl_tests_coroutine_wiring_test_main(void) {
     FL_Option_int _fl_tmp_8 = _fl_tmp_7;
     if (_fl_tmp_8.tag == 1) {
         fl_int v = _fl_tmp_8.value;
-        FL_String* _fl_tmp_9 = _fl_str_tests_coroutine_wiring_test_0;
-        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_int_to_string(v));
+        FL_String* _fl_tmp_9 = fl_int_to_string(v);
+        FL_String* _fl_tmp_10 = _fl_str_tests_coroutine_wiring_test_0;
+        FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, _fl_tmp_9);
         fl_string_release(_fl_tmp_9);
-        fl_println(_fl_tmp_10);
+        fl_string_release(_fl_tmp_10);
+        fl_println(_fl_tmp_11);
     } else {
         fl_println(_fl_str_tests_coroutine_wiring_test_1);
     }
-    FL_Option_ptr _fl_tmp_11 = fl_coroutine_next(d);
-    FL_Option_int _fl_tmp_12;
-    _fl_tmp_12.tag = _fl_tmp_11.tag;
-    if (_fl_tmp_11.tag == 1) {
-        _fl_tmp_12.value = ((fl_int)((fl_int64)_fl_tmp_11.value));
+    FL_Option_ptr _fl_tmp_12 = fl_coroutine_next(d);
+    FL_Option_int _fl_tmp_13;
+    _fl_tmp_13.tag = _fl_tmp_12.tag;
+    if (_fl_tmp_12.tag == 1) {
+        _fl_tmp_13.value = ((fl_int)((fl_int64)_fl_tmp_12.value));
     }
-    FL_Option_int _fl_tmp_13 = _fl_tmp_12;
-    if (_fl_tmp_13.tag == 1) {
-        fl_int v = _fl_tmp_13.value;
-        FL_String* _fl_tmp_14 = _fl_str_tests_coroutine_wiring_test_0;
-        FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, fl_int_to_string(v));
-        fl_string_release(_fl_tmp_14);
-        fl_println(_fl_tmp_15);
+    FL_Option_int _fl_tmp_14 = _fl_tmp_13;
+    if (_fl_tmp_14.tag == 1) {
+        fl_int v = _fl_tmp_14.value;
+        FL_String* _fl_tmp_15 = fl_int_to_string(v);
+        FL_String* _fl_tmp_16 = _fl_str_tests_coroutine_wiring_test_0;
+        FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, _fl_tmp_15);
+        fl_string_release(_fl_tmp_15);
+        fl_string_release(_fl_tmp_16);
+        fl_println(_fl_tmp_17);
     } else {
         fl_println(_fl_str_tests_coroutine_wiring_test_1);
     }
-    FL_Option_ptr _fl_tmp_16 = fl_coroutine_next(d);
-    FL_Option_int _fl_tmp_17;
-    _fl_tmp_17.tag = _fl_tmp_16.tag;
-    if (_fl_tmp_16.tag == 1) {
-        _fl_tmp_17.value = ((fl_int)((fl_int64)_fl_tmp_16.value));
-    }
-    FL_Option_int _fl_tmp_18 = _fl_tmp_17;
+    FL_Option_ptr _fl_tmp_18 = fl_coroutine_next(d);
+    FL_Option_int _fl_tmp_19;
+    _fl_tmp_19.tag = _fl_tmp_18.tag;
     if (_fl_tmp_18.tag == 1) {
-        fl_int v = _fl_tmp_18.value;
-        FL_String* _fl_tmp_19 = _fl_str_tests_coroutine_wiring_test_0;
-        FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, fl_int_to_string(v));
-        fl_string_release(_fl_tmp_19);
-        fl_println(_fl_tmp_20);
+        _fl_tmp_19.value = ((fl_int)((fl_int64)_fl_tmp_18.value));
+    }
+    FL_Option_int _fl_tmp_20 = _fl_tmp_19;
+    if (_fl_tmp_20.tag == 1) {
+        fl_int v = _fl_tmp_20.value;
+        FL_String* _fl_tmp_21 = fl_int_to_string(v);
+        FL_String* _fl_tmp_22 = _fl_str_tests_coroutine_wiring_test_0;
+        FL_String* _fl_tmp_23 = fl_string_concat(_fl_tmp_22, _fl_tmp_21);
+        fl_string_release(_fl_tmp_21);
+        fl_string_release(_fl_tmp_22);
+        fl_println(_fl_tmp_23);
     } else {
         fl_println(_fl_str_tests_coroutine_wiring_test_1);
     }
-    FL_Option_ptr _fl_tmp_21 = fl_coroutine_next(d);
-    FL_Option_int _fl_tmp_22;
-    _fl_tmp_22.tag = _fl_tmp_21.tag;
-    if (_fl_tmp_21.tag == 1) {
-        _fl_tmp_22.value = ((fl_int)((fl_int64)_fl_tmp_21.value));
+    FL_Option_ptr _fl_tmp_24 = fl_coroutine_next(d);
+    FL_Option_int _fl_tmp_25;
+    _fl_tmp_25.tag = _fl_tmp_24.tag;
+    if (_fl_tmp_24.tag == 1) {
+        _fl_tmp_25.value = ((fl_int)((fl_int64)_fl_tmp_24.value));
     }
-    FL_Option_int _fl_tmp_23 = _fl_tmp_22;
-    if (_fl_tmp_23.tag == 1) {
-        fl_int v = _fl_tmp_23.value;
-        FL_String* _fl_tmp_24 = _fl_str_tests_coroutine_wiring_test_2;
-        FL_String* _fl_tmp_25 = fl_string_concat(_fl_tmp_24, fl_int_to_string(v));
-        fl_string_release(_fl_tmp_24);
-        fl_println(_fl_tmp_25);
+    FL_Option_int _fl_tmp_26 = _fl_tmp_25;
+    if (_fl_tmp_26.tag == 1) {
+        fl_int v = _fl_tmp_26.value;
+        FL_String* _fl_tmp_27 = fl_int_to_string(v);
+        FL_String* _fl_tmp_28 = _fl_str_tests_coroutine_wiring_test_2;
+        FL_String* _fl_tmp_29 = fl_string_concat(_fl_tmp_28, _fl_tmp_27);
+        fl_string_release(_fl_tmp_27);
+        fl_string_release(_fl_tmp_28);
+        fl_println(_fl_tmp_29);
     } else {
         fl_println(_fl_str_tests_coroutine_wiring_test_3);
     }

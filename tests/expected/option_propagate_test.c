@@ -84,20 +84,24 @@ void fl_tests_option_propagate_test_main(void) {
     FL_Option_int _fl_tmp_2 = fl_tests_option_propagate_test_double_positive(5);
     if (_fl_tmp_2.tag == 1) {
         fl_int v = _fl_tmp_2.value;
-        FL_String* _fl_tmp_3 = _fl_str_tests_option_propagate_test_0;
-        FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_int_to_string(v));
+        FL_String* _fl_tmp_3 = fl_int_to_string(v);
+        FL_String* _fl_tmp_4 = _fl_str_tests_option_propagate_test_0;
+        FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_tmp_3);
         fl_string_release(_fl_tmp_3);
-        fl_println(_fl_tmp_4);
+        fl_string_release(_fl_tmp_4);
+        fl_println(_fl_tmp_5);
     } else {
         fl_println(_fl_str_tests_option_propagate_test_1);
     }
-    FL_Option_int _fl_tmp_5 = fl_tests_option_propagate_test_double_positive((-3));
-    if (_fl_tmp_5.tag == 1) {
-        fl_int v = _fl_tmp_5.value;
-        FL_String* _fl_tmp_6 = _fl_str_tests_option_propagate_test_0;
-        FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(v));
-        fl_string_release(_fl_tmp_6);
-        fl_println(_fl_tmp_7);
+    FL_Option_int _fl_tmp_6 = fl_tests_option_propagate_test_double_positive((-3));
+    if (_fl_tmp_6.tag == 1) {
+        fl_int v = _fl_tmp_6.value;
+        FL_String* _fl_tmp_7 = fl_int_to_string(v);
+        FL_String* _fl_tmp_8 = _fl_str_tests_option_propagate_test_0;
+        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_tmp_7);
+        fl_string_release(_fl_tmp_7);
+        fl_string_release(_fl_tmp_8);
+        fl_println(_fl_tmp_9);
     } else {
         fl_println(_fl_str_tests_option_propagate_test_1);
     }

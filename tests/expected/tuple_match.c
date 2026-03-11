@@ -99,85 +99,105 @@ FL_String* fl_tests_tuple_match_classify_pair(fl_int x, fl_int y) {
     fl_int a = _fl_tmp_0._0;
     fl_int b = _fl_tmp_0._1;
     FL_String* _fl_tmp_1 = fl_int_to_string(a);
-    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, _fl_str_tests_tuple_match_0);
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(b));
+    FL_String* _fl_tmp_2 = _fl_tmp_1;
+    FL_String* _fl_tmp_3 = fl_int_to_string(b);
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_2, _fl_str_tests_tuple_match_0);
+    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_tmp_3);
     fl_string_release(_fl_tmp_1);
     fl_string_release(_fl_tmp_2);
-    return _fl_tmp_3;
+    fl_string_release(_fl_tmp_3);
+    fl_string_release(_fl_tmp_4);
+    return _fl_tmp_5;
 }
 
 /* Flow: tests.tuple_match.swap */
 FL_Tuple_fl_int_fl_int fl_tests_tuple_match_swap(FL_Tuple_fl_int_fl_int t) {
-    FL_Tuple_fl_int_fl_int _fl_tmp_4 = t;
-    fl_int a = _fl_tmp_4._0;
-    fl_int b = _fl_tmp_4._1;
+    FL_Tuple_fl_int_fl_int _fl_tmp_6 = t;
+    fl_int a = _fl_tmp_6._0;
+    fl_int b = _fl_tmp_6._1;
     return (FL_Tuple_fl_int_fl_int){._0 = b, ._1 = a};
 }
 
 /* Flow: tests.tuple_match.first */
 fl_int fl_tests_tuple_match_first(FL_Tuple_fl_int_FL_String_ptr t) {
-    FL_Tuple_fl_int_FL_String_ptr _fl_tmp_5 = t;
-    fl_int x = _fl_tmp_5._0;
+    FL_Tuple_fl_int_FL_String_ptr _fl_tmp_7 = t;
+    fl_int x = _fl_tmp_7._0;
     return x;
 }
 
 /* Flow: tests.tuple_match.main */
 void fl_tests_tuple_match_main(void) {
     FL_Tuple_fl_int_fl_int p = (FL_Tuple_fl_int_fl_int){._0 = 10, ._1 = 20};
-    FL_Tuple_fl_int_fl_int _fl_tmp_6 = p;
-    fl_int a = _fl_tmp_6._0;
-    fl_int b = _fl_tmp_6._1;
-    FL_String* _fl_tmp_7 = _fl_str_tests_tuple_match_1;
-    FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_int_to_string(a));
-    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_str_tests_tuple_match_2);
-    FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, fl_int_to_string(b));
-    fl_string_release(_fl_tmp_7);
-    fl_string_release(_fl_tmp_8);
+    FL_Tuple_fl_int_fl_int _fl_tmp_8 = p;
+    fl_int a = _fl_tmp_8._0;
+    fl_int b = _fl_tmp_8._1;
+    FL_String* _fl_tmp_9 = fl_int_to_string(a);
+    FL_String* _fl_tmp_10 = _fl_str_tests_tuple_match_1;
+    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, _fl_tmp_9);
+    FL_String* _fl_tmp_12 = fl_int_to_string(b);
+    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_11, _fl_str_tests_tuple_match_2);
+    FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, _fl_tmp_12);
     fl_string_release(_fl_tmp_9);
-    fl_println(_fl_tmp_10);
-    FL_Tuple_fl_int_FL_String_ptr q = (FL_Tuple_fl_int_FL_String_ptr){._0 = 42, ._1 = _fl_str_tests_tuple_match_3};
-    FL_Tuple_fl_int_FL_String_ptr _fl_tmp_11 = q;
-    fl_int n = _fl_tmp_11._0;
-    FL_String* _fl_tmp_12 = _fl_str_tests_tuple_match_4;
-    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, fl_int_to_string(n));
+    fl_string_release(_fl_tmp_10);
+    fl_string_release(_fl_tmp_11);
     fl_string_release(_fl_tmp_12);
-    fl_println(_fl_tmp_13);
-    FL_String* _fl_tmp_14 = _fl_str_tests_tuple_match_5;
-    FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, fl_tests_tuple_match_classify_pair(3, 4));
-    fl_string_release(_fl_tmp_14);
-    fl_println(_fl_tmp_15);
-    FL_Tuple_fl_int_fl_int swapped = fl_tests_tuple_match_swap((FL_Tuple_fl_int_fl_int){._0 = 1, ._1 = 2});
-    FL_Tuple_fl_int_fl_int _fl_tmp_16 = swapped;
-    fl_int c = _fl_tmp_16._0;
-    fl_int d = _fl_tmp_16._1;
-    FL_String* _fl_tmp_17 = _fl_str_tests_tuple_match_6;
-    FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, fl_int_to_string(c));
-    FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, _fl_str_tests_tuple_match_0);
-    FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, fl_int_to_string(d));
-    FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, _fl_str_tests_tuple_match_7);
+    fl_string_release(_fl_tmp_13);
+    fl_println(_fl_tmp_14);
+    FL_Tuple_fl_int_FL_String_ptr q = (FL_Tuple_fl_int_FL_String_ptr){._0 = 42, ._1 = _fl_str_tests_tuple_match_3};
+    FL_Tuple_fl_int_FL_String_ptr _fl_tmp_15 = q;
+    fl_int n = _fl_tmp_15._0;
+    FL_String* _fl_tmp_16 = fl_int_to_string(n);
+    FL_String* _fl_tmp_17 = _fl_str_tests_tuple_match_4;
+    FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, _fl_tmp_16);
+    fl_string_release(_fl_tmp_16);
     fl_string_release(_fl_tmp_17);
-    fl_string_release(_fl_tmp_18);
+    fl_println(_fl_tmp_18);
+    FL_String* _fl_tmp_19 = fl_tests_tuple_match_classify_pair(3, 4);
+    FL_String* _fl_tmp_20 = _fl_str_tests_tuple_match_5;
+    FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, _fl_tmp_19);
     fl_string_release(_fl_tmp_19);
     fl_string_release(_fl_tmp_20);
     fl_println(_fl_tmp_21);
+    FL_Tuple_fl_int_fl_int swapped = fl_tests_tuple_match_swap((FL_Tuple_fl_int_fl_int){._0 = 1, ._1 = 2});
+    FL_Tuple_fl_int_fl_int _fl_tmp_22 = swapped;
+    fl_int c = _fl_tmp_22._0;
+    fl_int d = _fl_tmp_22._1;
+    FL_String* _fl_tmp_23 = fl_int_to_string(c);
+    FL_String* _fl_tmp_24 = _fl_str_tests_tuple_match_6;
+    FL_String* _fl_tmp_25 = fl_string_concat(_fl_tmp_24, _fl_tmp_23);
+    FL_String* _fl_tmp_26 = fl_int_to_string(d);
+    FL_String* _fl_tmp_27 = fl_string_concat(_fl_tmp_25, _fl_str_tests_tuple_match_0);
+    FL_String* _fl_tmp_28 = fl_string_concat(_fl_tmp_27, _fl_tmp_26);
+    FL_String* _fl_tmp_29 = fl_string_concat(_fl_tmp_28, _fl_str_tests_tuple_match_7);
+    fl_string_release(_fl_tmp_23);
+    fl_string_release(_fl_tmp_24);
+    fl_string_release(_fl_tmp_25);
+    fl_string_release(_fl_tmp_26);
+    fl_string_release(_fl_tmp_27);
+    fl_string_release(_fl_tmp_28);
+    fl_println(_fl_tmp_29);
     fl_int r = fl_tests_tuple_match_first((FL_Tuple_fl_int_FL_String_ptr){._0 = 99, ._1 = _fl_str_tests_tuple_match_8});
-    FL_String* _fl_tmp_22 = _fl_str_tests_tuple_match_9;
-    FL_String* _fl_tmp_23 = fl_string_concat(_fl_tmp_22, fl_int_to_string(r));
-    fl_string_release(_fl_tmp_22);
-    fl_println(_fl_tmp_23);
+    FL_String* _fl_tmp_30 = fl_int_to_string(r);
+    FL_String* _fl_tmp_31 = _fl_str_tests_tuple_match_9;
+    FL_String* _fl_tmp_32 = fl_string_concat(_fl_tmp_31, _fl_tmp_30);
+    fl_string_release(_fl_tmp_30);
+    fl_string_release(_fl_tmp_31);
+    fl_println(_fl_tmp_32);
     FL_Tuple_fl_int_fl_int t = (FL_Tuple_fl_int_fl_int){._0 = 5, ._1 = 10};
-    fl_int _fl_tmp_24;
-    FL_Tuple_fl_int_fl_int _fl_tmp_25 = t;
-    fl_int x = _fl_tmp_25._0;
-    fl_int y = _fl_tmp_25._1;
+    fl_int _fl_tmp_33;
+    FL_Tuple_fl_int_fl_int _fl_tmp_34 = t;
+    fl_int x = _fl_tmp_34._0;
+    fl_int y = _fl_tmp_34._1;
     fl_int _fl_e_1;
     FL_CHECKED_ADD(x, y, &_fl_e_1);
-    _fl_tmp_24 = _fl_e_1;
-    fl_int sum = _fl_tmp_24;
-    FL_String* _fl_tmp_26 = _fl_str_tests_tuple_match_10;
-    FL_String* _fl_tmp_27 = fl_string_concat(_fl_tmp_26, fl_int_to_string(sum));
-    fl_string_release(_fl_tmp_26);
-    fl_println(_fl_tmp_27);
+    _fl_tmp_33 = _fl_e_1;
+    fl_int sum = _fl_tmp_33;
+    FL_String* _fl_tmp_35 = fl_int_to_string(sum);
+    FL_String* _fl_tmp_36 = _fl_str_tests_tuple_match_10;
+    FL_String* _fl_tmp_37 = fl_string_concat(_fl_tmp_36, _fl_tmp_35);
+    fl_string_release(_fl_tmp_35);
+    fl_string_release(_fl_tmp_36);
+    fl_println(_fl_tmp_37);
 }
 
 static void _fl_init_statics(void) {

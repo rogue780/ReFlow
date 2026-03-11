@@ -5637,7 +5637,25 @@ class Lowerer:
         # Chain concat calls, releasing intermediate results
         result = parts[0]
         intermediates: list[str] = []
+
+        # Hoist the first part if it's a call (e.g., int_to_string)
+        # Only if there are more parts — otherwise it's the final result
+        if (len(parts) > 1 and isinstance(result, LCall)
+                and result.c_type == string_type):
+            tmp0 = self._fresh_temp()
+            self._pending_stmts.append(
+                LVarDecl(c_name=tmp0, c_type=string_type, init=result))
+            intermediates.append(tmp0)
+            result = LVar(tmp0, string_type)
+
         for p in parts[1:]:
+            # Hoist conversion call args so they get released
+            if isinstance(p, LCall) and p.c_type == string_type:
+                p_tmp = self._fresh_temp()
+                self._pending_stmts.append(
+                    LVarDecl(c_name=p_tmp, c_type=string_type, init=p))
+                intermediates.append(p_tmp)
+                p = LVar(p_tmp, string_type)
             tmp = self._fresh_temp()
             self._pending_stmts.append(
                 LVarDecl(c_name=tmp, c_type=string_type, init=result))
@@ -5645,7 +5663,7 @@ class Lowerer:
             result = LCall("fl_string_concat",
                            [LVar(tmp, string_type), p], string_type)
 
-        # Release intermediate concat results (not the final one)
+        # Release intermediate concat results and conversion temps
         if intermediates:
             final_tmp = self._fresh_temp()
             self._pending_stmts.append(

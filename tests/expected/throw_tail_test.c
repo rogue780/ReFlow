@@ -84,27 +84,31 @@ fl_int fl_tests_throw_tail_test_maybe_throws(fl_bool fail) {
 /* Flow: tests.throw_tail_test.main */
 void fl_tests_throw_tail_test_main(void) {
     fl_int a = fl_tests_throw_tail_test_maybe_throws(fl_false);
-    FL_String* _fl_tmp_0 = _fl_str_tests_throw_tail_test_2;
-    FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, fl_int_to_string(a));
+    FL_String* _fl_tmp_0 = fl_int_to_string(a);
+    FL_String* _fl_tmp_1 = _fl_str_tests_throw_tail_test_2;
+    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, _fl_tmp_0);
     fl_string_release(_fl_tmp_0);
-    fl_println(_fl_tmp_1);
+    fl_string_release(_fl_tmp_1);
+    fl_println(_fl_tmp_2);
     FL_ExceptionFrame _fl_ef_0;
     _fl_exception_push((&_fl_ef_0));
     if (setjmp(_fl_ef_0.jmp) == 0) {
         fl_int b = fl_tests_throw_tail_test_always_throws();
-        FL_String* _fl_tmp_2 = _fl_str_tests_throw_tail_test_3;
-        FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(b));
-        fl_string_release(_fl_tmp_2);
-        fl_println(_fl_tmp_3);
+        FL_String* _fl_tmp_3 = fl_int_to_string(b);
+        FL_String* _fl_tmp_4 = _fl_str_tests_throw_tail_test_3;
+        FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_tmp_3);
+        fl_string_release(_fl_tmp_3);
+        fl_string_release(_fl_tmp_4);
+        fl_println(_fl_tmp_5);
         _fl_exception_pop();
     } else {
         _fl_exception_pop();
         if (_fl_ef_0.exception_tag == 0) {
             FL_String* ex = ((FL_String*)_fl_ef_0.exception);
-            FL_String* _fl_tmp_4 = _fl_str_tests_throw_tail_test_4;
-            FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, ex);
-            fl_string_release(_fl_tmp_4);
-            fl_println(_fl_tmp_5);
+            FL_String* _fl_tmp_6 = _fl_str_tests_throw_tail_test_4;
+            FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, ex);
+            fl_string_release(_fl_tmp_6);
+            fl_println(_fl_tmp_7);
         } else {
             _fl_throw(_fl_ef_0.exception, _fl_ef_0.exception_tag);
         }
@@ -113,19 +117,21 @@ void fl_tests_throw_tail_test_main(void) {
     _fl_exception_push((&_fl_ef_1));
     if (setjmp(_fl_ef_1.jmp) == 0) {
         fl_int c = fl_tests_throw_tail_test_maybe_throws(fl_true);
-        FL_String* _fl_tmp_6 = _fl_str_tests_throw_tail_test_5;
-        FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(c));
-        fl_string_release(_fl_tmp_6);
-        fl_println(_fl_tmp_7);
+        FL_String* _fl_tmp_8 = fl_int_to_string(c);
+        FL_String* _fl_tmp_9 = _fl_str_tests_throw_tail_test_5;
+        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_tmp_8);
+        fl_string_release(_fl_tmp_8);
+        fl_string_release(_fl_tmp_9);
+        fl_println(_fl_tmp_10);
         _fl_exception_pop();
     } else {
         _fl_exception_pop();
         if (_fl_ef_1.exception_tag == 0) {
             FL_String* ex = ((FL_String*)_fl_ef_1.exception);
-            FL_String* _fl_tmp_8 = _fl_str_tests_throw_tail_test_4;
-            FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, ex);
-            fl_string_release(_fl_tmp_8);
-            fl_println(_fl_tmp_9);
+            FL_String* _fl_tmp_11 = _fl_str_tests_throw_tail_test_4;
+            FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, ex);
+            fl_string_release(_fl_tmp_11);
+            fl_println(_fl_tmp_12);
         } else {
             _fl_throw(_fl_ef_1.exception, _fl_ef_1.exception_tag);
         }

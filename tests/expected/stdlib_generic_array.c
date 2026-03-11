@@ -574,166 +574,186 @@ void fl_tests_stdlib_generic_array_main(void) {
     if (_fl_old_1 != strs) {
         fl_array_release(_fl_old_1);
     }
-    FL_String* _fl_tmp_2 = _fl_str_tests_stdlib_generic_array_2;
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(fl_array_len_int(strs)));
+    FL_String* _fl_tmp_2 = fl_int_to_string(fl_array_len_int(strs));
+    FL_String* _fl_tmp_3 = _fl_str_tests_stdlib_generic_array_2;
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_tmp_2);
     fl_string_release(_fl_tmp_2);
-    fl_println(_fl_tmp_3);
-    FL_Option_ptr _fl_tmp_4 = fl_array_get_safe(strs, 0);
-    if (_fl_tmp_4.tag == 1) {
-        FL_String* v = _fl_tmp_4.value;
-        FL_String* _fl_tmp_5 = _fl_str_tests_stdlib_generic_array_3;
-        FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, v);
-        fl_string_release(_fl_tmp_5);
-        fl_println(_fl_tmp_6);
+    fl_string_release(_fl_tmp_3);
+    fl_println(_fl_tmp_4);
+    FL_Option_ptr _fl_tmp_5 = fl_array_get_safe(strs, 0);
+    if (_fl_tmp_5.tag == 1) {
+        FL_String* v = _fl_tmp_5.value;
+        FL_String* _fl_tmp_6 = _fl_str_tests_stdlib_generic_array_3;
+        FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, v);
+        fl_string_release(_fl_tmp_6);
+        fl_println(_fl_tmp_7);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_4);
     }
-    FL_Option_ptr _fl_tmp_7 = fl_array_get_safe(strs, 1);
-    if (_fl_tmp_7.tag == 1) {
-        FL_String* v = _fl_tmp_7.value;
-        FL_String* _fl_tmp_8 = _fl_str_tests_stdlib_generic_array_5;
-        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, v);
-        fl_string_release(_fl_tmp_8);
-        fl_println(_fl_tmp_9);
+    FL_Option_ptr _fl_tmp_8 = fl_array_get_safe(strs, 1);
+    if (_fl_tmp_8.tag == 1) {
+        FL_String* v = _fl_tmp_8.value;
+        FL_String* _fl_tmp_9 = _fl_str_tests_stdlib_generic_array_5;
+        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, v);
+        fl_string_release(_fl_tmp_9);
+        fl_println(_fl_tmp_10);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_6);
     }
     FL_Array* nums = fl_array_new(0, 0, NULL);
-    FL_Array* _fl_old_10 = nums;
-    nums = fl_array_push_int(nums, 10);
-    if (_fl_old_10 != nums) {
-        fl_array_release(_fl_old_10);
-    }
     FL_Array* _fl_old_11 = nums;
-    nums = fl_array_push_int(nums, 20);
+    nums = fl_array_push_int(nums, 10);
     if (_fl_old_11 != nums) {
         fl_array_release(_fl_old_11);
     }
     FL_Array* _fl_old_12 = nums;
-    nums = fl_array_push_int(nums, 30);
+    nums = fl_array_push_int(nums, 20);
     if (_fl_old_12 != nums) {
         fl_array_release(_fl_old_12);
     }
-    FL_String* _fl_tmp_13 = _fl_str_tests_stdlib_generic_array_7;
-    FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, fl_int_to_string(fl_array_len_int(nums)));
-    fl_string_release(_fl_tmp_13);
-    fl_println(_fl_tmp_14);
-    FL_Option_int _fl_tmp_15 = fl_array_get_int(nums, 0);
-    if (_fl_tmp_15.tag == 1) {
-        fl_int v = _fl_tmp_15.value;
-        FL_String* _fl_tmp_16 = _fl_str_tests_stdlib_generic_array_8;
-        FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, fl_int_to_string(v));
-        fl_string_release(_fl_tmp_16);
-        fl_println(_fl_tmp_17);
+    FL_Array* _fl_old_13 = nums;
+    nums = fl_array_push_int(nums, 30);
+    if (_fl_old_13 != nums) {
+        fl_array_release(_fl_old_13);
+    }
+    FL_String* _fl_tmp_14 = fl_int_to_string(fl_array_len_int(nums));
+    FL_String* _fl_tmp_15 = _fl_str_tests_stdlib_generic_array_7;
+    FL_String* _fl_tmp_16 = fl_string_concat(_fl_tmp_15, _fl_tmp_14);
+    fl_string_release(_fl_tmp_14);
+    fl_string_release(_fl_tmp_15);
+    fl_println(_fl_tmp_16);
+    FL_Option_int _fl_tmp_17 = fl_array_get_int(nums, 0);
+    if (_fl_tmp_17.tag == 1) {
+        fl_int v = _fl_tmp_17.value;
+        FL_String* _fl_tmp_18 = fl_int_to_string(v);
+        FL_String* _fl_tmp_19 = _fl_str_tests_stdlib_generic_array_8;
+        FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, _fl_tmp_18);
+        fl_string_release(_fl_tmp_18);
+        fl_string_release(_fl_tmp_19);
+        fl_println(_fl_tmp_20);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_9);
     }
-    FL_Option_int _fl_tmp_18 = fl_array_get_int(nums, 2);
-    if (_fl_tmp_18.tag == 1) {
-        fl_int v = _fl_tmp_18.value;
-        FL_String* _fl_tmp_19 = _fl_str_tests_stdlib_generic_array_10;
-        FL_String* _fl_tmp_20 = fl_string_concat(_fl_tmp_19, fl_int_to_string(v));
-        fl_string_release(_fl_tmp_19);
-        fl_println(_fl_tmp_20);
+    FL_Option_int _fl_tmp_21 = fl_array_get_int(nums, 2);
+    if (_fl_tmp_21.tag == 1) {
+        fl_int v = _fl_tmp_21.value;
+        FL_String* _fl_tmp_22 = fl_int_to_string(v);
+        FL_String* _fl_tmp_23 = _fl_str_tests_stdlib_generic_array_10;
+        FL_String* _fl_tmp_24 = fl_string_concat(_fl_tmp_23, _fl_tmp_22);
+        fl_string_release(_fl_tmp_22);
+        fl_string_release(_fl_tmp_23);
+        fl_println(_fl_tmp_24);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_11);
     }
     FL_Array* floats = fl_array_new(0, 0, NULL);
-    FL_Array* _fl_old_21 = floats;
+    FL_Array* _fl_old_25 = floats;
     floats = fl_array_push_float(floats, 1.5);
-    if (_fl_old_21 != floats) {
-        fl_array_release(_fl_old_21);
+    if (_fl_old_25 != floats) {
+        fl_array_release(_fl_old_25);
     }
-    FL_Array* _fl_old_22 = floats;
+    FL_Array* _fl_old_26 = floats;
     floats = fl_array_push_float(floats, 2.5);
-    if (_fl_old_22 != floats) {
-        fl_array_release(_fl_old_22);
+    if (_fl_old_26 != floats) {
+        fl_array_release(_fl_old_26);
     }
-    FL_String* _fl_tmp_23 = _fl_str_tests_stdlib_generic_array_12;
-    FL_String* _fl_tmp_24 = fl_string_concat(_fl_tmp_23, fl_int_to_string(fl_array_len_int(floats)));
-    fl_string_release(_fl_tmp_23);
-    fl_println(_fl_tmp_24);
-    FL_Option_float _fl_tmp_25 = fl_array_get_float(floats, 0);
-    if (_fl_tmp_25.tag == 1) {
-        fl_float v = _fl_tmp_25.value;
-        FL_String* _fl_tmp_26 = _fl_str_tests_stdlib_generic_array_13;
-        FL_String* _fl_tmp_27 = fl_string_concat(_fl_tmp_26, fl_float_to_string(v));
-        fl_string_release(_fl_tmp_26);
-        fl_println(_fl_tmp_27);
+    FL_String* _fl_tmp_27 = fl_int_to_string(fl_array_len_int(floats));
+    FL_String* _fl_tmp_28 = _fl_str_tests_stdlib_generic_array_12;
+    FL_String* _fl_tmp_29 = fl_string_concat(_fl_tmp_28, _fl_tmp_27);
+    fl_string_release(_fl_tmp_27);
+    fl_string_release(_fl_tmp_28);
+    fl_println(_fl_tmp_29);
+    FL_Option_float _fl_tmp_30 = fl_array_get_float(floats, 0);
+    if (_fl_tmp_30.tag == 1) {
+        fl_float v = _fl_tmp_30.value;
+        FL_String* _fl_tmp_31 = fl_float_to_string(v);
+        FL_String* _fl_tmp_32 = _fl_str_tests_stdlib_generic_array_13;
+        FL_String* _fl_tmp_33 = fl_string_concat(_fl_tmp_32, _fl_tmp_31);
+        fl_string_release(_fl_tmp_31);
+        fl_string_release(_fl_tmp_32);
+        fl_println(_fl_tmp_33);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_14);
     }
     FL_Array* a = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(a, 1);
-    FL_Array* _fl_old_28 = a;
+    FL_Array* _fl_old_34 = a;
     a = fl_array_push_ptr(a, _fl_str_tests_stdlib_generic_array_15);
-    if (_fl_old_28 != a) {
-        fl_array_release(_fl_old_28);
+    if (_fl_old_34 != a) {
+        fl_array_release(_fl_old_34);
     }
     FL_Array* b = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(b, 1);
-    FL_Array* _fl_old_29 = b;
+    FL_Array* _fl_old_35 = b;
     b = fl_array_push_ptr(b, _fl_str_tests_stdlib_generic_array_16);
-    if (_fl_old_29 != b) {
-        fl_array_release(_fl_old_29);
+    if (_fl_old_35 != b) {
+        fl_array_release(_fl_old_35);
     }
     FL_Array* ab = fl_array_concat(a, b);
-    FL_String* _fl_tmp_30 = _fl_str_tests_stdlib_generic_array_17;
-    FL_String* _fl_tmp_31 = fl_string_concat(_fl_tmp_30, fl_int_to_string(fl_array_len_int(ab)));
-    fl_string_release(_fl_tmp_30);
-    fl_println(_fl_tmp_31);
-    FL_Option_ptr _fl_tmp_32 = fl_array_get_safe(ab, 0);
-    if (_fl_tmp_32.tag == 1) {
-        FL_String* v = _fl_tmp_32.value;
-        FL_String* _fl_tmp_33 = _fl_str_tests_stdlib_generic_array_18;
-        FL_String* _fl_tmp_34 = fl_string_concat(_fl_tmp_33, v);
-        fl_string_release(_fl_tmp_33);
-        fl_println(_fl_tmp_34);
+    FL_String* _fl_tmp_36 = fl_int_to_string(fl_array_len_int(ab));
+    FL_String* _fl_tmp_37 = _fl_str_tests_stdlib_generic_array_17;
+    FL_String* _fl_tmp_38 = fl_string_concat(_fl_tmp_37, _fl_tmp_36);
+    fl_string_release(_fl_tmp_36);
+    fl_string_release(_fl_tmp_37);
+    fl_println(_fl_tmp_38);
+    FL_Option_ptr _fl_tmp_39 = fl_array_get_safe(ab, 0);
+    if (_fl_tmp_39.tag == 1) {
+        FL_String* v = _fl_tmp_39.value;
+        FL_String* _fl_tmp_40 = _fl_str_tests_stdlib_generic_array_18;
+        FL_String* _fl_tmp_41 = fl_string_concat(_fl_tmp_40, v);
+        fl_string_release(_fl_tmp_40);
+        fl_println(_fl_tmp_41);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_19);
     }
-    FL_Option_ptr _fl_tmp_35 = fl_array_get_safe(ab, 1);
-    if (_fl_tmp_35.tag == 1) {
-        FL_String* v = _fl_tmp_35.value;
-        FL_String* _fl_tmp_36 = _fl_str_tests_stdlib_generic_array_20;
-        FL_String* _fl_tmp_37 = fl_string_concat(_fl_tmp_36, v);
-        fl_string_release(_fl_tmp_36);
-        fl_println(_fl_tmp_37);
+    FL_Option_ptr _fl_tmp_42 = fl_array_get_safe(ab, 1);
+    if (_fl_tmp_42.tag == 1) {
+        FL_String* v = _fl_tmp_42.value;
+        FL_String* _fl_tmp_43 = _fl_str_tests_stdlib_generic_array_20;
+        FL_String* _fl_tmp_44 = fl_string_concat(_fl_tmp_43, v);
+        fl_string_release(_fl_tmp_43);
+        fl_println(_fl_tmp_44);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_21);
     }
     FL_Array* bools = fl_array_new(0, 0, NULL);
-    FL_Array* _fl_old_38 = bools;
+    FL_Array* _fl_old_45 = bools;
     bools = fl_array_push_bool(bools, fl_true);
-    if (_fl_old_38 != bools) {
-        fl_array_release(_fl_old_38);
+    if (_fl_old_45 != bools) {
+        fl_array_release(_fl_old_45);
     }
-    FL_Array* _fl_old_39 = bools;
+    FL_Array* _fl_old_46 = bools;
     bools = fl_array_push_bool(bools, fl_false);
-    if (_fl_old_39 != bools) {
-        fl_array_release(_fl_old_39);
+    if (_fl_old_46 != bools) {
+        fl_array_release(_fl_old_46);
     }
-    FL_String* _fl_tmp_40 = _fl_str_tests_stdlib_generic_array_22;
-    FL_String* _fl_tmp_41 = fl_string_concat(_fl_tmp_40, fl_int_to_string(fl_array_len_int(bools)));
-    fl_string_release(_fl_tmp_40);
-    fl_println(_fl_tmp_41);
-    FL_Option_bool _fl_tmp_42 = fl_array_get_bool(bools, 0);
-    if (_fl_tmp_42.tag == 1) {
-        fl_bool v = _fl_tmp_42.value;
-        FL_String* _fl_tmp_43 = _fl_str_tests_stdlib_generic_array_23;
-        FL_String* _fl_tmp_44 = fl_string_concat(_fl_tmp_43, fl_bool_to_string(v));
-        fl_string_release(_fl_tmp_43);
-        fl_println(_fl_tmp_44);
+    FL_String* _fl_tmp_47 = fl_int_to_string(fl_array_len_int(bools));
+    FL_String* _fl_tmp_48 = _fl_str_tests_stdlib_generic_array_22;
+    FL_String* _fl_tmp_49 = fl_string_concat(_fl_tmp_48, _fl_tmp_47);
+    fl_string_release(_fl_tmp_47);
+    fl_string_release(_fl_tmp_48);
+    fl_println(_fl_tmp_49);
+    FL_Option_bool _fl_tmp_50 = fl_array_get_bool(bools, 0);
+    if (_fl_tmp_50.tag == 1) {
+        fl_bool v = _fl_tmp_50.value;
+        FL_String* _fl_tmp_51 = fl_bool_to_string(v);
+        FL_String* _fl_tmp_52 = _fl_str_tests_stdlib_generic_array_23;
+        FL_String* _fl_tmp_53 = fl_string_concat(_fl_tmp_52, _fl_tmp_51);
+        fl_string_release(_fl_tmp_51);
+        fl_string_release(_fl_tmp_52);
+        fl_println(_fl_tmp_53);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_24);
     }
-    FL_Option_bool _fl_tmp_45 = fl_array_get_bool(bools, 1);
-    if (_fl_tmp_45.tag == 1) {
-        fl_bool v = _fl_tmp_45.value;
-        FL_String* _fl_tmp_46 = _fl_str_tests_stdlib_generic_array_25;
-        FL_String* _fl_tmp_47 = fl_string_concat(_fl_tmp_46, fl_bool_to_string(v));
-        fl_string_release(_fl_tmp_46);
-        fl_println(_fl_tmp_47);
+    FL_Option_bool _fl_tmp_54 = fl_array_get_bool(bools, 1);
+    if (_fl_tmp_54.tag == 1) {
+        fl_bool v = _fl_tmp_54.value;
+        FL_String* _fl_tmp_55 = fl_bool_to_string(v);
+        FL_String* _fl_tmp_56 = _fl_str_tests_stdlib_generic_array_25;
+        FL_String* _fl_tmp_57 = fl_string_concat(_fl_tmp_56, _fl_tmp_55);
+        fl_string_release(_fl_tmp_55);
+        fl_string_release(_fl_tmp_56);
+        fl_println(_fl_tmp_57);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_array_26);
     }

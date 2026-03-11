@@ -562,31 +562,39 @@ FL_String* fl_tests_match_same_binding_test_describe(fl_tests_match_same_binding
     switch (_fl_tmp_0.tag) {
         case 0: {
             fl_float val = _fl_tmp_0.Circle.radius;
-            FL_String* _fl_tmp_1 = _fl_str_tests_match_same_binding_test_0;
-            FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_float_to_string(val));
+            FL_String* _fl_tmp_1 = fl_float_to_string(val);
+            FL_String* _fl_tmp_2 = _fl_str_tests_match_same_binding_test_0;
+            FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, _fl_tmp_1);
             fl_string_release(_fl_tmp_1);
-            return _fl_tmp_2;
+            fl_string_release(_fl_tmp_2);
+            return _fl_tmp_3;
             break;
         }
         case 1: {
             fl_float val = _fl_tmp_0.Square.side;
-            FL_String* _fl_tmp_3 = _fl_str_tests_match_same_binding_test_1;
-            FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_float_to_string(val));
-            fl_string_release(_fl_tmp_3);
-            return _fl_tmp_4;
+            FL_String* _fl_tmp_4 = fl_float_to_string(val);
+            FL_String* _fl_tmp_5 = _fl_str_tests_match_same_binding_test_1;
+            FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, _fl_tmp_4);
+            fl_string_release(_fl_tmp_4);
+            fl_string_release(_fl_tmp_5);
+            return _fl_tmp_6;
             break;
         }
         case 2: {
             fl_float w = _fl_tmp_0.Rect.width;
             fl_float h = _fl_tmp_0.Rect.height;
-            FL_String* _fl_tmp_5 = _fl_str_tests_match_same_binding_test_2;
-            FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_float_to_string(w));
-            FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, _fl_str_tests_match_same_binding_test_3);
-            FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_float_to_string(h));
-            fl_string_release(_fl_tmp_5);
-            fl_string_release(_fl_tmp_6);
+            FL_String* _fl_tmp_7 = fl_float_to_string(w);
+            FL_String* _fl_tmp_8 = _fl_str_tests_match_same_binding_test_2;
+            FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_tmp_7);
+            FL_String* _fl_tmp_10 = fl_float_to_string(h);
+            FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_9, _fl_str_tests_match_same_binding_test_3);
+            FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, _fl_tmp_10);
             fl_string_release(_fl_tmp_7);
-            return _fl_tmp_8;
+            fl_string_release(_fl_tmp_8);
+            fl_string_release(_fl_tmp_9);
+            fl_string_release(_fl_tmp_10);
+            fl_string_release(_fl_tmp_11);
+            return _fl_tmp_12;
             break;
         }
     }
@@ -594,21 +602,21 @@ FL_String* fl_tests_match_same_binding_test_describe(fl_tests_match_same_binding
 
 /* Flow: tests.match_same_binding_test.area */
 fl_float fl_tests_match_same_binding_test_area(fl_tests_match_same_binding_test_Shape s) {
-    fl_tests_match_same_binding_test_Shape _fl_tmp_9 = s;
-    switch (_fl_tmp_9.tag) {
+    fl_tests_match_same_binding_test_Shape _fl_tmp_13 = s;
+    switch (_fl_tmp_13.tag) {
         case 0: {
-            fl_float x = _fl_tmp_9.Circle.radius;
+            fl_float x = _fl_tmp_13.Circle.radius;
             return ((3.14 * x) * x);
             break;
         }
         case 1: {
-            fl_float x = _fl_tmp_9.Square.side;
+            fl_float x = _fl_tmp_13.Square.side;
             return (x * x);
             break;
         }
         case 2: {
-            fl_float x = _fl_tmp_9.Rect.width;
-            fl_float y = _fl_tmp_9.Rect.height;
+            fl_float x = _fl_tmp_13.Rect.width;
+            fl_float y = _fl_tmp_13.Rect.height;
             return (x * y);
             break;
         }
@@ -623,18 +631,24 @@ void fl_tests_match_same_binding_test_main(void) {
     fl_println(fl_tests_match_same_binding_test_describe(c));
     fl_println(fl_tests_match_same_binding_test_describe(s));
     fl_println(fl_tests_match_same_binding_test_describe(r));
-    FL_String* _fl_tmp_10 = _fl_str_tests_match_same_binding_test_4;
-    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, fl_float_to_string(fl_tests_match_same_binding_test_area(c)));
-    fl_string_release(_fl_tmp_10);
-    fl_println(_fl_tmp_11);
-    FL_String* _fl_tmp_12 = _fl_str_tests_match_same_binding_test_5;
-    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, fl_float_to_string(fl_tests_match_same_binding_test_area(s)));
-    fl_string_release(_fl_tmp_12);
-    fl_println(_fl_tmp_13);
-    FL_String* _fl_tmp_14 = _fl_str_tests_match_same_binding_test_6;
-    FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, fl_float_to_string(fl_tests_match_same_binding_test_area(r)));
+    FL_String* _fl_tmp_14 = fl_float_to_string(fl_tests_match_same_binding_test_area(c));
+    FL_String* _fl_tmp_15 = _fl_str_tests_match_same_binding_test_4;
+    FL_String* _fl_tmp_16 = fl_string_concat(_fl_tmp_15, _fl_tmp_14);
     fl_string_release(_fl_tmp_14);
-    fl_println(_fl_tmp_15);
+    fl_string_release(_fl_tmp_15);
+    fl_println(_fl_tmp_16);
+    FL_String* _fl_tmp_17 = fl_float_to_string(fl_tests_match_same_binding_test_area(s));
+    FL_String* _fl_tmp_18 = _fl_str_tests_match_same_binding_test_5;
+    FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, _fl_tmp_17);
+    fl_string_release(_fl_tmp_17);
+    fl_string_release(_fl_tmp_18);
+    fl_println(_fl_tmp_19);
+    FL_String* _fl_tmp_20 = fl_float_to_string(fl_tests_match_same_binding_test_area(r));
+    FL_String* _fl_tmp_21 = _fl_str_tests_match_same_binding_test_6;
+    FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, _fl_tmp_20);
+    fl_string_release(_fl_tmp_20);
+    fl_string_release(_fl_tmp_21);
+    fl_println(_fl_tmp_22);
     fl_println(_fl_str_tests_match_same_binding_test_7);
 }
 

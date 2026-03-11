@@ -85,10 +85,12 @@ void fl_tests_fanout_test_main(void) {
     fl_int _fl_tmp_1 = fl_tests_fanout_test_double(_fl_tmp_0);
     fl_int _fl_tmp_2 = fl_tests_fanout_test_square(_fl_tmp_0);
     fl_int r1 = fl_tests_fanout_test_add(_fl_tmp_1, _fl_tmp_2);
-    FL_String* _fl_tmp_3 = _fl_str_tests_fanout_test_0;
-    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, fl_int_to_string(r1));
+    FL_String* _fl_tmp_3 = fl_int_to_string(r1);
+    FL_String* _fl_tmp_4 = _fl_str_tests_fanout_test_0;
+    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_tmp_3);
     fl_string_release(_fl_tmp_3);
-    fl_println(_fl_tmp_4);
+    fl_string_release(_fl_tmp_4);
+    fl_println(_fl_tmp_5);
 }
 
 static void _fl_init_statics(void) {

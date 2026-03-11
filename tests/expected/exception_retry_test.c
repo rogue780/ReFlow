@@ -81,36 +81,40 @@ void fl_tests_exception_retry_test_main(void) {
     _fl_exception_push((&_fl_ef_0));
     if (setjmp(_fl_ef_0.jmp) == 0) {
         fl_int val = fl_tests_exception_retry_test_parse_value(_fl_str_tests_exception_retry_test_0);
-        FL_String* _fl_tmp_0 = _fl_str_tests_exception_retry_test_2;
-        FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, fl_int_to_string(val));
+        FL_String* _fl_tmp_0 = fl_int_to_string(val);
+        FL_String* _fl_tmp_1 = _fl_str_tests_exception_retry_test_2;
+        FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, _fl_tmp_0);
         fl_string_release(_fl_tmp_0);
-        fl_println(_fl_tmp_1);
+        fl_string_release(_fl_tmp_1);
+        fl_println(_fl_tmp_2);
         _fl_exception_pop();
     } else {
         _fl_exception_pop();
         _fl_ef_0_caught = fl_false;
         if (_fl_ef_0.exception_tag == 0) {
-            fl_int _fl_tmp_2 = 0;
+            fl_int _fl_tmp_3 = 0;
             FL_String* ex = ((FL_String*)_fl_ef_0.exception);
-            while (_fl_tmp_2 < 2) {
-                _fl_tmp_2 = (_fl_tmp_2 + 1);
+            while (_fl_tmp_3 < 2) {
+                _fl_tmp_3 = (_fl_tmp_3 + 1);
                 fl_println(_fl_str_tests_exception_retry_test_3);
                 _fl_exception_push((&_fl_ef_0));
                 if (setjmp(_fl_ef_0.jmp) == 0) {
                     fl_int val = fl_tests_exception_retry_test_parse_value(_fl_str_tests_exception_retry_test_0);
-                    FL_String* _fl_tmp_4 = _fl_str_tests_exception_retry_test_2;
-                    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, fl_int_to_string(val));
-                    fl_string_release(_fl_tmp_4);
-                    fl_println(_fl_tmp_5);
+                    FL_String* _fl_tmp_5 = fl_int_to_string(val);
+                    FL_String* _fl_tmp_6 = _fl_str_tests_exception_retry_test_2;
+                    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, _fl_tmp_5);
+                    fl_string_release(_fl_tmp_5);
+                    fl_string_release(_fl_tmp_6);
+                    fl_println(_fl_tmp_7);
                     _fl_exception_pop();
-                    goto _fl_tmp_3;
+                    goto _fl_tmp_4;
                 } else {
                     _fl_exception_pop();
                     ex = ((FL_String*)_fl_ef_0.exception);
                 }
             }
             fl_println(_fl_str_tests_exception_retry_test_4);
-_fl_tmp_3:;
+_fl_tmp_4:;
             _fl_ef_0_caught = fl_true;
         }
     }

@@ -64,21 +64,25 @@ void fl_tests_array_test_main(void) {
         total = _fl_e_1;
         _fl_tmp_0 = (_fl_tmp_0 + 1);
     }
-    FL_String* _fl_tmp_1 = _fl_str_tests_array_test_0;
-    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, fl_int_to_string(total));
+    FL_String* _fl_tmp_1 = fl_int_to_string(total);
+    FL_String* _fl_tmp_2 = _fl_str_tests_array_test_0;
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, _fl_tmp_1);
     fl_string_release(_fl_tmp_1);
-    fl_println(_fl_tmp_2);
-    FL_Array* _fl_tmp_4 = fl_array_new(3, sizeof(fl_int), (fl_int[]){1, 2, 3});
-    fl_int64 _fl_tmp_3 = 0;
-    while (_fl_tmp_3 < fl_array_len(_fl_tmp_4)) {
-        fl_int n = (*((fl_int*)fl_array_get_ptr(_fl_tmp_4, _fl_tmp_3)));
-        FL_String* _fl_tmp_5 = _fl_str_tests_array_test_1;
-        FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_int_to_string(n));
-        fl_string_release(_fl_tmp_5);
-        fl_println(_fl_tmp_6);
-        _fl_tmp_3 = (_fl_tmp_3 + 1);
+    fl_string_release(_fl_tmp_2);
+    fl_println(_fl_tmp_3);
+    FL_Array* _fl_tmp_5 = fl_array_new(3, sizeof(fl_int), (fl_int[]){1, 2, 3});
+    fl_int64 _fl_tmp_4 = 0;
+    while (_fl_tmp_4 < fl_array_len(_fl_tmp_5)) {
+        fl_int n = (*((fl_int*)fl_array_get_ptr(_fl_tmp_5, _fl_tmp_4)));
+        FL_String* _fl_tmp_6 = fl_int_to_string(n);
+        FL_String* _fl_tmp_7 = _fl_str_tests_array_test_1;
+        FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, _fl_tmp_6);
+        fl_string_release(_fl_tmp_6);
+        fl_string_release(_fl_tmp_7);
+        fl_println(_fl_tmp_8);
+        _fl_tmp_4 = (_fl_tmp_4 + 1);
     }
-    fl_array_release(_fl_tmp_4);
+    fl_array_release(_fl_tmp_5);
     fl_array_release(nums);
 }
 

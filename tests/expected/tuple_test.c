@@ -75,27 +75,35 @@ FL_Tuple_fl_int_fl_int fl_tests_tuple_test_swap(fl_int a, fl_int b) {
 /* Flow: tests.tuple_test.main */
 void fl_tests_tuple_test_main(void) {
     FL_Tuple_fl_int_fl_int pair = (FL_Tuple_fl_int_fl_int){._0 = 42, ._1 = 99};
-    FL_String* _fl_tmp_0 = _fl_str_tests_tuple_test_0;
-    FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, fl_int_to_string(pair._0));
-    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, _fl_str_tests_tuple_test_1);
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(pair._1));
-    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_str_tests_tuple_test_2);
+    FL_String* _fl_tmp_0 = fl_int_to_string(pair._0);
+    FL_String* _fl_tmp_1 = _fl_str_tests_tuple_test_0;
+    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, _fl_tmp_0);
+    FL_String* _fl_tmp_3 = fl_int_to_string(pair._1);
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_2, _fl_str_tests_tuple_test_1);
+    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_tmp_3);
+    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, _fl_str_tests_tuple_test_2);
     fl_string_release(_fl_tmp_0);
     fl_string_release(_fl_tmp_1);
     fl_string_release(_fl_tmp_2);
     fl_string_release(_fl_tmp_3);
-    fl_println(_fl_tmp_4);
-    FL_Tuple_fl_int_fl_int result = fl_tests_tuple_test_swap(10, 20);
-    FL_String* _fl_tmp_5 = _fl_str_tests_tuple_test_3;
-    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, fl_int_to_string(result._0));
-    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, _fl_str_tests_tuple_test_1);
-    FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, fl_int_to_string(result._1));
-    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_str_tests_tuple_test_2);
+    fl_string_release(_fl_tmp_4);
     fl_string_release(_fl_tmp_5);
-    fl_string_release(_fl_tmp_6);
+    fl_println(_fl_tmp_6);
+    FL_Tuple_fl_int_fl_int result = fl_tests_tuple_test_swap(10, 20);
+    FL_String* _fl_tmp_7 = fl_int_to_string(result._0);
+    FL_String* _fl_tmp_8 = _fl_str_tests_tuple_test_3;
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_tmp_7);
+    FL_String* _fl_tmp_10 = fl_int_to_string(result._1);
+    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_9, _fl_str_tests_tuple_test_1);
+    FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, _fl_tmp_10);
+    FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, _fl_str_tests_tuple_test_2);
     fl_string_release(_fl_tmp_7);
     fl_string_release(_fl_tmp_8);
-    fl_println(_fl_tmp_9);
+    fl_string_release(_fl_tmp_9);
+    fl_string_release(_fl_tmp_10);
+    fl_string_release(_fl_tmp_11);
+    fl_string_release(_fl_tmp_12);
+    fl_println(_fl_tmp_13);
 }
 
 static void _fl_init_statics(void) {

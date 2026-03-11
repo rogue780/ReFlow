@@ -86,17 +86,21 @@ void fl_tests_composition_test_main(void) {
     fl_int _fl_tmp_0 = 5;
     fl_int _fl_tmp_1 = fl_tests_composition_test_double(_fl_tmp_0);
     fl_int r1 = fl_tests_composition_test_square(_fl_tmp_1);
-    FL_String* _fl_tmp_2 = _fl_str_tests_composition_test_0;
-    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, fl_int_to_string(r1));
+    FL_String* _fl_tmp_2 = fl_int_to_string(r1);
+    FL_String* _fl_tmp_3 = _fl_str_tests_composition_test_0;
+    FL_String* _fl_tmp_4 = fl_string_concat(_fl_tmp_3, _fl_tmp_2);
     fl_string_release(_fl_tmp_2);
-    fl_println(_fl_tmp_3);
-    fl_int _fl_tmp_4 = 3;
-    fl_int _fl_tmp_5 = fl_tests_composition_test_add_one(_fl_tmp_4);
-    fl_int r2 = fl_tests_composition_test_double(_fl_tmp_5);
-    FL_String* _fl_tmp_6 = _fl_str_tests_composition_test_1;
-    FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, fl_int_to_string(r2));
-    fl_string_release(_fl_tmp_6);
-    fl_println(_fl_tmp_7);
+    fl_string_release(_fl_tmp_3);
+    fl_println(_fl_tmp_4);
+    fl_int _fl_tmp_5 = 3;
+    fl_int _fl_tmp_6 = fl_tests_composition_test_add_one(_fl_tmp_5);
+    fl_int r2 = fl_tests_composition_test_double(_fl_tmp_6);
+    FL_String* _fl_tmp_7 = fl_int_to_string(r2);
+    FL_String* _fl_tmp_8 = _fl_str_tests_composition_test_1;
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_tmp_7);
+    fl_string_release(_fl_tmp_7);
+    fl_string_release(_fl_tmp_8);
+    fl_println(_fl_tmp_9);
 }
 
 static void _fl_init_statics(void) {
