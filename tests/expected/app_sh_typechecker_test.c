@@ -5249,11 +5249,19 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_import_decl(fl_self_hosted_p
 
 FL_Array* fl_self_hosted_parser_parse_fn_modifiers(fl_self_hosted_parser_ParserState* s);
 
+void _fl_destroy_fl_self_hosted_ast_TypeParam(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_TypeParam(void* _ptr);
+
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export, fl_bool allow_no_body);
 
 fl_self_hosted_ast_TypeParam fl_self_hosted_parser_parse_type_param(fl_self_hosted_parser_ParserState* s);
 
 FL_Array* fl_self_hosted_parser_parse_type_params(fl_self_hosted_parser_ParserState* s);
+
+void _fl_destroy_fl_self_hosted_ast_Param(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_Param(void* _ptr);
 
 FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserState* s);
 
@@ -5261,9 +5269,21 @@ fl_self_hosted_ast_Param fl_self_hosted_parser_parse_param(fl_self_hosted_parser
 
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_type_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export);
 
+void _fl_destroy_fl_self_hosted_ast_SumVariantDecl(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_SumVariantDecl(void* _ptr);
+
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_sum_type(fl_self_hosted_parser_ParserState* s, fl_self_hosted_lexer_Token tok, FL_String* name, FL_Array* type_params, FL_Array* interfaces, fl_bool is_export);
 
+void _fl_destroy_fl_self_hosted_ast_Field(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_Field(void* _ptr);
+
 fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_self_hosted_parser_ParserState* s);
+
+void _fl_destroy_fl_self_hosted_ast_FieldDecl(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_FieldDecl(void* _ptr);
 
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_parser_ParserState* s, fl_self_hosted_lexer_Token tok, FL_String* name, FL_Array* type_params, FL_Array* interfaces, fl_bool is_export, fl_bool is_type_mut);
 
@@ -5278,6 +5298,10 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_interface_decl(fl_self_hoste
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_constructor_sig(fl_self_hosted_parser_ParserState* s);
 
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_alias_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export);
+
+void _fl_destroy_fl_self_hosted_ast_EnumVariantDecl(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_EnumVariantDecl(void* _ptr);
 
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_enum_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export);
 
@@ -5295,6 +5319,10 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_let_stmt(fl_self_hosted_pars
 
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_if_stmt(fl_self_hosted_parser_ParserState* s);
 
+void _fl_destroy_fl_self_hosted_ast_MatchArm(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_MatchArm(void* _ptr);
+
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_if_let(fl_self_hosted_parser_ParserState* s, fl_self_hosted_lexer_Token if_tok);
 
 fl_self_hosted_ast_Pattern fl_self_hosted_parser_complement_pattern(fl_self_hosted_parser_ParserState* s, fl_self_hosted_ast_Pattern pattern, fl_self_hosted_lexer_Token tok);
@@ -5306,6 +5334,14 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_for_stmt(fl_self_hosted_pars
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_match_stmt(fl_self_hosted_parser_ParserState* s);
 
 fl_self_hosted_ast_MatchArm fl_self_hosted_parser_parse_match_arm(fl_self_hosted_parser_ParserState* s);
+
+void _fl_destroy_fl_self_hosted_ast_RetryBlock(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_RetryBlock(void* _ptr);
+
+void _fl_destroy_fl_self_hosted_ast_CatchClause(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_CatchClause(void* _ptr);
 
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_try_stmt(fl_self_hosted_parser_ParserState* s);
 
@@ -5382,6 +5418,10 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_lambda(fl_self_hosted_parser
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_array_lit(fl_self_hosted_parser_ParserState* s);
 
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_paren_expr(fl_self_hosted_parser_ParserState* s);
+
+void _fl_destroy_fl_self_hosted_ast_ExprField(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_ExprField(void* _ptr);
 
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_record_lit(fl_self_hosted_parser_ParserState* s);
 
@@ -6526,6 +6566,20 @@ FL_Array* fl_self_hosted_parser_parse_fn_modifiers(fl_self_hosted_parser_ParserS
     return result;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_TypeParam */
+void _fl_destroy_fl_self_hosted_ast_TypeParam(void* _ptr) {
+    fl_self_hosted_ast_TypeParam* _s = ((fl_self_hosted_ast_TypeParam*)_ptr);
+    fl_string_release(_s->name);
+    fl_array_release(_s->bounds);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_TypeParam */
+void _fl_retain_fl_self_hosted_ast_TypeParam(void* _ptr) {
+    fl_self_hosted_ast_TypeParam* _s = ((fl_self_hosted_ast_TypeParam*)_ptr);
+    fl_string_retain(_s->name);
+    fl_array_retain(_s->bounds);
+}
+
 /* Flow: self_hosted.parser.parse_fn_decl */
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export, fl_bool allow_no_body) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_FN);
@@ -6536,6 +6590,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parse
     fl_bool is_static = ((_fl_tmp_58.tag == 1) ? _fl_tmp_58.value : fl_false);
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* type_params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
         FL_Array* _fl_old_59 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
@@ -6645,6 +6700,7 @@ fl_self_hosted_ast_TypeParam fl_self_hosted_parser_parse_type_param(fl_self_host
 FL_Array* fl_self_hosted_parser_parse_type_params(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LT);
     FL_Array* params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_GT) == fl_false) {
         fl_self_hosted_ast_TypeParam _fl_tmp_72 = fl_self_hosted_parser_parse_type_param(s);
         FL_Array* _fl_old_73 = params;
@@ -6666,9 +6722,22 @@ FL_Array* fl_self_hosted_parser_parse_type_params(fl_self_hosted_parser_ParserSt
     return params;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_Param */
+void _fl_destroy_fl_self_hosted_ast_Param(void* _ptr) {
+    fl_self_hosted_ast_Param* _s = ((fl_self_hosted_ast_Param*)_ptr);
+    fl_string_release(_s->name);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_Param */
+void _fl_retain_fl_self_hosted_ast_Param(void* _ptr) {
+    fl_self_hosted_ast_Param* _s = ((fl_self_hosted_ast_Param*)_ptr);
+    fl_string_retain(_s->name);
+}
+
 /* Flow: self_hosted.parser.parse_param_list */
 FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserState* s) {
     FL_Array* params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(params, _fl_destroy_fl_self_hosted_ast_Param, _fl_retain_fl_self_hosted_ast_Param);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN)) {
         return params;
     }
@@ -6803,6 +6872,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_type_decl(fl_self_hosted_par
         }
     }
     FL_Array* type_params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
         FL_Array* _fl_old_91 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
@@ -6847,10 +6917,25 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_type_decl(fl_self_hosted_par
     return _fl_ret_97;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_SumVariantDecl */
+void _fl_destroy_fl_self_hosted_ast_SumVariantDecl(void* _ptr) {
+    fl_self_hosted_ast_SumVariantDecl* _s = ((fl_self_hosted_ast_SumVariantDecl*)_ptr);
+    fl_string_release(_s->name);
+    fl_array_release(_s->fields);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_SumVariantDecl */
+void _fl_retain_fl_self_hosted_ast_SumVariantDecl(void* _ptr) {
+    fl_self_hosted_ast_SumVariantDecl* _s = ((fl_self_hosted_ast_SumVariantDecl*)_ptr);
+    fl_string_retain(_s->name);
+    fl_array_retain(_s->fields);
+}
+
 /* Flow: self_hosted.parser.parse_sum_type */
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_sum_type(fl_self_hosted_parser_ParserState* s, fl_self_hosted_lexer_Token tok, FL_String* name, FL_Array* type_params, FL_Array* interfaces, fl_bool is_export) {
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_ASSIGN);
     FL_Array* variants = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(variants, _fl_destroy_fl_self_hosted_ast_SumVariantDecl, _fl_retain_fl_self_hosted_ast_SumVariantDecl);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_PIPE);
     fl_self_hosted_ast_SumVariantDecl _fl_tmp_98 = fl_self_hosted_parser_parse_sum_variant(s);
     FL_Array* _fl_old_99 = variants;
@@ -6876,10 +6961,23 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_sum_type(fl_self_hosted_pars
     return _fl_ret_102;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_Field */
+void _fl_destroy_fl_self_hosted_ast_Field(void* _ptr) {
+    fl_self_hosted_ast_Field* _s = ((fl_self_hosted_ast_Field*)_ptr);
+    fl_string_release(_s->name);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_Field */
+void _fl_retain_fl_self_hosted_ast_Field(void* _ptr) {
+    fl_self_hosted_ast_Field* _s = ((fl_self_hosted_ast_Field*)_ptr);
+    fl_string_retain(_s->name);
+}
+
 /* Flow: self_hosted.parser.parse_sum_variant */
 fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* fields = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(fields, _fl_destroy_fl_self_hosted_ast_Field, _fl_retain_fl_self_hosted_ast_Field);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
@@ -6926,10 +7024,23 @@ fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_sel
     return _fl_ret_107;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_FieldDecl */
+void _fl_destroy_fl_self_hosted_ast_FieldDecl(void* _ptr) {
+    fl_self_hosted_ast_FieldDecl* _s = ((fl_self_hosted_ast_FieldDecl*)_ptr);
+    fl_string_release(_s->name);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_FieldDecl */
+void _fl_retain_fl_self_hosted_ast_FieldDecl(void* _ptr) {
+    fl_self_hosted_ast_FieldDecl* _s = ((fl_self_hosted_ast_FieldDecl*)_ptr);
+    fl_string_retain(_s->name);
+}
+
 /* Flow: self_hosted.parser.parse_struct_type */
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_parser_ParserState* s, fl_self_hosted_lexer_Token tok, FL_String* name, FL_Array* type_params, FL_Array* interfaces, fl_bool is_export, fl_bool is_type_mut) {
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LBRACE);
     FL_Array* fields = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(fields, _fl_destroy_fl_self_hosted_ast_FieldDecl, _fl_retain_fl_self_hosted_ast_FieldDecl);
     FL_Array* methods = fl_array_new(0, 0, NULL);
     FL_Array* constructors = fl_array_new(0, 0, NULL);
     FL_Array* static_members = fl_array_new(0, 0, NULL);
@@ -7118,6 +7229,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_interface_decl(fl_self_hoste
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_INTERFACE);
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* type_params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
         FL_Array* _fl_old_127 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
@@ -7203,6 +7315,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_alias_decl(fl_self_hosted_pa
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_ALIAS);
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* type_params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
         FL_Array* _fl_old_137 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
@@ -7222,6 +7335,18 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_alias_decl(fl_self_hosted_pa
     return _fl_ret_138;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_EnumVariantDecl */
+void _fl_destroy_fl_self_hosted_ast_EnumVariantDecl(void* _ptr) {
+    fl_self_hosted_ast_EnumVariantDecl* _s = ((fl_self_hosted_ast_EnumVariantDecl*)_ptr);
+    fl_string_release(_s->name);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_EnumVariantDecl */
+void _fl_retain_fl_self_hosted_ast_EnumVariantDecl(void* _ptr) {
+    fl_self_hosted_ast_EnumVariantDecl* _s = ((fl_self_hosted_ast_EnumVariantDecl*)_ptr);
+    fl_string_retain(_s->name);
+}
+
 /* Flow: self_hosted.parser.parse_enum_decl */
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_enum_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_ENUM);
@@ -7229,6 +7354,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_enum_decl(fl_self_hosted_par
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LBRACE);
     fl_self_hosted_parser_skip_newlines(s);
     FL_Array* variants = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(variants, _fl_destroy_fl_self_hosted_ast_EnumVariantDecl, _fl_retain_fl_self_hosted_ast_EnumVariantDecl);
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) {
         fl_self_hosted_lexer_Token v_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
         fl_string_retain(v_tok.value);
@@ -7357,6 +7483,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_extern_fn_decl(fl_self_hoste
     }
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* type_params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
         FL_Array* _fl_old_152 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
@@ -7695,6 +7822,18 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_if_stmt(fl_self_hosted_parse
     return _fl_ret_191;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_MatchArm */
+void _fl_destroy_fl_self_hosted_ast_MatchArm(void* _ptr) {
+    fl_self_hosted_ast_MatchArm* _s = ((fl_self_hosted_ast_MatchArm*)_ptr);
+    fl_array_release(_s->body_stmts);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_MatchArm */
+void _fl_retain_fl_self_hosted_ast_MatchArm(void* _ptr) {
+    fl_self_hosted_ast_MatchArm* _s = ((fl_self_hosted_ast_MatchArm*)_ptr);
+    fl_array_retain(_s->body_stmts);
+}
+
 /* Flow: self_hosted.parser.parse_if_let */
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_if_let(fl_self_hosted_parser_ParserState* s, fl_self_hosted_lexer_Token if_tok) {
     fl_self_hosted_parser_advance(s);
@@ -7714,6 +7853,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_if_let(fl_self_hosted_parser
     }
     fl_self_hosted_ast_Pattern complement = fl_self_hosted_parser_complement_pattern(s, pattern, if_tok);
     FL_Array* arms = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(arms, _fl_destroy_fl_self_hosted_ast_MatchArm, _fl_retain_fl_self_hosted_ast_MatchArm);
     fl_array_retain(then_stmts);
     fl_self_hosted_ast_MatchArm _fl_tmp_193 = (fl_self_hosted_ast_MatchArm){.pattern = pattern, .body_stmts = then_stmts, .id = fl_self_hosted_parser_fresh_id(s), .line = if_tok.line, .col = if_tok.col};
     FL_Array* _fl_old_194 = arms;
@@ -7854,6 +7994,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_match_stmt(fl_self_hosted_pa
     fl_self_hosted_ast_Expr subject = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LBRACE);
     FL_Array* arms = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(arms, _fl_destroy_fl_self_hosted_ast_MatchArm, _fl_retain_fl_self_hosted_ast_MatchArm);
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
         fl_self_hosted_ast_MatchArm arm = fl_self_hosted_parser_parse_match_arm(s);
         fl_array_retain(arm.body_stmts);
@@ -7901,11 +8042,42 @@ fl_self_hosted_ast_MatchArm fl_self_hosted_parser_parse_match_arm(fl_self_hosted
     return _fl_ret_209;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_RetryBlock */
+void _fl_destroy_fl_self_hosted_ast_RetryBlock(void* _ptr) {
+    fl_self_hosted_ast_RetryBlock* _s = ((fl_self_hosted_ast_RetryBlock*)_ptr);
+    fl_string_release(_s->target_fn);
+    fl_string_release(_s->exception_var);
+    fl_array_release(_s->body);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_RetryBlock */
+void _fl_retain_fl_self_hosted_ast_RetryBlock(void* _ptr) {
+    fl_self_hosted_ast_RetryBlock* _s = ((fl_self_hosted_ast_RetryBlock*)_ptr);
+    fl_string_retain(_s->target_fn);
+    fl_string_retain(_s->exception_var);
+    fl_array_retain(_s->body);
+}
+
+/* Flow: destructor for fl_self_hosted_ast_CatchClause */
+void _fl_destroy_fl_self_hosted_ast_CatchClause(void* _ptr) {
+    fl_self_hosted_ast_CatchClause* _s = ((fl_self_hosted_ast_CatchClause*)_ptr);
+    fl_string_release(_s->exception_var);
+    fl_array_release(_s->body);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_CatchClause */
+void _fl_retain_fl_self_hosted_ast_CatchClause(void* _ptr) {
+    fl_self_hosted_ast_CatchClause* _s = ((fl_self_hosted_ast_CatchClause*)_ptr);
+    fl_string_retain(_s->exception_var);
+    fl_array_retain(_s->body);
+}
+
 /* Flow: self_hosted.parser.parse_try_stmt */
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_try_stmt(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_TRY);
     FL_Array* body = fl_self_hosted_parser_parse_block(s);
     FL_Array* retry_blocks = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(retry_blocks, _fl_destroy_fl_self_hosted_ast_RetryBlock, _fl_retain_fl_self_hosted_ast_RetryBlock);
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RETRY)) {
         fl_self_hosted_ast_RetryBlock _fl_tmp_210 = fl_self_hosted_parser_parse_retry_block(s);
         FL_Array* _fl_old_211 = retry_blocks;
@@ -7915,6 +8087,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_try_stmt(fl_self_hosted_pars
         }
     }
     FL_Array* catches = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(catches, _fl_destroy_fl_self_hosted_ast_CatchClause, _fl_retain_fl_self_hosted_ast_CatchClause);
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_CATCH)) {
         fl_self_hosted_ast_CatchClause _fl_tmp_212 = fl_self_hosted_parser_parse_catch_block(s);
         FL_Array* _fl_old_213 = catches;
@@ -9042,6 +9215,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_match_expr(fl_self_hosted_pa
     fl_self_hosted_ast_Expr subject = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LBRACE);
     FL_Array* arms = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(arms, _fl_destroy_fl_self_hosted_ast_MatchArm, _fl_retain_fl_self_hosted_ast_MatchArm);
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
         fl_self_hosted_ast_MatchArm arm = fl_self_hosted_parser_parse_match_arm(s);
         fl_array_retain(arm.body_stmts);
@@ -9108,6 +9282,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_lambda(fl_self_hosted_parser
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_BACKSLASH);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     FL_Array* params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(params, _fl_destroy_fl_self_hosted_ast_Param, _fl_retain_fl_self_hosted_ast_Param);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FAT_ARROW) == fl_false) {
         fl_self_hosted_ast_Param _fl_tmp_348 = fl_self_hosted_parser_parse_param(s);
         FL_Array* _fl_old_349 = params;
@@ -9219,10 +9394,23 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_paren_expr(fl_self_hosted_pa
     return first;
 }
 
+/* Flow: destructor for fl_self_hosted_ast_ExprField */
+void _fl_destroy_fl_self_hosted_ast_ExprField(void* _ptr) {
+    fl_self_hosted_ast_ExprField* _s = ((fl_self_hosted_ast_ExprField*)_ptr);
+    fl_string_release(_s->name);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_ExprField */
+void _fl_retain_fl_self_hosted_ast_ExprField(void* _ptr) {
+    fl_self_hosted_ast_ExprField* _s = ((fl_self_hosted_ast_ExprField*)_ptr);
+    fl_string_retain(_s->name);
+}
+
 /* Flow: self_hosted.parser.parse_record_lit */
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_record_lit(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LBRACE);
     FL_Array* fields = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(fields, _fl_destroy_fl_self_hosted_ast_ExprField, _fl_retain_fl_self_hosted_ast_ExprField);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) {
         fl_self_hosted_lexer_Token fname = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
         fl_string_retain(fname.value);
@@ -9334,6 +9522,7 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ident_or_type_lit(fl_self_ho
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_type_construction_lit(fl_self_hosted_parser_ParserState* s, fl_self_hosted_lexer_Token start_tok, FL_String* type_name, FL_Array* module_path) {
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LBRACE);
     FL_Array* fields = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(fields, _fl_destroy_fl_self_hosted_ast_ExprField, _fl_retain_fl_self_hosted_ast_ExprField);
     fl_bool has_spread = fl_false;
     fl_self_hosted_ast_Expr spread = fl_self_hosted_parser_placeholder_expr();
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
@@ -9925,6 +10114,10 @@ void fl_self_hosted_resolver_resolve_method_body(fl_self_hosted_resolver_Resolve
 void fl_self_hosted_resolver_resolve_ctor_body(fl_self_hosted_resolver_ResolverState* s, fl_self_hosted_ast_Decl ctor, FL_String* type_name);
 
 void fl_self_hosted_resolver_bind_method_params(fl_self_hosted_resolver_ResolverState* s, FL_Array* params, FL_String* type_name, fl_bool self_mut);
+
+void _fl_destroy_fl_self_hosted_resolver_Symbol(void* _ptr);
+
+void _fl_retain_fl_self_hosted_resolver_Symbol(void* _ptr);
 
 void fl_self_hosted_resolver_resolve_lambda(fl_self_hosted_resolver_ResolverState* s, fl_int lambda_id, FL_Array* params, fl_self_hosted_ast_Expr body);
 
@@ -11403,6 +11596,20 @@ void fl_self_hosted_resolver_bind_method_params(fl_self_hosted_resolver_Resolver
     }
 }
 
+/* Flow: destructor for fl_self_hosted_resolver_Symbol */
+void _fl_destroy_fl_self_hosted_resolver_Symbol(void* _ptr) {
+    fl_self_hosted_resolver_Symbol* _s = ((fl_self_hosted_resolver_Symbol*)_ptr);
+    fl_string_release(_s->name);
+    fl_string_release(_s->module_key);
+}
+
+/* Flow: retainer for fl_self_hosted_resolver_Symbol */
+void _fl_retain_fl_self_hosted_resolver_Symbol(void* _ptr) {
+    fl_self_hosted_resolver_Symbol* _s = ((fl_self_hosted_resolver_Symbol*)_ptr);
+    fl_string_retain(_s->name);
+    fl_string_retain(_s->module_key);
+}
+
 /* Flow: self_hosted.resolver.resolve_lambda */
 void fl_self_hosted_resolver_resolve_lambda(fl_self_hosted_resolver_ResolverState* s, fl_int lambda_id, FL_Array* params, fl_self_hosted_ast_Expr body) {
     fl_self_hosted_resolver_push_scope(s, fl_false);
@@ -11433,6 +11640,7 @@ void fl_self_hosted_resolver_resolve_lambda(fl_self_hosted_resolver_ResolverStat
     FL_Option_int _fl_tmp_108 = fl_array_get_int(s->cap_sym_counts, idx);
     fl_int cap_n = ((_fl_tmp_108.tag == 1) ? _fl_tmp_108.value : 0);
     FL_Array* captured = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(captured, _fl_destroy_fl_self_hosted_resolver_Symbol, _fl_retain_fl_self_hosted_resolver_Symbol);
     fl_int ci = 0;
     while (ci < cap_n) {
         FL_String* _fl_tmp_109 = fl_conv_to_string__int(idx);
@@ -12956,6 +13164,10 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_tc_ptr(void);
 
 FL_String* fl_self_hosted_typechecker_join_path(FL_Array* parts);
 
+void _fl_destroy_fl_self_hosted_typechecker_TCSumVariant(void* _ptr);
+
+void _fl_retain_fl_self_hosted_typechecker_TCSumVariant(void* _ptr);
+
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_apply_env(fl_self_hosted_typechecker_TCType t, FL_Map* env);
 
 FL_String* fl_self_hosted_typechecker_type_name(fl_self_hosted_typechecker_TCType t);
@@ -13966,6 +14178,20 @@ FL_String* fl_self_hosted_typechecker_join_path(FL_Array* parts) {
     return result;
 }
 
+/* Flow: destructor for fl_self_hosted_typechecker_TCSumVariant */
+void _fl_destroy_fl_self_hosted_typechecker_TCSumVariant(void* _ptr) {
+    fl_self_hosted_typechecker_TCSumVariant* _s = ((fl_self_hosted_typechecker_TCSumVariant*)_ptr);
+    fl_string_release(_s->name);
+    fl_array_release(_s->field_types_box);
+}
+
+/* Flow: retainer for fl_self_hosted_typechecker_TCSumVariant */
+void _fl_retain_fl_self_hosted_typechecker_TCSumVariant(void* _ptr) {
+    fl_self_hosted_typechecker_TCSumVariant* _s = ((fl_self_hosted_typechecker_TCSumVariant*)_ptr);
+    fl_string_retain(_s->name);
+    fl_array_retain(_s->field_types_box);
+}
+
 /* Flow: self_hosted.typechecker.apply_env */
 fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_apply_env(fl_self_hosted_typechecker_TCType t, FL_Map* env) {
     if (fl_map_len(env) == 0) {
@@ -14129,6 +14355,7 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_apply_env(fl_self_h
             FL_String* mod_path = _fl_tmp_47.TCSumType.mod_path;
             FL_Array* variants = _fl_tmp_47.TCSumType.variants;
             FL_Array* new_variants = fl_array_new(0, 0, NULL);
+            fl_array_set_struct_handlers(new_variants, _fl_destroy_fl_self_hosted_typechecker_TCSumVariant, _fl_retain_fl_self_hosted_typechecker_TCSumVariant);
             fl_int i = 0;
             fl_int n = fl_array_len_int(variants);
             while (i < n) {
@@ -15976,6 +16203,7 @@ void fl_self_hosted_typechecker_register_type_decl(fl_self_hosted_typechecker_TC
             fl_map_release(_fl_old_277);
         }
         FL_Array* sum_variants = fl_array_new(0, 0, NULL);
+        fl_array_set_struct_handlers(sum_variants, _fl_destroy_fl_self_hosted_typechecker_TCSumVariant, _fl_retain_fl_self_hosted_typechecker_TCSumVariant);
         fl_int vi = 0;
         while (vi < fl_array_len_int(variants)) {
             fl_string_retain(_fl_str_self_hosted_typechecker_0);

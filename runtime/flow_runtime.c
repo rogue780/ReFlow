@@ -237,8 +237,13 @@ FL_String* fl_byte_to_string(fl_byte v) {
  * ======================================================================== */
 
 /* Forward declarations for element-level refcounting dispatch */
-static void _fl_elem_retain(FL_ElemType t, void* slot) {
+static void _fl_elem_retain(FL_ElemType t, void* slot,
+                             void (*retainer)(void*)) {
     if (t == FL_ELEM_NONE) return;
+    if (t == FL_ELEM_STRUCT) {
+        if (retainer) retainer(slot);
+        return;
+    }
     void* p = *(void**)slot;
     if (!p) return;
     switch (t) {
@@ -252,8 +257,13 @@ static void _fl_elem_retain(FL_ElemType t, void* slot) {
     }
 }
 
-static void _fl_elem_release(FL_ElemType t, void* slot) {
+static void _fl_elem_release(FL_ElemType t, void* slot,
+                              void (*destructor)(void*)) {
     if (t == FL_ELEM_NONE) return;
+    if (t == FL_ELEM_STRUCT) {
+        if (destructor) destructor(slot);
+        return;
+    }
     void* p = *(void**)slot;
     if (!p) return;
     switch (t) {
@@ -276,6 +286,8 @@ FL_Array* fl_array_new(fl_int64 len, fl_int64 element_size, void* initial_data) 
     arr->capacity = len;
     arr->element_size = element_size;
     arr->elem_type = FL_ELEM_NONE;
+    arr->elem_destructor = NULL;
+    arr->elem_retainer = NULL;
     if (len > 0) {
         arr->data = malloc((size_t)len * (size_t)element_size);
         if (!arr->data) fl_panic("fl_array_new: out of memory");
@@ -301,7 +313,8 @@ void fl_array_release(FL_Array* arr) {
         if (arr->elem_type != FL_ELEM_NONE && arr->data) {
             for (fl_int64 i = 0; i < arr->len; i++) {
                 void* slot = (char*)arr->data + (size_t)i * (size_t)arr->element_size;
-                _fl_elem_release(arr->elem_type, slot);
+                _fl_elem_release(arr->elem_type, slot,
+                                 arr->elem_destructor);
             }
         }
         free(arr->data);
@@ -309,14 +322,26 @@ void fl_array_release(FL_Array* arr) {
     }
 }
 
+void fl_array_set_struct_handlers(FL_Array* a,
+                                   void (*destructor)(void*),
+                                   void (*retainer)(void*)) {
+    if (!a) return;
+    a->elem_type = FL_ELEM_STRUCT;
+    a->elem_destructor = destructor;
+    a->elem_retainer = retainer;
+}
+
 FL_Array* fl_array_copy(FL_Array* arr) {
     if (!arr) return NULL;
     FL_Array* copy = fl_array_new(arr->len, arr->element_size, arr->data);
     copy->elem_type = arr->elem_type;
+    copy->elem_destructor = arr->elem_destructor;
+    copy->elem_retainer = arr->elem_retainer;
     if (copy->elem_type != FL_ELEM_NONE && copy->data) {
         for (fl_int64 i = 0; i < copy->len; i++) {
             void* slot = (char*)copy->data + (size_t)i * (size_t)copy->element_size;
-            _fl_elem_retain(copy->elem_type, slot);
+            _fl_elem_retain(copy->elem_type, slot,
+                            copy->elem_retainer);
         }
     }
     return copy;
@@ -374,11 +399,14 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
         out->capacity = cap;
         out->element_size = arr->element_size;
         out->elem_type = arr->elem_type;
+        out->elem_destructor = arr->elem_destructor;
+        out->elem_retainer = arr->elem_retainer;
         out->data = arr->data;
         /* Retain the newly pushed element */
         if (out->elem_type != FL_ELEM_NONE) {
             void* new_slot = (char*)out->data + (size_t)(new_len - 1) * elem_sz;
-            _fl_elem_retain(out->elem_type, new_slot);
+            _fl_elem_retain(out->elem_type, new_slot,
+                            out->elem_retainer);
         }
         return out;
     }
@@ -395,6 +423,8 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
     out->capacity = new_cap;
     out->element_size = arr->element_size;
     out->elem_type = arr->elem_type;
+    out->elem_destructor = arr->elem_destructor;
+    out->elem_retainer = arr->elem_retainer;
     out->data = malloc((size_t)new_cap * elem_sz);
     if (!out->data) fl_panic("fl_array_push: out of memory");
     if (arr->len > 0) {
@@ -403,7 +433,8 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
         if (out->elem_type != FL_ELEM_NONE) {
             for (fl_int64 i = 0; i < arr->len; i++) {
                 void* slot = (char*)out->data + (size_t)i * elem_sz;
-                _fl_elem_retain(out->elem_type, slot);
+                _fl_elem_retain(out->elem_type, slot,
+                                out->elem_retainer);
             }
         }
     }
@@ -411,7 +442,8 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
     /* Retain the newly pushed element */
     if (out->elem_type != FL_ELEM_NONE) {
         void* new_slot = (char*)out->data + (size_t)arr->len * elem_sz;
-        _fl_elem_retain(out->elem_type, new_slot);
+        _fl_elem_retain(out->elem_type, new_slot,
+                        out->elem_retainer);
     }
     return out;
 }
@@ -1602,7 +1634,7 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         out->val_type = m->val_type;
         /* Retain the inserted value */
         if (out->val_type != FL_ELEM_NONE) {
-            _fl_elem_retain(out->val_type, &e->val);
+            _fl_elem_retain(out->val_type, &e->val, NULL);
         }
         return out;
     }
@@ -1631,7 +1663,7 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         n->entries[idx].val = e->val;
         /* Retain all copied values (shared with old map) */
         if (n->val_type != FL_ELEM_NONE) {
-            _fl_elem_retain(n->val_type, &n->entries[idx].val);
+            _fl_elem_retain(n->val_type, &n->entries[idx].val, NULL);
         }
         n->entries[idx].occupied = fl_true;
         n->count++;
@@ -1648,7 +1680,7 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
     n->entries[idx].occupied = fl_true;
     /* Retain the new/updated value */
     if (n->val_type != FL_ELEM_NONE) {
-        _fl_elem_retain(n->val_type, &n->entries[idx].val);
+        _fl_elem_retain(n->val_type, &n->entries[idx].val, NULL);
     }
     n->count++;
 
@@ -1684,7 +1716,7 @@ void fl_map_release(FL_Map* m) {
         for (fl_int64 i = 0; i < m->capacity; i++) {
             if (m->entries[i].occupied) {
                 if (m->val_type != FL_ELEM_NONE) {
-                    _fl_elem_release(m->val_type, &m->entries[i].val);
+                    _fl_elem_release(m->val_type, &m->entries[i].val, NULL);
                 }
                 free(m->entries[i].key);
             }
@@ -3714,12 +3746,14 @@ FL_Array* fl_array_concat(FL_Array* a, FL_Array* b) {
            b->data, (size_t)(b->len * a->element_size));
     FL_Array* result = fl_array_new(total, a->element_size, data);
     free(data);
-    /* Propagate elem_type and retain all elements (both a and b contributed) */
+    /* Propagate elem_type, handlers, and retain all elements (both a and b contributed) */
     result->elem_type = a->elem_type;
+    result->elem_destructor = a->elem_destructor;
+    result->elem_retainer = a->elem_retainer;
     if (result->elem_type != FL_ELEM_NONE && result->data) {
         for (fl_int64 i = 0; i < result->len; i++) {
             void* slot = (char*)result->data + (size_t)i * (size_t)result->element_size;
-            _fl_elem_retain(result->elem_type, slot);
+            _fl_elem_retain(result->elem_type, slot, result->elem_retainer);
         }
     }
     return result;
@@ -3853,7 +3887,7 @@ FL_Map* fl_map_remove_str(FL_Map* m, FL_String* key) {
         if (!e->occupied) break;
         if (e->key_len == key->len && memcmp(e->key, key->data, (size_t)key->len) == 0) {
             if (m->val_type != FL_ELEM_NONE) {
-                _fl_elem_release(m->val_type, &e->val);
+                _fl_elem_release(m->val_type, &e->val, NULL);
             }
             e->occupied = 0;
             m->count--;
@@ -3905,7 +3939,7 @@ FL_Array* fl_map_values(FL_Map* m) {
     if (arr->elem_type != FL_ELEM_NONE && arr->data) {
         for (fl_int64 i = 0; i < arr->len; i++) {
             void* slot = (char*)arr->data + (size_t)i * sizeof(void*);
-            _fl_elem_retain(arr->elem_type, slot);
+            _fl_elem_retain(arr->elem_type, slot, NULL);
         }
     }
     return arr;

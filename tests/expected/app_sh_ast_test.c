@@ -3324,6 +3324,10 @@ fl_self_hosted_ast_Expr fl_self_hosted_ast_fsp_get_expr(fl_self_hosted_ast_FStri
 
 FL_String* fl_conv_to_string__int(fl_int val);
 
+void _fl_destroy_fl_self_hosted_ast_Param(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_Param(void* _ptr);
+
 fl_int fl_tests_programs_app_sh_ast_test_main(void);
 
 FL_String* _fl_str_tests_programs_app_sh_ast_test_0 = NULL;
@@ -3409,6 +3413,18 @@ FL_String* _fl_str_tests_programs_app_sh_ast_test_39 = NULL;
 /* Flow: conv.to_string[mono] */
 FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
+}
+
+/* Flow: destructor for fl_self_hosted_ast_Param */
+void _fl_destroy_fl_self_hosted_ast_Param(void* _ptr) {
+    fl_self_hosted_ast_Param* _s = ((fl_self_hosted_ast_Param*)_ptr);
+    fl_string_release(_s->name);
+}
+
+/* Flow: retainer for fl_self_hosted_ast_Param */
+void _fl_retain_fl_self_hosted_ast_Param(void* _ptr) {
+    fl_self_hosted_ast_Param* _s = ((fl_self_hosted_ast_Param*)_ptr);
+    fl_string_retain(_s->name);
 }
 
 /* Flow: tests.programs.app_sh_ast_test.main */
@@ -3571,6 +3587,7 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     fl_string_release(_fl_tmp_48);
     fl_self_hosted_ast_Param p1 = fl_self_hosted_ast_param(_fl_str_tests_programs_app_sh_ast_test_9, t_int, 50, 30, 1);
     FL_Array* fn_params_d = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(fn_params_d, _fl_destroy_fl_self_hosted_ast_Param, _fl_retain_fl_self_hosted_ast_Param);
     fl_self_hosted_ast_Param _fl_tmp_49 = p1;
     FL_Array* fn_params_d2 = fl_array_push_sized(fn_params_d, (&_fl_tmp_49), sizeof(fl_self_hosted_ast_Param));
     FL_Array* fn_body = fl_array_new(0, 0, NULL);

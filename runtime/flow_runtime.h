@@ -284,6 +284,7 @@ typedef enum {
     FL_ELEM_STREAM  = 5,
     FL_ELEM_BUFFER  = 6,
     FL_ELEM_HEAP_BOX = 7,  /* reserved — not yet used */
+    FL_ELEM_STRUCT  = 8,   /* struct with refcounted fields; elem_destructor set */
 } FL_ElemType;
 
 typedef struct FL_Array {
@@ -293,12 +294,16 @@ typedef struct FL_Array {
     void*     data;
     fl_int64  element_size;
     FL_ElemType elem_type;   /* element refcount kind; 0 = no cleanup */
+    void (*elem_destructor)(void*);  /* per-element destructor for FL_ELEM_STRUCT */
+    void (*elem_retainer)(void*);    /* per-element retainer for FL_ELEM_STRUCT */
 } FL_Array;
 
 FL_String*    fl_string_join_array(FL_Array* parts);
 FL_Array*     fl_array_new(fl_int64 len, fl_int64 element_size, void* initial_data);
 void          fl_array_retain(FL_Array* arr);
 void          fl_array_release(FL_Array* arr);
+void          fl_array_set_struct_handlers(FL_Array* a,
+                  void (*destructor)(void*), void (*retainer)(void*));
 FL_Array*     fl_array_copy(FL_Array* arr);
 void*         fl_array_get_ptr(FL_Array* arr, fl_int64 idx);
 FL_Option_ptr fl_array_get_safe(FL_Array* arr, fl_int64 idx);

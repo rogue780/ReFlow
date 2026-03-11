@@ -514,6 +514,10 @@ FL_String* fl_tests_app_stream_mux_route(fl_tests_app_stream_mux_Record r);
 
 FL_String* fl_tests_app_stream_mux_format_record(fl_tests_app_stream_mux_Record r);
 
+void _fl_destroy_fl_tests_app_stream_mux_Record(void* _ptr);
+
+void _fl_retain_fl_tests_app_stream_mux_Record(void* _ptr);
+
 void fl_tests_app_stream_mux_main(void);
 
 struct fl_tests_app_stream_mux_Record {
@@ -603,6 +607,20 @@ FL_String* fl_tests_app_stream_mux_format_record(fl_tests_app_stream_mux_Record 
     return _fl_ret_5;
 }
 
+/* Flow: destructor for fl_tests_app_stream_mux_Record */
+void _fl_destroy_fl_tests_app_stream_mux_Record(void* _ptr) {
+    fl_tests_app_stream_mux_Record* _s = ((fl_tests_app_stream_mux_Record*)_ptr);
+    fl_string_release(_s->category);
+    fl_string_release(_s->data);
+}
+
+/* Flow: retainer for fl_tests_app_stream_mux_Record */
+void _fl_retain_fl_tests_app_stream_mux_Record(void* _ptr) {
+    fl_tests_app_stream_mux_Record* _s = ((fl_tests_app_stream_mux_Record*)_ptr);
+    fl_string_retain(_s->category);
+    fl_string_retain(_s->data);
+}
+
 /* Flow: tests.app_stream_mux.main */
 void fl_tests_app_stream_mux_main(void) {
     fl_string_retain(_fl_str_tests_app_stream_mux_0);
@@ -617,40 +635,42 @@ void fl_tests_app_stream_mux_main(void) {
     fl_string_retain(_fl_str_tests_app_stream_mux_14);
     fl_string_retain(_fl_str_tests_app_stream_mux_15);
     fl_string_retain(_fl_str_tests_app_stream_mux_16);
-    FL_Array* records = fl_array_new(6, sizeof(fl_tests_app_stream_mux_Record), (fl_tests_app_stream_mux_Record[]){(fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_0, .priority = 1, .data = _fl_str_tests_app_stream_mux_10}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_2, .priority = 3, .data = _fl_str_tests_app_stream_mux_11}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_4, .priority = 2, .data = _fl_str_tests_app_stream_mux_12}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_0, .priority = 1, .data = _fl_str_tests_app_stream_mux_13}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_2, .priority = 3, .data = _fl_str_tests_app_stream_mux_14}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_15, .priority = 4, .data = _fl_str_tests_app_stream_mux_16}});
+    FL_Array* _fl_tmp_6 = fl_array_new(6, sizeof(fl_tests_app_stream_mux_Record), (fl_tests_app_stream_mux_Record[]){(fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_0, .priority = 1, .data = _fl_str_tests_app_stream_mux_10}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_2, .priority = 3, .data = _fl_str_tests_app_stream_mux_11}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_4, .priority = 2, .data = _fl_str_tests_app_stream_mux_12}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_0, .priority = 1, .data = _fl_str_tests_app_stream_mux_13}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_2, .priority = 3, .data = _fl_str_tests_app_stream_mux_14}, (fl_tests_app_stream_mux_Record){.category = _fl_str_tests_app_stream_mux_15, .priority = 4, .data = _fl_str_tests_app_stream_mux_16}});
+    fl_array_set_struct_handlers(_fl_tmp_6, _fl_destroy_fl_tests_app_stream_mux_Record, _fl_retain_fl_tests_app_stream_mux_Record);
+    FL_Array* records = _fl_tmp_6;
     FL_Map* destinations = fl_map_new();
-    fl_int64 _fl_tmp_6 = 0;
-    while (_fl_tmp_6 < fl_array_len(records)) {
-        fl_tests_app_stream_mux_Record r = (*((fl_tests_app_stream_mux_Record*)fl_array_get_ptr(records, _fl_tmp_6)));
+    fl_int64 _fl_tmp_7 = 0;
+    while (_fl_tmp_7 < fl_array_len(records)) {
+        fl_tests_app_stream_mux_Record r = (*((fl_tests_app_stream_mux_Record*)fl_array_get_ptr(records, _fl_tmp_7)));
         FL_String* dest = fl_tests_app_stream_mux_route(r);
         FL_String* line = fl_tests_app_stream_mux_format_record(r);
-        FL_Option_ptr _fl_tmp_7 = fl_map_get_str(destinations, dest);
-        FL_String* existing = ((_fl_tmp_7.tag == 1) ? _fl_tmp_7.value : _fl_str_tests_app_stream_mux_17);
+        FL_Option_ptr _fl_tmp_8 = fl_map_get_str(destinations, dest);
+        FL_String* existing = ((_fl_tmp_8.tag == 1) ? _fl_tmp_8.value : _fl_str_tests_app_stream_mux_17);
         fl_string_retain(existing);
-        FL_String* _fl_tmp_8 = fl_string_concat(existing, line);
-        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_str_tests_app_stream_mux_18);
-        FL_Map* _fl_old_10 = destinations;
-        destinations = fl_map_set_str(destinations, dest, _fl_tmp_9);
-        if (_fl_old_10 != destinations) {
-            fl_map_release(_fl_old_10);
+        FL_String* _fl_tmp_9 = fl_string_concat(existing, line);
+        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_str_tests_app_stream_mux_18);
+        FL_Map* _fl_old_11 = destinations;
+        destinations = fl_map_set_str(destinations, dest, _fl_tmp_10);
+        if (_fl_old_11 != destinations) {
+            fl_map_release(_fl_old_11);
         }
-        fl_string_release(_fl_tmp_8);
         fl_string_release(_fl_tmp_9);
-        _fl_tmp_6 = (_fl_tmp_6 + 1);
+        fl_string_release(_fl_tmp_10);
+        _fl_tmp_7 = (_fl_tmp_7 + 1);
         fl_string_release(dest);
         fl_string_release(line);
         fl_string_release(existing);
     }
     FL_Array* ks = fl_map_keys(destinations);
-    fl_int64 _fl_tmp_11 = 0;
-    while (_fl_tmp_11 < fl_array_len(ks)) {
-        FL_String* key = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_11)));
-        FL_String* _fl_tmp_12 = fl_string_concat(_fl_str_tests_app_stream_mux_19, key);
-        fl_println(fl_string_concat(_fl_tmp_12, _fl_str_tests_app_stream_mux_20));
-        fl_string_release(_fl_tmp_12);
-        FL_Option_ptr _fl_tmp_13 = fl_map_get_str(destinations, key);
-        fl_println(((_fl_tmp_13.tag == 1) ? _fl_tmp_13.value : _fl_str_tests_app_stream_mux_17));
-        _fl_tmp_11 = (_fl_tmp_11 + 1);
+    fl_int64 _fl_tmp_12 = 0;
+    while (_fl_tmp_12 < fl_array_len(ks)) {
+        FL_String* key = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_12)));
+        FL_String* _fl_tmp_13 = fl_string_concat(_fl_str_tests_app_stream_mux_19, key);
+        fl_println(fl_string_concat(_fl_tmp_13, _fl_str_tests_app_stream_mux_20));
+        fl_string_release(_fl_tmp_13);
+        FL_Option_ptr _fl_tmp_14 = fl_map_get_str(destinations, key);
+        fl_println(((_fl_tmp_14.tag == 1) ? _fl_tmp_14.value : _fl_str_tests_app_stream_mux_17));
+        _fl_tmp_12 = (_fl_tmp_12 + 1);
     }
     fl_array_release(records);
     fl_map_release(destinations);

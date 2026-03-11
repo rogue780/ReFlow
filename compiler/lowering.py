@@ -733,6 +733,10 @@ class Lowerer:
         # those fields at scope exit would cause a use-after-free.
         self._transferred_struct_vars: set[str] = set()
 
+        # Array element struct handlers: track which struct C types have had
+        # _fl_destroy_<T> / _fl_retain_<T> helper functions emitted.
+        self._struct_handler_emitted: set[str] = set()
+
         # String literal interning: deduplicate string constants as static
         # globals, initialized once in _fl_init_statics with high refcount
         # so retain/release never frees them.  Eliminates millions of
@@ -1820,6 +1824,19 @@ class Lowerer:
                         [LVar(stmt.name, c_type),
                          LLit(str(elem_tag), LInt(64, True))],
                         LVoid())))
+                # Struct elements with refcounted fields: set handlers
+                elif self._has_refcounted_fields(ann_type.element):
+                    elem_lt = self._lower_type(ann_type.element)
+                    handlers = self._get_or_emit_struct_handlers(
+                        ann_type.element, elem_lt)
+                    if handlers:
+                        destructor, retainer = handlers
+                        stmts.append(LExprStmt(LCall(
+                            "fl_array_set_struct_handlers",
+                            [LVar(stmt.name, c_type),
+                             LVar(destructor, LPtr(LVoid())),
+                             LVar(retainer, LPtr(LVoid()))],
+                            LVoid())))
 
         # Retain-on-store: retain ALL let bindings from non-allocating sources.
         # Skip when option auto-lifting changed the type: val_type is T but
@@ -2025,6 +2042,108 @@ class Lowerer:
             if release_fn is not None:
                 self._struct_field_cleanup.append(
                     (var_name, field_name, c_type, release_fn, depth))
+
+    def _has_refcounted_fields(self, elem_type: Type) -> bool:
+        """Return True if elem_type is a struct with at least one refcounted field."""
+        if self._get_release_fn(elem_type) is not None:
+            return False  # Directly refcounted types handled by _ELEM_TYPE_TAG
+        fields = self._get_struct_fields_cross_module(elem_type)
+        if not fields:
+            return False
+        return any(self._get_release_fn(ft) is not None for ft in fields.values())
+
+    def _get_or_emit_struct_handlers(self, elem_type: Type,
+                                      elem_lt: LType) -> tuple[str, str] | None:
+        """Emit destructor/retainer helper functions for a struct element type.
+
+        Returns (destructor_name, retainer_name) or None if the struct has no
+        refcounted fields.  Only emits each pair once per struct C type.
+        """
+        from compiler.mangler import (mangle_struct_elem_destructor,
+                                       mangle_struct_elem_retainer)
+        if not self._has_refcounted_fields(elem_type):
+            return None
+        c_name = _ltype_c_name(elem_lt)
+        if c_name in self._struct_handler_emitted:
+            destructor = mangle_struct_elem_destructor(c_name)
+            retainer = mangle_struct_elem_retainer(c_name)
+            return (destructor, retainer)
+        self._struct_handler_emitted.add(c_name)
+
+        destructor = mangle_struct_elem_destructor(c_name)
+        retainer = mangle_struct_elem_retainer(c_name)
+
+        # Build the body of each function.
+        # Parameter: void* _ptr  →  cast to StructType*  →  release/retain each
+        # refcounted field.
+        ptr_param = ("_ptr", LPtr(LVoid()))
+        struct_ptr_lt = LPtr(elem_lt)
+        cast_expr = LCast(LVar("_ptr", LPtr(LVoid())), struct_ptr_lt)
+        local_name = "_s"
+
+        fields = self._get_struct_fields_cross_module(elem_type)
+        if fields is None:
+            return None
+
+        # Destructor body
+        destroy_body: list[LStmt] = []
+        destroy_body.append(LVarDecl(c_name=local_name, c_type=struct_ptr_lt,
+                                      init=cast_expr))
+        for field_name, field_type in fields.items():
+            release_fn = self._get_release_fn(field_type)
+            if release_fn is not None:
+                destroy_body.append(LExprStmt(LCall(
+                    release_fn,
+                    [LArrow(LVar(local_name, struct_ptr_lt), field_name,
+                            self._lower_type(field_type))],
+                    LVoid())))
+        self._fn_defs.append(LFnDef(
+            c_name=destructor,
+            params=[ptr_param],
+            ret=LVoid(),
+            body=destroy_body,
+            is_pure=True,
+            source_name=f"destructor for {c_name}",
+        ))
+
+        # Retainer body
+        retain_body: list[LStmt] = []
+        retain_body.append(LVarDecl(c_name=local_name, c_type=struct_ptr_lt,
+                                     init=cast_expr))
+        for field_name, field_type in fields.items():
+            retain_fn = self._RETAIN_FN.get(type(field_type))
+            if retain_fn is not None:
+                retain_body.append(LExprStmt(LCall(
+                    retain_fn,
+                    [LArrow(LVar(local_name, struct_ptr_lt), field_name,
+                            self._lower_type(field_type))],
+                    LVoid())))
+        self._fn_defs.append(LFnDef(
+            c_name=retainer,
+            params=[ptr_param],
+            ret=LVoid(),
+            body=retain_body,
+            is_pure=True,
+            source_name=f"retainer for {c_name}",
+        ))
+
+        return (destructor, retainer)
+
+    def _emit_set_struct_handlers(self, arr_expr: LExpr,
+                                   elem_type: Type,
+                                   elem_lt: LType) -> None:
+        """Emit fl_array_set_struct_handlers call if elem_type is a struct with
+        refcounted fields.  Appends to _pending_stmts."""
+        handlers = self._get_or_emit_struct_handlers(elem_type, elem_lt)
+        if handlers is None:
+            return
+        destructor, retainer = handlers
+        self._pending_stmts.append(LExprStmt(LCall(
+            "fl_array_set_struct_handlers",
+            [arr_expr,
+             LVar(destructor, LPtr(LVoid())),
+             LVar(retainer, LPtr(LVoid()))],
+            LVoid())))
 
     def _emit_struct_field_release(self, struct_var: str, field_name: str,
                                     struct_c_type: LType,
@@ -6209,22 +6328,29 @@ class Lowerer:
 
         tag = self._ELEM_TYPE_TAG.get(type(elem_type))
 
+        # Check if elem_type is a struct with refcounted fields (FL_ELEM_STRUCT)
+        needs_struct_handlers = tag is None and self._has_refcounted_fields(elem_type)
+
         if not expr.elements:
             arr_call = LCall("fl_array_new",
                              [LLit("0", LInt(64, True)),
                               LLit("0", LInt(64, True)),
                               LLit("NULL", LPtr(LVoid()))],
                              lt)
-            if tag is None:
+            if tag is None and not needs_struct_handlers:
                 return arr_call
             # Emit: Type* _fl_tmp_N = fl_array_new(...);
             #        fl_array_set_elem_type(_fl_tmp_N, TAG);
+            # or:   fl_array_set_struct_handlers(_fl_tmp_N, destructor, retainer);
             tmp = self._fresh_temp()
             self._pending_stmts.append(LVarDecl(c_name=tmp, c_type=lt, init=arr_call))
-            self._pending_stmts.append(LExprStmt(LCall(
-                "fl_array_set_elem_type",
-                [LVar(tmp, lt), LLit(str(tag), LInt(64, True))],
-                LVoid())))
+            if tag is not None:
+                self._pending_stmts.append(LExprStmt(LCall(
+                    "fl_array_set_elem_type",
+                    [LVar(tmp, lt), LLit(str(tag), LInt(64, True))],
+                    LVoid())))
+            if needs_struct_handlers:
+                self._emit_set_struct_handlers(LVar(tmp, lt), elem_type, elem_lt)
             return LVar(tmp, lt)
 
         lowered_elems = [self._lower_expr(e) for e in expr.elements]
@@ -6242,7 +6368,7 @@ class Lowerer:
                           data_expr],
                          lt)
 
-        if tag is None:
+        if tag is None and not needs_struct_handlers:
             return arr_call
 
         # Refcounted element type: store array in temp, set elem_type, retain
@@ -6250,10 +6376,13 @@ class Lowerer:
         # the caller's reference.
         tmp = self._fresh_temp()
         self._pending_stmts.append(LVarDecl(c_name=tmp, c_type=lt, init=arr_call))
-        self._pending_stmts.append(LExprStmt(LCall(
-            "fl_array_set_elem_type",
-            [LVar(tmp, lt), LLit(str(tag), LInt(64, True))],
-            LVoid())))
+        if tag is not None:
+            self._pending_stmts.append(LExprStmt(LCall(
+                "fl_array_set_elem_type",
+                [LVar(tmp, lt), LLit(str(tag), LInt(64, True))],
+                LVoid())))
+        if needs_struct_handlers:
+            self._emit_set_struct_handlers(LVar(tmp, lt), elem_type, elem_lt)
         retain_fn = self._RETAIN_FN.get(type(elem_type))
         if retain_fn:
             for lowered_elem in lowered_elems:
