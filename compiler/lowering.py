@@ -1977,8 +1977,10 @@ class Lowerer:
                     # Call/allocating source at function scope: register
                     # for release at scope exit.  Don't retain — callee
                     # TypeLit construction already retained fields.
-                    # Restricted to depth 0 to avoid retain-without-release
-                    # in loops (while bodies don't get scope cleanup).
+                    # Restricted to depth 0 because at depth > 0 struct
+                    # fields may be shared with other owners (e.g. token
+                    # array) and releasing without retaining first would
+                    # drop the shared owner's reference.
                     self._register_struct_field_releases(
                         stmt.name, val_type, c_type, self._scope_depth)
                 else:
@@ -2103,15 +2105,14 @@ class Lowerer:
                 self._struct_field_cleanup.append(
                     (var_name, field_name, c_type, release_fn, depth))
             elif self._sum_type_has_cleanup_fields(field_type):
-                # Sum type field — register destructor call at scope exit
+                # Sum type field — ensure handlers are emitted (for use by
+                # array element destructors) but do NOT register scope-exit
+                # cleanup.  Local variables hold shallow copies of sum type
+                # values with shared heap-boxed pointers; destroying them
+                # at scope exit double-releases internals.  The owning
+                # array's element destructor handles cleanup instead.
                 field_lt = self._lower_type(field_type)
-                sum_handlers = self._get_or_emit_sum_type_handlers(
-                    field_type, field_lt)
-                if sum_handlers:
-                    destructor, _ = sum_handlers
-                    self._sum_field_cleanup.append(
-                        (var_name, field_name, c_type, destructor, field_lt,
-                         depth))
+                self._get_or_emit_sum_type_handlers(field_type, field_lt)
 
     def _has_refcounted_fields(self, elem_type: Type) -> bool:
         """Return True if elem_type is a struct with at least one field needing cleanup.
@@ -2134,6 +2135,46 @@ class Lowerer:
                 return True
         return False
 
+    def _is_affine_type(self, t: Type) -> bool:
+        """Return True if t is an affine type (struct/sum with refcounted fields).
+
+        Type classification:
+        - Value types (int, float, bool, byte, char): not affine
+        - Refcounted types (string, array, map, set, buffer, stream): not affine
+        - Trivial structs (only value fields): not affine
+        - Structs with >=1 refcounted/affine field: AFFINE
+        - Sum types with >=1 affine variant: AFFINE
+        """
+        # Value types — copy semantics, no cleanup
+        if isinstance(t, (TInt, TFloat, TBool, TChar, TByte)):
+            return False
+
+        # Refcounted heap types — use ARC retain/release, not move semantics
+        if isinstance(t, (TString, TArray, TMap, TSet, TStream, TBuffer, TFn)):
+            return False
+
+        # Option/Result — check inner types
+        if isinstance(t, TOption):
+            return self._is_affine_type(t.inner)
+        if isinstance(t, TResult):
+            return self._is_affine_type(t.ok_type) or self._is_affine_type(t.err_type)
+
+        # Named type (struct or sum) — delegate to _has_refcounted_fields
+        if isinstance(t, TNamed):
+            return self._has_refcounted_fields(t)
+
+        # Explicit sum type — check variants
+        if isinstance(t, TSum):
+            for variant in t.variants:
+                if variant.fields:
+                    for field_type in variant.fields:
+                        if self._is_affine_type(field_type) or self._get_release_fn(field_type):
+                            return True
+            return False
+
+        # Everything else (TTypeVar, TAny, etc.) — not affine
+        return False
+
     def _get_sum_type_decl_cross_module(self, t: Type) -> TypeDecl | None:
         """Find the TypeDecl for a sum type, searching all modules."""
         if not isinstance(t, TNamed):
@@ -2149,16 +2190,36 @@ class Lowerer:
                         return decl
         return None
 
+    # Sum types whose destructors are safe to generate.
+    # LIR types (LType, LExpr, LStmt) are tree-structured, exclusively
+    # owned.  AST types (Decl, Expr, Stmt, TypeExpr, Pattern,
+    # FStringPart) are also tree-structured; by the time their containers
+    # are released, all pipeline processing is complete.  String fields
+    # shared between AST and other structures (tokens, Symbols) survive
+    # because copies are retained at the copy site.
+    # TCType is NOT safe — forms shared graph across pipeline passes.
+    _SAFE_SUM_TYPE_NAMES: set[str] = {
+        "LType", "LExpr", "LStmt",
+        "Decl", "Expr", "Stmt", "Pattern", "FStringPart",
+        # TypeExpr excluded: shallow-copied into Symbol structs without
+        # retains; Symbol val_destructor would free shared TypeExpr arrays.
+    }
+
     def _sum_type_has_cleanup_fields(self, t: Type) -> bool:
         """Check if a sum type has any variants with directly refcounted fields.
 
-        Currently disabled: sum type values (AST, LIR, resolver, typechecker
-        types) form shared graph structures across pipeline passes.  Generating
-        destructors/retainers for them causes heap-use-after-free because the
-        same nodes are referenced from multiple owners.  A proper solution
-        requires an arena allocator or explicit ownership annotations.
+        Only enabled for LIR sum types (LType, LExpr, LStmt) which are
+        tree-structured and exclusively owned.  AST types and TCType form
+        shared graphs across pipeline passes — enabling destructors for
+        them causes heap-use-after-free.
         """
-        return False
+        if not isinstance(t, (TNamed, TSum)):
+            return False
+        name = t.name
+        if name not in self._SAFE_SUM_TYPE_NAMES:
+            return False
+        decl = self._get_sum_type_decl_cross_module(t)
+        return decl is not None
 
     def _get_or_emit_sum_type_handlers(self, sum_type: Type,
                                         sum_lt: LType) -> tuple[str, str] | None:
@@ -2232,8 +2293,61 @@ class Lowerer:
                         if retain_fn:
                             retain_stmts.append(LExprStmt(LCall(
                                 retain_fn, [field_expr], LVoid())))
-                    # Skip recursive sum type pointer fields — they may be
-                    # shared (e.g., AST nodes) and freeing them causes UAF.
+                    elif is_recursive:
+                        # Recursive heap-boxed pointer field — destruct
+                        # contents but do NOT free the pointer itself.
+                        # Heap-boxed sum type pointers are not refcounted,
+                        # so they may be shared between shallow copies
+                        # (e.g., array elements copied to local variables).
+                        # Freeing them causes UAF.  The pointer itself
+                        # leaks, but all refcounted internals (strings,
+                        # arrays) are properly released/retained.
+                        inner_type = f_type
+                        inner_lt = self._lower_type(inner_type)
+                        struct_handlers = self._get_or_emit_struct_handlers(
+                            inner_type, inner_lt)
+                        if struct_handlers:
+                            struct_dest, struct_ret = struct_handlers
+                            destroy_stmts.append(LExprStmt(LCall(
+                                struct_dest, [field_expr], LVoid())))
+                            retain_stmts.append(LExprStmt(LCall(
+                                struct_ret, [field_expr], LVoid())))
+                        else:
+                            destroy_stmts.append(LExprStmt(LCall(
+                                destructor, [field_expr], LVoid())))
+                            retain_stmts.append(LExprStmt(LCall(
+                                retainer, [field_expr], LVoid())))
+                    elif self._sum_type_has_cleanup_fields(f_type):
+                        # Non-recursive by-value sum type field — call its
+                        # destructor on the field address
+                        inner_lt = self._lower_type(f_type)
+                        sum_handlers = self._get_or_emit_sum_type_handlers(
+                            f_type, inner_lt)
+                        if sum_handlers:
+                            inner_dest, inner_ret = sum_handlers
+                            destroy_stmts.append(LExprStmt(LCall(
+                                inner_dest,
+                                [LAddrOf(field_expr, LPtr(inner_lt))],
+                                LVoid())))
+                            retain_stmts.append(LExprStmt(LCall(
+                                inner_ret,
+                                [LAddrOf(field_expr, LPtr(inner_lt))],
+                                LVoid())))
+                    elif self._has_refcounted_fields(f_type):
+                        # Struct field with refcounted internals
+                        inner_lt = self._lower_type(f_type)
+                        nested = self._get_or_emit_struct_handlers(
+                            f_type, inner_lt)
+                        if nested:
+                            nested_dest, nested_ret = nested
+                            destroy_stmts.append(LExprStmt(LCall(
+                                nested_dest,
+                                [LAddrOf(field_expr, LPtr(inner_lt))],
+                                LVoid())))
+                            retain_stmts.append(LExprStmt(LCall(
+                                nested_ret,
+                                [LAddrOf(field_expr, LPtr(inner_lt))],
+                                LVoid())))
 
                 if destroy_stmts:
                     destroy_stmts.append(LBreak())

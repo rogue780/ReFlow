@@ -8,7 +8,11 @@ import unittest
 from compiler.lexer import Lexer
 from compiler.parser import Parser
 from compiler.resolver import Resolver
-from compiler.typechecker import TypeChecker
+from compiler.typechecker import (
+    TypeChecker,
+    TInt, TFloat, TBool, TChar, TByte, TString, TArray, TMap,
+    TNamed, TOption, TResult, TSet, TStream, TBuffer, TFn, TSum,
+)
 from compiler.errors import EmitError
 from compiler.lowering import (
     Lowerer, LModule, LTypeDef, LFnDef, LStaticDef,
@@ -52,6 +56,21 @@ def find_fn_containing(module: LModule, substr: str) -> LFnDef | None:
         if substr in fn.c_name:
             return fn
     return None
+
+
+def _get_lowerer_for_test(source: str) -> "Lowerer":
+    """Create a Lowerer instance with pipeline state initialized.
+
+    Runs lex→parse→resolve→typecheck→lower so that classification methods
+    like _is_affine_type can be called (they need internal state populated).
+    """
+    tokens = Lexer(source, "test.flow").tokenize()
+    mod = Parser(tokens, "test.flow").parse()
+    resolved = Resolver(mod).resolve()
+    typed = TypeChecker(resolved).check()
+    lowerer = Lowerer(typed)
+    lowerer.lower()
+    return lowerer
 
 
 def find_type(module: LModule, c_name_suffix: str) -> LTypeDef | None:
@@ -1225,6 +1244,53 @@ fn main() {
                        if "_fl_fanout_" in fn.c_name]
         self.assertEqual(len(wrapper_fns), 2,
                          "expected 2 wrapper functions for 2 branches")
+
+
+class TestAffineClassification(unittest.TestCase):
+    """Test _is_affine_type classification logic."""
+
+    def test_value_types_not_affine(self):
+        """int, float, bool, byte, char are NOT affine."""
+        low = _get_lowerer_for_test("fn do_stuff():int { return 0 }")
+        self.assertFalse(low._is_affine_type(TInt(32, True)))
+        self.assertFalse(low._is_affine_type(TFloat(64)))
+        self.assertFalse(low._is_affine_type(TBool()))
+        self.assertFalse(low._is_affine_type(TChar()))
+        self.assertFalse(low._is_affine_type(TByte()))
+
+    def test_refcounted_types_not_affine(self):
+        """string, array, map are refcounted, not affine."""
+        low = _get_lowerer_for_test("fn do_stuff():int { return 0 }")
+        self.assertFalse(low._is_affine_type(TString()))
+        self.assertFalse(low._is_affine_type(TArray(TInt(32, True))))
+        self.assertFalse(low._is_affine_type(TMap(TString(), TInt(32, True))))
+
+    def test_trivial_struct_not_affine(self):
+        """Struct with only value fields is trivial, not affine."""
+        low = _get_lowerer_for_test("""
+            type Point { x:int, y:int }
+            fn do_stuff():int { return 0 }
+        """)
+        point_type = TNamed("test", "Point", ())
+        self.assertFalse(low._is_affine_type(point_type))
+
+    def test_struct_with_string_is_affine(self):
+        """Struct with a string field is affine."""
+        low = _get_lowerer_for_test("""
+            type Token { value:string, line:int }
+            fn do_stuff():int { return 0 }
+        """)
+        token_type = TNamed("test", "Token", ())
+        self.assertTrue(low._is_affine_type(token_type))
+
+    def test_struct_with_array_is_affine(self):
+        """Struct with an array field is affine."""
+        low = _get_lowerer_for_test("""
+            type Container { items:array<int> }
+            fn do_stuff():int { return 0 }
+        """)
+        container_type = TNamed("test", "Container", ())
+        self.assertTrue(low._is_affine_type(container_type))
 
 
 if __name__ == "__main__":
