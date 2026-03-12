@@ -550,6 +550,8 @@ void fl_string_builder_append_float(fl_string_builder_StringBuilder sb, fl_float
 
 FL_String* fl_string_builder_build(fl_string_builder_StringBuilder sb);
 
+void fl_string_builder_destroy(fl_string_builder_StringBuilder sb);
+
 fl_int64 fl_string_builder_len(fl_string_builder_StringBuilder sb);
 
 void fl_string_builder_clear(fl_string_builder_StringBuilder sb);
@@ -788,11 +790,23 @@ void fl_string_builder_append_float(fl_string_builder_StringBuilder sb, fl_float
 FL_String* fl_string_builder_build(fl_string_builder_StringBuilder sb) {
     fl_int64 cur_len = fl_string_builder_get_len(sb);
     if (cur_len == 0) {
+        fl_string_builder_destroy(sb);
         fl_string_retain(_fl_str_string_builder_0);
         return _fl_str_string_builder_0;
     }
     void* data = fl_string_builder_get_data(sb);
-    return fl_mem_to_string(data, cur_len);
+    FL_String* result = fl_mem_to_string(data, cur_len);
+    fl_string_builder_destroy(sb);
+    return result;
+}
+
+/* Flow: string_builder.destroy */
+void fl_string_builder_destroy(fl_string_builder_StringBuilder sb) {
+    void* data = fl_string_builder_get_data(sb);
+    if (!fl_ptr_is_null(data)) {
+        fl_mem_free(data);
+    }
+    fl_mem_free(sb.handle);
 }
 
 /* Flow: string_builder.len */

@@ -139,9 +139,22 @@ export fn append_float(sb:StringBuilder, v:float):none {
 
 export fn build(sb:StringBuilder):string {
     let cur_len = get_len(sb)
-    if (cur_len == 0) { return "" }
+    if (cur_len == 0) {
+        destroy(sb)
+        return ""
+    }
     let data = get_data(sb)
-    return mem.to_string(data, cur_len)
+    let result = mem.to_string(data, cur_len)
+    destroy(sb)
+    return result
+}
+
+export fn destroy(sb:StringBuilder):none {
+    let data = get_data(sb)
+    if (!mem.is_null(data)) {
+        mem.free(data)
+    }
+    mem.free(sb.handle)
 }
 
 export fn len(sb:StringBuilder):int64 {
