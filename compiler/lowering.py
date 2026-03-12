@@ -7246,6 +7246,14 @@ class Lowerer:
                     self._pending_stmts.append(
                         LExprStmt(LCall(retain_fn, [lowered_val], LVoid())))
             lfields.append((name, lowered_val))
+
+        # Spread move: ..source consumes the source when it is affine.
+        # Per spec Rule 12, spread moves all fields from source.
+        if expr.spread is not None and isinstance(expr.spread, Ident):
+            spread_type = self._type_of(expr.spread)
+            if self._is_affine_type(spread_type):
+                self._consumed_bindings.add(expr.spread.name)
+
         return LCompound(fields=lfields, c_type=lt)
 
     # ------------------------------------------------------------------

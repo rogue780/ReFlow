@@ -1409,5 +1409,65 @@ class TestParamBorrow(unittest.TestCase):
         self.assertNotIn("fl_string_release", body_str)
 
 
+class TestSpreadMove(unittest.TestCase):
+    """Struct spread should consume the source."""
+
+    def test_spread_source_consumed(self):
+        """Spreading an affine struct should consume the source (no retain on spread fields)."""
+        m = lower("""
+            type Token { value:string, line:int }
+            fn make():Token {
+                let tok = Token{value:"hello", line:1}
+                let tok2 = Token{line:2, ..tok}
+                return tok2
+            }
+            fn do_stuff():int { return 0 }
+        """)
+        fn = find_fn(m, "make")
+        self.assertIsNotNone(fn)
+        body_str = repr(fn.body)
+        # tok is consumed by spread — its fields should NOT be retained
+        # (move, not copy) and should NOT be released (ownership transferred).
+        # The only retain should be for the string literal "hello" at
+        # initial construction of tok; the spread should not add another.
+        retain_count = body_str.count("fl_string_retain")
+        self.assertLessEqual(retain_count, 1,
+                             f"Expected at most 1 fl_string_retain but found {retain_count}")
+
+    def test_spread_source_no_field_cleanup(self):
+        """Spread source should not have field releases (ownership transferred)."""
+        m = lower("""
+            type Token { value:string, line:int }
+            fn make():Token {
+                let tok = Token{value:"hello", line:1}
+                let tok2 = Token{line:2, ..tok}
+                return tok2
+            }
+            fn do_stuff():int { return 0 }
+        """)
+        fn = find_fn(m, "make")
+        self.assertIsNotNone(fn)
+        body_str = repr(fn.body)
+        # tok is consumed by spread, tok2 is consumed by return.
+        # There should be no fl_string_release calls — all ownership transferred.
+        release_count = body_str.count("fl_string_release")
+        self.assertEqual(release_count, 0,
+                         f"Expected 0 fl_string_release calls but found {release_count}")
+
+    def test_spread_non_affine_not_consumed(self):
+        """Spreading a trivial (non-affine) struct should NOT consume the source."""
+        low = _get_lowerer_for_test("""
+            type Point { x:int, y:int }
+            fn make():Point {
+                let p = Point{x:1, y:2}
+                let p2 = Point{y:3, ..p}
+                return p2
+            }
+            fn do_stuff():int { return 0 }
+        """)
+        # p has no refcounted fields, so it's not affine — no consumption
+        self.assertNotIn("p", low._consumed_bindings)
+
+
 if __name__ == "__main__":
     unittest.main()
