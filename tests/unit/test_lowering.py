@@ -1338,5 +1338,35 @@ class TestConsumedBindings(unittest.TestCase):
                          f"Expected 0 fl_string_release calls but found {release_count}")
 
 
+class TestSumTypeDestructors(unittest.TestCase):
+    """Test that sum types with refcounted variants get destructors."""
+
+    def test_sum_with_string_variant_gets_destructor(self):
+        """A sum type with a string-bearing variant should generate a destructor."""
+        m = lower("""
+            type Item =
+                | Text(value:string)
+                | Number(n:int)
+
+            type Container { item:Item, count:int }
+
+            fn do_stuff():int {
+                let c = Container{item:Item.Text("hello"), count:1}
+                return 0
+            }
+        """)
+        # Check that a _fl_destroy_* function exists for Item
+        destroy_fns = [fn for fn in m.fn_defs if "_fl_destroy_" in fn.c_name and "Item" in fn.c_name]
+        self.assertTrue(len(destroy_fns) > 0, "Expected destructor for sum type Item")
+
+    def test_excluded_sum_type_no_destructor(self):
+        """TypeExpr should NOT get a destructor (excluded due to shared graph)."""
+        # This is a negative test — we can't easily compile TypeExpr without
+        # the self-hosted compiler modules, so we just verify the exclusion
+        # set exists and contains TypeExpr.
+        from compiler.lowering import Lowerer
+        self.assertIn("TypeExpr", Lowerer._EXCLUDED_SUM_TYPES)
+
+
 if __name__ == "__main__":
     unittest.main()

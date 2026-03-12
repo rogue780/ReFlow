@@ -660,6 +660,12 @@ FL_String* fl_self_hosted_errors_format(fl_self_hosted_errors_CompileError e) {
     return _fl_ret_11;
 }
 
+void _fl_destroy_fl_self_hosted_errors_ErrorKind(void* _ptr);
+
+void _fl_retain_fl_self_hosted_errors_ErrorKind(void* _ptr);
+
+fl_int fl_tests_programs_app_sh_errors_test_main(void);
+
 FL_String* _fl_str_tests_programs_app_sh_errors_test_0 = NULL;
 
 FL_String* _fl_str_tests_programs_app_sh_errors_test_1 = NULL;
@@ -681,6 +687,28 @@ FL_String* _fl_str_tests_programs_app_sh_errors_test_8 = NULL;
 FL_String* _fl_str_tests_programs_app_sh_errors_test_9 = NULL;
 
 FL_String* _fl_str_tests_programs_app_sh_errors_test_10 = NULL;
+
+/* Flow: sum destructor for fl_self_hosted_errors_ErrorKind */
+void _fl_destroy_fl_self_hosted_errors_ErrorKind(void* _ptr) {
+    fl_self_hosted_errors_ErrorKind* _s = ((fl_self_hosted_errors_ErrorKind*)_ptr);
+    switch (_s->tag) {
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
+/* Flow: sum retainer for fl_self_hosted_errors_ErrorKind */
+void _fl_retain_fl_self_hosted_errors_ErrorKind(void* _ptr) {
+    fl_self_hosted_errors_ErrorKind* _s = ((fl_self_hosted_errors_ErrorKind*)_ptr);
+    switch (_s->tag) {
+        default: {
+            break;
+            break;
+        }
+    }
+}
 
 /* Flow: tests.programs.app_sh_errors_test.main */
 fl_int fl_tests_programs_app_sh_errors_test_main(void) {

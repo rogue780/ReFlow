@@ -2127,8 +2127,10 @@ class Lowerer:
                 field_lt = self._lower_type(field_type)
                 self._get_or_emit_sum_type_handlers(field_type, field_lt)
 
-    def _has_refcounted_fields(self, elem_type: Type) -> bool:
-        """Return True if elem_type is a struct with at least one field needing cleanup.
+    def _has_refcounted_fields(self, elem_type: Type,
+                               _visited: set[str] | None = None) -> bool:
+        """Return True if elem_type is a struct or sum type with at least one
+        field needing cleanup.
 
         Checks for directly refcounted fields (string, array, map) AND
         sum type fields that have variants with refcounted fields.
@@ -2136,16 +2138,46 @@ class Lowerer:
         if self._get_release_fn(elem_type) is not None:
             return False  # Directly refcounted types handled by _ELEM_TYPE_TAG
         fields = self._get_struct_fields_cross_module(elem_type)
-        if not fields:
+        if fields:
+            for ft in fields.values():
+                if self._get_release_fn(ft) is not None:
+                    return True
+                if self._sum_type_has_cleanup_fields(ft):
+                    return True
+                # Recurse into nested struct fields
+                if self._has_refcounted_fields(ft, _visited):
+                    return True
             return False
-        for ft in fields.values():
-            if self._get_release_fn(ft) is not None:
-                return True
-            if self._sum_type_has_cleanup_fields(ft):
-                return True
-            # Recurse into nested struct fields
-            if self._has_refcounted_fields(ft):
-                return True
+        # Sum type variant check — only for non-excluded sum types
+        if self._sum_type_has_cleanup_fields(elem_type):
+            # Guard against infinite recursion on recursive sum types
+            name = elem_type.name if isinstance(elem_type, TNamed) else ""
+            if _visited is None:
+                _visited = set()
+            if name in _visited:
+                return True  # Recursive sum type — has refcounted fields
+            _visited.add(name)
+            decl = self._get_sum_type_decl_cross_module(elem_type)
+            if decl is not None:
+                # Find the correct types map for this decl's module
+                types_map = self._types
+                if self._all_typed:
+                    for _, typed_mod in self._all_typed.items():
+                        for d in typed_mod.module.decls:
+                            if d is decl:
+                                types_map = typed_mod.types
+                                break
+                for variant in decl.variants:
+                    if variant.fields is None:
+                        continue
+                    for fname, ftype_expr in variant.fields:
+                        field_type = types_map.get(ftype_expr) if ftype_expr else None
+                        if field_type is None and ftype_expr is not None:
+                            field_type = self._resolve_type_ann(ftype_expr)
+                        if field_type and (self._get_release_fn(field_type)
+                                          or self._has_refcounted_fields(field_type, _visited)):
+                            return True
+                return False
         return False
 
     def _is_affine_type(self, t: Type) -> bool:
@@ -2203,33 +2235,23 @@ class Lowerer:
                         return decl
         return None
 
-    # Sum types whose destructors are safe to generate.
-    # LIR types (LType, LExpr, LStmt) are tree-structured, exclusively
-    # owned.  AST types (Decl, Expr, Stmt, TypeExpr, Pattern,
-    # FStringPart) are also tree-structured; by the time their containers
-    # are released, all pipeline processing is complete.  String fields
-    # shared between AST and other structures (tokens, Symbols) survive
-    # because copies are retained at the copy site.
-    # TCType is NOT safe — forms shared graph across pipeline passes.
-    _SAFE_SUM_TYPE_NAMES: set[str] = {
-        "LType", "LExpr", "LStmt",
-        "Decl", "Expr", "Stmt", "Pattern", "FStringPart",
-        # TypeExpr excluded: shallow-copied into Symbol structs without
-        # retains; Symbol val_destructor would free shared TypeExpr arrays.
-    }
+    # TEMPORARY: Sum types excluded from destructor generation.
+    # TypeExpr is shared (not tree-structured) in the self-hosted compiler —
+    # shallow-copied into Symbol structs without retains.  Enabling its
+    # destructor causes use-after-free.  Will be fixed when .flow files
+    # are updated with @copy for shared TypeExpr values.
+    _EXCLUDED_SUM_TYPES: set[str] = {"TypeExpr"}
 
     def _sum_type_has_cleanup_fields(self, t: Type) -> bool:
         """Check if a sum type has any variants with directly refcounted fields.
 
-        Only enabled for LIR sum types (LType, LExpr, LStmt) which are
-        tree-structured and exclusively owned.  AST types and TCType form
-        shared graphs across pipeline passes — enabling destructors for
-        them causes heap-use-after-free.
+        Enabled for all sum types EXCEPT those in _EXCLUDED_SUM_TYPES
+        (TypeExpr — shared graph, causes use-after-free).
         """
         if not isinstance(t, (TNamed, TSum)):
             return False
         name = t.name
-        if name not in self._SAFE_SUM_TYPE_NAMES:
+        if name in self._EXCLUDED_SUM_TYPES:
             return False
         decl = self._get_sum_type_decl_cross_module(t)
         return decl is not None
