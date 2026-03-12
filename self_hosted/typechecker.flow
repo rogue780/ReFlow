@@ -2617,7 +2617,7 @@ fn bind_pattern_types(s:TCState:mut, pat:ast.Pattern, subj_t:TCType) {
             scope_define(s, name, subj_t)
         }
         PSome(nid, l, c, inner_var): {
-            let inner_t:TCType:mut = subj_t
+            let inner_t:TCType:mut = @subj_t
             match subj_t {
                 TCOption(it): { inner_t = it }
                 _: {}

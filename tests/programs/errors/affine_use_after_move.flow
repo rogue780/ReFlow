@@ -1,0 +1,15 @@
+module tests.errors.affine_use_after_move
+
+import io
+
+type Token {
+    value:string,
+    line:int
+}
+
+fn main():int {
+    let tok = Token{value:"hello", line:1}
+    let other = tok
+    io.println(tok.value)
+    return 0
+}

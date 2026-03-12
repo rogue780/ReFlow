@@ -425,6 +425,12 @@ class TypeChecker:
         self._capacities: dict[ASTNode, Expr] = {}
         # Extern type names from extern type declarations (FFI)
         self._extern_types: set[str] = set()
+        # RT-11: Consumed-binding tracking for affine move semantics.
+        # Maps binding name → reason string (e.g. "move to 'other'").
+        self._consumed_bindings: dict[str, str] = {}
+        # True while inferring inside a CopyExpr (@expr) — suppresses
+        # the consumed-binding error since copies don't consume the source.
+        self._in_copy_expr: bool = False
 
     def check(self) -> TypedModule:
         """Run the type checking pass."""
@@ -1317,10 +1323,12 @@ class TypeChecker:
         ret_type = self._resolve_type_expr(fn.return_type) if fn.return_type else TNone()
         old_ret = self._current_return_type
         old_consumed = self._consumed_streams
+        old_consumed_bindings = self._consumed_bindings
         old_pure = self._in_pure_fn
         old_fn_decl = self._current_fn_decl
         self._current_return_type = ret_type
         self._consumed_streams = set()
+        self._consumed_bindings = {}
         self._in_pure_fn = fn.is_pure
         self._current_fn_decl = fn
 
@@ -1343,6 +1351,7 @@ class TypeChecker:
 
         self._current_return_type = old_ret
         self._consumed_streams = old_consumed
+        self._consumed_bindings = old_consumed_bindings
         self._in_pure_fn = old_pure
         self._current_fn_decl = old_fn_decl
 
@@ -1374,8 +1383,10 @@ class TypeChecker:
         ret_type = self._resolve_type_expr(method.return_type) if method.return_type else TNone()
         old_ret = self._current_return_type
         old_pure = self._in_pure_fn
+        old_consumed_bindings = self._consumed_bindings
         self._current_return_type = ret_type
         self._in_pure_fn = method.is_pure
+        self._consumed_bindings = {}
 
         match method.body:
             case Block():
@@ -1394,6 +1405,7 @@ class TypeChecker:
 
         self._current_return_type = old_ret
         self._in_pure_fn = old_pure
+        self._consumed_bindings = old_consumed_bindings
 
     def _check_constructor_body(self, ctor: ConstructorDecl,
                                 type_decl: TypeDecl) -> None:
@@ -1408,9 +1420,12 @@ class TypeChecker:
             ctor_scope.define(param.name, p_type)
 
         old_ret = self._current_return_type
+        old_consumed_bindings = self._consumed_bindings
         self._current_return_type = self_type
+        self._consumed_bindings = {}
         self._check_block(ctor.body, ctor_scope)
         self._current_return_type = old_ret
+        self._consumed_bindings = old_consumed_bindings
 
     # ------------------------------------------------------------------
     # resolve_type_expr: TypeExpr AST → Type
@@ -1565,6 +1580,13 @@ class TypeChecker:
                     ns = mp[0]
                     t = scope.lookup(ns)
                     return t if t is not None else TAny()
+                # RT-11: check consumed-binding before use
+                if (not self._in_copy_expr
+                        and name in self._consumed_bindings):
+                    reason = self._consumed_bindings[name]
+                    raise self._error(
+                        f"binding '{name}' was consumed by {reason}",
+                        expr)
                 t = scope.lookup(name)
                 if t is not None:
                     # RT-6-5-3: track stream consumption
@@ -2027,7 +2049,11 @@ class TypeChecker:
                 return then_t
 
             case CopyExpr(inner=inner):
-                return self._infer_expr(inner, scope)
+                old_in_copy = self._in_copy_expr
+                self._in_copy_expr = True
+                result_t = self._infer_expr(inner, scope)
+                self._in_copy_expr = old_in_copy
+                return result_t
 
             case RefExpr(inner=inner):
                 inner_t = self._infer_expr(inner, scope)
@@ -2274,6 +2300,15 @@ class TypeChecker:
                     scope.define(name, expected)
                 else:
                     scope.define(name, val_t)
+
+                # RT-11: If the RHS is a plain Ident referencing an affine
+                # binding, mark the source as consumed (ownership moved).
+                # CopyExpr (@ident) does not consume — it clones.
+                if (isinstance(value, Ident)
+                        and not value.module_path
+                        and self._is_affine_type(val_t)):
+                    self._consumed_bindings[value.name] = \
+                        f"move to '{name}'"
 
             case AssignStmt(target=target, value=value):
                 val_t = self._infer_expr(value, scope)
@@ -3402,6 +3437,123 @@ class TypeChecker:
                 return "record"
             case _:
                 return str(t)
+
+    # ------------------------------------------------------------------
+    # RT-11: Affine type classification
+    # ------------------------------------------------------------------
+
+    def _is_affine_type(self, t: Type) -> bool:
+        """Return True if *t* is an affine type (struct/sum with >=1 refcounted field).
+
+        Affine types use move semantics: assignment transfers ownership and
+        the source binding is consumed.  The classification mirrors
+        ``lowering.py._is_affine_type`` but uses the typechecker's own
+        type registry instead of the lowering's cross-module helpers.
+
+        NOT affine: value types, refcounted heap types (they use ARC),
+        trivial structs (only value fields).
+        """
+        # Value types — copy semantics
+        if isinstance(t, (TInt, TFloat, TBool, TChar, TByte, TPtr, TNone)):
+            return False
+
+        # Refcounted heap types — ARC, not move
+        if isinstance(t, (TString, TArray, TMap, TSet, TStream, TBuffer, TFn)):
+            return False
+
+        # Option/Result — affine if inner type is affine
+        if isinstance(t, TOption):
+            return self._is_affine_type(t.inner)
+        if isinstance(t, TResult):
+            return (self._is_affine_type(t.ok_type)
+                    or self._is_affine_type(t.err_type))
+
+        # Tuple — affine if any element is affine
+        if isinstance(t, TTuple):
+            return any(self._is_affine_type(e) for e in t.elements)
+
+        # Named type (struct) — affine if any field is refcounted or affine
+        if isinstance(t, TNamed):
+            return self._struct_has_refcounted_fields(t.name)
+
+        # Explicit sum type — affine if any variant has affine/refcounted fields
+        if isinstance(t, TSum):
+            return self._sum_has_refcounted_fields(t)
+
+        # Enum — not affine (plain integer tag)
+        if isinstance(t, TEnum):
+            return False
+
+        # Everything else (TTypeVar, TAny, TAlias, etc.) — not affine
+        return False
+
+    def _struct_has_refcounted_fields(self, name: str,
+                                       _visited: set[str] | None = None) -> bool:
+        """Check if a named struct type has any refcounted or affine fields."""
+        if _visited is None:
+            _visited = set()
+        if name in _visited:
+            return False  # break recursion for self-referential types
+        _visited.add(name)
+
+        info = self._type_registry.get(name)
+        if info is None:
+            # Check imported types
+            for _, typed_mod in self._imported_typed.items():
+                if isinstance(typed_mod, TypedModule):
+                    tc = typed_mod  # type: TypedModule
+                    # Search the TypeChecker that produced this module
+                    # We only have the TypedModule, check its type decls
+                    for decl in typed_mod.module.decls:
+                        if isinstance(decl, TypeDecl) and decl.name == name:
+                            # Build a temporary field map
+                            for f in decl.fields:
+                                ft = self._resolve_type_expr(f.type_ann)
+                                if self._is_refcounted_type(ft):
+                                    return True
+                                if isinstance(ft, TNamed):
+                                    if self._struct_has_refcounted_fields(
+                                            ft.name, _visited):
+                                        return True
+                            return False
+            return False
+
+        # Sum type — delegate to variant check
+        if info.is_sum_type and info.sum_type is not None:
+            return self._sum_has_refcounted_fields(info.sum_type, _visited)
+
+        # Regular struct — check fields
+        for field_type in info.fields.values():
+            if self._is_refcounted_type(field_type):
+                return True
+            if isinstance(field_type, TNamed):
+                if self._struct_has_refcounted_fields(field_type.name, _visited):
+                    return True
+            if isinstance(field_type, TSum):
+                if self._sum_has_refcounted_fields(field_type, _visited):
+                    return True
+        return False
+
+    def _sum_has_refcounted_fields(self, t: TSum,
+                                    _visited: set[str] | None = None) -> bool:
+        """Check if a sum type has any variant with refcounted/affine fields."""
+        if _visited is None:
+            _visited = set()
+        for variant in t.variants:
+            if variant.fields:
+                for field_type in variant.fields:
+                    if self._is_refcounted_type(field_type):
+                        return True
+                    if isinstance(field_type, TNamed):
+                        if self._struct_has_refcounted_fields(
+                                field_type.name, _visited):
+                            return True
+        return False
+
+    @staticmethod
+    def _is_refcounted_type(t: Type) -> bool:
+        """Return True if *t* is a directly refcounted heap type (ARC-managed)."""
+        return isinstance(t, (TString, TArray, TMap, TSet, TStream, TBuffer, TFn))
 
     def _expr_name(self, expr: Expr) -> str:
         if isinstance(expr, Ident):
