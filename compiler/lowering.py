@@ -753,6 +753,11 @@ class Lowerer:
         self._interned_strings: dict[str, str] = {}  # raw C literal → global name
         self._intern_counter: int = 0
 
+        # Current let-statement annotation type — set during _lower_let so
+        # the expression lowering (e.g. fl_map_new) can resolve TTypeVar to
+        # the concrete type from the declaration.
+        self._current_let_ann_type: Type | None = None
+
         # FFI: extern type names for lowering TNamed to void*
         self._extern_type_names: set[str] = set()
         for decl in self._module.decls:
@@ -1845,7 +1850,13 @@ class Lowerer:
     def _lower_let(self, stmt: LetStmt) -> list[LStmt]:
         val_type = self._type_of(stmt.value)
         c_type = self._lower_type(val_type)
+        # Set annotation type context so expression lowering (e.g. fl_map_new)
+        # can resolve TTypeVar to the concrete type from the declaration.
+        saved_let_ann = self._current_let_ann_type
+        if stmt.type_ann is not None:
+            self._current_let_ann_type = self._type_of(stmt.type_ann)
         init = self._lower_expr(stmt.value)
+        self._current_let_ann_type = saved_let_ann
         # If the static type resolved to void* (TTypeVar/TAny — e.g. from a
         # monomorphized call), use the concrete LType from the lowered expression.
         if isinstance(c_type, LPtr) and isinstance(c_type.inner, LVoid):
@@ -5241,7 +5252,15 @@ class Lowerer:
                 # retains/releases values automatically on set/copy/free.
                 call_result = LCall(mc_c_name, self._hoist_string_args(mc_c_name, lowered_args), lt)
                 if mc_c_name == "fl_map_new" and isinstance(t, TMap):
-                    val_tag = self._ELEM_TYPE_TAG.get(type(t.value))
+                    # Resolve map value type: the typechecker returns
+                    # TMap(K, TTypeVar('V')) for map.new(), so fall back to
+                    # the let-annotation's concrete type when available.
+                    map_val_type = t.value
+                    if isinstance(map_val_type, TTypeVar):
+                        if (self._current_let_ann_type is not None
+                                and isinstance(self._current_let_ann_type, TMap)):
+                            map_val_type = self._current_let_ann_type.value
+                    val_tag = self._ELEM_TYPE_TAG.get(type(map_val_type))
                     if val_tag is not None:
                         tmp = self._fresh_temp()
                         self._pending_stmts.append(
@@ -5252,9 +5271,9 @@ class Lowerer:
                             LVoid())))
                         return LVar(tmp, lt)
                     # Map with struct values that have refcounted fields
-                    if self._has_refcounted_fields(t.value):
-                        val_lt = self._lower_type(t.value)
-                        handlers = self._get_or_emit_struct_handlers(t.value, val_lt)
+                    if self._has_refcounted_fields(map_val_type):
+                        val_lt = self._lower_type(map_val_type)
+                        handlers = self._get_or_emit_struct_handlers(map_val_type, val_lt)
                         if handlers:
                             destructor, retainer = handlers
                             tmp = self._fresh_temp()

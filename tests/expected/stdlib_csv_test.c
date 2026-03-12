@@ -1001,35 +1001,37 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
         FL_Option_ptr _fl_tmp_50 = fl_array_get_safe(rows, i);
         FL_Array* row = ((_fl_tmp_50.tag == 1) ? _fl_tmp_50.value : fl_array_new(0, 0, NULL));
         fl_array_retain(row);
-        FL_Map* m = fl_map_new();
+        FL_Map* _fl_tmp_51 = fl_map_new();
+        fl_map_set_val_type(_fl_tmp_51, 1);
+        FL_Map* m = _fl_tmp_51;
         fl_int row_len = fl_array_len_int(row);
         fl_int j = 0;
         while (j < ncols) {
-            FL_Option_ptr _fl_tmp_51 = fl_array_get_safe(headers, j);
-            FL_String* key = ((_fl_tmp_51.tag == 1) ? _fl_tmp_51.value : _fl_str_csv_0);
+            FL_Option_ptr _fl_tmp_52 = fl_array_get_safe(headers, j);
+            FL_String* key = ((_fl_tmp_52.tag == 1) ? _fl_tmp_52.value : _fl_str_csv_0);
             fl_string_retain(key);
-            FL_String* _fl_tmp_52;
+            FL_String* _fl_tmp_53;
             if (j < row_len) {
-                FL_Option_ptr _fl_tmp_53 = fl_array_get_safe(row, j);
-                _fl_tmp_52 = ((_fl_tmp_53.tag == 1) ? _fl_tmp_53.value : _fl_str_csv_0);
+                FL_Option_ptr _fl_tmp_54 = fl_array_get_safe(row, j);
+                _fl_tmp_53 = ((_fl_tmp_54.tag == 1) ? _fl_tmp_54.value : _fl_str_csv_0);
             } else {
-                _fl_tmp_52 = _fl_str_csv_0;
+                _fl_tmp_53 = _fl_str_csv_0;
             }
-            FL_String* val = _fl_tmp_52;
-            FL_Map* _fl_old_54 = m;
+            FL_String* val = _fl_tmp_53;
+            FL_Map* _fl_old_55 = m;
             m = fl_map_set_str(m, key, val);
-            if (_fl_old_54 != m) {
-                fl_map_release(_fl_old_54);
+            if (_fl_old_55 != m) {
+                fl_map_release(_fl_old_55);
             }
             fl_int _fl_e_1;
             FL_CHECKED_ADD(j, 1, &_fl_e_1);
             j = _fl_e_1;
             fl_string_release(key);
         }
-        FL_Array* _fl_old_55 = result;
+        FL_Array* _fl_old_56 = result;
         result = fl_array_push_ptr(result, m);
-        if (_fl_old_55 != result) {
-            fl_array_release(_fl_old_55);
+        if (_fl_old_56 != result) {
+            fl_array_release(_fl_old_56);
         }
         fl_int _fl_e_2;
         FL_CHECKED_ADD(i, 1, &_fl_e_2);

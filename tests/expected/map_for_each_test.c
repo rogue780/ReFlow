@@ -572,16 +572,18 @@ fl_int fl_tests_map_for_each_test_main(void) {
         fl_string_release(_fl_tmp_3);
         fl_string_release(_fl_tmp_4);
     }
-    FL_Map* empty = fl_map_new();
+    FL_Map* _fl_tmp_5 = fl_map_new();
+    fl_map_set_val_type(_fl_tmp_5, 1);
+    FL_Map* empty = _fl_tmp_5;
     FL_Array* empty_ks = fl_map_keys(empty);
-    FL_String* _fl_tmp_5 = fl_conv_to_string__int(fl_array_len_int(empty_ks));
-    fl_println(_fl_tmp_5);
+    FL_String* _fl_tmp_6 = fl_conv_to_string__int(fl_array_len_int(empty_ks));
+    fl_println(_fl_tmp_6);
     fl_map_release(m);
     fl_array_release(ks);
     fl_string_release(_fl_tmp_1);
     fl_map_release(empty);
     fl_array_release(empty_ks);
-    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_6);
     return 0;
 }
 

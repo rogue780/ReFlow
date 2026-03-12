@@ -1,0 +1,19 @@
+module tests.affine_map
+
+import io
+import map
+import conv
+
+type Token {
+    value:string,
+    line:int
+}
+
+fn main():int {
+    let m:map<string, Token>:mut = map.new()
+    m = map.set(m, "a", Token{value:"hello", line:1})
+    m = map.set(m, "b", Token{value:"world", line:2})
+    io.println(f"size: {conv.to_string(map.len(m))}")
+    // m goes out of scope — val_destructor should free "hello" and "world"
+    return 0
+}
