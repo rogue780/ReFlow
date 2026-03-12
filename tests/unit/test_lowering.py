@@ -1367,5 +1367,27 @@ class TestSumTypeDestructors(unittest.TestCase):
         self.assertEqual(len(Lowerer._EXCLUDED_SUM_TYPES), 0)
 
 
+class TestForLoopBorrow(unittest.TestCase):
+    """For-loop vars over containers should borrow, not own."""
+
+    def test_for_loop_no_field_cleanup(self):
+        """For-loop variable should NOT have field cleanup at iteration end."""
+        m = lower("""
+            type Token { value:string, line:int }
+            fn process(tokens:array<Token>):none {
+                for(tok:Token in tokens) {
+                    // tok borrows — no cleanup
+                }
+            }
+            fn do_stuff():int { return 0 }
+        """)
+        fn = find_fn(m, "process")
+        self.assertIsNotNone(fn)
+        # The for loop body should NOT contain fl_string_release for tok.value
+        # because tok is a borrowed iteration variable
+        body_str = repr(fn.body)
+        self.assertNotIn("fl_string_release", body_str)
+
+
 if __name__ == "__main__":
     unittest.main()
