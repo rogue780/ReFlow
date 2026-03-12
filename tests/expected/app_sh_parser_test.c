@@ -5267,6 +5267,10 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
 
 fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_base_type(fl_self_hosted_parser_ParserState* s);
 
+void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr);
+
 fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_fn_type(fl_self_hosted_parser_ParserState* s);
 
 fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_tuple_type(fl_self_hosted_parser_ParserState* s);
@@ -5286,6 +5290,14 @@ FL_Array* fl_self_hosted_parser_parse_fn_modifiers(fl_self_hosted_parser_ParserS
 void _fl_destroy_fl_self_hosted_ast_TypeParam(void* _ptr);
 
 void _fl_retain_fl_self_hosted_ast_TypeParam(void* _ptr);
+
+void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr);
+
+void _fl_destroy_fl_self_hosted_ast_Stmt(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_Stmt(void* _ptr);
 
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export, fl_bool allow_no_body);
 
@@ -5319,6 +5331,10 @@ void _fl_destroy_fl_self_hosted_ast_FieldDecl(void* _ptr);
 
 void _fl_retain_fl_self_hosted_ast_FieldDecl(void* _ptr);
 
+void _fl_destroy_fl_self_hosted_ast_Decl(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_Decl(void* _ptr);
+
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_parser_ParserState* s, fl_self_hosted_lexer_Token tok, FL_String* name, FL_Array* type_params, FL_Array* interfaces, fl_bool is_export, fl_bool is_type_mut);
 
 fl_self_hosted_ast_FieldDecl fl_self_hosted_parser_parse_field_decl(fl_self_hosted_parser_ParserState* s, fl_bool type_is_mut);
@@ -5348,10 +5364,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_top_level_decl(fl_self_hoste
 FL_Array* fl_self_hosted_parser_parse_block(fl_self_hosted_parser_ParserState* s);
 
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_stmt(fl_self_hosted_parser_ParserState* s);
-
-void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr);
-
-void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr);
 
 void _fl_destroy_fl_self_hosted_ast_PipelineStage(void* _ptr);
 
@@ -5444,6 +5456,10 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_string_lit(fl_self_hosted_pa
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_char_lit(fl_self_hosted_parser_ParserState* s);
 
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_none_lit(fl_self_hosted_parser_ParserState* s);
+
+void _fl_destroy_fl_self_hosted_ast_FStringPart(void* _ptr);
+
+void _fl_retain_fl_self_hosted_ast_FStringPart(void* _ptr);
 
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_parser_ParserState* s);
 
@@ -6319,11 +6335,130 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_base_type(fl_self_hosted
     return fl_self_hosted_parser_placeholder_type();
 }
 
+/* Flow: sum destructor for fl_self_hosted_ast_TypeExpr */
+void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr) {
+    fl_self_hosted_ast_TypeExpr* _s = ((fl_self_hosted_ast_TypeExpr*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_string_release(_s->TNamedType.name);
+            fl_array_release(_s->TNamedType.module_path);
+            break;
+            break;
+        }
+        case 1: {
+            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TGenericType.base);
+            fl_array_release(_s->TGenericType.args);
+            break;
+            break;
+        }
+        case 2: {
+            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TOptionType.inner);
+            break;
+            break;
+        }
+        case 3: {
+            fl_array_release(_s->TFnType.params);
+            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TFnType.ret);
+            break;
+            break;
+        }
+        case 4: {
+            fl_array_release(_s->TTupleType.elements);
+            break;
+            break;
+        }
+        case 5: {
+            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TMutType.inner);
+            break;
+            break;
+        }
+        case 6: {
+            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TImutType.inner);
+            break;
+            break;
+        }
+        case 7: {
+            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TSizedType.inner);
+            break;
+            break;
+        }
+        case 8: {
+            fl_array_release(_s->TSumTypeExpr.variants);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
+/* Flow: sum retainer for fl_self_hosted_ast_TypeExpr */
+void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr) {
+    fl_self_hosted_ast_TypeExpr* _s = ((fl_self_hosted_ast_TypeExpr*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_string_retain(_s->TNamedType.name);
+            fl_array_retain(_s->TNamedType.module_path);
+            break;
+            break;
+        }
+        case 1: {
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TGenericType.base);
+            fl_array_retain(_s->TGenericType.args);
+            break;
+            break;
+        }
+        case 2: {
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TOptionType.inner);
+            break;
+            break;
+        }
+        case 3: {
+            fl_array_retain(_s->TFnType.params);
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TFnType.ret);
+            break;
+            break;
+        }
+        case 4: {
+            fl_array_retain(_s->TTupleType.elements);
+            break;
+            break;
+        }
+        case 5: {
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TMutType.inner);
+            break;
+            break;
+        }
+        case 6: {
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TImutType.inner);
+            break;
+            break;
+        }
+        case 7: {
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TSizedType.inner);
+            break;
+            break;
+        }
+        case 8: {
+            fl_array_retain(_s->TSumTypeExpr.variants);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
 /* Flow: self_hosted.parser.parse_fn_type */
 fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_fn_type(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_FN);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     FL_Array* params = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(params, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
         fl_self_hosted_ast_TypeExpr _fl_tmp_26 = fl_self_hosted_parser_parse_type_expr(s);
         FL_Array* _fl_old_27 = params;
@@ -6361,6 +6496,7 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_fn_type(fl_self_hosted_p
 fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_tuple_type(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     FL_Array* elements = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(elements, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
         fl_self_hosted_ast_TypeExpr _fl_tmp_32 = fl_self_hosted_parser_parse_type_expr(s);
         FL_Array* _fl_old_33 = elements;
@@ -6443,6 +6579,7 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_named_or_generic_type(fl
 FL_Array* fl_self_hosted_parser_parse_type_args(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LT);
     FL_Array* args = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(args, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_GT) == fl_false) {
         fl_self_hosted_ast_TypeExpr _fl_tmp_41 = fl_self_hosted_parser_parse_type_expr(s);
         FL_Array* _fl_old_42 = args;
@@ -6639,6 +6776,594 @@ void _fl_retain_fl_self_hosted_ast_TypeParam(void* _ptr) {
     fl_array_retain(_s->bounds);
 }
 
+/* Flow: sum destructor for fl_self_hosted_ast_Expr */
+void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
+    fl_self_hosted_ast_Expr* _s = ((fl_self_hosted_ast_Expr*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_string_release(_s->EIntLit.suffix);
+            break;
+            break;
+        }
+        case 1: {
+            fl_string_release(_s->EFloatLit.value_text);
+            fl_string_release(_s->EFloatLit.suffix);
+            break;
+            break;
+        }
+        case 3: {
+            fl_string_release(_s->EStringLit.value);
+            break;
+            break;
+        }
+        case 6: {
+            fl_string_release(_s->EIdent.name);
+            fl_array_release(_s->EIdent.module_path);
+            break;
+            break;
+        }
+        case 7: {
+            fl_string_release(_s->EBinOp.op);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EBinOp.left);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EBinOp.right);
+            break;
+            break;
+        }
+        case 8: {
+            fl_string_release(_s->EUnaryOp.op);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EUnaryOp.operand);
+            break;
+            break;
+        }
+        case 9: {
+            fl_string_release(_s->ENamedArg.name);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENamedArg.value);
+            break;
+            break;
+        }
+        case 10: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ESpread.inner);
+            break;
+            break;
+        }
+        case 11: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECall.callee);
+            fl_array_release(_s->ECall.args);
+            break;
+            break;
+        }
+        case 12: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EMethodCall.receiver);
+            fl_string_release(_s->EMethodCall.method);
+            fl_array_release(_s->EMethodCall.args);
+            break;
+            break;
+        }
+        case 13: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EFieldAccess.receiver);
+            fl_string_release(_s->EFieldAccess.field);
+            break;
+            break;
+        }
+        case 14: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIndexAccess.receiver);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIndexAccess.index);
+            break;
+            break;
+        }
+        case 15: {
+            fl_array_release(_s->ELambda.params);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ELambda.body);
+            break;
+            break;
+        }
+        case 16: {
+            fl_array_release(_s->ETupleExpr.elements);
+            break;
+            break;
+        }
+        case 17: {
+            fl_array_release(_s->EArrayLit.elements);
+            break;
+            break;
+        }
+        case 18: {
+            fl_array_release(_s->ERecordLit.fields);
+            break;
+            break;
+        }
+        case 19: {
+            fl_string_release(_s->ETypeLit.type_name);
+            fl_array_release(_s->ETypeLit.fields);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETypeLit.spread);
+            break;
+            break;
+        }
+        case 20: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIfExpr.condition);
+            fl_array_release(_s->EIfExpr.then_stmts);
+            fl_array_release(_s->EIfExpr.else_stmts);
+            break;
+            break;
+        }
+        case 21: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EMatchExpr.subject);
+            fl_array_release(_s->EMatchExpr.arms);
+            break;
+            break;
+        }
+        case 22: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.condition);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.then_expr);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.else_expr);
+            break;
+            break;
+        }
+        case 23: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECopy.inner);
+            break;
+            break;
+        }
+        case 24: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ERef.inner);
+            break;
+            break;
+        }
+        case 25: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ESome.inner);
+            break;
+            break;
+        }
+        case 26: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EOk.inner);
+            break;
+            break;
+        }
+        case 27: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EErr.inner);
+            break;
+            break;
+        }
+        case 28: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->EPropagate.inner);
+            break;
+            break;
+        }
+        case 29: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENullCoalesce.left);
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENullCoalesce.right);
+            break;
+            break;
+        }
+        case 30: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETypeof.inner);
+            break;
+            break;
+        }
+        case 31: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECast.inner);
+            break;
+            break;
+        }
+        case 32: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECoerce.inner);
+            break;
+            break;
+        }
+        case 33: {
+            fl_array_release(_s->EFString.parts);
+            break;
+            break;
+        }
+        case 34: {
+            fl_array_release(_s->ECompositionChain.elements);
+            break;
+            break;
+        }
+        case 35: {
+            fl_array_release(_s->EFanOut.branches);
+            break;
+            break;
+        }
+        case 36: {
+            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECoroutineStart.call);
+            break;
+            break;
+        }
+        case 37: {
+            fl_array_release(_s->ECoroutinePipeline.stages);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
+/* Flow: sum retainer for fl_self_hosted_ast_Expr */
+void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr) {
+    fl_self_hosted_ast_Expr* _s = ((fl_self_hosted_ast_Expr*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_string_retain(_s->EIntLit.suffix);
+            break;
+            break;
+        }
+        case 1: {
+            fl_string_retain(_s->EFloatLit.value_text);
+            fl_string_retain(_s->EFloatLit.suffix);
+            break;
+            break;
+        }
+        case 3: {
+            fl_string_retain(_s->EStringLit.value);
+            break;
+            break;
+        }
+        case 6: {
+            fl_string_retain(_s->EIdent.name);
+            fl_array_retain(_s->EIdent.module_path);
+            break;
+            break;
+        }
+        case 7: {
+            fl_string_retain(_s->EBinOp.op);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EBinOp.left);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EBinOp.right);
+            break;
+            break;
+        }
+        case 8: {
+            fl_string_retain(_s->EUnaryOp.op);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EUnaryOp.operand);
+            break;
+            break;
+        }
+        case 9: {
+            fl_string_retain(_s->ENamedArg.name);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ENamedArg.value);
+            break;
+            break;
+        }
+        case 10: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ESpread.inner);
+            break;
+            break;
+        }
+        case 11: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECall.callee);
+            fl_array_retain(_s->ECall.args);
+            break;
+            break;
+        }
+        case 12: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EMethodCall.receiver);
+            fl_string_retain(_s->EMethodCall.method);
+            fl_array_retain(_s->EMethodCall.args);
+            break;
+            break;
+        }
+        case 13: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EFieldAccess.receiver);
+            fl_string_retain(_s->EFieldAccess.field);
+            break;
+            break;
+        }
+        case 14: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EIndexAccess.receiver);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EIndexAccess.index);
+            break;
+            break;
+        }
+        case 15: {
+            fl_array_retain(_s->ELambda.params);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ELambda.body);
+            break;
+            break;
+        }
+        case 16: {
+            fl_array_retain(_s->ETupleExpr.elements);
+            break;
+            break;
+        }
+        case 17: {
+            fl_array_retain(_s->EArrayLit.elements);
+            break;
+            break;
+        }
+        case 18: {
+            fl_array_retain(_s->ERecordLit.fields);
+            break;
+            break;
+        }
+        case 19: {
+            fl_string_retain(_s->ETypeLit.type_name);
+            fl_array_retain(_s->ETypeLit.fields);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETypeLit.spread);
+            break;
+            break;
+        }
+        case 20: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EIfExpr.condition);
+            fl_array_retain(_s->EIfExpr.then_stmts);
+            fl_array_retain(_s->EIfExpr.else_stmts);
+            break;
+            break;
+        }
+        case 21: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EMatchExpr.subject);
+            fl_array_retain(_s->EMatchExpr.arms);
+            break;
+            break;
+        }
+        case 22: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.condition);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.then_expr);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.else_expr);
+            break;
+            break;
+        }
+        case 23: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECopy.inner);
+            break;
+            break;
+        }
+        case 24: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ERef.inner);
+            break;
+            break;
+        }
+        case 25: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ESome.inner);
+            break;
+            break;
+        }
+        case 26: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EOk.inner);
+            break;
+            break;
+        }
+        case 27: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EErr.inner);
+            break;
+            break;
+        }
+        case 28: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EPropagate.inner);
+            break;
+            break;
+        }
+        case 29: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ENullCoalesce.left);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ENullCoalesce.right);
+            break;
+            break;
+        }
+        case 30: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETypeof.inner);
+            break;
+            break;
+        }
+        case 31: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECast.inner);
+            break;
+            break;
+        }
+        case 32: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECoerce.inner);
+            break;
+            break;
+        }
+        case 33: {
+            fl_array_retain(_s->EFString.parts);
+            break;
+            break;
+        }
+        case 34: {
+            fl_array_retain(_s->ECompositionChain.elements);
+            break;
+            break;
+        }
+        case 35: {
+            fl_array_retain(_s->EFanOut.branches);
+            break;
+            break;
+        }
+        case 36: {
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECoroutineStart.call);
+            break;
+            break;
+        }
+        case 37: {
+            fl_array_retain(_s->ECoroutinePipeline.stages);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
+/* Flow: sum destructor for fl_self_hosted_ast_Stmt */
+void _fl_destroy_fl_self_hosted_ast_Stmt(void* _ptr) {
+    fl_self_hosted_ast_Stmt* _s = ((fl_self_hosted_ast_Stmt*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_string_release(_s->SLet.name);
+            _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->SLet.type_ann));
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SLet.value));
+            break;
+            break;
+        }
+        case 1: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SAssign.target));
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SAssign.value));
+            break;
+            break;
+        }
+        case 2: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SUpdate.target));
+            fl_string_release(_s->SUpdate.op);
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SUpdate.value));
+            break;
+            break;
+        }
+        case 3: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SReturn.value));
+            break;
+            break;
+        }
+        case 4: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SYield.value));
+            break;
+            break;
+        }
+        case 5: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SThrow.exception));
+            break;
+            break;
+        }
+        case 8: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SExpr.expr));
+            break;
+            break;
+        }
+        case 9: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SIf.condition));
+            fl_array_release(_s->SIf.then_stmts);
+            fl_array_release(_s->SIf.else_stmts);
+            break;
+            break;
+        }
+        case 10: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SWhile.condition));
+            fl_array_release(_s->SWhile.body);
+            fl_array_release(_s->SWhile.finally_body);
+            break;
+            break;
+        }
+        case 11: {
+            fl_string_release(_s->SFor.var_name);
+            _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->SFor.var_type));
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SFor.iterable));
+            fl_array_release(_s->SFor.body);
+            fl_array_release(_s->SFor.finally_body);
+            break;
+            break;
+        }
+        case 12: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->SMatch.subject));
+            fl_array_release(_s->SMatch.arms);
+            break;
+            break;
+        }
+        case 13: {
+            fl_array_release(_s->STry.body);
+            fl_array_release(_s->STry.retry_blocks);
+            fl_array_release(_s->STry.catches);
+            fl_array_release(_s->STry.finally_body);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
+/* Flow: sum retainer for fl_self_hosted_ast_Stmt */
+void _fl_retain_fl_self_hosted_ast_Stmt(void* _ptr) {
+    fl_self_hosted_ast_Stmt* _s = ((fl_self_hosted_ast_Stmt*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_string_retain(_s->SLet.name);
+            _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->SLet.type_ann));
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SLet.value));
+            break;
+            break;
+        }
+        case 1: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SAssign.target));
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SAssign.value));
+            break;
+            break;
+        }
+        case 2: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SUpdate.target));
+            fl_string_retain(_s->SUpdate.op);
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SUpdate.value));
+            break;
+            break;
+        }
+        case 3: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SReturn.value));
+            break;
+            break;
+        }
+        case 4: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SYield.value));
+            break;
+            break;
+        }
+        case 5: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SThrow.exception));
+            break;
+            break;
+        }
+        case 8: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SExpr.expr));
+            break;
+            break;
+        }
+        case 9: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SIf.condition));
+            fl_array_retain(_s->SIf.then_stmts);
+            fl_array_retain(_s->SIf.else_stmts);
+            break;
+            break;
+        }
+        case 10: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SWhile.condition));
+            fl_array_retain(_s->SWhile.body);
+            fl_array_retain(_s->SWhile.finally_body);
+            break;
+            break;
+        }
+        case 11: {
+            fl_string_retain(_s->SFor.var_name);
+            _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->SFor.var_type));
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SFor.iterable));
+            fl_array_retain(_s->SFor.body);
+            fl_array_retain(_s->SFor.finally_body);
+            break;
+            break;
+        }
+        case 12: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->SMatch.subject));
+            fl_array_retain(_s->SMatch.arms);
+            break;
+            break;
+        }
+        case 13: {
+            fl_array_retain(_s->STry.body);
+            fl_array_retain(_s->STry.retry_blocks);
+            fl_array_retain(_s->STry.catches);
+            fl_array_retain(_s->STry.finally_body);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
 /* Flow: self_hosted.parser.parse_fn_decl */
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export, fl_bool allow_no_body) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_FN);
@@ -6668,6 +7393,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parse
         has_return_type = fl_true;
     }
     FL_Array* body = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(body, _fl_destroy_fl_self_hosted_ast_Stmt, _fl_retain_fl_self_hosted_ast_Stmt);
     fl_bool has_finally = fl_false;
     FL_Array* finally_body = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(finally_body, _fl_destroy_fl_self_hosted_ast_Stmt, _fl_retain_fl_self_hosted_ast_Stmt);
@@ -6719,6 +7445,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parse
 fl_self_hosted_ast_TypeParam fl_self_hosted_parser_parse_type_param(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* bounds = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(bounds, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FULFILLS)) {
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
@@ -6786,12 +7513,14 @@ FL_Array* fl_self_hosted_parser_parse_type_params(fl_self_hosted_parser_ParserSt
 void _fl_destroy_fl_self_hosted_ast_Param(void* _ptr) {
     fl_self_hosted_ast_Param* _s = ((fl_self_hosted_ast_Param*)_ptr);
     fl_string_release(_s->name);
+    _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->type_ann));
 }
 
 /* Flow: retainer for fl_self_hosted_ast_Param */
 void _fl_retain_fl_self_hosted_ast_Param(void* _ptr) {
     fl_self_hosted_ast_Param* _s = ((fl_self_hosted_ast_Param*)_ptr);
     fl_string_retain(_s->name);
+    _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->type_ann));
 }
 
 /* Flow: self_hosted.parser.parse_param_list */
@@ -6942,6 +7671,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_type_decl(fl_self_hosted_par
         }
     }
     FL_Array* interfaces = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(interfaces, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FULFILLS)) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_TypeExpr _fl_tmp_95 = fl_self_hosted_parser_parse_type_expr(s);
@@ -7026,12 +7756,14 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_sum_type(fl_self_hosted_pars
 void _fl_destroy_fl_self_hosted_ast_Field(void* _ptr) {
     fl_self_hosted_ast_Field* _s = ((fl_self_hosted_ast_Field*)_ptr);
     fl_string_release(_s->name);
+    _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->type_expr));
 }
 
 /* Flow: retainer for fl_self_hosted_ast_Field */
 void _fl_retain_fl_self_hosted_ast_Field(void* _ptr) {
     fl_self_hosted_ast_Field* _s = ((fl_self_hosted_ast_Field*)_ptr);
     fl_string_retain(_s->name);
+    _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->type_expr));
 }
 
 /* Flow: self_hosted.parser.parse_sum_variant */
@@ -7089,12 +7821,212 @@ fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_sel
 void _fl_destroy_fl_self_hosted_ast_FieldDecl(void* _ptr) {
     fl_self_hosted_ast_FieldDecl* _s = ((fl_self_hosted_ast_FieldDecl*)_ptr);
     fl_string_release(_s->name);
+    _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->type_ann));
 }
 
 /* Flow: retainer for fl_self_hosted_ast_FieldDecl */
 void _fl_retain_fl_self_hosted_ast_FieldDecl(void* _ptr) {
     fl_self_hosted_ast_FieldDecl* _s = ((fl_self_hosted_ast_FieldDecl*)_ptr);
     fl_string_retain(_s->name);
+    _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->type_ann));
+}
+
+/* Flow: sum destructor for fl_self_hosted_ast_Decl */
+void _fl_destroy_fl_self_hosted_ast_Decl(void* _ptr) {
+    fl_self_hosted_ast_Decl* _s = ((fl_self_hosted_ast_Decl*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_array_release(_s->DModule.path);
+            break;
+            break;
+        }
+        case 1: {
+            fl_array_release(_s->DImport.path);
+            fl_array_release(_s->DImport.names);
+            fl_string_release(_s->DImport.import_alias);
+            break;
+            break;
+        }
+        case 2: {
+            fl_string_release(_s->DFn.name);
+            fl_array_release(_s->DFn.type_params);
+            fl_array_release(_s->DFn.params);
+            _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->DFn.return_type));
+            fl_array_release(_s->DFn.body);
+            fl_array_release(_s->DFn.finally_body);
+            break;
+            break;
+        }
+        case 3: {
+            fl_string_release(_s->DType.name);
+            fl_array_release(_s->DType.type_params);
+            fl_array_release(_s->DType.fields);
+            fl_array_release(_s->DType.methods);
+            fl_array_release(_s->DType.constructors);
+            fl_array_release(_s->DType.static_members);
+            fl_array_release(_s->DType.interfaces);
+            fl_array_release(_s->DType.variants);
+            break;
+            break;
+        }
+        case 4: {
+            fl_string_release(_s->DInterface.name);
+            fl_array_release(_s->DInterface.type_params);
+            fl_array_release(_s->DInterface.methods);
+            break;
+            break;
+        }
+        case 5: {
+            fl_string_release(_s->DAlias.name);
+            fl_array_release(_s->DAlias.type_params);
+            _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->DAlias.target));
+            break;
+            break;
+        }
+        case 6: {
+            fl_string_release(_s->DEnum.name);
+            fl_array_release(_s->DEnum.variants);
+            break;
+            break;
+        }
+        case 7: {
+            fl_string_release(_s->DExternLib.lib_name);
+            break;
+            break;
+        }
+        case 8: {
+            fl_string_release(_s->DExternType.name);
+            break;
+            break;
+        }
+        case 9: {
+            fl_string_release(_s->DExternFn.name);
+            fl_array_release(_s->DExternFn.type_params);
+            fl_array_release(_s->DExternFn.params);
+            _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->DExternFn.return_type));
+            fl_string_release(_s->DExternFn.c_name);
+            break;
+            break;
+        }
+        case 10: {
+            fl_string_release(_s->DConstructor.name);
+            fl_array_release(_s->DConstructor.params);
+            _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->DConstructor.return_type));
+            fl_array_release(_s->DConstructor.body);
+            break;
+            break;
+        }
+        case 11: {
+            fl_string_release(_s->DStaticMember.name);
+            _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->DStaticMember.type_ann));
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->DStaticMember.value));
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
+/* Flow: sum retainer for fl_self_hosted_ast_Decl */
+void _fl_retain_fl_self_hosted_ast_Decl(void* _ptr) {
+    fl_self_hosted_ast_Decl* _s = ((fl_self_hosted_ast_Decl*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_array_retain(_s->DModule.path);
+            break;
+            break;
+        }
+        case 1: {
+            fl_array_retain(_s->DImport.path);
+            fl_array_retain(_s->DImport.names);
+            fl_string_retain(_s->DImport.import_alias);
+            break;
+            break;
+        }
+        case 2: {
+            fl_string_retain(_s->DFn.name);
+            fl_array_retain(_s->DFn.type_params);
+            fl_array_retain(_s->DFn.params);
+            _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->DFn.return_type));
+            fl_array_retain(_s->DFn.body);
+            fl_array_retain(_s->DFn.finally_body);
+            break;
+            break;
+        }
+        case 3: {
+            fl_string_retain(_s->DType.name);
+            fl_array_retain(_s->DType.type_params);
+            fl_array_retain(_s->DType.fields);
+            fl_array_retain(_s->DType.methods);
+            fl_array_retain(_s->DType.constructors);
+            fl_array_retain(_s->DType.static_members);
+            fl_array_retain(_s->DType.interfaces);
+            fl_array_retain(_s->DType.variants);
+            break;
+            break;
+        }
+        case 4: {
+            fl_string_retain(_s->DInterface.name);
+            fl_array_retain(_s->DInterface.type_params);
+            fl_array_retain(_s->DInterface.methods);
+            break;
+            break;
+        }
+        case 5: {
+            fl_string_retain(_s->DAlias.name);
+            fl_array_retain(_s->DAlias.type_params);
+            _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->DAlias.target));
+            break;
+            break;
+        }
+        case 6: {
+            fl_string_retain(_s->DEnum.name);
+            fl_array_retain(_s->DEnum.variants);
+            break;
+            break;
+        }
+        case 7: {
+            fl_string_retain(_s->DExternLib.lib_name);
+            break;
+            break;
+        }
+        case 8: {
+            fl_string_retain(_s->DExternType.name);
+            break;
+            break;
+        }
+        case 9: {
+            fl_string_retain(_s->DExternFn.name);
+            fl_array_retain(_s->DExternFn.type_params);
+            fl_array_retain(_s->DExternFn.params);
+            _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->DExternFn.return_type));
+            fl_string_retain(_s->DExternFn.c_name);
+            break;
+            break;
+        }
+        case 10: {
+            fl_string_retain(_s->DConstructor.name);
+            fl_array_retain(_s->DConstructor.params);
+            _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->DConstructor.return_type));
+            fl_array_retain(_s->DConstructor.body);
+            break;
+            break;
+        }
+        case 11: {
+            fl_string_retain(_s->DStaticMember.name);
+            _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->DStaticMember.type_ann));
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->DStaticMember.value));
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
 }
 
 /* Flow: self_hosted.parser.parse_struct_type */
@@ -7103,6 +8035,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_p
     FL_Array* fields = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(fields, _fl_destroy_fl_self_hosted_ast_FieldDecl, _fl_retain_fl_self_hosted_ast_FieldDecl);
     FL_Array* methods = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(methods, _fl_destroy_fl_self_hosted_ast_Decl, _fl_retain_fl_self_hosted_ast_Decl);
     FL_Array* constructors = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(constructors, _fl_destroy_fl_self_hosted_ast_Decl, _fl_retain_fl_self_hosted_ast_Decl);
     FL_Array* static_members = fl_array_new(0, 0, NULL);
@@ -7768,418 +8701,6 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_stmt(fl_self_hosted_parser_P
     return _fl_ret_185;
 }
 
-/* Flow: sum destructor for fl_self_hosted_ast_Expr */
-void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
-    fl_self_hosted_ast_Expr* _s = ((fl_self_hosted_ast_Expr*)_ptr);
-    switch (_s->tag) {
-        case 0: {
-            fl_string_release(_s->EIntLit.suffix);
-            break;
-            break;
-        }
-        case 1: {
-            fl_string_release(_s->EFloatLit.value_text);
-            fl_string_release(_s->EFloatLit.suffix);
-            break;
-            break;
-        }
-        case 3: {
-            fl_string_release(_s->EStringLit.value);
-            break;
-            break;
-        }
-        case 6: {
-            fl_string_release(_s->EIdent.name);
-            fl_array_release(_s->EIdent.module_path);
-            break;
-            break;
-        }
-        case 7: {
-            fl_string_release(_s->EBinOp.op);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EBinOp.left);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EBinOp.right);
-            break;
-            break;
-        }
-        case 8: {
-            fl_string_release(_s->EUnaryOp.op);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EUnaryOp.operand);
-            break;
-            break;
-        }
-        case 9: {
-            fl_string_release(_s->ENamedArg.name);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENamedArg.value);
-            break;
-            break;
-        }
-        case 10: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ESpread.inner);
-            break;
-            break;
-        }
-        case 11: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECall.callee);
-            fl_array_release(_s->ECall.args);
-            break;
-            break;
-        }
-        case 12: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EMethodCall.receiver);
-            fl_string_release(_s->EMethodCall.method);
-            fl_array_release(_s->EMethodCall.args);
-            break;
-            break;
-        }
-        case 13: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EFieldAccess.receiver);
-            fl_string_release(_s->EFieldAccess.field);
-            break;
-            break;
-        }
-        case 14: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIndexAccess.receiver);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIndexAccess.index);
-            break;
-            break;
-        }
-        case 15: {
-            fl_array_release(_s->ELambda.params);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ELambda.body);
-            break;
-            break;
-        }
-        case 16: {
-            fl_array_release(_s->ETupleExpr.elements);
-            break;
-            break;
-        }
-        case 17: {
-            fl_array_release(_s->EArrayLit.elements);
-            break;
-            break;
-        }
-        case 18: {
-            fl_array_release(_s->ERecordLit.fields);
-            break;
-            break;
-        }
-        case 19: {
-            fl_string_release(_s->ETypeLit.type_name);
-            fl_array_release(_s->ETypeLit.fields);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETypeLit.spread);
-            break;
-            break;
-        }
-        case 20: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIfExpr.condition);
-            fl_array_release(_s->EIfExpr.then_stmts);
-            fl_array_release(_s->EIfExpr.else_stmts);
-            break;
-            break;
-        }
-        case 21: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EMatchExpr.subject);
-            fl_array_release(_s->EMatchExpr.arms);
-            break;
-            break;
-        }
-        case 22: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.condition);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.then_expr);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.else_expr);
-            break;
-            break;
-        }
-        case 23: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECopy.inner);
-            break;
-            break;
-        }
-        case 24: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ERef.inner);
-            break;
-            break;
-        }
-        case 25: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ESome.inner);
-            break;
-            break;
-        }
-        case 26: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EOk.inner);
-            break;
-            break;
-        }
-        case 27: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EErr.inner);
-            break;
-            break;
-        }
-        case 28: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EPropagate.inner);
-            break;
-            break;
-        }
-        case 29: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENullCoalesce.left);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENullCoalesce.right);
-            break;
-            break;
-        }
-        case 30: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETypeof.inner);
-            break;
-            break;
-        }
-        case 31: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECast.inner);
-            break;
-            break;
-        }
-        case 32: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECoerce.inner);
-            break;
-            break;
-        }
-        case 33: {
-            fl_array_release(_s->EFString.parts);
-            break;
-            break;
-        }
-        case 34: {
-            fl_array_release(_s->ECompositionChain.elements);
-            break;
-            break;
-        }
-        case 35: {
-            fl_array_release(_s->EFanOut.branches);
-            break;
-            break;
-        }
-        case 36: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECoroutineStart.call);
-            break;
-            break;
-        }
-        case 37: {
-            fl_array_release(_s->ECoroutinePipeline.stages);
-            break;
-            break;
-        }
-        default: {
-            break;
-            break;
-        }
-    }
-}
-
-/* Flow: sum retainer for fl_self_hosted_ast_Expr */
-void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr) {
-    fl_self_hosted_ast_Expr* _s = ((fl_self_hosted_ast_Expr*)_ptr);
-    switch (_s->tag) {
-        case 0: {
-            fl_string_retain(_s->EIntLit.suffix);
-            break;
-            break;
-        }
-        case 1: {
-            fl_string_retain(_s->EFloatLit.value_text);
-            fl_string_retain(_s->EFloatLit.suffix);
-            break;
-            break;
-        }
-        case 3: {
-            fl_string_retain(_s->EStringLit.value);
-            break;
-            break;
-        }
-        case 6: {
-            fl_string_retain(_s->EIdent.name);
-            fl_array_retain(_s->EIdent.module_path);
-            break;
-            break;
-        }
-        case 7: {
-            fl_string_retain(_s->EBinOp.op);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EBinOp.left);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EBinOp.right);
-            break;
-            break;
-        }
-        case 8: {
-            fl_string_retain(_s->EUnaryOp.op);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EUnaryOp.operand);
-            break;
-            break;
-        }
-        case 9: {
-            fl_string_retain(_s->ENamedArg.name);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ENamedArg.value);
-            break;
-            break;
-        }
-        case 10: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ESpread.inner);
-            break;
-            break;
-        }
-        case 11: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECall.callee);
-            fl_array_retain(_s->ECall.args);
-            break;
-            break;
-        }
-        case 12: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EMethodCall.receiver);
-            fl_string_retain(_s->EMethodCall.method);
-            fl_array_retain(_s->EMethodCall.args);
-            break;
-            break;
-        }
-        case 13: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EFieldAccess.receiver);
-            fl_string_retain(_s->EFieldAccess.field);
-            break;
-            break;
-        }
-        case 14: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EIndexAccess.receiver);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EIndexAccess.index);
-            break;
-            break;
-        }
-        case 15: {
-            fl_array_retain(_s->ELambda.params);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ELambda.body);
-            break;
-            break;
-        }
-        case 16: {
-            fl_array_retain(_s->ETupleExpr.elements);
-            break;
-            break;
-        }
-        case 17: {
-            fl_array_retain(_s->EArrayLit.elements);
-            break;
-            break;
-        }
-        case 18: {
-            fl_array_retain(_s->ERecordLit.fields);
-            break;
-            break;
-        }
-        case 19: {
-            fl_string_retain(_s->ETypeLit.type_name);
-            fl_array_retain(_s->ETypeLit.fields);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETypeLit.spread);
-            break;
-            break;
-        }
-        case 20: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EIfExpr.condition);
-            fl_array_retain(_s->EIfExpr.then_stmts);
-            fl_array_retain(_s->EIfExpr.else_stmts);
-            break;
-            break;
-        }
-        case 21: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EMatchExpr.subject);
-            fl_array_retain(_s->EMatchExpr.arms);
-            break;
-            break;
-        }
-        case 22: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.condition);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.then_expr);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.else_expr);
-            break;
-            break;
-        }
-        case 23: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECopy.inner);
-            break;
-            break;
-        }
-        case 24: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ERef.inner);
-            break;
-            break;
-        }
-        case 25: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ESome.inner);
-            break;
-            break;
-        }
-        case 26: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EOk.inner);
-            break;
-            break;
-        }
-        case 27: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EErr.inner);
-            break;
-            break;
-        }
-        case 28: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EPropagate.inner);
-            break;
-            break;
-        }
-        case 29: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ENullCoalesce.left);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ENullCoalesce.right);
-            break;
-            break;
-        }
-        case 30: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETypeof.inner);
-            break;
-            break;
-        }
-        case 31: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECast.inner);
-            break;
-            break;
-        }
-        case 32: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECoerce.inner);
-            break;
-            break;
-        }
-        case 33: {
-            fl_array_retain(_s->EFString.parts);
-            break;
-            break;
-        }
-        case 34: {
-            fl_array_retain(_s->ECompositionChain.elements);
-            break;
-            break;
-        }
-        case 35: {
-            fl_array_retain(_s->EFanOut.branches);
-            break;
-            break;
-        }
-        case 36: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECoroutineStart.call);
-            break;
-            break;
-        }
-        case 37: {
-            fl_array_retain(_s->ECoroutinePipeline.stages);
-            break;
-            break;
-        }
-        default: {
-            break;
-            break;
-        }
-    }
-}
-
 /* Flow: destructor for fl_self_hosted_ast_PipelineStage */
 void _fl_destroy_fl_self_hosted_ast_PipelineStage(void* _ptr) {
     fl_self_hosted_ast_PipelineStage* _s = ((fl_self_hosted_ast_PipelineStage*)_ptr);
@@ -8638,6 +9159,7 @@ void _fl_destroy_fl_self_hosted_ast_RetryBlock(void* _ptr) {
     fl_self_hosted_ast_RetryBlock* _s = ((fl_self_hosted_ast_RetryBlock*)_ptr);
     fl_string_release(_s->target_fn);
     fl_string_release(_s->exception_var);
+    _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->exception_type));
     _fl_destroy_fl_self_hosted_ast_Expr((&_s->attempts));
     fl_array_release(_s->body);
 }
@@ -8647,6 +9169,7 @@ void _fl_retain_fl_self_hosted_ast_RetryBlock(void* _ptr) {
     fl_self_hosted_ast_RetryBlock* _s = ((fl_self_hosted_ast_RetryBlock*)_ptr);
     fl_string_retain(_s->target_fn);
     fl_string_retain(_s->exception_var);
+    _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->exception_type));
     _fl_retain_fl_self_hosted_ast_Expr((&_s->attempts));
     fl_array_retain(_s->body);
 }
@@ -8655,6 +9178,7 @@ void _fl_retain_fl_self_hosted_ast_RetryBlock(void* _ptr) {
 void _fl_destroy_fl_self_hosted_ast_CatchClause(void* _ptr) {
     fl_self_hosted_ast_CatchClause* _s = ((fl_self_hosted_ast_CatchClause*)_ptr);
     fl_string_release(_s->exception_var);
+    _fl_destroy_fl_self_hosted_ast_TypeExpr((&_s->exception_type));
     fl_array_release(_s->body);
 }
 
@@ -8662,6 +9186,7 @@ void _fl_destroy_fl_self_hosted_ast_CatchClause(void* _ptr) {
 void _fl_retain_fl_self_hosted_ast_CatchClause(void* _ptr) {
     fl_self_hosted_ast_CatchClause* _s = ((fl_self_hosted_ast_CatchClause*)_ptr);
     fl_string_retain(_s->exception_var);
+    _fl_retain_fl_self_hosted_ast_TypeExpr((&_s->exception_type));
     fl_array_retain(_s->body);
 }
 
@@ -9654,10 +10179,53 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_none_lit(fl_self_hosted_pars
     return _fl_ret_324;
 }
 
+/* Flow: sum destructor for fl_self_hosted_ast_FStringPart */
+void _fl_destroy_fl_self_hosted_ast_FStringPart(void* _ptr) {
+    fl_self_hosted_ast_FStringPart* _s = ((fl_self_hosted_ast_FStringPart*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_string_release(_s->FPText.text);
+            break;
+            break;
+        }
+        case 1: {
+            _fl_destroy_fl_self_hosted_ast_Expr((&_s->FPExpr.expr));
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
+/* Flow: sum retainer for fl_self_hosted_ast_FStringPart */
+void _fl_retain_fl_self_hosted_ast_FStringPart(void* _ptr) {
+    fl_self_hosted_ast_FStringPart* _s = ((fl_self_hosted_ast_FStringPart*)_ptr);
+    switch (_s->tag) {
+        case 0: {
+            fl_string_retain(_s->FPText.text);
+            break;
+            break;
+        }
+        case 1: {
+            _fl_retain_fl_self_hosted_ast_Expr((&_s->FPExpr.expr));
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
 /* Flow: self_hosted.parser.parse_fstring_expr */
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token start_tok = fl_self_hosted_parser_advance(s);
     FL_Array* parts = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(parts, _fl_destroy_fl_self_hosted_ast_FStringPart, _fl_retain_fl_self_hosted_ast_FStringPart);
     while (fl_self_hosted_parser_at_end(s) == fl_false) {
         fl_self_hosted_lexer_Token raw_tok = fl_self_hosted_parser_peek_raw((*s));
         fl_string_retain(raw_tok.value);
@@ -10552,24 +11120,26 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
     FL_Array* _fl_tmp_431 = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(_fl_tmp_431, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
     FL_Array* _fl_tmp_432 = fl_array_new(0, 0, NULL);
-    fl_array_set_struct_handlers(_fl_tmp_432, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
-    fl_self_hosted_parser_ParserState s = (fl_self_hosted_parser_ParserState){.tokens = tokens, .filename = filename, .token_count = fl_array_len_int(tokens), .pos = 0, .next_id = 1, .has_error = fl_false, .first_error = dummy_error, .literal_values = _fl_tmp_431, .cast_targets = fl_array_new(0, 0, NULL), .sized_capacities = _fl_tmp_432};
+    fl_array_set_struct_handlers(_fl_tmp_432, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
+    FL_Array* _fl_tmp_433 = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(_fl_tmp_433, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
+    fl_self_hosted_parser_ParserState s = (fl_self_hosted_parser_ParserState){.tokens = tokens, .filename = filename, .token_count = fl_array_len_int(tokens), .pos = 0, .next_id = 1, .has_error = fl_false, .first_error = dummy_error, .literal_values = _fl_tmp_431, .cast_targets = _fl_tmp_432, .sized_capacities = _fl_tmp_433};
     FL_Array* path = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(path, 1);
     if (fl_self_hosted_parser_check((&s), fl_self_hosted_lexer_TokenType_TK_MODULE)) {
         fl_self_hosted_ast_Decl mod_decl = fl_self_hosted_parser_parse_module_decl((&s));
-        fl_self_hosted_ast_Decl _fl_tmp_433 = mod_decl;
-        switch (_fl_tmp_433.tag) {
+        fl_self_hosted_ast_Decl _fl_tmp_434 = mod_decl;
+        switch (_fl_tmp_434.tag) {
             case 0: {
-                fl_int mid = _fl_tmp_433.DModule.id;
-                fl_int ml = _fl_tmp_433.DModule.line;
-                fl_int mc = _fl_tmp_433.DModule.col;
-                FL_Array* mp = _fl_tmp_433.DModule.path;
-                FL_Array* _fl_old_434 = path;
+                fl_int mid = _fl_tmp_434.DModule.id;
+                fl_int ml = _fl_tmp_434.DModule.line;
+                fl_int mc = _fl_tmp_434.DModule.col;
+                FL_Array* mp = _fl_tmp_434.DModule.path;
+                FL_Array* _fl_old_435 = path;
                 path = mp;
-                if (_fl_old_434 != path) {
+                if (_fl_old_435 != path) {
                     fl_array_retain(path);
-                    fl_array_release(_fl_old_434);
+                    fl_array_release(_fl_old_435);
                 }
                 break;
             }
@@ -10578,11 +11148,11 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
     FL_Array* imports = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(imports, _fl_destroy_fl_self_hosted_ast_Decl, _fl_retain_fl_self_hosted_ast_Decl);
     while (fl_self_hosted_parser_check((&s), fl_self_hosted_lexer_TokenType_TK_IMPORT)) {
-        fl_self_hosted_ast_Decl _fl_tmp_435 = fl_self_hosted_parser_parse_import_decl((&s));
-        FL_Array* _fl_old_436 = imports;
-        imports = fl_array_push_sized(imports, (&_fl_tmp_435), sizeof(fl_self_hosted_ast_Decl));
-        if (_fl_old_436 != imports) {
-            fl_array_release(_fl_old_436);
+        fl_self_hosted_ast_Decl _fl_tmp_436 = fl_self_hosted_parser_parse_import_decl((&s));
+        FL_Array* _fl_old_437 = imports;
+        imports = fl_array_push_sized(imports, (&_fl_tmp_436), sizeof(fl_self_hosted_ast_Decl));
+        if (_fl_old_437 != imports) {
+            fl_array_release(_fl_old_437);
         }
     }
     FL_Array* decls = fl_array_new(0, 0, NULL);
@@ -10593,18 +11163,18 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
         _fl_exception_push((&_fl_ef_2));
         if (setjmp(_fl_ef_2.jmp) == 0) {
             fl_self_hosted_ast_Decl decl = fl_self_hosted_parser_parse_top_level_decl((&s));
-            fl_self_hosted_ast_Decl _fl_tmp_437 = decl;
-            FL_Array* _fl_old_438 = decls;
-            decls = fl_array_push_sized(decls, (&_fl_tmp_437), sizeof(fl_self_hosted_ast_Decl));
-            if (_fl_old_438 != decls) {
-                fl_array_release(_fl_old_438);
+            fl_self_hosted_ast_Decl _fl_tmp_438 = decl;
+            FL_Array* _fl_old_439 = decls;
+            decls = fl_array_push_sized(decls, (&_fl_tmp_438), sizeof(fl_self_hosted_ast_Decl));
+            if (_fl_old_439 != decls) {
+                fl_array_release(_fl_old_439);
             }
             _fl_exception_pop();
         } else {
             _fl_exception_pop();
             if (_fl_ef_2.exception_tag == 461109476) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_439 = ((fl_self_hosted_errors_CompileError*)_fl_ef_2.exception);
-                fl_self_hosted_errors_CompileError e = (*_fl_tmp_439);
+                fl_self_hosted_errors_CompileError* _fl_tmp_440 = ((fl_self_hosted_errors_CompileError*)_fl_ef_2.exception);
+                fl_self_hosted_errors_CompileError e = (*_fl_tmp_440);
                 if (s.has_error == fl_false) {
                     s.has_error = fl_true;
                     s.first_error = fl_self_hosted_errors_parse_error(e.message, filename, fl_self_hosted_parser_peek((&s)).line, fl_self_hosted_parser_peek((&s)).col);
@@ -10619,15 +11189,15 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
         }
     }
     if (s.has_error) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_440 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_440) = s.first_error;
-        _fl_throw(((void*)_fl_tmp_440), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_441 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_441) = s.first_error;
+        _fl_throw(((void*)_fl_tmp_441), 461109476);
     }
     fl_self_hosted_ast_Module parsed_module = fl_self_hosted_ast_make_module(path, imports, decls, filename);
     fl_array_retain(s.literal_values);
     fl_array_retain(s.cast_targets);
     fl_array_retain(s.sized_capacities);
-    fl_self_hosted_parser_ParseResult _fl_ret_441 = (fl_self_hosted_parser_ParseResult){.parsed_module = parsed_module, .literal_values = s.literal_values, .cast_targets = s.cast_targets, .sized_capacities = s.sized_capacities};
+    fl_self_hosted_parser_ParseResult _fl_ret_442 = (fl_self_hosted_parser_ParseResult){.parsed_module = parsed_module, .literal_values = s.literal_values, .cast_targets = s.cast_targets, .sized_capacities = s.sized_capacities};
     fl_array_release(path);
     fl_array_release(imports);
     fl_array_release(decls);
@@ -10635,7 +11205,7 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
     fl_string_release(dummy_error.file);
     fl_array_release(s.tokens);
     fl_string_release(s.filename);
-    return _fl_ret_441;
+    return _fl_ret_442;
 }
 
 typedef struct FL_Option_fl_self_hosted_ast_Decl FL_Option_fl_self_hosted_ast_Decl;

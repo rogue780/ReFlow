@@ -1121,7 +1121,7 @@ fn decl_fn_type(s:TCState:mut, d:ast.Decl):TCType {
 
 fn cache_decl(s:TCState:mut, mk:string, d:ast.Decl) {
     let key = mk + ":" + conv.to_string(ast.decl_id(d))
-    s.decl_cache = map.set(s.decl_cache, key, d)
+    s.decl_cache = map.set(s.decl_cache, key, @d)
 }
 
 fn build_decl_cache(s:TCState:mut) {
@@ -1228,7 +1228,7 @@ fn register_type_decl(
     let ii:int:mut = 0
     while(ii < array.size(ifaces)) {
         let iface_te = array.get_any(ifaces, ii) ?? ast.TNamedType(0,0,0,"",[])
-        info.interface_exprs = array.push(info.interface_exprs, iface_te)
+        info.interface_exprs = array.push(info.interface_exprs, @iface_te)
         ii = ii + 1
     }
 
@@ -3046,8 +3046,8 @@ export fn typecheck(
     check_all_bodies(s)
 
     return TypedModule{
-        src_module:s.src_module,
-        resolved:resolved,
+        src_module:@s.src_module,
+        resolved:s.resolved,
         node_types:s.node_types,
         warnings:s.warnings,
         capacity_node_ids:s.capacity_node_ids,

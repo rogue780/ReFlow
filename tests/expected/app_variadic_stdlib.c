@@ -909,6 +909,10 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_value(FL_String* s, fl
 
 FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_literal(FL_String* s, fl_int pos, fl_int len, FL_String* expected, fl_json_JsonValue val);
 
+void _fl_destroy_fl_json_JsonValue(void* _ptr);
+
+void _fl_retain_fl_json_JsonValue(void* _ptr);
+
 FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl_int pos, fl_int len);
 
 FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, fl_int pos, fl_int len);
@@ -2145,6 +2149,58 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_literal(FL_String* s, 
     return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
 }
 
+/* Flow: sum destructor for fl_json_JsonValue */
+void _fl_destroy_fl_json_JsonValue(void* _ptr) {
+    fl_json_JsonValue* _s = ((fl_json_JsonValue*)_ptr);
+    switch (_s->tag) {
+        case 4: {
+            fl_string_release(_s->Str.val);
+            break;
+            break;
+        }
+        case 5: {
+            fl_array_release(_s->Arr.items);
+            break;
+            break;
+        }
+        case 6: {
+            fl_map_release(_s->Obj.entries);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
+/* Flow: sum retainer for fl_json_JsonValue */
+void _fl_retain_fl_json_JsonValue(void* _ptr) {
+    fl_json_JsonValue* _s = ((fl_json_JsonValue*)_ptr);
+    switch (_s->tag) {
+        case 4: {
+            fl_string_retain(_s->Str.val);
+            break;
+            break;
+        }
+        case 5: {
+            fl_array_retain(_s->Arr.items);
+            break;
+            break;
+        }
+        case 6: {
+            fl_map_retain(_s->Obj.entries);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+}
+
 /* Flow: json.parse_array */
 FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl_int pos, fl_int len) {
     fl_int _fl_e_1;
@@ -2152,6 +2208,7 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl
     fl_int p = _fl_e_1;
     p = fl_json_skip_ws(s, p, len);
     FL_Array* items = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(items, _fl_destroy_fl_json_JsonValue, _fl_retain_fl_json_JsonValue);
     if (p < len) {
         FL_Option_char _fl_tmp_36 = fl_string_char_at(s, p);
         if (_fl_tmp_36.tag == 1) {

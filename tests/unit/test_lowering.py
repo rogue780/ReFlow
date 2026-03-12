@@ -1359,13 +1359,12 @@ class TestSumTypeDestructors(unittest.TestCase):
         destroy_fns = [fn for fn in m.fn_defs if "_fl_destroy_" in fn.c_name and "Item" in fn.c_name]
         self.assertTrue(len(destroy_fns) > 0, "Expected destructor for sum type Item")
 
-    def test_excluded_sum_type_no_destructor(self):
-        """TypeExpr should NOT get a destructor (excluded due to shared graph)."""
-        # This is a negative test — we can't easily compile TypeExpr without
-        # the self-hosted compiler modules, so we just verify the exclusion
-        # set exists and contains TypeExpr.
+    def test_no_excluded_sum_types(self):
+        """All sum types should now have destructors (exclusion list empty)."""
+        # TypeExpr was previously excluded due to shared graph, but .flow
+        # files have been updated with @copy at all sharing points.
         from compiler.lowering import Lowerer
-        self.assertIn("TypeExpr", Lowerer._EXCLUDED_SUM_TYPES)
+        self.assertEqual(len(Lowerer._EXCLUDED_SUM_TYPES), 0)
 
 
 if __name__ == "__main__":

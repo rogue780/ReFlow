@@ -2222,7 +2222,7 @@ class Lowerer:
 
     def _get_sum_type_decl_cross_module(self, t: Type) -> TypeDecl | None:
         """Find the TypeDecl for a sum type, searching all modules."""
-        if not isinstance(t, TNamed):
+        if not isinstance(t, (TNamed, TSum)):
             return None
         name = t.name
         for decl in self._module.decls:
@@ -2237,10 +2237,10 @@ class Lowerer:
 
     # TEMPORARY: Sum types excluded from destructor generation.
     # TypeExpr is shared (not tree-structured) in the self-hosted compiler —
-    # shallow-copied into Symbol structs without retains.  Enabling its
-    # destructor causes use-after-free.  Will be fixed when .flow files
-    # are updated with @copy for shared TypeExpr values.
-    _EXCLUDED_SUM_TYPES: set[str] = {"TypeExpr"}
+    # All sum types now have destructors enabled.  TypeExpr was previously
+    # excluded because shared references caused UAF, but .flow files have
+    # been updated with @copy at all sharing points.
+    _EXCLUDED_SUM_TYPES: set[str] = set()
 
     def _sum_type_has_cleanup_fields(self, t: Type) -> bool:
         """Check if a sum type has any variants with directly refcounted fields.
@@ -2439,17 +2439,22 @@ class Lowerer:
 
         Returns (destructor_name, retainer_name) or None if the struct has no
         refcounted fields.  Only emits each pair once per struct C type.
+        For sum types, delegates to _get_or_emit_sum_type_handlers.
         """
         from compiler.mangler import (mangle_struct_elem_destructor,
                                        mangle_struct_elem_retainer)
         if not self._has_refcounted_fields(elem_type):
             return None
+
+        # Sum types need tag-based dispatch — delegate to sum handler
+        if self._sum_type_has_cleanup_fields(elem_type):
+            return self._get_or_emit_sum_type_handlers(elem_type, elem_lt)
+
         c_name = _ltype_c_name(elem_lt)
         if c_name in self._struct_handler_emitted:
             destructor = mangle_struct_elem_destructor(c_name)
             retainer = mangle_struct_elem_retainer(c_name)
             return (destructor, retainer)
-        self._struct_handler_emitted.add(c_name)
 
         destructor = mangle_struct_elem_destructor(c_name)
         retainer = mangle_struct_elem_retainer(c_name)
@@ -2465,6 +2470,7 @@ class Lowerer:
         fields = self._get_struct_fields_cross_module(elem_type)
         if fields is None:
             return None
+        self._struct_handler_emitted.add(c_name)
 
         # Destructor body
         destroy_body: list[LStmt] = []
@@ -2614,6 +2620,20 @@ class Lowerer:
                         retain_fn,
                         [LFieldAccess(LVar(result_name, struct_lt), fname, field_lt)],
                         LVoid())))
+                elif self._sum_type_has_cleanup_fields(ftype):
+                    # Sum type field — call its retainer on the field address
+                    field_lt = self._lower_type(ftype)
+                    sum_handlers = self._get_or_emit_sum_type_handlers(
+                        ftype, field_lt)
+                    if sum_handlers:
+                        _, retainer = sum_handlers
+                        body.append(LExprStmt(LCall(
+                            retainer,
+                            [LAddrOf(
+                                LFieldAccess(LVar(result_name, struct_lt),
+                                             fname, field_lt),
+                                LPtr(field_lt))],
+                            LVoid())))
                 elif self._is_affine_type(ftype):
                     # Nested affine struct field — recursively clone
                     nested_lt = self._lower_type(ftype)
@@ -2624,6 +2644,17 @@ class Lowerer:
                             LCall(nested_clone,
                                   [LFieldAccess(LVar(result_name, struct_lt), fname, nested_lt)],
                                   nested_lt)))
+        elif self._sum_type_has_cleanup_fields(struct_type):
+            # Sum type clone: shallow copy + call retainer to increment
+            # refcounts for the active variant's refcounted fields.
+            sum_handlers = self._get_or_emit_sum_type_handlers(
+                struct_type, struct_lt)
+            if sum_handlers:
+                _, retainer = sum_handlers
+                body.append(LExprStmt(LCall(
+                    retainer,
+                    [LAddrOf(LVar(result_name, struct_lt), LPtr(struct_lt))],
+                    LVoid())))
 
         body.append(LReturn(LVar(result_name, struct_lt)))
 

@@ -232,8 +232,8 @@ fn get_stdlib_typed(ds:DriverState:mut, module_name:string):typechecker.TypedMod
                 let dep_key = join_path(ipath)
                 if(is_stdlib_module(dep_key) && map.has(imported_modules, dep_key) == false) {
                     let dep_typed = get_stdlib_typed(ds, dep_key)
-                    imported_modules = map.set(imported_modules, dep_key, dep_typed.resolved.mod_scope)
-                    imported_decls = map.set(imported_decls, dep_key, dep_typed.src_module)
+                    imported_modules = map.set(imported_modules, dep_key, @dep_typed.resolved.mod_scope)
+                    imported_decls = map.set(imported_decls, dep_key, @dep_typed.src_module)
                 }
             }
             _: {}
@@ -242,14 +242,14 @@ fn get_stdlib_typed(ds:DriverState:mut, module_name:string):typechecker.TypedMod
     let resolved = resolver.resolve(mod, display, imported_modules)
     let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
 
-    cache_put(ds, module_name, typed)
+    cache_put(ds, module_name, @typed)
     return typed
 }
 
 // Load stdlib ModuleScope for a given module key
 fn load_stdlib_scope(ds:DriverState:mut, module_key:string):resolver.ModuleScope {
     let typed = get_stdlib_typed(ds, module_key)
-    return typed.resolved.mod_scope
+    return @typed.resolved.mod_scope
 }
 
 // Discover stdlib imports from a parsed module, return map of key→scope
@@ -278,7 +278,7 @@ fn collect_stdlib_decls(ds:DriverState:mut, mod:ast.Module):map<string, ast.Modu
                 let module_key = join_path(ipath)
                 if(is_stdlib_module(module_key) && map.has(result, module_key) == false) {
                     let stdlib_typed = get_stdlib_typed(ds, module_key)
-                    result = map.set(result, module_key, stdlib_typed.src_module)
+                    result = map.set(result, module_key, @stdlib_typed.src_module)
                 }
             }
             _: {}
@@ -568,8 +568,8 @@ fn run_single_pipeline(ds:DriverState:mut, source_path:string):ModuleEntry {
     let mod = parse_result.parsed_module
 
     // Collect stdlib imports
-    let imported_modules = discover_stdlib_imports(ds, mod)
-    let imported_decls = collect_stdlib_decls(ds, mod)
+    let imported_modules = discover_stdlib_imports(ds, @mod)
+    let imported_decls = collect_stdlib_decls(ds, @mod)
 
     // io.eprintln("[DRV] resolving...")
     let resolved = resolver.resolve(mod, disp, imported_modules)
@@ -627,21 +627,21 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
         let mod = pm.parsed.parsed_module
 
         // Build imported_modules: stdlib + already-resolved user modules
-        let imported_modules:map<string, resolver.ModuleScope>:mut = discover_stdlib_imports(ds, mod)
-        let imported_decls:map<string, ast.Module>:mut = collect_stdlib_decls(ds, mod)
+        let imported_modules:map<string, resolver.ModuleScope>:mut = discover_stdlib_imports(ds, @mod)
+        let imported_decls:map<string, ast.Module>:mut = collect_stdlib_decls(ds, @mod)
 
-        let user_paths = get_user_import_paths(mod)
+        let user_paths = get_user_import_paths(@mod)
         for(imp_path:array<string> in user_paths) {
             let dep_key = join_path(imp_path)
             match map.get(available_scopes, dep_key) {
                 some(scope): {
-                    imported_modules = map.set(imported_modules, dep_key, scope)
+                    imported_modules = map.set(imported_modules, dep_key, @scope)
                 }
                 none: {}
             }
             match map.get(available_typed, dep_key) {
                 some(dep_typed): {
-                    imported_decls = map.set(imported_decls, dep_key, dep_typed.src_module)
+                    imported_decls = map.set(imported_decls, dep_key, @dep_typed.src_module)
                 }
                 none: {}
             }
@@ -649,12 +649,13 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
 
         // io.eprintln("[DRV] resolving " + pm.module_key)
         let resolved = resolver.resolve(mod, pm.display_path, imported_modules)
+        let mod_scope = @resolved.mod_scope
         // io.eprintln("[DRV] typechecking " + pm.module_key)
         let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
         // io.eprintln("[DRV] done " + pm.module_key)
 
-        available_scopes = map.set(available_scopes, pm.module_key, resolved.mod_scope)
-        available_typed = map.set(available_typed, pm.module_key, typed)
+        available_scopes = map.set(available_scopes, pm.module_key, mod_scope)
+        available_typed = map.set(available_typed, pm.module_key, @typed)
 
         let is_root = (pm.module_key == root_key)
         results = array.push(results, ModuleEntry{display_path:pm.display_path, typed:typed, is_root:is_root})
@@ -968,6 +969,13 @@ fn extend_extern_fn_map_from_typed(efn_map:map<string, string>:mut, extra_typed:
     return efn_map
 }
 
+// Helper: lower and emit a single module at function scope (depth 0).
+// This ensures lmod fields are released at scope exit without retain inflation.
+fn _lower_and_emit_single(typed:typechecker.TypedModule, efn_map:map<string, string>, display_path:string, line_directives:bool):string {
+    let lmod = lowering.lower(typed, efn_map)
+    return emitter.emit(lmod, display_path, true, [], [], line_directives)
+}
+
 // Lower and emit C for all modules (single or multi).
 // extra_typed: non-compilable typed modules (e.g., extern-only stdlib) whose
 // extern fn c_names must be available for call site resolution.
@@ -977,10 +985,7 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
 
     if(array.size(modules) == 1) {
         let entry = array.get_any(modules, 0) ?? dummy_entry()
-        // io.eprintln("[DRV] lowering...")
-        let lmod = lowering.lower(entry.typed, efn_map)
-        // io.eprintln("[DRV] emitting...")
-        return emitter.emit(lmod, entry.display_path, true, [], [], line_directives)
+        return _lower_and_emit_single(entry.typed, efn_map, entry.display_path, line_directives)
     }
 
     // Multi-module: emit deps first, root last, then combine

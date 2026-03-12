@@ -77,7 +77,60 @@ The compiler tracks these transfers statically. You do not annotate
 ownership. You do not mark borrows. The compiler reads the code and
 determines what happens.
 
-### 8.1.2 Implicit Borrowing
+### 8.1.2 Type Classification
+
+Not all types have the same ownership behavior. Flow classifies types into
+four categories:
+
+**Value types** (`int`, `float`, `bool`, `byte`, `char`) are stack-allocated
+scalars. Assignment copies the bits. No memory management is needed. These are
+the simplest types.
+
+**Refcounted types** (`string`, `array<T>`, `map<K,V>`, `set<T>`,
+`buffer<T>`, `stream<T>`) are heap-allocated containers with a reference
+count. Assignment increments the refcount — both bindings share the same
+data. When the last reference goes out of scope, the memory is freed.
+
+**Affine types** are structs that contain at least one refcounted or affine
+field, and sum types with affine variants. These are the types where
+ownership matters most. Assignment is a **move** — the source binding is
+consumed and cannot be used afterward. At scope exit, the compiler destroys
+the value by releasing each refcounted field.
+
+**Trivial types** are structs with only value-type fields. They are freely
+copyable like value types.
+
+The distinction between refcounted and affine is important. Refcounted types
+are heap objects with a reference count — multiple bindings can share the
+same data safely. Affine types are stack-allocated structs whose fields may
+point to heap data. If you could copy an affine struct freely, two copies
+would share the same heap pointers, and both would try to free them at scope
+exit — a double-free. Move semantics prevent this by ensuring only one
+copy exists at a time.
+
+```flow
+type Token {
+    value: string,   // refcounted field → Token is affine
+    line: int,
+    col: int
+}
+
+let a = Token { value: "hello", line: 1, col: 1 }
+let b = a  // MOVE: b owns the token now
+// a is consumed — using a here is a compile error
+println(b.value)  // "hello"
+```
+
+To keep both bindings valid, use `@` (deep copy):
+
+```flow
+let a = Token { value: "hello", line: 1, col: 1 }
+let b = @a  // DEEP COPY: b gets an independent copy
+println(a.value)  // still valid
+println(b.value)  // independent copy
+```
+
+### 8.1.3 Implicit Borrowing
 
 Most function calls are borrows. The function uses the value, then gives it
 back. Flow detects this automatically:
@@ -111,7 +164,7 @@ where you do need to think are:
 
 The rest of this chapter covers these three cases.
 
-### 8.1.3 Ownership Escape
+### 8.1.4 Ownership Escape
 
 A value escapes when it leaves the function that created it. There are
 three ways this happens.
@@ -169,6 +222,45 @@ fn make_pair(): Pair {
 The rule is transitive: if a container escapes, everything inside it
 escapes.
 
+**Container insertion.** Placing an affine value into a container (via
+`array.push`, `map.set`, etc.) moves the value into the container. The
+original binding is consumed:
+
+```flow
+let tok = Token { value: "hello", line: 1, col: 1 }
+let tokens: array<Token>:mut = []
+tokens = array.push(tokens, tok)  // tok moved into array
+// tok is consumed — using tok here is a compile error
+```
+
+**Container access.** Retrieving an affine value from a container produces a
+deep copy (clone). Each refcounted field in the returned value is
+independently retained. The container retains its original:
+
+```flow
+let first = array.get(tokens, 0) ?? default_token
+// first is an independent copy; the array still holds the original
+```
+
+**For-loop borrowing.** When iterating over a container of affine elements,
+the loop variable borrows each element — no clone, no cleanup per iteration:
+
+```flow
+for (tok: Token in tokens) {
+    println(tok.value)  // borrowed: efficient, read-only
+}
+// tokens still owns all elements
+```
+
+To take ownership of an element during iteration, use `@`:
+
+```flow
+for (tok: Token in tokens) {
+    let owned = @tok  // deep copy: owned is independent
+    other_list = array.push(other_list, owned)  // move into other_list
+}
+```
+
 ---
 
 ## 8.2 Copy and Reference Operators (`@` and `&`)
@@ -211,7 +303,13 @@ modify freely.
 `&` produces a cheap immutable reference --- a refcount increment that
 allows the data to be shared without copying. Both the original and the
 reference point to the same underlying memory. `&` is valid only on
-immutable bindings; applying `&` to a `:mut` binding is a compile error.
+immutable bindings of refcounted types; applying `&` to a `:mut` binding
+or an affine type is a compile error.
+
+`&` is not valid on affine types (structs with refcounted fields). Affine
+types are stack-allocated and have no refcount to increment. To share an
+affine value, use `@` (deep copy) or pass it directly to a function
+(implicit borrow).
 
 ```flow
 let a = "hello"
@@ -461,9 +559,12 @@ avoids the problems that plague reference counting in other languages.
 
 ### 8.4.1 How It Works
 
-Every heap-allocated value --- strings, arrays, structs, sum type instances
---- carries a reference count: a small integer that records how many
-bindings currently refer to the value.
+Every heap-allocated refcounted value --- strings, arrays, maps, sets,
+buffers, streams --- carries a reference count: a small integer that records
+how many bindings currently refer to the value. Affine types (structs with
+refcounted fields) do not themselves carry a reference count; they use move
+semantics instead, and their refcounted fields are released when the struct
+is destroyed.
 
 When you create a value:
 
@@ -582,15 +683,24 @@ significant advantage.
 You never write retain or release calls yourself --- the compiler inserts
 them automatically. Here is what happens behind the scenes:
 
-**Scope-exit release.** When a refcounted local (string, array, map,
-closure) goes out of scope --- whether at the end of a function or at the
-end of an `if`/`while`/`for` block --- the compiler inserts a release call.
-This applies to all refcounted locals, whether `:mut` or default immutable.
+**Scope-exit release (refcounted).** When a refcounted local (string, array,
+map, set, buffer, stream) goes out of scope --- whether at the end of a
+function or at the end of an `if`/`while`/`for` block --- the compiler
+inserts a release call. This applies to all refcounted locals, whether
+`:mut` or default immutable.
+
+**Scope-exit destroy (affine).** When an affine local (struct with
+refcounted fields) goes out of scope, the compiler destroys it by releasing
+each refcounted field individually. For sum types with affine variants, the
+compiler switches on the variant tag and destroys the active variant's
+fields. Consumed bindings (moved to another owner) are skipped.
 
 **Owned returns.** Every function return transfers ownership to the caller.
-The returned value has a refcount of at least 1. If the function returns an
-existing variable (not a freshly allocated value), the compiler inserts a
-retain before the return so the caller gets its own +1.
+For refcounted types, the returned value has a refcount of at least 1. If
+the function returns an existing variable (not a freshly allocated value),
+the compiler inserts a retain before the return so the caller gets its own
++1. For affine types, the return is a move --- the callee's binding is
+consumed and no retain is needed.
 
 **Struct-construction retain.** When you place a refcounted value into a
 struct field, the struct gets its own +1 via an automatic retain. This
@@ -603,12 +713,20 @@ let user = User(name, 30)
 // when name goes out of scope, refcount drops to 1 --- the struct survives
 ```
 
-**Struct field release.** When a struct-typed local goes out of scope, the
-compiler releases each of its refcounted fields individually. Arrays, maps,
-and strings inside the struct are freed automatically.
+**Affine move.** When an affine value is assigned to a new binding
+(`let b = a`), the compiler transfers ownership. No retain is generated
+for the struct or its fields --- the new binding inherits the existing
+references. The source binding is consumed and skipped at scope exit.
+
+**Container element destruction.** When a container (array, map) holding
+affine elements is released, the compiler generates element destructors
+that release each element's refcounted fields. This ensures no leaks when
+containers of structs go out of scope.
 
 **Release-before-reassign.** When a `:mut` binding is reassigned, the
-compiler releases the old value before storing the new one:
+compiler releases the old value before storing the new one. For refcounted
+types, this is a release call. For affine types, this destroys the old
+value (releases all its refcounted fields):
 
 ```flow
 let items:array<string>:mut = ["a", "b"]
@@ -829,14 +947,19 @@ operation:
 
 | Action | Effect |
 |--------|--------|
+| `let b = a` (affine) | Ownership moves from `a` to `b`. `a` is consumed. |
+| `let b = a` (refcounted) | `a` is retained (ARC). Both `a` and `b` are valid. |
+| `let b = @a` | Independent deep copy of `a`. `b` is always independent. `a` is not consumed. |
+| `let b = &a` | Immutable refcounted `a` only: refcount increment, shared data. Not valid on affine types. |
 | `foo(a)` | `a` is borrowed by `foo`. Reverts to caller when `foo` returns, unless `a` escapes. |
 | `foo(@a)` | A mutable deep copy is passed. Caller retains original `a`. Always independent. |
-| `foo(&a)` | An immutable ref is passed (refcount++). Immutable `a` only. Cannot satisfy `:mut`. |
+| `foo(&a)` | An immutable ref is passed (refcount++). Refcounted types only. Cannot satisfy `:mut`. |
+| `array.push(arr, a)` (affine) | `a` is moved into the array. `a` is consumed. |
+| `array.get(arr, i)` (affine) | Returns a deep copy (clone). Array retains its original. |
+| `for(x in arr)` (affine) | `x` borrows each element. No clone, no cleanup per iteration. |
 | `yield val` | Ownership of `val` transfers to the consumer. Value types are implicitly copied. |
 | `yield @val` | A deep copy is yielded. Producer retains ownership of `val`. |
 | `return val` | Ownership of `val` transfers to the caller. Function terminates. |
-| `let b = @a` | Independent deep copy of `a`. `b` is always independent, regardless of mutability. |
-| `let b = &a` | Immutable `a` only: refcount increment, shared data. Cannot take `&` of `:mut`. |
 | `let w :< f(a)` | Immutable `a`: shared via refcount. Mutable `a`: moved, caller loses access. |
 
 Keep this table as a reference. Most of the time, you will not need to
@@ -914,11 +1037,19 @@ where needed, and freed everything deterministically.
 
 ## 8.9 What Goes Wrong
 
-### Use After Escape
+### Use After Move
 
-The most common ownership error is using a value after it has been moved:
+The most common ownership error is using a value after it has been moved.
+This applies to affine types (structs with refcounted fields) on assignment,
+and to all types when escaping a function:
 
 ```flow
+// Affine move via assignment:
+let tok = Token { value: "hello", line: 1, col: 1 }
+let other = tok  // tok is consumed (affine move)
+// println(tok.value)  // compile error: tok was consumed by move
+
+// Move via function escape:
 fn take(data: array<int>): array<int> {
     return data  // data escapes
 }
@@ -930,9 +1061,10 @@ fn main() {
 }
 ```
 
-The fix: either restructure to avoid the move, or use `@` to pass a copy:
+The fix: either restructure to avoid the move, or use `@` to create a copy:
 
 ```flow
+let other = @tok  // deep copy; tok is not consumed
 let taken = take(@nums)  // pass a copy; nums is retained
 println(f"{nums.length}")  // ok
 ```
@@ -1045,15 +1177,25 @@ globals --- is idiomatic in Flow. It keeps functions pure and testable.
 Flow's ownership model rests on a small set of rules:
 
 - **One owner.** Every value has exactly one owner at any time.
+- **Four type categories.** Value types (stack-copied), refcounted types
+  (shared via ARC), affine types (moved on assignment), trivial structs
+  (stack-copied).
+- **Affine = move.** Structs with refcounted fields transfer ownership on
+  assignment. The source is consumed. Use `@` for independent copies.
 - **Implicit borrowing.** Passing a value to a function borrows it
   temporarily. Ownership reverts when the function returns, unless the
-  value escapes.
-- **Escape transfers ownership.** `return`, `yield`, and storage inside a
-  returned value permanently transfer ownership to the recipient.
+  value escapes. This applies to all type categories.
+- **Escape transfers ownership.** `return`, `yield`, container insertion,
+  and storage inside a returned value permanently transfer ownership.
+- **Container insertion = move.** `array.push` and `map.set` move affine
+  values in. Container access returns a clone for affine types.
+- **For-loop = borrow.** Loop variables borrow container elements.
+  Efficient, no clone per iteration.
 - **`@` always deep copies.** `@` produces an independent mutable-capable
-  copy for all types. Value types are stack copies; heap types allocate.
+  copy for all types. Value types are stack copies; heap types allocate;
+  affine types clone (retain each refcounted field).
 - **`&` shares immutable refs.** `&` increments the refcount and shares
-  the same memory. Only valid on immutable bindings. Cannot satisfy `:mut`.
+  the same memory. Refcounted types only. Cannot satisfy `:mut`.
 - **`:imut` accepts anything.** An `:imut` parameter borrows read-only
   access from any binding.
 - **`:mut` requires `:mut`.** A `:mut` parameter requires the caller to

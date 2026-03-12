@@ -403,6 +403,20 @@ Most functions use `extern fn` declarations binding to C runtime functions. Gene
 - `len` returns the array length as `int` (truncated from int64).
 - `concat_*` creates a new array combining both input arrays.
 
+### Ownership Semantics
+
+- `array.push(arr, val)`: If `val` is an affine type, ownership moves to
+  the array. `val` is consumed and cannot be used afterward.
+- `array.get(arr, idx)` / `array.get_any(arr, idx)`: Returns `T?`. If `T`
+  is an affine type, the returned value is a deep copy (clone) — each
+  refcounted field is independently retained. The array retains its original
+  element.
+- `for(x in arr)`: If `T` is affine, `x` borrows each element. No clone is
+  created, no cleanup per iteration. The array retains ownership throughout
+  the loop. To own an element during iteration, use `let owned = @x`.
+- When an array is released, all stored elements are destroyed. For affine
+  elements, each element's refcounted fields are released.
+
 ---
 
 ## Module: `char`
@@ -749,6 +763,19 @@ use `extern fn` declarations binding to C runtime functions.
   with Flow's ownership model.
 - Keys are compared by byte content (structural equality).
 - `keys` and `values` return arrays in insertion order.
+
+### Ownership Semantics
+
+- `map.set(m, key, val)`: If `val` is an affine type, ownership moves to
+  the map. `val` is consumed and cannot be used afterward. The map is
+  responsible for destroying the value when the map is released.
+- `map.get(m, key)`: Returns `V?`. If `V` is an affine type, the returned
+  value is a deep copy (clone) — each refcounted field is independently
+  retained. The map retains its original element.
+- `map.remove(m, key)`: Returns a new map without the entry. If `V` is
+  affine, the removed value is destroyed (its refcounted fields released).
+- When a map is released, all stored values are destroyed. For affine
+  values, this means each value's refcounted fields are released.
 
 ---
 

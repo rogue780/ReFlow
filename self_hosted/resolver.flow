@@ -69,7 +69,7 @@ fn symbol_with_type(name:string, kind:int, decl_id:int, type_ann:ast.TypeExpr, i
 
 // Copy a symbol, overriding module_key — used when re-exporting imported symbols into type_member_scopes
 fn copy_symbol_with_mk(sym:Symbol, mk:string):Symbol {
-    return Symbol{name:sym.name, kind:sym.kind, decl_id:sym.decl_id, has_type_ann:sym.has_type_ann, type_ann:sym.type_ann, is_mut:sym.is_mut, module_key:mk}
+    return Symbol{name:sym.name, kind:sym.kind, decl_id:sym.decl_id, has_type_ann:sym.has_type_ann, type_ann:@sym.type_ann, is_mut:sym.is_mut, module_key:mk}
 }
 
 // ---------------------------------------------------------------------------
@@ -333,7 +333,7 @@ fn pre_pass(s:ResolverState:mut):none {
 fn pre_pass_decl(s:ResolverState:mut, decl:ast.Decl):none {
     match decl {
         DFn(did, dl, dc, name, tp, params, has_ret, ret, body, is_pure, is_exp, is_static, has_fin, fin_body): {
-            define_or_error(s, name, make_symbol(name, SymbolKind.SK_FN, did, has_ret, ret, false), dl, dc)
+            define_or_error(s, name, make_symbol(name, SymbolKind.SK_FN, did, has_ret, @ret, false), dl, dc)
         }
         DType(did, dl, dc, name, tp, fields, methods, constructors, static_members, ifaces, is_exp, is_sum, variants, is_mut): {
             define_or_error(s, name, symbol_no_type(name, SymbolKind.SK_TYPE, did, false), dl, dc)
@@ -343,7 +343,7 @@ fn pre_pass_decl(s:ResolverState:mut, decl:ast.Decl):none {
                     some(cd): {
                         match cd {
                             DConstructor(cid, cl, cc, cname, cparams, cret, cbody): {
-                                define_or_error(s, cname, symbol_with_type(cname, SymbolKind.SK_CONSTRUCTOR, cid, cret, false), cl, cc)
+                                define_or_error(s, cname, symbol_with_type(cname, SymbolKind.SK_CONSTRUCTOR, cid, @cret, false), cl, cc)
                             }
                             _: {}
                         }
@@ -367,13 +367,13 @@ fn pre_pass_decl(s:ResolverState:mut, decl:ast.Decl):none {
             define_or_error(s, name, symbol_no_type(name, SymbolKind.SK_INTERFACE, did, false), dl, dc)
         }
         DAlias(did, dl, dc, name, tp, target, is_exp): {
-            define_or_error(s, name, symbol_with_type(name, SymbolKind.SK_ALIAS, did, target, false), dl, dc)
+            define_or_error(s, name, symbol_with_type(name, SymbolKind.SK_ALIAS, did, @target, false), dl, dc)
         }
         DEnum(did, dl, dc, name, variants, is_exp): {
             define_or_error(s, name, symbol_no_type(name, SymbolKind.SK_TYPE, did, false), dl, dc)
         }
         DExternFn(did, dl, dc, name, tp, params, has_ret, ret, is_exp, c_name): {
-            define_or_error(s, name, make_symbol(name, SymbolKind.SK_FN, did, has_ret, ret, false), dl, dc)
+            define_or_error(s, name, make_symbol(name, SymbolKind.SK_FN, did, has_ret, @ret, false), dl, dc)
         }
         DExternType(did, dl, dc, name, is_exp): {
             define_or_error(s, name, symbol_no_type(name, SymbolKind.SK_TYPE, did, false), dl, dc)
@@ -409,7 +409,7 @@ fn resolve_import(s:ResolverState:mut, imp:ast.Decl):none {
                             let name = array.get(names, ni) ?? ""
                             match map.get(mod_scope.exports, name) {
                                 some(exported): {
-                                    define_or_error(s, name, make_symbol(name, SymbolKind.SK_IMPORT, exported.decl_id, exported.has_type_ann, exported.type_ann, exported.is_mut), dl, dc)
+                                    define_or_error(s, name, make_symbol(name, SymbolKind.SK_IMPORT, exported.decl_id, exported.has_type_ann, @exported.type_ann, exported.is_mut), dl, dc)
                                 }
                                 none: {
                                     throw errors.resolve_error("name '" + name + "' is not exported by module '" + module_key + "'", s.filename, dl, dc)
@@ -483,7 +483,7 @@ fn build_member_scope(s:ResolverState:mut, decl:ast.Decl):none {
             while(fi < array.size(fields)) {
                 let f = array.get_any(fields, fi) ?? default_field_decl()
                 if(f.name != "") {
-                    mm = map.set(mm, f.name, symbol_with_type(f.name, SymbolKind.SK_LOCAL, f.id, f.type_ann, f.is_mut))
+                    mm = map.set(mm, f.name, symbol_with_type(f.name, SymbolKind.SK_LOCAL, f.id, @f.type_ann, f.is_mut))
                 }
                 fi = fi + 1
             }
@@ -493,7 +493,7 @@ fn build_member_scope(s:ResolverState:mut, decl:ast.Decl):none {
                     some(m): {
                         match m {
                             DFn(mid, ml, mc, mn, mtp, mp, mhr, mr, mb, mpu, me, ms, mhf, mfb): {
-                                mm = map.set(mm, mn, make_symbol(mn, SymbolKind.SK_FN, mid, mhr, mr, false))
+                                mm = map.set(mm, mn, make_symbol(mn, SymbolKind.SK_FN, mid, mhr, @mr, false))
                             }
                             _: {}
                         }
@@ -508,8 +508,8 @@ fn build_member_scope(s:ResolverState:mut, decl:ast.Decl):none {
                     some(stm): {
                         match stm {
                             DStaticMember(sid, sl, sc, sn, sta, sim, shv, sv): {
-                                let sym = symbol_with_type(sn, SymbolKind.SK_STATIC, sid, sta, sim)
-                                sm = map.set(sm, sn, sym)
+                                let sym = symbol_with_type(sn, SymbolKind.SK_STATIC, sid, @sta, sim)
+                                sm = map.set(sm, sn, @sym)
                                 mm = map.set(mm, sn, sym)
                             }
                             _: {}
@@ -607,7 +607,7 @@ fn bind_params(s:ResolverState:mut, params:array<ast.Param>):none {
     while(pi < array.size(params)) {
         let p = array.get_any(params, pi) ?? default_param()
         if(p.name != "") {
-            define_or_error(s, p.name, symbol_with_type(p.name, SymbolKind.SK_PARAM, p.id, p.type_ann, is_mut_binding(true, p.type_ann)), p.line, p.col)
+            define_or_error(s, p.name, symbol_with_type(p.name, SymbolKind.SK_PARAM, p.id, @p.type_ann, is_mut_binding(true, p.type_ann)), p.line, p.col)
         }
         pi = pi + 1
     }
@@ -694,7 +694,7 @@ fn bind_method_params(s:ResolverState:mut, params:array<ast.Param>, type_name:st
             if(p.name == "self") {
                 define_or_error(s, "self", symbol_with_type("self", SymbolKind.SK_PARAM, p.id, ast.TNamedType(0, p.line, p.col, type_name, []), self_mut), p.line, p.col)
             } else {
-                define_or_error(s, p.name, symbol_with_type(p.name, SymbolKind.SK_PARAM, p.id, p.type_ann, is_mut_binding(true, p.type_ann)), p.line, p.col)
+                define_or_error(s, p.name, symbol_with_type(p.name, SymbolKind.SK_PARAM, p.id, @p.type_ann, is_mut_binding(true, p.type_ann)), p.line, p.col)
             }
         }
         pi = pi + 1
@@ -776,7 +776,7 @@ fn resolve_expr(s:ResolverState:mut, expr:ast.Expr):none {
                 bind_node(s, nid, ns_sym)
             } else {
                 let sym = lookup_or_error(s, name, l, c)
-                bind_node(s, nid, sym)
+                bind_node(s, nid, @sym)
                 track_capture(s, sym)
             }
         }
@@ -1002,7 +1002,7 @@ fn resolve_stmt(s:ResolverState:mut, stmt:ast.Stmt):none {
     match stmt {
         SLet(nid, l, c, name, has_ta, ta, value): {
             resolve_expr(s, value)
-            define_or_error(s, name, make_symbol(name, SymbolKind.SK_LOCAL, nid, has_ta, ta, is_mut_binding(has_ta, ta)), l, c)
+            define_or_error(s, name, make_symbol(name, SymbolKind.SK_LOCAL, nid, has_ta, @ta, is_mut_binding(has_ta, ta)), l, c)
         }
         SAssign(nid, l, c, target, value): {
             resolve_expr(s, value)
@@ -1170,18 +1170,18 @@ fn build_module_scope(s:ResolverState:mut):ModuleScope {
             some(decl): {
                 match decl {
                     DFn(did, dl, dc, name, tp, params, hr, ret, body, ip, ie, is, hf, fb): {
-                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, @sym) } none: {} } }
                     }
                     DType(did, dl, dc, name, tp, fields, methods, constructors, statics, ifaces, ie, ism, variants, imu): {
                         if(ie) {
-                            match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} }
+                            match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, @sym) } none: {} }
                             let ci:int:mut = 0
                             while(ci < array.size(constructors)) {
                                 match array.get_any(constructors, ci) {
                                     some(cd): {
                                         match cd {
                                             DConstructor(cid, cl, cc, cn, cp, cr, cb): {
-                                                match scope_lookup(s, cn) { some(cs): { exports = map.set(exports, cn, cs) } none: {} }
+                                                match scope_lookup(s, cn) { some(cs): { exports = map.set(exports, cn, @cs) } none: {} }
                                             }
                                             _: {}
                                         }
@@ -1195,7 +1195,7 @@ fn build_module_scope(s:ResolverState:mut):ModuleScope {
                                 while(vi < array.size(variants)) {
                                     let v = array.get_any(variants, vi) ?? default_sum_variant()
                                     if(v.name != "") {
-                                        match scope_lookup(s, v.name) { some(vs): { exports = map.set(exports, v.name, vs) } none: {} }
+                                        match scope_lookup(s, v.name) { some(vs): { exports = map.set(exports, v.name, @vs) } none: {} }
                                     }
                                     vi = vi + 1
                                 }
@@ -1203,19 +1203,19 @@ fn build_module_scope(s:ResolverState:mut):ModuleScope {
                         }
                     }
                     DInterface(did, dl, dc, name, tp, methods, ie): {
-                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, @sym) } none: {} } }
                     }
                     DAlias(did, dl, dc, name, tp, target, ie): {
-                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, @sym) } none: {} } }
                     }
                     DEnum(did, dl, dc, name, variants, ie): {
-                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, @sym) } none: {} } }
                     }
                     DExternFn(did, dl, dc, name, tp, params, hr, ret, ie, cn): {
-                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, @sym) } none: {} } }
                     }
                     DExternType(did, dl, dc, name, ie): {
-                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, sym) } none: {} } }
+                        if(ie) { match scope_lookup(s, name) { some(sym): { exports = map.set(exports, name, @sym) } none: {} } }
                     }
                     _: {}
                 }
@@ -1233,7 +1233,7 @@ fn build_module_scope(s:ResolverState:mut):ModuleScope {
 
 export fn resolve(mod:ast.Module, filename:string, imported_modules:map<string, ModuleScope>):ResolvedModule {
     let state:ResolverState:mut = ResolverState{
-        src_module:mod, filename:filename, imported_modules:imported_modules,
+        src_module:@mod, filename:filename, imported_modules:imported_modules,
         bind_names:[], bind_symbols:map.new(), bind_depths:[], binding_count:0,
         frame_watermarks:[], frame_count:0, current_depth:0,
         symbols:map.new(), captures:map.new(),
