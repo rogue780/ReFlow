@@ -1366,7 +1366,7 @@ fn register_enum_decl(s:TCState:mut, name:string, variants:array<ast.EnumVariant
     while(j < array.size(resolved_variants)) {
         let vname:string:mut = array.get(resolved_variants, j) ?? ""
         info.static_names = array.push(info.static_names, vname)
-        info.static_types = map.set(info.static_types, vname, tc_box(enum_type))
+        info.static_types = map.set(info.static_types, vname, tc_box(@enum_type))
         j = j + 1
     }
 

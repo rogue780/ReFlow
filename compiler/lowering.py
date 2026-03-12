@@ -2246,23 +2246,9 @@ class Lowerer:
                         return decl
         return None
 
-    # TEMPORARY: Sum types excluded from destructor generation.
-    # TypeExpr is shared (not tree-structured) in the self-hosted compiler —
-    # All sum types now have destructors enabled.  TypeExpr was previously
-    # excluded because shared references caused UAF, but .flow files have
-    # been updated with @copy at all sharing points.
-    _EXCLUDED_SUM_TYPES: set[str] = set()
-
     def _sum_type_has_cleanup_fields(self, t: Type) -> bool:
-        """Check if a sum type has any variants with directly refcounted fields.
-
-        Enabled for all sum types EXCEPT those in _EXCLUDED_SUM_TYPES
-        (TypeExpr — shared graph, causes use-after-free).
-        """
+        """Check if a sum type has any variants with directly refcounted fields."""
         if not isinstance(t, (TNamed, TSum)):
-            return False
-        name = t.name
-        if name in self._EXCLUDED_SUM_TYPES:
             return False
         decl = self._get_sum_type_decl_cross_module(t)
         return decl is not None

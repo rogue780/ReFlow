@@ -1360,11 +1360,11 @@ class TestSumTypeDestructors(unittest.TestCase):
         self.assertTrue(len(destroy_fns) > 0, "Expected destructor for sum type Item")
 
     def test_no_excluded_sum_types(self):
-        """All sum types should now have destructors (exclusion list empty)."""
-        # TypeExpr was previously excluded due to shared graph, but .flow
-        # files have been updated with @copy at all sharing points.
+        """All sum types should now have destructors (no exclusion mechanism)."""
+        # _EXCLUDED_SUM_TYPES was removed — all sum types with refcounted
+        # fields now unconditionally get destructors.
         from compiler.lowering import Lowerer
-        self.assertEqual(len(Lowerer._EXCLUDED_SUM_TYPES), 0)
+        self.assertFalse(hasattr(Lowerer, '_EXCLUDED_SUM_TYPES'))
 
 
 class TestForLoopBorrow(unittest.TestCase):
