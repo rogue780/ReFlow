@@ -11086,9 +11086,6 @@ fl_int fl_tests_programs_app_sh_parser_test_main(void) {
     fl_string_retain(src2);
     FL_Array* tokens2 = fl_self_hosted_lexer_tokenize(src2, _fl_str_tests_programs_app_sh_parser_test_33);
     fl_self_hosted_parser_ParseResult result2 = result1;
-    fl_array_retain(result2.literal_values);
-    fl_array_retain(result2.cast_targets);
-    fl_array_retain(result2.sized_capacities);
     FL_ExceptionFrame _fl_ef_0;
     _fl_exception_push((&_fl_ef_0));
     if (setjmp(_fl_ef_0.jmp) == 0) {
@@ -11343,9 +11340,6 @@ fl_int fl_tests_programs_app_sh_parser_test_main(void) {
     fl_string_release(_fl_tmp_42);
     fl_string_release(src7);
     fl_array_release(tokens7);
-    fl_array_release(result1.literal_values);
-    fl_array_release(result1.cast_targets);
-    fl_array_release(result1.sized_capacities);
     fl_array_release(result2.literal_values);
     fl_array_release(result2.cast_targets);
     fl_array_release(result2.sized_capacities);

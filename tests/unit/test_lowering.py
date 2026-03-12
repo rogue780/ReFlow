@@ -1293,5 +1293,50 @@ class TestAffineClassification(unittest.TestCase):
         self.assertTrue(low._is_affine_type(container_type))
 
 
+class TestConsumedBindings(unittest.TestCase):
+    """Test that consumed (moved) bindings skip scope-exit cleanup."""
+
+    def test_returned_affine_struct_consumed(self):
+        """Returning an affine struct should consume it (no field releases)."""
+        m = lower("""
+            type Token { value:string, line:int }
+            fn make():Token {
+                let tok = Token{value:"hello", line:1}
+                return tok
+            }
+            fn do_stuff():int { return 0 }
+        """)
+        fn = find_fn(m, "make")
+        self.assertIsNotNone(fn)
+        # The function should NOT have fl_string_release for tok.value
+        # because tok is returned (consumed/moved to caller)
+        body_str = repr(fn.body)
+        self.assertNotIn("fl_string_release", body_str)
+
+    def test_assignment_move_consumes_source(self):
+        """let b = a where a is affine should consume a (move semantics)."""
+        m = lower("""
+            type Token { value:string, line:int }
+            fn process():Token {
+                let a = Token{value:"hello", line:1}
+                let b = a
+                return b
+            }
+            fn do_stuff():int { return 0 }
+        """)
+        fn = find_fn(m, "process")
+        self.assertIsNotNone(fn)
+        body_str = repr(fn.body)
+        # Under move semantics, 'a' is consumed by 'let b = a'.
+        # There should be no fl_string_release for a.value (a is consumed).
+        # There should be no fl_string_retain for b.value (move, not copy).
+        # Count: retain should appear once (for the string literal at
+        # construction of a), and release should not appear at all
+        # (b is returned, a is consumed).
+        release_count = body_str.count("fl_string_release")
+        self.assertEqual(release_count, 0,
+                         f"Expected 0 fl_string_release calls but found {release_count}")
+
+
 if __name__ == "__main__":
     unittest.main()

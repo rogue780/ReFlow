@@ -731,11 +731,12 @@ class Lowerer:
         # (struct_var_name, field_name, struct_c_type, destructor_fn, field_lt, depth)
         self._sum_field_cleanup: list[tuple[str, str, LType, str, LType, int]] = []
         self._scope_depth: int = 0
-        # Track struct variables whose contents have been heap-boxed and
-        # stored in a container (map/array).  The shallow copy means the
-        # container now shares the struct's internal pointers — releasing
-        # those fields at scope exit would cause a use-after-free.
-        self._transferred_struct_vars: set[str] = set()
+        # Track affine bindings that have been consumed (moved).
+        # A binding is consumed when its ownership transfers: container
+        # insertion (heap-boxing), return, or assignment to another binding.
+        # Consumed bindings skip scope-exit field cleanup because ownership
+        # of their internal pointers has been transferred elsewhere.
+        self._consumed_bindings: set[str] = set()
 
         # Array element struct handlers: track which struct C types have had
         # _fl_destroy_<T> / _fl_retain_<T> helper functions emitted.
@@ -1100,8 +1101,8 @@ class Lowerer:
         self._struct_field_cleanup = []
         saved_sum_field_cleanup = self._sum_field_cleanup
         self._sum_field_cleanup = []
-        saved_transferred_struct_vars = self._transferred_struct_vars
-        self._transferred_struct_vars = set()
+        saved_consumed_bindings = self._consumed_bindings
+        self._consumed_bindings = set()
         saved_scope_depth = self._scope_depth
         self._scope_depth = 0
 
@@ -1158,12 +1159,12 @@ class Lowerer:
                              for sv, fn, sct, rel, depth
                              in self._struct_field_cleanup
                              if depth == 0
-                             and sv not in self._transferred_struct_vars])
+                             and sv not in self._consumed_bindings])
                 body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
                              for sv, fn, sct, dest, flt, depth
                              in self._sum_field_cleanup
                              if depth == 0
-                             and sv not in self._transferred_struct_vars])
+                             and sv not in self._consumed_bindings])
 
         self._fn_defs.append(LFnDef(
             c_name=c_name,
@@ -1214,8 +1215,8 @@ class Lowerer:
             self._struct_field_cleanup = []
             saved_sum_field_cleanup = self._sum_field_cleanup
             self._sum_field_cleanup = []
-            saved_transferred_struct_vars = self._transferred_struct_vars
-            self._transferred_struct_vars = set()
+            saved_consumed_bindings = self._consumed_bindings
+            self._consumed_bindings = set()
             saved_scope_depth = self._scope_depth
             self._scope_depth = 0
             params: list[tuple[str, LType]] = []
@@ -1268,12 +1269,12 @@ class Lowerer:
                                  for sv, fn, sct, rel, depth
                                  in self._struct_field_cleanup
                                  if depth == 0
-                                 and sv not in self._transferred_struct_vars])
+                                 and sv not in self._consumed_bindings])
                     body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
                                  for sv, fn, sct, dest, flt, depth
                                  in self._sum_field_cleanup
                                  if depth == 0
-                                 and sv not in self._transferred_struct_vars])
+                                 and sv not in self._consumed_bindings])
 
             self._fn_defs.append(LFnDef(
                 c_name=m_c_name,
@@ -1290,7 +1291,7 @@ class Lowerer:
             self._container_locals = saved_container_locals
             self._struct_field_cleanup = saved_struct_field_cleanup
             self._sum_field_cleanup = saved_sum_field_cleanup
-            self._transferred_struct_vars = saved_transferred_struct_vars
+            self._consumed_bindings = saved_consumed_bindings
             self._scope_depth = saved_scope_depth
 
         # Lower constructors
@@ -1579,7 +1580,7 @@ class Lowerer:
         return keys
 
     @staticmethod
-    def _collect_transferred_struct_bases(expr: LExpr | None) -> set[str]:
+    def _collect_consumed_struct_bases(expr: LExpr | None) -> set[str]:
         """Collect LVar names used as compound literal field values.
 
         When a struct variable appears as a field value in a compound literal
@@ -1660,7 +1661,7 @@ class Lowerer:
                 # Collect struct variables embedded in compound literals —
                 # these are transferred by shallow copy so their internal
                 # fields must never be released.
-                transferred_bases = self._collect_transferred_struct_bases(
+                consumed_bases = self._collect_consumed_struct_bases(
                     s.value)
 
                 # Determine if we need to hoist the return expression.
@@ -1709,12 +1710,12 @@ class Lowerer:
                         # Always skip struct fields when the struct is
                         # transferred into a compound literal — its fields
                         # become part of the return value via shallow copy.
-                        if base_name in transferred_bases:
+                        if base_name in consumed_bases:
                             continue
-                        # Skip struct fields when the struct was heap-boxed
-                        # and stored in a container (map/array) — the
-                        # container now owns those internal pointers.
-                        if sv in self._transferred_struct_vars:
+                        # Skip struct fields when the binding has been
+                        # consumed (moved): container insertion, return,
+                        # or assignment — ownership transferred elsewhere.
+                        if sv in self._consumed_bindings:
                             continue
                         # Skip specific fields transferred to the return value
                         if field_key in returned_field_keys:
@@ -1732,9 +1733,9 @@ class Lowerer:
                             continue
                         if not needs_hoist and base_name in returned_names:
                             continue
-                        if base_name in transferred_bases:
+                        if base_name in consumed_bases:
                             continue
-                        if sv in self._transferred_struct_vars:
+                        if sv in self._consumed_bindings:
                             continue
                         if field_key in returned_field_keys:
                             continue
@@ -1985,6 +1986,14 @@ class Lowerer:
                     # fields may be shared with other owners (e.g. token
                     # array) and releasing without retaining first would
                     # drop the shared owner's reference.
+                    self._register_struct_field_releases(
+                        stmt.name, val_type, c_type, self._scope_depth)
+                elif (isinstance(stmt.value, Ident)
+                        and self._is_affine_type(val_type)):
+                    # Affine move: `let b = a` transfers ownership.
+                    # No retain on b's fields (move, not copy).
+                    # Mark source as consumed so its cleanup is skipped.
+                    self._consumed_bindings.add(stmt.value.name)
                     self._register_struct_field_releases(
                         stmt.name, val_type, c_type, self._scope_depth)
                 else:
@@ -3115,7 +3124,7 @@ class Lowerer:
                 continue
             if name not in top_decls:
                 continue
-            if name in self._transferred_struct_vars:
+            if name in self._consumed_bindings:
                 continue
             if name in push_ptr_vars:
                 continue
@@ -3231,7 +3240,7 @@ class Lowerer:
                 continue
             if name not in top_decls:
                 continue
-            if name in self._transferred_struct_vars:
+            if name in self._consumed_bindings:
                 continue
             if name in push_ptr_vars:
                 continue
@@ -3250,7 +3259,7 @@ class Lowerer:
             base = sv.split(".")[0]
             if base not in top_decls:
                 continue
-            if sv in self._transferred_struct_vars:
+            if sv in self._consumed_bindings:
                 continue
             seen_fields.add(field_key)
             cleanup.append(self._emit_struct_field_release(
@@ -3266,7 +3275,7 @@ class Lowerer:
             base = sv.split(".")[0]
             if base not in top_decls:
                 continue
-            if sv in self._transferred_struct_vars:
+            if sv in self._consumed_bindings:
                 continue
             seen_fields.add(field_key)
             cleanup.append(self._emit_sum_field_release(
@@ -8786,7 +8795,7 @@ class Lowerer:
         # The shallow copy (*tmp = expr) transfers internal pointers.
         # If expr is an LVar, mark it so scope-exit cleanup skips its fields.
         if isinstance(expr, LVar):
-            if expr.c_name in self._transferred_struct_vars:
+            if expr.c_name in self._consumed_bindings:
                 # Second+ transfer: retain refcounted fields before the
                 # shallow copy so they survive the first copy's destruction
                 # (e.g. when a map overwrites the same key).
@@ -8803,7 +8812,7 @@ class Lowerer:
                                                         self._lower_type(ft))],
                                           LVoid())))
             else:
-                self._transferred_struct_vars.add(expr.c_name)
+                self._consumed_bindings.add(expr.c_name)
         self._pending_stmts.append(LAssign(
             LDeref(LVar(tmp, ptr_type), struct_lt),
             expr,
@@ -9167,8 +9176,8 @@ class Lowerer:
         self._struct_field_cleanup = []
         saved_sum_field_cleanup = self._sum_field_cleanup
         self._sum_field_cleanup = []
-        saved_transferred_struct_vars = self._transferred_struct_vars
-        self._transferred_struct_vars = set()
+        saved_consumed_bindings = self._consumed_bindings
+        self._consumed_bindings = set()
         saved_scope_depth = self._scope_depth
         self._scope_depth = 0
 
@@ -9220,12 +9229,12 @@ class Lowerer:
                              for sv, fn, sct, rel, depth
                              in self._struct_field_cleanup
                              if depth == 0
-                             and sv not in self._transferred_struct_vars])
+                             and sv not in self._consumed_bindings])
                 body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
                              for sv, fn, sct, dest, flt, depth
                              in self._sum_field_cleanup
                              if depth == 0
-                             and sv not in self._transferred_struct_vars])
+                             and sv not in self._consumed_bindings])
 
         # Restore state
         self._types = original_types
@@ -9239,7 +9248,7 @@ class Lowerer:
         self._container_locals = saved_container_locals
         self._struct_field_cleanup = saved_struct_field_cleanup
         self._sum_field_cleanup = saved_sum_field_cleanup
-        self._transferred_struct_vars = saved_transferred_struct_vars
+        self._consumed_bindings = saved_consumed_bindings
         self._scope_depth = saved_scope_depth
 
         return LFnDef(
