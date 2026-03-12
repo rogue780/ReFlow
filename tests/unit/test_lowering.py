@@ -1389,5 +1389,25 @@ class TestForLoopBorrow(unittest.TestCase):
         self.assertNotIn("fl_string_release", body_str)
 
 
+class TestParamBorrow(unittest.TestCase):
+    """Function params on affine types should borrow (no field cleanup)."""
+
+    def test_affine_param_no_field_cleanup(self):
+        """Affine struct param should NOT get field releases at callee scope exit."""
+        m = lower("""
+            type Token { value:string, line:int }
+            fn process(tok:Token):int {
+                return tok.line
+            }
+            fn do_stuff():int { return 0 }
+        """)
+        fn = find_fn(m, "process")
+        self.assertIsNotNone(fn)
+        # The function should NOT have fl_string_release for tok.value
+        # because tok is a borrowed parameter
+        body_str = repr(fn.body)
+        self.assertNotIn("fl_string_release", body_str)
+
+
 if __name__ == "__main__":
     unittest.main()
