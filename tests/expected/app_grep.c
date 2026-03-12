@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -823,103 +831,103 @@ void fl_tests_app_grep_main(void) {
     FL_String* _fl_tmp_20 = fl_conv_to_string__int(c1);
     FL_String* _fl_tmp_21 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_20);
     fl_println(_fl_tmp_21);
-    fl_string_release(_fl_tmp_20);
-    fl_string_release(_fl_tmp_21);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_11);
     fl_int c2 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_12, fl_true, fl_false);
     FL_String* _fl_tmp_22 = fl_conv_to_string__int(c2);
     FL_String* _fl_tmp_23 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_22);
     fl_println(_fl_tmp_23);
-    fl_string_release(_fl_tmp_22);
-    fl_string_release(_fl_tmp_23);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_13);
     fl_int c3 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_12, fl_false, fl_false);
     FL_String* _fl_tmp_24 = fl_conv_to_string__int(c3);
     FL_String* _fl_tmp_25 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_24);
     fl_println(_fl_tmp_25);
-    fl_string_release(_fl_tmp_24);
-    fl_string_release(_fl_tmp_25);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_14);
     fl_int c4 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_9, fl_false, fl_true);
     FL_String* _fl_tmp_26 = fl_conv_to_string__int(c4);
     FL_String* _fl_tmp_27 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_26);
     fl_println(_fl_tmp_27);
-    fl_string_release(_fl_tmp_26);
-    fl_string_release(_fl_tmp_27);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_15);
     fl_int c5 = fl_tests_app_grep_search_and_print(txt_file, _fl_str_tests_app_grep_16, fl_false, fl_false);
     FL_String* _fl_tmp_28 = fl_conv_to_string__int(c5);
     FL_String* _fl_tmp_29 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_28);
     fl_println(_fl_tmp_29);
-    fl_string_release(_fl_tmp_28);
-    fl_string_release(_fl_tmp_29);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_17);
     FL_String* _fl_tmp_30 = fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(_fl_str_tests_app_grep_19, _fl_str_tests_app_grep_6));
     FL_String* _fl_tmp_31 = fl_string_concat(_fl_str_tests_app_grep_18, _fl_tmp_30);
     fl_println(_fl_tmp_31);
-    fl_string_release(_fl_tmp_30);
-    fl_string_release(_fl_tmp_31);
     FL_String* _fl_tmp_32 = fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(_fl_str_tests_app_grep_21, _fl_str_tests_app_grep_6));
     FL_String* _fl_tmp_33 = fl_string_concat(_fl_str_tests_app_grep_20, _fl_tmp_32);
     fl_println(_fl_tmp_33);
-    fl_string_release(_fl_tmp_32);
-    fl_string_release(_fl_tmp_33);
     FL_String* _fl_tmp_34 = fl_conv_to_string__bool(fl_tests_app_grep_should_skip_file(_fl_str_tests_app_grep_19, _fl_str_tests_app_grep_0));
     FL_String* _fl_tmp_35 = fl_string_concat(_fl_str_tests_app_grep_22, _fl_tmp_34);
     fl_println(_fl_tmp_35);
-    fl_string_release(_fl_tmp_34);
-    fl_string_release(_fl_tmp_35);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_23);
     fl_int c6 = fl_tests_app_grep_search_and_print(log_file, _fl_str_tests_app_grep_24, fl_false, fl_false);
     FL_String* _fl_tmp_36 = fl_conv_to_string__int(c6);
     FL_String* _fl_tmp_37 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_36);
     fl_println(_fl_tmp_37);
-    fl_string_release(_fl_tmp_36);
-    fl_string_release(_fl_tmp_37);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_25);
     fl_int c7 = fl_tests_app_grep_search_with_context(txt_file, _fl_str_tests_app_grep_26, 1, 0);
     FL_String* _fl_tmp_38 = fl_conv_to_string__int(c7);
     FL_String* _fl_tmp_39 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_38);
     fl_println(_fl_tmp_39);
-    fl_string_release(_fl_tmp_38);
-    fl_string_release(_fl_tmp_39);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_27);
     fl_int c8 = fl_tests_app_grep_search_with_context(txt_file, _fl_str_tests_app_grep_12, 0, 1);
     FL_String* _fl_tmp_40 = fl_conv_to_string__int(c8);
     FL_String* _fl_tmp_41 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_40);
     fl_println(_fl_tmp_41);
-    fl_string_release(_fl_tmp_40);
-    fl_string_release(_fl_tmp_41);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_28);
     fl_int c9 = fl_tests_app_grep_search_with_context(log_file, _fl_str_tests_app_grep_24, 1, 1);
     FL_String* _fl_tmp_42 = fl_conv_to_string__int(c9);
     FL_String* _fl_tmp_43 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_42);
     fl_println(_fl_tmp_43);
-    fl_string_release(_fl_tmp_42);
-    fl_string_release(_fl_tmp_43);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_29);
     fl_int c10 = fl_tests_app_grep_search_with_context(txt_file, _fl_str_tests_app_grep_9, 1, 0);
     FL_String* _fl_tmp_44 = fl_conv_to_string__int(c10);
     FL_String* _fl_tmp_45 = fl_string_concat(_fl_str_tests_app_grep_10, _fl_tmp_44);
     fl_println(_fl_tmp_45);
-    fl_string_release(_fl_tmp_44);
-    fl_string_release(_fl_tmp_45);
     fl_tmpfile_remove(txt_file);
     fl_tmpfile_remove(log_file);
     fl_println(_fl_str_tests_app_grep_0);
     fl_println(_fl_str_tests_app_grep_30);
     fl_string_release(txt_file);
     fl_string_release(log_file);
+    fl_string_release(_fl_tmp_20);
+    fl_string_release(_fl_tmp_21);
+    fl_string_release(_fl_tmp_22);
+    fl_string_release(_fl_tmp_23);
+    fl_string_release(_fl_tmp_24);
+    fl_string_release(_fl_tmp_25);
+    fl_string_release(_fl_tmp_26);
+    fl_string_release(_fl_tmp_27);
+    fl_string_release(_fl_tmp_28);
+    fl_string_release(_fl_tmp_29);
+    fl_string_release(_fl_tmp_30);
+    fl_string_release(_fl_tmp_31);
+    fl_string_release(_fl_tmp_32);
+    fl_string_release(_fl_tmp_33);
+    fl_string_release(_fl_tmp_34);
+    fl_string_release(_fl_tmp_35);
+    fl_string_release(_fl_tmp_36);
+    fl_string_release(_fl_tmp_37);
+    fl_string_release(_fl_tmp_38);
+    fl_string_release(_fl_tmp_39);
+    fl_string_release(_fl_tmp_40);
+    fl_string_release(_fl_tmp_41);
+    fl_string_release(_fl_tmp_42);
+    fl_string_release(_fl_tmp_43);
+    fl_string_release(_fl_tmp_44);
+    fl_string_release(_fl_tmp_45);
 }
 
 static void _fl_init_statics(void) {

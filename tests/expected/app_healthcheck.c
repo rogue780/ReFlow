@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -807,8 +815,8 @@ fl_int fl_tests_app_healthcheck_parse_http_status(FL_String* response) {
             fl_int sp2 = _fl_tmp_7.value;
             FL_String* _fl_tmp_8 = fl_string_substring(after, 0, sp2);
             FL_Option_int _fl_tmp_9 = fl_conv_string_to_int(_fl_tmp_8);
-            fl_string_release(_fl_tmp_8);
             fl_string_release(after);
+            fl_string_release(_fl_tmp_8);
             return ((_fl_tmp_9.tag == 1) ? _fl_tmp_9.value : 0);
         }
         FL_Option_int _fl_tmp_10 = fl_conv_string_to_int(after);
@@ -829,9 +837,6 @@ fl_tests_app_healthcheck_CheckStatus fl_tests_app_healthcheck_check_url(FL_Strin
         FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, _fl_str_tests_app_healthcheck_11);
         FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, host);
         FL_String* req = fl_string_concat(_fl_tmp_14, _fl_str_tests_app_healthcheck_12);
-        fl_string_release(_fl_tmp_12);
-        fl_string_release(_fl_tmp_13);
-        fl_string_release(_fl_tmp_14);
         fl_bool wrote = fl_net_write_string(sock, req);
         if (!wrote) {
             fl_net_close(sock);
@@ -845,27 +850,32 @@ fl_tests_app_healthcheck_CheckStatus fl_tests_app_healthcheck_check_url(FL_Strin
             FL_String* resp = fl_string_from_bytes(data);
             fl_int status_code = fl_tests_app_healthcheck_parse_http_status(resp);
             if (status_code == expected) {
-                fl_tests_app_healthcheck_CheckStatus _fl_ret_21 = (fl_tests_app_healthcheck_CheckStatus){.tag = 0, .Pass = (fl_tests_app_healthcheck_CheckStatus_Pass){.code = status_code}};
+                fl_tests_app_healthcheck_CheckStatus _fl_ret_20 = (fl_tests_app_healthcheck_CheckStatus){.tag = 0, .Pass = (fl_tests_app_healthcheck_CheckStatus_Pass){.code = status_code}};
+                fl_string_release(_fl_tmp_12);
+                fl_string_release(_fl_tmp_13);
+                fl_string_release(_fl_tmp_14);
                 fl_string_release(req);
                 fl_string_release(resp);
-                return _fl_ret_21;
+                return _fl_ret_20;
             }
             FL_String* _fl_tmp_16 = fl_conv_to_string__int(expected);
             FL_String* _fl_tmp_17 = fl_string_concat(_fl_str_tests_app_healthcheck_14, _fl_tmp_16);
             FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, _fl_str_tests_app_healthcheck_15);
             FL_String* _fl_tmp_19 = fl_conv_to_string__int(status_code);
-            fl_tests_app_healthcheck_CheckStatus _fl_ret_20 = (fl_tests_app_healthcheck_CheckStatus){.tag = 2, .Warn = (fl_tests_app_healthcheck_CheckStatus_Warn){.code = status_code, .reason = fl_string_concat(_fl_tmp_18, _fl_tmp_19)}};
+            fl_tests_app_healthcheck_CheckStatus _fl_ret_21 = (fl_tests_app_healthcheck_CheckStatus){.tag = 2, .Warn = (fl_tests_app_healthcheck_CheckStatus_Warn){.code = status_code, .reason = fl_string_concat(_fl_tmp_18, _fl_tmp_19)}};
+            fl_string_release(_fl_tmp_12);
+            fl_string_release(_fl_tmp_13);
+            fl_string_release(_fl_tmp_14);
+            fl_string_release(req);
+            fl_string_release(resp);
             fl_string_release(_fl_tmp_16);
             fl_string_release(_fl_tmp_17);
             fl_string_release(_fl_tmp_18);
             fl_string_release(_fl_tmp_19);
-            fl_string_release(req);
-            fl_string_release(resp);
-            return _fl_ret_20;
+            return _fl_ret_21;
         }
         fl_net_close(sock);
         _fl_throw(((void*)_fl_str_tests_app_healthcheck_16), 0);
-        fl_string_release(req);
     }
     _fl_throw(((void*)_fl_str_tests_app_healthcheck_17), 0);
 }
@@ -999,9 +1009,6 @@ void fl_tests_app_healthcheck_main(void) {
     if (_fl_old_44 != urls) {
         fl_array_release(_fl_old_44);
     }
-    fl_string_release(_fl_tmp_41);
-    fl_string_release(_fl_tmp_42);
-    fl_string_release(_fl_tmp_43);
     FL_String* _fl_tmp_45 = fl_conv_to_string__int(port);
     FL_String* _fl_tmp_46 = fl_string_concat(_fl_str_tests_app_healthcheck_25, _fl_tmp_45);
     FL_String* _fl_tmp_47 = fl_string_concat(_fl_tmp_46, _fl_str_tests_app_healthcheck_27);
@@ -1010,9 +1017,6 @@ void fl_tests_app_healthcheck_main(void) {
     if (_fl_old_48 != urls) {
         fl_array_release(_fl_old_48);
     }
-    fl_string_release(_fl_tmp_45);
-    fl_string_release(_fl_tmp_46);
-    fl_string_release(_fl_tmp_47);
     FL_String* _fl_tmp_49 = fl_conv_to_string__int(port);
     FL_String* _fl_tmp_50 = fl_string_concat(_fl_str_tests_app_healthcheck_25, _fl_tmp_49);
     FL_String* _fl_tmp_51 = fl_string_concat(_fl_tmp_50, _fl_str_tests_app_healthcheck_28);
@@ -1021,9 +1025,6 @@ void fl_tests_app_healthcheck_main(void) {
     if (_fl_old_52 != urls) {
         fl_array_release(_fl_old_52);
     }
-    fl_string_release(_fl_tmp_49);
-    fl_string_release(_fl_tmp_50);
-    fl_string_release(_fl_tmp_51);
     FL_String* _fl_tmp_53 = fl_conv_to_string__int(port);
     FL_String* _fl_tmp_54 = fl_string_concat(_fl_str_tests_app_healthcheck_25, _fl_tmp_53);
     FL_String* _fl_tmp_55 = fl_string_concat(_fl_tmp_54, _fl_str_tests_app_healthcheck_29);
@@ -1032,9 +1033,6 @@ void fl_tests_app_healthcheck_main(void) {
     if (_fl_old_56 != urls) {
         fl_array_release(_fl_old_56);
     }
-    fl_string_release(_fl_tmp_53);
-    fl_string_release(_fl_tmp_54);
-    fl_string_release(_fl_tmp_55);
     fl_int _fl_e_1;
     FL_CHECKED_ADD(port, 1, &_fl_e_1);
     FL_String* _fl_tmp_57 = fl_conv_to_string__int(_fl_e_1);
@@ -1045,9 +1043,6 @@ void fl_tests_app_healthcheck_main(void) {
     if (_fl_old_60 != urls) {
         fl_array_release(_fl_old_60);
     }
-    fl_string_release(_fl_tmp_57);
-    fl_string_release(_fl_tmp_58);
-    fl_string_release(_fl_tmp_59);
     fl_int idx = 0;
     while (idx < 5) {
         FL_Option_ptr _fl_tmp_61 = fl_array_get_safe(urls, idx);
@@ -1068,7 +1063,6 @@ void fl_tests_app_healthcheck_main(void) {
         fl_int expected = ((_fl_tmp_67.tag == 1) ? _fl_tmp_67.value : 200);
         FL_String* _fl_tmp_68 = fl_string_concat(_fl_str_tests_app_healthcheck_36, url_path);
         fl_println(_fl_tmp_68);
-        fl_string_release(_fl_tmp_68);
         FL_ExceptionFrame _fl_ef_0;
         _fl_exception_push((&_fl_ef_0));
         if (setjmp(_fl_ef_0.jmp) == 0) {
@@ -1083,12 +1077,12 @@ void fl_tests_app_healthcheck_main(void) {
                     FL_String* _fl_tmp_73 = fl_string_concat(_fl_tmp_71, _fl_tmp_72);
                     FL_String* _fl_tmp_74 = fl_string_concat(_fl_tmp_73, _fl_str_tests_app_healthcheck_39);
                     fl_println(_fl_tmp_74);
+                    fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_19));
                     fl_string_release(_fl_tmp_70);
                     fl_string_release(_fl_tmp_71);
                     fl_string_release(_fl_tmp_72);
                     fl_string_release(_fl_tmp_73);
                     fl_string_release(_fl_tmp_74);
-                    fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_19));
                     break;
                 }
                 case 2: {
@@ -1102,6 +1096,7 @@ void fl_tests_app_healthcheck_main(void) {
                     FL_String* _fl_tmp_80 = fl_string_concat(_fl_tmp_79, reason);
                     FL_String* _fl_tmp_81 = fl_string_concat(_fl_tmp_80, _fl_str_tests_app_healthcheck_39);
                     fl_println(_fl_tmp_81);
+                    fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_21));
                     fl_string_release(_fl_tmp_75);
                     fl_string_release(_fl_tmp_76);
                     fl_string_release(_fl_tmp_77);
@@ -1109,7 +1104,6 @@ void fl_tests_app_healthcheck_main(void) {
                     fl_string_release(_fl_tmp_79);
                     fl_string_release(_fl_tmp_80);
                     fl_string_release(_fl_tmp_81);
-                    fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_21));
                     break;
                 }
                 case 1: {
@@ -1119,11 +1113,11 @@ void fl_tests_app_healthcheck_main(void) {
                     FL_String* _fl_tmp_84 = fl_string_concat(_fl_tmp_83, msg);
                     FL_String* _fl_tmp_85 = fl_string_concat(_fl_tmp_84, _fl_str_tests_app_healthcheck_39);
                     fl_println(_fl_tmp_85);
+                    fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_20));
                     fl_string_release(_fl_tmp_82);
                     fl_string_release(_fl_tmp_83);
                     fl_string_release(_fl_tmp_84);
                     fl_string_release(_fl_tmp_85);
-                    fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_20));
                     break;
                 }
             }
@@ -1138,8 +1132,6 @@ void fl_tests_app_healthcheck_main(void) {
                     FL_String* _fl_tmp_88 = fl_string_concat(_fl_str_tests_app_healthcheck_43, ex);
                     FL_String* _fl_tmp_89 = fl_string_concat(_fl_tmp_88, _fl_str_tests_app_healthcheck_44);
                     fl_println(_fl_tmp_89);
-                    fl_string_release(_fl_tmp_88);
-                    fl_string_release(_fl_tmp_89);
                     _fl_exception_push((&_fl_ef_0));
                     if (setjmp(_fl_ef_0.jmp) == 0) {
                         fl_tests_app_healthcheck_CheckStatus status = fl_tests_app_healthcheck_check_url(host, tport, url_path, expected, 2000);
@@ -1153,12 +1145,12 @@ void fl_tests_app_healthcheck_main(void) {
                                 FL_String* _fl_tmp_94 = fl_string_concat(_fl_tmp_92, _fl_tmp_93);
                                 FL_String* _fl_tmp_95 = fl_string_concat(_fl_tmp_94, _fl_str_tests_app_healthcheck_39);
                                 fl_println(_fl_tmp_95);
+                                fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_19));
                                 fl_string_release(_fl_tmp_91);
                                 fl_string_release(_fl_tmp_92);
                                 fl_string_release(_fl_tmp_93);
                                 fl_string_release(_fl_tmp_94);
                                 fl_string_release(_fl_tmp_95);
-                                fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_19));
                                 break;
                             }
                             case 2: {
@@ -1172,6 +1164,7 @@ void fl_tests_app_healthcheck_main(void) {
                                 FL_String* _fl_tmp_101 = fl_string_concat(_fl_tmp_100, reason);
                                 FL_String* _fl_tmp_102 = fl_string_concat(_fl_tmp_101, _fl_str_tests_app_healthcheck_39);
                                 fl_println(_fl_tmp_102);
+                                fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_21));
                                 fl_string_release(_fl_tmp_96);
                                 fl_string_release(_fl_tmp_97);
                                 fl_string_release(_fl_tmp_98);
@@ -1179,7 +1172,6 @@ void fl_tests_app_healthcheck_main(void) {
                                 fl_string_release(_fl_tmp_100);
                                 fl_string_release(_fl_tmp_101);
                                 fl_string_release(_fl_tmp_102);
-                                fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_21));
                                 break;
                             }
                             case 1: {
@@ -1189,11 +1181,11 @@ void fl_tests_app_healthcheck_main(void) {
                                 FL_String* _fl_tmp_105 = fl_string_concat(_fl_tmp_104, msg);
                                 FL_String* _fl_tmp_106 = fl_string_concat(_fl_tmp_105, _fl_str_tests_app_healthcheck_39);
                                 fl_println(_fl_tmp_106);
+                                fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_20));
                                 fl_string_release(_fl_tmp_103);
                                 fl_string_release(_fl_tmp_104);
                                 fl_string_release(_fl_tmp_105);
                                 fl_string_release(_fl_tmp_106);
-                                fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_20));
                                 break;
                             }
                         }
@@ -1209,10 +1201,6 @@ void fl_tests_app_healthcheck_main(void) {
                 FL_String* _fl_tmp_109 = fl_string_concat(_fl_tmp_108, ex);
                 FL_String* _fl_tmp_110 = fl_string_concat(_fl_tmp_109, _fl_str_tests_app_healthcheck_45);
                 fl_println(_fl_tmp_110);
-                fl_string_release(_fl_tmp_107);
-                fl_string_release(_fl_tmp_108);
-                fl_string_release(_fl_tmp_109);
-                fl_string_release(_fl_tmp_110);
                 fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_20));
 _fl_tmp_87:;
             } else {
@@ -1226,6 +1214,7 @@ _fl_tmp_87:;
         fl_array_release(parts);
         fl_string_release(host);
         fl_string_release(url_path);
+        fl_string_release(_fl_tmp_68);
     }
     fl_coroutine_send(agg, ((void*)_fl_str_tests_app_healthcheck_18));
     FL_Option_ptr _fl_tmp_111 = fl_coroutine_next(agg);
@@ -1236,25 +1225,40 @@ _fl_tmp_87:;
         FL_Option_ptr _fl_tmp_112 = fl_array_get_safe(rparts, 0);
         FL_String* _fl_tmp_113 = fl_string_concat(_fl_str_tests_app_healthcheck_47, ((_fl_tmp_112.tag == 1) ? _fl_tmp_112.value : _fl_str_tests_app_healthcheck_33));
         fl_println(_fl_tmp_113);
-        fl_string_release(_fl_tmp_113);
         FL_Option_ptr _fl_tmp_114 = fl_array_get_safe(rparts, 1);
         FL_String* _fl_tmp_115 = fl_string_concat(_fl_str_tests_app_healthcheck_48, ((_fl_tmp_114.tag == 1) ? _fl_tmp_114.value : _fl_str_tests_app_healthcheck_33));
         fl_println(_fl_tmp_115);
-        fl_string_release(_fl_tmp_115);
         FL_Option_ptr _fl_tmp_116 = fl_array_get_safe(rparts, 2);
         FL_String* _fl_tmp_117 = fl_string_concat(_fl_str_tests_app_healthcheck_49, ((_fl_tmp_116.tag == 1) ? _fl_tmp_116.value : _fl_str_tests_app_healthcheck_33));
         fl_println(_fl_tmp_117);
-        fl_string_release(_fl_tmp_117);
         FL_Option_ptr _fl_tmp_118 = fl_array_get_safe(rparts, 3);
         FL_String* _fl_tmp_119 = fl_string_concat(_fl_str_tests_app_healthcheck_50, ((_fl_tmp_118.tag == 1) ? _fl_tmp_118.value : _fl_str_tests_app_healthcheck_33));
         fl_println(_fl_tmp_119);
-        fl_string_release(_fl_tmp_119);
         fl_array_release(rparts);
+        fl_string_release(_fl_tmp_113);
+        fl_string_release(_fl_tmp_115);
+        fl_string_release(_fl_tmp_117);
+        fl_string_release(_fl_tmp_119);
     } else {
         fl_println(_fl_str_tests_app_healthcheck_51);
     }
     fl_coroutine_send(server, ((void*)_fl_str_tests_app_healthcheck_2));
     fl_array_release(urls);
+    fl_string_release(_fl_tmp_41);
+    fl_string_release(_fl_tmp_42);
+    fl_string_release(_fl_tmp_43);
+    fl_string_release(_fl_tmp_45);
+    fl_string_release(_fl_tmp_46);
+    fl_string_release(_fl_tmp_47);
+    fl_string_release(_fl_tmp_49);
+    fl_string_release(_fl_tmp_50);
+    fl_string_release(_fl_tmp_51);
+    fl_string_release(_fl_tmp_53);
+    fl_string_release(_fl_tmp_54);
+    fl_string_release(_fl_tmp_55);
+    fl_string_release(_fl_tmp_57);
+    fl_string_release(_fl_tmp_58);
+    fl_string_release(_fl_tmp_59);
 }
 
 static void _fl_init_statics(void) {

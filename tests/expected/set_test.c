@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -679,39 +687,29 @@ fl_int fl_tests_set_test_main(void) {
     FL_Map* s = fl_string_set_new();
     FL_String* _fl_tmp_0 = fl_conv_to_string__bool(fl_string_set_has(s, _fl_str_tests_set_test_0));
     fl_println(_fl_tmp_0);
-    fl_string_release(_fl_tmp_0);
     FL_Map* s2 = fl_string_set_add(s, _fl_str_tests_set_test_1);
     FL_Map* s3 = fl_string_set_add(s2, _fl_str_tests_set_test_2);
     FL_String* _fl_tmp_1 = fl_conv_to_string__bool(fl_string_set_has(s3, _fl_str_tests_set_test_1));
     fl_println(_fl_tmp_1);
-    fl_string_release(_fl_tmp_1);
     FL_String* _fl_tmp_2 = fl_conv_to_string__bool(fl_string_set_has(s3, _fl_str_tests_set_test_2));
     fl_println(_fl_tmp_2);
-    fl_string_release(_fl_tmp_2);
     FL_String* _fl_tmp_3 = fl_conv_to_string__bool(fl_string_set_has(s3, _fl_str_tests_set_test_3));
     fl_println(_fl_tmp_3);
-    fl_string_release(_fl_tmp_3);
     FL_String* _fl_tmp_4 = fl_conv_to_string__int64(fl_string_set_size(s3));
     fl_println(_fl_tmp_4);
-    fl_string_release(_fl_tmp_4);
     FL_Map* s4 = fl_string_set_add(s3, _fl_str_tests_set_test_1);
     FL_String* _fl_tmp_5 = fl_conv_to_string__int64(fl_string_set_size(s4));
     fl_println(_fl_tmp_5);
-    fl_string_release(_fl_tmp_5);
     FL_Map* s5 = fl_string_set_remove(s4, _fl_str_tests_set_test_1);
     FL_String* _fl_tmp_6 = fl_conv_to_string__bool(fl_string_set_has(s5, _fl_str_tests_set_test_1));
     fl_println(_fl_tmp_6);
-    fl_string_release(_fl_tmp_6);
     FL_String* _fl_tmp_7 = fl_conv_to_string__bool(fl_string_set_has(s5, _fl_str_tests_set_test_2));
     fl_println(_fl_tmp_7);
-    fl_string_release(_fl_tmp_7);
     FL_String* _fl_tmp_8 = fl_conv_to_string__int64(fl_string_set_size(s5));
     fl_println(_fl_tmp_8);
-    fl_string_release(_fl_tmp_8);
     FL_Array* arr = fl_string_set_to_array(s3);
     FL_String* _fl_tmp_9 = fl_conv_to_string__int(fl_array_len_int(arr));
     fl_println(_fl_tmp_9);
-    fl_string_release(_fl_tmp_9);
     FL_Array* _fl_tmp_10 = fl_array_new(5, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_set_test_4, _fl_str_tests_set_test_5, _fl_str_tests_set_test_6, _fl_str_tests_set_test_4, _fl_str_tests_set_test_5});
     fl_array_set_elem_type(_fl_tmp_10, 1);
     fl_string_retain(_fl_str_tests_set_test_4);
@@ -722,7 +720,6 @@ fl_int fl_tests_set_test_main(void) {
     FL_Map* s6 = fl_string_set_from_array(_fl_tmp_10);
     FL_String* _fl_tmp_11 = fl_conv_to_string__int64(fl_string_set_size(s6));
     fl_println(_fl_tmp_11);
-    fl_string_release(_fl_tmp_11);
     FL_Array* _fl_tmp_12 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_set_test_0, _fl_str_tests_set_test_7});
     fl_array_set_elem_type(_fl_tmp_12, 1);
     fl_string_retain(_fl_str_tests_set_test_0);
@@ -736,48 +733,59 @@ fl_int fl_tests_set_test_main(void) {
     FL_Map* u = fl_string_set_union(sa, sb);
     FL_String* _fl_tmp_14 = fl_conv_to_string__int64(fl_string_set_size(u));
     fl_println(_fl_tmp_14);
-    fl_string_release(_fl_tmp_14);
     FL_String* _fl_tmp_15 = fl_conv_to_string__bool(fl_string_set_has(u, _fl_str_tests_set_test_0));
     fl_println(_fl_tmp_15);
-    fl_string_release(_fl_tmp_15);
     FL_String* _fl_tmp_16 = fl_conv_to_string__bool(fl_string_set_has(u, _fl_str_tests_set_test_7));
     fl_println(_fl_tmp_16);
-    fl_string_release(_fl_tmp_16);
     FL_String* _fl_tmp_17 = fl_conv_to_string__bool(fl_string_set_has(u, _fl_str_tests_set_test_8));
     fl_println(_fl_tmp_17);
-    fl_string_release(_fl_tmp_17);
     FL_Map* d = fl_string_set_difference(sa, sb);
     FL_String* _fl_tmp_18 = fl_conv_to_string__int64(fl_string_set_size(d));
     fl_println(_fl_tmp_18);
-    fl_string_release(_fl_tmp_18);
     FL_String* _fl_tmp_19 = fl_conv_to_string__bool(fl_string_set_has(d, _fl_str_tests_set_test_0));
     fl_println(_fl_tmp_19);
-    fl_string_release(_fl_tmp_19);
     FL_String* _fl_tmp_20 = fl_conv_to_string__bool(fl_string_set_has(d, _fl_str_tests_set_test_7));
     fl_println(_fl_tmp_20);
-    fl_string_release(_fl_tmp_20);
     FL_Map* inter = fl_string_set_intersection(sa, sb);
     FL_String* _fl_tmp_21 = fl_conv_to_string__int64(fl_string_set_size(inter));
     fl_println(_fl_tmp_21);
-    fl_string_release(_fl_tmp_21);
     FL_String* _fl_tmp_22 = fl_conv_to_string__bool(fl_string_set_has(inter, _fl_str_tests_set_test_7));
     fl_println(_fl_tmp_22);
-    fl_string_release(_fl_tmp_22);
     FL_String* _fl_tmp_23 = fl_conv_to_string__bool(fl_string_set_has(inter, _fl_str_tests_set_test_0));
     fl_println(_fl_tmp_23);
-    fl_string_release(_fl_tmp_23);
     fl_map_release(s);
+    fl_string_release(_fl_tmp_0);
     fl_map_release(s2);
     fl_map_release(s3);
+    fl_string_release(_fl_tmp_1);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_3);
+    fl_string_release(_fl_tmp_4);
     fl_map_release(s4);
+    fl_string_release(_fl_tmp_5);
     fl_map_release(s5);
+    fl_string_release(_fl_tmp_6);
+    fl_string_release(_fl_tmp_7);
+    fl_string_release(_fl_tmp_8);
     fl_array_release(arr);
+    fl_string_release(_fl_tmp_9);
     fl_map_release(s6);
+    fl_string_release(_fl_tmp_11);
     fl_map_release(sa);
     fl_map_release(sb);
     fl_map_release(u);
+    fl_string_release(_fl_tmp_14);
+    fl_string_release(_fl_tmp_15);
+    fl_string_release(_fl_tmp_16);
+    fl_string_release(_fl_tmp_17);
     fl_map_release(d);
+    fl_string_release(_fl_tmp_18);
+    fl_string_release(_fl_tmp_19);
+    fl_string_release(_fl_tmp_20);
     fl_map_release(inter);
+    fl_string_release(_fl_tmp_21);
+    fl_string_release(_fl_tmp_22);
+    fl_string_release(_fl_tmp_23);
     return 0;
 }
 

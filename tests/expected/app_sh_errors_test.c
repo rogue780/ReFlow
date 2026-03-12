@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -679,32 +687,32 @@ fl_int fl_tests_programs_app_sh_errors_test_main(void) {
     fl_self_hosted_errors_CompileError e1 = fl_self_hosted_errors_lex_error(_fl_str_tests_programs_app_sh_errors_test_0, _fl_str_tests_programs_app_sh_errors_test_1, 10, 5);
     FL_String* _fl_tmp_0 = fl_self_hosted_errors_format(e1);
     fl_println(_fl_tmp_0);
-    fl_string_release(_fl_tmp_0);
     fl_self_hosted_errors_CompileError e2 = fl_self_hosted_errors_parse_error(_fl_str_tests_programs_app_sh_errors_test_2, _fl_str_tests_programs_app_sh_errors_test_3, 42, 13);
     FL_String* _fl_tmp_1 = fl_self_hosted_errors_format(e2);
     fl_println(_fl_tmp_1);
-    fl_string_release(_fl_tmp_1);
     fl_self_hosted_errors_CompileError e3 = fl_self_hosted_errors_resolve_error(_fl_str_tests_programs_app_sh_errors_test_4, _fl_str_tests_programs_app_sh_errors_test_5, 7, 1);
     FL_String* _fl_tmp_2 = fl_self_hosted_errors_format(e3);
     fl_println(_fl_tmp_2);
-    fl_string_release(_fl_tmp_2);
     fl_self_hosted_errors_CompileError e4 = fl_self_hosted_errors_type_error(_fl_str_tests_programs_app_sh_errors_test_6, _fl_str_tests_programs_app_sh_errors_test_7, 99, 20);
     FL_String* _fl_tmp_3 = fl_self_hosted_errors_format(e4);
     fl_println(_fl_tmp_3);
-    fl_string_release(_fl_tmp_3);
     fl_self_hosted_errors_CompileError e5 = fl_self_hosted_errors_emit_error(_fl_str_tests_programs_app_sh_errors_test_8, _fl_str_tests_programs_app_sh_errors_test_9, 1, 0);
     FL_String* _fl_tmp_4 = fl_self_hosted_errors_format(e5);
     fl_println(_fl_tmp_4);
-    fl_string_release(_fl_tmp_4);
     FL_String* _fl_tmp_5 = fl_self_hosted_errors_kind_name(e1.kind);
     fl_println(_fl_tmp_5);
-    fl_string_release(_fl_tmp_5);
     FL_String* _fl_tmp_6 = fl_self_hosted_errors_kind_name(e5.kind);
     fl_println(_fl_tmp_6);
-    fl_string_release(_fl_tmp_6);
     fl_println(e1.message);
     fl_println(e1.file);
     fl_println(_fl_str_tests_programs_app_sh_errors_test_10);
+    fl_string_release(_fl_tmp_0);
+    fl_string_release(_fl_tmp_1);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_3);
+    fl_string_release(_fl_tmp_4);
+    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_6);
     fl_string_release(e1.message);
     fl_string_release(e1.file);
     fl_string_release(e2.message);

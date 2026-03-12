@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -654,12 +662,11 @@ void fl_tests_app_stream_mux_main(void) {
         if (_fl_old_11 != destinations) {
             fl_map_release(_fl_old_11);
         }
-        fl_string_release(_fl_tmp_9);
-        fl_string_release(_fl_tmp_10);
         _fl_tmp_7 = (_fl_tmp_7 + 1);
         fl_string_release(dest);
         fl_string_release(line);
         fl_string_release(existing);
+        fl_string_release(_fl_tmp_9);
     }
     FL_Array* ks = fl_map_keys(destinations);
     fl_int64 _fl_tmp_12 = 0;
@@ -667,10 +674,10 @@ void fl_tests_app_stream_mux_main(void) {
         FL_String* key = (*((FL_String**)fl_array_get_ptr(ks, _fl_tmp_12)));
         FL_String* _fl_tmp_13 = fl_string_concat(_fl_str_tests_app_stream_mux_19, key);
         fl_println(fl_string_concat(_fl_tmp_13, _fl_str_tests_app_stream_mux_20));
-        fl_string_release(_fl_tmp_13);
         FL_Option_ptr _fl_tmp_14 = fl_map_get_str(destinations, key);
         fl_println(((_fl_tmp_14.tag == 1) ? _fl_tmp_14.value : _fl_str_tests_app_stream_mux_17));
         _fl_tmp_12 = (_fl_tmp_12 + 1);
+        fl_string_release(_fl_tmp_13);
     }
     fl_array_release(records);
     fl_map_release(destinations);

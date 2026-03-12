@@ -25,10 +25,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -166,10 +166,10 @@ FL_Tuple_FL_String_ptr_FL_String_ptr fl_tests_app_chat_parse_parse_message(FL_St
             FL_CHECKED_ADD(idx, 1, &_fl_e_1);
             FL_String* _fl_tmp_1 = fl_string_substring(trimmed, _fl_e_1, fl_string_len(trimmed));
             FL_String* arg = fl_string_trim(_fl_tmp_1);
-            fl_string_release(_fl_tmp_1);
             FL_Tuple_FL_String_ptr_FL_String_ptr _fl_ret_3 = (FL_Tuple_FL_String_ptr_FL_String_ptr){._0 = cmd, ._1 = arg};
             fl_string_release(trimmed);
             fl_string_release(cmd);
+            fl_string_release(_fl_tmp_1);
             fl_string_release(arg);
             return _fl_ret_3;
         } else {

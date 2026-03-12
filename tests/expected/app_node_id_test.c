@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -589,12 +597,13 @@ FL_String* fl_tests_app_node_id_test_lookup(FL_Map* types, fl_int id) {
     if (_fl_tmp_1.tag == 1) {
         FL_String* v = _fl_tmp_1.value;
         fl_string_retain(v);
+        fl_string_release(_fl_tmp_0);
         return v;
     } else {
         fl_string_retain(_fl_str_tests_app_node_id_test_0);
+        fl_string_release(_fl_tmp_0);
         return _fl_str_tests_app_node_id_test_0;
     }
-    return fl_string_release(_fl_tmp_0);
 }
 
 /* Flow: tests.app_node_id_test.get_id */
@@ -642,47 +651,34 @@ fl_int fl_tests_app_node_id_test_main(void) {
     if (_fl_old_6 != types) {
         fl_map_release(_fl_old_6);
     }
-    fl_string_release(_fl_tmp_5);
     FL_String* _fl_tmp_7 = fl_conv_to_string__int(2);
     FL_Map* _fl_old_8 = types;
     types = fl_map_set_str(types, _fl_tmp_7, _fl_str_tests_app_node_id_test_3);
     if (_fl_old_8 != types) {
         fl_map_release(_fl_old_8);
     }
-    fl_string_release(_fl_tmp_7);
     FL_String* _fl_tmp_9 = fl_conv_to_string__int(3);
     FL_Map* _fl_old_10 = types;
     types = fl_map_set_str(types, _fl_tmp_9, _fl_str_tests_app_node_id_test_3);
     if (_fl_old_10 != types) {
         fl_map_release(_fl_old_10);
     }
-    fl_string_release(_fl_tmp_9);
     FL_String* _fl_tmp_11 = fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_add));
     FL_String* _fl_tmp_12 = fl_string_concat(_fl_str_tests_app_node_id_test_4, _fl_tmp_11);
     fl_println(_fl_tmp_12);
-    fl_string_release(_fl_tmp_11);
-    fl_string_release(_fl_tmp_12);
     FL_String* _fl_tmp_13 = fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_x));
     FL_String* _fl_tmp_14 = fl_string_concat(_fl_str_tests_app_node_id_test_5, _fl_tmp_13);
     fl_println(_fl_tmp_14);
-    fl_string_release(_fl_tmp_13);
-    fl_string_release(_fl_tmp_14);
     FL_String* _fl_tmp_15 = fl_tests_app_node_id_test_lookup(types, fl_tests_app_node_id_test_get_id(node_42));
     FL_String* _fl_tmp_16 = fl_string_concat(_fl_str_tests_app_node_id_test_6, _fl_tmp_15);
     fl_println(_fl_tmp_16);
-    fl_string_release(_fl_tmp_15);
-    fl_string_release(_fl_tmp_16);
     FL_String* _fl_tmp_17 = fl_conv_to_string__int64(fl_map_len(types));
     FL_String* _fl_tmp_18 = fl_string_concat(_fl_str_tests_app_node_id_test_7, _fl_tmp_17);
     fl_println(_fl_tmp_18);
-    fl_string_release(_fl_tmp_17);
-    fl_string_release(_fl_tmp_18);
     FL_Array* keys = fl_map_keys(types);
     FL_String* _fl_tmp_19 = fl_conv_to_string__int(fl_array_len_int(keys));
     FL_String* _fl_tmp_20 = fl_string_concat(_fl_str_tests_app_node_id_test_8, _fl_tmp_19);
     fl_println(_fl_tmp_20);
-    fl_string_release(_fl_tmp_19);
-    fl_string_release(_fl_tmp_20);
     FL_Array* all_nodes = fl_array_new(3, sizeof(fl_tests_app_node_id_test_Expr), (fl_tests_app_node_id_test_Expr[]){node_x, node_42, node_add});
     fl_int64 _fl_tmp_21 = 0;
     while (_fl_tmp_21 < fl_array_len(all_nodes)) {
@@ -694,16 +690,29 @@ fl_int fl_tests_app_node_id_test_main(void) {
         FL_String* _fl_tmp_24 = fl_string_concat(_fl_tmp_23, _fl_str_tests_app_node_id_test_10);
         FL_String* _fl_tmp_25 = fl_string_concat(_fl_tmp_24, t);
         fl_println(_fl_tmp_25);
+        _fl_tmp_21 = (_fl_tmp_21 + 1);
+        fl_string_release(t);
         fl_string_release(_fl_tmp_22);
         fl_string_release(_fl_tmp_23);
         fl_string_release(_fl_tmp_24);
         fl_string_release(_fl_tmp_25);
-        _fl_tmp_21 = (_fl_tmp_21 + 1);
-        fl_string_release(t);
     }
     fl_println(_fl_str_tests_app_node_id_test_11);
     fl_map_release(types);
+    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_7);
+    fl_string_release(_fl_tmp_9);
+    fl_string_release(_fl_tmp_11);
+    fl_string_release(_fl_tmp_12);
+    fl_string_release(_fl_tmp_13);
+    fl_string_release(_fl_tmp_14);
+    fl_string_release(_fl_tmp_15);
+    fl_string_release(_fl_tmp_16);
+    fl_string_release(_fl_tmp_17);
+    fl_string_release(_fl_tmp_18);
     fl_array_release(keys);
+    fl_string_release(_fl_tmp_19);
+    fl_string_release(_fl_tmp_20);
     fl_array_release(all_nodes);
     return 0;
 }

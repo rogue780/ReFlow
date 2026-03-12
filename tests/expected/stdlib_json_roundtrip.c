@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -757,17 +765,23 @@ void fl_string_builder_append_char(fl_string_builder_StringBuilder sb, fl_char c
 
 /* Flow: string_builder.append_int */
 void fl_string_builder_append_int(fl_string_builder_StringBuilder sb, fl_int v) {
-    fl_string_builder_append(sb, fl_conv_to_string__int(v));
+    FL_String* _fl_tmp_0 = fl_conv_to_string__int(v);
+    fl_string_builder_append(sb, _fl_tmp_0);
+    fl_string_release(_fl_tmp_0);
 }
 
 /* Flow: string_builder.append_int64 */
 void fl_string_builder_append_int64(fl_string_builder_StringBuilder sb, fl_int64 v) {
-    fl_string_builder_append(sb, fl_int64_to_string(v));
+    FL_String* _fl_tmp_1 = fl_int64_to_string(v);
+    fl_string_builder_append(sb, _fl_tmp_1);
+    fl_string_release(_fl_tmp_1);
 }
 
 /* Flow: string_builder.append_float */
 void fl_string_builder_append_float(fl_string_builder_StringBuilder sb, fl_float v) {
-    fl_string_builder_append(sb, fl_float_to_string(v));
+    FL_String* _fl_tmp_2 = fl_float_to_string(v);
+    fl_string_builder_append(sb, _fl_tmp_2);
+    fl_string_release(_fl_tmp_2);
 }
 
 /* Flow: string_builder.build */
@@ -2341,7 +2355,6 @@ void fl_stdlib_json_roundtrip_main(void) {
         fl_json_JsonValue val = _fl_tmp_0.value;
         FL_String* _fl_tmp_1 = fl_json_to_string(val);
         fl_println(_fl_tmp_1);
-        fl_string_release(_fl_tmp_1);
         FL_Option_fl_json_JsonValue name = fl_json_get(val, _fl_str_stdlib_json_roundtrip_1);
         FL_Option_fl_json_JsonValue _fl_tmp_2 = name;
         if (_fl_tmp_2.tag == 1) {
@@ -2368,19 +2381,19 @@ void fl_stdlib_json_roundtrip_main(void) {
             } else {
                 fl_println(_fl_str_stdlib_json_roundtrip_5);
             }
-            fl_string_release(_fl_tmp_6);
         } else {
             fl_println(_fl_str_stdlib_json_roundtrip_6);
         }
+        fl_string_release(_fl_tmp_1);
     } else {
         fl_println(_fl_str_stdlib_json_roundtrip_7);
     }
     fl_json_JsonValue built = fl_json_bool_val(fl_true);
     FL_String* _fl_tmp_7 = fl_json_to_string(built);
     fl_println(_fl_tmp_7);
-    fl_string_release(_fl_tmp_7);
     FL_String* _fl_tmp_8 = fl_conv_to_string__bool(fl_json_is_null(fl_json_null_val()));
     fl_println(_fl_tmp_8);
+    fl_string_release(_fl_tmp_7);
     fl_string_release(_fl_tmp_8);
 }
 

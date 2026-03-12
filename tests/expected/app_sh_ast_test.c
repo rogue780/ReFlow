@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -3435,10 +3443,6 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_2 = fl_conv_to_string__int(s.line);
     FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_1, _fl_tmp_2);
     fl_println(_fl_tmp_3);
-    fl_string_release(_fl_tmp_0);
-    fl_string_release(_fl_tmp_1);
-    fl_string_release(_fl_tmp_2);
-    fl_string_release(_fl_tmp_3);
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_3);
     fl_self_hosted_ast_TypeExpr t_int = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = 1, .line = 1, .col = 1, .name = _fl_str_tests_programs_app_sh_ast_test_3, .module_path = fl_array_new(0, 0, NULL)}};
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_4);
@@ -3446,16 +3450,12 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_4 = fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_int));
     FL_String* _fl_tmp_5 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_5, _fl_tmp_4);
     fl_println(_fl_tmp_5);
-    fl_string_release(_fl_tmp_4);
-    fl_string_release(_fl_tmp_5);
     fl_self_hosted_ast_TypeExpr* _fl_tmp_6 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
     (*_fl_tmp_6) = t_int;
     fl_self_hosted_ast_TypeExpr t_opt = (fl_self_hosted_ast_TypeExpr){.tag = 2, .TOptionType = (fl_self_hosted_ast_TypeExpr_TOptionType){.id = 3, .line = 1, .col = 10, .inner = _fl_tmp_6}};
     FL_String* _fl_tmp_7 = fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_opt));
     FL_String* _fl_tmp_8 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_6, _fl_tmp_7);
     fl_println(_fl_tmp_8);
-    fl_string_release(_fl_tmp_7);
-    fl_string_release(_fl_tmp_8);
     FL_Array* fn_params = fl_array_new(0, 0, NULL);
     fl_self_hosted_ast_TypeExpr _fl_tmp_9 = t_int;
     FL_Array* fn_params2 = fl_array_push_sized(fn_params, (&_fl_tmp_9), sizeof(fl_self_hosted_ast_TypeExpr));
@@ -3468,8 +3468,6 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_12 = fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_fn));
     FL_String* _fl_tmp_13 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_7, _fl_tmp_12);
     fl_println(_fl_tmp_13);
-    fl_string_release(_fl_tmp_12);
-    fl_string_release(_fl_tmp_13);
     FL_Array* gen_args = fl_array_new(0, 0, NULL);
     fl_self_hosted_ast_TypeExpr _fl_tmp_14 = t_int;
     FL_Array* gen_args2 = fl_array_push_sized(gen_args, (&_fl_tmp_14), sizeof(fl_self_hosted_ast_TypeExpr));
@@ -3480,8 +3478,6 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_16 = fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_gen));
     FL_String* _fl_tmp_17 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_8, _fl_tmp_16);
     fl_println(_fl_tmp_17);
-    fl_string_release(_fl_tmp_16);
-    fl_string_release(_fl_tmp_17);
     fl_self_hosted_ast_Pattern p_wild = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 10, .line = 5, .col = 1}};
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_9);
     fl_self_hosted_ast_Pattern p_bind = (fl_self_hosted_ast_Pattern){.tag = 2, .PBind = (fl_self_hosted_ast_Pattern_PBind){.id = 11, .line = 5, .col = 3, .name = _fl_str_tests_programs_app_sh_ast_test_9}};
@@ -3496,18 +3492,12 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_19 = fl_conv_to_string__int(fl_self_hosted_ast_pattern_id(p_wild));
     FL_String* _fl_tmp_20 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_13, _fl_tmp_19);
     fl_println(_fl_tmp_20);
-    fl_string_release(_fl_tmp_19);
-    fl_string_release(_fl_tmp_20);
     FL_String* _fl_tmp_21 = fl_conv_to_string__int(fl_self_hosted_ast_pattern_id(p_bind));
     FL_String* _fl_tmp_22 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_14, _fl_tmp_21);
     fl_println(_fl_tmp_22);
-    fl_string_release(_fl_tmp_21);
-    fl_string_release(_fl_tmp_22);
     FL_String* _fl_tmp_23 = fl_conv_to_string__int(fl_self_hosted_ast_pattern_id(p_var));
     FL_String* _fl_tmp_24 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_15, _fl_tmp_23);
     fl_println(_fl_tmp_24);
-    fl_string_release(_fl_tmp_23);
-    fl_string_release(_fl_tmp_24);
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_16);
     fl_self_hosted_ast_Expr e_int = (fl_self_hosted_ast_Expr){.tag = 0, .EIntLit = (fl_self_hosted_ast_Expr_EIntLit){.id = 20, .line = 10, .col = 1, .value = 42, .suffix = _fl_str_tests_programs_app_sh_ast_test_16}};
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_17);
@@ -3517,13 +3507,9 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_25 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_int));
     FL_String* _fl_tmp_26 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_18, _fl_tmp_25);
     fl_println(_fl_tmp_26);
-    fl_string_release(_fl_tmp_25);
-    fl_string_release(_fl_tmp_26);
     FL_String* _fl_tmp_27 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_str));
     FL_String* _fl_tmp_28 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_19, _fl_tmp_27);
     fl_println(_fl_tmp_28);
-    fl_string_release(_fl_tmp_27);
-    fl_string_release(_fl_tmp_28);
     fl_self_hosted_ast_Expr* _fl_tmp_29 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
     (*_fl_tmp_29) = e_int;
     fl_self_hosted_ast_Expr* _fl_tmp_30 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
@@ -3533,8 +3519,6 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_31 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_add));
     FL_String* _fl_tmp_32 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_21, _fl_tmp_31);
     fl_println(_fl_tmp_32);
-    fl_string_release(_fl_tmp_31);
-    fl_string_release(_fl_tmp_32);
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_22);
     fl_self_hosted_ast_Expr e_fn = (fl_self_hosted_ast_Expr){.tag = 6, .EIdent = (fl_self_hosted_ast_Expr_EIdent){.id = 31, .line = 12, .col = 1, .name = _fl_str_tests_programs_app_sh_ast_test_22, .module_path = fl_array_new(0, 0, NULL)}};
     FL_Array* call_args = fl_array_new(0, 0, NULL);
@@ -3549,8 +3533,6 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_36 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_call));
     FL_String* _fl_tmp_37 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_23, _fl_tmp_36);
     fl_println(_fl_tmp_37);
-    fl_string_release(_fl_tmp_36);
-    fl_string_release(_fl_tmp_37);
     fl_self_hosted_ast_Expr* _fl_tmp_38 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
     (*_fl_tmp_38) = e_fn;
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_24);
@@ -3558,8 +3540,6 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_39 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_field));
     FL_String* _fl_tmp_40 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_25, _fl_tmp_39);
     fl_println(_fl_tmp_40);
-    fl_string_release(_fl_tmp_39);
-    fl_string_release(_fl_tmp_40);
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_9);
     fl_self_hosted_ast_Stmt s_let = (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = 40, .line = 20, .col = 1, .name = _fl_str_tests_programs_app_sh_ast_test_9, .has_type_ann = fl_true, .type_ann = t_int, .value = e_int}};
     fl_self_hosted_ast_Stmt s_ret = (fl_self_hosted_ast_Stmt){.tag = 3, .SReturn = (fl_self_hosted_ast_Stmt_SReturn){.id = 41, .line = 21, .col = 1, .has_value = fl_true, .value = e_int}};
@@ -3568,23 +3548,15 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_41 = fl_conv_to_string__int(fl_self_hosted_ast_stmt_id(s_let));
     FL_String* _fl_tmp_42 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_26, _fl_tmp_41);
     fl_println(_fl_tmp_42);
-    fl_string_release(_fl_tmp_41);
-    fl_string_release(_fl_tmp_42);
     FL_String* _fl_tmp_43 = fl_conv_to_string__int(fl_self_hosted_ast_stmt_id(s_ret));
     FL_String* _fl_tmp_44 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_27, _fl_tmp_43);
     fl_println(_fl_tmp_44);
-    fl_string_release(_fl_tmp_43);
-    fl_string_release(_fl_tmp_44);
     FL_String* _fl_tmp_45 = fl_conv_to_string__int(fl_self_hosted_ast_stmt_id(s_expr));
     FL_String* _fl_tmp_46 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_28, _fl_tmp_45);
     fl_println(_fl_tmp_46);
-    fl_string_release(_fl_tmp_45);
-    fl_string_release(_fl_tmp_46);
     FL_String* _fl_tmp_47 = fl_conv_to_string__int(fl_self_hosted_ast_stmt_id(s_brk));
     FL_String* _fl_tmp_48 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_29, _fl_tmp_47);
     fl_println(_fl_tmp_48);
-    fl_string_release(_fl_tmp_47);
-    fl_string_release(_fl_tmp_48);
     fl_self_hosted_ast_Param p1 = fl_self_hosted_ast_param(_fl_str_tests_programs_app_sh_ast_test_9, t_int, 50, 30, 1);
     FL_Array* fn_params_d = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(fn_params_d, _fl_destroy_fl_self_hosted_ast_Param, _fl_retain_fl_self_hosted_ast_Param);
@@ -3610,33 +3582,69 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_53 = fl_conv_to_string__int(fl_self_hosted_ast_decl_id(d_fn));
     FL_String* _fl_tmp_54 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_34, _fl_tmp_53);
     fl_println(_fl_tmp_54);
-    fl_string_release(_fl_tmp_53);
-    fl_string_release(_fl_tmp_54);
     FL_String* _fl_tmp_55 = fl_conv_to_string__int(fl_self_hosted_ast_decl_id(d_mod));
     FL_String* _fl_tmp_56 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_35, _fl_tmp_55);
     fl_println(_fl_tmp_56);
-    fl_string_release(_fl_tmp_55);
-    fl_string_release(_fl_tmp_56);
     FL_String* _fl_tmp_57 = fl_conv_to_string__int(fl_self_hosted_ast_decl_id(d_imp));
     FL_String* _fl_tmp_58 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_36, _fl_tmp_57);
     fl_println(_fl_tmp_58);
-    fl_string_release(_fl_tmp_57);
-    fl_string_release(_fl_tmp_58);
     fl_println(_fl_str_tests_programs_app_sh_ast_test_37);
     fl_println(_fl_str_tests_programs_app_sh_ast_test_38);
     fl_println(_fl_str_tests_programs_app_sh_ast_test_39);
+    fl_string_release(_fl_tmp_0);
+    fl_string_release(_fl_tmp_1);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_3);
+    fl_string_release(_fl_tmp_4);
+    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_7);
+    fl_string_release(_fl_tmp_8);
     fl_array_release(fn_params);
     fl_array_release(fn_params2);
     fl_array_release(fn_params3);
+    fl_string_release(_fl_tmp_12);
+    fl_string_release(_fl_tmp_13);
     fl_array_release(gen_args);
     fl_array_release(gen_args2);
+    fl_string_release(_fl_tmp_16);
+    fl_string_release(_fl_tmp_17);
+    fl_string_release(_fl_tmp_19);
+    fl_string_release(_fl_tmp_20);
+    fl_string_release(_fl_tmp_21);
+    fl_string_release(_fl_tmp_22);
+    fl_string_release(_fl_tmp_23);
+    fl_string_release(_fl_tmp_24);
+    fl_string_release(_fl_tmp_25);
+    fl_string_release(_fl_tmp_26);
+    fl_string_release(_fl_tmp_27);
+    fl_string_release(_fl_tmp_28);
+    fl_string_release(_fl_tmp_31);
+    fl_string_release(_fl_tmp_32);
     fl_array_release(call_args);
     fl_array_release(call_args2);
     fl_array_release(call_args3);
+    fl_string_release(_fl_tmp_36);
+    fl_string_release(_fl_tmp_37);
+    fl_string_release(_fl_tmp_39);
+    fl_string_release(_fl_tmp_40);
+    fl_string_release(_fl_tmp_41);
+    fl_string_release(_fl_tmp_42);
+    fl_string_release(_fl_tmp_43);
+    fl_string_release(_fl_tmp_44);
+    fl_string_release(_fl_tmp_45);
+    fl_string_release(_fl_tmp_46);
+    fl_string_release(_fl_tmp_47);
+    fl_string_release(_fl_tmp_48);
     fl_array_release(fn_params_d);
     fl_array_release(fn_params_d2);
     fl_array_release(fn_body);
     fl_array_release(fn_body2);
+    fl_string_release(_fl_tmp_53);
+    fl_string_release(_fl_tmp_54);
+    fl_string_release(_fl_tmp_55);
+    fl_string_release(_fl_tmp_56);
+    fl_string_release(_fl_tmp_57);
+    fl_string_release(_fl_tmp_58);
     fl_string_release(s.file);
     fl_string_release(p1.name);
     return 0;

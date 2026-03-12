@@ -2489,6 +2489,9 @@ class Lowerer:
         values. String-returning calls (both runtime and user-defined) are
         safe to hoist and release as intermediates in concat chains.
 
+        Uses _container_locals instead of _post_stmts so the temp is
+        properly released before early returns inside control flow.
+
         Returns the temp LVar if hoisted, or the original expr if not eligible.
         """
         if not isinstance(expr, LCall):
@@ -2501,9 +2504,9 @@ class Lowerer:
         tmp = self._fresh_temp()
         self._pending_stmts.append(
             LVarDecl(c_name=tmp, c_type=self._STRING_LTYPE, init=expr))
-        self._post_stmts.append(
-            LExprStmt(LCall("fl_string_release",
-                            [LVar(tmp, self._STRING_LTYPE)], LVoid())))
+        self._container_locals.append(
+            (tmp, self._STRING_LTYPE, "fl_string_release",
+             self._scope_depth))
         return LVar(tmp, self._STRING_LTYPE)
 
     def _hoist_string_args(self, fn_name: str, args: list[LExpr]) -> list[LExpr]:
@@ -2846,6 +2849,10 @@ class Lowerer:
         """
         if isinstance(stmt, (LReturn, LBreak, LContinue)):
             return True
+        # _fl_throw is noreturn
+        if (isinstance(stmt, LExprStmt) and isinstance(stmt.expr, LCall)
+                and stmt.expr.fn_name == "_fl_throw"):
+            return True
         if isinstance(stmt, LSwitch):
             if not stmt.cases and not stmt.default:
                 return False
@@ -2881,6 +2888,11 @@ class Lowerer:
             return
         last = body[-1]
         if isinstance(last, (LReturn, LBreak, LContinue)):
+            return
+        # _fl_throw is noreturn — cleanup after it is dead code and would
+        # confuse _inject_tail_returns into wrapping releases as returns.
+        if (isinstance(last, LExprStmt) and isinstance(last.expr, LCall)
+                and last.expr.fn_name == "_fl_throw"):
             return
         # If the last statement is a control-flow construct (LSwitch, LIf)
         # where all leaf paths exit via LReturn, the code after the switch
@@ -4601,13 +4613,13 @@ class Lowerer:
                         # Substitute type env into return type for concrete LType
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
                         final = self._wrap_mut_args(fn_decl_maybe, lowered_args)
-                        return LCall(mono_name, final, concrete_lt)
+                        return LCall(mono_name, self._hoist_string_args(mono_name, final), concrete_lt)
                 # Wrap :mut args before emitting the call
                 if fn_decl_maybe is not None:
                     lowered_args = self._wrap_mut_args(fn_decl_maybe, lowered_args)
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
-                return LCall(c_name, lowered_args, lt)
+                return LCall(c_name, self._hoist_string_args(c_name, lowered_args), lt)
             # Named import of an extern fn from another module
             if (sym is not None and sym.kind == SymbolKind.IMPORT
                     and isinstance(sym.decl, ExternFnDecl)):

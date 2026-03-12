@@ -31,24 +31,32 @@ export fn to_string(c:char):string {
     if (code < 128) {
         let buf = mem.alloc(cast<int64>(1))
         mem.write_byte(buf, cast<int64>(0), cast<byte>(code))
-        return mem.to_string(buf, cast<int64>(1))
+        let result = mem.to_string(buf, cast<int64>(1))
+        mem.free(buf)
+        return result
     } else if (code < 2048) {
         let buf = mem.alloc(cast<int64>(2))
         mem.write_byte(buf, cast<int64>(0), cast<byte>(192 + code / 64))
         mem.write_byte(buf, cast<int64>(1), cast<byte>(128 + code % 64))
-        return mem.to_string(buf, cast<int64>(2))
+        let result = mem.to_string(buf, cast<int64>(2))
+        mem.free(buf)
+        return result
     } else if (code < 65536) {
         let buf = mem.alloc(cast<int64>(3))
         mem.write_byte(buf, cast<int64>(0), cast<byte>(224 + code / 4096))
         mem.write_byte(buf, cast<int64>(1), cast<byte>(128 + (code / 64) % 64))
         mem.write_byte(buf, cast<int64>(2), cast<byte>(128 + code % 64))
-        return mem.to_string(buf, cast<int64>(3))
+        let result = mem.to_string(buf, cast<int64>(3))
+        mem.free(buf)
+        return result
     } else {
         let buf = mem.alloc(cast<int64>(4))
         mem.write_byte(buf, cast<int64>(0), cast<byte>(240 + code / 262144))
         mem.write_byte(buf, cast<int64>(1), cast<byte>(128 + (code / 4096) % 64))
         mem.write_byte(buf, cast<int64>(2), cast<byte>(128 + (code / 64) % 64))
         mem.write_byte(buf, cast<int64>(3), cast<byte>(128 + code % 64))
-        return mem.to_string(buf, cast<int64>(4))
+        let result = mem.to_string(buf, cast<int64>(4))
+        mem.free(buf)
+        return result
     }
 }

@@ -54,7 +54,9 @@ FL_String* fl_char_to_string(fl_char c) {
     if (code < 128) {
         void* buf = fl_mem_alloc(((fl_int64)1));
         fl_mem_write_byte(buf, ((fl_int64)0), ((fl_byte)code));
-        return fl_mem_to_string(buf, ((fl_int64)1));
+        FL_String* result = fl_mem_to_string(buf, ((fl_int64)1));
+        fl_mem_free(buf);
+        return result;
     } else {
         if (code < 2048) {
             void* buf = fl_mem_alloc(((fl_int64)2));
@@ -68,7 +70,9 @@ FL_String* fl_char_to_string(fl_char c) {
             fl_int _fl_e_3;
             FL_CHECKED_ADD(128, _fl_e_4, &_fl_e_3);
             fl_mem_write_byte(buf, ((fl_int64)1), ((fl_byte)_fl_e_3));
-            return fl_mem_to_string(buf, ((fl_int64)2));
+            FL_String* result = fl_mem_to_string(buf, ((fl_int64)2));
+            fl_mem_free(buf);
+            return result;
         } else {
             if (code < 65536) {
                 void* buf = fl_mem_alloc(((fl_int64)3));
@@ -89,7 +93,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_10;
                 FL_CHECKED_ADD(128, _fl_e_11, &_fl_e_10);
                 fl_mem_write_byte(buf, ((fl_int64)2), ((fl_byte)_fl_e_10));
-                return fl_mem_to_string(buf, ((fl_int64)3));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)3));
+                fl_mem_free(buf);
+                return result;
             } else {
                 void* buf = fl_mem_alloc(((fl_int64)4));
                 fl_int _fl_e_13;
@@ -116,7 +122,9 @@ FL_String* fl_char_to_string(fl_char c) {
                 fl_int _fl_e_20;
                 FL_CHECKED_ADD(128, _fl_e_21, &_fl_e_20);
                 fl_mem_write_byte(buf, ((fl_int64)3), ((fl_byte)_fl_e_20));
-                return fl_mem_to_string(buf, ((fl_int64)4));
+                FL_String* result = fl_mem_to_string(buf, ((fl_int64)4));
+                fl_mem_free(buf);
+                return result;
             }
         }
     }
@@ -145,10 +153,10 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
         if (_fl_old_3 != result) {
             fl_string_release(_fl_old_3);
         }
-        fl_string_release(_fl_tmp_2);
         fl_int _fl_e_1;
         FL_CHECKED_ADD(i, 1, &_fl_e_1);
         i = _fl_e_1;
+        fl_string_release(_fl_tmp_2);
     }
     return result;
 }
@@ -569,27 +577,27 @@ FL_String* fl_tests_app_variadic_first_or(FL_String* fallback, FL_Array* items) 
 fl_int fl_tests_app_variadic_main(void) {
     FL_String* _fl_tmp_2 = fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(3, sizeof(fl_int), (fl_int[]){1, 2, 3})));
     fl_println(_fl_tmp_2);
-    fl_string_release(_fl_tmp_2);
     FL_String* _fl_tmp_3 = fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(0, 0, NULL)));
     fl_println(_fl_tmp_3);
-    fl_string_release(_fl_tmp_3);
     FL_String* _fl_tmp_4 = fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(1, sizeof(fl_int), (fl_int[]){42})));
     fl_println(_fl_tmp_4);
-    fl_string_release(_fl_tmp_4);
     FL_String* _fl_tmp_5 = fl_tests_app_variadic_first_or(_fl_str_tests_app_variadic_0, fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_1, _fl_str_tests_app_variadic_2}));
     fl_println(_fl_tmp_5);
-    fl_string_release(_fl_tmp_5);
     FL_String* _fl_tmp_6 = fl_tests_app_variadic_first_or(_fl_str_tests_app_variadic_0, fl_array_new(0, 0, NULL));
     fl_println(_fl_tmp_6);
-    fl_string_release(_fl_tmp_6);
     FL_Array* nums = fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30});
     FL_String* _fl_tmp_7 = fl_conv_to_string__int(fl_tests_app_variadic_sum(nums));
     fl_println(_fl_tmp_7);
-    fl_string_release(_fl_tmp_7);
     FL_String* _fl_tmp_8 = fl_conv_to_string__int(fl_tests_app_variadic_count(fl_array_new(4, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_3, _fl_str_tests_app_variadic_4, _fl_str_tests_app_variadic_5, _fl_str_tests_app_variadic_6})));
     fl_println(_fl_tmp_8);
-    fl_string_release(_fl_tmp_8);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_3);
+    fl_string_release(_fl_tmp_4);
+    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_6);
     fl_array_release(nums);
+    fl_string_release(_fl_tmp_7);
+    fl_string_release(_fl_tmp_8);
     return 0;
 }
 
