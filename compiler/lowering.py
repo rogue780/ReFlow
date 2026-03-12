@@ -1619,7 +1619,8 @@ class Lowerer:
         return bases
 
     def _inject_scope_cleanup(self, stmts: list[LStmt],
-                              declared: set[str] | None = None) -> None:
+                              declared: set[str] | None = None,
+                              containers_only: bool = False) -> None:
         """Insert release calls for container locals before each LReturn.
 
         Walks the statement tree recursively. Before each LReturn, inserts
@@ -1628,7 +1629,11 @@ class Lowerer:
         use-after-free on returned compound literals).
 
         Also emits release calls for refcounted fields of struct-typed locals
-        via _struct_field_cleanup.
+        via _struct_field_cleanup (unless containers_only=True).
+
+        containers_only: When True, only release _container_locals, skip
+        struct/sum field cleanup. Used when recursing into while bodies
+        to avoid UAF from struct fields that may have borrowed references.
         """
         if declared is None:
             declared = set()
@@ -1681,53 +1686,57 @@ class Lowerer:
                     cleanup.append(LExprStmt(
                         LCall(fn_name, [LVar(name, ct)], LVoid())))
 
-                # Struct field releases.
-                # Deduplicate: same (var, field) may be registered multiple
-                # times when the variable is declared in multiple branches.
+                # Struct field releases — skip when containers_only
+                # to avoid UAF from struct fields with borrowed references.
                 seen_fields: set[str] = set()
-                for sv, fn, sct, rel_fn, _depth in self._struct_field_cleanup:
-                    field_key = f"{sv}.{fn}"
-                    base_name = sv.split(".")[0]
-                    if base_name not in declared or field_key in seen_fields:
-                        continue
-                    # Without hoist: skip if struct is referenced in
-                    # the return expression (it needs its fields alive)
-                    if not needs_hoist and base_name in returned_names:
-                        continue
-                    # Always skip struct fields when the struct is
-                    # transferred into a compound literal — its fields
-                    # become part of the return value via shallow copy.
-                    if base_name in transferred_bases:
-                        continue
-                    # Skip struct fields when the struct was heap-boxed
-                    # and stored in a container (map/array) — the
-                    # container now owns those internal pointers.
-                    if sv in self._transferred_struct_vars:
-                        continue
-                    # Skip specific fields transferred to the return value
-                    if field_key in returned_field_keys:
-                        continue
-                    seen_fields.add(field_key)
-                    cleanup.append(self._emit_struct_field_release(
-                        sv, fn, sct, rel_fn))
+                if not containers_only:
+                    # Deduplicate: same (var, field) may be registered
+                    # multiple times when the variable is declared in
+                    # multiple branches.
+                    for sv, fn, sct, rel_fn, _depth in self._struct_field_cleanup:
+                        field_key = f"{sv}.{fn}"
+                        base_name = sv.split(".")[0]
+                        if base_name not in declared or field_key in seen_fields:
+                            continue
+                        # Without hoist: skip if struct is referenced in
+                        # the return expression (it needs its fields alive)
+                        if not needs_hoist and base_name in returned_names:
+                            continue
+                        # Always skip struct fields when the struct is
+                        # transferred into a compound literal — its fields
+                        # become part of the return value via shallow copy.
+                        if base_name in transferred_bases:
+                            continue
+                        # Skip struct fields when the struct was heap-boxed
+                        # and stored in a container (map/array) — the
+                        # container now owns those internal pointers.
+                        if sv in self._transferred_struct_vars:
+                            continue
+                        # Skip specific fields transferred to the return value
+                        if field_key in returned_field_keys:
+                            continue
+                        seen_fields.add(field_key)
+                        cleanup.append(self._emit_struct_field_release(
+                            sv, fn, sct, rel_fn))
 
-                # Sum type field releases.
-                for sv, fn, sct, dest_fn, flt, _depth in self._sum_field_cleanup:
-                    field_key = f"{sv}.{fn}"
-                    base_name = sv.split(".")[0]
-                    if base_name not in declared or field_key in seen_fields:
-                        continue
-                    if not needs_hoist and base_name in returned_names:
-                        continue
-                    if base_name in transferred_bases:
-                        continue
-                    if sv in self._transferred_struct_vars:
-                        continue
-                    if field_key in returned_field_keys:
-                        continue
-                    seen_fields.add(field_key)
-                    cleanup.append(self._emit_sum_field_release(
-                        sv, fn, sct, dest_fn, flt))
+                # Sum type field releases — also skip when containers_only.
+                if not containers_only:
+                    for sv, fn, sct, dest_fn, flt, _depth in self._sum_field_cleanup:
+                        field_key = f"{sv}.{fn}"
+                        base_name = sv.split(".")[0]
+                        if base_name not in declared or field_key in seen_fields:
+                            continue
+                        if not needs_hoist and base_name in returned_names:
+                            continue
+                        if base_name in transferred_bases:
+                            continue
+                        if sv in self._transferred_struct_vars:
+                            continue
+                        if field_key in returned_field_keys:
+                            continue
+                        seen_fields.add(field_key)
+                        cleanup.append(self._emit_sum_field_release(
+                            sv, fn, sct, dest_fn, flt))
 
                 if needs_hoist and cleanup:
                     # Hoist: tmp = <expr>; <cleanup>; return tmp;
@@ -1752,19 +1761,31 @@ class Lowerer:
                     i += 1
                 continue
             # Recurse into compound statements, passing a copy of declared
-            # so both branches see what's been declared before the branch
+            # so both branches see what's been declared before the branch.
+            # Propagate containers_only flag through nested structures.
             if isinstance(s, LIf):
-                self._inject_scope_cleanup(s.then, set(declared))
-                self._inject_scope_cleanup(s.else_, set(declared))
+                self._inject_scope_cleanup(s.then, set(declared),
+                                           containers_only)
+                self._inject_scope_cleanup(s.else_, set(declared),
+                                           containers_only)
             elif isinstance(s, LSwitch):
                 for _, case_stmts in s.cases:
-                    self._inject_scope_cleanup(case_stmts, set(declared))
-                self._inject_scope_cleanup(s.default, set(declared))
+                    self._inject_scope_cleanup(case_stmts, set(declared),
+                                               containers_only)
+                self._inject_scope_cleanup(s.default, set(declared),
+                                           containers_only)
             elif isinstance(s, LBlock):
-                self._inject_scope_cleanup(s.stmts, set(declared))
-            # Do NOT recurse into LWhile — returns inside loops are rare
-            # and the loop may re-enter, so cleanup before loop-internal
-            # returns would be incorrect.
+                self._inject_scope_cleanup(s.stmts, set(declared),
+                                           containers_only)
+            elif isinstance(s, LWhile):
+                # Recurse into while body — returns inside loops exit the
+                # function, so cleanup before a loop-internal LReturn is
+                # safe and necessary to avoid leaking loop-body temps.
+                # Use containers_only=True to skip struct field releases
+                # (struct fields from function calls may have borrowed
+                # references that weren't retained → UAF if released).
+                self._inject_scope_cleanup(s.body, set(declared),
+                                           containers_only=True)
             i += 1
 
     @staticmethod
