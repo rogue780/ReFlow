@@ -8805,7 +8805,37 @@ class Lowerer:
             if isinstance(concrete_lt, LStruct):
                 call = LCall(c_fn, lowered_args,
                              LStruct("FL_Option_ptr"))
-                return LOptDerefAs(call, concrete_lt, effective_result_lt)
+                deref_expr = LOptDerefAs(call, concrete_lt, effective_result_lt)
+                # For affine types, the shallow copy from FL_OPT_DEREF_AS
+                # shares refcounted field pointers with the array element.
+                # Retain those fields so both the container and the returned
+                # copy own independent references (affine Rule 5).
+                if self._is_affine_type(concrete):
+                    handlers = self._get_or_emit_struct_handlers(
+                        concrete, concrete_lt)
+                    if handlers:
+                        _, retainer = handlers
+                        tmp = self._fresh_temp()
+                        self._pending_stmts.append(LVarDecl(
+                            c_name=tmp, c_type=effective_result_lt,
+                            init=deref_expr))
+                        self._pending_stmts.append(LIf(
+                            cond=LBinOp("==",
+                                LFieldAccess(LVar(tmp, effective_result_lt),
+                                             "tag", LByte()),
+                                LLit("1", LByte()),
+                                LBool()),
+                            then=[LExprStmt(LCall(
+                                retainer,
+                                [LAddrOf(
+                                    LFieldAccess(
+                                        LVar(tmp, effective_result_lt),
+                                        "value", concrete_lt),
+                                    LPtr(concrete_lt))],
+                                LVoid()))],
+                            else_=[]))
+                        return LVar(tmp, effective_result_lt)
+                return deref_expr
         return None
 
     def _maybe_redirect_array_push(

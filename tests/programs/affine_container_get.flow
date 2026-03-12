@@ -1,0 +1,28 @@
+module tests.affine_container_get
+
+import io
+import array
+import conv
+
+type Token {
+    value:string,
+    line:int
+}
+
+fn main():int {
+    let tokens:array<Token>:mut = []
+    // Use string concat to create a non-static string
+    let name = "hel" + "lo"
+    tokens = array.push(tokens, Token{value:name, line:1})
+    let got = array.get_any(tokens, 0)
+    match got {
+        some(tok): {
+            io.println(f"{tok.value}:{conv.to_string(tok.line)}")
+        }
+        none: {
+            io.println("none")
+        }
+    }
+    io.println("done")
+    return 0
+}
