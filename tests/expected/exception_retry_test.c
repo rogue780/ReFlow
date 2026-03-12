@@ -87,6 +87,7 @@ void fl_tests_exception_retry_test_main(void) {
         fl_string_release(_fl_tmp_0);
         fl_string_release(_fl_tmp_1);
         fl_println(_fl_tmp_2);
+        fl_string_release(_fl_tmp_2);
         _fl_exception_pop();
     } else {
         _fl_exception_pop();
@@ -123,6 +124,7 @@ _fl_tmp_4:;
         _fl_throw(_fl_ef_0.exception, _fl_ef_0.exception_tag);
     }
     fl_println(_fl_str_tests_exception_retry_test_6);
+    fl_string_release(_fl_tmp_7);
 }
 
 static void _fl_init_statics(void) {

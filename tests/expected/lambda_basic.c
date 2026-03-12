@@ -103,7 +103,9 @@ void fl_tests_lambda_basic_main(void) {
     fl_string_release(_fl_tmp_8);
     fl_println(_fl_tmp_9);
     fl_closure_release(dbl);
+    fl_string_release(_fl_tmp_4);
     fl_closure_release(add);
+    fl_string_release(_fl_tmp_9);
 }
 
 static void _fl_init_statics(void) {

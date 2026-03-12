@@ -112,6 +112,7 @@ void fl_tests_recursive_sum_main(void) {
     fl_string_release(_fl_tmp_5);
     fl_string_release(_fl_tmp_6);
     fl_println(_fl_tmp_7);
+    fl_string_release(_fl_tmp_7);
 }
 
 static void _fl_init_statics(void) {

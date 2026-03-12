@@ -143,6 +143,7 @@ void fl_tests_coroutine_multi_test_main(void) {
         fl_string_release(_fl_tmp_5);
         fl_string_release(_fl_tmp_6);
         fl_println(_fl_tmp_7);
+        fl_string_release(_fl_tmp_7);
     } else {
         fl_println(_fl_str_tests_coroutine_multi_test_1);
     }
@@ -161,6 +162,7 @@ void fl_tests_coroutine_multi_test_main(void) {
         fl_string_release(_fl_tmp_11);
         fl_string_release(_fl_tmp_12);
         fl_println(_fl_tmp_13);
+        fl_string_release(_fl_tmp_13);
     } else {
         fl_println(_fl_str_tests_coroutine_multi_test_3);
     }
@@ -179,6 +181,7 @@ void fl_tests_coroutine_multi_test_main(void) {
         fl_string_release(_fl_tmp_17);
         fl_string_release(_fl_tmp_18);
         fl_println(_fl_tmp_19);
+        fl_string_release(_fl_tmp_19);
     } else {
         fl_println(_fl_str_tests_coroutine_multi_test_1);
     }
@@ -197,6 +200,7 @@ void fl_tests_coroutine_multi_test_main(void) {
         fl_string_release(_fl_tmp_23);
         fl_string_release(_fl_tmp_24);
         fl_println(_fl_tmp_25);
+        fl_string_release(_fl_tmp_25);
     } else {
         fl_println(_fl_str_tests_coroutine_multi_test_3);
     }
@@ -212,6 +216,8 @@ void fl_tests_coroutine_multi_test_main(void) {
     fl_string_release(_fl_tmp_29);
     fl_string_release(_fl_tmp_30);
     fl_println(_fl_tmp_31);
+    fl_string_release(_fl_tmp_28);
+    fl_string_release(_fl_tmp_31);
 }
 
 static void _fl_init_statics(void) {

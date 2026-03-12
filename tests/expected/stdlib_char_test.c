@@ -267,6 +267,17 @@ void fl_tests_stdlib_char_test_main(void) {
     fl_string_release(_fl_tmp_30);
     fl_string_release(_fl_tmp_31);
     fl_println(_fl_tmp_32);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_8);
+    fl_string_release(_fl_tmp_11);
+    fl_string_release(_fl_tmp_14);
+    fl_string_release(_fl_tmp_17);
+    fl_string_release(_fl_tmp_20);
+    fl_string_release(_fl_tmp_23);
+    fl_string_release(_fl_tmp_26);
+    fl_string_release(_fl_tmp_29);
+    fl_string_release(_fl_tmp_32);
 }
 
 static void _fl_init_statics(void) {

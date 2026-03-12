@@ -104,6 +104,7 @@ void fl_tests_if_let_test_main(void) {
         fl_string_release(_fl_tmp_1);
         fl_string_release(_fl_tmp_2);
         fl_println(_fl_tmp_3);
+        fl_string_release(_fl_tmp_3);
     }
     FL_Option_int _fl_tmp_4 = fl_tests_if_let_test_find_positive((-5));
     if (_fl_tmp_4.tag == 1) {
@@ -114,6 +115,7 @@ void fl_tests_if_let_test_main(void) {
         fl_string_release(_fl_tmp_5);
         fl_string_release(_fl_tmp_6);
         fl_println(_fl_tmp_7);
+        fl_string_release(_fl_tmp_7);
     } else {
         fl_println(_fl_str_tests_if_let_test_2);
     }
@@ -126,6 +128,7 @@ void fl_tests_if_let_test_main(void) {
         fl_string_release(_fl_tmp_9);
         fl_string_release(_fl_tmp_10);
         fl_println(_fl_tmp_11);
+        fl_string_release(_fl_tmp_11);
     } else {
         FL_String* _ = _fl_tmp_8.err_val;
     }
@@ -138,6 +141,7 @@ void fl_tests_if_let_test_main(void) {
         fl_string_release(_fl_tmp_13);
         fl_string_release(_fl_tmp_14);
         fl_println(_fl_tmp_15);
+        fl_string_release(_fl_tmp_15);
     } else {
         FL_String* _ = _fl_tmp_12.err_val;
         fl_println(_fl_str_tests_if_let_test_4);
@@ -151,6 +155,7 @@ void fl_tests_if_let_test_main(void) {
         FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, e);
         fl_string_release(_fl_tmp_17);
         fl_println(_fl_tmp_18);
+        fl_string_release(_fl_tmp_18);
     }
 }
 

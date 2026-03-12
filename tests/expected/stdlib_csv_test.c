@@ -1176,9 +1176,14 @@ void fl_tests_stdlib_csv_test_main(void) {
     fl_println(_fl_str_tests_stdlib_csv_test_15);
     fl_array_release(rows);
     fl_array_release(row0);
+    fl_string_release(_fl_tmp_2);
+    fl_string_release(_fl_tmp_5);
     fl_array_release(row1);
+    fl_string_release(_fl_tmp_8);
+    fl_string_release(_fl_tmp_11);
     fl_array_release(fields);
     fl_string_release(row_str);
+    fl_string_release(_fl_tmp_13);
     fl_array_release(hrows);
     fl_array_release(records);
 }

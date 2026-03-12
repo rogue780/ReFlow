@@ -208,6 +208,7 @@ void fl_tests_coroutine_wiring_test_main(void) {
         fl_string_release(_fl_tmp_9);
         fl_string_release(_fl_tmp_10);
         fl_println(_fl_tmp_11);
+        fl_string_release(_fl_tmp_11);
     } else {
         fl_println(_fl_str_tests_coroutine_wiring_test_1);
     }
@@ -226,6 +227,7 @@ void fl_tests_coroutine_wiring_test_main(void) {
         fl_string_release(_fl_tmp_15);
         fl_string_release(_fl_tmp_16);
         fl_println(_fl_tmp_17);
+        fl_string_release(_fl_tmp_17);
     } else {
         fl_println(_fl_str_tests_coroutine_wiring_test_1);
     }
@@ -244,6 +246,7 @@ void fl_tests_coroutine_wiring_test_main(void) {
         fl_string_release(_fl_tmp_21);
         fl_string_release(_fl_tmp_22);
         fl_println(_fl_tmp_23);
+        fl_string_release(_fl_tmp_23);
     } else {
         fl_println(_fl_str_tests_coroutine_wiring_test_1);
     }
@@ -262,6 +265,7 @@ void fl_tests_coroutine_wiring_test_main(void) {
         fl_string_release(_fl_tmp_27);
         fl_string_release(_fl_tmp_28);
         fl_println(_fl_tmp_29);
+        fl_string_release(_fl_tmp_29);
     } else {
         fl_println(_fl_str_tests_coroutine_wiring_test_3);
     }

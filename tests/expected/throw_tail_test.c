@@ -100,6 +100,7 @@ void fl_tests_throw_tail_test_main(void) {
         fl_string_release(_fl_tmp_3);
         fl_string_release(_fl_tmp_4);
         fl_println(_fl_tmp_5);
+        fl_string_release(_fl_tmp_5);
         _fl_exception_pop();
     } else {
         _fl_exception_pop();
@@ -123,6 +124,7 @@ void fl_tests_throw_tail_test_main(void) {
         fl_string_release(_fl_tmp_8);
         fl_string_release(_fl_tmp_9);
         fl_println(_fl_tmp_10);
+        fl_string_release(_fl_tmp_10);
         _fl_exception_pop();
     } else {
         _fl_exception_pop();
@@ -137,6 +139,7 @@ void fl_tests_throw_tail_test_main(void) {
         }
     }
     fl_println(_fl_str_tests_throw_tail_test_6);
+    fl_string_release(_fl_tmp_2);
 }
 
 static void _fl_init_statics(void) {

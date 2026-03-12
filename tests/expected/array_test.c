@@ -81,9 +81,11 @@ void fl_tests_array_test_main(void) {
         fl_string_release(_fl_tmp_7);
         fl_println(_fl_tmp_8);
         _fl_tmp_4 = (_fl_tmp_4 + 1);
+        fl_string_release(_fl_tmp_8);
     }
     fl_array_release(_fl_tmp_5);
     fl_array_release(nums);
+    fl_string_release(_fl_tmp_3);
 }
 
 static void _fl_init_statics(void) {

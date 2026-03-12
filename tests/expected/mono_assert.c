@@ -72,6 +72,7 @@ void fl_mono_assert_my_assert_eq__int(fl_int expected, fl_int actual, FL_String*
         fl_string_release(_fl_tmp_0);
         fl_eprintln(_fl_tmp_1);
         fl_sys_exit(1);
+        fl_string_release(_fl_tmp_1);
     }
 }
 
@@ -83,6 +84,7 @@ void fl_mono_assert_my_assert_eq__string(FL_String* expected, FL_String* actual,
         fl_string_release(_fl_tmp_2);
         fl_eprintln(_fl_tmp_3);
         fl_sys_exit(1);
+        fl_string_release(_fl_tmp_3);
     }
 }
 

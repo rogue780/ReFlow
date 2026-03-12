@@ -658,6 +658,9 @@ void fl_tests_match_same_binding_test_main(void) {
     fl_string_release(_fl_tmp_21);
     fl_println(_fl_tmp_22);
     fl_println(_fl_str_tests_match_same_binding_test_7);
+    fl_string_release(_fl_tmp_16);
+    fl_string_release(_fl_tmp_19);
+    fl_string_release(_fl_tmp_22);
 }
 
 static void _fl_init_statics(void) {

@@ -166,6 +166,10 @@ void fl_tests_lambda_higher_order_main(void) {
     fl_string_release(_fl_tmp_17);
     fl_string_release(_fl_tmp_18);
     fl_println(_fl_tmp_19);
+    fl_string_release(_fl_tmp_4);
+    fl_string_release(_fl_tmp_9);
+    fl_string_release(_fl_tmp_13);
+    fl_string_release(_fl_tmp_19);
 }
 
 static void _fl_init_statics(void) {

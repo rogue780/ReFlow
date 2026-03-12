@@ -1,0 +1,19 @@
+module tests.affine_container
+
+import io
+import array
+import conv
+
+type Token {
+    value:string,
+    line:int
+}
+
+fn main():int {
+    let tokens:array<Token>:mut = []
+    tokens = array.push(tokens, Token{value:"hello", line:1})
+    tokens = array.push(tokens, Token{value:"world", line:2})
+    io.println(f"count: {conv.to_string(array.size(tokens))}")
+    // tokens goes out of scope — element destructors should free "hello" and "world"
+    return 0
+}

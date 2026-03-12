@@ -79,6 +79,7 @@ void fl_tests_stdlib_io_test_main(void) {
         FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, s);
         fl_string_release(_fl_tmp_1);
         fl_println(_fl_tmp_2);
+        fl_string_release(_fl_tmp_2);
     } else {
         fl_println(_fl_str_tests_stdlib_io_test_3);
     }
@@ -91,6 +92,7 @@ void fl_tests_stdlib_io_test_main(void) {
         FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, s);
         fl_string_release(_fl_tmp_4);
         fl_println(_fl_tmp_5);
+        fl_string_release(_fl_tmp_5);
     } else {
         fl_println(_fl_str_tests_stdlib_io_test_5);
     }
@@ -109,11 +111,13 @@ void fl_tests_stdlib_io_test_main(void) {
         FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, s);
         fl_string_release(_fl_tmp_10);
         fl_println(_fl_tmp_11);
+        fl_string_release(_fl_tmp_11);
     } else {
         fl_println(_fl_str_tests_stdlib_io_test_9);
     }
     fl_tmpfile_remove(tmp);
     fl_string_release(tmp);
+    fl_string_release(_fl_tmp_8);
 }
 
 static void _fl_init_statics(void) {

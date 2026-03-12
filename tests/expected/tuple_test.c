@@ -104,6 +104,8 @@ void fl_tests_tuple_test_main(void) {
     fl_string_release(_fl_tmp_11);
     fl_string_release(_fl_tmp_12);
     fl_println(_fl_tmp_13);
+    fl_string_release(_fl_tmp_6);
+    fl_string_release(_fl_tmp_13);
 }
 
 static void _fl_init_statics(void) {

@@ -6608,6 +6608,12 @@ class Lowerer:
                 self._pending_stmts.append(
                     LExprStmt(LCall("fl_string_release",
                                     [LVar(itmp, string_type)], LVoid())))
+            # Track the final fstring result for scope-exit release.
+            # The intermediate temps above are released immediately, but the
+            # final concat result is owned by the caller until scope exit.
+            self._container_locals.append(
+                (final_tmp, string_type, "fl_string_release",
+                 self._scope_depth))
             result = LVar(final_tmp, string_type)
 
         return result

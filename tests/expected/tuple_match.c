@@ -198,6 +198,12 @@ void fl_tests_tuple_match_main(void) {
     fl_string_release(_fl_tmp_35);
     fl_string_release(_fl_tmp_36);
     fl_println(_fl_tmp_37);
+    fl_string_release(_fl_tmp_14);
+    fl_string_release(_fl_tmp_18);
+    fl_string_release(_fl_tmp_21);
+    fl_string_release(_fl_tmp_29);
+    fl_string_release(_fl_tmp_32);
+    fl_string_release(_fl_tmp_37);
 }
 
 static void _fl_init_statics(void) {

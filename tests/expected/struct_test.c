@@ -90,6 +90,7 @@ void fl_tests_struct_test_Counter_display(fl_tests_struct_test_Counter* self) {
     fl_string_release(_fl_tmp_0);
     fl_string_release(_fl_tmp_1);
     fl_println(_fl_tmp_2);
+    fl_string_release(_fl_tmp_2);
 }
 
 /* Flow: tests.struct_test.main */
@@ -119,6 +120,8 @@ void fl_tests_struct_test_main(void) {
     fl_string_release(_fl_tmp_10);
     fl_string_release(_fl_tmp_11);
     fl_println(_fl_tmp_12);
+    fl_string_release(_fl_tmp_9);
+    fl_string_release(_fl_tmp_12);
 }
 
 static void _fl_init_statics(void) {

@@ -576,6 +576,7 @@ void fl_tests_stdlib_generic_map_main(void) {
         FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, v);
         fl_string_release(_fl_tmp_9);
         fl_println(_fl_tmp_10);
+        fl_string_release(_fl_tmp_10);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_map_8);
     }
@@ -586,6 +587,7 @@ void fl_tests_stdlib_generic_map_main(void) {
         FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, v);
         fl_string_release(_fl_tmp_12);
         fl_println(_fl_tmp_13);
+        fl_string_release(_fl_tmp_13);
     } else {
         fl_println(_fl_str_tests_stdlib_generic_map_10);
     }
@@ -621,8 +623,14 @@ void fl_tests_stdlib_generic_map_main(void) {
     fl_string_release(_fl_tmp_25);
     fl_println(_fl_tmp_26);
     fl_map_release(m);
+    fl_string_release(_fl_tmp_4);
+    fl_string_release(_fl_tmp_7);
     fl_array_release(ks);
+    fl_string_release(_fl_tmp_16);
     fl_array_release(vs);
+    fl_string_release(_fl_tmp_19);
+    fl_string_release(_fl_tmp_23);
+    fl_string_release(_fl_tmp_26);
 }
 
 static void _fl_init_statics(void) {

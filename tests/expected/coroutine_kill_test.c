@@ -156,6 +156,8 @@ void fl_tests_coroutine_kill_test_main(void) {
     }
     fl_coroutine_kill(h);
     fl_println(_fl_str_tests_coroutine_kill_test_2);
+    fl_string_release(_fl_tmp_6);
+    fl_string_release(_fl_tmp_12);
 }
 
 static void _fl_init_statics(void) {

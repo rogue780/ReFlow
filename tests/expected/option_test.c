@@ -79,6 +79,7 @@ void fl_tests_option_test_main(void) {
         fl_string_release(_fl_tmp_1);
         fl_string_release(_fl_tmp_2);
         fl_println(_fl_tmp_3);
+        fl_string_release(_fl_tmp_3);
     } else {
         fl_println(_fl_str_tests_option_test_1);
     }
@@ -91,6 +92,7 @@ void fl_tests_option_test_main(void) {
         fl_string_release(_fl_tmp_5);
         fl_string_release(_fl_tmp_6);
         fl_println(_fl_tmp_7);
+        fl_string_release(_fl_tmp_7);
     } else {
         fl_println(_fl_str_tests_option_test_1);
     }
@@ -119,6 +121,9 @@ void fl_tests_option_test_main(void) {
     fl_string_release(_fl_tmp_17);
     fl_string_release(_fl_tmp_18);
     fl_println(_fl_tmp_19);
+    fl_string_release(_fl_tmp_11);
+    fl_string_release(_fl_tmp_15);
+    fl_string_release(_fl_tmp_19);
 }
 
 static void _fl_init_statics(void) {

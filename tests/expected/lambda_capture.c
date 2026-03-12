@@ -128,7 +128,9 @@ void fl_tests_lambda_capture_main(void) {
     fl_string_release(_fl_tmp_10);
     fl_println(_fl_tmp_11);
     fl_closure_release(add_y);
+    fl_string_release(_fl_tmp_5);
     fl_closure_release(compute);
+    fl_string_release(_fl_tmp_11);
 }
 
 static void _fl_init_statics(void) {

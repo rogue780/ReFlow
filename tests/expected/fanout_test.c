@@ -91,6 +91,7 @@ void fl_tests_fanout_test_main(void) {
     fl_string_release(_fl_tmp_3);
     fl_string_release(_fl_tmp_4);
     fl_println(_fl_tmp_5);
+    fl_string_release(_fl_tmp_5);
 }
 
 static void _fl_init_statics(void) {

@@ -90,6 +90,7 @@ void fl_tests_option_propagate_test_main(void) {
         fl_string_release(_fl_tmp_3);
         fl_string_release(_fl_tmp_4);
         fl_println(_fl_tmp_5);
+        fl_string_release(_fl_tmp_5);
     } else {
         fl_println(_fl_str_tests_option_propagate_test_1);
     }
@@ -102,6 +103,7 @@ void fl_tests_option_propagate_test_main(void) {
         fl_string_release(_fl_tmp_7);
         fl_string_release(_fl_tmp_8);
         fl_println(_fl_tmp_9);
+        fl_string_release(_fl_tmp_9);
     } else {
         fl_println(_fl_str_tests_option_propagate_test_1);
     }

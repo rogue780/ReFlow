@@ -111,12 +111,14 @@ void fl_tests_result_test_main(void) {
         fl_string_release(_fl_tmp_3);
         fl_string_release(_fl_tmp_4);
         fl_println(_fl_tmp_5);
+        fl_string_release(_fl_tmp_5);
     } else {
         FL_String* msg = _fl_tmp_2.err_val;
         FL_String* _fl_tmp_6 = _fl_str_tests_result_test_2;
         FL_String* _fl_tmp_7 = fl_string_concat(_fl_tmp_6, msg);
         fl_string_release(_fl_tmp_6);
         fl_println(_fl_tmp_7);
+        fl_string_release(_fl_tmp_7);
     }
     FL_Result_fl_int_FL_String_ptr _fl_tmp_8 = fl_tests_result_test_safe_divide(10, 0);
     if (_fl_tmp_8.tag == 0) {
@@ -127,12 +129,14 @@ void fl_tests_result_test_main(void) {
         fl_string_release(_fl_tmp_9);
         fl_string_release(_fl_tmp_10);
         fl_println(_fl_tmp_11);
+        fl_string_release(_fl_tmp_11);
     } else {
         FL_String* msg = _fl_tmp_8.err_val;
         FL_String* _fl_tmp_12 = _fl_str_tests_result_test_2;
         FL_String* _fl_tmp_13 = fl_string_concat(_fl_tmp_12, msg);
         fl_string_release(_fl_tmp_12);
         fl_println(_fl_tmp_13);
+        fl_string_release(_fl_tmp_13);
     }
     FL_Result_fl_int_FL_String_ptr _fl_tmp_14 = fl_tests_result_test_compute(20, 4);
     if (_fl_tmp_14.tag == 0) {
@@ -143,12 +147,14 @@ void fl_tests_result_test_main(void) {
         fl_string_release(_fl_tmp_15);
         fl_string_release(_fl_tmp_16);
         fl_println(_fl_tmp_17);
+        fl_string_release(_fl_tmp_17);
     } else {
         FL_String* msg = _fl_tmp_14.err_val;
         FL_String* _fl_tmp_18 = _fl_str_tests_result_test_5;
         FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, msg);
         fl_string_release(_fl_tmp_18);
         fl_println(_fl_tmp_19);
+        fl_string_release(_fl_tmp_19);
     }
     FL_Result_fl_int_FL_String_ptr _fl_tmp_20 = fl_tests_result_test_compute(20, 0);
     if (_fl_tmp_20.tag == 0) {
@@ -159,12 +165,14 @@ void fl_tests_result_test_main(void) {
         fl_string_release(_fl_tmp_21);
         fl_string_release(_fl_tmp_22);
         fl_println(_fl_tmp_23);
+        fl_string_release(_fl_tmp_23);
     } else {
         FL_String* msg = _fl_tmp_20.err_val;
         FL_String* _fl_tmp_24 = _fl_str_tests_result_test_5;
         FL_String* _fl_tmp_25 = fl_string_concat(_fl_tmp_24, msg);
         fl_string_release(_fl_tmp_24);
         fl_println(_fl_tmp_25);
+        fl_string_release(_fl_tmp_25);
     }
 }
 

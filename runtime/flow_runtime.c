@@ -383,15 +383,14 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
 
     /* Exclusive owner with spare capacity — reuse the data buffer.
      * We write the new element into the spare capacity, then create a new
-     * FL_Array header pointing to the same buffer with updated length.
-     * The old header is NOT modified (preserving old len for safety).
-     * Its refcount is bumped so future pushes from the old header will
-     * take the copy path instead of reusing the shared buffer. */
+     * FL_Array header taking ownership of the data buffer.
+     * The old header is stripped of its data pointer so that when the
+     * caller releases it (Flow linear usage always releases old after push),
+     * the old header is freed cleanly without touching the now-transferred
+     * data buffer. */
     if (atomic_load(&arr->refcount) == 1 && new_len <= cap) {
         /* Write new element into spare capacity slot */
         memcpy((char*)arr->data + (size_t)arr->len * elem_sz, element, elem_sz);
-        /* Bump old header's refcount so it can't claim exclusive ownership */
-        atomic_fetch_add(&arr->refcount, 1);
         FL_Array* out = (FL_Array*)malloc(sizeof(FL_Array));
         if (!out) fl_panic("fl_array_push: out of memory");
         out->refcount = 1;
@@ -402,6 +401,11 @@ FL_Array* fl_array_push(FL_Array* arr, void* element) {
         out->elem_destructor = arr->elem_destructor;
         out->elem_retainer = arr->elem_retainer;
         out->data = arr->data;
+        /* Transfer data ownership to new header: old header no longer owns
+         * the buffer, so releasing old header won't free or process elements. */
+        arr->data = NULL;
+        arr->len = 0;
+        arr->elem_type = FL_ELEM_NONE;
         /* Retain the newly pushed element */
         if (out->elem_type != FL_ELEM_NONE) {
             void* new_slot = (char*)out->data + (size_t)(new_len - 1) * elem_sz;
