@@ -1416,7 +1416,7 @@ fn lower_let(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
                             TCOption(v_inner): {} // Already option, no lift
                             _: {
                                 // Wrap in compound literal {.tag=1, .value=init}
-                                let opt_lt:lir.LType = ann_lt
+                                let opt_lt:lir.LType = @ann_lt
                                 let fnames:array<string>:mut = []
                                 fnames = array.push(fnames, "tag")
                                 fnames = array.push(fnames, "value")
