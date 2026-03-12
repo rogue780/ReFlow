@@ -236,6 +236,14 @@ def mangle_struct_elem_retainer(c_struct_name: str) -> str:
     return f"_fl_retain_{c_struct_name}"
 
 
+def mangle_struct_clone(c_struct_name: str) -> str:
+    """Name of the deep-copy clone function for an affine struct.
+
+    Example: fl_sh_lexer_Token → _fl_clone_fl_sh_lexer_Token
+    """
+    return f"_fl_clone_{c_struct_name}"
+
+
 def _check_reserved(name: str | None, file: str, line: int, col: int) -> None:
     """Raise EmitError if a bare name is a C reserved word."""
     if name is not None and name in C_RESERVED:

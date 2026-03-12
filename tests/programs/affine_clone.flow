@@ -1,0 +1,21 @@
+module tests.affine_clone
+
+import io
+import conv
+
+type Token {
+    value:string,
+    line:int
+}
+
+fn print_token(tok:Token):none {
+    io.println(f"{tok.value}:{conv.to_string(tok.line)}")
+}
+
+fn main():int {
+    let tok = Token{value:"hello", line:1}
+    let copy = @tok
+    print_token(tok)
+    print_token(copy)
+    return 0
+}

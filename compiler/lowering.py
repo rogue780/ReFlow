@@ -741,6 +741,10 @@ class Lowerer:
         # _fl_destroy_<T> / _fl_retain_<T> helper functions emitted.
         self._struct_handler_emitted: set[str] = set()
 
+        # Clone functions: track which struct C types have had
+        # _fl_clone_<T> helper functions emitted.
+        self._emitted_clone_fns: set[str] = set()
+
         # String literal interning: deduplicate string constants as static
         # globals, initialized once in _fl_init_statics with high refcount
         # so retain/release never frees them.  Eliminates millions of
@@ -2542,6 +2546,65 @@ class Lowerer:
              LVar(destructor, LPtr(LVoid())),
              LVar(retainer, LPtr(LVoid()))],
             LVoid())))
+
+    def _generate_clone_fn(self, struct_type: Type, struct_lt: LType) -> str:
+        """Generate a _fl_clone_<StructType> function that deep-copies an affine struct.
+
+        The clone function copies the struct by value and retains each refcounted
+        field, ensuring the clone is independent of the original.  Returns the
+        mangled function name, or "" if the type cannot be cloned.
+        """
+        if not isinstance(struct_lt, LStruct):
+            return ""
+        from compiler.mangler import mangle_struct_clone
+        c_name = mangle_struct_clone(_ltype_c_name(struct_lt))
+
+        # Don't generate duplicates
+        if c_name in self._emitted_clone_fns:
+            return c_name
+        self._emitted_clone_fns.add(c_name)
+
+        param_name = "_src"
+        result_name = "_dst"
+        body: list[LStmt] = []
+
+        # let _dst = _src  (shallow struct copy)
+        body.append(LVarDecl(c_name=result_name, c_type=struct_lt,
+                             init=LVar(param_name, struct_lt)))
+
+        # Retain each refcounted field so the clone owns independent references
+        fields = self._get_struct_fields_cross_module(struct_type)
+        if fields:
+            for fname, ftype in fields.items():
+                retain_fn = self._RETAIN_FN.get(type(ftype))
+                if retain_fn:
+                    field_lt = self._lower_type(ftype)
+                    body.append(LExprStmt(LCall(
+                        retain_fn,
+                        [LFieldAccess(LVar(result_name, struct_lt), fname, field_lt)],
+                        LVoid())))
+                elif self._is_affine_type(ftype):
+                    # Nested affine struct field — recursively clone
+                    nested_lt = self._lower_type(ftype)
+                    nested_clone = self._generate_clone_fn(ftype, nested_lt)
+                    if nested_clone:
+                        body.append(LAssign(
+                            LFieldAccess(LVar(result_name, struct_lt), fname, nested_lt),
+                            LCall(nested_clone,
+                                  [LFieldAccess(LVar(result_name, struct_lt), fname, nested_lt)],
+                                  nested_lt)))
+
+        body.append(LReturn(LVar(result_name, struct_lt)))
+
+        self._fn_defs.append(LFnDef(
+            c_name=c_name,
+            params=[(param_name, struct_lt)],
+            ret=struct_lt,
+            body=body,
+            is_pure=False,
+            source_name=f"clone for {struct_lt.c_name}",
+        ))
+        return c_name
 
     def _emit_struct_field_release(self, struct_var: str, field_name: str,
                                     struct_c_type: LType,
@@ -6715,8 +6778,17 @@ class Lowerer:
                     LExprStmt(LCall("fl_stream_retain", [inner], LVoid())))
                 return inner
             case _:
-                # SPEC GAP: deep copy for user-defined struct/sum types not
-                # yet implemented; retain used as fallback
+                # Affine types: generate and call clone function
+                if self._is_affine_type(inner_type):
+                    lt = self._lower_type(inner_type)
+                    clone_fn = self._generate_clone_fn(inner_type, lt)
+                    if clone_fn:
+                        tmp = self._fresh_temp()
+                        self._pending_stmts.append(
+                            LVarDecl(c_name=tmp, c_type=lt,
+                                     init=LCall(clone_fn, [inner], lt)))
+                        return LVar(tmp, lt)
+                # Non-affine, non-heap: trivial copy
                 return inner
 
     def _lower_ref(self, expr: RefExpr) -> LExpr:
