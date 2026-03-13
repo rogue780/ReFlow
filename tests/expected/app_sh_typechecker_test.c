@@ -21249,6 +21249,7 @@ fl_self_hosted_typechecker_TCType fl_self_hosted_typechecker_infer_expr_inner(fl
                 fl_self_hosted_typechecker_TCType stage_t = fl_self_hosted_typechecker_infer_expr(s, stage.call);
                 _fl_destroy_fl_self_hosted_typechecker_TCType((&last_t));
                 last_t = stage_t;
+                _fl_retain_fl_self_hosted_typechecker_TCType((&last_t));
                 fl_int _fl_e_13;
                 FL_CHECKED_ADD(i, 1, &_fl_e_13);
                 i = _fl_e_13;
@@ -21720,12 +21721,14 @@ void fl_self_hosted_typechecker_check_stmt(fl_self_hosted_typechecker_TCState* s
                     fl_self_hosted_typechecker_TCType elem = FL_BOX_DEREF(_fl_tmp_799.TCStream.elem, fl_self_hosted_typechecker_TCType);
                     _fl_destroy_fl_self_hosted_typechecker_TCType((&elem_t));
                     elem_t = elem;
+                    _fl_retain_fl_self_hosted_typechecker_TCType((&elem_t));
                     break;
                 }
                 case 11: {
                     fl_self_hosted_typechecker_TCType elem = FL_BOX_DEREF(_fl_tmp_799.TCArray.elem, fl_self_hosted_typechecker_TCType);
                     _fl_destroy_fl_self_hosted_typechecker_TCType((&elem_t));
                     elem_t = elem;
+                    _fl_retain_fl_self_hosted_typechecker_TCType((&elem_t));
                     break;
                 }
             }
@@ -21900,6 +21903,7 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
                     fl_self_hosted_typechecker_TCType it = FL_BOX_DEREF(_fl_tmp_813.TCOption.inner, fl_self_hosted_typechecker_TCType);
                     _fl_destroy_fl_self_hosted_typechecker_TCType((&inner_t));
                     inner_t = it;
+                    _fl_retain_fl_self_hosted_typechecker_TCType((&inner_t));
                     break;
                 }
             }
@@ -21925,6 +21929,7 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
                     fl_self_hosted_typechecker_TCType et = FL_BOX_DEREF(_fl_tmp_814.TCResult.err_type, fl_self_hosted_typechecker_TCType);
                     _fl_destroy_fl_self_hosted_typechecker_TCType((&ok_t));
                     ok_t = ot;
+                    _fl_retain_fl_self_hosted_typechecker_TCType((&ok_t));
                     break;
                 }
             }
@@ -21944,6 +21949,7 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
                     fl_self_hosted_typechecker_TCType et = FL_BOX_DEREF(_fl_tmp_815.TCResult.err_type, fl_self_hosted_typechecker_TCType);
                     _fl_destroy_fl_self_hosted_typechecker_TCType((&err_t));
                     err_t = et;
+                    _fl_retain_fl_self_hosted_typechecker_TCType((&err_t));
                     break;
                 }
             }
@@ -21985,6 +21991,7 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
                                     fl_self_hosted_typechecker_TCTypeBox fb = ((_fl_tmp_820.tag == 1) ? _fl_tmp_820.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                                     _fl_destroy_fl_self_hosted_typechecker_TCType((&field_t));
                                     field_t = fb.tc;
+                                    _fl_retain_fl_self_hosted_typechecker_TCType((&field_t));
                                 }
                                 fl_self_hosted_typechecker_scope_define(s, bname, field_t);
                                 fl_int _fl_e_1;
@@ -22049,6 +22056,7 @@ void fl_self_hosted_typechecker_bind_pattern_types(fl_self_hosted_typechecker_TC
                             fl_self_hosted_typechecker_TCTypeBox eb = ((_fl_tmp_825.tag == 1) ? _fl_tmp_825.value : fl_self_hosted_typechecker_tc_box((fl_self_hosted_typechecker_TCType){.tag = 23}));
                             _fl_destroy_fl_self_hosted_typechecker_TCType((&et));
                             et = eb.tc;
+                            _fl_retain_fl_self_hosted_typechecker_TCType((&et));
                         }
                         fl_self_hosted_typechecker_bind_pattern_types(s, ep, et);
                         fl_int _fl_e_5;

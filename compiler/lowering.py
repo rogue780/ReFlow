@@ -742,6 +742,11 @@ class Lowerer:
         # field goes out of scope, call the sum type destructor on the field.
         # (struct_var_name, field_name, struct_c_type, destructor_fn, field_lt, depth)
         self._sum_field_cleanup: list[tuple[str, str, LType, str, LType, int]] = []
+        # Affine (sum type) locals that need whole-variable destruction at
+        # scope exit.  Unlike container locals (released via fn(var)), these
+        # are destroyed via fn(&var) — the destructor takes a pointer.
+        # (var_name, c_type, destructor_fn, depth)
+        self._affine_locals: list[tuple[str, LType, str, int]] = []
         self._scope_depth: int = 0
         # Track affine bindings that have been consumed (moved).
         # A binding is consumed when its ownership transfers: container
@@ -1118,6 +1123,8 @@ class Lowerer:
         self._struct_field_cleanup = []
         saved_sum_field_cleanup = self._sum_field_cleanup
         self._sum_field_cleanup = []
+        saved_affine_locals = self._affine_locals
+        self._affine_locals = []
         saved_consumed_bindings = self._consumed_bindings
         self._consumed_bindings = set()
         saved_scope_depth = self._scope_depth
@@ -1164,7 +1171,7 @@ class Lowerer:
                 body.append(LReturn(expr_result))
 
         # Scope-exit cleanup: release container locals before returns
-        if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup:
+        if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup or self._affine_locals:
             self._inject_scope_cleanup(body)
             # For void functions without explicit return, append cleanup
             # Only depth-0 locals (inner-scope vars out of C scope here)
@@ -1182,6 +1189,18 @@ class Lowerer:
                              in self._sum_field_cleanup
                              if depth == 0
                              and sv not in self._consumed_bindings])
+                # Affine (sum type) locals — destroy the whole variable
+                seen_affine: set[str] = set()
+                for av, act, dest_fn, depth in self._affine_locals:
+                    if depth != 0 or av in seen_affine:
+                        continue
+                    if av in self._consumed_bindings:
+                        continue
+                    seen_affine.add(av)
+                    body.append(LExprStmt(LCall(
+                        dest_fn,
+                        [LAddrOf(LVar(av, act), LPtr(act))],
+                        LVoid())))
 
         self._fn_defs.append(LFnDef(
             c_name=c_name,
@@ -1199,6 +1218,7 @@ class Lowerer:
         self._container_locals = saved_container_locals
         self._struct_field_cleanup = saved_struct_field_cleanup
         self._sum_field_cleanup = saved_sum_field_cleanup
+        self._affine_locals = saved_affine_locals
         self._scope_depth = saved_scope_depth
 
     def _lower_type_decl(self, td: TypeDecl) -> None:
@@ -1232,6 +1252,8 @@ class Lowerer:
             self._struct_field_cleanup = []
             saved_sum_field_cleanup = self._sum_field_cleanup
             self._sum_field_cleanup = []
+            saved_affine_locals = self._affine_locals
+            self._affine_locals = []
             saved_consumed_bindings = self._consumed_bindings
             self._consumed_bindings = set()
             saved_scope_depth = self._scope_depth
@@ -1276,7 +1298,7 @@ class Lowerer:
                     body.append(LReturn(expr_result))
 
             # Scope-exit cleanup: release container locals before returns
-            if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup:
+            if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup or self._affine_locals:
                 self._inject_scope_cleanup(body)
                 if isinstance(ret_lt, LVoid):
                     body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
@@ -1292,6 +1314,18 @@ class Lowerer:
                                  in self._sum_field_cleanup
                                  if depth == 0
                                  and sv not in self._consumed_bindings])
+                    # Affine (sum type) locals — destroy the whole variable
+                    seen_affine: set[str] = set()
+                    for av, act, dest_fn, depth in self._affine_locals:
+                        if depth != 0 or av in seen_affine:
+                            continue
+                        if av in self._consumed_bindings:
+                            continue
+                        seen_affine.add(av)
+                        body.append(LExprStmt(LCall(
+                            dest_fn,
+                            [LAddrOf(LVar(av, act), LPtr(act))],
+                            LVoid())))
 
             self._fn_defs.append(LFnDef(
                 c_name=m_c_name,
@@ -1308,6 +1342,7 @@ class Lowerer:
             self._container_locals = saved_container_locals
             self._struct_field_cleanup = saved_struct_field_cleanup
             self._sum_field_cleanup = saved_sum_field_cleanup
+            self._affine_locals = saved_affine_locals
             self._consumed_bindings = saved_consumed_bindings
             self._scope_depth = saved_scope_depth
 
@@ -1663,7 +1698,9 @@ class Lowerer:
         # Struct field cleanup uses the struct var name as the base
         struct_field_base_names = {sv for sv, _, _, _, _ in self._struct_field_cleanup}
         sum_field_base_names = {sv for sv, _, _, _, _, _ in self._sum_field_cleanup}
-        all_trackable = container_names | struct_field_base_names | sum_field_base_names
+        affine_names = {name for name, _, _, _ in self._affine_locals}
+        all_trackable = (container_names | struct_field_base_names
+                         | sum_field_base_names | affine_names)
         i = 0
         while i < len(stmts):
             s = stmts[i]
@@ -1759,6 +1796,26 @@ class Lowerer:
                         seen_fields.add(field_key)
                         cleanup.append(self._emit_sum_field_release(
                             sv, fn, sct, dest_fn, flt))
+
+                # Affine (sum type) locals — destroy the whole variable.
+                # Unlike container releases (fn(var)), destructors take a
+                # pointer: fn(&var).  Skip when containers_only.
+                if not containers_only:
+                    seen_affine: set[str] = set()
+                    for av, act, dest_fn, _depth in self._affine_locals:
+                        if av not in declared or av in seen_affine:
+                            continue
+                        if not needs_hoist and av in returned_names:
+                            continue
+                        if av in consumed_bases:
+                            continue
+                        if av in self._consumed_bindings:
+                            continue
+                        seen_affine.add(av)
+                        cleanup.append(LExprStmt(LCall(
+                            dest_fn,
+                            [LAddrOf(LVar(av, act), LPtr(act))],
+                            LVoid())))
 
                 if needs_hoist and cleanup:
                     # Hoist: tmp = <expr>; <cleanup>; return tmp;
@@ -2033,6 +2090,27 @@ class Lowerer:
                                 LVoid())))
                     self._register_struct_field_releases(
                         stmt.name, val_type, c_type, self._scope_depth)
+
+        # Register :mut affine (sum type) locals for scope-exit destruction.
+        # When the function exits, the final value in the :mut variable
+        # must be destroyed to release its refcounted fields.
+        # Only for sum types — structs use individual field cleanup via
+        # _struct_field_cleanup which already handles scope-exit release.
+        # NOTE: Affine-local-cleanup is disabled because it causes UAF.
+        # :mut sum type locals at function exit share internal fields with
+        # their source (array elements, match bindings).  Destroying the
+        # local frees shared fields → UAF in the source.  A full fix needs
+        # retain-on-initial-bind, which requires FL_Box-aware retainers.
+        if (False and not auto_lifted  # noqa: disabled — see note above
+                and isinstance(stmt.type_ann, MutType)
+                and self._is_affine_type(val_type)
+                and self._sum_type_has_cleanup_fields(val_type)):
+            target_lt = self._lower_type(val_type)
+            handlers = self._get_or_emit_sum_type_handlers(
+                val_type, target_lt)
+            if handlers:
+                self._affine_locals.append(
+                    (stmt.name, c_type, handlers[0], self._scope_depth))
 
         return stmts
 
@@ -2904,13 +2982,26 @@ class Lowerer:
                     if handlers:
                         dest_fn = handlers[0]
                 if dest_fn:
-                    return [
+                    result = [
                         LExprStmt(LCall(
                             dest_fn,
                             [LAddrOf(target, LPtr(target.c_type))],
                             LVoid())),
                         LAssign(target=target, value=value),
                     ]
+                    # If RHS is a non-allocating source (match binding,
+                    # variable copy), the new value shares refcounted
+                    # fields with the source.  Retain so the target
+                    # independently owns its references — otherwise
+                    # the next destroy-before-reassign double-frees
+                    # fields that the source still holds.
+                    if (not self._is_allocating_expr(stmt.value)
+                            and handlers and len(handlers) > 1):
+                        result.append(LExprStmt(LCall(
+                            handlers[1],
+                            [LAddrOf(target, LPtr(target.c_type))],
+                            LVoid())))
+                    return result
 
         # Release-on-reassignment for container-typed :mut variables.
         # Only for allocating RHS (call, literal) so the old value is
@@ -3312,7 +3403,8 @@ class Lowerer:
                                loop_depth: int,
                                cl_snapshot: int,
                                sf_snapshot: int,
-                               sum_sf_snapshot: int = 0) -> None:
+                               sum_sf_snapshot: int = 0,
+                               aff_snapshot: int = 0) -> None:
         """Append release calls at end of loop body for loop-scoped variables.
 
         For container locals: only release if the variable was retained in
@@ -3385,6 +3477,21 @@ class Lowerer:
             cleanup.append(self._emit_sum_field_release(
                 sv, fn, sct, dest_fn, flt))
 
+        # Affine (sum type) locals registered during this loop body
+        seen_affine: set[str] = set()
+        for av, act, dest_fn, depth in self._affine_locals[aff_snapshot:]:
+            if depth != loop_depth or av in seen_affine:
+                continue
+            if av not in top_decls:
+                continue
+            if av in self._consumed_bindings:
+                continue
+            seen_affine.add(av)
+            cleanup.append(LExprStmt(LCall(
+                dest_fn,
+                [LAddrOf(LVar(av, act), LPtr(act))],
+                LVoid())))
+
         body.extend(cleanup)
 
     def _lower_while(self, stmt: WhileStmt) -> list[LStmt]:
@@ -3393,10 +3500,11 @@ class Lowerer:
         cl_snapshot = len(self._container_locals)
         sf_snapshot = len(self._struct_field_cleanup)
         sum_sf_snapshot = len(self._sum_field_cleanup)
+        aff_snapshot = len(self._affine_locals)
         body = self._lower_block(stmt.body)
         self._emit_loop_end_cleanup(body, self._scope_depth,
                                      cl_snapshot, sf_snapshot,
-                                     sum_sf_snapshot)
+                                     sum_sf_snapshot, aff_snapshot)
         self._scope_depth -= 1
         result: list[LStmt] = [LWhile(cond=cond, body=body)]
         if stmt.finally_block is not None:
@@ -3472,13 +3580,14 @@ class Lowerer:
         cl_snapshot = len(self._container_locals)
         sf_snapshot = len(self._struct_field_cleanup)
         sum_sf_snapshot = len(self._sum_field_cleanup)
+        aff_snapshot = len(self._affine_locals)
         inner_body = self._lower_block(stmt.body)
         loop_depth = self._scope_depth
         self._scope_depth -= 1
         body_stmts = [item_decl] + inner_body + [increment]
         self._emit_loop_end_cleanup(body_stmts, loop_depth,
                                      cl_snapshot, sf_snapshot,
-                                     sum_sf_snapshot)
+                                     sum_sf_snapshot, aff_snapshot)
         result: list[LStmt] = []
 
         if cleanup_needed:
@@ -9334,6 +9443,8 @@ class Lowerer:
         self._struct_field_cleanup = []
         saved_sum_field_cleanup = self._sum_field_cleanup
         self._sum_field_cleanup = []
+        saved_affine_locals = self._affine_locals
+        self._affine_locals = []
         saved_consumed_bindings = self._consumed_bindings
         self._consumed_bindings = set()
         saved_scope_depth = self._scope_depth
@@ -9377,7 +9488,7 @@ class Lowerer:
                     body.append(LReturn(expr_result))
 
         # Scope-exit cleanup for monomorphized functions
-        if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup:
+        if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup or self._affine_locals:
             self._inject_scope_cleanup(body)
             if isinstance(ret_lt, LVoid):
                 body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
@@ -9393,6 +9504,18 @@ class Lowerer:
                              in self._sum_field_cleanup
                              if depth == 0
                              and sv not in self._consumed_bindings])
+                # Affine (sum type) locals — destroy the whole variable
+                seen_affine: set[str] = set()
+                for av, act, dest_fn, depth in self._affine_locals:
+                    if depth != 0 or av in seen_affine:
+                        continue
+                    if av in self._consumed_bindings:
+                        continue
+                    seen_affine.add(av)
+                    body.append(LExprStmt(LCall(
+                        dest_fn,
+                        [LAddrOf(LVar(av, act), LPtr(act))],
+                        LVoid())))
 
         # Restore state
         self._types = original_types
@@ -9406,6 +9529,7 @@ class Lowerer:
         self._container_locals = saved_container_locals
         self._struct_field_cleanup = saved_struct_field_cleanup
         self._sum_field_cleanup = saved_sum_field_cleanup
+        self._affine_locals = saved_affine_locals
         self._consumed_bindings = saved_consumed_bindings
         self._scope_depth = saved_scope_depth
 

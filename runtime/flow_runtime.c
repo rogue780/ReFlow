@@ -1652,9 +1652,11 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         if (m->val_retainer && val) m->val_retainer(val);
         e->occupied = fl_true;
 
-        /* Old header becomes non-owning; bump refcount to prevent free */
+        /* Old header becomes non-owning.  Release-on-reassignment in
+         * generated code (m = map.set(m, k, v)) will decrement refcount
+         * to 0 and free just the header struct — entries are untouched
+         * because owns_entries is false. */
         m->owns_entries = fl_false;
-        atomic_fetch_add(&m->refcount, 1);
 
         /* New header sharing same entries array */
         FL_Map* out = (FL_Map*)malloc(sizeof(FL_Map));
