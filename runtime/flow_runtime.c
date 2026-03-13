@@ -3128,6 +3128,7 @@ void fl_sys_exit(fl_int code) {
 
 FL_Array* fl_sys_args(void) {
     FL_Array* arr = fl_array_new(_fl_argc, sizeof(FL_String*), NULL);
+    fl_array_set_elem_type(arr, FL_ELEM_STRING);
     for (int i = 0; i < _fl_argc; i++) {
         FL_String* s = fl_string_from_cstr(_fl_argv[i]);
         memcpy((char*)arr->data + (size_t)i * sizeof(FL_String*), &s, sizeof(FL_String*));

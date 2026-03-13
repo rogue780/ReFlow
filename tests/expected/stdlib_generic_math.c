@@ -533,13 +533,13 @@ void fl_stdlib_generic_math_main(void);
 /* Flow: math.abs[mono] */
 fl_int fl_math_abs__int(fl_int n) {
     fl_int neg = (-n);
-    fl_int _fl_tmp_5;
+    fl_int _fl_tmp_7;
     if (_fl_compare(n, neg) < 0) {
-        _fl_tmp_5 = neg;
+        _fl_tmp_7 = neg;
     } else {
-        _fl_tmp_5 = n;
+        _fl_tmp_7 = n;
     }
-    return _fl_tmp_5;
+    return _fl_tmp_7;
 }
 
 /* Flow: conv.to_string[mono] */
@@ -550,13 +550,13 @@ FL_String* fl_conv_to_string__int(fl_int val) {
 /* Flow: math.abs[mono] */
 fl_float fl_math_abs__float(fl_float n) {
     fl_float neg = (-n);
-    fl_float _fl_tmp_6;
+    fl_float _fl_tmp_8;
     if (_fl_compare(n, neg) < 0) {
-        _fl_tmp_6 = neg;
+        _fl_tmp_8 = neg;
     } else {
-        _fl_tmp_6 = n;
+        _fl_tmp_8 = n;
     }
-    return _fl_tmp_6;
+    return _fl_tmp_8;
 }
 
 /* Flow: conv.to_string[mono] */
@@ -567,13 +567,13 @@ FL_String* fl_conv_to_string__float(fl_float val) {
 /* Flow: math.min[mono] */
 fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
     fl_int result = first;
-    fl_int64 _fl_tmp_7 = 0;
-    while (_fl_tmp_7 < fl_array_len(rest)) {
-        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_7)));
+    fl_int64 _fl_tmp_9 = 0;
+    while (_fl_tmp_9 < fl_array_len(rest)) {
+        fl_int val = (*((fl_int*)fl_array_get_ptr(rest, _fl_tmp_9)));
         if (_fl_compare(val, result) < 0) {
             result = val;
         }
-        _fl_tmp_7 = (_fl_tmp_7 + 1);
+        _fl_tmp_9 = (_fl_tmp_9 + 1);
     }
     return result;
 }
@@ -581,22 +581,22 @@ fl_int fl_math_min__int(fl_int first, FL_Array* rest) {
 /* Flow: math.max[mono] */
 fl_float fl_math_max__float(fl_float first, FL_Array* rest) {
     fl_float result = first;
-    fl_int64 _fl_tmp_8 = 0;
-    while (_fl_tmp_8 < fl_array_len(rest)) {
-        fl_float val = (*((fl_float*)fl_array_get_ptr(rest, _fl_tmp_8)));
+    fl_int64 _fl_tmp_10 = 0;
+    while (_fl_tmp_10 < fl_array_len(rest)) {
+        fl_float val = (*((fl_float*)fl_array_get_ptr(rest, _fl_tmp_10)));
         if (_fl_compare(val, result) > 0) {
             result = val;
         }
-        _fl_tmp_8 = (_fl_tmp_8 + 1);
+        _fl_tmp_10 = (_fl_tmp_10 + 1);
     }
     return result;
 }
 
 /* Flow: math.clamp[mono] */
 fl_int fl_math_clamp__int(fl_int val, fl_int lo, fl_int hi) {
-    void _fl_tmp_9;
+    void _fl_tmp_11;
     if (_fl_compare(val, lo) < 0) {
-        _fl_tmp_9 = lo;
+        _fl_tmp_11 = lo;
     } else {
         if (_fl_compare(val, hi) > 0) {
             hi;
@@ -604,7 +604,7 @@ fl_int fl_math_clamp__int(fl_int val, fl_int lo, fl_int hi) {
             val;
         }
     }
-    return _fl_tmp_9;
+    return _fl_tmp_11;
 }
 
 /* Flow: stdlib_generic_math.main */
@@ -613,17 +613,21 @@ void fl_stdlib_generic_math_main(void) {
     fl_println(_fl_tmp_0);
     FL_String* _fl_tmp_1 = fl_conv_to_string__float(fl_math_abs__float((-3.14)));
     fl_println(_fl_tmp_1);
-    FL_String* _fl_tmp_2 = fl_conv_to_string__int(fl_math_min__int(10, fl_array_new(1, sizeof(fl_int), (fl_int[]){3})));
-    fl_println(_fl_tmp_2);
-    FL_String* _fl_tmp_3 = fl_conv_to_string__float(fl_math_max__float(1.0, fl_array_new(1, sizeof(fl_float), (fl_float[]){2.0})));
+    FL_Array* _fl_tmp_2 = fl_array_new(1, sizeof(fl_int), (fl_int[]){3});
+    FL_String* _fl_tmp_3 = fl_conv_to_string__int(fl_math_min__int(10, _fl_tmp_2));
     fl_println(_fl_tmp_3);
-    FL_String* _fl_tmp_4 = fl_conv_to_string__int(fl_math_clamp__int(15, 0, 10));
-    fl_println(_fl_tmp_4);
+    FL_Array* _fl_tmp_4 = fl_array_new(1, sizeof(fl_float), (fl_float[]){2.0});
+    FL_String* _fl_tmp_5 = fl_conv_to_string__float(fl_math_max__float(1.0, _fl_tmp_4));
+    fl_println(_fl_tmp_5);
+    FL_String* _fl_tmp_6 = fl_conv_to_string__int(fl_math_clamp__int(15, 0, 10));
+    fl_println(_fl_tmp_6);
     fl_string_release(_fl_tmp_0);
     fl_string_release(_fl_tmp_1);
-    fl_string_release(_fl_tmp_2);
+    fl_array_release(_fl_tmp_2);
     fl_string_release(_fl_tmp_3);
-    fl_string_release(_fl_tmp_4);
+    fl_array_release(_fl_tmp_4);
+    fl_string_release(_fl_tmp_5);
+    fl_string_release(_fl_tmp_6);
 }
 
 static void _fl_init_statics(void) {

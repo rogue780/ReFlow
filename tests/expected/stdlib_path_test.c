@@ -330,29 +330,31 @@ FL_Option_ptr fl_path_walk(FL_String* dir) {
         fl_int64 _fl_tmp_18 = 0;
         while (_fl_tmp_18 < fl_array_len(entries)) {
             FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_18)));
-            FL_String* full = fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry}));
-            FL_Array* _fl_old_19 = result;
+            FL_Array* _fl_tmp_19 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry});
+            FL_String* full = fl_path_join(_fl_tmp_19);
+            FL_Array* _fl_old_20 = result;
             result = fl_array_push_ptr(result, full);
-            if (_fl_old_19 != result) {
-                fl_array_release(_fl_old_19);
+            if (_fl_old_20 != result) {
+                fl_array_release(_fl_old_20);
             }
             if (fl_path_is_dir(full)) {
-                FL_Option_ptr _fl_tmp_20 = fl_path_walk(full);
-                if (_fl_tmp_20.tag == 1) {
-                    FL_Array* children = _fl_tmp_20.value;
-                    FL_Array* _fl_old_21 = result;
+                FL_Option_ptr _fl_tmp_21 = fl_path_walk(full);
+                if (_fl_tmp_21.tag == 1) {
+                    FL_Array* children = _fl_tmp_21.value;
+                    FL_Array* _fl_old_22 = result;
                     result = fl_array_concat(result, children);
-                    if (_fl_old_21 != result) {
-                        fl_array_release(_fl_old_21);
+                    if (_fl_old_22 != result) {
+                        fl_array_release(_fl_old_22);
                     }
                 }
             }
             _fl_tmp_18 = (_fl_tmp_18 + 1);
+            fl_array_release(_fl_tmp_19);
         }
         fl_array_retain(result);
-        FL_Option_ptr _fl_ret_22 = (FL_Option_ptr){.tag = 1, .value = result};
+        FL_Option_ptr _fl_ret_23 = (FL_Option_ptr){.tag = 1, .value = result};
         fl_array_release(result);
-        return _fl_ret_22;
+        return _fl_ret_23;
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -384,48 +386,50 @@ FL_String* _fl_str_tests_stdlib_path_test_11 = NULL;
 
 /* Flow: tests.stdlib_path_test.main */
 void fl_tests_stdlib_path_test_main(void) {
-    FL_String* _fl_tmp_0 = fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_stdlib_path_test_1, _fl_str_tests_stdlib_path_test_2}));
-    FL_String* _fl_tmp_1 = _fl_str_tests_stdlib_path_test_0;
-    FL_String* _fl_tmp_2 = fl_string_concat(_fl_tmp_1, _fl_tmp_0);
-    fl_string_release(_fl_tmp_0);
+    FL_Array* _fl_tmp_0 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_stdlib_path_test_1, _fl_str_tests_stdlib_path_test_2});
+    FL_String* _fl_tmp_1 = fl_path_join(_fl_tmp_0);
+    FL_String* _fl_tmp_2 = _fl_str_tests_stdlib_path_test_0;
+    FL_String* _fl_tmp_3 = fl_string_concat(_fl_tmp_2, _fl_tmp_1);
     fl_string_release(_fl_tmp_1);
-    fl_println(_fl_tmp_2);
-    FL_String* _fl_tmp_3 = fl_path_stem(_fl_str_tests_stdlib_path_test_4);
-    FL_String* _fl_tmp_4 = _fl_str_tests_stdlib_path_test_3;
-    FL_String* _fl_tmp_5 = fl_string_concat(_fl_tmp_4, _fl_tmp_3);
-    fl_string_release(_fl_tmp_3);
-    fl_string_release(_fl_tmp_4);
-    fl_println(_fl_tmp_5);
-    FL_String* _fl_tmp_6 = fl_path_parent(_fl_str_tests_stdlib_path_test_4);
-    FL_String* _fl_tmp_7 = _fl_str_tests_stdlib_path_test_5;
-    FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, _fl_tmp_6);
-    fl_string_release(_fl_tmp_6);
-    fl_string_release(_fl_tmp_7);
-    fl_println(_fl_tmp_8);
-    FL_String* _fl_tmp_9 = fl_path_with_suffix(_fl_str_tests_stdlib_path_test_4, _fl_str_tests_stdlib_path_test_7);
-    FL_String* _fl_tmp_10 = _fl_str_tests_stdlib_path_test_6;
-    FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, _fl_tmp_9);
-    fl_string_release(_fl_tmp_9);
-    fl_string_release(_fl_tmp_10);
-    fl_println(_fl_tmp_11);
-    FL_String* _fl_tmp_12 = fl_bool_to_string(fl_path_exists(_fl_str_tests_stdlib_path_test_9));
-    FL_String* _fl_tmp_13 = _fl_str_tests_stdlib_path_test_8;
-    FL_String* _fl_tmp_14 = fl_string_concat(_fl_tmp_13, _fl_tmp_12);
-    fl_string_release(_fl_tmp_12);
-    fl_string_release(_fl_tmp_13);
-    fl_println(_fl_tmp_14);
-    FL_String* _fl_tmp_15 = fl_bool_to_string(fl_path_exists(_fl_str_tests_stdlib_path_test_11));
-    FL_String* _fl_tmp_16 = _fl_str_tests_stdlib_path_test_10;
-    FL_String* _fl_tmp_17 = fl_string_concat(_fl_tmp_16, _fl_tmp_15);
-    fl_string_release(_fl_tmp_15);
-    fl_string_release(_fl_tmp_16);
-    fl_println(_fl_tmp_17);
     fl_string_release(_fl_tmp_2);
+    fl_println(_fl_tmp_3);
+    FL_String* _fl_tmp_4 = fl_path_stem(_fl_str_tests_stdlib_path_test_4);
+    FL_String* _fl_tmp_5 = _fl_str_tests_stdlib_path_test_3;
+    FL_String* _fl_tmp_6 = fl_string_concat(_fl_tmp_5, _fl_tmp_4);
+    fl_string_release(_fl_tmp_4);
     fl_string_release(_fl_tmp_5);
+    fl_println(_fl_tmp_6);
+    FL_String* _fl_tmp_7 = fl_path_parent(_fl_str_tests_stdlib_path_test_4);
+    FL_String* _fl_tmp_8 = _fl_str_tests_stdlib_path_test_5;
+    FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_tmp_7);
+    fl_string_release(_fl_tmp_7);
     fl_string_release(_fl_tmp_8);
+    fl_println(_fl_tmp_9);
+    FL_String* _fl_tmp_10 = fl_path_with_suffix(_fl_str_tests_stdlib_path_test_4, _fl_str_tests_stdlib_path_test_7);
+    FL_String* _fl_tmp_11 = _fl_str_tests_stdlib_path_test_6;
+    FL_String* _fl_tmp_12 = fl_string_concat(_fl_tmp_11, _fl_tmp_10);
+    fl_string_release(_fl_tmp_10);
     fl_string_release(_fl_tmp_11);
+    fl_println(_fl_tmp_12);
+    FL_String* _fl_tmp_13 = fl_bool_to_string(fl_path_exists(_fl_str_tests_stdlib_path_test_9));
+    FL_String* _fl_tmp_14 = _fl_str_tests_stdlib_path_test_8;
+    FL_String* _fl_tmp_15 = fl_string_concat(_fl_tmp_14, _fl_tmp_13);
+    fl_string_release(_fl_tmp_13);
     fl_string_release(_fl_tmp_14);
+    fl_println(_fl_tmp_15);
+    FL_String* _fl_tmp_16 = fl_bool_to_string(fl_path_exists(_fl_str_tests_stdlib_path_test_11));
+    FL_String* _fl_tmp_17 = _fl_str_tests_stdlib_path_test_10;
+    FL_String* _fl_tmp_18 = fl_string_concat(_fl_tmp_17, _fl_tmp_16);
+    fl_string_release(_fl_tmp_16);
     fl_string_release(_fl_tmp_17);
+    fl_println(_fl_tmp_18);
+    fl_array_release(_fl_tmp_0);
+    fl_string_release(_fl_tmp_3);
+    fl_string_release(_fl_tmp_6);
+    fl_string_release(_fl_tmp_9);
+    fl_string_release(_fl_tmp_12);
+    fl_string_release(_fl_tmp_15);
+    fl_string_release(_fl_tmp_18);
 }
 
 static void _fl_init_statics(void) {

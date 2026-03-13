@@ -2698,29 +2698,31 @@ FL_Option_ptr fl_path_walk(FL_String* dir) {
         fl_int64 _fl_tmp_18 = 0;
         while (_fl_tmp_18 < fl_array_len(entries)) {
             FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_18)));
-            FL_String* full = fl_path_join(fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry}));
-            FL_Array* _fl_old_19 = result;
+            FL_Array* _fl_tmp_19 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry});
+            FL_String* full = fl_path_join(_fl_tmp_19);
+            FL_Array* _fl_old_20 = result;
             result = fl_array_push_ptr(result, full);
-            if (_fl_old_19 != result) {
-                fl_array_release(_fl_old_19);
+            if (_fl_old_20 != result) {
+                fl_array_release(_fl_old_20);
             }
             if (fl_path_is_dir(full)) {
-                FL_Option_ptr _fl_tmp_20 = fl_path_walk(full);
-                if (_fl_tmp_20.tag == 1) {
-                    FL_Array* children = _fl_tmp_20.value;
-                    FL_Array* _fl_old_21 = result;
+                FL_Option_ptr _fl_tmp_21 = fl_path_walk(full);
+                if (_fl_tmp_21.tag == 1) {
+                    FL_Array* children = _fl_tmp_21.value;
+                    FL_Array* _fl_old_22 = result;
                     result = fl_array_concat(result, children);
-                    if (_fl_old_21 != result) {
-                        fl_array_release(_fl_old_21);
+                    if (_fl_old_22 != result) {
+                        fl_array_release(_fl_old_22);
                     }
                 }
             }
             _fl_tmp_18 = (_fl_tmp_18 + 1);
+            fl_array_release(_fl_tmp_19);
         }
         fl_array_retain(result);
-        FL_Option_ptr _fl_ret_22 = (FL_Option_ptr){.tag = 1, .value = result};
+        FL_Option_ptr _fl_ret_23 = (FL_Option_ptr){.tag = 1, .value = result};
         fl_array_release(result);
-        return _fl_ret_22;
+        return _fl_ret_23;
     } else {
         return (FL_Option_ptr){.tag = 0};
     }

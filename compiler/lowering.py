@@ -4785,6 +4785,15 @@ class Lowerer:
                 break
         return result
 
+    def _hoist_variadic_array(self, arr_call: LCall, arr_lt: LType) -> LVar:
+        """Hoist a variadic array temp into a variable and schedule release."""
+        tmp = self._fresh_temp()
+        self._pending_stmts.append(
+            LVarDecl(c_name=tmp, c_type=arr_lt, init=arr_call))
+        self._container_locals.append(
+            (tmp, arr_lt, "fl_array_release", self._scope_depth))
+        return LVar(tmp, arr_lt)
+
     def _pack_variadic_call_args(self, expr: Call, call_args: list[Expr],
                                   lowered_args: list[LExpr]) -> list[LExpr]:
         """If calling a variadic function, pack trailing args into an array."""
@@ -4814,7 +4823,7 @@ class Lowerer:
                                LLit("0", LInt(64, True)),
                                LLit("NULL", LPtr(LVoid()))],
                               arr_lt)
-            return fixed_args + [empty_arr]
+            return fixed_args + [self._hoist_variadic_array(empty_arr, arr_lt)]
 
         # Multiple literal args — pack into compound literal array
         count = len(variadic_lowered)
@@ -4828,7 +4837,7 @@ class Lowerer:
                             LSizeOf(elem_lt),
                             data_expr],
                            arr_lt)
-        return fixed_args + [packed_arr]
+        return fixed_args + [self._hoist_variadic_array(packed_arr, arr_lt)]
 
     def _pack_variadic_method_args(self, fn_decl: FnDecl,
                                      call_args: list[Expr],
@@ -4859,7 +4868,7 @@ class Lowerer:
                                LLit("0", LInt(64, True)),
                                LLit("NULL", LPtr(LVoid()))],
                               arr_lt)
-            return fixed_args + [empty_arr]
+            return fixed_args + [self._hoist_variadic_array(empty_arr, arr_lt)]
 
         # Multiple literal args — pack into compound literal array
         count = len(variadic_lowered)
@@ -4873,7 +4882,7 @@ class Lowerer:
                             LSizeOf(elem_lt),
                             data_expr],
                            arr_lt)
-        return fixed_args + [packed_arr]
+        return fixed_args + [self._hoist_variadic_array(packed_arr, arr_lt)]
 
     def _wrap_mut_args(self, fn_decl: FnDecl | ExternFnDecl,
                        lowered_args: list[LExpr]) -> list[LExpr]:

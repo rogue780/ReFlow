@@ -575,29 +575,41 @@ FL_String* fl_tests_app_variadic_first_or(FL_String* fallback, FL_Array* items) 
 
 /* Flow: tests.app_variadic.main */
 fl_int fl_tests_app_variadic_main(void) {
-    FL_String* _fl_tmp_2 = fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(3, sizeof(fl_int), (fl_int[]){1, 2, 3})));
-    fl_println(_fl_tmp_2);
-    FL_String* _fl_tmp_3 = fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(0, 0, NULL)));
+    FL_Array* _fl_tmp_2 = fl_array_new(3, sizeof(fl_int), (fl_int[]){1, 2, 3});
+    FL_String* _fl_tmp_3 = fl_conv_to_string__int(fl_tests_app_variadic_sum(_fl_tmp_2));
     fl_println(_fl_tmp_3);
-    FL_String* _fl_tmp_4 = fl_conv_to_string__int(fl_tests_app_variadic_sum(fl_array_new(1, sizeof(fl_int), (fl_int[]){42})));
-    fl_println(_fl_tmp_4);
-    FL_String* _fl_tmp_5 = fl_tests_app_variadic_first_or(_fl_str_tests_app_variadic_0, fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_1, _fl_str_tests_app_variadic_2}));
+    FL_Array* _fl_tmp_4 = fl_array_new(0, 0, NULL);
+    FL_String* _fl_tmp_5 = fl_conv_to_string__int(fl_tests_app_variadic_sum(_fl_tmp_4));
     fl_println(_fl_tmp_5);
-    FL_String* _fl_tmp_6 = fl_tests_app_variadic_first_or(_fl_str_tests_app_variadic_0, fl_array_new(0, 0, NULL));
-    fl_println(_fl_tmp_6);
-    FL_Array* nums = fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30});
-    FL_String* _fl_tmp_7 = fl_conv_to_string__int(fl_tests_app_variadic_sum(nums));
+    FL_Array* _fl_tmp_6 = fl_array_new(1, sizeof(fl_int), (fl_int[]){42});
+    FL_String* _fl_tmp_7 = fl_conv_to_string__int(fl_tests_app_variadic_sum(_fl_tmp_6));
     fl_println(_fl_tmp_7);
-    FL_String* _fl_tmp_8 = fl_conv_to_string__int(fl_tests_app_variadic_count(fl_array_new(4, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_3, _fl_str_tests_app_variadic_4, _fl_str_tests_app_variadic_5, _fl_str_tests_app_variadic_6})));
-    fl_println(_fl_tmp_8);
-    fl_string_release(_fl_tmp_2);
+    FL_Array* _fl_tmp_8 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_1, _fl_str_tests_app_variadic_2});
+    FL_String* _fl_tmp_9 = fl_tests_app_variadic_first_or(_fl_str_tests_app_variadic_0, _fl_tmp_8);
+    fl_println(_fl_tmp_9);
+    FL_Array* _fl_tmp_10 = fl_array_new(0, 0, NULL);
+    FL_String* _fl_tmp_11 = fl_tests_app_variadic_first_or(_fl_str_tests_app_variadic_0, _fl_tmp_10);
+    fl_println(_fl_tmp_11);
+    FL_Array* nums = fl_array_new(3, sizeof(fl_int), (fl_int[]){10, 20, 30});
+    FL_String* _fl_tmp_12 = fl_conv_to_string__int(fl_tests_app_variadic_sum(nums));
+    fl_println(_fl_tmp_12);
+    FL_Array* _fl_tmp_13 = fl_array_new(4, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_variadic_3, _fl_str_tests_app_variadic_4, _fl_str_tests_app_variadic_5, _fl_str_tests_app_variadic_6});
+    FL_String* _fl_tmp_14 = fl_conv_to_string__int(fl_tests_app_variadic_count(_fl_tmp_13));
+    fl_println(_fl_tmp_14);
+    fl_array_release(_fl_tmp_2);
     fl_string_release(_fl_tmp_3);
-    fl_string_release(_fl_tmp_4);
+    fl_array_release(_fl_tmp_4);
     fl_string_release(_fl_tmp_5);
-    fl_string_release(_fl_tmp_6);
-    fl_array_release(nums);
+    fl_array_release(_fl_tmp_6);
     fl_string_release(_fl_tmp_7);
-    fl_string_release(_fl_tmp_8);
+    fl_array_release(_fl_tmp_8);
+    fl_string_release(_fl_tmp_9);
+    fl_array_release(_fl_tmp_10);
+    fl_string_release(_fl_tmp_11);
+    fl_array_release(nums);
+    fl_string_release(_fl_tmp_12);
+    fl_array_release(_fl_tmp_13);
+    fl_string_release(_fl_tmp_14);
     return 0;
 }
 
