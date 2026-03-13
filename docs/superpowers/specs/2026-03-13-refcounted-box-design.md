@@ -106,35 +106,57 @@ FL_Box* _fl_tmp = fl_box_new(sizeof(Expr));
 FL_BOX_DEREF(_fl_tmp, Expr) = value;
 ```
 
-### Access (Field Dereference)
+### Access (Field Dereference) — `LBoxDeref` LIR Node
 
-Wherever a recursive field is accessed via `LDeref`, the emitter changes from
-`(*ptr)` to `FL_BOX_DEREF(ptr, Type)`:
+Introduce a new LIR node `LBoxDeref(inner: LExpr, boxed_type: LType, c_type: LType)`
+in `compiler/ast_nodes.py` (LIR section). This follows the precedent of `LOptDerefAs`
+— it makes the intent explicit in the LIR rather than requiring the emitter to
+reverse-engineer it from a pointer type.
+
+The lowering emits `LBoxDeref` instead of `LDeref` for recursive sum type field
+access. The emitter pattern-matches on `LBoxDeref` and emits `FL_BOX_DEREF(inner, T)`.
 
 ```c
-// Before:
+// Before (LDeref → *ptr):
 Expr subexpr = (*_s->EBinOp.left);
 
-// After:
+// After (LBoxDeref → FL_BOX_DEREF):
 Expr subexpr = FL_BOX_DEREF(_s->EBinOp.left, Expr);
 ```
 
-The lowering continues to produce `LDeref` nodes. The emitter detects when the
-pointer is an `FL_Box*` and emits the macro form.
+Change sites in lowering.py that produce `LDeref` for recursive fields:
+- `_lower_variant_ctor` — allocation site (writes to box via `LBoxDeref`)
+- Match-binding dereference sites (~line 7280 and ~line 7600) where match arms
+  extract the value from a recursive pointer field
+- Any other `LDeref` on a field identified by `_is_recursive_sum_field`
 
 ### Retain / Release
 
-Recursive pointer fields become refcounted. The lowering treats them like
-other refcounted types:
+Recursive pointer fields become refcounted. The `is_recursive` branch in
+`_get_or_emit_sum_type_handlers` is rewritten to emit `fl_box_release` and
+`fl_box_retain` directly — these calls bypass the `_RELEASE_FN` / `_RETAIN_FN`
+dicts (which are keyed by Flow type, not C implementation detail).
 
-- **Scope-exit release**: `fl_box_release(field, _fl_destroy_Expr)` — decrements
-  refcount, destroys + frees at 0.
-- **Copy/share retain**: `fl_box_retain(field)` — increments refcount, safe
-  sharing.
-- **Reassignment**: Release old box, assign new box (same as string/array
-  reassignment pattern).
+Specifically, in `_get_or_emit_sum_type_handlers` (lowering.py ~lines 2328-2351),
+the `elif is_recursive:` branch changes from:
 
-The sum type destructor changes from:
+```python
+# OLD: destroy contents only, do NOT free pointer
+destroy_stmts.append(LExprStmt(LCall(struct_dest, [field_expr], LVoid())))
+retain_stmts.append(LExprStmt(LCall(struct_ret, [field_expr], LVoid())))
+```
+
+To:
+
+```python
+# NEW: fl_box_release with destructor callback; fl_box_retain
+destroy_stmts.append(LExprStmt(LCall(
+    "fl_box_release", [field_expr, LVar(destructor, LPtr(LVoid()))], LVoid())))
+retain_stmts.append(LExprStmt(LCall(
+    "fl_box_retain", [field_expr], LVoid())))
+```
+
+The emitted C changes from:
 
 ```c
 case 7: {  // EBinOp
@@ -177,9 +199,11 @@ Expr _fl_clone_Expr(Expr _src) {
 }
 ```
 
-The retainer gains `fl_box_retain` calls for recursive fields, matching how it
-already calls `fl_string_retain` for string fields. Since box retain is just a
-refcount bump, sharing is safe — no deep copy needed.
+The clone function's structure is unchanged — it still does shallow copy + call
+retainer. But the retainer (updated per the Retain/Release section above) now
+calls `fl_box_retain` on recursive fields instead of the old no-op-ish
+dereference-and-retain pattern. Since box retain is just a refcount bump,
+sharing is safe — no deep copy needed.
 
 ### Destroy-Before-Reassign
 
@@ -195,14 +219,25 @@ other copies exist, the box survives. If it's the last reference, it's freed.
 |------|--------|
 | `runtime/flow_runtime.h` | Add `FL_Box` struct, function declarations, `FL_BOX_DEREF` macro |
 | `runtime/flow_runtime.c` | Implement `fl_box_new`, `fl_box_retain`, `fl_box_release` (~20 lines) |
-| `compiler/lowering.py` | Variant constructor: `fl_box_new` instead of `malloc`. Sum type destructor: `fl_box_release` instead of destroy-only. Retainer: `fl_box_retain` for recursive fields. Clone: retain box instead of share pointer. (~100 lines) |
-| `compiler/emitter.py` | Emit `FL_BOX_DEREF(ptr, Type)` for `LDeref` on `FL_Box*` (~10 lines) |
+| `compiler/ast_nodes.py` | Add `LBoxDeref` LIR node dataclass |
+| `compiler/lowering.py` | Variant constructor: `fl_box_new` instead of `malloc`, `LBoxDeref` instead of `LDeref`. Sum type destructor (`_get_or_emit_sum_type_handlers`): `fl_box_release` with destructor callback. Retainer: `fl_box_retain` for recursive fields. Match-binding dereference sites (~lines 7280, 7600): `LBoxDeref`. Clone: retain box via updated retainer. (~100 lines) |
+| `compiler/emitter.py` | Handle `LBoxDeref` node → emit `FL_BOX_DEREF(ptr, Type)` (~10 lines) |
 | Golden files | Every test with recursive sum types gets updated C output |
 
 **No changes to:**
 - `.flow` source files (transparent to Flow programmers)
 - Parser, resolver, typechecker
 - Flow language spec (this is a compiler implementation detail)
+
+---
+
+## Cycle Safety
+
+The affected sum types (`Expr`, `Stmt`, `TypeExpr`, `LExpr`, `LStmt`, `LType`,
+`TCType`) are parse-tree / IR-tree types and are DAGs by construction — a child
+node cannot reference its parent. Reference cycles cannot occur, so ARC with
+no cycle collector is sufficient. Cascading `fl_box_release` calls terminate
+because the tree has finite depth.
 
 ---
 
