@@ -21,11 +21,12 @@ from compiler.lowering import (
     # Expressions
     LExpr, LLit, LVar, LCall, LIndirectCall, LBinOp, LUnary,
     LFieldAccess, LArrow, LIndex, LCast, LAddrOf, LDeref,
-    LCompound, LCheckedArith, LSizeOf, LTernary,
+    LCompound, LCheckedArith, LSizeOf, LTernary, LBoxDeref,
     # Statements
     LStmt, LVarDecl, LAssign, LReturn, LIf, LWhile, LBlock,
     LExprStmt, LGoto, LLabel, LSwitch, LBreak,
 )
+from compiler.emitter import Emitter
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +40,11 @@ def lower(source: str) -> LModule:
     resolved = Resolver(mod).resolve()
     typed = TypeChecker(resolved).check()
     return Lowerer(typed).lower()
+
+
+def emit(m: LModule) -> str:
+    """Emit C code from a lowered module."""
+    return Emitter(m, "test.flow").emit()
 
 
 def find_fn(module: LModule, c_name_suffix: str) -> LFnDef | None:
@@ -1467,6 +1473,27 @@ class TestSpreadMove(unittest.TestCase):
         """)
         # p has no refcounted fields, so it's not affine — no consumption
         self.assertNotIn("p", low._consumed_bindings)
+
+
+class TestBoxAllocation(unittest.TestCase):
+    """Recursive sum type fields should use FL_Box instead of raw malloc."""
+
+    def test_recursive_field_uses_fl_box(self):
+        """A sum type with a recursive pointer field should emit fl_box_new."""
+        source = """
+            type Expr =
+                | ELit(value:int)
+                | EUnary(op:string, inner:Expr)
+            fn make():Expr {
+                return EUnary(op:"+", inner:ELit(value:42))
+            }
+            fn do_stuff():int { return 0 }
+        """
+        m = lower(source)
+        c_code = emit(m)
+        self.assertIn("fl_box_new", c_code)
+        self.assertNotIn("(Expr*)malloc", c_code)
+        self.assertIn("FL_BOX_DEREF", c_code)
 
 
 if __name__ == "__main__":

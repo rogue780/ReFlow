@@ -544,8 +544,8 @@ struct fl_tests_app_node_id_test_Expr_IntLit {
 struct fl_tests_app_node_id_test_Expr_BinOp {
     fl_int id;
     FL_String* op;
-    fl_tests_app_node_id_test_Expr* left;
-    fl_tests_app_node_id_test_Expr* right;
+    FL_Box* left;
+    FL_Box* right;
 };
 
 struct fl_tests_app_node_id_test_Expr_Ident {
@@ -623,8 +623,8 @@ fl_int fl_tests_app_node_id_test_get_id(fl_tests_app_node_id_test_Expr expr) {
         case 1: {
             fl_int nid = _fl_tmp_2.BinOp.id;
             FL_String* o = _fl_tmp_2.BinOp.op;
-            fl_tests_app_node_id_test_Expr l = (*_fl_tmp_2.BinOp.left);
-            fl_tests_app_node_id_test_Expr r = (*_fl_tmp_2.BinOp.right);
+            fl_tests_app_node_id_test_Expr l = FL_BOX_DEREF(_fl_tmp_2.BinOp.left, fl_tests_app_node_id_test_Expr);
+            fl_tests_app_node_id_test_Expr r = FL_BOX_DEREF(_fl_tmp_2.BinOp.right, fl_tests_app_node_id_test_Expr);
             return nid;
             break;
         }
@@ -688,10 +688,10 @@ fl_int fl_tests_app_node_id_test_main(void) {
     fl_string_retain(_fl_str_tests_app_node_id_test_1);
     fl_tests_app_node_id_test_Expr node_x = (fl_tests_app_node_id_test_Expr){.tag = 2, .Ident = (fl_tests_app_node_id_test_Expr_Ident){.id = 1, .name = _fl_str_tests_app_node_id_test_1}};
     fl_tests_app_node_id_test_Expr node_42 = (fl_tests_app_node_id_test_Expr){.tag = 0, .IntLit = (fl_tests_app_node_id_test_Expr_IntLit){.id = 2, .value = 42}};
-    fl_tests_app_node_id_test_Expr* _fl_tmp_3 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
-    (*_fl_tmp_3) = node_x;
-    fl_tests_app_node_id_test_Expr* _fl_tmp_4 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
-    (*_fl_tmp_4) = node_42;
+    FL_Box* _fl_tmp_3 = fl_box_new(sizeof(fl_tests_app_node_id_test_Expr));
+    FL_BOX_DEREF(_fl_tmp_3, fl_tests_app_node_id_test_Expr) = node_x;
+    FL_Box* _fl_tmp_4 = fl_box_new(sizeof(fl_tests_app_node_id_test_Expr));
+    FL_BOX_DEREF(_fl_tmp_4, fl_tests_app_node_id_test_Expr) = node_42;
     fl_string_retain(_fl_str_tests_app_node_id_test_2);
     fl_tests_app_node_id_test_Expr node_add = (fl_tests_app_node_id_test_Expr){.tag = 1, .BinOp = (fl_tests_app_node_id_test_Expr_BinOp){.id = 3, .op = _fl_str_tests_app_node_id_test_2, .left = _fl_tmp_3, .right = _fl_tmp_4}};
     FL_Map* _fl_tmp_5 = fl_map_new();

@@ -1364,9 +1364,9 @@ class Lowerer:
                 for fname, ftype_expr in variant.fields:
                     f_type = self._type_of(ftype_expr) if ftype_expr else TNone()
                     field_lt = self._lower_type(f_type)
-                    # Recursive sum field: use pointer to avoid incomplete type
+                    # Recursive sum field: use FL_Box* to avoid incomplete type
                     if self._is_recursive_sum_field(f_type, td.name, ftype_expr):
-                        field_lt = LPtr(field_lt)
+                        field_lt = LPtr(LStruct("FL_Box"))
                     variant_fields.append((fname, field_lt))
                 # Add as a sub-struct named after the variant
                 variant_c_name = f"{c_name}_{variant.name}"
@@ -5072,21 +5072,21 @@ class Lowerer:
                         alloc_lt = lt
                 else:
                     alloc_lt = lt
-                ptr_type = LPtr(alloc_lt)
-                # Type* tmp = (Type*)malloc(sizeof(Type));
+                # FL_Box* tmp = fl_box_new(sizeof(Type));
+                box_ptr_type = LPtr(LStruct("FL_Box"))
                 self._pending_stmts.append(LVarDecl(
                     c_name=tmp,
-                    c_type=ptr_type,
-                    init=LCast(
-                        LCall("malloc", [LSizeOf(alloc_lt)], LPtr(LVoid())),
-                        ptr_type),
+                    c_type=box_ptr_type,
+                    init=LCall("fl_box_new",
+                               [LSizeOf(alloc_lt)],
+                               box_ptr_type),
                 ))
-                # *tmp = arg;
+                # FL_BOX_DEREF(tmp, Type) = arg;
                 self._pending_stmts.append(LAssign(
-                    LDeref(LVar(tmp, ptr_type), alloc_lt),
+                    LBoxDeref(LVar(tmp, box_ptr_type), alloc_lt, alloc_lt),
                     arg,
                 ))
-                inner_fields.append((fname, LVar(tmp, ptr_type)))
+                inner_fields.append((fname, LVar(tmp, box_ptr_type)))
             else:
                 inner_fields.append((fname, arg))
 
@@ -7290,15 +7290,15 @@ class Lowerer:
                                 is_recursive = self._is_recursive_sum_field(
                                     variant.fields[i], sum_t.name, ast_ft)
                                 if is_recursive:
-                                    # Field is a pointer — dereference to get value
-                                    ptr_lt = LPtr(field_lt)
+                                    # Field is a box — dereference via FL_BOX_DEREF
+                                    box_ptr_lt = LPtr(LStruct("FL_Box"))
                                     field_access = LFieldAccess(
                                         LFieldAccess(subj, vname, subj.c_type),
-                                        fname, ptr_lt)
+                                        fname, box_ptr_lt)
                                     body.append(LVarDecl(
                                         c_name=binding,
                                         c_type=field_lt,
-                                        init=LDeref(field_access, field_lt),
+                                        init=LBoxDeref(field_access, field_lt, field_lt),
                                     ))
                                 else:
                                     body.append(LVarDecl(
@@ -7612,13 +7612,13 @@ class Lowerer:
                                 is_recursive = self._is_recursive_sum_field(
                                     variant.fields[i], sum_t.name, ast_ft)
                                 if is_recursive:
-                                    ptr_lt = LPtr(field_lt)
+                                    box_ptr_lt = LPtr(LStruct("FL_Box"))
                                     field_access = LFieldAccess(
                                         LFieldAccess(subj, vname, subj.c_type),
-                                        fname, ptr_lt)
+                                        fname, box_ptr_lt)
                                     body.append(LVarDecl(
                                         c_name=binding, c_type=field_lt,
-                                        init=LDeref(field_access, field_lt)))
+                                        init=LBoxDeref(field_access, field_lt, field_lt)))
                                 else:
                                     body.append(LVarDecl(
                                         c_name=binding, c_type=field_lt,

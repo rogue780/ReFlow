@@ -63,8 +63,8 @@ struct fl_tests_recursive_sum_Tree_Leaf {
 };
 
 struct fl_tests_recursive_sum_Tree_Node {
-    fl_tests_recursive_sum_Tree* left;
-    fl_tests_recursive_sum_Tree* right;
+    FL_Box* left;
+    FL_Box* right;
 };
 
 struct fl_tests_recursive_sum_Tree {
@@ -85,8 +85,8 @@ fl_int fl_tests_recursive_sum_sum_tree(fl_tests_recursive_sum_Tree t) {
             break;
         }
         case 1: {
-            fl_tests_recursive_sum_Tree l = (*_fl_tmp_0.Node.left);
-            fl_tests_recursive_sum_Tree r = (*_fl_tmp_0.Node.right);
+            fl_tests_recursive_sum_Tree l = FL_BOX_DEREF(_fl_tmp_0.Node.left, fl_tests_recursive_sum_Tree);
+            fl_tests_recursive_sum_Tree r = FL_BOX_DEREF(_fl_tmp_0.Node.right, fl_tests_recursive_sum_Tree);
             fl_int _fl_e_1;
             FL_CHECKED_ADD(fl_tests_recursive_sum_sum_tree(l), fl_tests_recursive_sum_sum_tree(r), &_fl_e_1);
             return _fl_e_1;
@@ -97,14 +97,14 @@ fl_int fl_tests_recursive_sum_sum_tree(fl_tests_recursive_sum_Tree t) {
 
 /* Flow: tests.recursive_sum.main */
 void fl_tests_recursive_sum_main(void) {
-    fl_tests_recursive_sum_Tree* _fl_tmp_1 = ((fl_tests_recursive_sum_Tree*)malloc(sizeof(fl_tests_recursive_sum_Tree)));
-    (*_fl_tmp_1) = (fl_tests_recursive_sum_Tree){.tag = 0, .Leaf = (fl_tests_recursive_sum_Tree_Leaf){.value = 1}};
-    fl_tests_recursive_sum_Tree* _fl_tmp_2 = ((fl_tests_recursive_sum_Tree*)malloc(sizeof(fl_tests_recursive_sum_Tree)));
-    (*_fl_tmp_2) = (fl_tests_recursive_sum_Tree){.tag = 0, .Leaf = (fl_tests_recursive_sum_Tree_Leaf){.value = 2}};
-    fl_tests_recursive_sum_Tree* _fl_tmp_3 = ((fl_tests_recursive_sum_Tree*)malloc(sizeof(fl_tests_recursive_sum_Tree)));
-    (*_fl_tmp_3) = (fl_tests_recursive_sum_Tree){.tag = 1, .Node = (fl_tests_recursive_sum_Tree_Node){.left = _fl_tmp_1, .right = _fl_tmp_2}};
-    fl_tests_recursive_sum_Tree* _fl_tmp_4 = ((fl_tests_recursive_sum_Tree*)malloc(sizeof(fl_tests_recursive_sum_Tree)));
-    (*_fl_tmp_4) = (fl_tests_recursive_sum_Tree){.tag = 0, .Leaf = (fl_tests_recursive_sum_Tree_Leaf){.value = 3}};
+    FL_Box* _fl_tmp_1 = fl_box_new(sizeof(fl_tests_recursive_sum_Tree));
+    FL_BOX_DEREF(_fl_tmp_1, fl_tests_recursive_sum_Tree) = (fl_tests_recursive_sum_Tree){.tag = 0, .Leaf = (fl_tests_recursive_sum_Tree_Leaf){.value = 1}};
+    FL_Box* _fl_tmp_2 = fl_box_new(sizeof(fl_tests_recursive_sum_Tree));
+    FL_BOX_DEREF(_fl_tmp_2, fl_tests_recursive_sum_Tree) = (fl_tests_recursive_sum_Tree){.tag = 0, .Leaf = (fl_tests_recursive_sum_Tree_Leaf){.value = 2}};
+    FL_Box* _fl_tmp_3 = fl_box_new(sizeof(fl_tests_recursive_sum_Tree));
+    FL_BOX_DEREF(_fl_tmp_3, fl_tests_recursive_sum_Tree) = (fl_tests_recursive_sum_Tree){.tag = 1, .Node = (fl_tests_recursive_sum_Tree_Node){.left = _fl_tmp_1, .right = _fl_tmp_2}};
+    FL_Box* _fl_tmp_4 = fl_box_new(sizeof(fl_tests_recursive_sum_Tree));
+    FL_BOX_DEREF(_fl_tmp_4, fl_tests_recursive_sum_Tree) = (fl_tests_recursive_sum_Tree){.tag = 0, .Leaf = (fl_tests_recursive_sum_Tree_Leaf){.value = 3}};
     fl_tests_recursive_sum_Tree tree = (fl_tests_recursive_sum_Tree){.tag = 1, .Node = (fl_tests_recursive_sum_Tree_Node){.left = _fl_tmp_3, .right = _fl_tmp_4}};
     FL_String* _fl_tmp_5 = fl_int_to_string(fl_tests_recursive_sum_sum_tree(tree));
     FL_String* _fl_tmp_6 = _fl_str_tests_recursive_sum_0;

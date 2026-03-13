@@ -569,13 +569,13 @@ struct fl_tests_app_calc_Expr_Var {
 };
 
 struct fl_tests_app_calc_Expr_Neg {
-    fl_tests_app_calc_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_tests_app_calc_Expr_BinOp {
     FL_String* op;
-    fl_tests_app_calc_Expr* left;
-    fl_tests_app_calc_Expr* right;
+    FL_Box* left;
+    FL_Box* right;
 };
 
 struct fl_tests_app_calc_Expr {
@@ -836,8 +836,8 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_unary(FL_String* 
             fl_int _fl_e_1;
             FL_CHECKED_ADD(p, 1, &_fl_e_1);
             FL_Tuple_fl_tests_app_calc_Expr_fl_int result = fl_tests_app_calc_parse_unary(input, _fl_e_1);
-            fl_tests_app_calc_Expr* _fl_tmp_16 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-            (*_fl_tmp_16) = result._0;
+            FL_Box* _fl_tmp_16 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+            FL_BOX_DEREF(_fl_tmp_16, fl_tests_app_calc_Expr) = result._0;
             FL_Tuple_fl_tests_app_calc_Expr_fl_int _fl_ret_17 = (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 2, .Neg = (fl_tests_app_calc_Expr_Neg){.inner = _fl_tmp_16}}, ._1 = result._1};
             fl_string_release(_fl_tmp_15);
             return _fl_ret_17;
@@ -859,10 +859,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_power(FL_String* 
             fl_int _fl_e_1;
             FL_CHECKED_ADD(p, 1, &_fl_e_1);
             FL_Tuple_fl_tests_app_calc_Expr_fl_int exp = fl_tests_app_calc_parse_power(input, _fl_e_1);
-            fl_tests_app_calc_Expr* _fl_tmp_20 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-            (*_fl_tmp_20) = base._0;
-            fl_tests_app_calc_Expr* _fl_tmp_21 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-            (*_fl_tmp_21) = exp._0;
+            FL_Box* _fl_tmp_20 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+            FL_BOX_DEREF(_fl_tmp_20, fl_tests_app_calc_Expr) = base._0;
+            FL_Box* _fl_tmp_21 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+            FL_BOX_DEREF(_fl_tmp_21, fl_tests_app_calc_Expr) = exp._0;
             fl_string_retain(_fl_str_tests_app_calc_6);
             FL_Tuple_fl_tests_app_calc_Expr_fl_int _fl_ret_22 = (FL_Tuple_fl_tests_app_calc_Expr_fl_int){._0 = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_6, .left = _fl_tmp_20, .right = _fl_tmp_21}}, ._1 = exp._1};
             fl_string_release(_fl_tmp_19);
@@ -889,10 +889,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(p, 1, &_fl_e_1);
                 FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_1);
-                fl_tests_app_calc_Expr* _fl_tmp_23 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                (*_fl_tmp_23) = left;
-                fl_tests_app_calc_Expr* _fl_tmp_24 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                (*_fl_tmp_24) = rhs._0;
+                FL_Box* _fl_tmp_23 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                FL_BOX_DEREF(_fl_tmp_23, fl_tests_app_calc_Expr) = left;
+                FL_Box* _fl_tmp_24 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                FL_BOX_DEREF(_fl_tmp_24, fl_tests_app_calc_Expr) = rhs._0;
                 fl_string_retain(_fl_str_tests_app_calc_7);
                 left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_7, .left = _fl_tmp_23, .right = _fl_tmp_24}};
                 cur = rhs._1;
@@ -901,10 +901,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
                     fl_int _fl_e_2;
                     FL_CHECKED_ADD(p, 1, &_fl_e_2);
                     FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_2);
-                    fl_tests_app_calc_Expr* _fl_tmp_25 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                    (*_fl_tmp_25) = left;
-                    fl_tests_app_calc_Expr* _fl_tmp_26 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                    (*_fl_tmp_26) = rhs._0;
+                    FL_Box* _fl_tmp_25 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                    FL_BOX_DEREF(_fl_tmp_25, fl_tests_app_calc_Expr) = left;
+                    FL_Box* _fl_tmp_26 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                    FL_BOX_DEREF(_fl_tmp_26, fl_tests_app_calc_Expr) = rhs._0;
                     fl_string_retain(_fl_str_tests_app_calc_8);
                     left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_8, .left = _fl_tmp_25, .right = _fl_tmp_26}};
                     cur = rhs._1;
@@ -913,10 +913,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_multiplicative(FL
                         fl_int _fl_e_3;
                         FL_CHECKED_ADD(p, 1, &_fl_e_3);
                         FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_power(input, _fl_e_3);
-                        fl_tests_app_calc_Expr* _fl_tmp_27 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                        (*_fl_tmp_27) = left;
-                        fl_tests_app_calc_Expr* _fl_tmp_28 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                        (*_fl_tmp_28) = rhs._0;
+                        FL_Box* _fl_tmp_27 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                        FL_BOX_DEREF(_fl_tmp_27, fl_tests_app_calc_Expr) = left;
+                        FL_Box* _fl_tmp_28 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                        FL_BOX_DEREF(_fl_tmp_28, fl_tests_app_calc_Expr) = rhs._0;
                         fl_string_retain(_fl_str_tests_app_calc_9);
                         left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_9, .left = _fl_tmp_27, .right = _fl_tmp_28}};
                         cur = rhs._1;
@@ -947,10 +947,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_additive(FL_Strin
                 fl_int _fl_e_1;
                 FL_CHECKED_ADD(p, 1, &_fl_e_1);
                 FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_multiplicative(input, _fl_e_1);
-                fl_tests_app_calc_Expr* _fl_tmp_29 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                (*_fl_tmp_29) = left;
-                fl_tests_app_calc_Expr* _fl_tmp_30 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                (*_fl_tmp_30) = rhs._0;
+                FL_Box* _fl_tmp_29 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                FL_BOX_DEREF(_fl_tmp_29, fl_tests_app_calc_Expr) = left;
+                FL_Box* _fl_tmp_30 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                FL_BOX_DEREF(_fl_tmp_30, fl_tests_app_calc_Expr) = rhs._0;
                 fl_string_retain(_fl_str_tests_app_calc_10);
                 left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_10, .left = _fl_tmp_29, .right = _fl_tmp_30}};
                 cur = rhs._1;
@@ -959,10 +959,10 @@ FL_Tuple_fl_tests_app_calc_Expr_fl_int fl_tests_app_calc_parse_additive(FL_Strin
                     fl_int _fl_e_2;
                     FL_CHECKED_ADD(p, 1, &_fl_e_2);
                     FL_Tuple_fl_tests_app_calc_Expr_fl_int rhs = fl_tests_app_calc_parse_multiplicative(input, _fl_e_2);
-                    fl_tests_app_calc_Expr* _fl_tmp_31 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                    (*_fl_tmp_31) = left;
-                    fl_tests_app_calc_Expr* _fl_tmp_32 = ((fl_tests_app_calc_Expr*)malloc(sizeof(fl_tests_app_calc_Expr)));
-                    (*_fl_tmp_32) = rhs._0;
+                    FL_Box* _fl_tmp_31 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                    FL_BOX_DEREF(_fl_tmp_31, fl_tests_app_calc_Expr) = left;
+                    FL_Box* _fl_tmp_32 = fl_box_new(sizeof(fl_tests_app_calc_Expr));
+                    FL_BOX_DEREF(_fl_tmp_32, fl_tests_app_calc_Expr) = rhs._0;
                     fl_string_retain(_fl_str_tests_app_calc_5);
                     left = (fl_tests_app_calc_Expr){.tag = 3, .BinOp = (fl_tests_app_calc_Expr_BinOp){.op = _fl_str_tests_app_calc_5, .left = _fl_tmp_31, .right = _fl_tmp_32}};
                     cur = rhs._1;
@@ -997,14 +997,14 @@ fl_float fl_tests_app_calc_eval(fl_tests_app_calc_Expr expr, FL_Map* env) {
             break;
         }
         case 2: {
-            fl_tests_app_calc_Expr inner = (*_fl_tmp_33.Neg.inner);
+            fl_tests_app_calc_Expr inner = FL_BOX_DEREF(_fl_tmp_33.Neg.inner, fl_tests_app_calc_Expr);
             return (0.0 - fl_tests_app_calc_eval(inner, env));
             break;
         }
         case 3: {
             FL_String* op = _fl_tmp_33.BinOp.op;
-            fl_tests_app_calc_Expr left = (*_fl_tmp_33.BinOp.left);
-            fl_tests_app_calc_Expr right = (*_fl_tmp_33.BinOp.right);
+            fl_tests_app_calc_Expr left = FL_BOX_DEREF(_fl_tmp_33.BinOp.left, fl_tests_app_calc_Expr);
+            fl_tests_app_calc_Expr right = FL_BOX_DEREF(_fl_tmp_33.BinOp.right, fl_tests_app_calc_Expr);
             fl_float lv = fl_tests_app_calc_eval(left, env);
             fl_float rv = fl_tests_app_calc_eval(right, env);
             if (fl_string_eq(op, _fl_str_tests_app_calc_10)) {

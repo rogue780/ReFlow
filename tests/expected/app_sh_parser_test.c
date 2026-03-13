@@ -2635,7 +2635,7 @@ struct fl_self_hosted_ast_TypeExpr_TGenericType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* base;
+    FL_Box* base;
     FL_Array* args;
 };
 
@@ -2643,7 +2643,7 @@ struct fl_self_hosted_ast_TypeExpr_TOptionType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TFnType {
@@ -2651,7 +2651,7 @@ struct fl_self_hosted_ast_TypeExpr_TFnType {
     fl_int line;
     fl_int col;
     FL_Array* params;
-    fl_self_hosted_ast_TypeExpr* ret;
+    FL_Box* ret;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TTupleType {
@@ -2665,21 +2665,21 @@ struct fl_self_hosted_ast_TypeExpr_TMutType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TImutType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TSizedType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* inner;
+    FL_Box* inner;
     fl_int capacity_id;
 };
 
@@ -2865,8 +2865,8 @@ struct fl_self_hosted_ast_Expr_EBinOp {
     fl_int line;
     fl_int col;
     FL_String* op;
-    fl_self_hosted_ast_Expr* left;
-    fl_self_hosted_ast_Expr* right;
+    FL_Box* left;
+    FL_Box* right;
 };
 
 struct fl_self_hosted_ast_Expr_EUnaryOp {
@@ -2874,7 +2874,7 @@ struct fl_self_hosted_ast_Expr_EUnaryOp {
     fl_int line;
     fl_int col;
     FL_String* op;
-    fl_self_hosted_ast_Expr* operand;
+    FL_Box* operand;
 };
 
 struct fl_self_hosted_ast_Expr_ENamedArg {
@@ -2882,21 +2882,21 @@ struct fl_self_hosted_ast_Expr_ENamedArg {
     fl_int line;
     fl_int col;
     FL_String* name;
-    fl_self_hosted_ast_Expr* value;
+    FL_Box* value;
 };
 
 struct fl_self_hosted_ast_Expr_ESpread {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ECall {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* callee;
+    FL_Box* callee;
     FL_Array* args;
 };
 
@@ -2904,7 +2904,7 @@ struct fl_self_hosted_ast_Expr_EMethodCall {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* receiver;
+    FL_Box* receiver;
     FL_String* method;
     FL_Array* args;
 };
@@ -2913,7 +2913,7 @@ struct fl_self_hosted_ast_Expr_EFieldAccess {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* receiver;
+    FL_Box* receiver;
     FL_String* field;
 };
 
@@ -2921,8 +2921,8 @@ struct fl_self_hosted_ast_Expr_EIndexAccess {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* receiver;
-    fl_self_hosted_ast_Expr* index;
+    FL_Box* receiver;
+    FL_Box* index;
 };
 
 struct fl_self_hosted_ast_Expr_ELambda {
@@ -2930,7 +2930,7 @@ struct fl_self_hosted_ast_Expr_ELambda {
     fl_int line;
     fl_int col;
     FL_Array* params;
-    fl_self_hosted_ast_Expr* body;
+    FL_Box* body;
 };
 
 struct fl_self_hosted_ast_Expr_ETupleExpr {
@@ -2961,14 +2961,14 @@ struct fl_self_hosted_ast_Expr_ETypeLit {
     FL_String* type_name;
     FL_Array* fields;
     fl_bool has_spread;
-    fl_self_hosted_ast_Expr* spread;
+    FL_Box* spread;
 };
 
 struct fl_self_hosted_ast_Expr_EIfExpr {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* condition;
+    FL_Box* condition;
     FL_Array* then_stmts;
     FL_Array* else_stmts;
 };
@@ -2977,7 +2977,7 @@ struct fl_self_hosted_ast_Expr_EMatchExpr {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* subject;
+    FL_Box* subject;
     FL_Array* arms;
 };
 
@@ -2985,73 +2985,73 @@ struct fl_self_hosted_ast_Expr_ETernary {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* condition;
-    fl_self_hosted_ast_Expr* then_expr;
-    fl_self_hosted_ast_Expr* else_expr;
+    FL_Box* condition;
+    FL_Box* then_expr;
+    FL_Box* else_expr;
 };
 
 struct fl_self_hosted_ast_Expr_ECopy {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ERef {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ESome {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_EOk {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_EErr {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_EPropagate {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ENullCoalesce {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* left;
-    fl_self_hosted_ast_Expr* right;
+    FL_Box* left;
+    FL_Box* right;
 };
 
 struct fl_self_hosted_ast_Expr_ETypeof {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ECast {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
     fl_int target_id;
 };
 
@@ -3059,7 +3059,7 @@ struct fl_self_hosted_ast_Expr_ECoerce {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_EFString {
@@ -3088,7 +3088,7 @@ struct fl_self_hosted_ast_Expr_ECoroutineStart {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* call;
+    FL_Box* call;
 };
 
 struct fl_self_hosted_ast_Expr_ECoroutinePipeline {
@@ -3604,8 +3604,8 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_0.EBinOp.line;
             fl_int c = _fl_tmp_0.EBinOp.col;
             FL_String* o = _fl_tmp_0.EBinOp.op;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_0.EBinOp.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_0.EBinOp.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_0.EBinOp.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_0.EBinOp.right, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3614,7 +3614,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_0.EUnaryOp.line;
             fl_int c = _fl_tmp_0.EUnaryOp.col;
             FL_String* o = _fl_tmp_0.EUnaryOp.op;
-            fl_self_hosted_ast_Expr op = (*_fl_tmp_0.EUnaryOp.operand);
+            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_0.EUnaryOp.operand, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3623,7 +3623,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_0.ENamedArg.line;
             fl_int c = _fl_tmp_0.ENamedArg.col;
             FL_String* n = _fl_tmp_0.ENamedArg.name;
-            fl_self_hosted_ast_Expr v = (*_fl_tmp_0.ENamedArg.value);
+            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_0.ENamedArg.value, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3631,7 +3631,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ESpread.id;
             fl_int l = _fl_tmp_0.ESpread.line;
             fl_int c = _fl_tmp_0.ESpread.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ESpread.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ESpread.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3639,7 +3639,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECall.id;
             fl_int l = _fl_tmp_0.ECall.line;
             fl_int c = _fl_tmp_0.ECall.col;
-            fl_self_hosted_ast_Expr callee = (*_fl_tmp_0.ECall.callee);
+            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_0.ECall.callee, fl_self_hosted_ast_Expr);
             FL_Array* args = _fl_tmp_0.ECall.args;
             return l;
             break;
@@ -3648,7 +3648,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EMethodCall.id;
             fl_int l = _fl_tmp_0.EMethodCall.line;
             fl_int c = _fl_tmp_0.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_0.EMethodCall.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_0.EMethodCall.receiver, fl_self_hosted_ast_Expr);
             FL_String* m = _fl_tmp_0.EMethodCall.method;
             FL_Array* args = _fl_tmp_0.EMethodCall.args;
             return l;
@@ -3658,7 +3658,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EFieldAccess.id;
             fl_int l = _fl_tmp_0.EFieldAccess.line;
             fl_int c = _fl_tmp_0.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_0.EFieldAccess.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_0.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
             FL_String* f = _fl_tmp_0.EFieldAccess.field;
             return l;
             break;
@@ -3667,8 +3667,8 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EIndexAccess.id;
             fl_int l = _fl_tmp_0.EIndexAccess.line;
             fl_int c = _fl_tmp_0.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_0.EIndexAccess.receiver);
-            fl_self_hosted_ast_Expr idx = (*_fl_tmp_0.EIndexAccess.index);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_0.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_0.EIndexAccess.index, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3677,7 +3677,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_0.ELambda.line;
             fl_int c = _fl_tmp_0.ELambda.col;
             FL_Array* params = _fl_tmp_0.ELambda.params;
-            fl_self_hosted_ast_Expr body = (*_fl_tmp_0.ELambda.body);
+            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_0.ELambda.body, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3712,7 +3712,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             FL_String* tn = _fl_tmp_0.ETypeLit.type_name;
             FL_Array* fields = _fl_tmp_0.ETypeLit.fields;
             fl_bool hs = _fl_tmp_0.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr sp = (*_fl_tmp_0.ETypeLit.spread);
+            fl_self_hosted_ast_Expr sp = FL_BOX_DEREF(_fl_tmp_0.ETypeLit.spread, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3720,7 +3720,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EIfExpr.id;
             fl_int l = _fl_tmp_0.EIfExpr.line;
             fl_int c = _fl_tmp_0.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_0.EIfExpr.condition);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_0.EIfExpr.condition, fl_self_hosted_ast_Expr);
             FL_Array* then_b = _fl_tmp_0.EIfExpr.then_stmts;
             FL_Array* else_b = _fl_tmp_0.EIfExpr.else_stmts;
             return l;
@@ -3730,7 +3730,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EMatchExpr.id;
             fl_int l = _fl_tmp_0.EMatchExpr.line;
             fl_int c = _fl_tmp_0.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = (*_fl_tmp_0.EMatchExpr.subject);
+            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_0.EMatchExpr.subject, fl_self_hosted_ast_Expr);
             FL_Array* arms = _fl_tmp_0.EMatchExpr.arms;
             return l;
             break;
@@ -3739,9 +3739,9 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ETernary.id;
             fl_int l = _fl_tmp_0.ETernary.line;
             fl_int c = _fl_tmp_0.ETernary.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_0.ETernary.condition);
-            fl_self_hosted_ast_Expr then_e = (*_fl_tmp_0.ETernary.then_expr);
-            fl_self_hosted_ast_Expr else_e = (*_fl_tmp_0.ETernary.else_expr);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_0.ETernary.condition, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_0.ETernary.then_expr, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_0.ETernary.else_expr, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3749,7 +3749,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECopy.id;
             fl_int l = _fl_tmp_0.ECopy.line;
             fl_int c = _fl_tmp_0.ECopy.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ECopy.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ECopy.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3757,7 +3757,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ERef.id;
             fl_int l = _fl_tmp_0.ERef.line;
             fl_int c = _fl_tmp_0.ERef.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ERef.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ERef.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3765,7 +3765,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ESome.id;
             fl_int l = _fl_tmp_0.ESome.line;
             fl_int c = _fl_tmp_0.ESome.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ESome.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ESome.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3773,7 +3773,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EOk.id;
             fl_int l = _fl_tmp_0.EOk.line;
             fl_int c = _fl_tmp_0.EOk.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.EOk.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.EOk.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3781,7 +3781,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EErr.id;
             fl_int l = _fl_tmp_0.EErr.line;
             fl_int c = _fl_tmp_0.EErr.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.EErr.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.EErr.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3789,7 +3789,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EPropagate.id;
             fl_int l = _fl_tmp_0.EPropagate.line;
             fl_int c = _fl_tmp_0.EPropagate.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.EPropagate.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.EPropagate.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3797,8 +3797,8 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ENullCoalesce.id;
             fl_int l = _fl_tmp_0.ENullCoalesce.line;
             fl_int c = _fl_tmp_0.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_0.ENullCoalesce.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_0.ENullCoalesce.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_0.ENullCoalesce.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_0.ENullCoalesce.right, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3806,7 +3806,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ETypeof.id;
             fl_int l = _fl_tmp_0.ETypeof.line;
             fl_int c = _fl_tmp_0.ETypeof.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ETypeof.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ETypeof.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3814,7 +3814,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECast.id;
             fl_int l = _fl_tmp_0.ECast.line;
             fl_int c = _fl_tmp_0.ECast.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ECast.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ECast.inner, fl_self_hosted_ast_Expr);
             fl_int t = _fl_tmp_0.ECast.target_id;
             return l;
             break;
@@ -3823,7 +3823,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECoerce.id;
             fl_int l = _fl_tmp_0.ECoerce.line;
             fl_int c = _fl_tmp_0.ECoerce.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ECoerce.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ECoerce.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3856,7 +3856,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECoroutineStart.id;
             fl_int l = _fl_tmp_0.ECoroutineStart.line;
             fl_int c = _fl_tmp_0.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = (*_fl_tmp_0.ECoroutineStart.call);
+            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_0.ECoroutineStart.call, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -3938,8 +3938,8 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_1.EBinOp.line;
             fl_int c = _fl_tmp_1.EBinOp.col;
             FL_String* o = _fl_tmp_1.EBinOp.op;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_1.EBinOp.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_1.EBinOp.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_1.EBinOp.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_1.EBinOp.right, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -3948,7 +3948,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_1.EUnaryOp.line;
             fl_int c = _fl_tmp_1.EUnaryOp.col;
             FL_String* o = _fl_tmp_1.EUnaryOp.op;
-            fl_self_hosted_ast_Expr op = (*_fl_tmp_1.EUnaryOp.operand);
+            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_1.EUnaryOp.operand, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -3957,7 +3957,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_1.ENamedArg.line;
             fl_int c = _fl_tmp_1.ENamedArg.col;
             FL_String* n = _fl_tmp_1.ENamedArg.name;
-            fl_self_hosted_ast_Expr v = (*_fl_tmp_1.ENamedArg.value);
+            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_1.ENamedArg.value, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -3965,7 +3965,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ESpread.id;
             fl_int l = _fl_tmp_1.ESpread.line;
             fl_int c = _fl_tmp_1.ESpread.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ESpread.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ESpread.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -3973,7 +3973,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECall.id;
             fl_int l = _fl_tmp_1.ECall.line;
             fl_int c = _fl_tmp_1.ECall.col;
-            fl_self_hosted_ast_Expr callee = (*_fl_tmp_1.ECall.callee);
+            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_1.ECall.callee, fl_self_hosted_ast_Expr);
             FL_Array* args = _fl_tmp_1.ECall.args;
             return c;
             break;
@@ -3982,7 +3982,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EMethodCall.id;
             fl_int l = _fl_tmp_1.EMethodCall.line;
             fl_int c = _fl_tmp_1.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_1.EMethodCall.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EMethodCall.receiver, fl_self_hosted_ast_Expr);
             FL_String* m = _fl_tmp_1.EMethodCall.method;
             FL_Array* args = _fl_tmp_1.EMethodCall.args;
             return c;
@@ -3992,7 +3992,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EFieldAccess.id;
             fl_int l = _fl_tmp_1.EFieldAccess.line;
             fl_int c = _fl_tmp_1.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_1.EFieldAccess.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
             FL_String* f = _fl_tmp_1.EFieldAccess.field;
             return c;
             break;
@@ -4001,8 +4001,8 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EIndexAccess.id;
             fl_int l = _fl_tmp_1.EIndexAccess.line;
             fl_int c = _fl_tmp_1.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_1.EIndexAccess.receiver);
-            fl_self_hosted_ast_Expr idx = (*_fl_tmp_1.EIndexAccess.index);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_1.EIndexAccess.index, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4011,7 +4011,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_1.ELambda.line;
             fl_int c = _fl_tmp_1.ELambda.col;
             FL_Array* params = _fl_tmp_1.ELambda.params;
-            fl_self_hosted_ast_Expr body = (*_fl_tmp_1.ELambda.body);
+            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_1.ELambda.body, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4046,7 +4046,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             FL_String* tn = _fl_tmp_1.ETypeLit.type_name;
             FL_Array* fields = _fl_tmp_1.ETypeLit.fields;
             fl_bool hs = _fl_tmp_1.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr sp = (*_fl_tmp_1.ETypeLit.spread);
+            fl_self_hosted_ast_Expr sp = FL_BOX_DEREF(_fl_tmp_1.ETypeLit.spread, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4054,7 +4054,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EIfExpr.id;
             fl_int l = _fl_tmp_1.EIfExpr.line;
             fl_int c = _fl_tmp_1.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_1.EIfExpr.condition);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_1.EIfExpr.condition, fl_self_hosted_ast_Expr);
             FL_Array* then_b = _fl_tmp_1.EIfExpr.then_stmts;
             FL_Array* else_b = _fl_tmp_1.EIfExpr.else_stmts;
             return c;
@@ -4064,7 +4064,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EMatchExpr.id;
             fl_int l = _fl_tmp_1.EMatchExpr.line;
             fl_int c = _fl_tmp_1.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = (*_fl_tmp_1.EMatchExpr.subject);
+            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_1.EMatchExpr.subject, fl_self_hosted_ast_Expr);
             FL_Array* arms = _fl_tmp_1.EMatchExpr.arms;
             return c;
             break;
@@ -4073,9 +4073,9 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ETernary.id;
             fl_int l = _fl_tmp_1.ETernary.line;
             fl_int c = _fl_tmp_1.ETernary.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_1.ETernary.condition);
-            fl_self_hosted_ast_Expr then_e = (*_fl_tmp_1.ETernary.then_expr);
-            fl_self_hosted_ast_Expr else_e = (*_fl_tmp_1.ETernary.else_expr);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_1.ETernary.condition, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_1.ETernary.then_expr, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_1.ETernary.else_expr, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4083,7 +4083,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECopy.id;
             fl_int l = _fl_tmp_1.ECopy.line;
             fl_int c = _fl_tmp_1.ECopy.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ECopy.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECopy.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4091,7 +4091,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ERef.id;
             fl_int l = _fl_tmp_1.ERef.line;
             fl_int c = _fl_tmp_1.ERef.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ERef.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ERef.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4099,7 +4099,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ESome.id;
             fl_int l = _fl_tmp_1.ESome.line;
             fl_int c = _fl_tmp_1.ESome.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ESome.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ESome.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4107,7 +4107,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EOk.id;
             fl_int l = _fl_tmp_1.EOk.line;
             fl_int c = _fl_tmp_1.EOk.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.EOk.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EOk.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4115,7 +4115,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EErr.id;
             fl_int l = _fl_tmp_1.EErr.line;
             fl_int c = _fl_tmp_1.EErr.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.EErr.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EErr.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4123,7 +4123,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EPropagate.id;
             fl_int l = _fl_tmp_1.EPropagate.line;
             fl_int c = _fl_tmp_1.EPropagate.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.EPropagate.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EPropagate.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4131,8 +4131,8 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ENullCoalesce.id;
             fl_int l = _fl_tmp_1.ENullCoalesce.line;
             fl_int c = _fl_tmp_1.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_1.ENullCoalesce.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_1.ENullCoalesce.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_1.ENullCoalesce.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_1.ENullCoalesce.right, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4140,7 +4140,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ETypeof.id;
             fl_int l = _fl_tmp_1.ETypeof.line;
             fl_int c = _fl_tmp_1.ETypeof.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ETypeof.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ETypeof.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4148,7 +4148,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECast.id;
             fl_int l = _fl_tmp_1.ECast.line;
             fl_int c = _fl_tmp_1.ECast.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ECast.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECast.inner, fl_self_hosted_ast_Expr);
             fl_int t = _fl_tmp_1.ECast.target_id;
             return c;
             break;
@@ -4157,7 +4157,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECoerce.id;
             fl_int l = _fl_tmp_1.ECoerce.line;
             fl_int c = _fl_tmp_1.ECoerce.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ECoerce.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECoerce.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4190,7 +4190,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECoroutineStart.id;
             fl_int l = _fl_tmp_1.ECoroutineStart.line;
             fl_int c = _fl_tmp_1.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = (*_fl_tmp_1.ECoroutineStart.call);
+            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_1.ECoroutineStart.call, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -4378,7 +4378,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TGenericType.id;
             fl_int l = _fl_tmp_4.TGenericType.line;
             fl_int c = _fl_tmp_4.TGenericType.col;
-            fl_self_hosted_ast_TypeExpr b = (*_fl_tmp_4.TGenericType.base);
+            fl_self_hosted_ast_TypeExpr b = FL_BOX_DEREF(_fl_tmp_4.TGenericType.base, fl_self_hosted_ast_TypeExpr);
             FL_Array* a = _fl_tmp_4.TGenericType.args;
             return nid;
             break;
@@ -4387,7 +4387,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TOptionType.id;
             fl_int l = _fl_tmp_4.TOptionType.line;
             fl_int c = _fl_tmp_4.TOptionType.col;
-            fl_self_hosted_ast_TypeExpr i = (*_fl_tmp_4.TOptionType.inner);
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_4.TOptionType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
@@ -4396,7 +4396,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int l = _fl_tmp_4.TFnType.line;
             fl_int c = _fl_tmp_4.TFnType.col;
             FL_Array* p = _fl_tmp_4.TFnType.params;
-            fl_self_hosted_ast_TypeExpr r = (*_fl_tmp_4.TFnType.ret);
+            fl_self_hosted_ast_TypeExpr r = FL_BOX_DEREF(_fl_tmp_4.TFnType.ret, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
@@ -4412,7 +4412,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TMutType.id;
             fl_int l = _fl_tmp_4.TMutType.line;
             fl_int c = _fl_tmp_4.TMutType.col;
-            fl_self_hosted_ast_TypeExpr i = (*_fl_tmp_4.TMutType.inner);
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_4.TMutType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
@@ -4420,7 +4420,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TImutType.id;
             fl_int l = _fl_tmp_4.TImutType.line;
             fl_int c = _fl_tmp_4.TImutType.col;
-            fl_self_hosted_ast_TypeExpr i = (*_fl_tmp_4.TImutType.inner);
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_4.TImutType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
@@ -4428,7 +4428,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TSizedType.id;
             fl_int l = _fl_tmp_4.TSizedType.line;
             fl_int c = _fl_tmp_4.TSizedType.col;
-            fl_self_hosted_ast_TypeExpr i = (*_fl_tmp_4.TSizedType.inner);
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_4.TSizedType.inner, fl_self_hosted_ast_TypeExpr);
             fl_int cap = _fl_tmp_4.TSizedType.capacity_id;
             return nid;
             break;
@@ -4589,8 +4589,8 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_6.EBinOp.line;
             fl_int c = _fl_tmp_6.EBinOp.col;
             FL_String* o = _fl_tmp_6.EBinOp.op;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_6.EBinOp.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_6.EBinOp.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_6.EBinOp.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_6.EBinOp.right, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4599,7 +4599,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_6.EUnaryOp.line;
             fl_int c = _fl_tmp_6.EUnaryOp.col;
             FL_String* o = _fl_tmp_6.EUnaryOp.op;
-            fl_self_hosted_ast_Expr op = (*_fl_tmp_6.EUnaryOp.operand);
+            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_6.EUnaryOp.operand, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4608,7 +4608,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_6.ENamedArg.line;
             fl_int c = _fl_tmp_6.ENamedArg.col;
             FL_String* n = _fl_tmp_6.ENamedArg.name;
-            fl_self_hosted_ast_Expr v = (*_fl_tmp_6.ENamedArg.value);
+            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_6.ENamedArg.value, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4616,7 +4616,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ESpread.id;
             fl_int l = _fl_tmp_6.ESpread.line;
             fl_int c = _fl_tmp_6.ESpread.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ESpread.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ESpread.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4624,7 +4624,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECall.id;
             fl_int l = _fl_tmp_6.ECall.line;
             fl_int c = _fl_tmp_6.ECall.col;
-            fl_self_hosted_ast_Expr callee = (*_fl_tmp_6.ECall.callee);
+            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_6.ECall.callee, fl_self_hosted_ast_Expr);
             FL_Array* args = _fl_tmp_6.ECall.args;
             return nid;
             break;
@@ -4633,7 +4633,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EMethodCall.id;
             fl_int l = _fl_tmp_6.EMethodCall.line;
             fl_int c = _fl_tmp_6.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_6.EMethodCall.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_6.EMethodCall.receiver, fl_self_hosted_ast_Expr);
             FL_String* m = _fl_tmp_6.EMethodCall.method;
             FL_Array* args = _fl_tmp_6.EMethodCall.args;
             return nid;
@@ -4643,7 +4643,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EFieldAccess.id;
             fl_int l = _fl_tmp_6.EFieldAccess.line;
             fl_int c = _fl_tmp_6.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_6.EFieldAccess.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_6.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
             FL_String* f = _fl_tmp_6.EFieldAccess.field;
             return nid;
             break;
@@ -4652,8 +4652,8 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EIndexAccess.id;
             fl_int l = _fl_tmp_6.EIndexAccess.line;
             fl_int c = _fl_tmp_6.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_6.EIndexAccess.receiver);
-            fl_self_hosted_ast_Expr idx = (*_fl_tmp_6.EIndexAccess.index);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_6.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_6.EIndexAccess.index, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4662,7 +4662,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_6.ELambda.line;
             fl_int c = _fl_tmp_6.ELambda.col;
             FL_Array* params = _fl_tmp_6.ELambda.params;
-            fl_self_hosted_ast_Expr body = (*_fl_tmp_6.ELambda.body);
+            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_6.ELambda.body, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4697,7 +4697,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             FL_String* tn = _fl_tmp_6.ETypeLit.type_name;
             FL_Array* fields = _fl_tmp_6.ETypeLit.fields;
             fl_bool hs = _fl_tmp_6.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr s = (*_fl_tmp_6.ETypeLit.spread);
+            fl_self_hosted_ast_Expr s = FL_BOX_DEREF(_fl_tmp_6.ETypeLit.spread, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4705,7 +4705,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EIfExpr.id;
             fl_int l = _fl_tmp_6.EIfExpr.line;
             fl_int c = _fl_tmp_6.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_6.EIfExpr.condition);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_6.EIfExpr.condition, fl_self_hosted_ast_Expr);
             FL_Array* then_b = _fl_tmp_6.EIfExpr.then_stmts;
             FL_Array* else_b = _fl_tmp_6.EIfExpr.else_stmts;
             return nid;
@@ -4715,7 +4715,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EMatchExpr.id;
             fl_int l = _fl_tmp_6.EMatchExpr.line;
             fl_int c = _fl_tmp_6.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = (*_fl_tmp_6.EMatchExpr.subject);
+            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_6.EMatchExpr.subject, fl_self_hosted_ast_Expr);
             FL_Array* arms = _fl_tmp_6.EMatchExpr.arms;
             return nid;
             break;
@@ -4724,9 +4724,9 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ETernary.id;
             fl_int l = _fl_tmp_6.ETernary.line;
             fl_int c = _fl_tmp_6.ETernary.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_6.ETernary.condition);
-            fl_self_hosted_ast_Expr then_e = (*_fl_tmp_6.ETernary.then_expr);
-            fl_self_hosted_ast_Expr else_e = (*_fl_tmp_6.ETernary.else_expr);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_6.ETernary.condition, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_6.ETernary.then_expr, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_6.ETernary.else_expr, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4734,7 +4734,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECopy.id;
             fl_int l = _fl_tmp_6.ECopy.line;
             fl_int c = _fl_tmp_6.ECopy.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ECopy.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ECopy.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4742,7 +4742,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ERef.id;
             fl_int l = _fl_tmp_6.ERef.line;
             fl_int c = _fl_tmp_6.ERef.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ERef.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ERef.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4750,7 +4750,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ESome.id;
             fl_int l = _fl_tmp_6.ESome.line;
             fl_int c = _fl_tmp_6.ESome.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ESome.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ESome.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4758,7 +4758,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EOk.id;
             fl_int l = _fl_tmp_6.EOk.line;
             fl_int c = _fl_tmp_6.EOk.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.EOk.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.EOk.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4766,7 +4766,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EErr.id;
             fl_int l = _fl_tmp_6.EErr.line;
             fl_int c = _fl_tmp_6.EErr.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.EErr.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.EErr.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4774,7 +4774,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EPropagate.id;
             fl_int l = _fl_tmp_6.EPropagate.line;
             fl_int c = _fl_tmp_6.EPropagate.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.EPropagate.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.EPropagate.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4782,8 +4782,8 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ENullCoalesce.id;
             fl_int l = _fl_tmp_6.ENullCoalesce.line;
             fl_int c = _fl_tmp_6.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_6.ENullCoalesce.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_6.ENullCoalesce.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_6.ENullCoalesce.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_6.ENullCoalesce.right, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4791,7 +4791,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ETypeof.id;
             fl_int l = _fl_tmp_6.ETypeof.line;
             fl_int c = _fl_tmp_6.ETypeof.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ETypeof.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ETypeof.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4799,7 +4799,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECast.id;
             fl_int l = _fl_tmp_6.ECast.line;
             fl_int c = _fl_tmp_6.ECast.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ECast.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ECast.inner, fl_self_hosted_ast_Expr);
             fl_int t = _fl_tmp_6.ECast.target_id;
             return nid;
             break;
@@ -4808,7 +4808,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECoerce.id;
             fl_int l = _fl_tmp_6.ECoerce.line;
             fl_int c = _fl_tmp_6.ECoerce.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ECoerce.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ECoerce.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4841,7 +4841,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECoroutineStart.id;
             fl_int l = _fl_tmp_6.ECoroutineStart.line;
             fl_int c = _fl_tmp_6.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = (*_fl_tmp_6.ECoroutineStart.call);
+            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_6.ECoroutineStart.call, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -6247,16 +6247,16 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
         if (_fl_old_15 != s->sized_capacities) {
             fl_array_release(_fl_old_15);
         }
-        fl_self_hosted_ast_TypeExpr* _fl_tmp_16 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-        (*_fl_tmp_16) = base;
+        FL_Box* _fl_tmp_16 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+        FL_BOX_DEREF(_fl_tmp_16, fl_self_hosted_ast_TypeExpr) = base;
         base = (fl_self_hosted_ast_TypeExpr){.tag = 7, .TSizedType = (fl_self_hosted_ast_TypeExpr_TSizedType){.id = fl_self_hosted_parser_fresh_id(s), .line = bracket_tok.line, .col = bracket_tok.col, .inner = _fl_tmp_16, .capacity_id = cap_id}};
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_QUESTION)) {
         fl_self_hosted_lexer_Token q_tok = fl_self_hosted_parser_advance(s);
         fl_string_retain(q_tok.value);
         fl_string_retain(q_tok.file);
-        fl_self_hosted_ast_TypeExpr* _fl_tmp_17 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-        (*_fl_tmp_17) = base;
+        FL_Box* _fl_tmp_17 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+        FL_BOX_DEREF(_fl_tmp_17, fl_self_hosted_ast_TypeExpr) = base;
         base = (fl_self_hosted_ast_TypeExpr){.tag = 2, .TOptionType = (fl_self_hosted_ast_TypeExpr_TOptionType){.id = fl_self_hosted_parser_fresh_id(s), .line = q_tok.line, .col = q_tok.col, .inner = _fl_tmp_17}};
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COLON)) {
@@ -6276,8 +6276,8 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
             fl_self_hosted_lexer_Token mut_tok = fl_self_hosted_parser_advance(s);
             fl_string_retain(mut_tok.value);
             fl_string_retain(mut_tok.file);
-            fl_self_hosted_ast_TypeExpr* _fl_tmp_18 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_fl_tmp_18) = base;
+            FL_Box* _fl_tmp_18 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+            FL_BOX_DEREF(_fl_tmp_18, fl_self_hosted_ast_TypeExpr) = base;
             base = (fl_self_hosted_ast_TypeExpr){.tag = 5, .TMutType = (fl_self_hosted_ast_TypeExpr_TMutType){.id = fl_self_hosted_parser_fresh_id(s), .line = mut_tok.line, .col = mut_tok.col, .inner = _fl_tmp_18}};
         } else {
             if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_IMUT) {
@@ -6285,8 +6285,8 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
                 fl_self_hosted_lexer_Token imut_tok = fl_self_hosted_parser_advance(s);
                 fl_string_retain(imut_tok.value);
                 fl_string_retain(imut_tok.file);
-                fl_self_hosted_ast_TypeExpr* _fl_tmp_19 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-                (*_fl_tmp_19) = base;
+                FL_Box* _fl_tmp_19 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+                FL_BOX_DEREF(_fl_tmp_19, fl_self_hosted_ast_TypeExpr) = base;
                 base = (fl_self_hosted_ast_TypeExpr){.tag = 6, .TImutType = (fl_self_hosted_ast_TypeExpr_TImutType){.id = fl_self_hosted_parser_fresh_id(s), .line = imut_tok.line, .col = imut_tok.col, .inner = _fl_tmp_19}};
             }
         }
@@ -6490,8 +6490,8 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_fn_type(fl_self_hosted_p
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
     fl_self_hosted_ast_TypeExpr ret = fl_self_hosted_parser_parse_type_expr(s);
-    fl_self_hosted_ast_TypeExpr* _fl_tmp_32 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-    (*_fl_tmp_32) = ret;
+    FL_Box* _fl_tmp_32 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+    FL_BOX_DEREF(_fl_tmp_32, fl_self_hosted_ast_TypeExpr) = ret;
     fl_array_retain(params);
     fl_self_hosted_ast_TypeExpr _fl_ret_33 = (fl_self_hosted_ast_TypeExpr){.tag = 3, .TFnType = (fl_self_hosted_ast_TypeExpr_TFnType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .params = params, .ret = _fl_tmp_32}};
     fl_array_release(params);
@@ -6565,8 +6565,8 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_named_or_generic_type(fl
     fl_self_hosted_ast_TypeExpr base = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = fl_self_hosted_parser_fresh_id(s), .line = first_tok.line, .col = first_tok.col, .name = name, .module_path = module_path}};
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
         FL_Array* args = fl_self_hosted_parser_parse_type_args(s);
-        fl_self_hosted_ast_TypeExpr* _fl_tmp_41 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-        (*_fl_tmp_41) = base;
+        FL_Box* _fl_tmp_41 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+        FL_BOX_DEREF(_fl_tmp_41, fl_self_hosted_ast_TypeExpr) = base;
         fl_array_retain(args);
         fl_self_hosted_ast_TypeExpr _fl_ret_42 = (fl_self_hosted_ast_TypeExpr){.tag = 1, .TGenericType = (fl_self_hosted_ast_TypeExpr_TGenericType){.id = fl_self_hosted_parser_fresh_id(s), .line = first_tok.line, .col = first_tok.col, .base = _fl_tmp_41, .args = args}};
         fl_array_release(module_path);
@@ -8152,7 +8152,7 @@ fl_self_hosted_ast_FieldDecl fl_self_hosted_parser_parse_field_decl(fl_self_host
             fl_int nid = _fl_tmp_128.TMutType.id;
             fl_int l = _fl_tmp_128.TMutType.line;
             fl_int c = _fl_tmp_128.TMutType.col;
-            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_128.TMutType.inner);
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_128.TMutType.inner, fl_self_hosted_ast_TypeExpr);
             is_mut = fl_true;
             break;
         }
@@ -8160,7 +8160,7 @@ fl_self_hosted_ast_FieldDecl fl_self_hosted_parser_parse_field_decl(fl_self_host
             fl_int nid = _fl_tmp_128.TImutType.id;
             fl_int l = _fl_tmp_128.TImutType.line;
             fl_int c = _fl_tmp_128.TImutType.col;
-            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_128.TImutType.inner);
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_128.TImutType.inner, fl_self_hosted_ast_TypeExpr);
             is_mut = fl_false;
             break;
         }
@@ -8211,7 +8211,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_static_member_body(fl_self_h
             fl_int nid = _fl_tmp_131.TMutType.id;
             fl_int l = _fl_tmp_131.TMutType.line;
             fl_int c = _fl_tmp_131.TMutType.col;
-            fl_self_hosted_ast_TypeExpr inner = (*_fl_tmp_131.TMutType.inner);
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_131.TMutType.inner, fl_self_hosted_ast_TypeExpr);
             is_mut = fl_true;
             break;
         }
@@ -8777,8 +8777,8 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_let_stmt(fl_self_hosted_pars
             fl_string_release(coro_tok.file);
             return _fl_ret_193;
         } else {
-            fl_self_hosted_ast_Expr* _fl_tmp_192 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_fl_tmp_192) = call_expr;
+            FL_Box* _fl_tmp_192 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+            FL_BOX_DEREF(_fl_tmp_192, fl_self_hosted_ast_Expr) = call_expr;
             fl_self_hosted_ast_Expr coro_expr = (fl_self_hosted_ast_Expr){.tag = 36, .ECoroutineStart = (fl_self_hosted_ast_Expr_ECoroutineStart){.id = fl_self_hosted_parser_fresh_id(s), .line = coro_tok.line, .col = coro_tok.col, .call = _fl_tmp_192}};
             fl_string_retain(name_tok.value);
             fl_self_hosted_ast_Stmt _fl_ret_194 = (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .has_type_ann = fl_false, .type_ann = fl_self_hosted_parser_placeholder_type(), .value = coro_expr}};
@@ -9451,10 +9451,10 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
         if ((tok.ttype == fl_self_hosted_lexer_TokenType_TK_DOUBLE_QUESTION) && (min_prec < fl_self_hosted_parser_PREC_NULL_COALESCE())) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr right = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_NULL_COALESCE());
-            fl_self_hosted_ast_Expr* _fl_tmp_241 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_fl_tmp_241) = left;
-            fl_self_hosted_ast_Expr* _fl_tmp_242 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_fl_tmp_242) = right;
+            FL_Box* _fl_tmp_241 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+            FL_BOX_DEREF(_fl_tmp_241, fl_self_hosted_ast_Expr) = left;
+            FL_Box* _fl_tmp_242 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+            FL_BOX_DEREF(_fl_tmp_242, fl_self_hosted_ast_Expr) = right;
             left = (fl_self_hosted_ast_Expr){.tag = 29, .ENullCoalesce = (fl_self_hosted_ast_Expr_ENullCoalesce){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .left = _fl_tmp_241, .right = _fl_tmp_242}};
             continue;
         }
@@ -9466,10 +9466,10 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                 FL_CHECKED_SUB(prec, 1, &_fl_e_1);
                 fl_self_hosted_ast_Expr right = fl_self_hosted_parser_parse_pratt(s, _fl_e_1);
                 FL_String* op_s = fl_self_hosted_parser_binop_str(tok.ttype);
-                fl_self_hosted_ast_Expr* _fl_tmp_243 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                (*_fl_tmp_243) = left;
-                fl_self_hosted_ast_Expr* _fl_tmp_244 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                (*_fl_tmp_244) = right;
+                FL_Box* _fl_tmp_243 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_243, fl_self_hosted_ast_Expr) = left;
+                FL_Box* _fl_tmp_244 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_244, fl_self_hosted_ast_Expr) = right;
                 fl_string_retain(op_s);
                 left = (fl_self_hosted_ast_Expr){.tag = 7, .EBinOp = (fl_self_hosted_ast_Expr_EBinOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = op_s, .left = _fl_tmp_243, .right = _fl_tmp_244}};
                 continue;
@@ -9478,10 +9478,10 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_ast_Expr right = fl_self_hosted_parser_parse_pratt(s, prec);
                 FL_String* op_s = fl_self_hosted_parser_binop_str(tok.ttype);
-                fl_self_hosted_ast_Expr* _fl_tmp_245 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                (*_fl_tmp_245) = left;
-                fl_self_hosted_ast_Expr* _fl_tmp_246 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                (*_fl_tmp_246) = right;
+                FL_Box* _fl_tmp_245 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_245, fl_self_hosted_ast_Expr) = left;
+                FL_Box* _fl_tmp_246 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_246, fl_self_hosted_ast_Expr) = right;
                 fl_string_retain(op_s);
                 left = (fl_self_hosted_ast_Expr){.tag = 7, .EBinOp = (fl_self_hosted_ast_Expr_EBinOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = op_s, .left = _fl_tmp_245, .right = _fl_tmp_246}};
                 continue;
@@ -9490,8 +9490,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
         if (min_prec < fl_self_hosted_parser_PREC_POSTFIX()) {
             if ((tok.ttype == fl_self_hosted_lexer_TokenType_TK_QUESTION) && (fl_self_hosted_parser_is_ternary(s) == fl_false)) {
                 fl_self_hosted_parser_advance(s);
-                fl_self_hosted_ast_Expr* _fl_tmp_247 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                (*_fl_tmp_247) = left;
+                FL_Box* _fl_tmp_247 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_247, fl_self_hosted_ast_Expr) = left;
                 left = (fl_self_hosted_ast_Expr){.tag = 28, .EPropagate = (fl_self_hosted_ast_Expr_EPropagate){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_247}};
                 continue;
             }
@@ -9504,8 +9504,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                     fl_self_hosted_lexer_Token idx_tok = fl_self_hosted_parser_advance(s);
                     fl_string_retain(idx_tok.value);
                     fl_string_retain(idx_tok.file);
-                    fl_self_hosted_ast_Expr* _fl_tmp_248 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                    (*_fl_tmp_248) = left;
+                    FL_Box* _fl_tmp_248 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                    FL_BOX_DEREF(_fl_tmp_248, fl_self_hosted_ast_Expr) = left;
                     fl_string_retain(idx_tok.value);
                     left = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_248, .field = idx_tok.value}};
                 } else {
@@ -9516,15 +9516,15 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                         fl_self_hosted_parser_advance(s);
                         FL_Array* args = fl_self_hosted_parser_parse_arg_list(s);
                         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-                        fl_self_hosted_ast_Expr* _fl_tmp_249 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                        (*_fl_tmp_249) = left;
+                        FL_Box* _fl_tmp_249 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                        FL_BOX_DEREF(_fl_tmp_249, fl_self_hosted_ast_Expr) = left;
                         fl_string_retain(ft.value);
                         fl_array_retain(args);
                         left = (fl_self_hosted_ast_Expr){.tag = 12, .EMethodCall = (fl_self_hosted_ast_Expr_EMethodCall){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_249, .method = ft.value, .args = args}};
                         fl_array_release(args);
                     } else {
-                        fl_self_hosted_ast_Expr* _fl_tmp_250 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                        (*_fl_tmp_250) = left;
+                        FL_Box* _fl_tmp_250 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                        FL_BOX_DEREF(_fl_tmp_250, fl_self_hosted_ast_Expr) = left;
                         fl_string_retain(ft.value);
                         left = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_250, .field = ft.value}};
                     }
@@ -9535,8 +9535,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                 fl_self_hosted_parser_advance(s);
                 FL_Array* args = fl_self_hosted_parser_parse_arg_list(s);
                 fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-                fl_self_hosted_ast_Expr* _fl_tmp_251 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                (*_fl_tmp_251) = left;
+                FL_Box* _fl_tmp_251 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_251, fl_self_hosted_ast_Expr) = left;
                 fl_array_retain(args);
                 left = (fl_self_hosted_ast_Expr){.tag = 11, .ECall = (fl_self_hosted_ast_Expr_ECall){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .callee = _fl_tmp_251, .args = args}};
                 continue;
@@ -9545,10 +9545,10 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_ast_Expr index = fl_self_hosted_parser_parse_expr(s);
                 fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACKET);
-                fl_self_hosted_ast_Expr* _fl_tmp_252 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                (*_fl_tmp_252) = left;
-                fl_self_hosted_ast_Expr* _fl_tmp_253 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-                (*_fl_tmp_253) = index;
+                FL_Box* _fl_tmp_252 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_252, fl_self_hosted_ast_Expr) = left;
+                FL_Box* _fl_tmp_253 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_253, fl_self_hosted_ast_Expr) = index;
                 left = (fl_self_hosted_ast_Expr){.tag = 14, .EIndexAccess = (fl_self_hosted_ast_Expr_EIndexAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_252, .index = _fl_tmp_253}};
                 continue;
             }
@@ -9712,12 +9712,12 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ternary(fl_self_hosted_parse
     fl_self_hosted_ast_Expr then_expr = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_TERNARY());
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
     fl_self_hosted_ast_Expr else_expr = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_TERNARY());
-    fl_self_hosted_ast_Expr* _fl_tmp_258 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_258) = condition;
-    fl_self_hosted_ast_Expr* _fl_tmp_259 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_259) = then_expr;
-    fl_self_hosted_ast_Expr* _fl_tmp_260 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_260) = else_expr;
+    FL_Box* _fl_tmp_258 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_258, fl_self_hosted_ast_Expr) = condition;
+    FL_Box* _fl_tmp_259 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_259, fl_self_hosted_ast_Expr) = then_expr;
+    FL_Box* _fl_tmp_260 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_260, fl_self_hosted_ast_Expr) = else_expr;
     fl_self_hosted_ast_Expr _fl_ret_261 = (fl_self_hosted_ast_Expr){.tag = 22, .ETernary = (fl_self_hosted_ast_Expr_ETernary){.id = fl_self_hosted_parser_fresh_id(s), .line = q_tok.line, .col = q_tok.col, .condition = _fl_tmp_258, .then_expr = _fl_tmp_259, .else_expr = _fl_tmp_260}};
     fl_string_release(q_tok.value);
     fl_string_release(q_tok.file);
@@ -9931,8 +9931,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_prefix(fl_self_hosted_parser
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_MINUS) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr operand = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
-        fl_self_hosted_ast_Expr* _fl_tmp_285 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-        (*_fl_tmp_285) = operand;
+        FL_Box* _fl_tmp_285 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_285, fl_self_hosted_ast_Expr) = operand;
         fl_string_retain(_fl_str_self_hosted_parser_11);
         fl_self_hosted_ast_Expr _fl_ret_289 = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_11, .operand = _fl_tmp_285}};
         fl_string_release(tok.value);
@@ -9942,8 +9942,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_prefix(fl_self_hosted_parser
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_BANG) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr operand = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
-        fl_self_hosted_ast_Expr* _fl_tmp_286 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-        (*_fl_tmp_286) = operand;
+        FL_Box* _fl_tmp_286 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_286, fl_self_hosted_ast_Expr) = operand;
         fl_string_retain(_fl_str_self_hosted_parser_51);
         fl_self_hosted_ast_Expr _fl_ret_290 = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_51, .operand = _fl_tmp_286}};
         fl_string_release(tok.value);
@@ -9953,8 +9953,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_prefix(fl_self_hosted_parser
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_AT) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr operand = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
-        fl_self_hosted_ast_Expr* _fl_tmp_287 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-        (*_fl_tmp_287) = operand;
+        FL_Box* _fl_tmp_287 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_287, fl_self_hosted_ast_Expr) = operand;
         fl_self_hosted_ast_Expr _fl_ret_291 = (fl_self_hosted_ast_Expr){.tag = 23, .ECopy = (fl_self_hosted_ast_Expr_ECopy){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_287}};
         fl_string_release(tok.value);
         fl_string_release(tok.file);
@@ -9963,8 +9963,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_prefix(fl_self_hosted_parser
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_AMPERSAND) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr operand = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
-        fl_self_hosted_ast_Expr* _fl_tmp_288 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-        (*_fl_tmp_288) = operand;
+        FL_Box* _fl_tmp_288 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_288, fl_self_hosted_ast_Expr) = operand;
         fl_self_hosted_ast_Expr _fl_ret_292 = (fl_self_hosted_ast_Expr){.tag = 24, .ERef = (fl_self_hosted_ast_Expr_ERef){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_288}};
         fl_string_release(tok.value);
         fl_string_release(tok.file);
@@ -10315,8 +10315,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_some_expr(fl_self_hosted_par
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    fl_self_hosted_ast_Expr* _fl_tmp_337 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_337) = inner;
+    FL_Box* _fl_tmp_337 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_337, fl_self_hosted_ast_Expr) = inner;
     fl_self_hosted_ast_Expr _fl_ret_338 = (fl_self_hosted_ast_Expr){.tag = 25, .ESome = (fl_self_hosted_ast_Expr_ESome){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_337}};
     fl_string_release(tok.value);
     fl_string_release(tok.file);
@@ -10329,8 +10329,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ok_expr(fl_self_hosted_parse
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    fl_self_hosted_ast_Expr* _fl_tmp_339 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_339) = inner;
+    FL_Box* _fl_tmp_339 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_339, fl_self_hosted_ast_Expr) = inner;
     fl_self_hosted_ast_Expr _fl_ret_340 = (fl_self_hosted_ast_Expr){.tag = 26, .EOk = (fl_self_hosted_ast_Expr_EOk){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_339}};
     fl_string_release(tok.value);
     fl_string_release(tok.file);
@@ -10343,8 +10343,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_err_expr(fl_self_hosted_pars
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    fl_self_hosted_ast_Expr* _fl_tmp_341 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_341) = inner;
+    FL_Box* _fl_tmp_341 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_341, fl_self_hosted_ast_Expr) = inner;
     fl_self_hosted_ast_Expr _fl_ret_342 = (fl_self_hosted_ast_Expr){.tag = 27, .EErr = (fl_self_hosted_ast_Expr_EErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_341}};
     fl_string_release(tok.value);
     fl_string_release(tok.file);
@@ -10357,8 +10357,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_coerce_expr(fl_self_hosted_p
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    fl_self_hosted_ast_Expr* _fl_tmp_343 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_343) = inner;
+    FL_Box* _fl_tmp_343 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_343, fl_self_hosted_ast_Expr) = inner;
     fl_self_hosted_ast_Expr _fl_ret_344 = (fl_self_hosted_ast_Expr){.tag = 32, .ECoerce = (fl_self_hosted_ast_Expr_ECoerce){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_343}};
     fl_string_release(tok.value);
     fl_string_release(tok.file);
@@ -10381,8 +10381,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_cast_expr(fl_self_hosted_par
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    fl_self_hosted_ast_Expr* _fl_tmp_347 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_347) = inner;
+    FL_Box* _fl_tmp_347 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_347, fl_self_hosted_ast_Expr) = inner;
     fl_self_hosted_ast_Expr _fl_ret_348 = (fl_self_hosted_ast_Expr){.tag = 31, .ECast = (fl_self_hosted_ast_Expr_ECast){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_347, .target_id = target_id}};
     fl_string_release(tok.value);
     fl_string_release(tok.file);
@@ -10395,8 +10395,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_typeof_expr(fl_self_hosted_p
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    fl_self_hosted_ast_Expr* _fl_tmp_349 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_349) = inner;
+    FL_Box* _fl_tmp_349 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_349, fl_self_hosted_ast_Expr) = inner;
     fl_self_hosted_ast_Expr _fl_ret_350 = (fl_self_hosted_ast_Expr){.tag = 30, .ETypeof = (fl_self_hosted_ast_Expr_ETypeof){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_349}};
     fl_string_release(tok.value);
     fl_string_release(tok.file);
@@ -10423,8 +10423,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_match_expr(fl_self_hosted_pa
         fl_array_release(arm.body_stmts);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
-    fl_self_hosted_ast_Expr* _fl_tmp_353 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_353) = subject;
+    FL_Box* _fl_tmp_353 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_353, fl_self_hosted_ast_Expr) = subject;
     fl_array_retain(arms);
     fl_self_hosted_ast_Expr _fl_ret_354 = (fl_self_hosted_ast_Expr){.tag = 21, .EMatchExpr = (fl_self_hosted_ast_Expr_EMatchExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .subject = _fl_tmp_353, .arms = arms}};
     fl_array_release(arms);
@@ -10460,8 +10460,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_if_expr(fl_self_hosted_parse
             }
         }
     }
-    fl_self_hosted_ast_Expr* _fl_tmp_358 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_358) = condition;
+    FL_Box* _fl_tmp_358 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_358, fl_self_hosted_ast_Expr) = condition;
     fl_array_retain(then_stmts);
     fl_array_retain(else_stmts);
     fl_self_hosted_ast_Expr _fl_ret_359 = (fl_self_hosted_ast_Expr){.tag = 20, .EIfExpr = (fl_self_hosted_ast_Expr_EIfExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .condition = _fl_tmp_358, .then_stmts = then_stmts, .else_stmts = else_stmts}};
@@ -10501,8 +10501,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_lambda(fl_self_hosted_parser
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_FAT_ARROW);
     fl_self_hosted_ast_Expr body = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    fl_self_hosted_ast_Expr* _fl_tmp_364 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_364) = body;
+    FL_Box* _fl_tmp_364 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_364, fl_self_hosted_ast_Expr) = body;
     fl_array_retain(params);
     fl_self_hosted_ast_Expr _fl_ret_365 = (fl_self_hosted_ast_Expr){.tag = 15, .ELambda = (fl_self_hosted_ast_Expr_ELambda){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .params = params, .body = _fl_tmp_364}};
     fl_array_release(params);
@@ -10778,8 +10778,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_type_construction_lit(fl_sel
         fl_string_release(prefix);
         fl_string_release(_fl_tmp_390);
     }
-    fl_self_hosted_ast_Expr* _fl_tmp_392 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_392) = spread;
+    FL_Box* _fl_tmp_392 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_392, fl_self_hosted_ast_Expr) = spread;
     fl_string_retain(full_name);
     fl_array_retain(fields);
     fl_self_hosted_ast_Expr _fl_ret_393 = (fl_self_hosted_ast_Expr){.tag = 19, .ETypeLit = (fl_self_hosted_ast_Expr_ETypeLit){.id = fl_self_hosted_parser_fresh_id(s), .line = start_tok.line, .col = start_tok.col, .type_name = full_name, .fields = fields, .has_spread = has_spread, .spread = _fl_tmp_392}};
@@ -10804,7 +10804,7 @@ FL_Array* fl_self_hosted_parser_parse_arg_list(fl_self_hosted_parser_ParserState
             fl_int nl = _fl_tmp_394.ENamedArg.line;
             fl_int nc = _fl_tmp_394.ENamedArg.col;
             FL_String* nn = _fl_tmp_394.ENamedArg.name;
-            fl_self_hosted_ast_Expr nv = (*_fl_tmp_394.ENamedArg.value);
+            fl_self_hosted_ast_Expr nv = FL_BOX_DEREF(_fl_tmp_394.ENamedArg.value, fl_self_hosted_ast_Expr);
             seen_named = fl_true;
             break;
         }
@@ -10828,7 +10828,7 @@ FL_Array* fl_self_hosted_parser_parse_arg_list(fl_self_hosted_parser_ParserState
                 fl_int nl = _fl_tmp_397.ENamedArg.line;
                 fl_int nc = _fl_tmp_397.ENamedArg.col;
                 FL_String* nn = _fl_tmp_397.ENamedArg.name;
-                fl_self_hosted_ast_Expr nv = (*_fl_tmp_397.ENamedArg.value);
+                fl_self_hosted_ast_Expr nv = FL_BOX_DEREF(_fl_tmp_397.ENamedArg.value, fl_self_hosted_ast_Expr);
                 seen_named = fl_true;
                 break;
             }
@@ -10858,8 +10858,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_call_arg(fl_self_hosted_pars
         fl_string_retain(spread_tok.value);
         fl_string_retain(spread_tok.file);
         fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
-        fl_self_hosted_ast_Expr* _fl_tmp_401 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-        (*_fl_tmp_401) = inner;
+        FL_Box* _fl_tmp_401 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_401, fl_self_hosted_ast_Expr) = inner;
         fl_self_hosted_ast_Expr _fl_ret_404 = (fl_self_hosted_ast_Expr){.tag = 10, .ESpread = (fl_self_hosted_ast_Expr_ESpread){.id = fl_self_hosted_parser_fresh_id(s), .line = spread_tok.line, .col = spread_tok.col, .inner = _fl_tmp_401}};
         fl_string_release(spread_tok.value);
         fl_string_release(spread_tok.file);
@@ -10875,8 +10875,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_call_arg(fl_self_hosted_pars
             fl_string_retain(name_tok.file);
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
-            fl_self_hosted_ast_Expr* _fl_tmp_402 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_fl_tmp_402) = value;
+            FL_Box* _fl_tmp_402 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+            FL_BOX_DEREF(_fl_tmp_402, fl_self_hosted_ast_Expr) = value;
             fl_string_retain(name_tok.value);
             fl_self_hosted_ast_Expr _fl_ret_405 = (fl_self_hosted_ast_Expr){.tag = 9, .ENamedArg = (fl_self_hosted_ast_Expr_ENamedArg){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .name = name_tok.value, .value = _fl_tmp_402}};
             fl_string_release(next.value);
@@ -10975,8 +10975,8 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_MINUS) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_primary(s);
-        fl_self_hosted_ast_Expr* _fl_tmp_408 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-        (*_fl_tmp_408) = inner;
+        FL_Box* _fl_tmp_408 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_408, fl_self_hosted_ast_Expr) = inner;
         fl_string_retain(_fl_str_self_hosted_parser_11);
         fl_self_hosted_ast_Expr neg = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_11, .operand = _fl_tmp_408}};
         fl_int vid = fl_array_len_int(s->literal_values);

@@ -65,12 +65,12 @@ struct fl_tests_recursive_expr_Expr_Lit {
 };
 
 struct fl_tests_recursive_expr_Expr_Add {
-    fl_tests_recursive_expr_Expr* left;
-    fl_tests_recursive_expr_Expr* right;
+    FL_Box* left;
+    FL_Box* right;
 };
 
 struct fl_tests_recursive_expr_Expr_Neg {
-    fl_tests_recursive_expr_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_tests_recursive_expr_Expr {
@@ -92,15 +92,15 @@ fl_int fl_tests_recursive_expr_eval(fl_tests_recursive_expr_Expr e) {
             break;
         }
         case 1: {
-            fl_tests_recursive_expr_Expr l = (*_fl_tmp_0.Add.left);
-            fl_tests_recursive_expr_Expr r = (*_fl_tmp_0.Add.right);
+            fl_tests_recursive_expr_Expr l = FL_BOX_DEREF(_fl_tmp_0.Add.left, fl_tests_recursive_expr_Expr);
+            fl_tests_recursive_expr_Expr r = FL_BOX_DEREF(_fl_tmp_0.Add.right, fl_tests_recursive_expr_Expr);
             fl_int _fl_e_1;
             FL_CHECKED_ADD(fl_tests_recursive_expr_eval(l), fl_tests_recursive_expr_eval(r), &_fl_e_1);
             return _fl_e_1;
             break;
         }
         case 2: {
-            fl_tests_recursive_expr_Expr x = (*_fl_tmp_0.Neg.inner);
+            fl_tests_recursive_expr_Expr x = FL_BOX_DEREF(_fl_tmp_0.Neg.inner, fl_tests_recursive_expr_Expr);
             fl_int _fl_e_2;
             FL_CHECKED_SUB(0, fl_tests_recursive_expr_eval(x), &_fl_e_2);
             return _fl_e_2;
@@ -111,16 +111,16 @@ fl_int fl_tests_recursive_expr_eval(fl_tests_recursive_expr_Expr e) {
 
 /* Flow: tests.recursive_expr.main */
 void fl_tests_recursive_expr_main(void) {
-    fl_tests_recursive_expr_Expr* _fl_tmp_1 = ((fl_tests_recursive_expr_Expr*)malloc(sizeof(fl_tests_recursive_expr_Expr)));
-    (*_fl_tmp_1) = (fl_tests_recursive_expr_Expr){.tag = 0, .Lit = (fl_tests_recursive_expr_Expr_Lit){.value = 3}};
-    fl_tests_recursive_expr_Expr* _fl_tmp_2 = ((fl_tests_recursive_expr_Expr*)malloc(sizeof(fl_tests_recursive_expr_Expr)));
-    (*_fl_tmp_2) = (fl_tests_recursive_expr_Expr){.tag = 0, .Lit = (fl_tests_recursive_expr_Expr_Lit){.value = 4}};
-    fl_tests_recursive_expr_Expr* _fl_tmp_3 = ((fl_tests_recursive_expr_Expr*)malloc(sizeof(fl_tests_recursive_expr_Expr)));
-    (*_fl_tmp_3) = (fl_tests_recursive_expr_Expr){.tag = 1, .Add = (fl_tests_recursive_expr_Expr_Add){.left = _fl_tmp_1, .right = _fl_tmp_2}};
-    fl_tests_recursive_expr_Expr* _fl_tmp_4 = ((fl_tests_recursive_expr_Expr*)malloc(sizeof(fl_tests_recursive_expr_Expr)));
-    (*_fl_tmp_4) = (fl_tests_recursive_expr_Expr){.tag = 0, .Lit = (fl_tests_recursive_expr_Expr_Lit){.value = 10}};
-    fl_tests_recursive_expr_Expr* _fl_tmp_5 = ((fl_tests_recursive_expr_Expr*)malloc(sizeof(fl_tests_recursive_expr_Expr)));
-    (*_fl_tmp_5) = (fl_tests_recursive_expr_Expr){.tag = 2, .Neg = (fl_tests_recursive_expr_Expr_Neg){.inner = _fl_tmp_3}};
+    FL_Box* _fl_tmp_1 = fl_box_new(sizeof(fl_tests_recursive_expr_Expr));
+    FL_BOX_DEREF(_fl_tmp_1, fl_tests_recursive_expr_Expr) = (fl_tests_recursive_expr_Expr){.tag = 0, .Lit = (fl_tests_recursive_expr_Expr_Lit){.value = 3}};
+    FL_Box* _fl_tmp_2 = fl_box_new(sizeof(fl_tests_recursive_expr_Expr));
+    FL_BOX_DEREF(_fl_tmp_2, fl_tests_recursive_expr_Expr) = (fl_tests_recursive_expr_Expr){.tag = 0, .Lit = (fl_tests_recursive_expr_Expr_Lit){.value = 4}};
+    FL_Box* _fl_tmp_3 = fl_box_new(sizeof(fl_tests_recursive_expr_Expr));
+    FL_BOX_DEREF(_fl_tmp_3, fl_tests_recursive_expr_Expr) = (fl_tests_recursive_expr_Expr){.tag = 1, .Add = (fl_tests_recursive_expr_Expr_Add){.left = _fl_tmp_1, .right = _fl_tmp_2}};
+    FL_Box* _fl_tmp_4 = fl_box_new(sizeof(fl_tests_recursive_expr_Expr));
+    FL_BOX_DEREF(_fl_tmp_4, fl_tests_recursive_expr_Expr) = (fl_tests_recursive_expr_Expr){.tag = 0, .Lit = (fl_tests_recursive_expr_Expr_Lit){.value = 10}};
+    FL_Box* _fl_tmp_5 = fl_box_new(sizeof(fl_tests_recursive_expr_Expr));
+    FL_BOX_DEREF(_fl_tmp_5, fl_tests_recursive_expr_Expr) = (fl_tests_recursive_expr_Expr){.tag = 2, .Neg = (fl_tests_recursive_expr_Expr_Neg){.inner = _fl_tmp_3}};
     fl_tests_recursive_expr_Expr e = (fl_tests_recursive_expr_Expr){.tag = 1, .Add = (fl_tests_recursive_expr_Expr_Add){.left = _fl_tmp_4, .right = _fl_tmp_5}};
     FL_String* _fl_tmp_6 = fl_int_to_string(fl_tests_recursive_expr_eval(e));
     FL_String* _fl_tmp_7 = _fl_str_tests_recursive_expr_0;

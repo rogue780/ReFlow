@@ -786,7 +786,7 @@ struct fl_self_hosted_ast_TypeExpr_TGenericType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* base;
+    FL_Box* base;
     FL_Array* args;
 };
 
@@ -794,7 +794,7 @@ struct fl_self_hosted_ast_TypeExpr_TOptionType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TFnType {
@@ -802,7 +802,7 @@ struct fl_self_hosted_ast_TypeExpr_TFnType {
     fl_int line;
     fl_int col;
     FL_Array* params;
-    fl_self_hosted_ast_TypeExpr* ret;
+    FL_Box* ret;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TTupleType {
@@ -816,21 +816,21 @@ struct fl_self_hosted_ast_TypeExpr_TMutType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TImutType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_TypeExpr_TSizedType {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_TypeExpr* inner;
+    FL_Box* inner;
     fl_int capacity_id;
 };
 
@@ -1016,8 +1016,8 @@ struct fl_self_hosted_ast_Expr_EBinOp {
     fl_int line;
     fl_int col;
     FL_String* op;
-    fl_self_hosted_ast_Expr* left;
-    fl_self_hosted_ast_Expr* right;
+    FL_Box* left;
+    FL_Box* right;
 };
 
 struct fl_self_hosted_ast_Expr_EUnaryOp {
@@ -1025,7 +1025,7 @@ struct fl_self_hosted_ast_Expr_EUnaryOp {
     fl_int line;
     fl_int col;
     FL_String* op;
-    fl_self_hosted_ast_Expr* operand;
+    FL_Box* operand;
 };
 
 struct fl_self_hosted_ast_Expr_ENamedArg {
@@ -1033,21 +1033,21 @@ struct fl_self_hosted_ast_Expr_ENamedArg {
     fl_int line;
     fl_int col;
     FL_String* name;
-    fl_self_hosted_ast_Expr* value;
+    FL_Box* value;
 };
 
 struct fl_self_hosted_ast_Expr_ESpread {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ECall {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* callee;
+    FL_Box* callee;
     FL_Array* args;
 };
 
@@ -1055,7 +1055,7 @@ struct fl_self_hosted_ast_Expr_EMethodCall {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* receiver;
+    FL_Box* receiver;
     FL_String* method;
     FL_Array* args;
 };
@@ -1064,7 +1064,7 @@ struct fl_self_hosted_ast_Expr_EFieldAccess {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* receiver;
+    FL_Box* receiver;
     FL_String* field;
 };
 
@@ -1072,8 +1072,8 @@ struct fl_self_hosted_ast_Expr_EIndexAccess {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* receiver;
-    fl_self_hosted_ast_Expr* index;
+    FL_Box* receiver;
+    FL_Box* index;
 };
 
 struct fl_self_hosted_ast_Expr_ELambda {
@@ -1081,7 +1081,7 @@ struct fl_self_hosted_ast_Expr_ELambda {
     fl_int line;
     fl_int col;
     FL_Array* params;
-    fl_self_hosted_ast_Expr* body;
+    FL_Box* body;
 };
 
 struct fl_self_hosted_ast_Expr_ETupleExpr {
@@ -1112,14 +1112,14 @@ struct fl_self_hosted_ast_Expr_ETypeLit {
     FL_String* type_name;
     FL_Array* fields;
     fl_bool has_spread;
-    fl_self_hosted_ast_Expr* spread;
+    FL_Box* spread;
 };
 
 struct fl_self_hosted_ast_Expr_EIfExpr {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* condition;
+    FL_Box* condition;
     FL_Array* then_stmts;
     FL_Array* else_stmts;
 };
@@ -1128,7 +1128,7 @@ struct fl_self_hosted_ast_Expr_EMatchExpr {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* subject;
+    FL_Box* subject;
     FL_Array* arms;
 };
 
@@ -1136,73 +1136,73 @@ struct fl_self_hosted_ast_Expr_ETernary {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* condition;
-    fl_self_hosted_ast_Expr* then_expr;
-    fl_self_hosted_ast_Expr* else_expr;
+    FL_Box* condition;
+    FL_Box* then_expr;
+    FL_Box* else_expr;
 };
 
 struct fl_self_hosted_ast_Expr_ECopy {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ERef {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ESome {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_EOk {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_EErr {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_EPropagate {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ENullCoalesce {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* left;
-    fl_self_hosted_ast_Expr* right;
+    FL_Box* left;
+    FL_Box* right;
 };
 
 struct fl_self_hosted_ast_Expr_ETypeof {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_ECast {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
     fl_int target_id;
 };
 
@@ -1210,7 +1210,7 @@ struct fl_self_hosted_ast_Expr_ECoerce {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* inner;
+    FL_Box* inner;
 };
 
 struct fl_self_hosted_ast_Expr_EFString {
@@ -1239,7 +1239,7 @@ struct fl_self_hosted_ast_Expr_ECoroutineStart {
     fl_int id;
     fl_int line;
     fl_int col;
-    fl_self_hosted_ast_Expr* call;
+    FL_Box* call;
 };
 
 struct fl_self_hosted_ast_Expr_ECoroutinePipeline {
@@ -1755,8 +1755,8 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_0.EBinOp.line;
             fl_int c = _fl_tmp_0.EBinOp.col;
             FL_String* o = _fl_tmp_0.EBinOp.op;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_0.EBinOp.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_0.EBinOp.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_0.EBinOp.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_0.EBinOp.right, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1765,7 +1765,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_0.EUnaryOp.line;
             fl_int c = _fl_tmp_0.EUnaryOp.col;
             FL_String* o = _fl_tmp_0.EUnaryOp.op;
-            fl_self_hosted_ast_Expr op = (*_fl_tmp_0.EUnaryOp.operand);
+            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_0.EUnaryOp.operand, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1774,7 +1774,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_0.ENamedArg.line;
             fl_int c = _fl_tmp_0.ENamedArg.col;
             FL_String* n = _fl_tmp_0.ENamedArg.name;
-            fl_self_hosted_ast_Expr v = (*_fl_tmp_0.ENamedArg.value);
+            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_0.ENamedArg.value, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1782,7 +1782,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ESpread.id;
             fl_int l = _fl_tmp_0.ESpread.line;
             fl_int c = _fl_tmp_0.ESpread.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ESpread.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ESpread.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1790,7 +1790,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECall.id;
             fl_int l = _fl_tmp_0.ECall.line;
             fl_int c = _fl_tmp_0.ECall.col;
-            fl_self_hosted_ast_Expr callee = (*_fl_tmp_0.ECall.callee);
+            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_0.ECall.callee, fl_self_hosted_ast_Expr);
             FL_Array* args = _fl_tmp_0.ECall.args;
             return l;
             break;
@@ -1799,7 +1799,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EMethodCall.id;
             fl_int l = _fl_tmp_0.EMethodCall.line;
             fl_int c = _fl_tmp_0.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_0.EMethodCall.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_0.EMethodCall.receiver, fl_self_hosted_ast_Expr);
             FL_String* m = _fl_tmp_0.EMethodCall.method;
             FL_Array* args = _fl_tmp_0.EMethodCall.args;
             return l;
@@ -1809,7 +1809,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EFieldAccess.id;
             fl_int l = _fl_tmp_0.EFieldAccess.line;
             fl_int c = _fl_tmp_0.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_0.EFieldAccess.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_0.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
             FL_String* f = _fl_tmp_0.EFieldAccess.field;
             return l;
             break;
@@ -1818,8 +1818,8 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EIndexAccess.id;
             fl_int l = _fl_tmp_0.EIndexAccess.line;
             fl_int c = _fl_tmp_0.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_0.EIndexAccess.receiver);
-            fl_self_hosted_ast_Expr idx = (*_fl_tmp_0.EIndexAccess.index);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_0.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_0.EIndexAccess.index, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1828,7 +1828,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_0.ELambda.line;
             fl_int c = _fl_tmp_0.ELambda.col;
             FL_Array* params = _fl_tmp_0.ELambda.params;
-            fl_self_hosted_ast_Expr body = (*_fl_tmp_0.ELambda.body);
+            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_0.ELambda.body, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1863,7 +1863,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             FL_String* tn = _fl_tmp_0.ETypeLit.type_name;
             FL_Array* fields = _fl_tmp_0.ETypeLit.fields;
             fl_bool hs = _fl_tmp_0.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr sp = (*_fl_tmp_0.ETypeLit.spread);
+            fl_self_hosted_ast_Expr sp = FL_BOX_DEREF(_fl_tmp_0.ETypeLit.spread, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1871,7 +1871,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EIfExpr.id;
             fl_int l = _fl_tmp_0.EIfExpr.line;
             fl_int c = _fl_tmp_0.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_0.EIfExpr.condition);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_0.EIfExpr.condition, fl_self_hosted_ast_Expr);
             FL_Array* then_b = _fl_tmp_0.EIfExpr.then_stmts;
             FL_Array* else_b = _fl_tmp_0.EIfExpr.else_stmts;
             return l;
@@ -1881,7 +1881,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EMatchExpr.id;
             fl_int l = _fl_tmp_0.EMatchExpr.line;
             fl_int c = _fl_tmp_0.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = (*_fl_tmp_0.EMatchExpr.subject);
+            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_0.EMatchExpr.subject, fl_self_hosted_ast_Expr);
             FL_Array* arms = _fl_tmp_0.EMatchExpr.arms;
             return l;
             break;
@@ -1890,9 +1890,9 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ETernary.id;
             fl_int l = _fl_tmp_0.ETernary.line;
             fl_int c = _fl_tmp_0.ETernary.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_0.ETernary.condition);
-            fl_self_hosted_ast_Expr then_e = (*_fl_tmp_0.ETernary.then_expr);
-            fl_self_hosted_ast_Expr else_e = (*_fl_tmp_0.ETernary.else_expr);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_0.ETernary.condition, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_0.ETernary.then_expr, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_0.ETernary.else_expr, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1900,7 +1900,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECopy.id;
             fl_int l = _fl_tmp_0.ECopy.line;
             fl_int c = _fl_tmp_0.ECopy.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ECopy.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ECopy.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1908,7 +1908,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ERef.id;
             fl_int l = _fl_tmp_0.ERef.line;
             fl_int c = _fl_tmp_0.ERef.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ERef.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ERef.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1916,7 +1916,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ESome.id;
             fl_int l = _fl_tmp_0.ESome.line;
             fl_int c = _fl_tmp_0.ESome.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ESome.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ESome.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1924,7 +1924,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EOk.id;
             fl_int l = _fl_tmp_0.EOk.line;
             fl_int c = _fl_tmp_0.EOk.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.EOk.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.EOk.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1932,7 +1932,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EErr.id;
             fl_int l = _fl_tmp_0.EErr.line;
             fl_int c = _fl_tmp_0.EErr.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.EErr.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.EErr.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1940,7 +1940,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.EPropagate.id;
             fl_int l = _fl_tmp_0.EPropagate.line;
             fl_int c = _fl_tmp_0.EPropagate.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.EPropagate.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.EPropagate.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1948,8 +1948,8 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ENullCoalesce.id;
             fl_int l = _fl_tmp_0.ENullCoalesce.line;
             fl_int c = _fl_tmp_0.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_0.ENullCoalesce.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_0.ENullCoalesce.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_0.ENullCoalesce.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_0.ENullCoalesce.right, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1957,7 +1957,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ETypeof.id;
             fl_int l = _fl_tmp_0.ETypeof.line;
             fl_int c = _fl_tmp_0.ETypeof.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ETypeof.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ETypeof.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -1965,7 +1965,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECast.id;
             fl_int l = _fl_tmp_0.ECast.line;
             fl_int c = _fl_tmp_0.ECast.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ECast.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ECast.inner, fl_self_hosted_ast_Expr);
             fl_int t = _fl_tmp_0.ECast.target_id;
             return l;
             break;
@@ -1974,7 +1974,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECoerce.id;
             fl_int l = _fl_tmp_0.ECoerce.line;
             fl_int c = _fl_tmp_0.ECoerce.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_0.ECoerce.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_0.ECoerce.inner, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -2007,7 +2007,7 @@ fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_0.ECoroutineStart.id;
             fl_int l = _fl_tmp_0.ECoroutineStart.line;
             fl_int c = _fl_tmp_0.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = (*_fl_tmp_0.ECoroutineStart.call);
+            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_0.ECoroutineStart.call, fl_self_hosted_ast_Expr);
             return l;
             break;
         }
@@ -2089,8 +2089,8 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_1.EBinOp.line;
             fl_int c = _fl_tmp_1.EBinOp.col;
             FL_String* o = _fl_tmp_1.EBinOp.op;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_1.EBinOp.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_1.EBinOp.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_1.EBinOp.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_1.EBinOp.right, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2099,7 +2099,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_1.EUnaryOp.line;
             fl_int c = _fl_tmp_1.EUnaryOp.col;
             FL_String* o = _fl_tmp_1.EUnaryOp.op;
-            fl_self_hosted_ast_Expr op = (*_fl_tmp_1.EUnaryOp.operand);
+            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_1.EUnaryOp.operand, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2108,7 +2108,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_1.ENamedArg.line;
             fl_int c = _fl_tmp_1.ENamedArg.col;
             FL_String* n = _fl_tmp_1.ENamedArg.name;
-            fl_self_hosted_ast_Expr v = (*_fl_tmp_1.ENamedArg.value);
+            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_1.ENamedArg.value, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2116,7 +2116,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ESpread.id;
             fl_int l = _fl_tmp_1.ESpread.line;
             fl_int c = _fl_tmp_1.ESpread.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ESpread.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ESpread.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2124,7 +2124,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECall.id;
             fl_int l = _fl_tmp_1.ECall.line;
             fl_int c = _fl_tmp_1.ECall.col;
-            fl_self_hosted_ast_Expr callee = (*_fl_tmp_1.ECall.callee);
+            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_1.ECall.callee, fl_self_hosted_ast_Expr);
             FL_Array* args = _fl_tmp_1.ECall.args;
             return c;
             break;
@@ -2133,7 +2133,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EMethodCall.id;
             fl_int l = _fl_tmp_1.EMethodCall.line;
             fl_int c = _fl_tmp_1.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_1.EMethodCall.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EMethodCall.receiver, fl_self_hosted_ast_Expr);
             FL_String* m = _fl_tmp_1.EMethodCall.method;
             FL_Array* args = _fl_tmp_1.EMethodCall.args;
             return c;
@@ -2143,7 +2143,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EFieldAccess.id;
             fl_int l = _fl_tmp_1.EFieldAccess.line;
             fl_int c = _fl_tmp_1.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_1.EFieldAccess.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
             FL_String* f = _fl_tmp_1.EFieldAccess.field;
             return c;
             break;
@@ -2152,8 +2152,8 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EIndexAccess.id;
             fl_int l = _fl_tmp_1.EIndexAccess.line;
             fl_int c = _fl_tmp_1.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_1.EIndexAccess.receiver);
-            fl_self_hosted_ast_Expr idx = (*_fl_tmp_1.EIndexAccess.index);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_1.EIndexAccess.index, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2162,7 +2162,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_1.ELambda.line;
             fl_int c = _fl_tmp_1.ELambda.col;
             FL_Array* params = _fl_tmp_1.ELambda.params;
-            fl_self_hosted_ast_Expr body = (*_fl_tmp_1.ELambda.body);
+            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_1.ELambda.body, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2197,7 +2197,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             FL_String* tn = _fl_tmp_1.ETypeLit.type_name;
             FL_Array* fields = _fl_tmp_1.ETypeLit.fields;
             fl_bool hs = _fl_tmp_1.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr sp = (*_fl_tmp_1.ETypeLit.spread);
+            fl_self_hosted_ast_Expr sp = FL_BOX_DEREF(_fl_tmp_1.ETypeLit.spread, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2205,7 +2205,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EIfExpr.id;
             fl_int l = _fl_tmp_1.EIfExpr.line;
             fl_int c = _fl_tmp_1.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_1.EIfExpr.condition);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_1.EIfExpr.condition, fl_self_hosted_ast_Expr);
             FL_Array* then_b = _fl_tmp_1.EIfExpr.then_stmts;
             FL_Array* else_b = _fl_tmp_1.EIfExpr.else_stmts;
             return c;
@@ -2215,7 +2215,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EMatchExpr.id;
             fl_int l = _fl_tmp_1.EMatchExpr.line;
             fl_int c = _fl_tmp_1.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = (*_fl_tmp_1.EMatchExpr.subject);
+            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_1.EMatchExpr.subject, fl_self_hosted_ast_Expr);
             FL_Array* arms = _fl_tmp_1.EMatchExpr.arms;
             return c;
             break;
@@ -2224,9 +2224,9 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ETernary.id;
             fl_int l = _fl_tmp_1.ETernary.line;
             fl_int c = _fl_tmp_1.ETernary.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_1.ETernary.condition);
-            fl_self_hosted_ast_Expr then_e = (*_fl_tmp_1.ETernary.then_expr);
-            fl_self_hosted_ast_Expr else_e = (*_fl_tmp_1.ETernary.else_expr);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_1.ETernary.condition, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_1.ETernary.then_expr, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_1.ETernary.else_expr, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2234,7 +2234,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECopy.id;
             fl_int l = _fl_tmp_1.ECopy.line;
             fl_int c = _fl_tmp_1.ECopy.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ECopy.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECopy.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2242,7 +2242,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ERef.id;
             fl_int l = _fl_tmp_1.ERef.line;
             fl_int c = _fl_tmp_1.ERef.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ERef.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ERef.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2250,7 +2250,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ESome.id;
             fl_int l = _fl_tmp_1.ESome.line;
             fl_int c = _fl_tmp_1.ESome.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ESome.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ESome.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2258,7 +2258,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EOk.id;
             fl_int l = _fl_tmp_1.EOk.line;
             fl_int c = _fl_tmp_1.EOk.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.EOk.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EOk.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2266,7 +2266,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EErr.id;
             fl_int l = _fl_tmp_1.EErr.line;
             fl_int c = _fl_tmp_1.EErr.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.EErr.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EErr.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2274,7 +2274,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.EPropagate.id;
             fl_int l = _fl_tmp_1.EPropagate.line;
             fl_int c = _fl_tmp_1.EPropagate.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.EPropagate.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EPropagate.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2282,8 +2282,8 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ENullCoalesce.id;
             fl_int l = _fl_tmp_1.ENullCoalesce.line;
             fl_int c = _fl_tmp_1.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_1.ENullCoalesce.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_1.ENullCoalesce.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_1.ENullCoalesce.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_1.ENullCoalesce.right, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2291,7 +2291,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ETypeof.id;
             fl_int l = _fl_tmp_1.ETypeof.line;
             fl_int c = _fl_tmp_1.ETypeof.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ETypeof.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ETypeof.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2299,7 +2299,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECast.id;
             fl_int l = _fl_tmp_1.ECast.line;
             fl_int c = _fl_tmp_1.ECast.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ECast.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECast.inner, fl_self_hosted_ast_Expr);
             fl_int t = _fl_tmp_1.ECast.target_id;
             return c;
             break;
@@ -2308,7 +2308,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECoerce.id;
             fl_int l = _fl_tmp_1.ECoerce.line;
             fl_int c = _fl_tmp_1.ECoerce.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_1.ECoerce.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECoerce.inner, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2341,7 +2341,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_1.ECoroutineStart.id;
             fl_int l = _fl_tmp_1.ECoroutineStart.line;
             fl_int c = _fl_tmp_1.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = (*_fl_tmp_1.ECoroutineStart.call);
+            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_1.ECoroutineStart.call, fl_self_hosted_ast_Expr);
             return c;
             break;
         }
@@ -2529,7 +2529,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TGenericType.id;
             fl_int l = _fl_tmp_4.TGenericType.line;
             fl_int c = _fl_tmp_4.TGenericType.col;
-            fl_self_hosted_ast_TypeExpr b = (*_fl_tmp_4.TGenericType.base);
+            fl_self_hosted_ast_TypeExpr b = FL_BOX_DEREF(_fl_tmp_4.TGenericType.base, fl_self_hosted_ast_TypeExpr);
             FL_Array* a = _fl_tmp_4.TGenericType.args;
             return nid;
             break;
@@ -2538,7 +2538,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TOptionType.id;
             fl_int l = _fl_tmp_4.TOptionType.line;
             fl_int c = _fl_tmp_4.TOptionType.col;
-            fl_self_hosted_ast_TypeExpr i = (*_fl_tmp_4.TOptionType.inner);
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_4.TOptionType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
@@ -2547,7 +2547,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int l = _fl_tmp_4.TFnType.line;
             fl_int c = _fl_tmp_4.TFnType.col;
             FL_Array* p = _fl_tmp_4.TFnType.params;
-            fl_self_hosted_ast_TypeExpr r = (*_fl_tmp_4.TFnType.ret);
+            fl_self_hosted_ast_TypeExpr r = FL_BOX_DEREF(_fl_tmp_4.TFnType.ret, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
@@ -2563,7 +2563,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TMutType.id;
             fl_int l = _fl_tmp_4.TMutType.line;
             fl_int c = _fl_tmp_4.TMutType.col;
-            fl_self_hosted_ast_TypeExpr i = (*_fl_tmp_4.TMutType.inner);
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_4.TMutType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
@@ -2571,7 +2571,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TImutType.id;
             fl_int l = _fl_tmp_4.TImutType.line;
             fl_int c = _fl_tmp_4.TImutType.col;
-            fl_self_hosted_ast_TypeExpr i = (*_fl_tmp_4.TImutType.inner);
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_4.TImutType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
@@ -2579,7 +2579,7 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
             fl_int nid = _fl_tmp_4.TSizedType.id;
             fl_int l = _fl_tmp_4.TSizedType.line;
             fl_int c = _fl_tmp_4.TSizedType.col;
-            fl_self_hosted_ast_TypeExpr i = (*_fl_tmp_4.TSizedType.inner);
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_4.TSizedType.inner, fl_self_hosted_ast_TypeExpr);
             fl_int cap = _fl_tmp_4.TSizedType.capacity_id;
             return nid;
             break;
@@ -2740,8 +2740,8 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_6.EBinOp.line;
             fl_int c = _fl_tmp_6.EBinOp.col;
             FL_String* o = _fl_tmp_6.EBinOp.op;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_6.EBinOp.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_6.EBinOp.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_6.EBinOp.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_6.EBinOp.right, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2750,7 +2750,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_6.EUnaryOp.line;
             fl_int c = _fl_tmp_6.EUnaryOp.col;
             FL_String* o = _fl_tmp_6.EUnaryOp.op;
-            fl_self_hosted_ast_Expr op = (*_fl_tmp_6.EUnaryOp.operand);
+            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_6.EUnaryOp.operand, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2759,7 +2759,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_6.ENamedArg.line;
             fl_int c = _fl_tmp_6.ENamedArg.col;
             FL_String* n = _fl_tmp_6.ENamedArg.name;
-            fl_self_hosted_ast_Expr v = (*_fl_tmp_6.ENamedArg.value);
+            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_6.ENamedArg.value, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2767,7 +2767,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ESpread.id;
             fl_int l = _fl_tmp_6.ESpread.line;
             fl_int c = _fl_tmp_6.ESpread.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ESpread.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ESpread.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2775,7 +2775,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECall.id;
             fl_int l = _fl_tmp_6.ECall.line;
             fl_int c = _fl_tmp_6.ECall.col;
-            fl_self_hosted_ast_Expr callee = (*_fl_tmp_6.ECall.callee);
+            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_6.ECall.callee, fl_self_hosted_ast_Expr);
             FL_Array* args = _fl_tmp_6.ECall.args;
             return nid;
             break;
@@ -2784,7 +2784,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EMethodCall.id;
             fl_int l = _fl_tmp_6.EMethodCall.line;
             fl_int c = _fl_tmp_6.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_6.EMethodCall.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_6.EMethodCall.receiver, fl_self_hosted_ast_Expr);
             FL_String* m = _fl_tmp_6.EMethodCall.method;
             FL_Array* args = _fl_tmp_6.EMethodCall.args;
             return nid;
@@ -2794,7 +2794,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EFieldAccess.id;
             fl_int l = _fl_tmp_6.EFieldAccess.line;
             fl_int c = _fl_tmp_6.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_6.EFieldAccess.receiver);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_6.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
             FL_String* f = _fl_tmp_6.EFieldAccess.field;
             return nid;
             break;
@@ -2803,8 +2803,8 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EIndexAccess.id;
             fl_int l = _fl_tmp_6.EIndexAccess.line;
             fl_int c = _fl_tmp_6.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = (*_fl_tmp_6.EIndexAccess.receiver);
-            fl_self_hosted_ast_Expr idx = (*_fl_tmp_6.EIndexAccess.index);
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_6.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_6.EIndexAccess.index, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2813,7 +2813,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_6.ELambda.line;
             fl_int c = _fl_tmp_6.ELambda.col;
             FL_Array* params = _fl_tmp_6.ELambda.params;
-            fl_self_hosted_ast_Expr body = (*_fl_tmp_6.ELambda.body);
+            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_6.ELambda.body, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2848,7 +2848,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             FL_String* tn = _fl_tmp_6.ETypeLit.type_name;
             FL_Array* fields = _fl_tmp_6.ETypeLit.fields;
             fl_bool hs = _fl_tmp_6.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr s = (*_fl_tmp_6.ETypeLit.spread);
+            fl_self_hosted_ast_Expr s = FL_BOX_DEREF(_fl_tmp_6.ETypeLit.spread, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2856,7 +2856,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EIfExpr.id;
             fl_int l = _fl_tmp_6.EIfExpr.line;
             fl_int c = _fl_tmp_6.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_6.EIfExpr.condition);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_6.EIfExpr.condition, fl_self_hosted_ast_Expr);
             FL_Array* then_b = _fl_tmp_6.EIfExpr.then_stmts;
             FL_Array* else_b = _fl_tmp_6.EIfExpr.else_stmts;
             return nid;
@@ -2866,7 +2866,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EMatchExpr.id;
             fl_int l = _fl_tmp_6.EMatchExpr.line;
             fl_int c = _fl_tmp_6.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = (*_fl_tmp_6.EMatchExpr.subject);
+            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_6.EMatchExpr.subject, fl_self_hosted_ast_Expr);
             FL_Array* arms = _fl_tmp_6.EMatchExpr.arms;
             return nid;
             break;
@@ -2875,9 +2875,9 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ETernary.id;
             fl_int l = _fl_tmp_6.ETernary.line;
             fl_int c = _fl_tmp_6.ETernary.col;
-            fl_self_hosted_ast_Expr cond = (*_fl_tmp_6.ETernary.condition);
-            fl_self_hosted_ast_Expr then_e = (*_fl_tmp_6.ETernary.then_expr);
-            fl_self_hosted_ast_Expr else_e = (*_fl_tmp_6.ETernary.else_expr);
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_6.ETernary.condition, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_6.ETernary.then_expr, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_6.ETernary.else_expr, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2885,7 +2885,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECopy.id;
             fl_int l = _fl_tmp_6.ECopy.line;
             fl_int c = _fl_tmp_6.ECopy.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ECopy.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ECopy.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2893,7 +2893,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ERef.id;
             fl_int l = _fl_tmp_6.ERef.line;
             fl_int c = _fl_tmp_6.ERef.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ERef.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ERef.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2901,7 +2901,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ESome.id;
             fl_int l = _fl_tmp_6.ESome.line;
             fl_int c = _fl_tmp_6.ESome.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ESome.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ESome.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2909,7 +2909,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EOk.id;
             fl_int l = _fl_tmp_6.EOk.line;
             fl_int c = _fl_tmp_6.EOk.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.EOk.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.EOk.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2917,7 +2917,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EErr.id;
             fl_int l = _fl_tmp_6.EErr.line;
             fl_int c = _fl_tmp_6.EErr.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.EErr.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.EErr.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2925,7 +2925,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.EPropagate.id;
             fl_int l = _fl_tmp_6.EPropagate.line;
             fl_int c = _fl_tmp_6.EPropagate.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.EPropagate.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.EPropagate.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2933,8 +2933,8 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ENullCoalesce.id;
             fl_int l = _fl_tmp_6.ENullCoalesce.line;
             fl_int c = _fl_tmp_6.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = (*_fl_tmp_6.ENullCoalesce.left);
-            fl_self_hosted_ast_Expr right = (*_fl_tmp_6.ENullCoalesce.right);
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_6.ENullCoalesce.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_6.ENullCoalesce.right, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2942,7 +2942,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ETypeof.id;
             fl_int l = _fl_tmp_6.ETypeof.line;
             fl_int c = _fl_tmp_6.ETypeof.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ETypeof.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ETypeof.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2950,7 +2950,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECast.id;
             fl_int l = _fl_tmp_6.ECast.line;
             fl_int c = _fl_tmp_6.ECast.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ECast.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ECast.inner, fl_self_hosted_ast_Expr);
             fl_int t = _fl_tmp_6.ECast.target_id;
             return nid;
             break;
@@ -2959,7 +2959,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECoerce.id;
             fl_int l = _fl_tmp_6.ECoerce.line;
             fl_int c = _fl_tmp_6.ECoerce.col;
-            fl_self_hosted_ast_Expr i = (*_fl_tmp_6.ECoerce.inner);
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_6.ECoerce.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -2992,7 +2992,7 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
             fl_int nid = _fl_tmp_6.ECoroutineStart.id;
             fl_int l = _fl_tmp_6.ECoroutineStart.line;
             fl_int c = _fl_tmp_6.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = (*_fl_tmp_6.ECoroutineStart.call);
+            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_6.ECoroutineStart.call, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
@@ -4170,8 +4170,8 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_4 = fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_int));
     FL_String* _fl_tmp_5 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_5, _fl_tmp_4);
     fl_println(_fl_tmp_5);
-    fl_self_hosted_ast_TypeExpr* _fl_tmp_6 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-    (*_fl_tmp_6) = t_int;
+    FL_Box* _fl_tmp_6 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+    FL_BOX_DEREF(_fl_tmp_6, fl_self_hosted_ast_TypeExpr) = t_int;
     fl_self_hosted_ast_TypeExpr t_opt = (fl_self_hosted_ast_TypeExpr){.tag = 2, .TOptionType = (fl_self_hosted_ast_TypeExpr_TOptionType){.id = 3, .line = 1, .col = 10, .inner = _fl_tmp_6}};
     FL_String* _fl_tmp_7 = fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_opt));
     FL_String* _fl_tmp_8 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_6, _fl_tmp_7);
@@ -4182,8 +4182,8 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_Array* fn_params2 = fl_array_push_sized(fn_params, (&_fl_tmp_9), sizeof(fl_self_hosted_ast_TypeExpr));
     fl_self_hosted_ast_TypeExpr _fl_tmp_10 = t_str;
     FL_Array* fn_params3 = fl_array_push_sized(fn_params2, (&_fl_tmp_10), sizeof(fl_self_hosted_ast_TypeExpr));
-    fl_self_hosted_ast_TypeExpr* _fl_tmp_11 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-    (*_fl_tmp_11) = t_int;
+    FL_Box* _fl_tmp_11 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+    FL_BOX_DEREF(_fl_tmp_11, fl_self_hosted_ast_TypeExpr) = t_int;
     fl_array_retain(fn_params3);
     fl_self_hosted_ast_TypeExpr t_fn = (fl_self_hosted_ast_TypeExpr){.tag = 3, .TFnType = (fl_self_hosted_ast_TypeExpr_TFnType){.id = 4, .line = 2, .col = 1, .params = fn_params3, .ret = _fl_tmp_11}};
     FL_String* _fl_tmp_12 = fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_fn));
@@ -4193,8 +4193,8 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     fl_array_set_struct_handlers(gen_args, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     fl_self_hosted_ast_TypeExpr _fl_tmp_14 = t_int;
     FL_Array* gen_args2 = fl_array_push_sized(gen_args, (&_fl_tmp_14), sizeof(fl_self_hosted_ast_TypeExpr));
-    fl_self_hosted_ast_TypeExpr* _fl_tmp_15 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-    (*_fl_tmp_15) = t_str;
+    FL_Box* _fl_tmp_15 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+    FL_BOX_DEREF(_fl_tmp_15, fl_self_hosted_ast_TypeExpr) = t_str;
     fl_array_retain(gen_args2);
     fl_self_hosted_ast_TypeExpr t_gen = (fl_self_hosted_ast_TypeExpr){.tag = 1, .TGenericType = (fl_self_hosted_ast_TypeExpr_TGenericType){.id = 5, .line = 3, .col = 1, .base = _fl_tmp_15, .args = gen_args2}};
     FL_String* _fl_tmp_16 = fl_conv_to_string__int(fl_self_hosted_ast_type_expr_id(t_gen));
@@ -4232,10 +4232,10 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_String* _fl_tmp_27 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_str));
     FL_String* _fl_tmp_28 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_19, _fl_tmp_27);
     fl_println(_fl_tmp_28);
-    fl_self_hosted_ast_Expr* _fl_tmp_29 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_29) = e_int;
-    fl_self_hosted_ast_Expr* _fl_tmp_30 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_30) = e_int;
+    FL_Box* _fl_tmp_29 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_29, fl_self_hosted_ast_Expr) = e_int;
+    FL_Box* _fl_tmp_30 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_30, fl_self_hosted_ast_Expr) = e_int;
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_20);
     fl_self_hosted_ast_Expr e_add = (fl_self_hosted_ast_Expr){.tag = 7, .EBinOp = (fl_self_hosted_ast_Expr_EBinOp){.id = 30, .line = 11, .col = 1, .op = _fl_str_tests_programs_app_sh_ast_test_20, .left = _fl_tmp_29, .right = _fl_tmp_30}};
     FL_String* _fl_tmp_31 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_add));
@@ -4249,15 +4249,15 @@ fl_int fl_tests_programs_app_sh_ast_test_main(void) {
     FL_Array* call_args2 = fl_array_push_sized(call_args, (&_fl_tmp_33), sizeof(fl_self_hosted_ast_Expr));
     fl_self_hosted_ast_Expr _fl_tmp_34 = e_str;
     FL_Array* call_args3 = fl_array_push_sized(call_args2, (&_fl_tmp_34), sizeof(fl_self_hosted_ast_Expr));
-    fl_self_hosted_ast_Expr* _fl_tmp_35 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_35) = e_fn;
+    FL_Box* _fl_tmp_35 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_35, fl_self_hosted_ast_Expr) = e_fn;
     fl_array_retain(call_args3);
     fl_self_hosted_ast_Expr e_call = (fl_self_hosted_ast_Expr){.tag = 11, .ECall = (fl_self_hosted_ast_Expr_ECall){.id = 32, .line = 12, .col = 1, .callee = _fl_tmp_35, .args = call_args3}};
     FL_String* _fl_tmp_36 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_call));
     FL_String* _fl_tmp_37 = fl_string_concat(_fl_str_tests_programs_app_sh_ast_test_23, _fl_tmp_36);
     fl_println(_fl_tmp_37);
-    fl_self_hosted_ast_Expr* _fl_tmp_38 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-    (*_fl_tmp_38) = e_fn;
+    FL_Box* _fl_tmp_38 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_38, fl_self_hosted_ast_Expr) = e_fn;
     fl_string_retain(_fl_str_tests_programs_app_sh_ast_test_24);
     fl_self_hosted_ast_Expr e_field = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = 33, .line = 13, .col = 1, .receiver = _fl_tmp_38, .field = _fl_str_tests_programs_app_sh_ast_test_24}};
     FL_String* _fl_tmp_39 = fl_conv_to_string__int(fl_self_hosted_ast_expr_id(e_field));
