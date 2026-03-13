@@ -1649,6 +1649,7 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
         e->key = key_copy;
         e->key_len = key_len;
         e->val = val;
+        if (m->val_retainer && val) m->val_retainer(val);
         e->occupied = fl_true;
 
         /* Old header becomes non-owning; bump refcount to prevent free */
@@ -1728,6 +1729,8 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
     /* Retain the new/updated value */
     if (n->val_type != FL_ELEM_NONE) {
         _fl_elem_retain(n->val_type, &n->entries[idx].val, NULL);
+    } else if (n->val_retainer && val) {
+        n->val_retainer(val);
     }
     n->count++;
 
