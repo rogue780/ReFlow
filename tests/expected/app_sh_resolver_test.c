@@ -6354,19 +6354,19 @@ void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr) {
             break;
         }
         case 1: {
-            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TGenericType.base);
+            fl_box_release(_s->TGenericType.base, _fl_destroy_fl_self_hosted_ast_TypeExpr);
             fl_array_release(_s->TGenericType.args);
             break;
             break;
         }
         case 2: {
-            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TOptionType.inner);
+            fl_box_release(_s->TOptionType.inner, _fl_destroy_fl_self_hosted_ast_TypeExpr);
             break;
             break;
         }
         case 3: {
             fl_array_release(_s->TFnType.params);
-            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TFnType.ret);
+            fl_box_release(_s->TFnType.ret, _fl_destroy_fl_self_hosted_ast_TypeExpr);
             break;
             break;
         }
@@ -6376,17 +6376,17 @@ void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr) {
             break;
         }
         case 5: {
-            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TMutType.inner);
+            fl_box_release(_s->TMutType.inner, _fl_destroy_fl_self_hosted_ast_TypeExpr);
             break;
             break;
         }
         case 6: {
-            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TImutType.inner);
+            fl_box_release(_s->TImutType.inner, _fl_destroy_fl_self_hosted_ast_TypeExpr);
             break;
             break;
         }
         case 7: {
-            _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TSizedType.inner);
+            fl_box_release(_s->TSizedType.inner, _fl_destroy_fl_self_hosted_ast_TypeExpr);
             break;
             break;
         }
@@ -6413,19 +6413,19 @@ void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr) {
             break;
         }
         case 1: {
-            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TGenericType.base);
+            fl_box_retain(_s->TGenericType.base);
             fl_array_retain(_s->TGenericType.args);
             break;
             break;
         }
         case 2: {
-            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TOptionType.inner);
+            fl_box_retain(_s->TOptionType.inner);
             break;
             break;
         }
         case 3: {
             fl_array_retain(_s->TFnType.params);
-            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TFnType.ret);
+            fl_box_retain(_s->TFnType.ret);
             break;
             break;
         }
@@ -6435,17 +6435,17 @@ void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr) {
             break;
         }
         case 5: {
-            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TMutType.inner);
+            fl_box_retain(_s->TMutType.inner);
             break;
             break;
         }
         case 6: {
-            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TImutType.inner);
+            fl_box_retain(_s->TImutType.inner);
             break;
             break;
         }
         case 7: {
-            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TSizedType.inner);
+            fl_box_retain(_s->TSizedType.inner);
             break;
             break;
         }
@@ -6812,56 +6812,56 @@ void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
         }
         case 7: {
             fl_string_release(_s->EBinOp.op);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EBinOp.left);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EBinOp.right);
+            fl_box_release(_s->EBinOp.left, _fl_destroy_fl_self_hosted_ast_Expr);
+            fl_box_release(_s->EBinOp.right, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 8: {
             fl_string_release(_s->EUnaryOp.op);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EUnaryOp.operand);
+            fl_box_release(_s->EUnaryOp.operand, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 9: {
             fl_string_release(_s->ENamedArg.name);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENamedArg.value);
+            fl_box_release(_s->ENamedArg.value, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 10: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ESpread.inner);
+            fl_box_release(_s->ESpread.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 11: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECall.callee);
+            fl_box_release(_s->ECall.callee, _fl_destroy_fl_self_hosted_ast_Expr);
             fl_array_release(_s->ECall.args);
             break;
             break;
         }
         case 12: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EMethodCall.receiver);
+            fl_box_release(_s->EMethodCall.receiver, _fl_destroy_fl_self_hosted_ast_Expr);
             fl_string_release(_s->EMethodCall.method);
             fl_array_release(_s->EMethodCall.args);
             break;
             break;
         }
         case 13: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EFieldAccess.receiver);
+            fl_box_release(_s->EFieldAccess.receiver, _fl_destroy_fl_self_hosted_ast_Expr);
             fl_string_release(_s->EFieldAccess.field);
             break;
             break;
         }
         case 14: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIndexAccess.receiver);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIndexAccess.index);
+            fl_box_release(_s->EIndexAccess.receiver, _fl_destroy_fl_self_hosted_ast_Expr);
+            fl_box_release(_s->EIndexAccess.index, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 15: {
             fl_array_release(_s->ELambda.params);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ELambda.body);
+            fl_box_release(_s->ELambda.body, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
@@ -6883,78 +6883,78 @@ void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
         case 19: {
             fl_string_release(_s->ETypeLit.type_name);
             fl_array_release(_s->ETypeLit.fields);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETypeLit.spread);
+            fl_box_release(_s->ETypeLit.spread, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 20: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EIfExpr.condition);
+            fl_box_release(_s->EIfExpr.condition, _fl_destroy_fl_self_hosted_ast_Expr);
             fl_array_release(_s->EIfExpr.then_stmts);
             fl_array_release(_s->EIfExpr.else_stmts);
             break;
             break;
         }
         case 21: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EMatchExpr.subject);
+            fl_box_release(_s->EMatchExpr.subject, _fl_destroy_fl_self_hosted_ast_Expr);
             fl_array_release(_s->EMatchExpr.arms);
             break;
             break;
         }
         case 22: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.condition);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.then_expr);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.else_expr);
+            fl_box_release(_s->ETernary.condition, _fl_destroy_fl_self_hosted_ast_Expr);
+            fl_box_release(_s->ETernary.then_expr, _fl_destroy_fl_self_hosted_ast_Expr);
+            fl_box_release(_s->ETernary.else_expr, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 23: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECopy.inner);
+            fl_box_release(_s->ECopy.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 24: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ERef.inner);
+            fl_box_release(_s->ERef.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 25: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ESome.inner);
+            fl_box_release(_s->ESome.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 26: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EOk.inner);
+            fl_box_release(_s->EOk.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 27: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EErr.inner);
+            fl_box_release(_s->EErr.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 28: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->EPropagate.inner);
+            fl_box_release(_s->EPropagate.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 29: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENullCoalesce.left);
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ENullCoalesce.right);
+            fl_box_release(_s->ENullCoalesce.left, _fl_destroy_fl_self_hosted_ast_Expr);
+            fl_box_release(_s->ENullCoalesce.right, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 30: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ETypeof.inner);
+            fl_box_release(_s->ETypeof.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 31: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECast.inner);
+            fl_box_release(_s->ECast.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
         case 32: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECoerce.inner);
+            fl_box_release(_s->ECoerce.inner, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
@@ -6974,7 +6974,7 @@ void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
             break;
         }
         case 36: {
-            _fl_destroy_fl_self_hosted_ast_Expr(_s->ECoroutineStart.call);
+            fl_box_release(_s->ECoroutineStart.call, _fl_destroy_fl_self_hosted_ast_Expr);
             break;
             break;
         }
@@ -7018,56 +7018,56 @@ void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr) {
         }
         case 7: {
             fl_string_retain(_s->EBinOp.op);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EBinOp.left);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EBinOp.right);
+            fl_box_retain(_s->EBinOp.left);
+            fl_box_retain(_s->EBinOp.right);
             break;
             break;
         }
         case 8: {
             fl_string_retain(_s->EUnaryOp.op);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EUnaryOp.operand);
+            fl_box_retain(_s->EUnaryOp.operand);
             break;
             break;
         }
         case 9: {
             fl_string_retain(_s->ENamedArg.name);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ENamedArg.value);
+            fl_box_retain(_s->ENamedArg.value);
             break;
             break;
         }
         case 10: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ESpread.inner);
+            fl_box_retain(_s->ESpread.inner);
             break;
             break;
         }
         case 11: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECall.callee);
+            fl_box_retain(_s->ECall.callee);
             fl_array_retain(_s->ECall.args);
             break;
             break;
         }
         case 12: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EMethodCall.receiver);
+            fl_box_retain(_s->EMethodCall.receiver);
             fl_string_retain(_s->EMethodCall.method);
             fl_array_retain(_s->EMethodCall.args);
             break;
             break;
         }
         case 13: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EFieldAccess.receiver);
+            fl_box_retain(_s->EFieldAccess.receiver);
             fl_string_retain(_s->EFieldAccess.field);
             break;
             break;
         }
         case 14: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EIndexAccess.receiver);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EIndexAccess.index);
+            fl_box_retain(_s->EIndexAccess.receiver);
+            fl_box_retain(_s->EIndexAccess.index);
             break;
             break;
         }
         case 15: {
             fl_array_retain(_s->ELambda.params);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ELambda.body);
+            fl_box_retain(_s->ELambda.body);
             break;
             break;
         }
@@ -7089,78 +7089,78 @@ void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr) {
         case 19: {
             fl_string_retain(_s->ETypeLit.type_name);
             fl_array_retain(_s->ETypeLit.fields);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETypeLit.spread);
+            fl_box_retain(_s->ETypeLit.spread);
             break;
             break;
         }
         case 20: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EIfExpr.condition);
+            fl_box_retain(_s->EIfExpr.condition);
             fl_array_retain(_s->EIfExpr.then_stmts);
             fl_array_retain(_s->EIfExpr.else_stmts);
             break;
             break;
         }
         case 21: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EMatchExpr.subject);
+            fl_box_retain(_s->EMatchExpr.subject);
             fl_array_retain(_s->EMatchExpr.arms);
             break;
             break;
         }
         case 22: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.condition);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.then_expr);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.else_expr);
+            fl_box_retain(_s->ETernary.condition);
+            fl_box_retain(_s->ETernary.then_expr);
+            fl_box_retain(_s->ETernary.else_expr);
             break;
             break;
         }
         case 23: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECopy.inner);
+            fl_box_retain(_s->ECopy.inner);
             break;
             break;
         }
         case 24: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ERef.inner);
+            fl_box_retain(_s->ERef.inner);
             break;
             break;
         }
         case 25: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ESome.inner);
+            fl_box_retain(_s->ESome.inner);
             break;
             break;
         }
         case 26: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EOk.inner);
+            fl_box_retain(_s->EOk.inner);
             break;
             break;
         }
         case 27: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EErr.inner);
+            fl_box_retain(_s->EErr.inner);
             break;
             break;
         }
         case 28: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->EPropagate.inner);
+            fl_box_retain(_s->EPropagate.inner);
             break;
             break;
         }
         case 29: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ENullCoalesce.left);
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ENullCoalesce.right);
+            fl_box_retain(_s->ENullCoalesce.left);
+            fl_box_retain(_s->ENullCoalesce.right);
             break;
             break;
         }
         case 30: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ETypeof.inner);
+            fl_box_retain(_s->ETypeof.inner);
             break;
             break;
         }
         case 31: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECast.inner);
+            fl_box_retain(_s->ECast.inner);
             break;
             break;
         }
         case 32: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECoerce.inner);
+            fl_box_retain(_s->ECoerce.inner);
             break;
             break;
         }
@@ -7180,7 +7180,7 @@ void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr) {
             break;
         }
         case 36: {
-            _fl_retain_fl_self_hosted_ast_Expr(_s->ECoroutineStart.call);
+            fl_box_retain(_s->ECoroutineStart.call);
             break;
             break;
         }

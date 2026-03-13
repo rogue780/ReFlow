@@ -2325,7 +2325,7 @@ class Lowerer:
                     is_recursive = self._is_recursive_sum_field(
                         f_type, decl.name, ftype_expr)
                     if is_recursive:
-                        field_lt = LPtr(field_lt)
+                        field_lt = LPtr(LStruct("FL_Box"))
 
                     field_expr = LFieldAccess(variant_access, fname, field_lt)
                     release_fn = self._get_release_fn(f_type)
@@ -2338,29 +2338,27 @@ class Lowerer:
                             retain_stmts.append(LExprStmt(LCall(
                                 retain_fn, [field_expr], LVoid())))
                     elif is_recursive:
-                        # Recursive heap-boxed pointer field — destruct
-                        # contents but do NOT free the pointer itself.
-                        # Heap-boxed sum type pointers are not refcounted,
-                        # so they may be shared between shallow copies
-                        # (e.g., array elements copied to local variables).
-                        # Freeing them causes UAF.  The pointer itself
-                        # leaks, but all refcounted internals (strings,
-                        # arrays) are properly released/retained.
+                        # Recursive heap-boxed field: fl_box_release with destructor callback.
+                        # The box's refcount determines when to actually free.
                         inner_type = f_type
                         inner_lt = self._lower_type(inner_type)
-                        struct_handlers = self._get_or_emit_struct_handlers(
+
+                        # Get the destructor function name for the boxed type
+                        inner_handlers = self._get_or_emit_struct_handlers(
                             inner_type, inner_lt)
-                        if struct_handlers:
-                            struct_dest, struct_ret = struct_handlers
-                            destroy_stmts.append(LExprStmt(LCall(
-                                struct_dest, [field_expr], LVoid())))
-                            retain_stmts.append(LExprStmt(LCall(
-                                struct_ret, [field_expr], LVoid())))
+                        if inner_handlers:
+                            inner_dest, _ = inner_handlers
                         else:
-                            destroy_stmts.append(LExprStmt(LCall(
-                                destructor, [field_expr], LVoid())))
-                            retain_stmts.append(LExprStmt(LCall(
-                                retainer, [field_expr], LVoid())))
+                            inner_dest = destructor  # Defensive fallback
+
+                        destroy_stmts.append(LExprStmt(LCall(
+                            "fl_box_release",
+                            [field_expr, LVar(inner_dest, LPtr(LVoid()))],
+                            LVoid())))
+                        retain_stmts.append(LExprStmt(LCall(
+                            "fl_box_retain",
+                            [field_expr],
+                            LVoid())))
                     elif self._sum_type_has_cleanup_fields(f_type):
                         # Non-recursive by-value sum type field — call its
                         # destructor on the field address

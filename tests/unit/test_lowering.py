@@ -1496,5 +1496,29 @@ class TestBoxAllocation(unittest.TestCase):
         self.assertIn("FL_BOX_DEREF", c_code)
 
 
+class TestBoxRelease(unittest.TestCase):
+    """Sum type destructors should use fl_box_release for recursive fields."""
+
+    def test_destructor_uses_fl_box_release(self):
+        """The generated destructor should call fl_box_release, not raw destroy."""
+        source = """
+            type Expr =
+                | ELit(value:int)
+                | EUnary(op:string, inner:Expr)
+
+            type Wrapper { expr:Expr, id:int }
+
+            fn do_stuff():int {
+                let w = Wrapper{expr:Expr.ELit(value:42), id:1}
+                return 0
+            }
+        """
+        m = lower(source)
+        c_code = emit(m)
+        self.assertIn("fl_box_release", c_code)
+        self.assertIn("fl_box_retain", c_code)
+        # The destroy function still exists — it's passed as callback to fl_box_release
+
+
 if __name__ == "__main__":
     unittest.main()

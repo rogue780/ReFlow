@@ -643,8 +643,8 @@ void _fl_destroy_fl_tests_app_node_id_test_Expr(void* _ptr) {
     switch (_s->tag) {
         case 1: {
             fl_string_release(_s->BinOp.op);
-            _fl_destroy_fl_tests_app_node_id_test_Expr(_s->BinOp.left);
-            _fl_destroy_fl_tests_app_node_id_test_Expr(_s->BinOp.right);
+            fl_box_release(_s->BinOp.left, _fl_destroy_fl_tests_app_node_id_test_Expr);
+            fl_box_release(_s->BinOp.right, _fl_destroy_fl_tests_app_node_id_test_Expr);
             break;
             break;
         }
@@ -666,8 +666,8 @@ void _fl_retain_fl_tests_app_node_id_test_Expr(void* _ptr) {
     switch (_s->tag) {
         case 1: {
             fl_string_retain(_s->BinOp.op);
-            _fl_retain_fl_tests_app_node_id_test_Expr(_s->BinOp.left);
-            _fl_retain_fl_tests_app_node_id_test_Expr(_s->BinOp.right);
+            fl_box_retain(_s->BinOp.left);
+            fl_box_retain(_s->BinOp.right);
             break;
             break;
         }
