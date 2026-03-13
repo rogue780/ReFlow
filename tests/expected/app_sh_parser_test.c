@@ -6059,8 +6059,6 @@ fl_self_hosted_lexer_Token fl_self_hosted_parser_get_token(fl_self_hosted_parser
 void fl_self_hosted_parser_skip_comments(fl_self_hosted_parser_ParserState* s) {
     while (s->pos < s->token_count) {
         fl_self_hosted_lexer_Token t = fl_self_hosted_parser_get_token((*s), s->pos);
-        fl_string_retain(t.value);
-        fl_string_retain(t.file);
         if ((t.ttype == fl_self_hosted_lexer_TokenType_TK_COMMENT) || (t.ttype == fl_self_hosted_lexer_TokenType_TK_NEWLINE)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(s->pos, 1, &_fl_e_1);
@@ -6077,8 +6075,6 @@ void fl_self_hosted_parser_skip_comments(fl_self_hosted_parser_ParserState* s) {
 void fl_self_hosted_parser_skip_newlines(fl_self_hosted_parser_ParserState* s) {
     while (s->pos < s->token_count) {
         fl_self_hosted_lexer_Token t = fl_self_hosted_parser_get_token((*s), s->pos);
-        fl_string_retain(t.value);
-        fl_string_retain(t.file);
         if (t.ttype == fl_self_hosted_lexer_TokenType_TK_NEWLINE) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(s->pos, 1, &_fl_e_1);
@@ -6182,8 +6178,6 @@ fl_bool fl_self_hosted_parser_at_end(fl_self_hosted_parser_ParserState* s) {
 void fl_self_hosted_parser_synchronize(fl_self_hosted_parser_ParserState* s) {
     while (fl_self_hosted_parser_at_end(s) == fl_false) {
         fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
-        fl_string_retain(tok.value);
-        fl_string_retain(tok.file);
         if (fl_self_hosted_parser_is_recovery_token(tok.ttype)) {
             return;
         }
@@ -6236,8 +6230,6 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
     fl_self_hosted_ast_TypeExpr base = fl_self_hosted_parser_parse_base_type(s);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACKET)) {
         fl_self_hosted_lexer_Token bracket_tok = fl_self_hosted_parser_advance(s);
-        fl_string_retain(bracket_tok.value);
-        fl_string_retain(bracket_tok.file);
         fl_self_hosted_ast_Expr cap_expr = fl_self_hosted_parser_parse_expr(s);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACKET);
         fl_int cap_id = fl_array_len_int(s->sized_capacities);
@@ -6253,8 +6245,6 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_QUESTION)) {
         fl_self_hosted_lexer_Token q_tok = fl_self_hosted_parser_advance(s);
-        fl_string_retain(q_tok.value);
-        fl_string_retain(q_tok.file);
         FL_Box* _fl_tmp_17 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
         FL_BOX_DEREF(_fl_tmp_17, fl_self_hosted_ast_TypeExpr) = base;
         base = (fl_self_hosted_ast_TypeExpr){.tag = 2, .TOptionType = (fl_self_hosted_ast_TypeExpr_TOptionType){.id = fl_self_hosted_parser_fresh_id(s), .line = q_tok.line, .col = q_tok.col, .inner = _fl_tmp_17}};
@@ -6268,14 +6258,10 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
         s->pos = _fl_e_1;
         fl_self_hosted_parser_skip_comments(s);
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_get_token((*s), s->pos);
-        fl_string_retain(next_tok.value);
-        fl_string_retain(next_tok.file);
         s->pos = saved;
         if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_MUT) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_lexer_Token mut_tok = fl_self_hosted_parser_advance(s);
-            fl_string_retain(mut_tok.value);
-            fl_string_retain(mut_tok.file);
             FL_Box* _fl_tmp_18 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
             FL_BOX_DEREF(_fl_tmp_18, fl_self_hosted_ast_TypeExpr) = base;
             base = (fl_self_hosted_ast_TypeExpr){.tag = 5, .TMutType = (fl_self_hosted_ast_TypeExpr_TMutType){.id = fl_self_hosted_parser_fresh_id(s), .line = mut_tok.line, .col = mut_tok.col, .inner = _fl_tmp_18}};
@@ -6283,8 +6269,6 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
             if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_IMUT) {
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_lexer_Token imut_tok = fl_self_hosted_parser_advance(s);
-                fl_string_retain(imut_tok.value);
-                fl_string_retain(imut_tok.file);
                 FL_Box* _fl_tmp_19 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
                 FL_BOX_DEREF(_fl_tmp_19, fl_self_hosted_ast_TypeExpr) = base;
                 base = (fl_self_hosted_ast_TypeExpr){.tag = 6, .TImutType = (fl_self_hosted_ast_TypeExpr_TImutType){.id = fl_self_hosted_parser_fresh_id(s), .line = imut_tok.line, .col = imut_tok.col, .inner = _fl_tmp_19}};
@@ -6544,8 +6528,6 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_named_or_generic_type(fl
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_DOT)) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(next_tok.value);
-        fl_string_retain(next_tok.file);
         FL_Array* _fl_old_39 = module_path;
         module_path = fl_array_push_ptr(module_path, name);
         if (_fl_old_39 != module_path) {
@@ -6637,8 +6619,6 @@ FL_Array* fl_self_hosted_parser_parse_dotted_name(fl_self_hosted_parser_ParserSt
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_DOT)) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(next_tok.value);
-        fl_string_retain(next_tok.file);
         FL_Array* _fl_old_49 = parts;
         parts = fl_array_push_ptr(parts, next_tok.value);
         if (_fl_old_49 != parts) {
@@ -6664,8 +6644,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_import_decl(fl_self_hosted_p
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
             fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-            fl_string_retain(name_tok.value);
-            fl_string_retain(name_tok.file);
             FL_Array* _fl_old_50 = names;
             names = fl_array_push_ptr(names, name_tok.value);
             if (_fl_old_50 != names) {
@@ -6674,8 +6652,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_import_decl(fl_self_hosted_p
             while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_lexer_Token n2 = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                fl_string_retain(n2.value);
-                fl_string_retain(n2.file);
                 FL_Array* _fl_old_51 = names;
                 names = fl_array_push_ptr(names, n2.value);
                 if (_fl_old_51 != names) {
@@ -6690,8 +6666,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_import_decl(fl_self_hosted_p
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_AS)) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_lexer_Token alias_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-            fl_string_retain(alias_tok.value);
-            fl_string_retain(alias_tok.file);
             FL_String* _fl_old_52 = import_alias;
             import_alias = alias_tok.value;
             if (_fl_old_52 != import_alias) {
@@ -6718,15 +6692,11 @@ FL_Array* fl_self_hosted_parser_parse_fn_modifiers(fl_self_hosted_parser_ParserS
     fl_bool is_static = fl_false;
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COLON)) {
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_peek2(s);
-        fl_string_retain(next_tok.value);
-        fl_string_retain(next_tok.file);
         if ((next_tok.ttype != fl_self_hosted_lexer_TokenType_TK_PURE) && (next_tok.ttype != fl_self_hosted_lexer_TokenType_TK_STATIC)) {
             break;
         }
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token mod_tok = fl_self_hosted_parser_advance(s);
-        fl_string_retain(mod_tok.value);
-        fl_string_retain(mod_tok.file);
         if (mod_tok.ttype == fl_self_hosted_lexer_TokenType_TK_PURE) {
             if (is_pure) {
                 fl_self_hosted_errors_CompileError* _fl_tmp_54 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
@@ -7543,10 +7513,7 @@ FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserSta
     fl_bool seen_variadic = fl_false;
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_SPREAD)) {
         fl_self_hosted_lexer_Token spread_tok = fl_self_hosted_parser_advance(s);
-        fl_string_retain(spread_tok.value);
-        fl_string_retain(spread_tok.file);
         fl_self_hosted_ast_Param p = fl_self_hosted_parser_parse_param(s);
-        fl_string_retain(p.name);
         fl_string_retain(p.name);
         fl_self_hosted_ast_Param vp = (fl_self_hosted_ast_Param){.name = p.name, .type_ann = p.type_ann, .id = p.id, .line = p.line, .col = p.col, .has_default = fl_false, .is_variadic = fl_true};
         seen_variadic = fl_true;
@@ -7556,9 +7523,9 @@ FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserSta
         if (_fl_old_81 != params) {
             fl_array_release(_fl_old_81);
         }
+        fl_string_release(vp.name);
     } else {
         fl_self_hosted_ast_Param p = fl_self_hosted_parser_parse_param(s);
-        fl_string_retain(p.name);
         fl_self_hosted_ast_Param _fl_tmp_82 = p;
         FL_Array* _fl_old_83 = params;
         params = fl_array_push_sized(params, (&_fl_tmp_82), sizeof(fl_self_hosted_ast_Param));
@@ -7581,10 +7548,7 @@ FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserSta
         }
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_SPREAD)) {
             fl_self_hosted_lexer_Token spread_tok = fl_self_hosted_parser_advance(s);
-            fl_string_retain(spread_tok.value);
-            fl_string_retain(spread_tok.file);
             fl_self_hosted_ast_Param p = fl_self_hosted_parser_parse_param(s);
-            fl_string_retain(p.name);
             fl_string_retain(p.name);
             fl_self_hosted_ast_Param vp = (fl_self_hosted_ast_Param){.name = p.name, .type_ann = p.type_ann, .id = p.id, .line = p.line, .col = p.col, .has_default = fl_false, .is_variadic = fl_true};
             seen_variadic = fl_true;
@@ -7594,9 +7558,9 @@ FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserSta
             if (_fl_old_86 != params) {
                 fl_array_release(_fl_old_86);
             }
+            fl_string_release(vp.name);
         } else {
             fl_self_hosted_ast_Param p = fl_self_hosted_parser_parse_param(s);
-            fl_string_retain(p.name);
             if (seen_default && (p.has_default == fl_false)) {
                 FL_String* _fl_tmp_87 = fl_string_concat(_fl_str_self_hosted_parser_31, p.name);
                 FL_String* _fl_tmp_88 = fl_string_concat(_fl_tmp_87, _fl_str_self_hosted_parser_32);
@@ -7662,8 +7626,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_type_decl(fl_self_hosted_par
     fl_bool is_type_mut = fl_false;
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COLON)) {
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_peek2(s);
-        fl_string_retain(next_tok.value);
-        fl_string_retain(next_tok.file);
         if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_MUT) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_parser_advance(s);
@@ -7784,8 +7746,6 @@ fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_sel
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
             fl_self_hosted_lexer_Token fname = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-            fl_string_retain(fname.value);
-            fl_string_retain(fname.file);
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
             fl_self_hosted_ast_TypeExpr ftype = fl_self_hosted_parser_parse_type_expr(s);
             fl_string_retain(fname.value);
@@ -7801,8 +7761,6 @@ fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_sel
                     break;
                 }
                 fl_self_hosted_lexer_Token fname2 = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                fl_string_retain(fname2.value);
-                fl_string_retain(fname2.file);
                 fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
                 fl_self_hosted_ast_TypeExpr ftype2 = fl_self_hosted_parser_parse_type_expr(s);
                 fl_string_retain(fname2.value);
@@ -8051,8 +8009,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_p
     fl_array_set_struct_handlers(static_members, _fl_destroy_fl_self_hosted_ast_Decl, _fl_retain_fl_self_hosted_ast_Decl);
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
         fl_self_hosted_lexer_Token member_tok = fl_self_hosted_parser_peek(s);
-        fl_string_retain(member_tok.value);
-        fl_string_retain(member_tok.file);
         if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_STATIC) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FN)) {
@@ -8103,7 +8059,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_p
                     } else {
                         if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
                             fl_self_hosted_ast_FieldDecl field = fl_self_hosted_parser_parse_field_decl(s, is_type_mut);
-                            fl_string_retain(field.name);
                             fl_self_hosted_ast_FieldDecl _fl_tmp_122 = field;
                             FL_Array* _fl_old_123 = fields;
                             fields = fl_array_push_sized(fields, (&_fl_tmp_122), sizeof(fl_self_hosted_ast_FieldDecl));
@@ -8249,8 +8204,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_interface_decl(fl_self_hoste
     fl_array_set_struct_handlers(methods, _fl_destroy_fl_self_hosted_ast_Decl, _fl_retain_fl_self_hosted_ast_Decl);
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
         fl_self_hosted_lexer_Token member_tok = fl_self_hosted_parser_peek(s);
-        fl_string_retain(member_tok.value);
-        fl_string_retain(member_tok.file);
         if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_FN) {
             fl_self_hosted_ast_Decl fn_decl = fl_self_hosted_parser_parse_fn_decl(s, fl_false, fl_true);
             fl_self_hosted_ast_Decl _fl_tmp_134 = fn_decl;
@@ -8366,8 +8319,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_enum_decl(fl_self_hosted_par
     fl_array_set_struct_handlers(variants, _fl_destroy_fl_self_hosted_ast_EnumVariantDecl, _fl_retain_fl_self_hosted_ast_EnumVariantDecl);
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) {
         fl_self_hosted_lexer_Token v_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(v_tok.value);
-        fl_string_retain(v_tok.file);
         fl_bool has_value = fl_false;
         fl_int value = 0;
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ASSIGN)) {
@@ -8378,8 +8329,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_enum_decl(fl_self_hosted_par
                 fl_self_hosted_parser_advance(s);
             }
             fl_self_hosted_lexer_Token val_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_INT_LIT);
-            fl_string_retain(val_tok.value);
-            fl_string_retain(val_tok.file);
             FL_Option_int _fl_tmp_146 = fl_conv_string_to_int(val_tok.value);
             value = ((_fl_tmp_146.tag == 1) ? _fl_tmp_146.value : 0);
             if (negative) {
@@ -8429,8 +8378,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_extern_decl(fl_self_hosted_p
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token lib_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_STRING_LIT);
         fl_string_retain(lib_tok.value);
-        fl_string_retain(lib_tok.file);
-        fl_string_retain(lib_tok.value);
         fl_self_hosted_ast_Decl _fl_ret_155 = (fl_self_hosted_ast_Decl){.tag = 7, .DExternLib = (fl_self_hosted_ast_Decl_DExternLib){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .lib_name = lib_tok.value}};
         fl_string_release(tok.value);
         fl_string_release(tok.file);
@@ -8442,8 +8389,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_extern_decl(fl_self_hosted_p
     if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_TYPE) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(name_tok.value);
-        fl_string_retain(name_tok.file);
         fl_string_retain(name_tok.value);
         fl_self_hosted_ast_Decl _fl_ret_156 = (fl_self_hosted_ast_Decl){.tag = 8, .DExternType = (fl_self_hosted_ast_Decl_DExternType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .is_export = is_export}};
         fl_string_release(tok.value);
@@ -8484,8 +8429,6 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_extern_fn_decl(fl_self_hoste
     fl_string_retain(c_name);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_STRING_LIT)) {
         fl_self_hosted_lexer_Token cn_tok = fl_self_hosted_parser_advance(s);
-        fl_string_retain(cn_tok.value);
-        fl_string_retain(cn_tok.file);
         FL_String* _fl_old_159 = c_name;
         c_name = cn_tok.value;
         if (_fl_old_159 != c_name) {
@@ -8733,8 +8676,6 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_let_stmt(fl_self_hosted_pars
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COROUTINE)) {
         fl_self_hosted_lexer_Token coro_tok = fl_self_hosted_parser_advance(s);
-        fl_string_retain(coro_tok.value);
-        fl_string_retain(coro_tok.file);
         fl_self_hosted_ast_Expr call_expr = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
         fl_bool has_pool = fl_false;
         fl_self_hosted_ast_Expr pool_size = fl_self_hosted_parser_placeholder_expr();
@@ -9124,7 +9065,6 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_match_stmt(fl_self_hosted_pa
     fl_array_set_struct_handlers(arms, _fl_destroy_fl_self_hosted_ast_MatchArm, _fl_retain_fl_self_hosted_ast_MatchArm);
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
         fl_self_hosted_ast_MatchArm arm = fl_self_hosted_parser_parse_match_arm(s);
-        fl_array_retain(arm.body_stmts);
         fl_self_hosted_ast_MatchArm _fl_tmp_212 = arm;
         FL_Array* _fl_old_213 = arms;
         arms = fl_array_push_sized(arms, (&_fl_tmp_212), sizeof(fl_self_hosted_ast_MatchArm));
@@ -9445,8 +9385,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
     fl_self_hosted_ast_Expr left = fl_self_hosted_parser_parse_prefix(s);
     while (fl_true) {
         fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
-        fl_string_retain(tok.value);
-        fl_string_retain(tok.file);
         if ((tok.ttype == fl_self_hosted_lexer_TokenType_TK_ARROW) && (min_prec < fl_self_hosted_parser_PREC_COMPOSITION())) {
             left = fl_self_hosted_parser_parse_composition_chain(s, left);
             continue;
@@ -9507,20 +9445,14 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
             if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_DOT) {
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_lexer_Token field_tok = fl_self_hosted_parser_peek(s);
-                fl_string_retain(field_tok.value);
-                fl_string_retain(field_tok.file);
                 if (field_tok.ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) {
                     fl_self_hosted_lexer_Token idx_tok = fl_self_hosted_parser_advance(s);
-                    fl_string_retain(idx_tok.value);
-                    fl_string_retain(idx_tok.file);
                     FL_Box* _fl_tmp_248 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
                     FL_BOX_DEREF(_fl_tmp_248, fl_self_hosted_ast_Expr) = left;
                     fl_string_retain(idx_tok.value);
                     left = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_248, .field = idx_tok.value}};
                 } else {
                     fl_self_hosted_lexer_Token ft = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                    fl_string_retain(ft.value);
-                    fl_string_retain(ft.file);
                     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
                         fl_self_hosted_parser_advance(s);
                         FL_Array* args = fl_self_hosted_parser_parse_arg_list(s);
@@ -9590,16 +9522,12 @@ fl_bool fl_self_hosted_parser_is_ternary(fl_self_hosted_parser_ParserState* s) {
         s->pos = _fl_e_1;
         fl_self_hosted_parser_skip_comments(s);
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_get_token((*s), s->pos);
-        fl_string_retain(next_tok.value);
-        fl_string_retain(next_tok.file);
         fl_bool can_start = fl_self_hosted_parser_can_start_expr(next_tok.ttype);
         if (can_start) {
             fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_TERNARY());
             fl_self_hosted_parser_skip_comments(s);
             if (s->pos < s->token_count) {
                 fl_self_hosted_lexer_Token after = fl_self_hosted_parser_get_token((*s), s->pos);
-                fl_string_retain(after.value);
-                fl_string_retain(after.file);
                 result = (after.ttype == fl_self_hosted_lexer_TokenType_TK_COLON);
             }
         }
@@ -9759,8 +9687,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_composition_chain(fl_self_ho
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_PARALLEL_FANOUT)) {
             fl_self_hosted_lexer_Token pfan_tok = fl_self_hosted_parser_advance(s);
-            fl_string_retain(pfan_tok.value);
-            fl_string_retain(pfan_tok.file);
             fl_self_hosted_ast_Expr fan = fl_self_hosted_parser_parse_fanout_body(s, fl_true);
             fl_self_hosted_ast_ChainElement _fl_tmp_264 = (fl_self_hosted_ast_ChainElement){.expr = fan, .id = fl_self_hosted_parser_fresh_id(s), .line = pfan_tok.line, .col = pfan_tok.col};
             FL_Array* _fl_old_265 = elements;
@@ -9772,8 +9698,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_composition_chain(fl_self_ho
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
                 if (fl_self_hosted_parser_is_fanout(s)) {
                     fl_self_hosted_lexer_Token fan_tok = fl_self_hosted_parser_advance(s);
-                    fl_string_retain(fan_tok.value);
-                    fl_string_retain(fan_tok.file);
                     fl_self_hosted_ast_Expr fan = fl_self_hosted_parser_parse_fanout_body(s, fl_false);
                     fl_self_hosted_ast_ChainElement _fl_tmp_266 = (fl_self_hosted_ast_ChainElement){.expr = fan, .id = fl_self_hosted_parser_fresh_id(s), .line = fan_tok.line, .col = fan_tok.col};
                     FL_Array* _fl_old_267 = elements;
@@ -9814,8 +9738,6 @@ fl_bool fl_self_hosted_parser_is_fanout(fl_self_hosted_parser_ParserState* s) {
     fl_bool found = fl_false;
     while (s->pos < s->token_count) {
         fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_get_token((*s), s->pos);
-        fl_string_retain(tok.value);
-        fl_string_retain(tok.file);
         if ((tok.ttype == fl_self_hosted_lexer_TokenType_TK_COMMENT) || (tok.ttype == fl_self_hosted_lexer_TokenType_TK_NEWLINE)) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(s->pos, 1, &_fl_e_1);
@@ -10249,8 +10171,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_
     fl_array_set_struct_handlers(parts, _fl_destroy_fl_self_hosted_ast_FStringPart, _fl_retain_fl_self_hosted_ast_FStringPart);
     while (fl_self_hosted_parser_at_end(s) == fl_false) {
         fl_self_hosted_lexer_Token raw_tok = fl_self_hosted_parser_peek_raw((*s));
-        fl_string_retain(raw_tok.value);
-        fl_string_retain(raw_tok.file);
         if (raw_tok.ttype == fl_self_hosted_lexer_TokenType_TK_FSTRING_END) {
             fl_int _fl_e_1;
             FL_CHECKED_ADD(s->pos, 1, &_fl_e_1);
@@ -10281,8 +10201,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_
                         fl_array_release(_fl_old_331);
                     }
                     fl_self_hosted_lexer_Token raw_end = fl_self_hosted_parser_peek_raw((*s));
-                    fl_string_retain(raw_end.value);
-                    fl_string_retain(raw_end.file);
                     if (raw_end.ttype == fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_END) {
                         fl_int _fl_e_4;
                         FL_CHECKED_ADD(s->pos, 1, &_fl_e_4);
@@ -10421,7 +10339,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_match_expr(fl_self_hosted_pa
     fl_array_set_struct_handlers(arms, _fl_destroy_fl_self_hosted_ast_MatchArm, _fl_retain_fl_self_hosted_ast_MatchArm);
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
         fl_self_hosted_ast_MatchArm arm = fl_self_hosted_parser_parse_match_arm(s);
-        fl_array_retain(arm.body_stmts);
         fl_self_hosted_ast_MatchArm _fl_tmp_351 = arm;
         FL_Array* _fl_old_352 = arms;
         arms = fl_array_push_sized(arms, (&_fl_tmp_351), sizeof(fl_self_hosted_ast_MatchArm));
@@ -10621,8 +10538,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_record_lit(fl_self_hosted_pa
     fl_array_set_struct_handlers(fields, _fl_destroy_fl_self_hosted_ast_ExprField, _fl_retain_fl_self_hosted_ast_ExprField);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) {
         fl_self_hosted_lexer_Token fname = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(fname.value);
-        fl_string_retain(fname.file);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
         fl_self_hosted_ast_Expr fval = fl_self_hosted_parser_parse_expr(s);
         fl_string_retain(fname.value);
@@ -10638,8 +10553,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_record_lit(fl_self_hosted_pa
                 break;
             }
             fl_self_hosted_lexer_Token fname2 = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-            fl_string_retain(fname2.value);
-            fl_string_retain(fname2.file);
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
             fl_self_hosted_ast_Expr fval2 = fl_self_hosted_parser_parse_expr(s);
             fl_string_retain(fname2.value);
@@ -10675,15 +10588,11 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ident_or_type_lit(fl_self_ho
         fl_string_retain(current_name);
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_DOT)) {
             fl_self_hosted_lexer_Token next_after_dot = fl_self_hosted_parser_peek2(s);
-            fl_string_retain(next_after_dot.value);
-            fl_string_retain(next_after_dot.file);
             if (next_after_dot.ttype != fl_self_hosted_lexer_TokenType_TK_IDENT) {
                 break;
             }
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_advance(s);
-            fl_string_retain(next_tok.value);
-            fl_string_retain(next_tok.file);
             FL_Array* _fl_old_382 = module_path;
             module_path = fl_array_push_ptr(module_path, current_name);
             if (_fl_old_382 != module_path) {
@@ -10745,8 +10654,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_type_construction_lit(fl_sel
             break;
         }
         fl_self_hosted_lexer_Token fname = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(fname.value);
-        fl_string_retain(fname.file);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
         fl_self_hosted_ast_Expr fval = fl_self_hosted_parser_parse_expr(s);
         fl_string_retain(fname.value);
@@ -10865,8 +10772,6 @@ FL_Array* fl_self_hosted_parser_parse_arg_list(fl_self_hosted_parser_ParserState
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_call_arg(fl_self_hosted_parser_ParserState* s, fl_bool seen_named) {
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_SPREAD)) {
         fl_self_hosted_lexer_Token spread_tok = fl_self_hosted_parser_advance(s);
-        fl_string_retain(spread_tok.value);
-        fl_string_retain(spread_tok.file);
         fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
         FL_Box* _fl_tmp_401 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
         FL_BOX_DEREF(_fl_tmp_401, fl_self_hosted_ast_Expr) = inner;
@@ -10877,12 +10782,8 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_call_arg(fl_self_hosted_pars
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_IDENT)) {
         fl_self_hosted_lexer_Token next = fl_self_hosted_parser_peek2(s);
-        fl_string_retain(next.value);
-        fl_string_retain(next.file);
         if (next.ttype == fl_self_hosted_lexer_TokenType_TK_COLON) {
             fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_advance(s);
-            fl_string_retain(name_tok.value);
-            fl_string_retain(name_tok.file);
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
             FL_Box* _fl_tmp_402 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
@@ -10924,8 +10825,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
         fl_self_hosted_lexer_Token inner_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(inner_tok.value);
-        fl_string_retain(inner_tok.file);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
         fl_string_retain(inner_tok.value);
         fl_self_hosted_ast_Pattern _fl_ret_420 = (fl_self_hosted_ast_Pattern){.tag = 3, .PSome = (fl_self_hosted_ast_Pattern_PSome){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
@@ -10938,8 +10837,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
         fl_self_hosted_lexer_Token inner_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(inner_tok.value);
-        fl_string_retain(inner_tok.file);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
         fl_string_retain(inner_tok.value);
         fl_self_hosted_ast_Pattern _fl_ret_421 = (fl_self_hosted_ast_Pattern){.tag = 5, .POk = (fl_self_hosted_ast_Pattern_POk){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
@@ -10952,8 +10849,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
         fl_self_hosted_lexer_Token inner_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        fl_string_retain(inner_tok.value);
-        fl_string_retain(inner_tok.file);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
         fl_string_retain(inner_tok.value);
         fl_self_hosted_ast_Pattern _fl_ret_422 = (fl_self_hosted_ast_Pattern){.tag = 6, .PErr = (fl_self_hosted_ast_Pattern_PErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
@@ -11017,16 +10912,12 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
         fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_advance(s);
-        fl_string_retain(name_tok.value);
-        fl_string_retain(name_tok.file);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
             fl_self_hosted_parser_advance(s);
             FL_Array* bindings = fl_array_new(0, 0, NULL);
             fl_array_set_elem_type(bindings, 1);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
                 fl_self_hosted_lexer_Token b_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                fl_string_retain(b_tok.value);
-                fl_string_retain(b_tok.file);
                 FL_Array* _fl_old_413 = bindings;
                 bindings = fl_array_push_ptr(bindings, b_tok.value);
                 if (_fl_old_413 != bindings) {
@@ -11038,8 +10929,6 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
                         break;
                     }
                     fl_self_hosted_lexer_Token b2 = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                    fl_string_retain(b2.value);
-                    fl_string_retain(b2.file);
                     FL_Array* _fl_old_414 = bindings;
                     bindings = fl_array_push_ptr(bindings, b2.value);
                     if (_fl_old_414 != bindings) {

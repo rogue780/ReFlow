@@ -737,7 +737,7 @@ class Lowerer:
         # Struct field cleanup: when a struct-typed local goes out of scope,
         # release its refcounted fields.  Each entry:
         # (struct_var_name, field_name, struct_c_type, release_fn, depth)
-        self._struct_field_cleanup: list[tuple[str, str, LType, str, int]] = []
+        self._struct_field_cleanup: list[tuple[str, str, LType, str, int, bool]] = []
         # Sum type field cleanup: when a struct local with an embedded sum type
         # field goes out of scope, call the sum type destructor on the field.
         # (struct_var_name, field_name, struct_c_type, destructor_fn, field_lt, depth)
@@ -1180,7 +1180,7 @@ class Lowerer:
                              for n, ct, fn_name, depth in self._container_locals
                              if depth == 0])
                 body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
-                             for sv, fn, sct, rel, depth
+                             for sv, fn, sct, rel, depth, _bs
                              in self._struct_field_cleanup
                              if depth == 0
                              and sv not in self._consumed_bindings])
@@ -1696,7 +1696,7 @@ class Lowerer:
             declared = set()
         container_names = {name for name, _, _, _ in self._container_locals}
         # Struct field cleanup uses the struct var name as the base
-        struct_field_base_names = {sv for sv, _, _, _, _ in self._struct_field_cleanup}
+        struct_field_base_names = {sv for sv, _, _, _, _, _ in self._struct_field_cleanup}
         sum_field_base_names = {sv for sv, _, _, _, _, _ in self._sum_field_cleanup}
         affine_names = {name for name, _, _, _ in self._affine_locals}
         all_trackable = (container_names | struct_field_base_names
@@ -1752,7 +1752,7 @@ class Lowerer:
                     # Deduplicate: same (var, field) may be registered
                     # multiple times when the variable is declared in
                     # multiple branches.
-                    for sv, fn, sct, rel_fn, _depth in self._struct_field_cleanup:
+                    for sv, fn, sct, rel_fn, _depth, _bs in self._struct_field_cleanup:
                         field_key = f"{sv}.{fn}"
                         base_name = sv.split(".")[0]
                         if base_name not in declared or field_key in seen_fields:
@@ -2057,17 +2057,14 @@ class Lowerer:
                     # for release at scope exit.
                     self._register_struct_field_releases(
                         stmt.name, val_type, c_type, self._scope_depth)
-                elif (self._is_allocating_expr(stmt.value)
-                        and self._scope_depth == 0):
-                    # Call/allocating source at function scope: register
-                    # for release at scope exit.  Don't retain — callee
-                    # TypeLit construction already retained fields.
-                    # Restricted to depth 0 because at depth > 0 struct
-                    # fields may be shared with other owners (e.g. token
-                    # array) and releasing without retaining first would
-                    # drop the shared owner's reference.
+                elif self._is_allocating_expr(stmt.value):
+                    # Call/allocating source: the callee may return a
+                    # shallow copy with borrowed fields, so fields are
+                    # NOT safe to release at block exit.  Only released
+                    # at function exit via _inject_scope_cleanup.
                     self._register_struct_field_releases(
-                        stmt.name, val_type, c_type, self._scope_depth)
+                        stmt.name, val_type, c_type, self._scope_depth,
+                        block_safe=False)
                 elif (isinstance(stmt.value, Ident)
                         and self._is_affine_type(val_type)):
                     # Affine move: `let b = a` transfers ownership.
@@ -2194,13 +2191,19 @@ class Lowerer:
         return None
 
     def _register_struct_field_releases(self, var_name: str, val_type: Type,
-                                         c_type: LType, depth: int) -> None:
+                                         c_type: LType, depth: int,
+                                         block_safe: bool = True) -> None:
         """Register release calls for refcounted fields inside a struct local.
 
         When a struct-typed local goes out of scope, its refcounted fields
         (strings, arrays, maps, etc.) must be individually released.
         This method walks the struct's DIRECT fields only and registers
         cleanup entries in _struct_field_cleanup for each refcounted field.
+
+        block_safe: True when the fields are known to be owned (TypeLit,
+        retained-at-bind, affine move).  False for Call/allocating sources
+        where the callee may return borrowed fields.  Block-exit cleanup
+        only releases block_safe entries to avoid UAF on borrowed fields.
 
         We do NOT recurse into nested struct fields because embedded structs
         are value copies — their pointer fields share ownership with the
@@ -2217,7 +2220,8 @@ class Lowerer:
             release_fn = self._get_release_fn(field_type)
             if release_fn is not None:
                 self._struct_field_cleanup.append(
-                    (var_name, field_name, c_type, release_fn, depth))
+                    (var_name, field_name, c_type, release_fn, depth,
+                     block_safe))
             elif self._sum_type_has_cleanup_fields(field_type):
                 # Sum type field — ensure handlers are emitted (for use by
                 # array element destructors) but do NOT register scope-exit
@@ -3327,11 +3331,42 @@ class Lowerer:
             cleanup.append(LExprStmt(
                 LCall(fn_name, [LVar(name, ct)], LVoid())))
 
-        # NOTE: struct field and sum field releases are NOT emitted at block
-        # exit.  Struct fields may be shared with other references (e.g.,
-        # structs from function calls or array access), and releasing them
-        # at block exit can cause use-after-free.  They are only released
-        # at function exit (depth 0) via _inject_scope_cleanup.
+        # Struct field releases: only for block_safe entries (TypeLit,
+        # retained-at-bind, affine move).  Call/allocating entries may have
+        # borrowed fields and are only released at function exit.
+        seen_fields: set[str] = set()
+        for sv, fn, sct, rel_fn, depth, bs in self._struct_field_cleanup[sf_snapshot:]:
+            if not bs:
+                continue
+            if depth != block_depth:
+                continue
+            field_key = f"{sv}.{fn}"
+            if field_key in seen_fields:
+                continue
+            base = sv.split(".")[0]
+            if base not in top_decls:
+                continue
+            if sv in self._consumed_bindings:
+                continue
+            seen_fields.add(field_key)
+            cleanup.append(self._emit_struct_field_release(
+                sv, fn, sct, rel_fn))
+
+        # Sum type field releases
+        for sv, fn, sct, dest_fn, flt, depth in self._sum_field_cleanup[sum_sf_snapshot:]:
+            if depth != block_depth:
+                continue
+            field_key = f"{sv}.{fn}"
+            if field_key in seen_fields:
+                continue
+            base = sv.split(".")[0]
+            if base not in top_decls:
+                continue
+            if sv in self._consumed_bindings:
+                continue
+            seen_fields.add(field_key)
+            cleanup.append(self._emit_sum_field_release(
+                sv, fn, sct, dest_fn, flt))
 
         body.extend(cleanup)
 
@@ -3446,7 +3481,7 @@ class Lowerer:
 
         # Struct field releases: only those registered during this body
         seen_fields: set[str] = set()
-        for sv, fn, sct, rel_fn, depth in self._struct_field_cleanup[sf_snapshot:]:
+        for sv, fn, sct, rel_fn, depth, _bs in self._struct_field_cleanup[sf_snapshot:]:
             if depth != loop_depth:
                 continue
             field_key = f"{sv}.{fn}"
@@ -9504,7 +9539,7 @@ class Lowerer:
                              for n, ct, fn_name, depth in self._container_locals
                              if depth == 0])
                 body.extend([self._emit_struct_field_release(sv, fn, sct, rel)
-                             for sv, fn, sct, rel, depth
+                             for sv, fn, sct, rel, depth, _bs
                              in self._struct_field_cleanup
                              if depth == 0
                              and sv not in self._consumed_bindings])

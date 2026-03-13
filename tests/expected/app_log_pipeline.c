@@ -733,9 +733,6 @@ void fl_tests_app_log_pipeline_main(void) {
         _fl_exception_push((&_fl_ef_0));
         if (setjmp(_fl_ef_0.jmp) == 0) {
             fl_tests_app_log_pipeline_LogEntry entry = fl_tests_app_log_pipeline_detect_and_parse(line);
-            fl_string_retain(entry.timestamp);
-            fl_string_retain(entry.source);
-            fl_string_retain(entry.message);
             if (fl_string_len(entry.timestamp) == 0) {
                 _fl_throw(((void*)_fl_str_tests_app_log_pipeline_21), 0);
             }
