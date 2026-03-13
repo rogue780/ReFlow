@@ -2858,62 +2858,6 @@ class Lowerer:
         target = self._lower_expr(stmt.target)
         value = self._lower_expr(stmt.value)
 
-        # Destroy-before-reassign for :mut affine bindings.
-        # Affine types (sum types, structs with refcounted fields) are stack
-        # values that may contain heap pointers.  When reassigned, the old
-        # value's heap data must be destroyed before overwriting.
-        # Skip when the RHS or pending stmts reference the target variable:
-        # patterns like `left = Expr{receiver: box(left), ...}` shallow-copy
-        # the old value into a heap-boxed pointer via pending stmts before
-        # building the new compound literal; destroying the old value would
-        # free internals shared with the heap copy → use-after-free.
-        if isinstance(stmt.target, Ident):
-            target_type = self._type_of(stmt.target)
-            target_c_name = target.c_name if isinstance(target, LVar) else None
-            rhs_refs_target = False
-            if target_c_name is not None:
-                # Check if the RHS value expression references the target
-                rhs_refs = self._collect_referenced_vars(value)
-                if target_c_name in rhs_refs:
-                    rhs_refs_target = True
-                # Check if pending stmts reference the target (heap-boxing)
-                if not rhs_refs_target:
-                    for ps in self._pending_stmts:
-                        if isinstance(ps, LAssign):
-                            ps_refs = self._collect_referenced_vars(ps.value)
-                            if target_c_name in ps_refs:
-                                rhs_refs_target = True
-                                break
-                        elif isinstance(ps, LVarDecl) and ps.init is not None:
-                            ps_refs = self._collect_referenced_vars(ps.init)
-                            if target_c_name in ps_refs:
-                                rhs_refs_target = True
-                                break
-            if (self._is_affine_type(target_type)
-                    and self._get_release_fn(target_type) is None
-                    and not rhs_refs_target):
-                target_lt = self._lower_type(target_type)
-                # Try sum type handler first, then struct handler
-                handlers = None
-                if self._sum_type_has_cleanup_fields(target_type):
-                    handlers = self._get_or_emit_sum_type_handlers(
-                        target_type, target_lt)
-                elif self._has_refcounted_fields(target_type):
-                    handlers = self._get_or_emit_struct_handlers(
-                        target_type, target_lt)
-                if handlers:
-                    destructor, _ = handlers
-                    stmts = list(self._pending_stmts)
-                    self._pending_stmts = []
-                    stmts.append(LExprStmt(LCall(
-                        destructor,
-                        [LAddrOf(target, LPtr(target_lt))],
-                        LVoid())))
-                    stmts.append(LAssign(target=target, value=value))
-                    stmts.extend(self._post_stmts)
-                    self._post_stmts = []
-                    return stmts
-
         # Release-on-reassignment for container-typed :mut variables.
         # Only for allocating RHS (call, literal) so the old value is
         # guaranteed to be from a previous allocation, not a borrow.
