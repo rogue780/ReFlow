@@ -75,6 +75,28 @@ void fl_string_release(FL_String* s) {
     }
 }
 
+/* ── Box ─────────────────────────────────────────────────────────────── */
+
+FL_Box* fl_box_new(fl_int64 size) {
+    FL_Box* box = (FL_Box*)malloc(sizeof(FL_Box) + size);
+    if (!box) fl_panic("fl_box_new: out of memory");
+    atomic_store(&box->refcount, 1);
+    return box;
+}
+
+void fl_box_retain(FL_Box* box) {
+    if (!box) return;
+    atomic_fetch_add(&box->refcount, 1);
+}
+
+void fl_box_release(FL_Box* box, void (*destructor)(void*)) {
+    if (!box) return;
+    if (atomic_fetch_sub(&box->refcount, 1) == 1) {
+        if (destructor) destructor(box->data);
+        free(box);
+    }
+}
+
 FL_String* fl_string_copy(FL_String* s) {
     if (!s) return NULL;
     return fl_string_new(s->data, s->len);

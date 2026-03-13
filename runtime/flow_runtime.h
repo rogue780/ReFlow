@@ -223,6 +223,21 @@ FL_String* fl_bool_to_string(fl_bool v);
 FL_String* fl_byte_to_string(fl_byte v);
 
 /* ========================================================================
+ *  Box — Refcounted heap box for recursive sum type fields
+ * ======================================================================== */
+
+typedef struct FL_Box {
+    _Atomic fl_int64 refcount;
+    fl_byte data[];   /* flexible array member — holds the boxed value */
+} FL_Box;
+
+FL_Box* fl_box_new(fl_int64 size);
+void    fl_box_retain(FL_Box* box);
+void    fl_box_release(FL_Box* box, void (*destructor)(void*));
+
+#define FL_BOX_DEREF(box, T) (*(T*)((box)->data))
+
+/* ========================================================================
  * Built-in Interface Method Helpers (SG-3-5-2)
  *
  * These support the synthetic Comparable / Equatable / Showable methods
