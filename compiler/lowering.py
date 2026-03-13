@@ -2293,7 +2293,6 @@ class Lowerer:
 
         destroy_cases: list[tuple[int, list[LStmt]]] = []
         retain_cases: list[tuple[int, list[LStmt]]] = []
-        retain_tmp_counter = 0
 
         saved_types = self._types
         self._types = src_types
@@ -2327,68 +2326,29 @@ class Lowerer:
                             retain_stmts.append(LExprStmt(LCall(
                                 retain_fn, [field_expr], LVoid())))
                     elif is_recursive:
-                        # Recursive heap-boxed pointer field — destroy
-                        # contents then free the pointer.  This is safe
-                        # because the retainer deep-copies recursive
-                        # pointers (malloc + recursive clone), so each
-                        # copy owns its own pointer.
+                        # Recursive heap-boxed pointer field — destruct
+                        # contents but do NOT free the pointer itself.
+                        # Heap-boxed sum type pointers are not refcounted,
+                        # so they may be shared between shallow copies
+                        # (e.g., array elements copied to local variables).
+                        # Freeing them causes UAF.  The pointer itself
+                        # leaks, but all refcounted internals (strings,
+                        # arrays) are properly released/retained.
                         inner_type = f_type
                         inner_lt = self._lower_type(inner_type)
                         struct_handlers = self._get_or_emit_struct_handlers(
                             inner_type, inner_lt)
                         if struct_handlers:
-                            struct_dest, _ = struct_handlers
+                            struct_dest, struct_ret = struct_handlers
                             destroy_stmts.append(LExprStmt(LCall(
                                 struct_dest, [field_expr], LVoid())))
+                            retain_stmts.append(LExprStmt(LCall(
+                                struct_ret, [field_expr], LVoid())))
                         else:
                             destroy_stmts.append(LExprStmt(LCall(
                                 destructor, [field_expr], LVoid())))
-                        # Free the heap-boxed pointer after destroying
-                        # its contents.
-                        destroy_stmts.append(LExprStmt(LCall(
-                            "free", [field_expr], LVoid())))
-
-                        # Retainer: deep-copy the recursive pointer so
-                        # each copy owns its own heap allocation.
-                        # Determine clone function: direct recursion uses
-                        # the sum type's clone fn; indirect (wrapper struct)
-                        # uses the wrapper's clone fn.
-                        from compiler.mangler import mangle_struct_clone
-                        is_direct = (
-                            (isinstance(f_type, (TSum, TNamed))
-                             and f_type.name == decl.name)
-                            or (isinstance(ftype_expr, NamedType)
-                                and ftype_expr.name == decl.name))
-                        if is_direct:
-                            clone_fn_name = mangle_struct_clone(c_name)
-                            self._generate_clone_fn(sum_type, sum_lt)
-                        else:
-                            inner_clone = self._generate_clone_fn(
-                                f_type, inner_lt)
-                            clone_fn_name = inner_clone if inner_clone else mangle_struct_clone(c_name)
-                        ptr_type = LPtr(inner_lt)
-                        rt_tmp = f"_rt_{retain_tmp_counter}"
-                        retain_tmp_counter += 1
-                        # T* _rt_N = (T*)malloc(sizeof(T));
-                        retain_stmts.append(LVarDecl(
-                            c_name=rt_tmp,
-                            c_type=ptr_type,
-                            init=LCast(
-                                LCall("malloc", [LSizeOf(inner_lt)],
-                                      LPtr(LVoid())),
-                                ptr_type)))
-                        # *_rt_N = _fl_clone_T(*_s->Variant.field);
-                        retain_stmts.append(LAssign(
-                            target=LDeref(LVar(rt_tmp, ptr_type),
-                                          inner_lt),
-                            value=LCall(
-                                clone_fn_name,
-                                [LDeref(field_expr, inner_lt)],
-                                inner_lt)))
-                        # _s->Variant.field = _rt_N;
-                        retain_stmts.append(LAssign(
-                            target=field_expr,
-                            value=LVar(rt_tmp, ptr_type)))
+                            retain_stmts.append(LExprStmt(LCall(
+                                retainer, [field_expr], LVoid())))
                     elif self._sum_type_has_cleanup_fields(f_type):
                         # Non-recursive by-value sum type field — call its
                         # destructor on the field address
@@ -2682,139 +2642,16 @@ class Lowerer:
                                   [LFieldAccess(LVar(result_name, struct_lt), fname, nested_lt)],
                                   nested_lt)))
         elif self._sum_type_has_cleanup_fields(struct_type):
-            # Sum type clone: per-variant deep-copy logic.
-            # For each variant, retain refcounted fields and deep-copy
-            # recursive heap-boxed pointer fields (malloc + recursive clone).
-            decl = self._get_sum_type_decl_cross_module(struct_type)
-            if decl is not None:
-                # Resolve field types using the correct module's types map
-                src_types = self._types
-                if self._all_typed:
-                    for _, typed_mod in self._all_typed.items():
-                        for d in typed_mod.module.decls:
-                            if d is decl:
-                                src_types = typed_mod.types
-                                break
-
-                saved_types = self._types
-                self._types = src_types
-                try:
-                    clone_cases: list[tuple[int, list[LStmt]]] = []
-                    clone_tmp_counter = 0
-                    for i, variant in enumerate(decl.variants):
-                        if variant.fields is None:
-                            continue
-                        case_stmts: list[LStmt] = []
-
-                        variant_c_name = f"{_ltype_c_name(struct_lt)}_{variant.name}"
-                        variant_lt = LStruct(variant_c_name)
-                        variant_access = LFieldAccess(
-                            LVar(result_name, struct_lt),
-                            variant.name, variant_lt)
-
-                        for fname, ftype_expr in variant.fields:
-                            f_type = (self._type_of(ftype_expr)
-                                      if ftype_expr else TNone())
-                            field_lt = self._lower_type(f_type)
-                            is_recursive = self._is_recursive_sum_field(
-                                f_type, decl.name, ftype_expr)
-                            if is_recursive:
-                                field_lt = LPtr(field_lt)
-
-                            field_expr = LFieldAccess(
-                                variant_access, fname, field_lt)
-                            release_fn = self._get_release_fn(f_type)
-                            retain_fn = self._RETAIN_FN.get(type(f_type))
-
-                            if release_fn is not None and retain_fn:
-                                # Refcounted field — retain the shared ref
-                                case_stmts.append(LExprStmt(LCall(
-                                    retain_fn, [field_expr], LVoid())))
-                            elif is_recursive:
-                                # Recursive heap-boxed pointer — deep-copy:
-                                #   T* _clone_tmp_N = (T*)malloc(sizeof(T));
-                                #   *_clone_tmp_N = clone_fn(*field);
-                                #   field = _clone_tmp_N;
-                                inner_lt = self._lower_type(f_type)
-                                ptr_type = LPtr(inner_lt)
-                                # Determine clone function: direct recursion
-                                # uses self (c_name), indirect through wrapper
-                                # struct uses the wrapper's clone function.
-                                is_direct = (
-                                    (isinstance(f_type, (TSum, TNamed))
-                                     and f_type.name == decl.name)
-                                    or (isinstance(ftype_expr, NamedType)
-                                        and ftype_expr.name == decl.name))
-                                if is_direct:
-                                    inner_clone_fn = c_name
-                                else:
-                                    inner_clone_fn = self._generate_clone_fn(
-                                        f_type, inner_lt)
-                                    if not inner_clone_fn:
-                                        # Fallback: can't clone, skip
-                                        continue
-                                tmp_name = f"_clone_tmp_{clone_tmp_counter}"
-                                clone_tmp_counter += 1
-                                case_stmts.append(LVarDecl(
-                                    c_name=tmp_name,
-                                    c_type=ptr_type,
-                                    init=LCast(
-                                        LCall("malloc",
-                                              [LSizeOf(inner_lt)],
-                                              LPtr(LVoid())),
-                                        ptr_type)))
-                                # *tmp = clone(*field)
-                                case_stmts.append(LAssign(
-                                    target=LDeref(
-                                        LVar(tmp_name, ptr_type),
-                                        inner_lt),
-                                    value=LCall(
-                                        inner_clone_fn,
-                                        [LDeref(field_expr, inner_lt)],
-                                        inner_lt)))
-                                # field = tmp
-                                case_stmts.append(LAssign(
-                                    target=field_expr,
-                                    value=LVar(tmp_name, ptr_type)))
-                            elif self._sum_type_has_cleanup_fields(f_type):
-                                # Non-recursive sum type field — call retainer
-                                inner_lt = self._lower_type(f_type)
-                                sum_handlers = (
-                                    self._get_or_emit_sum_type_handlers(
-                                        f_type, inner_lt))
-                                if sum_handlers:
-                                    _, ret_fn = sum_handlers
-                                    case_stmts.append(LExprStmt(LCall(
-                                        ret_fn,
-                                        [LAddrOf(field_expr,
-                                                 LPtr(inner_lt))],
-                                        LVoid())))
-                            elif self._has_refcounted_fields(f_type):
-                                # Struct field with refcounted internals
-                                inner_lt = self._lower_type(f_type)
-                                nested = self._get_or_emit_struct_handlers(
-                                    f_type, inner_lt)
-                                if nested:
-                                    _, nested_ret = nested
-                                    case_stmts.append(LExprStmt(LCall(
-                                        nested_ret,
-                                        [LAddrOf(field_expr,
-                                                 LPtr(inner_lt))],
-                                        LVoid())))
-
-                        if case_stmts:
-                            case_stmts.append(LBreak())
-                            clone_cases.append((i, case_stmts))
-
-                    if clone_cases:
-                        body.append(LSwitch(
-                            value=LFieldAccess(
-                                LVar(result_name, struct_lt),
-                                "tag", LByte()),
-                            cases=clone_cases,
-                            default=[LBreak()]))
-                finally:
-                    self._types = saved_types
+            # Sum type clone: shallow copy + call retainer to increment
+            # refcounts for the active variant's refcounted fields.
+            sum_handlers = self._get_or_emit_sum_type_handlers(
+                struct_type, struct_lt)
+            if sum_handlers:
+                _, retainer = sum_handlers
+                body.append(LExprStmt(LCall(
+                    retainer,
+                    [LAddrOf(LVar(result_name, struct_lt), LPtr(struct_lt))],
+                    LVoid())))
 
         body.append(LReturn(LVar(result_name, struct_lt)))
 
@@ -8935,32 +8772,6 @@ class Lowerer:
                                 break
         return False
 
-    def _has_recursive_sum_fields(self, t: Type) -> bool:
-        """Check if a type has any recursive heap-boxed pointer fields.
-
-        Returns True if:
-        - t is a sum type with variants containing recursive pointer fields
-        - t is a struct with a field that is a sum type with recursive pointers
-        """
-        # Check if t itself is a sum type with recursive fields
-        decl = self._get_sum_type_decl_cross_module(t)
-        if decl is not None:
-            for variant in decl.variants:
-                if variant.fields is None:
-                    continue
-                for _fname, ftype_expr in variant.fields:
-                    f_type = self._type_of(ftype_expr) if ftype_expr else TNone()
-                    if self._is_recursive_sum_field(f_type, decl.name, ftype_expr):
-                        return True
-            return False
-        # Check if t is a struct with a sum type field that has recursive fields
-        fields = self._get_struct_fields_cross_module(t)
-        if fields:
-            for _fn, ft in fields.items():
-                if self._has_recursive_sum_fields(ft):
-                    return True
-        return False
-
     # ------------------------------------------------------------------
     # array.push redirect for non-pointer element types (Gap-1)
     # ------------------------------------------------------------------
@@ -9164,23 +8975,6 @@ class Lowerer:
             LDeref(LVar(tmp, ptr_type), struct_lt),
             expr,
         ))
-        # The shallow copy shares recursive heap-boxed pointers with the
-        # original.  When the map later destroys the entry (on COW or
-        # release), the shared pointers are freed — making the original's
-        # copies dangling.  Retain the heap-boxed copy so it owns
-        # independent deep-copied pointers.
-        if orig_type is not None and self._has_recursive_sum_fields(
-                orig_type):
-            handlers = self._get_or_emit_struct_handlers(
-                orig_type, struct_lt)
-            if handlers:
-                _, retainer_fn = handlers
-                self._pending_stmts.append(LExprStmt(LCall(
-                    retainer_fn,
-                    [LAddrOf(
-                        LDeref(LVar(tmp, ptr_type), struct_lt),
-                        LPtr(struct_lt))],
-                    LVoid())))
         return LCast(LVar(tmp, ptr_type), LPtr(LVoid()))
 
     # ------------------------------------------------------------------
@@ -9275,47 +9069,7 @@ class Lowerer:
                         return LCall(opt_unbox_fn, [call], result_lt)
                     # Struct value type: dereference via FL_OPT_DEREF_AS
                     if isinstance(concrete_lt, LStruct):
-                        deref_expr = LOptDerefAs(
-                            call, concrete_lt, result_lt)
-                        # If the struct has recursive sum-type pointer
-                        # fields, retain (deep-copy) the extracted value
-                        # so it's independent of the container entry.
-                        # Without this, shallow copies from map.get
-                        # share recursive heap-boxed pointers with the
-                        # entry; when the entry is later destroyed,
-                        # the copy has dangling pointers.
-                        # Only needed for types with recursive pointers
-                        # — types with only refcounted fields (string,
-                        # array, map) are safe because refcounting
-                        # handles sharing.
-                        if self._has_recursive_sum_fields(concrete):
-                            handlers = self._get_or_emit_struct_handlers(
-                                concrete, concrete_lt)
-                            if handlers:
-                                _, retainer_fn = handlers
-                                tmp = self._fresh_temp()
-                                self._pending_stmts.append(LVarDecl(
-                                    c_name=tmp, c_type=result_lt,
-                                    init=deref_expr))
-                                self._pending_stmts.append(LIf(
-                                    cond=LBinOp(
-                                        "==",
-                                        LFieldAccess(
-                                            LVar(tmp, result_lt),
-                                            "tag", LByte()),
-                                        LLit("1", LByte()),
-                                        LBool()),
-                                    then=[LExprStmt(LCall(
-                                        retainer_fn,
-                                        [LAddrOf(
-                                            LFieldAccess(
-                                                LVar(tmp, result_lt),
-                                                "value", concrete_lt),
-                                            LPtr(concrete_lt))],
-                                        LVoid()))],
-                                    else_=[]))
-                                return LVar(tmp, result_lt)
-                        return deref_expr
+                        return LOptDerefAs(call, concrete_lt, result_lt)
             # Unbox for plain value return (not option)
             for tp in fn_decl.type_params:
                 concrete = env.get(tp.name)

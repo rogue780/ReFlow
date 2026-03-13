@@ -3332,13 +3332,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_ast_fsp_get_expr(fl_self_hosted_ast_FStri
 
 FL_String* fl_conv_to_string__int(fl_int val);
 
-fl_self_hosted_ast_TypeExpr _fl_clone_fl_self_hosted_ast_TypeExpr(fl_self_hosted_ast_TypeExpr _src);
-
 void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr);
 
 void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr);
-
-fl_self_hosted_ast_Expr _fl_clone_fl_self_hosted_ast_Expr(fl_self_hosted_ast_Expr _src);
 
 void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr);
 
@@ -3439,78 +3435,6 @@ FL_String* fl_conv_to_string__int(fl_int val) {
     return fl_int_to_string(val);
 }
 
-/* Flow: clone for fl_self_hosted_ast_TypeExpr */
-fl_self_hosted_ast_TypeExpr _fl_clone_fl_self_hosted_ast_TypeExpr(fl_self_hosted_ast_TypeExpr _src) {
-    fl_self_hosted_ast_TypeExpr _dst = _src;
-    switch (_dst.tag) {
-        case 0: {
-            fl_string_retain(_dst.TNamedType.name);
-            fl_array_retain(_dst.TNamedType.module_path);
-            break;
-            break;
-        }
-        case 1: {
-            fl_self_hosted_ast_TypeExpr* _clone_tmp_0 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_clone_tmp_0) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_dst.TGenericType.base));
-            _dst.TGenericType.base = _clone_tmp_0;
-            fl_array_retain(_dst.TGenericType.args);
-            break;
-            break;
-        }
-        case 2: {
-            fl_self_hosted_ast_TypeExpr* _clone_tmp_1 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_clone_tmp_1) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_dst.TOptionType.inner));
-            _dst.TOptionType.inner = _clone_tmp_1;
-            break;
-            break;
-        }
-        case 3: {
-            fl_array_retain(_dst.TFnType.params);
-            fl_self_hosted_ast_TypeExpr* _clone_tmp_2 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_clone_tmp_2) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_dst.TFnType.ret));
-            _dst.TFnType.ret = _clone_tmp_2;
-            break;
-            break;
-        }
-        case 4: {
-            fl_array_retain(_dst.TTupleType.elements);
-            break;
-            break;
-        }
-        case 5: {
-            fl_self_hosted_ast_TypeExpr* _clone_tmp_3 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_clone_tmp_3) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_dst.TMutType.inner));
-            _dst.TMutType.inner = _clone_tmp_3;
-            break;
-            break;
-        }
-        case 6: {
-            fl_self_hosted_ast_TypeExpr* _clone_tmp_4 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_clone_tmp_4) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_dst.TImutType.inner));
-            _dst.TImutType.inner = _clone_tmp_4;
-            break;
-            break;
-        }
-        case 7: {
-            fl_self_hosted_ast_TypeExpr* _clone_tmp_5 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_clone_tmp_5) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_dst.TSizedType.inner));
-            _dst.TSizedType.inner = _clone_tmp_5;
-            break;
-            break;
-        }
-        case 8: {
-            fl_array_retain(_dst.TSumTypeExpr.variants);
-            break;
-            break;
-        }
-        default: {
-            break;
-            break;
-        }
-    }
-    return _dst;
-}
-
 /* Flow: sum destructor for fl_self_hosted_ast_TypeExpr */
 void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr) {
     fl_self_hosted_ast_TypeExpr* _s = ((fl_self_hosted_ast_TypeExpr*)_ptr);
@@ -3523,21 +3447,18 @@ void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr) {
         }
         case 1: {
             _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TGenericType.base);
-            free(_s->TGenericType.base);
             fl_array_release(_s->TGenericType.args);
             break;
             break;
         }
         case 2: {
             _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TOptionType.inner);
-            free(_s->TOptionType.inner);
             break;
             break;
         }
         case 3: {
             fl_array_release(_s->TFnType.params);
             _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TFnType.ret);
-            free(_s->TFnType.ret);
             break;
             break;
         }
@@ -3548,19 +3469,16 @@ void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr) {
         }
         case 5: {
             _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TMutType.inner);
-            free(_s->TMutType.inner);
             break;
             break;
         }
         case 6: {
             _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TImutType.inner);
-            free(_s->TImutType.inner);
             break;
             break;
         }
         case 7: {
             _fl_destroy_fl_self_hosted_ast_TypeExpr(_s->TSizedType.inner);
-            free(_s->TSizedType.inner);
             break;
             break;
         }
@@ -3587,25 +3505,19 @@ void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr) {
             break;
         }
         case 1: {
-            fl_self_hosted_ast_TypeExpr* _rt_0 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_rt_0) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_s->TGenericType.base));
-            _s->TGenericType.base = _rt_0;
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TGenericType.base);
             fl_array_retain(_s->TGenericType.args);
             break;
             break;
         }
         case 2: {
-            fl_self_hosted_ast_TypeExpr* _rt_1 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_rt_1) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_s->TOptionType.inner));
-            _s->TOptionType.inner = _rt_1;
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TOptionType.inner);
             break;
             break;
         }
         case 3: {
             fl_array_retain(_s->TFnType.params);
-            fl_self_hosted_ast_TypeExpr* _rt_2 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_rt_2) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_s->TFnType.ret));
-            _s->TFnType.ret = _rt_2;
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TFnType.ret);
             break;
             break;
         }
@@ -3615,23 +3527,17 @@ void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr) {
             break;
         }
         case 5: {
-            fl_self_hosted_ast_TypeExpr* _rt_3 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_rt_3) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_s->TMutType.inner));
-            _s->TMutType.inner = _rt_3;
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TMutType.inner);
             break;
             break;
         }
         case 6: {
-            fl_self_hosted_ast_TypeExpr* _rt_4 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_rt_4) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_s->TImutType.inner));
-            _s->TImutType.inner = _rt_4;
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TImutType.inner);
             break;
             break;
         }
         case 7: {
-            fl_self_hosted_ast_TypeExpr* _rt_5 = ((fl_self_hosted_ast_TypeExpr*)malloc(sizeof(fl_self_hosted_ast_TypeExpr)));
-            (*_rt_5) = _fl_clone_fl_self_hosted_ast_TypeExpr((*_s->TSizedType.inner));
-            _s->TSizedType.inner = _rt_5;
+            _fl_retain_fl_self_hosted_ast_TypeExpr(_s->TSizedType.inner);
             break;
             break;
         }
@@ -3645,271 +3551,6 @@ void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr) {
             break;
         }
     }
-}
-
-/* Flow: clone for fl_self_hosted_ast_Expr */
-fl_self_hosted_ast_Expr _fl_clone_fl_self_hosted_ast_Expr(fl_self_hosted_ast_Expr _src) {
-    fl_self_hosted_ast_Expr _dst = _src;
-    switch (_dst.tag) {
-        case 0: {
-            fl_string_retain(_dst.EIntLit.suffix);
-            break;
-            break;
-        }
-        case 1: {
-            fl_string_retain(_dst.EFloatLit.value_text);
-            fl_string_retain(_dst.EFloatLit.suffix);
-            break;
-            break;
-        }
-        case 3: {
-            fl_string_retain(_dst.EStringLit.value);
-            break;
-            break;
-        }
-        case 6: {
-            fl_string_retain(_dst.EIdent.name);
-            fl_array_retain(_dst.EIdent.module_path);
-            break;
-            break;
-        }
-        case 7: {
-            fl_string_retain(_dst.EBinOp.op);
-            fl_self_hosted_ast_Expr* _clone_tmp_0 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_0) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EBinOp.left));
-            _dst.EBinOp.left = _clone_tmp_0;
-            fl_self_hosted_ast_Expr* _clone_tmp_1 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_1) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EBinOp.right));
-            _dst.EBinOp.right = _clone_tmp_1;
-            break;
-            break;
-        }
-        case 8: {
-            fl_string_retain(_dst.EUnaryOp.op);
-            fl_self_hosted_ast_Expr* _clone_tmp_2 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_2) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EUnaryOp.operand));
-            _dst.EUnaryOp.operand = _clone_tmp_2;
-            break;
-            break;
-        }
-        case 9: {
-            fl_string_retain(_dst.ENamedArg.name);
-            fl_self_hosted_ast_Expr* _clone_tmp_3 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_3) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ENamedArg.value));
-            _dst.ENamedArg.value = _clone_tmp_3;
-            break;
-            break;
-        }
-        case 10: {
-            fl_self_hosted_ast_Expr* _clone_tmp_4 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_4) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ESpread.inner));
-            _dst.ESpread.inner = _clone_tmp_4;
-            break;
-            break;
-        }
-        case 11: {
-            fl_self_hosted_ast_Expr* _clone_tmp_5 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_5) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ECall.callee));
-            _dst.ECall.callee = _clone_tmp_5;
-            fl_array_retain(_dst.ECall.args);
-            break;
-            break;
-        }
-        case 12: {
-            fl_self_hosted_ast_Expr* _clone_tmp_6 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_6) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EMethodCall.receiver));
-            _dst.EMethodCall.receiver = _clone_tmp_6;
-            fl_string_retain(_dst.EMethodCall.method);
-            fl_array_retain(_dst.EMethodCall.args);
-            break;
-            break;
-        }
-        case 13: {
-            fl_self_hosted_ast_Expr* _clone_tmp_7 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_7) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EFieldAccess.receiver));
-            _dst.EFieldAccess.receiver = _clone_tmp_7;
-            fl_string_retain(_dst.EFieldAccess.field);
-            break;
-            break;
-        }
-        case 14: {
-            fl_self_hosted_ast_Expr* _clone_tmp_8 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_8) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EIndexAccess.receiver));
-            _dst.EIndexAccess.receiver = _clone_tmp_8;
-            fl_self_hosted_ast_Expr* _clone_tmp_9 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_9) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EIndexAccess.index));
-            _dst.EIndexAccess.index = _clone_tmp_9;
-            break;
-            break;
-        }
-        case 15: {
-            fl_array_retain(_dst.ELambda.params);
-            fl_self_hosted_ast_Expr* _clone_tmp_10 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_10) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ELambda.body));
-            _dst.ELambda.body = _clone_tmp_10;
-            break;
-            break;
-        }
-        case 16: {
-            fl_array_retain(_dst.ETupleExpr.elements);
-            break;
-            break;
-        }
-        case 17: {
-            fl_array_retain(_dst.EArrayLit.elements);
-            break;
-            break;
-        }
-        case 18: {
-            fl_array_retain(_dst.ERecordLit.fields);
-            break;
-            break;
-        }
-        case 19: {
-            fl_string_retain(_dst.ETypeLit.type_name);
-            fl_array_retain(_dst.ETypeLit.fields);
-            fl_self_hosted_ast_Expr* _clone_tmp_11 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_11) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ETypeLit.spread));
-            _dst.ETypeLit.spread = _clone_tmp_11;
-            break;
-            break;
-        }
-        case 20: {
-            fl_self_hosted_ast_Expr* _clone_tmp_12 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_12) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EIfExpr.condition));
-            _dst.EIfExpr.condition = _clone_tmp_12;
-            fl_array_retain(_dst.EIfExpr.then_stmts);
-            fl_array_retain(_dst.EIfExpr.else_stmts);
-            break;
-            break;
-        }
-        case 21: {
-            fl_self_hosted_ast_Expr* _clone_tmp_13 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_13) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EMatchExpr.subject));
-            _dst.EMatchExpr.subject = _clone_tmp_13;
-            fl_array_retain(_dst.EMatchExpr.arms);
-            break;
-            break;
-        }
-        case 22: {
-            fl_self_hosted_ast_Expr* _clone_tmp_14 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_14) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ETernary.condition));
-            _dst.ETernary.condition = _clone_tmp_14;
-            fl_self_hosted_ast_Expr* _clone_tmp_15 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_15) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ETernary.then_expr));
-            _dst.ETernary.then_expr = _clone_tmp_15;
-            fl_self_hosted_ast_Expr* _clone_tmp_16 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_16) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ETernary.else_expr));
-            _dst.ETernary.else_expr = _clone_tmp_16;
-            break;
-            break;
-        }
-        case 23: {
-            fl_self_hosted_ast_Expr* _clone_tmp_17 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_17) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ECopy.inner));
-            _dst.ECopy.inner = _clone_tmp_17;
-            break;
-            break;
-        }
-        case 24: {
-            fl_self_hosted_ast_Expr* _clone_tmp_18 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_18) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ERef.inner));
-            _dst.ERef.inner = _clone_tmp_18;
-            break;
-            break;
-        }
-        case 25: {
-            fl_self_hosted_ast_Expr* _clone_tmp_19 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_19) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ESome.inner));
-            _dst.ESome.inner = _clone_tmp_19;
-            break;
-            break;
-        }
-        case 26: {
-            fl_self_hosted_ast_Expr* _clone_tmp_20 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_20) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EOk.inner));
-            _dst.EOk.inner = _clone_tmp_20;
-            break;
-            break;
-        }
-        case 27: {
-            fl_self_hosted_ast_Expr* _clone_tmp_21 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_21) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EErr.inner));
-            _dst.EErr.inner = _clone_tmp_21;
-            break;
-            break;
-        }
-        case 28: {
-            fl_self_hosted_ast_Expr* _clone_tmp_22 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_22) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.EPropagate.inner));
-            _dst.EPropagate.inner = _clone_tmp_22;
-            break;
-            break;
-        }
-        case 29: {
-            fl_self_hosted_ast_Expr* _clone_tmp_23 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_23) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ENullCoalesce.left));
-            _dst.ENullCoalesce.left = _clone_tmp_23;
-            fl_self_hosted_ast_Expr* _clone_tmp_24 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_24) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ENullCoalesce.right));
-            _dst.ENullCoalesce.right = _clone_tmp_24;
-            break;
-            break;
-        }
-        case 30: {
-            fl_self_hosted_ast_Expr* _clone_tmp_25 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_25) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ETypeof.inner));
-            _dst.ETypeof.inner = _clone_tmp_25;
-            break;
-            break;
-        }
-        case 31: {
-            fl_self_hosted_ast_Expr* _clone_tmp_26 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_26) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ECast.inner));
-            _dst.ECast.inner = _clone_tmp_26;
-            break;
-            break;
-        }
-        case 32: {
-            fl_self_hosted_ast_Expr* _clone_tmp_27 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_27) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ECoerce.inner));
-            _dst.ECoerce.inner = _clone_tmp_27;
-            break;
-            break;
-        }
-        case 33: {
-            fl_array_retain(_dst.EFString.parts);
-            break;
-            break;
-        }
-        case 34: {
-            fl_array_retain(_dst.ECompositionChain.elements);
-            break;
-            break;
-        }
-        case 35: {
-            fl_array_retain(_dst.EFanOut.branches);
-            break;
-            break;
-        }
-        case 36: {
-            fl_self_hosted_ast_Expr* _clone_tmp_28 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_clone_tmp_28) = _fl_clone_fl_self_hosted_ast_Expr((*_dst.ECoroutineStart.call));
-            _dst.ECoroutineStart.call = _clone_tmp_28;
-            break;
-            break;
-        }
-        case 37: {
-            fl_array_retain(_dst.ECoroutinePipeline.stages);
-            break;
-            break;
-        }
-        default: {
-            break;
-            break;
-        }
-    }
-    return _dst;
 }
 
 /* Flow: sum destructor for fl_self_hosted_ast_Expr */
@@ -3941,42 +3582,35 @@ void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
         case 7: {
             fl_string_release(_s->EBinOp.op);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EBinOp.left);
-            free(_s->EBinOp.left);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EBinOp.right);
-            free(_s->EBinOp.right);
             break;
             break;
         }
         case 8: {
             fl_string_release(_s->EUnaryOp.op);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EUnaryOp.operand);
-            free(_s->EUnaryOp.operand);
             break;
             break;
         }
         case 9: {
             fl_string_release(_s->ENamedArg.name);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ENamedArg.value);
-            free(_s->ENamedArg.value);
             break;
             break;
         }
         case 10: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ESpread.inner);
-            free(_s->ESpread.inner);
             break;
             break;
         }
         case 11: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ECall.callee);
-            free(_s->ECall.callee);
             fl_array_release(_s->ECall.args);
             break;
             break;
         }
         case 12: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EMethodCall.receiver);
-            free(_s->EMethodCall.receiver);
             fl_string_release(_s->EMethodCall.method);
             fl_array_release(_s->EMethodCall.args);
             break;
@@ -3984,23 +3618,19 @@ void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
         }
         case 13: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EFieldAccess.receiver);
-            free(_s->EFieldAccess.receiver);
             fl_string_release(_s->EFieldAccess.field);
             break;
             break;
         }
         case 14: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EIndexAccess.receiver);
-            free(_s->EIndexAccess.receiver);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EIndexAccess.index);
-            free(_s->EIndexAccess.index);
             break;
             break;
         }
         case 15: {
             fl_array_release(_s->ELambda.params);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ELambda.body);
-            free(_s->ELambda.body);
             break;
             break;
         }
@@ -4023,13 +3653,11 @@ void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
             fl_string_release(_s->ETypeLit.type_name);
             fl_array_release(_s->ETypeLit.fields);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ETypeLit.spread);
-            free(_s->ETypeLit.spread);
             break;
             break;
         }
         case 20: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EIfExpr.condition);
-            free(_s->EIfExpr.condition);
             fl_array_release(_s->EIfExpr.then_stmts);
             fl_array_release(_s->EIfExpr.else_stmts);
             break;
@@ -4037,80 +3665,65 @@ void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
         }
         case 21: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EMatchExpr.subject);
-            free(_s->EMatchExpr.subject);
             fl_array_release(_s->EMatchExpr.arms);
             break;
             break;
         }
         case 22: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.condition);
-            free(_s->ETernary.condition);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.then_expr);
-            free(_s->ETernary.then_expr);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ETernary.else_expr);
-            free(_s->ETernary.else_expr);
             break;
             break;
         }
         case 23: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ECopy.inner);
-            free(_s->ECopy.inner);
             break;
             break;
         }
         case 24: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ERef.inner);
-            free(_s->ERef.inner);
             break;
             break;
         }
         case 25: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ESome.inner);
-            free(_s->ESome.inner);
             break;
             break;
         }
         case 26: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EOk.inner);
-            free(_s->EOk.inner);
             break;
             break;
         }
         case 27: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EErr.inner);
-            free(_s->EErr.inner);
             break;
             break;
         }
         case 28: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->EPropagate.inner);
-            free(_s->EPropagate.inner);
             break;
             break;
         }
         case 29: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ENullCoalesce.left);
-            free(_s->ENullCoalesce.left);
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ENullCoalesce.right);
-            free(_s->ENullCoalesce.right);
             break;
             break;
         }
         case 30: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ETypeof.inner);
-            free(_s->ETypeof.inner);
             break;
             break;
         }
         case 31: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ECast.inner);
-            free(_s->ECast.inner);
             break;
             break;
         }
         case 32: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ECoerce.inner);
-            free(_s->ECoerce.inner);
             break;
             break;
         }
@@ -4131,7 +3744,6 @@ void _fl_destroy_fl_self_hosted_ast_Expr(void* _ptr) {
         }
         case 36: {
             _fl_destroy_fl_self_hosted_ast_Expr(_s->ECoroutineStart.call);
-            free(_s->ECoroutineStart.call);
             break;
             break;
         }
@@ -4175,78 +3787,56 @@ void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr) {
         }
         case 7: {
             fl_string_retain(_s->EBinOp.op);
-            fl_self_hosted_ast_Expr* _rt_0 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_0) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EBinOp.left));
-            _s->EBinOp.left = _rt_0;
-            fl_self_hosted_ast_Expr* _rt_1 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_1) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EBinOp.right));
-            _s->EBinOp.right = _rt_1;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EBinOp.left);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EBinOp.right);
             break;
             break;
         }
         case 8: {
             fl_string_retain(_s->EUnaryOp.op);
-            fl_self_hosted_ast_Expr* _rt_2 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_2) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EUnaryOp.operand));
-            _s->EUnaryOp.operand = _rt_2;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EUnaryOp.operand);
             break;
             break;
         }
         case 9: {
             fl_string_retain(_s->ENamedArg.name);
-            fl_self_hosted_ast_Expr* _rt_3 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_3) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ENamedArg.value));
-            _s->ENamedArg.value = _rt_3;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ENamedArg.value);
             break;
             break;
         }
         case 10: {
-            fl_self_hosted_ast_Expr* _rt_4 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_4) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ESpread.inner));
-            _s->ESpread.inner = _rt_4;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ESpread.inner);
             break;
             break;
         }
         case 11: {
-            fl_self_hosted_ast_Expr* _rt_5 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_5) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ECall.callee));
-            _s->ECall.callee = _rt_5;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECall.callee);
             fl_array_retain(_s->ECall.args);
             break;
             break;
         }
         case 12: {
-            fl_self_hosted_ast_Expr* _rt_6 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_6) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EMethodCall.receiver));
-            _s->EMethodCall.receiver = _rt_6;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EMethodCall.receiver);
             fl_string_retain(_s->EMethodCall.method);
             fl_array_retain(_s->EMethodCall.args);
             break;
             break;
         }
         case 13: {
-            fl_self_hosted_ast_Expr* _rt_7 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_7) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EFieldAccess.receiver));
-            _s->EFieldAccess.receiver = _rt_7;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EFieldAccess.receiver);
             fl_string_retain(_s->EFieldAccess.field);
             break;
             break;
         }
         case 14: {
-            fl_self_hosted_ast_Expr* _rt_8 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_8) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EIndexAccess.receiver));
-            _s->EIndexAccess.receiver = _rt_8;
-            fl_self_hosted_ast_Expr* _rt_9 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_9) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EIndexAccess.index));
-            _s->EIndexAccess.index = _rt_9;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EIndexAccess.receiver);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EIndexAccess.index);
             break;
             break;
         }
         case 15: {
             fl_array_retain(_s->ELambda.params);
-            fl_self_hosted_ast_Expr* _rt_10 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_10) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ELambda.body));
-            _s->ELambda.body = _rt_10;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ELambda.body);
             break;
             break;
         }
@@ -4268,112 +3858,78 @@ void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr) {
         case 19: {
             fl_string_retain(_s->ETypeLit.type_name);
             fl_array_retain(_s->ETypeLit.fields);
-            fl_self_hosted_ast_Expr* _rt_11 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_11) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ETypeLit.spread));
-            _s->ETypeLit.spread = _rt_11;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETypeLit.spread);
             break;
             break;
         }
         case 20: {
-            fl_self_hosted_ast_Expr* _rt_12 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_12) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EIfExpr.condition));
-            _s->EIfExpr.condition = _rt_12;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EIfExpr.condition);
             fl_array_retain(_s->EIfExpr.then_stmts);
             fl_array_retain(_s->EIfExpr.else_stmts);
             break;
             break;
         }
         case 21: {
-            fl_self_hosted_ast_Expr* _rt_13 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_13) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EMatchExpr.subject));
-            _s->EMatchExpr.subject = _rt_13;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EMatchExpr.subject);
             fl_array_retain(_s->EMatchExpr.arms);
             break;
             break;
         }
         case 22: {
-            fl_self_hosted_ast_Expr* _rt_14 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_14) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ETernary.condition));
-            _s->ETernary.condition = _rt_14;
-            fl_self_hosted_ast_Expr* _rt_15 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_15) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ETernary.then_expr));
-            _s->ETernary.then_expr = _rt_15;
-            fl_self_hosted_ast_Expr* _rt_16 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_16) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ETernary.else_expr));
-            _s->ETernary.else_expr = _rt_16;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.condition);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.then_expr);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETernary.else_expr);
             break;
             break;
         }
         case 23: {
-            fl_self_hosted_ast_Expr* _rt_17 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_17) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ECopy.inner));
-            _s->ECopy.inner = _rt_17;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECopy.inner);
             break;
             break;
         }
         case 24: {
-            fl_self_hosted_ast_Expr* _rt_18 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_18) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ERef.inner));
-            _s->ERef.inner = _rt_18;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ERef.inner);
             break;
             break;
         }
         case 25: {
-            fl_self_hosted_ast_Expr* _rt_19 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_19) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ESome.inner));
-            _s->ESome.inner = _rt_19;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ESome.inner);
             break;
             break;
         }
         case 26: {
-            fl_self_hosted_ast_Expr* _rt_20 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_20) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EOk.inner));
-            _s->EOk.inner = _rt_20;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EOk.inner);
             break;
             break;
         }
         case 27: {
-            fl_self_hosted_ast_Expr* _rt_21 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_21) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EErr.inner));
-            _s->EErr.inner = _rt_21;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EErr.inner);
             break;
             break;
         }
         case 28: {
-            fl_self_hosted_ast_Expr* _rt_22 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_22) = _fl_clone_fl_self_hosted_ast_Expr((*_s->EPropagate.inner));
-            _s->EPropagate.inner = _rt_22;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->EPropagate.inner);
             break;
             break;
         }
         case 29: {
-            fl_self_hosted_ast_Expr* _rt_23 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_23) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ENullCoalesce.left));
-            _s->ENullCoalesce.left = _rt_23;
-            fl_self_hosted_ast_Expr* _rt_24 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_24) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ENullCoalesce.right));
-            _s->ENullCoalesce.right = _rt_24;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ENullCoalesce.left);
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ENullCoalesce.right);
             break;
             break;
         }
         case 30: {
-            fl_self_hosted_ast_Expr* _rt_25 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_25) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ETypeof.inner));
-            _s->ETypeof.inner = _rt_25;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ETypeof.inner);
             break;
             break;
         }
         case 31: {
-            fl_self_hosted_ast_Expr* _rt_26 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_26) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ECast.inner));
-            _s->ECast.inner = _rt_26;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECast.inner);
             break;
             break;
         }
         case 32: {
-            fl_self_hosted_ast_Expr* _rt_27 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_27) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ECoerce.inner));
-            _s->ECoerce.inner = _rt_27;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECoerce.inner);
             break;
             break;
         }
@@ -4393,9 +3949,7 @@ void _fl_retain_fl_self_hosted_ast_Expr(void* _ptr) {
             break;
         }
         case 36: {
-            fl_self_hosted_ast_Expr* _rt_28 = ((fl_self_hosted_ast_Expr*)malloc(sizeof(fl_self_hosted_ast_Expr)));
-            (*_rt_28) = _fl_clone_fl_self_hosted_ast_Expr((*_s->ECoroutineStart.call));
-            _s->ECoroutineStart.call = _rt_28;
+            _fl_retain_fl_self_hosted_ast_Expr(_s->ECoroutineStart.call);
             break;
             break;
         }
