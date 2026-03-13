@@ -2868,6 +2868,50 @@ class Lowerer:
         target = self._lower_expr(stmt.target)
         value = self._lower_expr(stmt.value)
 
+        # Destroy-before-reassign for :mut affine (sum type) bindings.
+        # With FL_Box, this is safe: releasing the old value just decrements
+        # refcounts on recursive fields. If other copies exist, the box survives.
+        if (isinstance(stmt.target, Ident)
+                and self._is_affine_type(self._type_of(stmt.target))
+                and not self._call_passes_var_by_mut_ref(stmt.value, stmt.target.name)):
+            target_type = self._type_of(stmt.target)
+            # Skip if RHS references the target variable (self-referencing
+            # patterns like e = transform(e) — cannot destroy before call).
+            # Also check _pending_stmts: variant constructors that box the
+            # target (e.g. EBinOp(left:left, ...)) shallow-copy the target
+            # into an FL_Box via pending stmts. Destroying the target would
+            # free internals the box still references.
+            rhs_refs: set[str] = self._collect_referenced_vars(value)
+            for ps in self._pending_stmts:
+                if isinstance(ps, LVarDecl) and ps.init:
+                    rhs_refs |= self._collect_referenced_vars(ps.init)
+                elif isinstance(ps, LAssign):
+                    rhs_refs |= self._collect_referenced_vars(ps.value)
+                elif isinstance(ps, LExprStmt):
+                    rhs_refs |= self._collect_referenced_vars(ps.expr)
+            rhs_refs_target = rhs_refs & {target.c_name}
+            if not rhs_refs_target:
+                dest_fn = None
+                target_lt = self._lower_type(target_type)
+                if self._sum_type_has_cleanup_fields(target_type):
+                    handlers = self._get_or_emit_sum_type_handlers(
+                        target_type, target_lt)
+                    if handlers:
+                        dest_fn = handlers[0]
+                elif self._has_refcounted_fields(target_type):
+                    handlers = self._get_or_emit_struct_handlers(
+                        target_type, target_lt)
+                    if handlers:
+                        dest_fn = handlers[0]
+                if dest_fn:
+                    return [
+                        LExprStmt(LCall(
+                            dest_fn,
+                            [LAddrOf(target, LPtr(target.c_type))],
+                            LVoid())),
+                        LAssign(target=target, value=value),
+                    ]
+
         # Release-on-reassignment for container-typed :mut variables.
         # Only for allocating RHS (call, literal) so the old value is
         # guaranteed to be from a previous allocation, not a borrow.

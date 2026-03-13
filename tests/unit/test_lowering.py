@@ -1520,5 +1520,27 @@ class TestBoxRelease(unittest.TestCase):
         # The destroy function still exists — it's passed as callback to fl_box_release
 
 
+class TestDestroyBeforeReassign(unittest.TestCase):
+    """Reassignment of :mut affine bindings should destroy the old value first."""
+
+    def test_mut_affine_reassign_emits_destroy(self):
+        """Reassigning a :mut sum type variable should emit a destructor call before the assignment."""
+        source = """
+            type Expr =
+                | ELit(value:int)
+                | EUnary(op:string, inner:Expr)
+            fn process():int {
+                let e:Expr:mut = Expr.ELit(value:1)
+                e = Expr.ELit(value:2)
+                return 0
+            }
+            fn do_stuff():int { return 0 }
+        """
+        m = lower(source)
+        c_code = emit(m)
+        # Should have a destroy call for the old value before reassignment
+        self.assertRegex(c_code, r'_fl_destroy_\w+\(\(&e\)\)')
+
+
 if __name__ == "__main__":
     unittest.main()
