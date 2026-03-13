@@ -12,7 +12,7 @@ from compiler.lowering import (
     LType, LInt, LFloat, LBool, LChar, LByte, LPtr, LStruct, LVoid, LFnPtr,
     # Expressions
     LExpr, LLit, LVar, LCall, LIndirectCall, LBinOp, LUnary,
-    LFieldAccess, LArrow, LIndex, LCast, LAddrOf, LDeref,
+    LFieldAccess, LArrow, LIndex, LCast, LAddrOf, LDeref, LBoxDeref,
     LCompound, LCheckedArith, LSizeOf, LTernary, LArrayData, LOptDerefAs,
     # Statements
     LStmt, LVarDecl, LArrayDecl, LAssign, LReturn, LIf, LWhile, LBlock,
@@ -686,6 +686,8 @@ class Emitter:
                 return f"(&{self._emit_expr(inner)})"
             case LDeref(inner=inner):
                 return f"(*{self._emit_expr(inner)})"
+            case LBoxDeref(inner=inner, boxed_type=bt):
+                return f"FL_BOX_DEREF({self._emit_expr(inner)}, {self._emit_ltype(bt)})"
             case LSizeOf(c_type=ctype):
                 return f"sizeof({self._emit_ltype(ctype)})"
             case LTernary(cond=cond, then_expr=then_expr, else_expr=else_expr):

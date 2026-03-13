@@ -198,6 +198,18 @@ class LDeref(LExpr):
 
 
 @dataclass
+class LBoxDeref(LExpr):
+    """Dereference an FL_Box pointer: FL_BOX_DEREF(inner, boxed_type).
+
+    Emits: FL_BOX_DEREF(inner, boxed_type)
+    Used for recursive sum type fields stored in FL_Box.
+    """
+    inner: LExpr          # The FL_Box* expression
+    boxed_type: LType     # The type stored in the box (e.g., LStruct("Expr"))
+    c_type: LType         # Same as boxed_type (the result of dereferencing)
+
+
+@dataclass
 class LCompound(LExpr):
     fields: list[tuple[str, LExpr]]
     c_type: LType
@@ -8402,6 +8414,8 @@ class Lowerer:
                 return LAddrOf(self._rewrite_expr(inner, fv, fc, names), ct)
             case LDeref(inner=inner, c_type=ct):
                 return LDeref(self._rewrite_expr(inner, fv, fc, names), ct)
+            case LBoxDeref(inner=inner, boxed_type=bt, c_type=ct):
+                return LBoxDeref(self._rewrite_expr(inner, fv, fc, names), bt, ct)
             case LTernary(cond=c, then_expr=t, else_expr=e, c_type=ct):
                 return LTernary(
                     self._rewrite_expr(c, fv, fc, names),
