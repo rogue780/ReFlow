@@ -36,7 +36,7 @@
 
 - [ ] **Step 1: Add FL_Box struct and declarations to flow_runtime.h**
 
-Add after the FL_String section (~line 224), before the Array section:
+Add after the numeric conversion declarations (line 223), before the Built-in Interface Helpers section (line 225):
 
 ```c
 /* ========================================================================
@@ -57,14 +57,14 @@ void    fl_box_release(FL_Box* box, void (*destructor)(void*));
 
 - [ ] **Step 2: Implement FL_Box functions in flow_runtime.c**
 
-Add after the string functions (~line 77), before the array section:
+Add after the `fl_string_release` function (line 76), before `fl_string_copy` (line 78):
 
 ```c
 /* ── Box ─────────────────────────────────────────────────────────────── */
 
 FL_Box* fl_box_new(fl_int64 size) {
     FL_Box* box = (FL_Box*)malloc(sizeof(FL_Box) + size);
-    if (!box) { fprintf(stderr, "fl_box_new: out of memory\n"); exit(1); }
+    if (!box) fl_panic("fl_box_new: out of memory");
     atomic_store(&box->refcount, 1);
     return box;
 }
@@ -268,7 +268,19 @@ To:
                 inner_fields.append((fname, LVar(tmp, box_ptr_type)))
 ```
 
-Also update the field type in the struct definition — the variant's field type for recursive fields changes from `LPtr(sum_lt)` to `LPtr(LStruct("FL_Box"))`. Find where the lowering emits the struct definition for the variant (in `_lower_sum_type_def` or similar) and change the field type for recursive fields.
+Also update the struct definition field type. In `_lower_sum_type_decl` at line 1357 of `compiler/lowering.py`, change:
+
+```python
+# Before:
+if self._is_recursive_sum_field(f_type, td.name, ftype_expr):
+    field_lt = LPtr(field_lt)
+
+# After:
+if self._is_recursive_sum_field(f_type, td.name, ftype_expr):
+    field_lt = LPtr(LStruct("FL_Box"))
+```
+
+This must happen in the same step as the constructor change — the struct definition must declare `FL_Box*` fields to match the `FL_Box*` values the constructor assigns.
 
 - [ ] **Step 4: Update match-binding dereference sites**
 
@@ -301,9 +313,9 @@ And similarly at line ~7602-7609:
                                         init=LBoxDeref(field_access, field_lt, field_lt)))
 ```
 
-- [ ] **Step 5: Update heap-boxing site (line ~8919)**
+- [ ] **Step 5: Verify heap-boxing site (line ~8919) — no change needed**
 
-Check if line 8919 is for recursive sum types. If so, change `LDeref` to `LBoxDeref` and update the allocation to `fl_box_new`. If it's for a different purpose (non-recursive boxing), leave it.
+Line 8919 is in `_heap_box_struct`, which heap-boxes structs for generic container `void*` parameters (e.g., `array.push` with a sum type value). This is NOT for recursive sum types — leave it unchanged.
 
 - [ ] **Step 6: Update golden files**
 
@@ -369,7 +381,7 @@ class TestBoxRelease(unittest.TestCase):
         m = lower(source)
         c_code = emit(m)
         self.assertIn("fl_box_release", c_code)
-        # Should NOT have the old pattern of calling destroy directly on pointer
+        self.assertIn("fl_box_retain", c_code)
         # The destroy function still exists — it's passed as callback to fl_box_release
 ```
 
@@ -429,51 +441,9 @@ git commit -m "RT-11: Sum type destructor uses fl_box_release for recursive fiel
 
 ---
 
-## Chunk 5: Sum Type Struct Definitions
+## Chunk 5: ASAN Verification
 
-### Task 5: Update sum type struct field types from Type* to FL_Box*
-
-**Files:**
-- Modify: `compiler/lowering.py` (sum type struct definition emission)
-- Test: Golden files
-
-The struct definitions for sum type variants currently declare recursive fields as `Type*`. They need to become `FL_Box*`.
-
-- [ ] **Step 1: Find where variant struct field types are emitted**
-
-Search for where the lowering generates struct definitions for sum type variants. The field type for recursive fields is determined by `_is_recursive_sum_field`. Where the field type is set to `LPtr(field_lt)` for recursive fields, change it to `LPtr(LStruct("FL_Box"))`.
-
-This is likely in `_lower_sum_type_def` or `_emit_sum_type_structs` or wherever `TypeDecl` with variants is lowered to `LTypeDef`.
-
-- [ ] **Step 2: Update field type for recursive fields**
-
-Wherever the sum type struct definition sets the field type for recursive fields, change:
-
-```python
-# Before:
-field_c_type = LPtr(inner_lt)  # Type* field
-
-# After:
-field_c_type = LPtr(LStruct("FL_Box"))  # FL_Box* field
-```
-
-- [ ] **Step 3: Update golden files and run tests**
-
-Run: `make test`
-Regenerate golden files. Verify struct definitions show `FL_Box*` instead of `Type*`.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add compiler/lowering.py tests/expected/
-git commit -m "RT-11: Sum type variant struct fields use FL_Box* for recursive pointers"
-```
-
----
-
-## Chunk 6: ASAN Verification
-
-### Task 6: Run ASAN and verify leak reduction
+### Task 5: Run ASAN and verify leak reduction
 
 **Files:**
 - No code changes expected (unless ASAN reveals issues to fix)
@@ -503,11 +473,66 @@ UAF would indicate a code path that frees a box while another reference exists. 
 - Are match bindings retaining (or just borrowing)?
 - Is the retainer in `_get_or_emit_sum_type_handlers` correctly calling `fl_box_retain`?
 
-- [ ] **Step 4: Re-enable destroy-before-reassign for :mut affine bindings**
+- [ ] **Step 4: Write test for destroy-before-reassign**
 
-With FL_Box, the previously-reverted destroy-before-reassign is safe. The release just decrements the refcount. Re-implement the logic from the reverted commit `7486110`, but using `fl_box_release` for sum type fields instead of calling the destructor directly.
+Add to `tests/unit/test_lowering.py`:
 
-- [ ] **Step 5: Run ASAN again after reassign fix**
+```python
+class TestDestroyBeforeReassign(unittest.TestCase):
+    """Reassignment of :mut affine bindings should destroy the old value first."""
+
+    def test_mut_affine_reassign_emits_destroy(self):
+        """Reassigning a :mut sum type variable should emit a destructor call before the assignment."""
+        source = """
+            type Expr {
+                ELit(value:int),
+                EUnary(op:string, inner:Expr)
+            }
+            fn process():int {
+                let e:Expr:mut = Expr.ELit(value:1)
+                e = Expr.ELit(value:2)
+                return 0
+            }
+            fn do_stuff():int { return 0 }
+        """
+        m = lower(source)
+        c_code = emit(m)
+        # Should have a destroy call before the reassignment
+        self.assertIn("_fl_destroy_", c_code)
+```
+
+Run: `pytest tests/unit/test_lowering.py::TestDestroyBeforeReassign -v`
+Expected: FAIL (destroy-before-reassign not yet implemented)
+
+- [ ] **Step 5: Re-enable destroy-before-reassign for :mut affine bindings**
+
+Re-apply the logic from reverted commit `7486110`. In `_lower_assign` (line ~2858 of `compiler/lowering.py`), after the release-on-reassignment block (line ~2867-2896), add a block for affine types:
+
+```python
+        # Destroy-before-reassign for :mut affine (sum type) bindings.
+        # With FL_Box, this is safe: releasing the old value just decrements
+        # refcounts on recursive fields. If other copies exist, the box survives.
+        if (isinstance(stmt.target, Ident)
+                and self._is_affine_type(self._type_of(stmt.target))
+                and not self._call_passes_var_by_mut_ref(stmt.value, stmt.target.name)):
+            target_type = self._type_of(stmt.target)
+            # Check if RHS references the target variable (self-referencing)
+            rhs_refs_target = self._collect_referenced_vars(stmt.value) & {stmt.target.name}
+            if not rhs_refs_target:
+                dest_fn = self._get_destructor_fn(target_type)
+                if dest_fn:
+                    stmts.append(LExprStmt(LCall(
+                        dest_fn,
+                        [LAddrOf(target, LPtr(target.c_type))],
+                        LVoid())))
+```
+
+Add a `_collect_referenced_vars` helper that walks the AST to collect all `Ident` names used in an expression (to detect when the RHS references the target variable, in which case we must NOT destroy before reassign).
+
+Run: `make test`
+Expected: All tests pass
+
+- [ ] **Step 6: Run ASAN again after reassign fix**
 
 ```bash
 python main.py emit-c self_hosted/driver.flow > /tmp/fl_driver_asan.c
@@ -516,11 +541,11 @@ ASAN_OPTIONS=detect_leaks=1 /tmp/fl_driver_asan emit-c self_hosted/typechecker.f
 tail -5 /tmp/asan_final.txt
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add compiler/lowering.py tests/expected/
-git commit -m "RT-11: ASAN verification — FL_Box eliminates recursive pointer leaks"
+git add compiler/lowering.py tests/unit/test_lowering.py tests/expected/
+git commit -m "RT-11: Re-enable destroy-before-reassign for :mut affine bindings (safe with FL_Box)"
 ```
 
 ---
@@ -529,15 +554,14 @@ git commit -m "RT-11: ASAN verification — FL_Box eliminates recursive pointer 
 
 ### Priority Order
 
-Tasks 1-5 form the critical path. Execute in order:
+Tasks 1-4 form the critical path. Execute in order:
 1. Runtime FL_Box (foundation — no lowering changes)
 2. LBoxDeref LIR node (infrastructure — no behavior change)
-3. Variant constructor allocation (the big change — malloc → fl_box_new)
+3. Variant constructor allocation + struct field types (malloc → fl_box_new, Type* → FL_Box*)
 4. Sum type destructor (destroy-only → fl_box_release)
-5. Struct field type definitions (Type* → FL_Box*)
-6. ASAN verification (measurement + optional reassign fix)
+5. ASAN verification + destroy-before-reassign re-enablement
 
-Tasks 3-5 will cause cascading golden file updates. It may be practical to combine them into a single commit if the golden file churn is too noisy to review incrementally.
+Tasks 3-4 will cause cascading golden file updates. It may be practical to combine them into a single commit if the golden file churn is too noisy to review incrementally.
 
 ### Key Invariant
 
