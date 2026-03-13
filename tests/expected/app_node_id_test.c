@@ -530,6 +530,8 @@ FL_String* fl_tests_app_node_id_test_lookup(FL_Map* types, fl_int id);
 
 fl_int fl_tests_app_node_id_test_get_id(fl_tests_app_node_id_test_Expr expr);
 
+fl_tests_app_node_id_test_Expr _fl_clone_fl_tests_app_node_id_test_Expr(fl_tests_app_node_id_test_Expr _src);
+
 void _fl_destroy_fl_tests_app_node_id_test_Expr(void* _ptr);
 
 void _fl_retain_fl_tests_app_node_id_test_Expr(void* _ptr);
@@ -637,6 +639,34 @@ fl_int fl_tests_app_node_id_test_get_id(fl_tests_app_node_id_test_Expr expr) {
     }
 }
 
+/* Flow: clone for fl_tests_app_node_id_test_Expr */
+fl_tests_app_node_id_test_Expr _fl_clone_fl_tests_app_node_id_test_Expr(fl_tests_app_node_id_test_Expr _src) {
+    fl_tests_app_node_id_test_Expr _dst = _src;
+    switch (_dst.tag) {
+        case 1: {
+            fl_string_retain(_dst.BinOp.op);
+            fl_tests_app_node_id_test_Expr* _clone_tmp_0 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
+            (*_clone_tmp_0) = _fl_clone_fl_tests_app_node_id_test_Expr((*_dst.BinOp.left));
+            _dst.BinOp.left = _clone_tmp_0;
+            fl_tests_app_node_id_test_Expr* _clone_tmp_1 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
+            (*_clone_tmp_1) = _fl_clone_fl_tests_app_node_id_test_Expr((*_dst.BinOp.right));
+            _dst.BinOp.right = _clone_tmp_1;
+            break;
+            break;
+        }
+        case 2: {
+            fl_string_retain(_dst.Ident.name);
+            break;
+            break;
+        }
+        default: {
+            break;
+            break;
+        }
+    }
+    return _dst;
+}
+
 /* Flow: sum destructor for fl_tests_app_node_id_test_Expr */
 void _fl_destroy_fl_tests_app_node_id_test_Expr(void* _ptr) {
     fl_tests_app_node_id_test_Expr* _s = ((fl_tests_app_node_id_test_Expr*)_ptr);
@@ -644,7 +674,9 @@ void _fl_destroy_fl_tests_app_node_id_test_Expr(void* _ptr) {
         case 1: {
             fl_string_release(_s->BinOp.op);
             _fl_destroy_fl_tests_app_node_id_test_Expr(_s->BinOp.left);
+            free(_s->BinOp.left);
             _fl_destroy_fl_tests_app_node_id_test_Expr(_s->BinOp.right);
+            free(_s->BinOp.right);
             break;
             break;
         }
@@ -666,8 +698,12 @@ void _fl_retain_fl_tests_app_node_id_test_Expr(void* _ptr) {
     switch (_s->tag) {
         case 1: {
             fl_string_retain(_s->BinOp.op);
-            _fl_retain_fl_tests_app_node_id_test_Expr(_s->BinOp.left);
-            _fl_retain_fl_tests_app_node_id_test_Expr(_s->BinOp.right);
+            fl_tests_app_node_id_test_Expr* _rt_0 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
+            (*_rt_0) = _fl_clone_fl_tests_app_node_id_test_Expr((*_s->BinOp.left));
+            _s->BinOp.left = _rt_0;
+            fl_tests_app_node_id_test_Expr* _rt_1 = ((fl_tests_app_node_id_test_Expr*)malloc(sizeof(fl_tests_app_node_id_test_Expr)));
+            (*_rt_1) = _fl_clone_fl_tests_app_node_id_test_Expr((*_s->BinOp.right));
+            _s->BinOp.right = _rt_1;
             break;
             break;
         }
