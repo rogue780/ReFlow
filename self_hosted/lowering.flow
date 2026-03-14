@@ -2113,7 +2113,7 @@ fn lower_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             return lir.LECall(fn_name:"fl_string_from_cstr", args:[lir.le_box(lir.LELit(value:"\"" + escaped + "\"", c_type:lir.LPtr(inner:lir.LChar)))], c_type:lir.LPtr(inner:lir.LStruct(c_name:"FL_String")))
         }
         ECharLit(id, line, col, value): {
-            return lir.LELit(value:"'" + conv.to_string(value) + "'", c_type:lir.LChar)
+            return lir.LELit(value:conv.to_string(value), c_type:lir.LChar)
         }
         ENoneLit(id, line, col): {
             return lower_none_lit(st)
@@ -2407,6 +2407,57 @@ fn lower_binop(st:LowerState:mut, e:ast.Expr):lir.LExpr {
 }
 
 // ---------------------------------------------------------------------------
+// Variadic call arg packing
+// ---------------------------------------------------------------------------
+
+// Pack trailing variadic arguments into an array literal.
+// fixed_count: number of non-variadic params
+// largs: all lowered arguments (fixed + variadic)
+// Returns new argument list with variadic args packed into an array.
+fn pack_variadic_args(st:LowerState:mut, largs:array<lir.LExprBox>, fixed_count:int, elem_lt:lir.LType):array<lir.LExprBox> {
+    let fixed:array<lir.LExprBox>:mut = []
+    let variadic:array<lir.LExprBox>:mut = []
+    let i:int:mut = 0
+    for(arg:lir.LExprBox in largs) {
+        if(i < fixed_count) {
+            fixed = array.push(fixed, arg)
+        } else {
+            variadic = array.push(variadic, arg)
+        }
+        i = i + 1
+    }
+
+    // Build array from variadic args
+    let arr_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Array"))
+    let count:int = array.size(variadic)
+    if(count == 0) {
+        // Empty array
+        let empty:lir.LExpr = lir.LECall(
+            fn_name:"fl_array_new",
+            args:[
+                lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))),
+                lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))),
+                lir.le_box(lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid)))
+            ],
+            c_type:arr_lt
+        )
+        return array.push(fixed, lir.le_box(empty))
+    }
+    // Non-empty: create array with elements
+    let arr_data:lir.LExpr = lir.LEArrayData(elements:variadic, elem_type:elem_lt, c_type:lir.LPtr(inner:elem_lt))
+    let arr_call:lir.LExpr = lir.LECall(
+        fn_name:"fl_array_new",
+        args:[
+            lir.le_box(lir.LELit(value:conv.to_string(count), c_type:lir.LInt(width:64, is_signed:true))),
+            lir.le_box(lir.LESizeOf(target_type:elem_lt)),
+            lir.le_box(arr_data)
+        ],
+        c_type:arr_lt
+    )
+    return array.push(fixed, lir.le_box(arr_call))
+}
+
+// ---------------------------------------------------------------------------
 // lower_call — function call
 // ---------------------------------------------------------------------------
 
@@ -2427,6 +2478,21 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                         largs = array.push(largs, lir.le_box(lower_expr(st, arg)))
                     }
                 }
+            }
+
+            // Pack variadic args into an array if callee is variadic
+            let callee_type:typechecker.TCType = type_of(st, ast.expr_id(callee))
+            match(callee_type) {
+                TCFn(fn_params, fn_ret, fn_pure, fn_variadic): {
+                    if(fn_variadic && array.size(fn_params) > 0) {
+                        let n_fixed:int = array.size(fn_params) - 1
+                        // Get elem type from the last param (which is TCArray(elem))
+                        // Use the lowered element type from the string ptr (common case)
+                        let elem_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_String"))
+                        largs = pack_variadic_args(st, largs, n_fixed, elem_lt)
+                    }
+                }
+                _: {}
             }
 
             // Determine callee name
