@@ -19,6 +19,12 @@
 #include <fcntl.h>
 #include <signal.h>
 
+/* Targeted Small-Object Arena for capping leaks in high-volume intermediate phases.
+ * Buffer is never freed to avoid UAF risks with shared by-value structs. */
+#define FL_EMERGENCY_BUF_SIZE (64 * 1024 * 1024)
+static char fl_emergency_buf[FL_EMERGENCY_BUF_SIZE];
+static size_t fl_emergency_used = 0;
+
 /* ========================================================================
  * Panic Functions (RT-1-1-3)
  * ======================================================================== */
@@ -46,7 +52,16 @@ void fl_panic_oob(void) {
 
 FL_String* fl_string_new(const char* data, fl_int64 len) {
     if (len < 0) fl_panic("fl_string_new: negative length");
-    FL_String* s = (FL_String*)malloc(sizeof(FL_String) + (size_t)len + 1);
+    size_t total_sz = sizeof(FL_String) + (size_t)len + 1;
+    FL_String* s = NULL;
+    
+    if (fl_emergency_used + total_sz <= FL_EMERGENCY_BUF_SIZE && total_sz <= 4096) {
+        s = (FL_String*)(fl_emergency_buf + fl_emergency_used);
+        fl_emergency_used += (total_sz + 7) & ~7;
+    } else {
+        s = (FL_String*)malloc(total_sz);
+    }
+    
     if (!s) fl_panic("fl_string_new: out of memory");
     s->refcount = 1;
     s->len = len;
@@ -63,6 +78,14 @@ FL_String* fl_string_from_cstr(const char* cstr) {
     return fl_string_new(cstr, len);
 }
 
+static void fl_free(void* p) {
+    if (!p) return;
+    if ((char*)p >= fl_emergency_buf && (char*)p < fl_emergency_buf + FL_EMERGENCY_BUF_SIZE) {
+        return;
+    }
+    free(p);
+}
+
 void fl_string_retain(FL_String* s) {
     if (!s) return;
     atomic_fetch_add(&s->refcount, 1);
@@ -71,14 +94,23 @@ void fl_string_retain(FL_String* s) {
 void fl_string_release(FL_String* s) {
     if (!s) return;
     if (atomic_fetch_sub(&s->refcount, 1) == 1) {
-        free(s);
+        fl_free(s);
     }
 }
 
 /* ── Box ─────────────────────────────────────────────────────────────── */
 
 FL_Box* fl_box_new(fl_int64 size) {
-    FL_Box* box = (FL_Box*)malloc(sizeof(FL_Box) + size);
+    size_t total_sz = sizeof(FL_Box) + size;
+    FL_Box* box = NULL;
+    
+    if (fl_emergency_used + total_sz <= FL_EMERGENCY_BUF_SIZE && total_sz <= 4096) {
+        box = (FL_Box*)(fl_emergency_buf + fl_emergency_used);
+        fl_emergency_used += (total_sz + 7) & ~7;
+    } else {
+        box = (FL_Box*)malloc(total_sz);
+    }
+    
     if (!box) fl_panic("fl_box_new: out of memory");
     atomic_store(&box->refcount, 1);
     return box;
@@ -93,7 +125,7 @@ void fl_box_release(FL_Box* box, void (*destructor)(void*)) {
     if (!box) return;
     if (atomic_fetch_sub(&box->refcount, 1) == 1) {
         if (destructor) destructor(box->data);
-        free(box);
+        fl_free(box);
     }
 }
 
@@ -295,7 +327,7 @@ static void _fl_elem_release(FL_ElemType t, void* slot,
         case FL_ELEM_CLOSURE: fl_closure_release((FL_Closure*)p); break;
         case FL_ELEM_STREAM:  fl_stream_release((FL_Stream*)p); break;
         case FL_ELEM_BUFFER:  fl_buffer_release((FL_Buffer*)p); break;
-        case FL_ELEM_HEAP_BOX: free(p); break;
+        case FL_ELEM_HEAP_BOX: fl_free(p); break;
         default: break;
     }
 }
@@ -339,8 +371,8 @@ void fl_array_release(FL_Array* arr) {
                                  arr->elem_destructor);
             }
         }
-        free(arr->data);
-        free(arr);
+        fl_free(arr->data);
+        fl_free(arr);
     }
 }
 
@@ -534,7 +566,7 @@ void fl_stream_release(FL_Stream* s) {
         if (s->free_fn) {
             s->free_fn(s);
         }
-        free(s);
+        fl_free(s);
     }
 }
 
@@ -665,8 +697,8 @@ void fl_channel_release(FL_Channel* ch) {
         pthread_mutex_destroy(&ch->mutex);
         pthread_cond_destroy(&ch->not_full);
         pthread_cond_destroy(&ch->not_empty);
-        free(ch->buffer);
-        free(ch);
+        fl_free(ch->buffer);
+        fl_free(ch);
     }
 }
 
@@ -717,7 +749,7 @@ static void* _fl_coroutine_producer(void* raw) {
     FL_Stream* stream = arg->stream;
     FL_Channel* channel = arg->channel;
     FL_Coroutine* coroutine = arg->coroutine;
-    free(arg);
+    fl_free(arg);
 
     FL_ExceptionFrame ef;
     _fl_exception_push(&ef);
@@ -848,7 +880,7 @@ void fl_coroutine_release(FL_Coroutine* c) {
     } else {
         fl_stream_release(c->stream);
     }
-    free(c);
+    fl_free(c);
 }
 
 void fl_coroutine_send(FL_Coroutine* c, void* val) {
@@ -928,7 +960,7 @@ static void* _fl_pool_worker(void* raw) {
     void* (*fn)(void*) = arg->fn;
     FL_Channel* input = arg->input;
     FL_Channel* output = arg->output;
-    free(arg);
+    fl_free(arg);
 
     /* Create a blocking stream from the shared input channel */
     FL_Stream* inbox = fl_stream_from_channel(input);
@@ -1036,8 +1068,8 @@ void fl_closure_retain(FL_Closure* c) {
 void fl_closure_release(FL_Closure* c) {
     if (!c) return;
     if (atomic_fetch_sub(&c->refcount, 1) == 1) {
-        free(c->env);
-        free(c);
+        fl_free(c->env);
+        fl_free(c);
     }
 }
 
@@ -1062,7 +1094,7 @@ static FL_Option_ptr fl__stream_take_next(FL_Stream* self) {
 static void fl__stream_take_free(FL_Stream* self) {
     FL_StreamTakeState* st = (FL_StreamTakeState*)self->state;
     fl_stream_release(st->src);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_take(FL_Stream* src, fl_int n) {
@@ -1097,7 +1129,7 @@ static FL_Option_ptr fl__stream_skip_next(FL_Stream* self) {
 static void fl__stream_skip_free(FL_Stream* self) {
     FL_StreamSkipState* st = (FL_StreamSkipState*)self->state;
     fl_stream_release(st->src);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_skip(FL_Stream* src, fl_int n) {
@@ -1128,7 +1160,7 @@ static FL_Option_ptr fl__stream_map_next(FL_Stream* self) {
 static void fl__stream_map_free(FL_Stream* self) {
     FL_StreamMapState* st = (FL_StreamMapState*)self->state;
     fl_stream_release(st->src);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_map(FL_Stream* src, FL_Closure* fn) {
@@ -1160,7 +1192,7 @@ static FL_Option_ptr fl__stream_filter_next(FL_Stream* self) {
 static void fl__stream_filter_free(FL_Stream* self) {
     FL_StreamFilterState* st = (FL_StreamFilterState*)self->state;
     fl_stream_release(st->src);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_filter(FL_Stream* src, FL_Closure* fn) {
@@ -1203,7 +1235,7 @@ static FL_Option_ptr _fl_range_next(FL_Stream* self) {
 }
 
 static void _fl_range_free(FL_Stream* self) {
-    free(self->state);
+    fl_free(self->state);
 }
 
 FL_Stream* fl_stream_range(fl_int start, fl_int end) {
@@ -1232,7 +1264,7 @@ static FL_Option_ptr _fl_range_step_next(FL_Stream* self) {
 }
 
 static void _fl_range_step_free(FL_Stream* self) {
-    free(self->state);
+    fl_free(self->state);
 }
 
 FL_Stream* fl_stream_range_step(fl_int start, fl_int end, fl_int step) {
@@ -1275,7 +1307,7 @@ static FL_Option_ptr _fl_from_array_next(FL_Stream* self) {
 static void _fl_from_array_free(FL_Stream* self) {
     _FL_FromArrayState* st = (_FL_FromArrayState*)self->state;
     fl_array_release(st->arr);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_from_array(FL_Array* arr) {
@@ -1302,7 +1334,7 @@ static FL_Option_ptr _fl_repeat_next(FL_Stream* self) {
 }
 
 static void _fl_repeat_free(FL_Stream* self) {
-    free(self->state);
+    fl_free(self->state);
 }
 
 FL_Stream* fl_stream_repeat(void* val, fl_int n) {
@@ -1353,7 +1385,7 @@ static FL_Option_ptr _fl_enumerate_next(FL_Stream* self) {
 static void _fl_enumerate_free(FL_Stream* self) {
     _FL_EnumerateState* st = (_FL_EnumerateState*)self->state;
     fl_stream_release(st->source);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_enumerate(FL_Stream* source) {
@@ -1389,7 +1421,7 @@ static void _fl_zip_free(FL_Stream* self) {
     _FL_ZipState* st = (_FL_ZipState*)self->state;
     fl_stream_release(st->a);
     fl_stream_release(st->b);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_zip(FL_Stream* a, FL_Stream* b) {
@@ -1424,7 +1456,7 @@ static void _fl_chain_free(FL_Stream* self) {
     _FL_ChainState* st = (_FL_ChainState*)self->state;
     fl_stream_release(st->a);
     fl_stream_release(st->b);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_chain(FL_Stream* a, FL_Stream* b) {
@@ -1473,7 +1505,7 @@ static void _fl_flat_map_free(FL_Stream* self) {
     if (st->current_sub) {
         fl_stream_release(st->current_sub);
     }
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_stream_flat_map(FL_Stream* source, FL_Closure* f) {
@@ -1770,17 +1802,17 @@ void fl_map_release(FL_Map* m) {
                 if (m->val_destructor && m->entries[i].val) {
                     /* Heap-boxed struct: release internal fields then free */
                     m->val_destructor(m->entries[i].val);
-                    free(m->entries[i].val);
+                    fl_free(m->entries[i].val);
                 } else if (m->val_type != FL_ELEM_NONE) {
                     _fl_elem_release(m->val_type, &m->entries[i].val, NULL);
                 }
-                free(m->entries[i].key);
+                fl_free(m->entries[i].key);
             }
         }
-        free(m->entries);
+        fl_free(m->entries);
     }
     /* Non-owning headers (from shared-entries path) don't free entries/keys */
-    free(m);
+    fl_free(m);
 }
 
 /* ========================================================================
@@ -1850,7 +1882,7 @@ void fl_set_release(FL_Set* s) {
     if (!s) return;
     if (atomic_fetch_sub(&s->refcount, 1) != 1) return;
     fl_map_release(s->map);
-    free(s);
+    fl_free(s);
 }
 
 /* ========================================================================
@@ -1919,7 +1951,7 @@ void fl_buffer_reverse(FL_Buffer* buf) {
         lo++;
         hi--;
     }
-    free(tmp);
+    fl_free(tmp);
 }
 
 void fl_buffer_retain(FL_Buffer* buf) {
@@ -1930,8 +1962,8 @@ void fl_buffer_retain(FL_Buffer* buf) {
 void fl_buffer_release(FL_Buffer* buf) {
     if (!buf) return;
     if (atomic_fetch_sub(&buf->refcount, 1) == 1) {
-        free(buf->data);
-        free(buf);
+        fl_free(buf->data);
+        fl_free(buf);
     }
 }
 
@@ -1961,7 +1993,7 @@ static FL_Option_ptr fl__buffer_drain_next(FL_Stream* self) {
 static void fl__buffer_drain_free(FL_Stream* self) {
     FL_BufferDrainState* st = (FL_BufferDrainState*)self->state;
     fl_buffer_release(st->buf);
-    free(st);
+    fl_free(st);
 }
 
 FL_Stream* fl_buffer_drain(FL_Buffer* buf) {
@@ -2103,7 +2135,7 @@ FL_Array* fl_sort_array_by(FL_Array* arr, FL_Closure* cmp) {
     qsort(tmp, (size_t)arr->len, (size_t)arr->element_size, _fl_sort_closure_cmp);
 
     FL_Array* result = fl_array_new(arr->len, arr->element_size, tmp);
-    free(tmp);
+    fl_free(tmp);
     return result;
 }
 
@@ -2125,7 +2157,7 @@ FL_Array* fl_array_reverse(FL_Array* arr) {
     }
 
     FL_Array* result = fl_array_new(arr->len, arr->element_size, tmp);
-    free(tmp);
+    fl_free(tmp);
     return result;
 }
 
@@ -2158,7 +2190,7 @@ FL_Array* fl_bytes_concat(FL_Array* a, FL_Array* b) {
     if (a_len > 0) memcpy(buf, a->data, (size_t)a_len);
     if (b_len > 0) memcpy(buf + a_len, b->data, (size_t)b_len);
     FL_Array* result = fl_array_new(total, 1, buf);
-    free(buf);
+    fl_free(buf);
     return result;
 }
 
@@ -2217,7 +2249,7 @@ static FL_Option_ptr fl__stdin_next(FL_Stream* self) {
 }
 
 static void fl__stdin_free(FL_Stream* self) {
-    free(self->state);
+    fl_free(self->state);
 }
 
 FL_Stream* fl_stdin_stream(void) {
@@ -2238,7 +2270,7 @@ FL_Option_ptr fl_read_line(void) {
         if (len + 1 >= cap) {
             cap *= 2;
             char* nb = (char*)realloc(buf, (size_t)cap);
-            if (!nb) { free(buf); fl_panic("fl_read_line: out of memory"); }
+            if (!nb) { fl_free(buf); fl_panic("fl_read_line: out of memory"); }
             buf = nb;
         }
         if (c == '\n') break;
@@ -2246,12 +2278,12 @@ FL_Option_ptr fl_read_line(void) {
     }
 
     if (len == 0 && c == EOF) {
-        free(buf);
+        fl_free(buf);
         return FL_NONE_PTR;
     }
 
     FL_String* s = fl_string_new(buf, len);
-    free(buf);
+    fl_free(buf);
     return FL_SOME_PTR(s);
 }
 
@@ -2272,19 +2304,19 @@ FL_Option_ptr fl_read_stdin(void) {
         if (len + 1 >= cap) {
             cap *= 2;
             char* nb = (char*)realloc(buf, (size_t)cap);
-            if (!nb) { free(buf); fl_panic("fl_read_stdin: out of memory"); }
+            if (!nb) { fl_free(buf); fl_panic("fl_read_stdin: out of memory"); }
             buf = nb;
         }
         buf[len++] = (char)c;
     }
 
     if (len == 0) {
-        free(buf);
+        fl_free(buf);
         return FL_NONE_PTR;
     }
 
     FL_String* s = fl_string_new(buf, len);
-    free(buf);
+    fl_free(buf);
     return FL_SOME_PTR(s);
 }
 
@@ -2499,7 +2531,7 @@ FL_Option_ptr fl_read_file(FL_String* path) {
     fclose(f);
 
     FL_String* s = fl_string_new(buf, (fl_int64)read);
-    free(buf);
+    fl_free(buf);
     return FL_SOME_PTR(s);
 }
 
@@ -2526,7 +2558,7 @@ FL_Option_ptr fl_read_file_bytes(FL_String* path) {
     fl_int64 n = (fl_int64)fread(data, 1, (size_t)size, f);
     fclose(f);
     FL_Array* arr = fl_array_new(n, sizeof(fl_byte), data);
-    free(data);
+    fl_free(data);
     return FL_SOME_PTR(arr);
 }
 
@@ -2574,7 +2606,7 @@ fl_int fl_run_process(FL_String* command, FL_Array* args) {
 
     pid_t pid = fork();
     if (pid < 0) {
-        free(argv);
+        fl_free(argv);
         return -1;
     }
     if (pid == 0) {
@@ -2584,7 +2616,7 @@ fl_int fl_run_process(FL_String* command, FL_Array* args) {
     }
 
     /* Parent: wait for child. */
-    free(argv);
+    fl_free(argv);
     int status = 0;
     waitpid(pid, &status, 0);
     if (WIFEXITED(status)) return (fl_int)WEXITSTATUS(status);
@@ -2609,11 +2641,11 @@ FL_Option_ptr fl_run_process_capture(FL_String* command, FL_Array* args) {
 
     /* Create pipe for stderr. */
     int pipefd[2];
-    if (pipe(pipefd) < 0) { free(argv); return FL_NONE_PTR; }
+    if (pipe(pipefd) < 0) { fl_free(argv); return FL_NONE_PTR; }
 
     pid_t pid = fork();
     if (pid < 0) {
-        free(argv);
+        fl_free(argv);
         close(pipefd[0]);
         close(pipefd[1]);
         return FL_NONE_PTR;
@@ -2628,7 +2660,7 @@ FL_Option_ptr fl_run_process_capture(FL_String* command, FL_Array* args) {
     }
 
     /* Parent: read stderr from pipe. */
-    free(argv);
+    fl_free(argv);
     close(pipefd[1]);
 
     FL_Buffer* buf = fl_buffer_new(1);
@@ -2672,7 +2704,7 @@ FL_String* fl_tmpfile_create(FL_String* suffix, FL_String* contents) {
 
     int fd = mkstemps(tmpl, (int)suffix->len);
     if (fd < 0) {
-        free(tmpl);
+        fl_free(tmpl);
         fl_panic("fl_tmpfile_create: mkstemps failed");
     }
 
@@ -2682,7 +2714,7 @@ FL_String* fl_tmpfile_create(FL_String* suffix, FL_String* contents) {
     (void)written;
 
     FL_String* path = fl_string_from_cstr(tmpl);
-    free(tmpl);
+    fl_free(tmpl);
     return path;
 }
 
@@ -2804,7 +2836,7 @@ void fl_file_close(FL_File* f) {
         fclose(f->fp);
         f->fp = NULL;
     }
-    free(f);
+    fl_free(f);
 }
 
 /* --- Reading --- */
@@ -2815,11 +2847,11 @@ FL_Option_ptr fl_file_read_bytes(FL_File* f, fl_int n) {
     if (!buf) fl_panic("fl_file_read_bytes: out of memory");
     size_t read_count = fread(buf, 1, (size_t)n, f->fp);
     if (read_count == 0) {
-        free(buf);
+        fl_free(buf);
         return FL_NONE_PTR;
     }
     FL_Array* arr = fl_array_new((fl_int64)read_count, sizeof(fl_byte), buf);
-    free(buf);
+    fl_free(buf);
     return FL_SOME_PTR(arr);
 }
 
@@ -2835,7 +2867,7 @@ FL_Option_ptr fl_file_read_line(FL_File* f) {
         if (len + 1 >= cap) {
             cap *= 2;
             char* nb = (char*)realloc(buf, (size_t)cap);
-            if (!nb) { free(buf); fl_panic("fl_file_read_line: out of memory"); }
+            if (!nb) { fl_free(buf); fl_panic("fl_file_read_line: out of memory"); }
             buf = nb;
         }
         if (c == '\n') break;
@@ -2843,7 +2875,7 @@ FL_Option_ptr fl_file_read_line(FL_File* f) {
     }
 
     if (len == 0 && c == EOF) {
-        free(buf);
+        fl_free(buf);
         return FL_NONE_PTR;
     }
 
@@ -2851,7 +2883,7 @@ FL_Option_ptr fl_file_read_line(FL_File* f) {
     if (len > 0 && buf[len - 1] == '\r') len--;
 
     FL_String* s = fl_string_new(buf, len);
-    free(buf);
+    fl_free(buf);
     return FL_SOME_PTR(s);
 }
 
@@ -2888,7 +2920,7 @@ FL_Option_ptr fl_file_read_all(FL_File* f) {
     if (!data) fl_panic("fl_file_read_all: out of memory");
     size_t read_count = fread(data, 1, (size_t)remaining, f->fp);
     FL_String* s = fl_string_new(data, (fl_int64)read_count);
-    free(data);
+    fl_free(data);
     return FL_SOME_PTR(s);
 }
 
@@ -2924,7 +2956,7 @@ FL_Option_ptr fl_file_read_all_bytes(FL_File* f) {
     if (!data) fl_panic("fl_file_read_all_bytes: out of memory");
     size_t read_count = fread(data, 1, (size_t)remaining, f->fp);
     FL_Array* arr = fl_array_new((fl_int64)read_count, sizeof(fl_byte), data);
-    free(data);
+    fl_free(data);
     return FL_SOME_PTR(arr);
 }
 
@@ -2941,7 +2973,7 @@ static FL_Option_ptr _fl_file_lines_next(FL_Stream* self) {
 
 static void _fl_file_lines_free(FL_Stream* self) {
     /* Does NOT close the file -- caller manages file lifetime */
-    free(self->state);
+    fl_free(self->state);
 }
 
 FL_Stream* fl_file_lines(FL_File* f) {
@@ -2965,7 +2997,7 @@ static FL_Option_ptr _fl_file_byte_stream_next(FL_Stream* self) {
 
 static void _fl_file_byte_stream_free(FL_Stream* self) {
     /* Does NOT close the file -- caller manages file lifetime */
-    free(self->state);
+    fl_free(self->state);
 }
 
 FL_Stream* fl_file_byte_stream(FL_File* f) {
@@ -3098,7 +3130,7 @@ void fl_fanout_run(FL_FanoutBranch* branches, fl_int count) {
     _fl_fanout_worker(&branches[0]);
     for (fl_int i = 1; i < count; i++)
         pthread_join(threads[i], NULL);
-    free(threads);
+    fl_free(threads);
     /* Re-throw leftmost exception (sequential semantics) */
     for (fl_int i = 0; i < count; i++)
         if (branches[i].has_exception)
@@ -3243,7 +3275,7 @@ FL_Array* fl_random_bytes(fl_int n) {
         }
     }
     FL_Array* arr = fl_array_new(n, 1, buf);
-    free(buf);
+    fl_free(buf);
     return arr;
 }
 
@@ -3272,11 +3304,11 @@ FL_Array* fl_random_shuffle(FL_Array* arr) {
             memcpy(t, buf + i * elem_size, (size_t)elem_size);
             memcpy(buf + i * elem_size, buf + j * elem_size, (size_t)elem_size);
             memcpy(buf + j * elem_size, t, (size_t)elem_size);
-            free(t);
+            fl_free(t);
         }
     }
     FL_Array* result = fl_array_new(len, elem_size, buf);
-    free(buf);
+    fl_free(buf);
     return result;
 }
 
@@ -3338,7 +3370,7 @@ fl_int64 fl_time_diff_ms(FL_Instant* start, FL_Instant* end) {
 }
 
 void fl_instant_release(FL_Instant* inst) {
-    free(inst);
+    fl_free(inst);
 }
 
 /* --- Wall clock --- */
@@ -3379,7 +3411,7 @@ void fl_time_sleep_ms(fl_int ms) {
 }
 
 void fl_datetime_release(FL_DateTime* dt) {
-    free(dt);
+    fl_free(dt);
 }
 
 /* --- Formatting --- */
@@ -3647,13 +3679,13 @@ FL_Option_ptr fl_net_read(FL_Socket* conn, fl_int max_bytes) {
     ssize_t n = recv(conn->fd, buf, (size_t)max_bytes, 0);
     if (n <= 0) {
         /* n < 0: error; n == 0: peer closed connection (EOF) */
-        free(buf);
+        fl_free(buf);
         return FL_NONE_PTR;
     }
 
     FL_Array* arr = fl_array_new((fl_int64)n, sizeof(fl_byte), NULL);
     memcpy(arr->data, buf, (size_t)n);
-    free(buf);
+    fl_free(buf);
     return FL_SOME_PTR(arr);
 }
 
@@ -3691,7 +3723,7 @@ void fl_net_close(FL_Socket* conn) {
             close(conn->fd);
             conn->fd = -1;
         }
-        free(conn);
+        fl_free(conn);
     }
 }
 
@@ -3802,7 +3834,7 @@ FL_Array* fl_array_concat(FL_Array* a, FL_Array* b) {
     memcpy((char*)data + a->len * a->element_size,
            b->data, (size_t)(b->len * a->element_size));
     FL_Array* result = fl_array_new(total, a->element_size, data);
-    free(data);
+    fl_free(data);
     /* Propagate elem_type, handlers, and retain all elements (both a and b contributed) */
     result->elem_type = a->elem_type;
     result->elem_destructor = a->elem_destructor;
@@ -3880,7 +3912,7 @@ FL_String* fl_string_url_decode(FL_String* s) {
     }
     buf[j] = '\0';
     FL_String* result = fl_string_new(buf, j);
-    free(buf);
+    fl_free(buf);
     return result;
 }
 
@@ -3904,7 +3936,7 @@ FL_String* fl_string_url_encode(FL_String* s) {
     }
     buf[j] = '\0';
     FL_String* result = fl_string_new(buf, j);
-    free(buf);
+    fl_free(buf);
     return result;
 }
 
@@ -3953,7 +3985,7 @@ FL_Map* fl_map_remove_str(FL_Map* m, FL_String* key) {
         if (e->key_len == key->len && memcmp(e->key, key->data, (size_t)key->len) == 0) {
             if (m->val_destructor && e->val) {
                 m->val_destructor(e->val);
-                free(e->val);
+                fl_free(e->val);
             } else if (m->val_type != FL_ELEM_NONE) {
                 _fl_elem_release(m->val_type, &e->val, NULL);
             }
@@ -3983,7 +4015,7 @@ FL_Array* fl_map_keys(FL_Map* m) {
         }
     }
     FL_Array* arr = fl_array_new(j, sizeof(FL_String*), keys);
-    free(keys);
+    fl_free(keys);
     /* Keys are newly created FL_String* objects owned by this array */
     arr->elem_type = FL_ELEM_STRING;
     return arr;
@@ -4001,7 +4033,7 @@ FL_Array* fl_map_values(FL_Map* m) {
         }
     }
     FL_Array* arr = fl_array_new(j, sizeof(void*), vals);
-    free(vals);
+    fl_free(vals);
     /* Values are shared with the map; set elem_type and retain all */
     arr->elem_type = m->val_type;
     if (arr->elem_type != FL_ELEM_NONE && arr->data) {
@@ -4026,7 +4058,7 @@ void* fl_mem_realloc(void* p, fl_int64 size) {
 }
 
 void fl_mem_free(void* p) {
-    free(p);
+    fl_free(p);
 }
 
 fl_byte fl_mem_read_byte(void* p, fl_int64 offset) {
