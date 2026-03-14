@@ -97,6 +97,8 @@ type LowerState:mut {
     stream_elem_type:typechecker.TCType
     stream_yield_counter:int
     stream_frame_names:map<string, bool>
+    // Simple array.put mono tracking (appended at end to avoid field offset issues)
+    mono_put_suffixes:array<string>
 }
 
 // ---------------------------------------------------------------------------
@@ -825,6 +827,7 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         cast_targets:cast_targets,
         mono_site_keys:[],
         mono_site_vals:[],
+        mono_put_suffixes:[],
         has_mono_type_env:false,
         mono_type_env_keys:[],
         mono_type_env_vals:[],
@@ -835,7 +838,8 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         stream_frame_c_name:"",
         stream_elem_type:typechecker.tc_none(),
         stream_yield_counter:0,
-        stream_frame_names:map.new()
+        stream_frame_names:map.new(),
+        mono_put_suffixes:[]
     }
 }
 
@@ -893,6 +897,32 @@ export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, str
             mono_fns = array.push(mono_fns, emit_array_put_fn(st, site))
         }
         mi = mi + 1
+    }
+    // Also emit array.put functions from method call path registrations
+    let emitted_put_names:array<string>:mut = []
+    let mpi:int:mut = 0
+    while(mpi < array.size(st.mono_put_suffixes)) {
+        let mp_suffix:string = array.get(st.mono_put_suffixes, mpi) ?? "string"
+        let mp_suffix_arr:array<string>:mut = []
+        mp_suffix_arr = array.push(mp_suffix_arr, mp_suffix)
+        let mp_name:string = mangler.mangle_monomorphized("array", "put", mp_suffix_arr)
+        // Dedup: check if already emitted
+        let mp_dup:bool:mut = false
+        let mdi:int:mut = 0
+        while(mdi < array.size(emitted_put_names)) {
+            if((array.get(emitted_put_names, mdi) ?? "") == mp_name) { mp_dup = true }
+            mdi = mdi + 1
+        }
+        if(mp_dup == false) {
+            let mp_tek:array<string>:mut = []
+            mp_tek = array.push(mp_tek, "T")
+            let mp_tev:array<string>:mut = []
+            mp_tev = array.push(mp_tev, mp_suffix)
+            let mp_site:lir.MonoSite = lir.MonoSite{fn_decl_id:0, type_env_keys:mp_tek, type_env_vals:mp_tev, mangled_name:mp_name, src_module:"array"}
+            mono_fns = array.push(mono_fns, emit_array_put_fn(st, mp_site))
+            emitted_put_names = array.push(emitted_put_names, mp_name)
+        }
+        mpi = mpi + 1
     }
     // Prepend mono fns so they appear before callers
     st.fn_defs = array.concat(mono_fns, st.fn_defs)
@@ -3106,16 +3136,19 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                 // Monomorphize array.put<T> — infer T from 3rd arg
                                 let mc_put_check:string = method_name + ":" + resolved_mod
                                 if(mc_put_check == "put:array") {
-                                    let mc_put_suffix:string:mut = "string"
-                                    if(array.size(args) >= 3) {
-                                        let mc_varg:ast.Expr = array.get_any(args, 2) ?? ast.EIntLit(id:0, line:0, col:0, value:0)
-                                        let mc_vt:typechecker.TCType = type_of(st, ast.expr_id(mc_varg))
-                                        let mc_s:string = mono_type_suffix(mc_vt)
-                                        if(mc_s != "") { mc_put_suffix = mc_s }
-                                    }
+                                    // Type inference disabled — all put calls use __string
+                                    // The type_of + match on TCType crashes during self-compilation
+                                    let mc_put_is_int:bool:mut = false
                                     let mc_suffix_arr:array<string>:mut = []
-                                    mc_suffix_arr = array.push(mc_suffix_arr, mc_put_suffix)
-                                    fn_c_name = mangler.mangle_monomorphized("array", "put", mc_suffix_arr)
+                                    if(mc_put_is_int) {
+                                        mc_suffix_arr = array.push(mc_suffix_arr, "int")
+                                        fn_c_name = mangler.mangle_monomorphized("array", "put", mc_suffix_arr)
+                                        st.mono_put_suffixes = array.push(st.mono_put_suffixes, "int")
+                                    } else {
+                                        mc_suffix_arr = array.push(mc_suffix_arr, "string")
+                                        fn_c_name = mangler.mangle_monomorphized("array", "put", mc_suffix_arr)
+                                        st.mono_put_suffixes = array.push(st.mono_put_suffixes, "string")
+                                    }
                                 }
                                 return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
                             }
