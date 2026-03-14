@@ -72,6 +72,7 @@ type ModuleEntry {
     display_path:string
     typed:typechecker.TypedModule
     is_root:bool
+    cast_targets:array<ast.TypeExpr>
 }
 
 // ---------------------------------------------------------------------------
@@ -83,13 +84,15 @@ type DriverState:mut {
     // Cache: module_key -> TypedModule (stored as parallel arrays)
     cache_keys:array<string>
     cache_typed:array<typechecker.TypedModule>
+    cache_cast_targets:array<array<ast.TypeExpr>>
 }
 
 fn make_driver_state(stdlib_dir:string):DriverState {
     return DriverState{
         stdlib_dir:stdlib_dir,
         cache_keys:[],
-        cache_typed:[]
+        cache_typed:[],
+        cache_cast_targets:[]
     }
 }
 
@@ -105,9 +108,22 @@ fn cache_get(ds:DriverState:mut, key:string):typechecker.TypedModule? {
     return none
 }
 
-fn cache_put(ds:DriverState:mut, key:string, typed:typechecker.TypedModule) {
+fn cache_put(ds:DriverState:mut, key:string, typed:typechecker.TypedModule, cast_targets:array<ast.TypeExpr>) {
     ds.cache_keys = array.push(ds.cache_keys, key)
     ds.cache_typed = array.push(ds.cache_typed, typed)
+    ds.cache_cast_targets = array.push(ds.cache_cast_targets, cast_targets)
+}
+
+fn cache_get_cast_targets(ds:DriverState, key:string):array<ast.TypeExpr> {
+    let i:int:mut = 0
+    while(i < array.size(ds.cache_keys)) {
+        let k = array.get(ds.cache_keys, i) ?? ""
+        if(k == key) {
+            return array.get_any(ds.cache_cast_targets, i) ?? []
+        }
+        i = i + 1
+    }
+    return []
 }
 
 fn make_dummy_typed():typechecker.TypedModule {
@@ -242,7 +258,7 @@ fn get_stdlib_typed(ds:DriverState:mut, module_name:string):typechecker.TypedMod
     let resolved = resolver.resolve(mod, display, imported_modules)
     let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
 
-    cache_put(ds, module_name, @typed)
+    cache_put(ds, module_name, @typed, parse_result.cast_targets)
     return typed
 }
 
@@ -577,7 +593,7 @@ fn run_single_pipeline(ds:DriverState:mut, source_path:string):ModuleEntry {
     let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
     // io.eprintln("[DRV] typecheck done")
 
-    return ModuleEntry{display_path:disp, typed:typed, is_root:true}
+    return ModuleEntry{display_path:disp, typed:typed, is_root:true, cast_targets:parse_result.cast_targets}
 }
 
 // ---------------------------------------------------------------------------
@@ -658,7 +674,7 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
         available_typed = map.set(available_typed, pm.module_key, @typed)
 
         let is_root = (pm.module_key == root_key)
-        results = array.push(results, ModuleEntry{display_path:pm.display_path, typed:typed, is_root:is_root})
+        results = array.push(results, ModuleEntry{display_path:pm.display_path, typed:typed, is_root:is_root, cast_targets:pm.parsed.cast_targets})
     }
 
     return results
@@ -832,7 +848,8 @@ fn inject_compilable_stdlib(ds:DriverState:mut, modules:array<ModuleEntry>):arra
         stdlib_entries = array.push(stdlib_entries, ModuleEntry{
             display_path:"stdlib/" + mod_key + ".flow",
             typed:stdlib_typed,
-            is_root:false
+            is_root:false,
+            cast_targets:cache_get_cast_targets(ds, mod_key)
         })
     }
 
@@ -973,8 +990,8 @@ fn extend_extern_fn_map_from_typed(efn_map:map<string, string>:mut, extra_typed:
 
 // Helper: lower and emit a single module at function scope (depth 0).
 // This ensures lmod fields are released at scope exit without retain inflation.
-fn _lower_and_emit_single(typed:typechecker.TypedModule, efn_map:map<string, string>, display_path:string, line_directives:bool):string {
-    let lmod = lowering.lower(typed, efn_map)
+fn _lower_and_emit_single(typed:typechecker.TypedModule, efn_map:map<string, string>, display_path:string, line_directives:bool, cast_targets:array<ast.TypeExpr>):string {
+    let lmod = lowering.lower(typed, efn_map, cast_targets)
     return emitter.emit(lmod, display_path, true, [], [], line_directives)
 }
 
@@ -987,7 +1004,7 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
 
     if(array.size(modules) == 1) {
         let entry = array.get_any(modules, 0) ?? dummy_entry()
-        return _lower_and_emit_single(entry.typed, efn_map, entry.display_path, line_directives)
+        return _lower_and_emit_single(entry.typed, efn_map, entry.display_path, line_directives, entry.cast_targets)
     }
 
     // Multi-module: emit deps first, root last, then combine
@@ -1002,7 +1019,7 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
     // NOTE: avoid for+continue — Python compiler bug makes continue skip index increment
     for(entry:ModuleEntry in modules) {
         if(entry.is_root == false) {
-            let lmod_raw = lowering.lower(entry.typed, efn_map)
+            let lmod_raw = lowering.lower(entry.typed, efn_map, entry.cast_targets)
 
             // Deduplicate
             let filtered_types = filter_type_defs(lmod_raw.type_defs, dep_type_names)
@@ -1038,7 +1055,7 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
     let root_c:string:mut = ""
     for(entry:ModuleEntry in modules) {
         if(entry.is_root) {
-            let lmod_raw = lowering.lower(entry.typed, efn_map)
+            let lmod_raw = lowering.lower(entry.typed, efn_map, entry.cast_targets)
             let filtered_types = filter_type_defs(lmod_raw.type_defs, dep_type_names)
             let filtered_fns = filter_fn_defs(lmod_raw.fn_defs, dep_fn_names)
             let filtered_enums = filter_enum_defs(lmod_raw.enum_defs, dep_enum_names)
@@ -1085,7 +1102,7 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
 }
 
 fn dummy_entry():ModuleEntry {
-    return ModuleEntry{display_path:"", typed:make_dummy_typed(), is_root:true}
+    return ModuleEntry{display_path:"", typed:make_dummy_typed(), is_root:true, cast_targets:[]}
 }
 
 // ---------------------------------------------------------------------------

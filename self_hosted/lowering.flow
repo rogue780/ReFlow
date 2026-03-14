@@ -78,6 +78,9 @@ type LowerState:mut {
     // Extern fn c_names: decl_id_str → c_name
     extern_fn_c_names:map<string, string>
 
+    // Cast targets from ParseResult (index → TypeExpr)
+    cast_targets:array<ast.TypeExpr>
+
     // Monomorphization
     mono_site_keys:array<string>
     mono_site_vals:array<lir.MonoSite>
@@ -761,7 +764,7 @@ fn lower_extern_type(st:LowerState:mut, t:typechecker.TCType):lir.LType {
 // INIT + ENTRY POINT
 // ===========================================================================
 
-fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>):LowerState {
+fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>, cast_targets:array<ast.TypeExpr>):LowerState {
     let mod:ast.Module = typed.src_module
     let mod_path:string:mut = "main"
     if(array.size(mod.path) > 0) {
@@ -813,6 +816,7 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         extern_type_names:ext_names,
         local_extern_fn_ids:local_extern_fns,
         extern_fn_c_names:extern_fn_c_names,
+        cast_targets:cast_targets,
         mono_site_keys:[],
         mono_site_vals:[],
         has_mono_type_env:false,
@@ -833,8 +837,8 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
 // lower — public entry point
 // ---------------------------------------------------------------------------
 
-export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>):lir.LModule {
-    let st:LowerState:mut = make_lower_state(typed, extern_fn_c_names)
+export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>, cast_targets:array<ast.TypeExpr>):lir.LModule {
+    let st:LowerState:mut = make_lower_state(typed, extern_fn_c_names, cast_targets)
 
     let extern_protos:array<lir.LExternFnProto>:mut = []
 
@@ -2182,8 +2186,16 @@ fn lower_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
         }
         ECast(id, line, col, inner, target_id): {
             let li:lir.LExpr = lower_expr(st, inner)
-            let target_type:typechecker.TCType = type_of(st, id)
-            return lir.LECast(inner:lir.le_box(li), c_type:lower_type(st, target_type))
+            // Resolve the cast target type from ParseResult.cast_targets
+            // using the target_id index, then resolve that TypeExpr to a
+            // TCType and lower it to an LType.
+            let target_lt:lir.LType:mut = lir.LPtr(inner:lir.LVoid)
+            if(target_id >= 0 && target_id < array.size(st.cast_targets)) {
+                let target_te:ast.TypeExpr = array.get_any(st.cast_targets, target_id) ?? ast.TNamedType(id:0, line:0, col:0, name:"void", module_path:[])
+                let target_tc:typechecker.TCType = resolve_type_ann(st, target_te)
+                target_lt = lower_type(st, target_tc)
+            }
+            return lir.LECast(inner:lir.le_box(li), c_type:target_lt)
         }
         ECoerce(id, line, col, inner): {
             return lower_expr(st, inner)
