@@ -220,7 +220,7 @@ fn get_stdlib_typed(ds:DriverState:mut, module_name:string):typechecker.TypedMod
 
     let tokens = lexer.tokenize(source, display)
     let parse_result = parser.parse(tokens, display)
-    let mod = parse_result.parsed_module
+    let mod = @parse_result.parsed_module
 
     // Discover stdlib-to-stdlib imports
     let imported_modules:map<string, resolver.ModuleScope>:mut = map.new()
@@ -231,9 +231,10 @@ fn get_stdlib_typed(ds:DriverState:mut, module_name:string):typechecker.TypedMod
             DImport(did, dl, dc, ipath, inames, imp_alias): {
                 let dep_key = join_path(ipath)
                 if(is_stdlib_module(dep_key) && map.has(imported_modules, dep_key) == false) {
-                    let dep_typed = get_stdlib_typed(ds, dep_key)
-                    imported_modules = map.set(imported_modules, dep_key, @dep_typed.resolved.mod_scope)
-                    imported_decls = map.set(imported_decls, dep_key, @dep_typed.src_module)
+                    let dep_scope = load_stdlib_scope(ds, dep_key)
+                    let dep_module = load_stdlib_module(ds, dep_key)
+                    imported_modules = map.set(imported_modules, dep_key, dep_scope)
+                    imported_decls = map.set(imported_decls, dep_key, dep_module)
                 }
             }
             _: {}
@@ -252,8 +253,14 @@ fn load_stdlib_scope(ds:DriverState:mut, module_key:string):resolver.ModuleScope
     return @typed.resolved.mod_scope
 }
 
+// Load stdlib source module for a given module key
+fn load_stdlib_module(ds:DriverState:mut, module_key:string):ast.Module {
+    let typed = get_stdlib_typed(ds, module_key)
+    return @typed.src_module
+}
+
 // Discover stdlib imports from a parsed module, return map of key→scope
-fn discover_stdlib_imports(ds:DriverState:mut, mod:ast.Module):map<string, resolver.ModuleScope> {
+fn discover_stdlib_imports(ds:DriverState:mut, mod:ast.Module:imut):map<string, resolver.ModuleScope> {
     let result:map<string, resolver.ModuleScope>:mut = map.new()
     for(imp:ast.Decl in mod.imports) {
         match imp {
@@ -270,15 +277,14 @@ fn discover_stdlib_imports(ds:DriverState:mut, mod:ast.Module):map<string, resol
 }
 
 // Collect stdlib AST Modules for all imports (for imported_module_decls)
-fn collect_stdlib_decls(ds:DriverState:mut, mod:ast.Module):map<string, ast.Module> {
+fn collect_stdlib_decls(ds:DriverState:mut, mod:ast.Module:imut):map<string, ast.Module> {
     let result:map<string, ast.Module>:mut = map.new()
     for(imp:ast.Decl in mod.imports) {
         match imp {
             DImport(did, dl, dc, ipath, inames, imp_alias): {
                 let module_key = join_path(ipath)
                 if(is_stdlib_module(module_key) && map.has(result, module_key) == false) {
-                    let stdlib_typed = get_stdlib_typed(ds, module_key)
-                    result = map.set(result, module_key, @stdlib_typed.src_module)
+                    result = map.set(result, module_key, load_stdlib_module(ds, module_key))
                 }
             }
             _: {}
@@ -291,7 +297,7 @@ fn collect_stdlib_decls(ds:DriverState:mut, mod:ast.Module):map<string, ast.Modu
 // User import helpers
 // ---------------------------------------------------------------------------
 
-fn has_user_imports(mod:ast.Module):bool {
+fn has_user_imports(mod:ast.Module:imut):bool {
     for(imp:ast.Decl in mod.imports) {
         match imp {
             DImport(did, dl, dc, ipath, inames, imp_alias): {
@@ -306,7 +312,7 @@ fn has_user_imports(mod:ast.Module):bool {
     return false
 }
 
-fn get_user_import_paths(mod:ast.Module):array<array<string>> {
+fn get_user_import_paths(mod:ast.Module:imut):array<array<string>> {
     let result:array<array<string>>:mut = []
     for(imp:ast.Decl in mod.imports) {
         match imp {
@@ -332,7 +338,7 @@ fn parse_file(source_path:string):ParsedModule {
     let source = io.read_file(abs) ?? ""
     let tokens = lexer.tokenize(source, disp)
     let parse_result = parser.parse(tokens, disp)
-    let mod = parse_result.parsed_module
+    let mod = @parse_result.parsed_module
     let module_key:string:mut = ""
     if(array.size(mod.path) > 0) {
         module_key = join_path(mod.path)
@@ -565,7 +571,7 @@ fn run_single_pipeline(ds:DriverState:mut, source_path:string):ModuleEntry {
     let source = io.read_file(abs) ?? ""
     let tokens = lexer.tokenize(source, disp)
     let parse_result = parser.parse(tokens, disp)
-    let mod = parse_result.parsed_module
+    let mod = @parse_result.parsed_module
 
     // Collect stdlib imports
     let imported_modules = discover_stdlib_imports(ds, @mod)
@@ -593,7 +599,7 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
     let quick_source = io.read_file(abs) ?? ""
     let quick_tokens = lexer.tokenize(quick_source, disp)
     let quick_parse = parser.parse(quick_tokens, disp)
-    let quick_mod = quick_parse.parsed_module
+    let quick_mod = @quick_parse.parsed_module
 
     // io.eprintln("[DRV] parsed, checking user imports")
     if(has_user_imports(quick_mod) == false) {
@@ -624,7 +630,7 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
     }
 
     for(pm:ParsedModule in topo_order) {
-        let mod = pm.parsed.parsed_module
+        let mod = @pm.parsed.parsed_module
 
         // Build imported_modules: stdlib + already-resolved user modules
         let imported_modules:map<string, resolver.ModuleScope>:mut = discover_stdlib_imports(ds, @mod)
@@ -669,7 +675,7 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
 // ---------------------------------------------------------------------------
 
 // Returns true if a stdlib TypedModule has non-generic functions with bodies
-fn stdlib_needs_compilation(typed:typechecker.TypedModule):bool {
+fn stdlib_needs_compilation(typed:typechecker.TypedModule:imut):bool {
     for(decl:ast.Decl in typed.src_module.decls) {
         match decl {
             DFn(id, line, col, name, tparams, params, has_ret, ret_type, body, is_pure, is_export, is_static, has_fin, fin_body): {
@@ -684,7 +690,7 @@ fn stdlib_needs_compilation(typed:typechecker.TypedModule):bool {
 }
 
 // Discover which stdlib modules a given module imports
-fn stdlib_imports_of(ds:DriverState:mut, typed:typechecker.TypedModule):array<string> {
+fn stdlib_imports_of(ds:DriverState:mut, typed:typechecker.TypedModule:imut):array<string> {
     let result:array<string>:mut = []
     for(imp:ast.Decl in typed.src_module.imports) {
         match imp {
@@ -698,6 +704,25 @@ fn stdlib_imports_of(ds:DriverState:mut, typed:typechecker.TypedModule):array<st
         }
     }
     return result
+}
+
+fn stdlib_import_keys(ds:DriverState:mut, module_key:string):array<string> {
+    let typed = get_stdlib_typed(ds, module_key)
+    return stdlib_imports_of(ds, @typed)
+}
+
+fn stdlib_module_needs_compilation(ds:DriverState:mut, module_key:string):bool {
+    let typed = get_stdlib_typed(ds, module_key)
+    return stdlib_needs_compilation(@typed)
+}
+
+fn make_stdlib_entry(ds:DriverState:mut, module_key:string):ModuleEntry {
+    let typed = get_stdlib_typed(ds, module_key)
+    return ModuleEntry{
+        display_path:"stdlib/" + module_key + ".flow",
+        typed:typed,
+        is_root:false
+    }
 }
 
 // Topological sort result — both visited set and ordered list must be returned
@@ -772,8 +797,7 @@ fn inject_compilable_stdlib(ds:DriverState:mut, modules:array<ModuleEntry>):arra
         let stdlib_deps = stdlib_imports_of(ds, entry.typed)
         for(dep_key:string in stdlib_deps) {
             if(map.has(needed_set, dep_key) == false) {
-                let stdlib_typed = get_stdlib_typed(ds, dep_key)
-                if(stdlib_needs_compilation(stdlib_typed)) {
+                if(stdlib_module_needs_compilation(ds, dep_key)) {
                     needed_set = map.set(needed_set, dep_key, true)
                     needed_keys = array.push(needed_keys, dep_key)
                     queue = array.push(queue, dep_key)
@@ -787,14 +811,12 @@ fn inject_compilable_stdlib(ds:DriverState:mut, modules:array<ModuleEntry>):arra
     while(qi < array.size(queue)) {
         let mod_key = array.get(queue, qi) ?? ""
         qi = qi + 1
-        let stdlib_typed = get_stdlib_typed(ds, mod_key)
         let mod_deps:array<string>:mut = []
 
-        let dep_keys = stdlib_imports_of(ds, stdlib_typed)
+        let dep_keys = stdlib_import_keys(ds, mod_key)
         for(dep_key:string in dep_keys) {
             if(is_stdlib_module(dep_key)) {
-                let dep_typed = get_stdlib_typed(ds, dep_key)
-                if(stdlib_needs_compilation(dep_typed)) {
+                if(stdlib_module_needs_compilation(ds, dep_key)) {
                     mod_deps = array.push(mod_deps, dep_key)
                     if(map.has(needed_set, dep_key) == false) {
                         needed_set = map.set(needed_set, dep_key, true)
@@ -828,12 +850,7 @@ fn inject_compilable_stdlib(ds:DriverState:mut, modules:array<ModuleEntry>):arra
     // Build stdlib ModuleEntry list in topological order
     let stdlib_entries:array<ModuleEntry>:mut = []
     for(mod_key:string in ordered) {
-        let stdlib_typed = get_stdlib_typed(ds, mod_key)
-        stdlib_entries = array.push(stdlib_entries, ModuleEntry{
-            display_path:"stdlib/" + mod_key + ".flow",
-            typed:stdlib_typed,
-            is_root:false
-        })
+        stdlib_entries = array.push(stdlib_entries, make_stdlib_entry(ds, mod_key))
     }
 
     // Prepend stdlib entries before user modules
@@ -971,8 +988,8 @@ fn extend_extern_fn_map_from_typed(efn_map:map<string, string>:mut, extra_typed:
 
 // Helper: lower and emit a single module at function scope (depth 0).
 // This ensures lmod fields are released at scope exit without retain inflation.
-fn _lower_and_emit_single(typed:typechecker.TypedModule, efn_map:map<string, string>, display_path:string, line_directives:bool):string {
-    let lmod = lowering.lower(typed, efn_map)
+fn _lower_and_emit_single(typed:typechecker.TypedModule:imut, efn_map:map<string, string>, display_path:string, line_directives:bool):string {
+    let lmod = lowering.lower(@typed, efn_map)
     return emitter.emit(lmod, display_path, true, [], [], line_directives)
 }
 
@@ -1000,7 +1017,7 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
     // NOTE: avoid for+continue — Python compiler bug makes continue skip index increment
     for(entry:ModuleEntry in modules) {
         if(entry.is_root == false) {
-            let lmod_raw = lowering.lower(entry.typed, efn_map)
+            let lmod_raw = lowering.lower(@entry.typed, efn_map)
 
             // Deduplicate
             let filtered_types = filter_type_defs(lmod_raw.type_defs, dep_type_names)
@@ -1036,7 +1053,7 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
     let root_c:string:mut = ""
     for(entry:ModuleEntry in modules) {
         if(entry.is_root) {
-            let lmod_raw = lowering.lower(entry.typed, efn_map)
+            let lmod_raw = lowering.lower(@entry.typed, efn_map)
             let filtered_types = filter_type_defs(lmod_raw.type_defs, dep_type_names)
             let filtered_fns = filter_fn_defs(lmod_raw.fn_defs, dep_fn_names)
             let filtered_enums = filter_enum_defs(lmod_raw.enum_defs, dep_enum_names)
@@ -1131,9 +1148,8 @@ export fn emit_c(source_path:string, stdlib_dir:string):string {
     // io.eprintln("[DRV] starting emit_c")
     let ds:DriverState:mut = make_driver_state(stdlib_dir)
     // io.eprintln("[DRV] driver state created")
-    let modules_raw = run_multi_pipeline(ds, source_path)
+    let modules = inject_compilable_stdlib(ds, run_multi_pipeline(ds, source_path))
     // io.eprintln("[DRV] multi pipeline done")
-    let modules = inject_compilable_stdlib(ds, modules_raw)
     // Pass ds.cache_typed so non-compilable stdlib extern fns (e.g., array.size → fl_array_len_int)
     // are available in the extern fn map for call site resolution.
     let result = lower_and_emit_all(modules, ds.cache_typed, false)
@@ -1143,8 +1159,7 @@ export fn emit_c(source_path:string, stdlib_dir:string):string {
 // compile: full pipeline → C → clang → binary
 export fn compile(source_path:string, output:string, stdlib_dir:string):int {
     let ds:DriverState:mut = make_driver_state(stdlib_dir)
-    let modules_raw = run_multi_pipeline(ds, source_path)
-    let modules = inject_compilable_stdlib(ds, modules_raw)
+    let modules = inject_compilable_stdlib(ds, run_multi_pipeline(ds, source_path))
     let c_source = lower_and_emit_all(modules, ds.cache_typed, true)
 
     // Collect extern lib flags

@@ -1144,6 +1144,9 @@ class Lowerer:
                 self._mut_params.add(p.name)
             params.append((p.name, p_lt))
             self._let_var_ltypes[p.name] = p_lt
+            if self._should_cleanup_param(p, p_type):
+                self._register_struct_field_releases(
+                    p.name, p_type, p_lt, 0, recurse_nested=True)
 
         ret_lt = self._lower_type(ret_type)
 
@@ -1183,18 +1186,21 @@ class Lowerer:
                              for sv, fn, sct, rel, depth, _bs
                              in self._struct_field_cleanup
                              if depth == 0
-                             and sv not in self._consumed_bindings])
+                             and not self._binding_transferred(
+                                 sv, self._consumed_bindings)])
                 body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
                              for sv, fn, sct, dest, flt, depth
                              in self._sum_field_cleanup
                              if depth == 0
-                             and sv not in self._consumed_bindings])
+                             and not self._binding_transferred(
+                                 sv, self._consumed_bindings)])
                 # Affine (sum type) locals — destroy the whole variable
                 seen_affine: set[str] = set()
                 for av, act, dest_fn, depth in self._affine_locals:
                     if depth != 0 or av in seen_affine:
                         continue
-                    if av in self._consumed_bindings:
+                    if self._binding_transferred(
+                            av, self._consumed_bindings):
                         continue
                     seen_affine.add(av)
                     body.append(LExprStmt(LCall(
@@ -1308,18 +1314,21 @@ class Lowerer:
                                  for sv, fn, sct, rel, depth
                                  in self._struct_field_cleanup
                                  if depth == 0
-                                 and sv not in self._consumed_bindings])
+                                 and not self._binding_transferred(
+                                     sv, self._consumed_bindings)])
                     body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
                                  for sv, fn, sct, dest, flt, depth
                                  in self._sum_field_cleanup
                                  if depth == 0
-                                 and sv not in self._consumed_bindings])
+                                 and not self._binding_transferred(
+                                     sv, self._consumed_bindings)])
                     # Affine (sum type) locals — destroy the whole variable
                     seen_affine: set[str] = set()
                     for av, act, dest_fn, depth in self._affine_locals:
                         if depth != 0 or av in seen_affine:
                             continue
-                        if av in self._consumed_bindings:
+                        if self._binding_transferred(
+                                av, self._consumed_bindings):
                             continue
                         seen_affine.add(av)
                         body.append(LExprStmt(LCall(
@@ -1604,12 +1613,14 @@ class Lowerer:
         stack: list[LExpr] = [expr]
         while stack:
             e = stack.pop()
-            if isinstance(e, LFieldAccess) and isinstance(e.obj, LVar):
-                keys.add(f"{e.obj.c_name}.{e.field}")
-            # Also handle nested: s.parsed_module.body
-            if (isinstance(e, LFieldAccess) and isinstance(e.obj, LFieldAccess)
-                    and isinstance(e.obj.obj, LVar)):
-                keys.add(f"{e.obj.obj.c_name}.{e.obj.field}.{e.field}")
+            if isinstance(e, LFieldAccess):
+                path = [e.field]
+                obj = e.obj
+                while isinstance(obj, LFieldAccess):
+                    path.append(obj.field)
+                    obj = obj.obj
+                if isinstance(obj, LVar):
+                    keys.add(".".join([obj.c_name] + list(reversed(path))))
             # Walk into sub-expressions
             for attr in ('left', 'right', 'cond', 'then_expr', 'else_expr',
                          'value', 'inner', 'operand', 'expr', 'base',
@@ -1630,6 +1641,57 @@ class Lowerer:
                         if isinstance(field_val, LExpr):
                             stack.append(field_val)
         return keys
+
+    @staticmethod
+    def _field_transferred_to_return(field_key: str,
+                                     returned_field_keys: set[str]) -> bool:
+        """Return True when field_key or any parent path is returned."""
+        if field_key in returned_field_keys:
+            return True
+        parts = field_key.split(".")
+        for i in range(len(parts) - 1, 1, -1):
+            if ".".join(parts[:i]) in returned_field_keys:
+                return True
+        return False
+
+    @staticmethod
+    def _binding_transferred(binding_key: str,
+                             transferred_bindings: set[str]) -> bool:
+        """Return True when binding_key or any parent binding was moved."""
+        if binding_key in transferred_bindings:
+            return True
+        parts = binding_key.split(".")
+        for i in range(len(parts) - 1, 0, -1):
+            if ".".join(parts[:i]) in transferred_bindings:
+                return True
+        return False
+
+    @staticmethod
+    def _resolve_effective_return_value(stmts: list[LStmt],
+                                        return_idx: int,
+                                        value: LExpr | None) -> LExpr | None:
+        """Resolve hoisted return temps back to their initializer when local.
+
+        _lower_block and _inject_scope_cleanup can both hoist return values
+        into temporary locals immediately before the return. Cleanup analysis
+        needs the original initializer expression to detect transferred fields.
+        """
+        current = value
+        idx = return_idx
+        seen: set[str] = set()
+        while isinstance(current, LVar) and idx > 0:
+            name = current.c_name
+            if not name.startswith("_fl_ret_"):
+                break
+            if name in seen:
+                break
+            prev = stmts[idx - 1]
+            if not isinstance(prev, LVarDecl) or prev.c_name != name:
+                break
+            seen.add(name)
+            current = prev.init
+            idx -= 1
+        return current
 
     @staticmethod
     def _collect_consumed_struct_bases(expr: LExpr | None) -> set[str]:
@@ -1708,15 +1770,19 @@ class Lowerer:
             if isinstance(s, LVarDecl) and s.c_name in all_trackable:
                 declared.add(s.c_name)
             elif isinstance(s, LReturn):
+                effective_ret_value = self._resolve_effective_return_value(
+                    stmts, i, s.value)
                 # Collect ALL variable names referenced in the return expr
-                returned_names = self._collect_referenced_vars(s.value)
+                returned_names = self._collect_referenced_vars(
+                    effective_ret_value)
                 # Collect field access patterns transferred to the return
-                returned_field_keys = self._collect_returned_field_keys(s.value)
+                returned_field_keys = self._collect_returned_field_keys(
+                    effective_ret_value)
                 # Collect struct variables embedded in compound literals —
                 # these are transferred by shallow copy so their internal
                 # fields must never be released.
                 consumed_bases = self._collect_consumed_struct_bases(
-                    s.value)
+                    effective_ret_value)
 
                 # Determine if we need to hoist the return expression.
                 # Hoisting evaluates the return expr into a temp BEFORE
@@ -1769,10 +1835,12 @@ class Lowerer:
                         # Skip struct fields when the binding has been
                         # consumed (moved): container insertion, return,
                         # or assignment — ownership transferred elsewhere.
-                        if sv in self._consumed_bindings:
+                        if self._binding_transferred(
+                                sv, self._consumed_bindings):
                             continue
                         # Skip specific fields transferred to the return value
-                        if field_key in returned_field_keys:
+                        if self._field_transferred_to_return(
+                                field_key, returned_field_keys):
                             continue
                         seen_fields.add(field_key)
                         cleanup.append(self._emit_struct_field_release(
@@ -1789,9 +1857,11 @@ class Lowerer:
                             continue
                         if base_name in consumed_bases:
                             continue
-                        if sv in self._consumed_bindings:
+                        if self._binding_transferred(
+                                sv, self._consumed_bindings):
                             continue
-                        if field_key in returned_field_keys:
+                        if self._field_transferred_to_return(
+                                field_key, returned_field_keys):
                             continue
                         seen_fields.add(field_key)
                         cleanup.append(self._emit_sum_field_release(
@@ -1809,7 +1879,8 @@ class Lowerer:
                             continue
                         if av in consumed_bases:
                             continue
-                        if av in self._consumed_bindings:
+                        if self._binding_transferred(
+                                av, self._consumed_bindings):
                             continue
                         seen_affine.add(av)
                         cleanup.append(LExprStmt(LCall(
@@ -2056,7 +2127,8 @@ class Lowerer:
                     # Already retained at construction, just register
                     # for release at scope exit.
                     self._register_struct_field_releases(
-                        stmt.name, val_type, c_type, self._scope_depth)
+                        stmt.name, val_type, c_type, self._scope_depth,
+                        recurse_nested=True)
                 elif self._is_allocating_expr(stmt.value):
                     # Call/allocating source: the callee may return a
                     # shallow copy with borrowed fields, so fields are
@@ -2064,7 +2136,7 @@ class Lowerer:
                     # at function exit via _inject_scope_cleanup.
                     self._register_struct_field_releases(
                         stmt.name, val_type, c_type, self._scope_depth,
-                        block_safe=False)
+                        block_safe=False, recurse_nested=True)
                 elif (isinstance(stmt.value, Ident)
                         and self._is_affine_type(val_type)):
                     # Affine move: `let b = a` transfers ownership.
@@ -2072,7 +2144,8 @@ class Lowerer:
                     # Mark source as consumed so its cleanup is skipped.
                     self._consumed_bindings.add(stmt.value.name)
                     self._register_struct_field_releases(
-                        stmt.name, val_type, c_type, self._scope_depth)
+                        stmt.name, val_type, c_type, self._scope_depth,
+                        recurse_nested=True)
                 else:
                     # Non-allocating source: retain each refcounted field
                     # so we own our reference, then register for release.
@@ -2192,7 +2265,9 @@ class Lowerer:
 
     def _register_struct_field_releases(self, var_name: str, val_type: Type,
                                          c_type: LType, depth: int,
-                                         block_safe: bool = True) -> None:
+                                         block_safe: bool = True,
+                                         recurse_nested: bool = False,
+                                         _visited: set[str] | None = None) -> None:
         """Register release calls for refcounted fields inside a struct local.
 
         When a struct-typed local goes out of scope, its refcounted fields
@@ -2205,14 +2280,22 @@ class Lowerer:
         where the callee may return borrowed fields.  Block-exit cleanup
         only releases block_safe entries to avoid UAF on borrowed fields.
 
-        We do NOT recurse into nested struct fields because embedded structs
-        are value copies — their pointer fields share ownership with the
-        original source, and releasing them would cause double-free.
+        recurse_nested: True only for owned locals (struct literals, owned
+        call results, affine moves). Borrowed-by-copy locals must keep this
+        False because nested pointer fields may be shared with the source.
         """
         # Only process struct types (TNamed, TRecord) that are NOT themselves
         # directly refcounted (those are already in _container_locals).
         if self._get_release_fn(val_type) is not None:
             return
+        if _visited is None:
+            _visited = set()
+        if isinstance(val_type, TNamed):
+            visit_key = f"{val_type.module}:{val_type.name}"
+            if visit_key in _visited:
+                return
+            _visited = set(_visited)
+            _visited.add(visit_key)
         fields = self._get_struct_fields_cross_module(val_type)
         if fields is None:
             return
@@ -2231,6 +2314,29 @@ class Lowerer:
                 # array's element destructor handles cleanup instead.
                 field_lt = self._lower_type(field_type)
                 self._get_or_emit_sum_type_handlers(field_type, field_lt)
+            elif recurse_nested:
+                self._register_struct_field_releases(
+                    f"{var_name}.{field_name}",
+                    field_type,
+                    c_type,
+                    depth,
+                    block_safe=block_safe,
+                    recurse_nested=True,
+                    _visited=_visited,
+                )
+
+    @staticmethod
+    def _param_is_borrowed(param: Param) -> bool:
+        """Return True when a by-value param is explicitly borrow-only."""
+        return isinstance(param.type_ann, ImutType)
+
+    def _should_cleanup_param(self, param: Param, param_type: Type) -> bool:
+        """Owned affine struct params need scope-exit field cleanup."""
+        if isinstance(param.type_ann, MutType):
+            return False
+        if self._param_is_borrowed(param):
+            return False
+        return self._get_struct_fields_cross_module(param_type) is not None
 
     def _has_refcounted_fields(self, elem_type: Type,
                                _visited: set[str] | None = None) -> bool:
@@ -3346,7 +3452,7 @@ class Lowerer:
             base = sv.split(".")[0]
             if base not in top_decls:
                 continue
-            if sv in self._consumed_bindings:
+            if self._binding_transferred(sv, self._consumed_bindings):
                 continue
             seen_fields.add(field_key)
             cleanup.append(self._emit_struct_field_release(
@@ -3362,7 +3468,7 @@ class Lowerer:
             base = sv.split(".")[0]
             if base not in top_decls:
                 continue
-            if sv in self._consumed_bindings:
+            if self._binding_transferred(sv, self._consumed_bindings):
                 continue
             seen_fields.add(field_key)
             cleanup.append(self._emit_sum_field_release(
@@ -3490,7 +3596,7 @@ class Lowerer:
             base = sv.split(".")[0]
             if base not in top_decls:
                 continue
-            if sv in self._consumed_bindings:
+            if self._binding_transferred(sv, self._consumed_bindings):
                 continue
             seen_fields.add(field_key)
             cleanup.append(self._emit_struct_field_release(
@@ -3506,7 +3612,7 @@ class Lowerer:
             base = sv.split(".")[0]
             if base not in top_decls:
                 continue
-            if sv in self._consumed_bindings:
+            if self._binding_transferred(sv, self._consumed_bindings):
                 continue
             seen_fields.add(field_key)
             cleanup.append(self._emit_sum_field_release(
@@ -3519,7 +3625,7 @@ class Lowerer:
                 continue
             if av not in top_decls:
                 continue
-            if av in self._consumed_bindings:
+            if self._binding_transferred(av, self._consumed_bindings):
                 continue
             seen_affine.add(av)
             cleanup.append(LExprStmt(LCall(
@@ -5077,10 +5183,12 @@ class Lowerer:
                         # Substitute type env into return type for concrete LType
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
                         final = self._wrap_mut_args(fn_decl_maybe, lowered_args)
+                        self._mark_consumed_call_args(fn_decl_maybe, list(call_args))
                         return LCall(mono_name, self._hoist_string_args(mono_name, final), concrete_lt)
                 # Wrap :mut args before emitting the call
                 if fn_decl_maybe is not None:
                     lowered_args = self._wrap_mut_args(fn_decl_maybe, lowered_args)
+                    self._mark_consumed_call_args(fn_decl_maybe, list(call_args))
                 c_name = mangle(self._module_path, None, name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, self._hoist_string_args(c_name, lowered_args), lt)
@@ -5145,6 +5253,8 @@ class Lowerer:
                 # Regular function via namespace: mod.func(...)
                 if fa_sym.kind in (SymbolKind.FN, SymbolKind.CONSTRUCTOR):
                     mod_path = fa_sym.module_path or self._module_path
+                    if isinstance(fa_sym.decl, FnDecl):
+                        self._mark_consumed_call_args(fa_sym.decl, list(expr.args))
                     c_name = mangle(mod_path, None, fa_name,
                                     file=self._file, line=expr.line,
                                     col=expr.col)
@@ -5208,6 +5318,25 @@ class Lowerer:
                             "use a named function instead",
                     file=self._file, line=arg_expr.line, col=arg_expr.col)
         return result
+
+    def _mark_consumed_call_args(self, fn_decl: FnDecl,
+                                 call_args: list[Expr]) -> None:
+        """Mark affine locals consumed when passed by value to a function.
+
+        Flow's affine struct ownership transfers on ordinary by-value calls.
+        Without recording that move, scope-exit cleanup may release nested
+        fields from the caller after the callee has returned or stored them.
+        """
+        for param, arg_expr in zip(fn_decl.params, call_args):
+            if self._param_is_borrowed(param):
+                continue
+            if isinstance(param.type_ann, MutType):
+                continue
+            if not isinstance(arg_expr, Ident):
+                continue
+            arg_type = self._type_of(arg_expr)
+            if self._is_affine_type(arg_type):
+                self._consumed_bindings.add(arg_expr.name)
 
     def _lower_variant_ctor(self, name: str, decl: SumVariantDecl,
                             t: Type, lt: LType,
@@ -5492,9 +5621,11 @@ class Lowerer:
                         mono_name = self._record_mono_site(src_module, fn_decl, env)
                         concrete_lt = self._lower_type(self._deep_substitute(t, env))
                         final = self._wrap_mut_args(fn_decl, lowered_args)
+                        self._mark_consumed_call_args(fn_decl, mc_args)
                         return LCall(mono_name, self._hoist_string_args(mono_name, final), concrete_lt)
                 # Wrap :mut args before emitting the call
                 lowered_args = self._wrap_mut_args(fn_decl, lowered_args)
+                self._mark_consumed_call_args(fn_decl, mc_args)
                 c_name = mangle(src_module, None, fn_decl.name,
                                 file=self._file, line=expr.line, col=expr.col)
                 return LCall(c_name, self._hoist_string_args(c_name, lowered_args), lt)
@@ -9509,6 +9640,9 @@ class Lowerer:
             p_lt = self._lower_type(p_type)
             params.append((p.name, p_lt))
             self._let_var_ltypes[p.name] = p_lt
+            if self._should_cleanup_param(p, p_type):
+                self._register_struct_field_releases(
+                    p.name, p_type, p_lt, 0, recurse_nested=True)
 
         # Lower function body with substituted types
         body: list[LStmt] = []
@@ -9542,18 +9676,21 @@ class Lowerer:
                              for sv, fn, sct, rel, depth, _bs
                              in self._struct_field_cleanup
                              if depth == 0
-                             and sv not in self._consumed_bindings])
+                             and not self._binding_transferred(
+                                 sv, self._consumed_bindings)])
                 body.extend([self._emit_sum_field_release(sv, fn, sct, dest, flt)
                              for sv, fn, sct, dest, flt, depth
                              in self._sum_field_cleanup
                              if depth == 0
-                             and sv not in self._consumed_bindings])
+                             and not self._binding_transferred(
+                                 sv, self._consumed_bindings)])
                 # Affine (sum type) locals — destroy the whole variable
                 seen_affine: set[str] = set()
                 for av, act, dest_fn, depth in self._affine_locals:
                     if depth != 0 or av in seen_affine:
                         continue
-                    if av in self._consumed_bindings:
+                    if self._binding_transferred(
+                            av, self._consumed_bindings):
                         continue
                     seen_affine.add(av)
                     body.append(LExprStmt(LCall(

@@ -256,7 +256,7 @@ fn make_state(
     imported_modules:map<string, resolver.ModuleScope>,
     imported_module_decls:map<string, ast.Module>
 ):TCState {
-    let s:TCState = TCState{
+    return TCState{
         src_module:src_module,
         filename:filename,
         resolved:resolved,
@@ -288,7 +288,6 @@ fn make_state(
         purity_map:map.new(),
         decl_cache:map.new()
     }
-    return s
 }
 
 // ---------------------------------------------------------------------------
@@ -1393,7 +1392,7 @@ fn register_imported_types(s:TCState:mut) {
     }
 }
 
-fn register_imported_module_types(s:TCState:mut, mod_key:string, mod:ast.Module) {
+fn register_imported_module_types(s:TCState:mut, mod_key:string, mod:ast.Module:imut) {
     let i:int:mut = 0
     while(i < array.size(mod.decls)) {
         let d = array.get_any(mod.decls, i) ?? ast.DModule(0,0,0,[])

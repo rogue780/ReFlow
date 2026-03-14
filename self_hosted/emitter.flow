@@ -203,7 +203,7 @@ fn starts_with_fl(s:string):bool {
     return string.starts_with(s, "fl_")
 }
 
-fn emit_extern_protos(st:EmitState:mut, mod:lir.LModule) {
+fn emit_extern_protos(st:EmitState:mut, mod:lir.LModule:imut) {
     if(array.size(mod.extern_fn_protos) == 0) {
         return
     }
@@ -244,7 +244,7 @@ fn fn_prototype(st:EmitState:mut, fn_def:lir.LFnDef):string {
     return ret_str + " " + fn_def.c_name + "(" + params_str + ")"
 }
 
-fn emit_forward_decls(st:EmitState:mut, mod:lir.LModule) {
+fn emit_forward_decls(st:EmitState:mut, mod:lir.LModule:imut) {
     if(array.size(mod.type_defs) == 0 && array.size(mod.fn_defs) == 0) {
         return
     }
@@ -272,7 +272,7 @@ fn emit_forward_decls(st:EmitState:mut, mod:lir.LModule) {
 // Enum definitions
 // ---------------------------------------------------------------------------
 
-fn emit_enum_defs(st:EmitState:mut, mod:lir.LModule) {
+fn emit_enum_defs(st:EmitState:mut, mod:lir.LModule:imut) {
     let i:int:mut = 0
     while(i < array.size(mod.enum_defs)) {
         let ed:lir.LEnumDef = array.get_any(mod.enum_defs, i) ?? lir.LEnumDef{c_name:"", variant_names:[], variant_values:[]}
@@ -560,7 +560,7 @@ fn emit_type_def(st:EmitState:mut, td:lir.LTypeDef) {
     emit_indented(st, "};")
 }
 
-fn emit_type_defs(st:EmitState:mut, mod:lir.LModule) {
+fn emit_type_defs(st:EmitState:mut, mod:lir.LModule:imut) {
     let sorted:array<lir.LTypeDef> = topo_sort_type_defs(mod.type_defs)
     let i:int:mut = 0
     while(i < array.size(sorted)) {
@@ -602,7 +602,7 @@ fn emit_static_def(st:EmitState:mut, sd:lir.LStaticDef) {
     }
 }
 
-fn emit_static_defs(st:EmitState:mut, mod:lir.LModule) {
+fn emit_static_defs(st:EmitState:mut, mod:lir.LModule:imut) {
     let i:int:mut = 0
     while(i < array.size(mod.static_defs)) {
         let sd:lir.LStaticDef = array.get_any(mod.static_defs, i) ?? lir.LStaticDef{c_name:"", c_type:lir.LVoid, has_init:false, init:lir.placeholder_expr(), is_mut:false}
@@ -636,7 +636,7 @@ fn emit_fn_def(st:EmitState:mut, fn_def:lir.LFnDef) {
     emit_indented(st, "}")
 }
 
-fn emit_fn_defs(st:EmitState:mut, mod:lir.LModule) {
+fn emit_fn_defs(st:EmitState:mut, mod:lir.LModule:imut) {
     let i:int:mut = 0
     while(i < array.size(mod.fn_defs)) {
         let fn_def:lir.LFnDef = array.get_any(mod.fn_defs, i) ?? lir.LFnDef{c_name:"", params:[], ret:lir.LVoid, body:[], is_pure:false, source_name:"", source_line:0}
@@ -650,7 +650,7 @@ fn emit_fn_defs(st:EmitState:mut, mod:lir.LModule) {
 // Entry point emission
 // ---------------------------------------------------------------------------
 
-fn emit_entry_point(st:EmitState:mut, mod:lir.LModule) {
+fn emit_entry_point(st:EmitState:mut, mod:lir.LModule:imut) {
     if(mod.has_entry_point == false) {
         return
     }
@@ -1125,7 +1125,7 @@ fn emit_expr(st:EmitState:mut, expr:lir.LExpr):string {
 // Public entry point
 // ---------------------------------------------------------------------------
 
-export fn emit(mod:lir.LModule, source_file:string, is_root:bool, extra_init_names:array<string>, extra_init_exprs:array<string>, line_directives:bool):string {
+export fn emit(mod:lir.LModule:imut, source_file:string, is_root:bool, extra_init_names:array<string>, extra_init_exprs:array<string>, line_directives:bool):string {
     let st:EmitState:mut = make_state(source_file, is_root, extra_init_names, extra_init_exprs, line_directives)
     if(is_root) {
         emit_header(st)
@@ -1147,7 +1147,7 @@ export fn emit(mod:lir.LModule, source_file:string, is_root:bool, extra_init_nam
 
 // emit_with_deferred: also returns deferred static init names/exprs collected during emission.
 // Used by multi-module driver to pass dependency inits to the root module.
-export fn emit_with_deferred(mod:lir.LModule, source_file:string, is_root:bool, extra_init_names:array<string>, extra_init_exprs:array<string>, line_directives:bool, out_deferred_names:array<string>:mut, out_deferred_exprs:array<string>:mut):string {
+export fn emit_with_deferred(mod:lir.LModule:imut, source_file:string, is_root:bool, extra_init_names:array<string>, extra_init_exprs:array<string>, line_directives:bool, out_deferred_names:array<string>:mut, out_deferred_exprs:array<string>:mut):string {
     let st:EmitState:mut = make_state(source_file, is_root, extra_init_names, extra_init_exprs, line_directives)
     if(is_root) {
         emit_header(st)

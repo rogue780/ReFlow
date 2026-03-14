@@ -761,7 +761,7 @@ fn lower_extern_type(st:LowerState:mut, t:typechecker.TCType):lir.LType {
 // INIT + ENTRY POINT
 // ===========================================================================
 
-fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>):LowerState {
+fn make_lower_state(typed:typechecker.TypedModule:imut, extern_fn_c_names:map<string, string>):LowerState {
     let mod:ast.Module = typed.src_module
     let mod_path:string:mut = "main"
     if(array.size(mod.path) > 0) {
@@ -833,7 +833,7 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
 // lower — public entry point
 // ---------------------------------------------------------------------------
 
-export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>):lir.LModule {
+export fn lower(typed:typechecker.TypedModule:imut, extern_fn_c_names:map<string, string>):lir.LModule {
     let st:LowerState:mut = make_lower_state(typed, extern_fn_c_names)
 
     let extern_protos:array<lir.LExternFnProto>:mut = []
