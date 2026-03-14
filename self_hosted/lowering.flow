@@ -204,17 +204,23 @@ fn resolve_type_ann_ast(st:LowerState:mut, te:ast.TypeExpr):typechecker.TCType {
             let bname:string = get_named_type_name(base)
             if(bname == "option") {
                 if(array.size(args) > 0) {
-                    return typechecker.TCOption(inner:typechecker.tc_any())
+                    let inner_te:ast.TypeExpr = array.get_any(args, 0) ?? ast.TNamedType(id:0, line:0, col:0, name:"any", module_path:[])
+                    return typechecker.TCOption(inner:resolve_type_ann_ast(st, inner_te))
                 }
             }
             if(bname == "result") {
-                return typechecker.TCResult(ok_type:typechecker.tc_any(), err_type:typechecker.tc_any())
+                let ok_te:ast.TypeExpr = array.get_any(args, 0) ?? ast.TNamedType(id:0, line:0, col:0, name:"any", module_path:[])
+                let err_te:ast.TypeExpr = array.get_any(args, 1) ?? ast.TNamedType(id:0, line:0, col:0, name:"any", module_path:[])
+                return typechecker.TCResult(ok_type:resolve_type_ann_ast(st, ok_te), err_type:resolve_type_ann_ast(st, err_te))
             }
             if(bname == "array") {
-                return typechecker.TCArray(elem:typechecker.tc_any())
+                let arr_elem:ast.TypeExpr = array.get_any(args, 0) ?? ast.TNamedType(id:0, line:0, col:0, name:"any", module_path:[])
+                return typechecker.TCArray(elem:resolve_type_ann_ast(st, arr_elem))
             }
             if(bname == "map") {
-                return typechecker.TCMap(key:typechecker.tc_any(), val:typechecker.tc_any())
+                let map_k:ast.TypeExpr = array.get_any(args, 0) ?? ast.TNamedType(id:0, line:0, col:0, name:"any", module_path:[])
+                let map_v:ast.TypeExpr = array.get_any(args, 1) ?? ast.TNamedType(id:0, line:0, col:0, name:"any", module_path:[])
+                return typechecker.TCMap(key:resolve_type_ann_ast(st, map_k), val:resolve_type_ann_ast(st, map_v))
             }
             if(bname == "stream") {
                 return typechecker.TCStream(elem:typechecker.tc_any())
@@ -1485,9 +1491,17 @@ fn lower_update(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
                 let one:lir.LExpr = lir.LELit(value:"1", c_type:result_lt)
                 let lb:lir.LExprBox = lir.le_box(lt)
                 let ob:lir.LExprBox = lir.le_box(one)
-                let binop_result:lir.LExpr = lir.LEBinOp(op:op, left:lb, right:ob, c_type:result_lt)
+                let real_op:string:mut = "+"
+                if(op == "--") { real_op = "-" }
+                let arith_result:lir.LExpr:mut = lir.LEBinOp(op:real_op, left:lb, right:ob, c_type:result_lt)
+                match(target_type) {
+                    TCInt(w, s): {
+                        arith_result = lir.LECheckedArith(op:real_op, left:lb, right:ob, c_type:result_lt)
+                    }
+                    _: {}
+                }
                 let lt2:lir.LExpr = lower_expr(st, target)
-                return [lir.LStmtBox{ls:lir.LSAssign(target:lt2, value:binop_result, source_line:line)}]
+                return [lir.LStmtBox{ls:lir.LSAssign(target:lt2, value:arith_result, source_line:line)}]
             }
         }
         _: { return [] }
@@ -2273,9 +2287,15 @@ fn escape_c_string(s:string):string {
 fn lower_none_lit(st:LowerState:mut):lir.LExpr {
     let opt_lt:lir.LType:mut = lir.LStruct(c_name:"FL_Option_ptr")
     if(st.has_current_ret_type) {
-        match(st.current_ret_type) {
-            TCOption(inner): {
-                opt_lt = lower_option_type(st, inner)
+        // Use lower_type directly on the return type — this handles
+        // TCOption properly and avoids match codegen issues with
+        // imported sum type variants.
+        let ret_lt:lir.LType = lower_type(st, st.current_ret_type)
+        match(ret_lt) {
+            LStruct(cname): {
+                if(string.starts_with(cname, "FL_Option_") || string.starts_with(cname, "FL_Result_")) {
+                    opt_lt = ret_lt
+                }
             }
             _: {}
         }
@@ -2379,17 +2399,21 @@ fn lower_binop(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             }
 
             // Checked arithmetic for integers
-            if(op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+            // "++" and "--" are Flow's increment/decrement operators — treated as + and -
+            let arith_op:string:mut = op
+            if(op == "++") { arith_op = "+" }
+            if(op == "--") { arith_op = "-" }
+            if(arith_op == "+" || arith_op == "-" || arith_op == "*" || arith_op == "/" || arith_op == "%") {
                 match(left_type) {
                     TCInt(w, s): {
                         let result_lt:lir.LType = lir.LInt(width:w, is_signed:s)
-                        return lir.LECheckedArith(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:result_lt)
+                        return lir.LECheckedArith(op:arith_op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:result_lt)
                     }
                     TCFloat(w): {
-                        if(op == "%") {
-                            return lir.LECheckedArith(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LFloat(width:w))
+                        if(arith_op == "%") {
+                            return lir.LECheckedArith(op:arith_op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LFloat(width:w))
                         }
-                        return lir.LEBinOp(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LFloat(width:w))
+                        return lir.LEBinOp(op:arith_op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:lir.LFloat(width:w))
                     }
                     _: {}
                 }
