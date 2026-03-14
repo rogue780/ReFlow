@@ -3089,7 +3089,18 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                 if(mono_check == "to_string:conv") {
                                     fn_c_name = fn_c_name + "__int"
                                 }
-                                // TODO: Monomorphize array.put<T> in method call path
+                                // Monomorphize array.put<T> — infer T from 3rd arg
+                                let mc_put_check:string = method_name + ":" + resolved_mod
+                                if(mc_put_check == "put:array") {
+                                    let mc_put_suffix:string:mut = "string"
+                                    if(array.size(args) >= 3) {
+                                        let mc_varg:ast.Expr = array.get_any(args, 2) ?? ast.EIntLit(id:0, line:0, col:0, value:0)
+                                        let mc_vt:typechecker.TCType = type_of(st, ast.expr_id(mc_varg))
+                                        let mc_s:string = mono_type_suffix(mc_vt)
+                                        if(mc_s != "") { mc_put_suffix = mc_s }
+                                    }
+                                    fn_c_name = mangler.mangle_monomorphized("array", "put", [mc_put_suffix])
+                                }
                                 return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
                             }
                             if(s.kind == resolver.SymbolKind.SK_TYPE) {
