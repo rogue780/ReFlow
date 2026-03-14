@@ -882,7 +882,20 @@ export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, str
         }
     }
 
-    // TODO: lower monomorphized functions
+    // Emit monomorphized function bodies (e.g., array.put__string)
+    let mono_fns:array<lir.LFnDef>:mut = []
+    let mi:int:mut = 0
+    while(mi < array.size(st.mono_site_vals)) {
+        let site:lir.MonoSite = array.get_any(st.mono_site_vals, mi) ?? lir.MonoSite{fn_decl_id:0, type_env_keys:[], type_env_vals:[], mangled_name:"", src_module:""}
+        if(site.src_module == "array") {
+            let fn_name:string = array.get(site.type_env_keys, 0) ?? ""
+            // Only emit array.put for now
+            mono_fns = array.push(mono_fns, emit_array_put_fn(st, site))
+        }
+        mi = mi + 1
+    }
+    // Prepend mono fns so they appear before callers
+    st.fn_defs = array.concat(mono_fns, st.fn_defs)
 
     // Detect entry point
     let has_ep:bool:mut = false
@@ -2533,6 +2546,198 @@ fn mono_type_suffix(t:typechecker.TCType):string {
     }
 }
 
+// Get C type suffix for monomorphization from the element type of an array arg.
+fn infer_T_suffix_from_array_arg(st:LowerState:mut, arr_arg:ast.Expr):string {
+    // Try type_of first (from typechecker)
+    let arr_type:typechecker.TCType = type_of(st, ast.expr_id(arr_arg))
+    match(arr_type) {
+        TCArray(elem): {
+            let s:string = mono_type_suffix(elem)
+            if(s != "") { return s }
+            // For struct types, use mangled name
+            match(elem) {
+                TCNamed(mod_p, name, targs): {
+                    let resolved:string:mut = mod_p
+                    if(resolved == "") { resolved = st.module_path }
+                    return mangler.mangle(resolved, name, "")
+                }
+                _: { return "ptr" }
+            }
+        }
+        _: {}
+    }
+    // Fallback: try let_var_ltypes for identifier args
+    match(arr_arg) {
+        EIdent(eid, el, ec, ename, emod): {
+            let tracked:lir.LTypeBox? = map.get(st.let_var_ltypes, ename)
+            match(tracked) {
+                some(tb): {
+                    // The tracked type is the variable's LType.
+                    // For :mut array<T>, it's LPtr(LPtr(LStruct("FL_Array")))
+                    // For plain array<T>, it's LPtr(LStruct("FL_Array"))
+                    // We can't determine T from the LType alone.
+                    // Use resolve_type_ann on the let-binding's type annotation instead.
+                    return ""
+                }
+                none: {}
+            }
+        }
+        _: {}
+    }
+    // Try resolving from the annotation of the arg's let-binding
+    // by checking the resolved symbol's type annotation
+    match(arr_arg) {
+        EIdent(eid, el, ec, ename, emod): {
+            let sym_opt:resolver.Symbol? = map.get(st.resolved.symbols, conv.to_string(eid))
+            match(sym_opt) {
+                some(sym): {
+                    if(sym.has_type_ann) {
+                        let ann_type:typechecker.TCType = resolve_type_ann(st, sym.type_ann)
+                        match(ann_type) {
+                            TCArray(elem): {
+                                let s:string = mono_type_suffix(elem)
+                                if(s != "") { return s }
+                                match(elem) {
+                                    TCNamed(mod_p, name, targs): {
+                                        let resolved:string:mut = mod_p
+                                        if(resolved == "") { resolved = st.module_path }
+                                        return mangler.mangle(resolved, name, "")
+                                    }
+                                    _: { return "ptr" }
+                                }
+                            }
+                            _: {}
+                        }
+                    }
+                }
+                none: {}
+            }
+        }
+        _: {}
+    }
+    return ""
+}
+
+// Check if a type suffix represents a pointer type (uses fl_array_push_ptr)
+// vs a value type (needs fl_array_push_sized).
+fn is_pointer_type_suffix(suffix:string):bool {
+    if(suffix == "string") { return true }
+    if(suffix == "ptr") { return true }
+    // array<T> is FL_Array* (pointer)
+    if(string.starts_with(suffix, "FL_Array")) { return true }
+    return false
+}
+
+// Record a monomorphization site. Returns the mangled name.
+fn record_mono_site(st:LowerState:mut, src_module:string, fn_name:string, type_suffix:string):string {
+    let key:string = src_module + ":" + fn_name + ":" + type_suffix
+    let ki:int:mut = 0
+    while(ki < array.size(st.mono_site_keys)) {
+        if((array.get(st.mono_site_keys, ki) ?? "") == key) {
+            let existing:lir.MonoSite = array.get_any(st.mono_site_vals, ki) ?? lir.MonoSite{fn_decl_id:0, type_env_keys:[], type_env_vals:[], mangled_name:"", src_module:""}
+            return existing.mangled_name
+        }
+        ki = ki + 1
+    }
+    let mangled:string = mangler.mangle_monomorphized(src_module, fn_name, [type_suffix])
+    let site:lir.MonoSite = lir.MonoSite{
+        fn_decl_id:0,
+        type_env_keys:["T"],
+        type_env_vals:[type_suffix],
+        mangled_name:mangled,
+        src_module:src_module
+    }
+    st.mono_site_keys = array.push(st.mono_site_keys, key)
+    st.mono_site_vals = array.push(st.mono_site_vals, site)
+    return mangled
+}
+
+// Emit a monomorphized array.put function body.
+// array.put<T>(arr, idx, val) creates a new array with arr[idx] replaced by val.
+fn emit_array_put_fn(st:LowerState:mut, site:lir.MonoSite):lir.LFnDef {
+    let type_suffix:string = array.get(site.type_env_vals, 0) ?? "ptr"
+    let arr_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Array"))
+
+    // Determine element C type and push function
+    let elem_lt:lir.LType:mut = lir.LPtr(inner:lir.LVoid)
+    let push_fn:string:mut = "fl_array_push_ptr"
+    let use_sized:bool:mut = false
+    if(type_suffix == "string") { elem_lt = lir.LPtr(inner:lir.LStruct(c_name:"FL_String")) }
+    if(type_suffix == "int") { elem_lt = lir.LInt(width:32, is_signed:true); use_sized = true }
+    if(type_suffix == "int64") { elem_lt = lir.LInt(width:64, is_signed:true); use_sized = true }
+    if(type_suffix == "float") { elem_lt = lir.LFloat(width:64); use_sized = true }
+    if(type_suffix == "bool") { elem_lt = lir.LBool; use_sized = true }
+    // For struct types (non-primitive), use sized push
+    if(elem_lt == lir.LPtr(inner:lir.LVoid) && type_suffix != "ptr") {
+        elem_lt = lir.LStruct(c_name:type_suffix)
+        use_sized = true
+    }
+
+    let params:array<lir.LParam> = [
+        lir.LParam{name:"arr", param_type:arr_lt},
+        lir.LParam{name:"idx", param_type:lir.LInt(width:32, is_signed:true)},
+        lir.LParam{name:"val", param_type:elem_lt}
+    ]
+
+    // Body: loop from 0 to size, push val at idx, get_safe+push at others
+    let body:array<lir.LStmtBox>:mut = []
+    // let s = fl_array_len_int(arr);
+    body = array.push(body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:"s", c_type:lir.LInt(width:32, is_signed:true), has_init:true, init:lir.LECall(fn_name:"fl_array_len_int", args:[lir.le_box(lir.LEVar(c_name:"arr", c_type:arr_lt))], c_type:lir.LInt(width:32, is_signed:true)), source_line:0)})
+    // FL_Array* result = fl_array_new(0, 0, NULL);
+    body = array.push(body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:"result", c_type:arr_lt, has_init:true, init:lir.LECall(fn_name:"fl_array_new", args:[lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid)))], c_type:arr_lt), source_line:0)})
+    // int i = 0;
+    body = array.push(body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:"i", c_type:lir.LInt(width:32, is_signed:true), has_init:true, init:lir.LELit(value:"0", c_type:lir.LInt(width:32, is_signed:true)), source_line:0)})
+
+    // Build while body
+    let while_body:array<lir.LStmtBox>:mut = []
+
+    // if (i == idx) { push val } else { get + push }
+    let push_val_args:array<lir.LExprBox>:mut = [lir.le_box(lir.LEVar(c_name:"result", c_type:arr_lt)), lir.le_box(lir.LEVar(c_name:"val", c_type:elem_lt))]
+    let push_val_call:lir.LExpr:mut = lir.LECall(fn_name:"fl_array_push_ptr", args:push_val_args, c_type:arr_lt)
+    if(use_sized) {
+        push_val_call = lir.LECall(fn_name:"fl_array_push_sized", args:[lir.le_box(lir.LEVar(c_name:"result", c_type:arr_lt)), lir.le_box(lir.LEAddrOf(inner:lir.le_box(lir.LEVar(c_name:"val", c_type:elem_lt)), c_type:lir.LPtr(inner:elem_lt))), lir.le_box(lir.LESizeOf(target_type:elem_lt))], c_type:arr_lt)
+    }
+    let then_body:array<lir.LStmtBox> = [lir.LStmtBox{ls:lir.LSAssign(target:lir.LEVar(c_name:"result", c_type:arr_lt), value:push_val_call, source_line:0)}]
+
+    // else: get_safe + push
+    let get_call:lir.LExpr = lir.LECall(fn_name:"fl_array_get_safe", args:[lir.le_box(lir.LEVar(c_name:"arr", c_type:arr_lt)), lir.le_box(lir.LEVar(c_name:"i", c_type:lir.LInt(width:32, is_signed:true)))], c_type:lir.LStruct(c_name:"FL_Option_ptr"))
+    let else_body:array<lir.LStmtBox>:mut = []
+    // FL_Option_ptr _opt = fl_array_get_safe(arr, i);
+    else_body = array.push(else_body, lir.LStmtBox{ls:lir.LSVarDecl(c_name:"_opt", c_type:lir.LStruct(c_name:"FL_Option_ptr"), has_init:true, init:get_call, source_line:0)})
+    // if (_opt.tag == 1) { result = push(result, (elem_type)_opt.value); }
+    let opt_tag:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:"_opt", c_type:lir.LStruct(c_name:"FL_Option_ptr"))), field:"tag", c_type:lir.LByte)
+    let opt_val:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:"_opt", c_type:lir.LStruct(c_name:"FL_Option_ptr"))), field:"value", c_type:lir.LPtr(inner:lir.LVoid))
+    let cast_val:lir.LExpr:mut = opt_val
+    if(is_pointer_type_suffix(type_suffix) == false) {
+        // For value types, cast: *(elem_type*)_opt.value
+        cast_val = lir.LEDeref(inner:lir.le_box(lir.LECast(inner:lir.le_box(opt_val), c_type:lir.LPtr(inner:elem_lt))), c_type:elem_lt)
+    }
+    let push_v_args:array<lir.LExprBox>:mut = [lir.le_box(lir.LEVar(c_name:"result", c_type:arr_lt)), lir.le_box(cast_val)]
+    let push_v_call:lir.LExpr:mut = lir.LECall(fn_name:"fl_array_push_ptr", args:push_v_args, c_type:arr_lt)
+    if(use_sized) {
+        push_v_call = lir.LECall(fn_name:"fl_array_push_sized", args:[lir.le_box(lir.LEVar(c_name:"result", c_type:arr_lt)), lir.le_box(lir.LEAddrOf(inner:lir.le_box(cast_val), c_type:lir.LPtr(inner:elem_lt))), lir.le_box(lir.LESizeOf(target_type:elem_lt))], c_type:arr_lt)
+    }
+    let inner_then:array<lir.LStmtBox> = [lir.LStmtBox{ls:lir.LSAssign(target:lir.LEVar(c_name:"result", c_type:arr_lt), value:push_v_call, source_line:0)}]
+    let opt_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(opt_tag), right:lir.le_box(lir.LELit(value:"1", c_type:lir.LByte)), c_type:lir.LBool)
+    else_body = array.push(else_body, lir.LStmtBox{ls:lir.LSIf(cond:opt_check, then_body:inner_then, else_body:[], source_line:0)})
+
+    let cond:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEVar(c_name:"i", c_type:lir.LInt(width:32, is_signed:true))), right:lir.le_box(lir.LEVar(c_name:"idx", c_type:lir.LInt(width:32, is_signed:true))), c_type:lir.LBool)
+    while_body = array.push(while_body, lir.LStmtBox{ls:lir.LSIf(cond:cond, then_body:then_body, else_body:else_body, source_line:0)})
+
+    // i = i + 1 (checked)
+    let inc:lir.LExpr = lir.LECheckedArith(op:"+", left:lir.le_box(lir.LEVar(c_name:"i", c_type:lir.LInt(width:32, is_signed:true))), right:lir.le_box(lir.LELit(value:"1", c_type:lir.LInt(width:32, is_signed:true))), c_type:lir.LInt(width:32, is_signed:true))
+    while_body = array.push(while_body, lir.LStmtBox{ls:lir.LSAssign(target:lir.LEVar(c_name:"i", c_type:lir.LInt(width:32, is_signed:true)), value:inc, source_line:0)})
+
+    // while (i < s) { ... }
+    let loop_cond:lir.LExpr = lir.LEBinOp(op:"<", left:lir.le_box(lir.LEVar(c_name:"i", c_type:lir.LInt(width:32, is_signed:true))), right:lir.le_box(lir.LEVar(c_name:"s", c_type:lir.LInt(width:32, is_signed:true))), c_type:lir.LBool)
+    body = array.push(body, lir.LStmtBox{ls:lir.LSWhile(cond:loop_cond, body:while_body, source_line:0)})
+
+    // return result;
+    body = array.push(body, lir.LStmtBox{ls:lir.LSReturn(has_value:true, value:lir.LEVar(c_name:"result", c_type:arr_lt), source_line:0)})
+
+    return lir.LFnDef{c_name:site.mangled_name, params:params, ret:arr_lt, body:body, is_pure:true, source_name:"array.put", source_line:0}
+}
+
 // ---------------------------------------------------------------------------
 // Variadic call arg packing
 // ---------------------------------------------------------------------------
@@ -2803,27 +3008,38 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let mc_sym:resolver.Symbol? = map.get(st.resolved.symbols, mc_sym_key)
             match(mc_sym) {
                 some(ms): {
-                    // Check if it's an extern fn (use c_name, no mangling)
+                    // Check if extern fn — but only if the symbol name matches
+                    // the method name (avoids decl ID collisions between FnDecl
+                    // and ExternFnDecl in the same module).
                     let ms_mod_key:string:mut = ms.module_key
                     if(ms_mod_key == "") { ms_mod_key = st.module_path }
+                    let is_actually_extern:bool:mut = false
                     let extern_c:string? = map.get(st.extern_fn_c_names, ms_mod_key + ":" + conv.to_string(ms.decl_id))
                     match(extern_c) {
                         some(ec_name): {
-                            // Extern fn call: use literal C name
-                            let fn_args:array<lir.LExprBox>:mut = []
-                            for(arg:ast.Expr in args) {
-                                match(arg) {
-                                    ENamedArg(nid, nl, nc, nname, nval): {
-                                        fn_args = array.push(fn_args, lir.le_box(lower_expr(st, nval)))
-                                    }
-                                    _: {
-                                        fn_args = array.push(fn_args, lir.le_box(lower_expr(st, arg)))
-                                    }
-                                }
+                            // Verify: the extern fn name should contain the method name
+                            // to avoid cross-decl ID collisions within the same module
+                            if(string.contains(ec_name, method_name)) {
+                                is_actually_extern = true
                             }
-                            return lir.LECall(fn_name:ec_name, args:fn_args, c_type:result_lt)
                         }
                         none: {}
+                    }
+                    if(is_actually_extern) {
+                        let ec_resolved:string = map.get(st.extern_fn_c_names, ms_mod_key + ":" + conv.to_string(ms.decl_id)) ?? ""
+                        // Extern fn call: use literal C name
+                        let fn_args:array<lir.LExprBox>:mut = []
+                        for(arg:ast.Expr in args) {
+                            match(arg) {
+                                ENamedArg(nid, nl, nc, nname, nval): {
+                                    fn_args = array.push(fn_args, lir.le_box(lower_expr(st, nval)))
+                                }
+                                _: {
+                                    fn_args = array.push(fn_args, lir.le_box(lower_expr(st, arg)))
+                                }
+                            }
+                        }
+                        return lir.LECall(fn_name:ec_resolved, args:fn_args, c_type:result_lt)
                     }
                 }
                 none: {}
@@ -2861,8 +3077,11 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                 if(mono_check == "to_string:conv") {
                                     fn_c_name = fn_c_name + "__int"
                                 }
-                                // Pack variadic args if needed
-                                let mc_callee_type:typechecker.TCType = type_of(st, ast.expr_id(receiver))
+                                // Monomorphize array.put<T>
+                                let mono_array_check:string = method_name + ":" + resolved_mod
+                                if(mono_array_check == "put:array") {
+                                    fn_c_name = fn_c_name + "__TEST"
+                                }
                                 return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
                             }
                             if(s.kind == resolver.SymbolKind.SK_TYPE) {
