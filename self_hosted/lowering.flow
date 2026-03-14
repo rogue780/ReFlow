@@ -1468,6 +1468,28 @@ fn lower_let(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
             let val_type:typechecker.TCType = type_of(st, ast.expr_id(val))
             let c_type:lir.LType:mut = lower_type(st, val_type)
 
+            // If c_type is void* (TCAny), use the init expression's LType
+            match(c_type) {
+                LPtr(inner): {
+                    match(inner) {
+                        LVoid: {
+                            let init_lt:lir.LType = lir.lexpr_type(init)
+                            match(init_lt) {
+                                LPtr(ii): {
+                                    match(ii) {
+                                        LVoid: {} // Still void*, keep it
+                                        _: { c_type = init_lt }
+                                    }
+                                }
+                                _: { c_type = init_lt }
+                            }
+                        }
+                        _: {}
+                    }
+                }
+                _: {}
+            }
+
             // If type annotation exists, prefer it
             if(has_type_ann) {
                 let ann_type:typechecker.TCType = resolve_type_ann(st, type_ann)
@@ -3404,12 +3426,33 @@ fn lower_if_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
     match(e) {
         EIfExpr(id, line, col, cond, then_stmts, else_stmts): {
             let result_type:typechecker.TCType = type_of(st, id)
-            let result_lt:lir.LType = lower_type(st, result_type)
+            let result_lt:lir.LType:mut = lower_type(st, result_type)
             let tmp:string = fresh_temp(st)
 
             let lcond:lir.LExpr = lower_expr(st, cond)
             let then_block:array<lir.LStmtBox> = lower_block(st, then_stmts)
             let else_block:array<lir.LStmtBox> = lower_block(st, else_stmts)
+
+            // If result_lt is void* (TCAny), try to infer from then branch's last stmt
+            match(result_lt) {
+                LPtr(inner): {
+                    match(inner) {
+                        LVoid: {
+                            if(array.size(then_block) > 0) {
+                                let last_then:lir.LStmtBox = array.get_any(then_block, array.size(then_block) - 1) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+                                match(last_then.ls) {
+                                    LSExprStmt(expr, sline): {
+                                        result_lt = lir.lexpr_type(expr)
+                                    }
+                                    _: {}
+                                }
+                            }
+                        }
+                        _: {}
+                    }
+                }
+                _: {}
+            }
 
             // Assign result from last statement of each branch
             let then_final:array<lir.LStmtBox> = inject_assign_to_temp(then_block, tmp, result_lt)
