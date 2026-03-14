@@ -2453,6 +2453,28 @@ fn lower_binop(st:LowerState:mut, e:ast.Expr):lir.LExpr {
 }
 
 // ---------------------------------------------------------------------------
+// Monomorphization type suffix
+// ---------------------------------------------------------------------------
+
+fn mono_type_suffix(t:typechecker.TCType):string {
+    match(t) {
+        TCInt(w, s): {
+            if(w == 32 && s) { return "int" }
+            if(w == 64 && s) { return "int64" }
+            return ""
+        }
+        TCFloat(w): {
+            if(w == 64) { return "float" }
+            return ""
+        }
+        TCBool: { return "bool" }
+        TCString: { return "string" }
+        TCChar: { return "char" }
+        _: { return "" }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Variadic call arg packing
 // ---------------------------------------------------------------------------
 
@@ -2590,7 +2612,15 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                     if(array.size(cmod) > 0) {
                         let mod_p:string = join_path(cmod)
                         let resolved_mod:string = resolve_ns_to_module_path(st, mod_p)
-                        let fn_c_name:string = mangler.mangle(resolved_mod, "", cname)
+                        let fn_c_name:string:mut = mangler.mangle(resolved_mod, "", cname)
+                        // Monomorphize conv.to_string<T> based on argument type
+                        if(cname == "to_string" && mod_p == "conv" && array.size(args) > 0) {
+                            let arg_type:typechecker.TCType = type_of(st, ast.expr_id(array.get_any(args, 0) ?? ast.EIntLit(id:0, line:0, col:0, value:0)))
+                            let suffix:string = mono_type_suffix(arg_type)
+                            if(suffix != "") {
+                                fn_c_name = fn_c_name + "__" + suffix
+                            }
+                        }
                         return lir.LECall(fn_name:fn_c_name, args:largs, c_type:result_lt)
                     }
 
@@ -2746,7 +2776,7 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                             if(s.kind == resolver.SymbolKind.SK_IMPORT) {
                                 // Namespace function call: module.fn()
                                 let resolved_mod:string = resolve_ns_to_module_path(st, rname)
-                                let fn_c_name:string = mangler.mangle(resolved_mod, "", method_name)
+                                let fn_c_name:string:mut = mangler.mangle(resolved_mod, "", method_name)
                                 // Args without receiver
                                 let fn_args:array<lir.LExprBox>:mut = []
                                 for(arg:ast.Expr in args) {
@@ -2758,6 +2788,15 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                             fn_args = array.push(fn_args, lir.le_box(lower_expr(st, arg)))
                                         }
                                     }
+                                }
+                                // Monomorphize conv.to_string<T> based on arg type
+                                if(method_name == "to_string" && rname == "conv" && array.size(args) > 0) {
+                                    let arg_type:typechecker.TCType = type_of(st, ast.expr_id(array.get_any(args, 0) ?? ast.EIntLit(id:0, line:0, col:0, value:0)))
+                                    let suffix:string:mut = mono_type_suffix(arg_type)
+                                    // Fallback: if type inference didn't resolve, default to int
+                                    // (conv.to_string is only called with int args in the self-hosted compiler)
+                                    if(suffix == "") { suffix = "int" }
+                                    fn_c_name = fn_c_name + "__" + suffix
                                 }
                                 return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
                             }
