@@ -2453,6 +2453,65 @@ fn lower_binop(st:LowerState:mut, e:ast.Expr):lir.LExpr {
 }
 
 // ---------------------------------------------------------------------------
+// :mut argument wrapping
+// ---------------------------------------------------------------------------
+
+// Find a FnDecl by decl_id in the current module's declarations.
+fn find_fn_decl_by_id(st:LowerState, decl_id:int):array<ast.Param> {
+    for(d:ast.Decl in st.src_module.decls) {
+        match(d) {
+            DFn(did, dl, dc, dname, dtparams, dparams, dret_has, dret, dbody, dis_pure, dis_export, dis_static, has_fin, fin_body): {
+                if(did == decl_id) { return dparams }
+            }
+            DType(did, dl, dc, tname, tparams, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut_type): {
+                for(m:ast.Decl in methods) {
+                    match(m) {
+                        DFn(mid, ml, mc, mname, mtparams, mparams, mret_has, mret, mbody, mis_pure, mis_export, mis_static, mhas_fin, mfin_body): {
+                            if(mid == decl_id) { return mparams }
+                        }
+                        _: {}
+                    }
+                }
+            }
+            _: {}
+        }
+    }
+    return []
+}
+
+// Adjust lowered args for :mut parameter passing.
+// If a target param is :mut and the lowered arg is LDeref(LVar), unwrap
+// the deref to pass the pointer directly (forward :mut to :mut).
+// If a target param is NOT :mut and the arg is a :mut local (pointer),
+// keep the deref (value copy).
+fn wrap_mut_call_args(st:LowerState, largs:array<lir.LExprBox>, params:array<ast.Param>):array<lir.LExprBox> {
+    if(array.size(params) == 0) { return largs }
+    let result:array<lir.LExprBox>:mut = []
+    let i:int:mut = 0
+    while(i < array.size(largs)) {
+        let arg:lir.LExpr = lir.le_unbox(array.get_any(largs, i) ?? lir.le_box(lir.LELit(value:"0", c_type:lir.LVoid)))
+        if(i < array.size(params)) {
+            let p:ast.Param = array.get_any(params, i) ?? ast.Param{name:"", type_ann:ast.TNamedType(id:0, line:0, col:0, name:"void", module_path:[]), id:0, line:0, col:0, has_default:false, is_variadic:false}
+            let param_is_mut:bool = ast.is_mut_type_ann(p.type_ann)
+            if(param_is_mut) {
+                // Target param is :mut — if arg is LDeref(LVar), unwrap
+                match(arg) {
+                    LEDeref(inner_box, ct): {
+                        result = array.push(result, inner_box)
+                        i = i + 1
+                        continue
+                    }
+                    _: {}
+                }
+            }
+        }
+        result = array.push(result, array.get_any(largs, i) ?? lir.le_box(lir.LELit(value:"0", c_type:lir.LVoid)))
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
 // Monomorphization type suffix
 // ---------------------------------------------------------------------------
 
@@ -2569,8 +2628,10 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                     // Check if it's a known function
                     let sym_key:string = conv.to_string(cid)
                     let sym:resolver.Symbol? = map.get(st.resolved.symbols, sym_key)
+                    let sym_decl_id:int:mut = 0
                     match(sym) {
                         some(s): {
+                            sym_decl_id = s.decl_id
                             if(s.kind == resolver.SymbolKind.SK_CONSTRUCTOR) {
                                 // Variant or struct constructor
                                 return lower_constructor_call(st, e, s, largs, result_lt)
@@ -2624,9 +2685,11 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                         return lir.LECall(fn_name:fn_c_name, args:largs, c_type:result_lt)
                     }
 
-                    // Local function call
+                    // Local function call — adjust :mut args
+                    let local_params:array<ast.Param> = find_fn_decl_by_id(st, sym_decl_id)
+                    let wrapped_args:array<lir.LExprBox> = wrap_mut_call_args(st, largs, local_params)
                     let fn_c_name:string = mangler.mangle(st.module_path, "", cname)
-                    return lir.LECall(fn_name:fn_c_name, args:largs, c_type:result_lt)
+                    return lir.LECall(fn_name:fn_c_name, args:wrapped_args, c_type:result_lt)
                 }
                 _: {
                     // Indirect call (closure or function pointer)

@@ -281,6 +281,14 @@ export fn make_module(path:array<string>, imports:array<Decl>, decls:array<Decl>
     return Module{path:path, imports:imports, decls:decls, filename:filename}
 }
 
+// Check if a TypeExpr is :mut
+export fn is_mut_type_ann(te:TypeExpr):bool {
+    match te {
+        TMutType(id, l, c, inner): { return true }
+        _: { return false }
+    }
+}
+
 // Line/col accessors for sum types (needed by parser)
 export fn expr_line(e:Expr):int {
     match e {
