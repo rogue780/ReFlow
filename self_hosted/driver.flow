@@ -935,12 +935,13 @@ fn collect_enum_names(defs:array<lir.LEnumDef>):array<string> {
 fn build_extern_fn_map(modules:array<ModuleEntry>):map<string, string> {
     let result:map<string, string>:mut = map.new()
     for(entry:ModuleEntry in modules) {
+        let mod_key:string = join_path(entry.typed.src_module.path)
         for(decl:ast.Decl in entry.typed.src_module.decls) {
             match(decl) {
                 DExternFn(id, line, col, name, tparams, params, has_ret, ret_type, is_export, c_name_str): {
                     let cn:string:mut = c_name_str
                     if(cn == "") { cn = name }
-                    result = map.set(result, conv.to_string(id), cn)
+                    result = map.set(result, mod_key + ":" + conv.to_string(id), cn)
                 }
                 _: {}
             }
@@ -955,12 +956,13 @@ fn build_extern_fn_map(modules:array<ModuleEntry>):map<string, string> {
 // for correct function name resolution at call sites.
 fn extend_extern_fn_map_from_typed(efn_map:map<string, string>:mut, extra_typed:array<typechecker.TypedModule>):map<string, string> {
     for(typed:typechecker.TypedModule in extra_typed) {
+        let mod_key:string = join_path(typed.src_module.path)
         for(decl:ast.Decl in typed.src_module.decls) {
             match(decl) {
                 DExternFn(id, line, col, name, tparams, params, has_ret, ret_type, is_export, c_name_str): {
                     let cn:string:mut = c_name_str
                     if(cn == "") { cn = name }
-                    efn_map = map.set(efn_map, conv.to_string(id), cn)
+                    efn_map = map.set(efn_map, mod_key + ":" + conv.to_string(id), cn)
                 }
                 _: {}
             }
