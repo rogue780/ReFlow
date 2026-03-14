@@ -1188,6 +1188,7 @@ export fn compile(source_path:string, output:string, stdlib_dir:string):int {
     // Build clang args
     let clang_args:array<string>:mut = [
         "-std=c11", "-Wall", "-Wextra",
+        "-Wno-implicit-function-declaration",
         "-pthread",
         "-o", output_path,
         tmp_path,

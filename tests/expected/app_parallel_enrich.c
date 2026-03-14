@@ -163,6 +163,8 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/conv.flow */
 
+FL_String* fl_conv_to_string__int(fl_int n);
+
 FL_String* fl_conv_char_to_string(fl_char c);
 
 FL_Option_int fl_conv_string_to_int(FL_String* s);
@@ -174,6 +176,11 @@ FL_Option_float fl_conv_string_to_float(FL_String* s);
 FL_Option_float fl_conv_parse_float_rest(FL_String* s, fl_int len, fl_int pos, fl_float int_part, fl_bool negative, fl_bool has_digits_before);
 
 FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl_float mantissa, fl_bool negative, fl_bool has_digits);
+
+/* Flow: conv.to_string__int */
+FL_String* fl_conv_to_string__int(fl_int n) {
+    return fl_int_to_string(n);
+}
 
 /* Flow: conv.char_to_string */
 FL_String* fl_conv_char_to_string(fl_char c) {
@@ -518,8 +525,6 @@ typedef struct fl_tests_app_parallel_enrich_Record fl_tests_app_parallel_enrich_
 
 typedef struct _fl_frame_tests_app_parallel_enrich_produce_values _fl_frame_tests_app_parallel_enrich_produce_values;
 
-FL_String* fl_conv_to_string__int(fl_int val);
-
 fl_int fl_tests_app_parallel_enrich_compute_score(fl_int value);
 
 FL_String* fl_tests_app_parallel_enrich_categorize(fl_int value);
@@ -581,11 +586,6 @@ FL_String* _fl_str_tests_app_parallel_enrich_12 = NULL;
 FL_String* _fl_str_tests_app_parallel_enrich_13 = NULL;
 
 FL_String* _fl_str_tests_app_parallel_enrich_14 = NULL;
-
-/* Flow: conv.to_string[mono] */
-FL_String* fl_conv_to_string__int(fl_int val) {
-    return fl_int_to_string(val);
-}
 
 /* Flow: tests.app_parallel_enrich.compute_score */
 fl_int fl_tests_app_parallel_enrich_compute_score(fl_int value) {

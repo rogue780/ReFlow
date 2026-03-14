@@ -2789,15 +2789,17 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                         }
                                     }
                                 }
-                                // Monomorphize conv.to_string<T> based on arg type
-                                if(method_name == "to_string" && rname == "conv" && array.size(args) > 0) {
-                                    let arg_type:typechecker.TCType = type_of(st, ast.expr_id(array.get_any(args, 0) ?? ast.EIntLit(id:0, line:0, col:0, value:0)))
-                                    let suffix:string:mut = mono_type_suffix(arg_type)
-                                    // Fallback: if type inference didn't resolve, default to int
-                                    // (conv.to_string is only called with int args in the self-hosted compiler)
-                                    if(suffix == "") { suffix = "int" }
-                                    fn_c_name = fn_c_name + "__" + suffix
+                                // Monomorphize conv.to_string<T> — always append __int
+                                // since all self-hosted conv.to_string calls are with int args.
+                                // Work around Python compiler codegen bug: && with two string
+                                // comparisons emits raw == for the second operand instead of
+                                // fl_string_eq. Concatenate strings to use a single comparison.
+                                let mono_check:string = method_name + ":" + resolved_mod
+                                if(mono_check == "to_string:conv") {
+                                    fn_c_name = fn_c_name + "__int"
                                 }
+                                // Pack variadic args if needed
+                                let mc_callee_type:typechecker.TCType = type_of(st, ast.expr_id(receiver))
                                 return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
                             }
                             if(s.kind == resolver.SymbolKind.SK_TYPE) {

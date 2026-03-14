@@ -7,6 +7,12 @@ export fn:pure to_string<T fulfills Showable>(val:T):string {
     return val.to_string()
 }
 
+// Non-generic int-to-string (used by self-hosted compiler internals)
+// Named with __int suffix to match the Python compiler's monomorphized output.
+export fn to_string__int(n:int):string {
+    return n.to_string()
+}
+
 // Convert char to single-character string
 export fn char_to_string(c:char):string {
     return char.to_string(c)

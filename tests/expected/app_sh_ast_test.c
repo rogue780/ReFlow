@@ -163,6 +163,8 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/conv.flow */
 
+FL_String* fl_conv_to_string__int(fl_int n);
+
 FL_String* fl_conv_char_to_string(fl_char c);
 
 FL_Option_int fl_conv_string_to_int(FL_String* s);
@@ -174,6 +176,11 @@ FL_Option_float fl_conv_string_to_float(FL_String* s);
 FL_Option_float fl_conv_parse_float_rest(FL_String* s, fl_int len, fl_int pos, fl_float int_part, fl_bool negative, fl_bool has_digits_before);
 
 FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl_float mantissa, fl_bool negative, fl_bool has_digits);
+
+/* Flow: conv.to_string__int */
+FL_String* fl_conv_to_string__int(fl_int n) {
+    return fl_int_to_string(n);
+}
 
 /* Flow: conv.char_to_string */
 FL_String* fl_conv_char_to_string(fl_char c) {
@@ -3330,8 +3337,6 @@ fl_self_hosted_ast_Expr fl_self_hosted_ast_fsp_get_expr(fl_self_hosted_ast_FStri
     }
 }
 
-FL_String* fl_conv_to_string__int(fl_int val);
-
 void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr);
 
 void _fl_retain_fl_self_hosted_ast_TypeExpr(void* _ptr);
@@ -3429,11 +3434,6 @@ FL_String* _fl_str_tests_programs_app_sh_ast_test_37 = NULL;
 FL_String* _fl_str_tests_programs_app_sh_ast_test_38 = NULL;
 
 FL_String* _fl_str_tests_programs_app_sh_ast_test_39 = NULL;
-
-/* Flow: conv.to_string[mono] */
-FL_String* fl_conv_to_string__int(fl_int val) {
-    return fl_int_to_string(val);
-}
 
 /* Flow: sum destructor for fl_self_hosted_ast_TypeExpr */
 void _fl_destroy_fl_self_hosted_ast_TypeExpr(void* _ptr) {

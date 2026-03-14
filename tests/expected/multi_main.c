@@ -163,6 +163,8 @@ FL_String* fl_string_join(FL_String* sep, FL_Array* parts) {
 
 /* From: stdlib/conv.flow */
 
+FL_String* fl_conv_to_string__int(fl_int n);
+
 FL_String* fl_conv_char_to_string(fl_char c);
 
 FL_Option_int fl_conv_string_to_int(FL_String* s);
@@ -174,6 +176,11 @@ FL_Option_float fl_conv_string_to_float(FL_String* s);
 FL_Option_float fl_conv_parse_float_rest(FL_String* s, fl_int len, fl_int pos, fl_float int_part, fl_bool negative, fl_bool has_digits_before);
 
 FL_Option_float fl_conv_parse_float_exp(FL_String* s, fl_int len, fl_int pos, fl_float mantissa, fl_bool negative, fl_bool has_digits);
+
+/* Flow: conv.to_string__int */
+FL_String* fl_conv_to_string__int(fl_int n) {
+    return fl_int_to_string(n);
+}
 
 /* Flow: conv.char_to_string */
 FL_String* fl_conv_char_to_string(fl_char c) {
@@ -521,15 +528,6 @@ fl_int fl_tests_programs_multi_helper_double(fl_int x) {
     fl_int _fl_e_1;
     FL_CHECKED_MUL(x, 2, &_fl_e_1);
     return _fl_e_1;
-}
-
-FL_String* fl_conv_to_string__int(fl_int val);
-
-void fl_tests_programs_multi_main_main(void);
-
-/* Flow: conv.to_string[mono] */
-FL_String* fl_conv_to_string__int(fl_int val) {
-    return fl_int_to_string(val);
 }
 
 /* Flow: tests.programs.multi_main.main */
