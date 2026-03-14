@@ -3113,7 +3113,9 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                         let mc_s:string = mono_type_suffix(mc_vt)
                                         if(mc_s != "") { mc_put_suffix = mc_s }
                                     }
-                                    fn_c_name = mangler.mangle_monomorphized("array", "put", [mc_put_suffix])
+                                    let mc_suffix_arr:array<string>:mut = []
+                                    mc_suffix_arr = array.push(mc_suffix_arr, mc_put_suffix)
+                                    fn_c_name = mangler.mangle_monomorphized("array", "put", mc_suffix_arr)
                                 }
                                 return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
                             }

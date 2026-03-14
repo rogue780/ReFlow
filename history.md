@@ -144,6 +144,20 @@ Possible fix: emit the FL_BOX_DEREF in the EMITTER (not the lowering) when
 it detects that a match-bound variable came from a FL_Box* field. This avoids
 creating new LIR nodes during lowering.
 
+### Finding: Array literal [str] causes NULL in method call context
+Creating array literals like `[mc_put_suffix]` or `["T"]` in the
+SK_IMPORT namespace method call path causes NULL concat during
+self-compilation. Building arrays with push (`arr = []; arr = push(arr, x)`)
+works. Similarly, creating `MonoSite{...}` structs crashes. The
+method call path has some context issue with complex value construction.
+
+### Finding: Adding functions to stdlib/array.flow causes generic compilation
+Adding ANY new function to stdlib/array.flow that calls other array
+functions makes the Python compiler compile ALL functions including
+unresolvable generics like `put<T>`, causing `fl_array_T` type errors.
+Non-generic stdlib functions must be in a separate module or use
+runtime functions directly.
+
 ### Approaches NOT to retry
 1. Nested string if — Python compiler codegen bug with inner if using `==`
 2. `&&` with two string comparisons — Python compiler uses `==` for second operand
