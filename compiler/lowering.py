@@ -1604,12 +1604,18 @@ class Lowerer:
         stack: list[LExpr] = [expr]
         while stack:
             e = stack.pop()
-            if isinstance(e, LFieldAccess) and isinstance(e.obj, LVar):
-                keys.add(f"{e.obj.c_name}.{e.field}")
-            # Also handle nested: s.parsed_module.body
-            if (isinstance(e, LFieldAccess) and isinstance(e.obj, LFieldAccess)
-                    and isinstance(e.obj.obj, LVar)):
-                keys.add(f"{e.obj.obj.c_name}.{e.obj.field}.{e.field}")
+            # Handle recursive field access: s.field1.field2.field3
+            if isinstance(e, LFieldAccess):
+                path = [e.field]
+                obj = e.obj
+                while isinstance(obj, LFieldAccess):
+                    path.append(obj.field)
+                    obj = obj.obj
+                if isinstance(obj, LVar):
+                    # path is [leaf_field, ..., root_field]
+                    # we want root.field1.field2...
+                    full_key = ".".join([obj.c_name] + list(reversed(path)))
+                    keys.add(full_key)
             # Walk into sub-expressions
             for attr in ('left', 'right', 'cond', 'then_expr', 'else_expr',
                          'value', 'inner', 'operand', 'expr', 'base',

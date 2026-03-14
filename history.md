@@ -94,6 +94,45 @@ The monomorphization check in `lower_method_call` is placed in the **namespace f
 ### Next step
 Move the monomorphization check INTO the mc_sym path (where the MethodCall's symbol is found), rather than in the separate namespace path. The mc_sym has `ms.module_key` and `ms.name` which can identify `array.put` calls.
 
+### Finding: array.put goes through lower_call's module-qualified path
+`array.put(arr, idx, val)` is parsed as `EMethodCall` but the call
+actually goes through `lower_call`'s `if(array.size(cmod) > 0)` path
+because the resolver creates `ECall(callee: EIdent(name:"put", module_path:["array"]))`.
+The mc_sym path in lower_method_call and the namespace SK_IMPORT path are both
+dead code — NEVER compiled by the Python compiler.
+
+### Finding: NULL string from mc_sym extern fn collision guard
+The `is_actually_extern` guard added to lower_method_call's mc_sym path
+causes NULL string concatenation during self-compilation. The `string.contains`
+call or the map.get lookups produce NULL intermediaries. The guard needs to
+be simplified or removed.
+
+### Finding: array.put goes through BOTH lower_call AND lower_method_call
+The parser can create EITHER ECall(EIdent(cmod=["array"]), ...) OR
+EMethodCall(EIdent("array"), "put", ...) for `array.put(...)`.
+- ECall with cmod → goes to lower_call's module-qualified path (line ~2881)
+- EMethodCall → goes to lower_method_call's namespace SK_IMPORT path
+The Python compiler generates code for the METHOD CALL path but NOT the
+module-qualified call path (it's dead code per the Python compiler's analysis).
+So monomorphization must go in the METHOD CALL path.
+
+### Finding: record_mono_site causes NULL concat in method_call path
+Calling `record_mono_site` from the SK_IMPORT namespace path in
+lower_method_call causes `fl_string_concat: NULL argument` during
+self-compilation. The function itself is correct, but something about
+the calling context produces NULL — likely `mono_type_suffix` or
+`mangler.mangle_monomorphized` receives a partially NULL argument.
+This needs debugging with a simpler approach — perhaps just append
+the suffix directly without calling record_mono_site.
+
+### Finding: lex error from semicolons in Flow
+Flow does NOT use semicolons. Writing `x = a; y = b` causes LexError.
+Must split into separate statements.
+
+### Finding: struct comparison with == fails in C
+Can't compare LType structs with `==` in generated C. Use string
+checks or other comparison methods instead.
+
 ### Approaches NOT to retry
 1. Nested string if — Python compiler codegen bug with inner if using `==`
 2. `&&` with two string comparisons — Python compiler uses `==` for second operand

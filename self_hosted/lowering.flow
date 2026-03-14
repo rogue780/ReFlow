@@ -3031,86 +3031,28 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let mc_sym:resolver.Symbol? = map.get(st.resolved.symbols, mc_sym_key)
             match(mc_sym) {
                 some(ms): {
-                    // Check if extern fn — but only if the symbol name matches
-                    // the method name (avoids decl ID collisions between FnDecl
-                    // and ExternFnDecl in the same module).
+                    // Check if it's an extern fn (use c_name, no mangling)
                     let ms_mod_key:string:mut = ms.module_key
                     if(ms_mod_key == "") { ms_mod_key = st.module_path }
-                    let is_actually_extern:bool:mut = false
                     let extern_c:string? = map.get(st.extern_fn_c_names, ms_mod_key + ":" + conv.to_string(ms.decl_id))
                     match(extern_c) {
                         some(ec_name): {
-                            // Verify: the extern fn name should contain the method name
-                            // to avoid cross-decl ID collisions within the same module
-                            if(string.contains(ec_name, method_name)) {
-                                is_actually_extern = true
+                            // Extern fn call: use literal C name
+                            let fn_args:array<lir.LExprBox>:mut = []
+                            for(arg:ast.Expr in args) {
+                                match(arg) {
+                                    ENamedArg(nid, nl, nc, nname, nval): {
+                                        fn_args = array.push(fn_args, lir.le_box(lower_expr(st, nval)))
+                                    }
+                                    _: {
+                                        fn_args = array.push(fn_args, lir.le_box(lower_expr(st, arg)))
+                                    }
+                                }
                             }
+                            return lir.LECall(fn_name:ec_name, args:fn_args, c_type:result_lt)
                         }
                         none: {}
                     }
-                    if(is_actually_extern) {
-                        let ec_resolved:string = map.get(st.extern_fn_c_names, ms_mod_key + ":" + conv.to_string(ms.decl_id)) ?? ""
-                        // Extern fn call: use literal C name
-                        let fn_args:array<lir.LExprBox>:mut = []
-                        for(arg:ast.Expr in args) {
-                            match(arg) {
-                                ENamedArg(nid, nl, nc, nname, nval): {
-                                    fn_args = array.push(fn_args, lir.le_box(lower_expr(st, nval)))
-                                }
-                                _: {
-                                    fn_args = array.push(fn_args, lir.le_box(lower_expr(st, arg)))
-                                }
-                            }
-                        }
-                        return lir.LECall(fn_name:ec_resolved, args:fn_args, c_type:result_lt)
-                    }
-
-                    // Non-extern imported function — use mangled name from source module.
-                    // This handles generic Flow functions like array.put<T>.
-                    let mc_fn_c_name:string:mut = mangler.mangle(ms_mod_key, "", method_name)
-                    // Lower args (without receiver)
-                    let mc_fn_args:array<lir.LExprBox>:mut = []
-                    for(arg:ast.Expr in args) {
-                        match(arg) {
-                            ENamedArg(nid, nl, nc, nname, nval): {
-                                mc_fn_args = array.push(mc_fn_args, lir.le_box(lower_expr(st, nval)))
-                            }
-                            _: {
-                                mc_fn_args = array.push(mc_fn_args, lir.le_box(lower_expr(st, arg)))
-                            }
-                        }
-                    }
-                    // Monomorphize conv.to_string<T>
-                    let mc_mono_check:string = method_name + ":" + ms_mod_key
-                    if(mc_mono_check == "to_string:conv") {
-                        mc_fn_c_name = mc_fn_c_name + "__int"
-                    }
-                    // Monomorphize array.put<T>
-                    if(mc_mono_check == "put:array") {
-                        if(array.size(args) >= 3) {
-                            let val_arg:ast.Expr = array.get_any(args, 2) ?? ast.EIntLit(id:0, line:0, col:0, value:0)
-                            let val_type:typechecker.TCType = type_of(st, ast.expr_id(val_arg))
-                            let t_suffix:string:mut = mono_type_suffix(val_type)
-                            if(t_suffix == "") {
-                                match(val_type) {
-                                    TCNamed(mod_p, tname, targs): {
-                                        let rm:string:mut = mod_p
-                                        if(rm == "") { rm = st.module_path }
-                                        t_suffix = mangler.mangle(rm, tname, "")
-                                    }
-                                    TCArray(elem): { t_suffix = "ptr" }
-                                    TCAny: { t_suffix = "string" }
-                                    _: { t_suffix = "ptr" }
-                                }
-                            }
-                            let mono_name:string = record_mono_site(st, "array", "put", t_suffix)
-                            mc_fn_c_name = mono_name
-                        }
-                    }
-                    // Adjust :mut args
-                    let mc_params:array<ast.Param> = find_fn_decl_by_id(st, ms.decl_id)
-                    mc_fn_args = wrap_mut_call_args(st, mc_fn_args, mc_params)
-                    return lir.LECall(fn_name:mc_fn_c_name, args:mc_fn_args, c_type:result_lt)
                 }
                 none: {}
             }
@@ -3147,11 +3089,7 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                 if(mono_check == "to_string:conv") {
                                     fn_c_name = fn_c_name + "__int"
                                 }
-                                // Monomorphize array.put<T>
-                                let mono_array_check:string = method_name + ":" + resolved_mod
-                                if(mono_array_check == "put:array") {
-                                    fn_c_name = fn_c_name + "__TEST"
-                                }
+                                // TODO: Monomorphize array.put<T> in method call path
                                 return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
                             }
                             if(s.kind == resolver.SymbolKind.SK_TYPE) {
