@@ -3049,7 +3049,21 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                     }
                                 }
                             }
-                            return lir.LECall(fn_name:ec_name, args:fn_args, c_type:result_lt)
+                            // For array.get_safe with non-pointer element types,
+                            // wrap with FL_OPT_DEREF_AS to convert FL_Option_ptr
+                            // to the concrete option struct type.
+                            let get_safe_call:lir.LExpr = lir.LECall(fn_name:ec_name, args:fn_args, c_type:result_lt)
+                            if(ec_name == "fl_array_get_safe") {
+                                let opt_c_name:string = lir.ltype_c_name(result_lt)
+                                if(opt_c_name != "FL_Option_ptr") {
+                                    // Extract element type from the option type
+                                    // Option struct is FL_Option_<elem>, elem type name is after "FL_Option_"
+                                    let elem_name:string = string.substring(opt_c_name, 10, string.len(opt_c_name))
+                                    let raw_call:lir.LExpr = lir.LECall(fn_name:ec_name, args:fn_args, c_type:lir.LStruct(c_name:"FL_Option_ptr"))
+                                    return lir.LECall(fn_name:"FL_OPT_DEREF_AS", args:[lir.le_box(raw_call), lir.le_box(lir.LELit(value:elem_name, c_type:lir.LVoid)), lir.le_box(lir.LELit(value:opt_c_name, c_type:lir.LVoid))], c_type:result_lt)
+                                }
+                            }
+                            return get_safe_call
                         }
                         none: {}
                     }

@@ -133,6 +133,17 @@ Must split into separate statements.
 Can't compare LType structs with `==` in generated C. Use string
 checks or other comparison methods instead.
 
+### Finding: Creating LExprBox during match destructuring crashes
+Creating new `lir.le_box(...)` (which allocates FL_Box) during
+match destructuring of an LExpr value causes `malloc(): unaligned tcache chunk`.
+This happens because the match subject's FL_Box is being read while new FL_Box
+allocations change the heap state. Can't add FL_BOX_DEREF for recursive fields
+at the match destructuring site — need a different approach entirely.
+
+Possible fix: emit the FL_BOX_DEREF in the EMITTER (not the lowering) when
+it detects that a match-bound variable came from a FL_Box* field. This avoids
+creating new LIR nodes during lowering.
+
 ### Approaches NOT to retry
 1. Nested string if — Python compiler codegen bug with inner if using `==`
 2. `&&` with two string comparisons — Python compiler uses `==` for second operand
