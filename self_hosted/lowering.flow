@@ -1071,9 +1071,9 @@ fn lower_sum_type_decl(st:LowerState:mut, decl:ast.Decl, c_name:string):int {
                     for(f:ast.Field in v.fields) {
                         let f_type:typechecker.TCType = resolve_type_ann(st, f.type_expr)
                         let f_lt:lir.LType:mut = lower_type(st, f_type)
-                        // Check recursive field
+                        // Check recursive field — use FL_Box* for heap indirection
                         if(is_recursive_sum_field(f_type, tname)) {
-                            f_lt = lir.LPtr(inner:f_lt)
+                            f_lt = lir.LPtr(inner:lir.LStruct(c_name:"FL_Box"))
                         }
                         vfields = array.push(vfields, lir.LField{name:f.name, field_type:f_lt})
                     }
@@ -1097,7 +1097,17 @@ fn lower_sum_type_decl(st:LowerState:mut, decl:ast.Decl, c_name:string):int {
 fn is_recursive_sum_field(t:typechecker.TCType, enclosing_name:string):bool {
     match(t) {
         TCSumType(name, mod_p, vars): { return name == enclosing_name }
-        TCNamed(mod_p, name, targs): { return name == enclosing_name }
+        TCNamed(mod_p, name, targs): {
+            // Direct recursion: field type IS the enclosing type
+            if(name == enclosing_name) { return true }
+            // Indirect recursion: field type name ends with "Box" and the
+            // base name matches the enclosing type (e.g., LExprBox → LExpr)
+            if(string.ends_with(name, "Box")) {
+                let base:string = string.substring(name, 0, string.len(name) - 3)
+                if(base == enclosing_name) { return true }
+            }
+            return false
+        }
         _: { return false }
     }
 }
