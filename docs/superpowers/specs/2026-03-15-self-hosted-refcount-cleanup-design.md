@@ -96,11 +96,16 @@ All cleanup state is reset at the start of each function body lowering (`lower_f
 **`sum_type_has_cleanup_fields(t:TCType):bool`** — checks if a sum type has variants with refcounted fields.
 
 **`is_allocating_expr(expr:ast.Expr, t:TCType):bool`** — determines whether an expression produces a fresh heap allocation or returns a shared reference. This classification controls retain emission and the `block_safe` flag:
-- Function calls → true (allocating)
-- TypeLit / RecordLit → true (allocating)
+- Function calls (ECall, EMethodCall) → true (allocating)
+- String/array literals → true (allocating)
 - Identifiers, field access, index → false (shared reference)
-- Literals (string, array) → true (allocating)
 - Everything else → false (conservative: treat as shared)
+
+**Important:** TypeLit and RecordLit are NOT allocating expressions (they produce compound literals on the stack). They are handled separately in `lower_let` as a distinct case from the allocating check. Misclassifying them as allocating would cause the lowering to skip struct field retains (going down the `block_safe=False` path instead of the retain-at-construction path).
+
+**`is_allocating_lir_expr(expr:lir.LExpr):bool`** — LIR-level version for post-lowering decisions (inject_scope_cleanup hoist check):
+- LECall, LEIndirectCall, LECompound → true
+- Everything else → false
 
 ### 3. Retain-on-Store (the other half of ARC)
 
@@ -293,7 +298,43 @@ For affine types, emit `_fl_clone_TypeName(src)` that deep-copies all fields:
 
 Used when an affine binding is used after being passed to a function (clone on access pattern).
 
-### 14. Array Element Type Registration
+### 14. Discarded Allocating Return Value Release
+
+When a function call returns a refcounted value that is used as an expression statement (result discarded), the return value leaks. Port `_lower_expr_stmt`:
+
+```c
+// arr = array.push(arr, x)  -- return value used, no leak
+// array.push(arr, x)        -- return value discarded, LEAKS without this
+```
+
+When lowering `SExpr` where the expression is a function call returning a refcounted type:
+1. Hoist to temp: `FL_String* _fl_tmp_N = call();`
+2. Emit the call as a var decl
+3. Immediately release: `fl_string_release(_fl_tmp_N);`
+
+This is a high-frequency leak path — any function called for side effects whose return value is refcounted.
+
+### 15. Retain During Struct/Variant Construction
+
+Port `_retain_struct_fields()`: when constructing a struct or variant via TypeLit, RecordLit, or positional construction, retain each refcounted field value that comes from a non-allocating source.
+
+Call sites:
+- TypeLit lowering (struct construction `Foo{name: x}`)
+- RecordLit lowering
+- Positional struct construction in call lowering
+- Variant constructors
+
+### 16. String Append Optimization
+
+The release-on-reassignment path (Section 6) has a critical special case: `x = x + y` for `:mut` string variables converts to `fl_string_append(&x, y)` instead of allocating a new string. This avoids allocation when refcount is 1 and bypasses the release-on-reassignment path entirely. Without this, every string append in a loop allocates, releases, and retains — much slower and more leak-prone.
+
+### 17. Bulk String Argument Hoisting
+
+Port `_hoist_string_args()`: before calling non-storing functions like `fl_string_concat`, `fl_string_eq`, hoist ALL string-returning arguments to temps and register for cleanup.
+
+Exclusion list (storing functions where hoisting causes UAF): `fl_array_push_sized`, `fl_map_set`, `fl_map_set_str`, and similar functions that take ownership of the argument.
+
+### 18. Array Element Type Registration
 
 When lowering empty array literals with type annotations, emit runtime calls to register the element type:
 - `fl_array_set_elem_type(arr, FL_ELEM_STRING)` for `array<string>`
@@ -343,6 +384,23 @@ Without this, the runtime cannot retain/release elements during push/copy/free o
 | After full function body lowered | Call `inject_scope_cleanup` to insert pre-return releases |
 | String concat / call lowering | Hoist intermediate string temps, register for cleanup |
 | Empty array literal with type ann | Emit `fl_array_set_elem_type` / `fl_array_set_struct_handlers` |
+
+## Edge Cases and Guards
+
+### Duplicate Variable Deduplication
+When the same variable name is declared at different scope depths (e.g., `raw` in both branches of an if/else), keep the shallowest-depth entry in `container_locals`. Without this, the variable is double-released at function exit.
+
+### :mut ref Guard for Release-on-Reassignment
+The release-on-reassignment and destroy-before-reassign paths must check whether the RHS call passes the target variable by `:mut` reference. If so, skip the release — the callee handles cleanup internally through the pointer. Guard: `not call_passes_var_by_mut_ref(rhs_expr, target_name)`.
+
+### sum_field_cleanup Population
+`sum_field_cleanup` is populated for direct sum-typed locals, NOT for sum-type fields found during `register_struct_field_releases`. The Python compiler explicitly does not register scope-exit cleanup for sum-type fields within structs because local variables hold shallow copies with shared heap-boxed pointers — destroying them at scope exit would double-release internals. `register_struct_field_releases` only ensures handlers are emitted (for array element destructors) via `get_or_emit_sum_type_handlers`.
+
+### Void Function Trailing Cleanup
+Both `lower_fn_def` and `lower_method` need trailing cleanup for void functions (no explicit return). After `inject_scope_cleanup` processes return statements, append depth-0 releases at the end of the body for functions that may fall through without returning.
+
+### Sequencing: Tail Return Injection Before Cleanup
+For expression-body functions, `inject_tail_returns` converts the last expression into an `LSReturn` (with retain for non-allocating expression bodies). This runs BEFORE `inject_scope_cleanup`. The implementer must respect this ordering: tail return injection first (with retain), then scope cleanup injection.
 
 ## What This Does NOT Change
 
