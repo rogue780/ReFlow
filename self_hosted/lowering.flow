@@ -2787,12 +2787,25 @@ fn wrap_mut_call_args(st:LowerState, largs:array<lir.LExprBox>, params:array<ast
             let p:ast.Param = array.get_any(params, i) ?? ast.Param{name:"", type_ann:ast.TNamedType(id:0, line:0, col:0, name:"void", module_path:[]), id:0, line:0, col:0, has_default:false, is_variadic:false}
             let param_is_mut:bool = ast.is_mut_type_ann(p.type_ann)
             if(param_is_mut) {
-                // Target param is :mut — if arg is LDeref(LVar), unwrap
+                // Target param is :mut — adjust arg
                 match(arg) {
                     LEDeref(inner_box, ct): {
+                        // :mut param forwarding — unwrap deref to pass pointer
                         result = array.push(result, inner_box)
                         i = i + 1
                         continue
+                    }
+                    LEVar(vname, vtype): {
+                        // Local variable — check if it's NOT already a pointer
+                        match(vtype) {
+                            LPtr(pi): {} // Already a pointer, pass as-is
+                            _: {
+                                // Struct value — take address
+                                result = array.push(result, lir.le_box(lir.LEAddrOf(inner:lir.le_box(arg), c_type:lir.LPtr(inner:vtype))))
+                                i = i + 1
+                                continue
+                            }
+                        }
                     }
                     _: {}
                 }

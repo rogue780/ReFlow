@@ -194,6 +194,14 @@ def fix_stage2(path):
     text = re.sub(
         r'fl_self_hosted_emitter_(\w+)\(\(\*st\)',
         r'fl_self_hosted_emitter_\1(st', text)
+    # Note: NOT fixing (*s) → s for lexer — causes cascade issues
+
+    # Fix local :mut state variables — convert to pointer
+    # Pattern: TypeState st = make_state(...);
+    # → TypeState _st_v = make_state(...); TypeState* st = &_st_v;
+    # Then: st.field → st->field (already handled by (*st).field staying correct)
+    # EmitState :mut forwarding — not converting to pointer (causes cascade)
+    # Instead, just accept these 22 errors for now.
 
     # Note: NOT converting st to pointer — too many field accesses to fix.
     # Instead, the remaining EmitState errors are accepted as warnings.
