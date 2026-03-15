@@ -237,8 +237,37 @@ def fix_stage2(path):
     )
 
     # === PHASE 4c: void* compound literals ===
-    # (void*){.tag = N} is invalid C but we skip fixing it here —
-    # replacing with (void*)0 creates equally many type mismatch errors.
+    # (void*){.tag = N} is invalid C. Replace with zero-init of the correct type.
+    # Context-aware: check surrounding code for the expected type.
+    def fix_void_compound(match):
+        full_line = match.group(0)
+        # Determine type from context
+        if 'TCType' in full_line or '.tc = ' in full_line:
+            return full_line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
+        elif 'LType' in full_line:
+            return full_line.replace('(void*){', '(fl_self_hosted_lir_LType){')
+        elif 'LExpr' in full_line:
+            return full_line.replace('(void*){', '(fl_self_hosted_lir_LExpr){')
+        elif 'ast_Expr' in full_line or 'Expr' in full_line:
+            return full_line.replace('(void*){', '(fl_self_hosted_ast_Expr){')
+        elif 'ast_TypeExpr' in full_line or 'TypeExpr' in full_line:
+            return full_line.replace('(void*){', '(fl_self_hosted_ast_TypeExpr){')
+        elif 'ast_Stmt' in full_line or 'Stmt' in full_line:
+            return full_line.replace('(void*){', '(fl_self_hosted_ast_Stmt){')
+        elif 'ast_Decl' in full_line or 'Decl' in full_line:
+            return full_line.replace('(void*){', '(fl_self_hosted_ast_Decl){')
+        elif 'ast_Pattern' in full_line or 'Pattern' in full_line:
+            return full_line.replace('(void*){', '(fl_self_hosted_ast_Pattern){')
+        else:
+            # Default to TCType (most common)
+            return full_line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
+
+    # Apply line by line
+    lines = text.split('\n')
+    for i, line in enumerate(lines):
+        if '(void*){' in line:
+            lines[i] = fix_void_compound(type('', (), {'group': lambda self, n=0: line})())
+    text = '\n'.join(lines)
 
     # === PHASE 4d: Fix struct → FL_Box* in variant construction ===
     # When constructing a variant with a recursive field, the field value
