@@ -281,6 +281,30 @@ def fix_stage2(path):
         flags=re.MULTILINE
     )
 
+    # === PHASE 4a: Fix void* match-bound variables ===
+    # When match destructuring puts a struct field into void*, use the correct type
+    # Pattern: void* var = _fl_tmp.Variant.field;
+    # If the field type is known (from struct definitions), replace void* with it
+    VARIANT_FIELD_TYPES = {
+        'FPExpr.expr': 'fl_self_hosted_ast_Expr',
+        'FPText.text': 'FL_String*',
+        'DConstructor.return_type': 'fl_self_hosted_ast_TypeExpr',
+        'DConstructor.body': 'FL_Array*',
+        'MatchArm.pattern': 'fl_self_hosted_ast_Pattern',
+        'CatchClause.exception_type': 'fl_self_hosted_ast_TypeExpr',
+        'CatchClause.body': 'FL_Array*',
+        'ChainElement.expr': 'fl_self_hosted_ast_Expr',
+    }
+    vf_lines = text.split('\n')
+    for i, line in enumerate(vf_lines):
+        if 'void* ' not in line or '_fl_tmp_' not in line:
+            continue
+        for pattern, correct_type in VARIANT_FIELD_TYPES.items():
+            if f'.{pattern};' in line:
+                vf_lines[i] = line.replace('void* ', f'{correct_type} ', 1)
+                break
+    text = '\n'.join(vf_lines)
+
     # === PHASE 4b2: Fix fl_map_set_str with struct values ===
     # fl_map_set_str(map, key, struct_value) needs the value as void*
     # For struct values, store in a temp and pass address
