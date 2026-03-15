@@ -3148,6 +3148,26 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                 let extern_c:string? = map.get(st.extern_fn_c_names, efn_key)
                                 match(extern_c) {
                                     some(ec_name): {
+                                        // Redirect push_ptr to push_sized for non-pointer types
+                                        if(ec_name == "fl_array_push_ptr") {
+                                            if(array.size(largs) >= 2) {
+                                                let pv:lir.LExpr = lir.le_unbox(array.get_any(largs, 1) ?? lir.le_box(lir.placeholder_expr()))
+                                                let pvt:lir.LType = lir.lexpr_type(pv)
+                                                match(pvt) {
+                                                    LPtr(pi): {} // Pointer — keep push_ptr
+                                                    _: {
+                                                        let vt:string = fresh_temp(st)
+                                                        st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:vt, c_type:pvt, has_init:true, init:pv, source_line:0)})
+                                                        let sa:array<lir.LExprBox> = [
+                                                            array.get_any(largs, 0) ?? lir.le_box(lir.placeholder_expr()),
+                                                            lir.le_box(lir.LEAddrOf(inner:lir.le_box(lir.LEVar(c_name:vt, c_type:pvt)), c_type:lir.LPtr(inner:pvt))),
+                                                            lir.le_box(lir.LESizeOf(target_type:pvt))
+                                                        ]
+                                                        return lir.LECall(fn_name:"fl_array_push_sized", args:sa, c_type:result_lt)
+                                                    }
+                                                }
+                                            }
+                                        }
                                         return lir.LECall(fn_name:ec_name, args:largs, c_type:result_lt)
                                     }
                                     none: {}
