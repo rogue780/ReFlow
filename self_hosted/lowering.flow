@@ -485,6 +485,227 @@ fn is_affine_type(st:LowerState:mut, t:typechecker.TCType):bool {
 }
 
 // ---------------------------------------------------------------------------
+// collect_referenced_vars — walk an LExpr tree and collect all LEVar c_names
+// ---------------------------------------------------------------------------
+
+fn collect_referenced_vars(e:lir.LExpr):map<string, bool> {
+    let result:map<string, bool>:mut = map.new()
+    match(e) {
+        LEVar(cn, ct): {
+            result = map.set(result, cn, true)
+        }
+        LECall(fn_name, args, ct): {
+            let i:int:mut = 0
+            while(i < array.size(args)) {
+                let arg:lir.LExprBox = array.get_any(args, i) ?? lir.le_box(lir.placeholder_expr())
+                let sub:map<string, bool> = collect_referenced_vars(lir.le_unbox(arg))
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                    let k:string = array.get_any(ks, j) ?? ""
+                    result = map.set(result, k, true)
+                    j = j + 1
+                }
+                i = i + 1
+            }
+        }
+        LEFieldAccess(obj, f, ct): {
+            let sub:map<string, bool> = collect_referenced_vars(lir.le_unbox(obj))
+            let ks:array<string> = map.keys(sub)
+            let i:int:mut = 0
+            while(i < array.size(ks)) {
+                let k:string = array.get_any(ks, i) ?? ""
+                result = map.set(result, k, true)
+                i = i + 1
+            }
+        }
+        LEBinOp(op, l, r, ct): {
+            let sl:map<string, bool> = collect_referenced_vars(lir.le_unbox(l))
+            let sr:map<string, bool> = collect_referenced_vars(lir.le_unbox(r))
+            let ksl:array<string> = map.keys(sl)
+            let i:int:mut = 0
+            while(i < array.size(ksl)) {
+                let k:string = array.get_any(ksl, i) ?? ""
+                result = map.set(result, k, true)
+                i = i + 1
+            }
+            let ksr:array<string> = map.keys(sr)
+            let j:int:mut = 0
+            while(j < array.size(ksr)) {
+                let k:string = array.get_any(ksr, j) ?? ""
+                result = map.set(result, k, true)
+                j = j + 1
+            }
+        }
+        LEUnary(op, operand, ct): {
+            let sub:map<string, bool> = collect_referenced_vars(lir.le_unbox(operand))
+            let ks:array<string> = map.keys(sub)
+            let i:int:mut = 0
+            while(i < array.size(ks)) {
+                let k:string = array.get_any(ks, i) ?? ""
+                result = map.set(result, k, true)
+                i = i + 1
+            }
+        }
+        LECast(inner, ct): {
+            let sub:map<string, bool> = collect_referenced_vars(lir.le_unbox(inner))
+            let ks:array<string> = map.keys(sub)
+            let i:int:mut = 0
+            while(i < array.size(ks)) {
+                let k:string = array.get_any(ks, i) ?? ""
+                result = map.set(result, k, true)
+                i = i + 1
+            }
+        }
+        LEAddrOf(inner, ct): {
+            let sub:map<string, bool> = collect_referenced_vars(lir.le_unbox(inner))
+            let ks:array<string> = map.keys(sub)
+            let i:int:mut = 0
+            while(i < array.size(ks)) {
+                let k:string = array.get_any(ks, i) ?? ""
+                result = map.set(result, k, true)
+                i = i + 1
+            }
+        }
+        LEDeref(inner, ct): {
+            let sub:map<string, bool> = collect_referenced_vars(lir.le_unbox(inner))
+            let ks:array<string> = map.keys(sub)
+            let i:int:mut = 0
+            while(i < array.size(ks)) {
+                let k:string = array.get_any(ks, i) ?? ""
+                result = map.set(result, k, true)
+                i = i + 1
+            }
+        }
+        LEIndex(arr_expr, idx, ct): {
+            let sa:map<string, bool> = collect_referenced_vars(lir.le_unbox(arr_expr))
+            let si:map<string, bool> = collect_referenced_vars(lir.le_unbox(idx))
+            let ksa:array<string> = map.keys(sa)
+            let i:int:mut = 0
+            while(i < array.size(ksa)) {
+                let k:string = array.get_any(ksa, i) ?? ""
+                result = map.set(result, k, true)
+                i = i + 1
+            }
+            let ksi:array<string> = map.keys(si)
+            let j:int:mut = 0
+            while(j < array.size(ksi)) {
+                let k:string = array.get_any(ksi, j) ?? ""
+                result = map.set(result, k, true)
+                j = j + 1
+            }
+        }
+        LECompound(fn_vals, fv, ct): {
+            let i:int:mut = 0
+            while(i < array.size(fv)) {
+                let v:lir.LExprBox = array.get_any(fv, i) ?? lir.le_box(lir.placeholder_expr())
+                let sub:map<string, bool> = collect_referenced_vars(lir.le_unbox(v))
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                    let k:string = array.get_any(ks, j) ?? ""
+                    result = map.set(result, k, true)
+                    j = j + 1
+                }
+                i = i + 1
+            }
+        }
+        LETernary(cond, then_e, else_e, ct): {
+            let sc:map<string, bool> = collect_referenced_vars(lir.le_unbox(cond))
+            let st:map<string, bool> = collect_referenced_vars(lir.le_unbox(then_e))
+            let se:map<string, bool> = collect_referenced_vars(lir.le_unbox(else_e))
+            let ksc:array<string> = map.keys(sc)
+            let i:int:mut = 0
+            while(i < array.size(ksc)) {
+                let k:string = array.get_any(ksc, i) ?? ""
+                result = map.set(result, k, true)
+                i = i + 1
+            }
+            let kst:array<string> = map.keys(st)
+            let j:int:mut = 0
+            while(j < array.size(kst)) {
+                let k:string = array.get_any(kst, j) ?? ""
+                result = map.set(result, k, true)
+                j = j + 1
+            }
+            let kse:array<string> = map.keys(se)
+            let m:int:mut = 0
+            while(m < array.size(kse)) {
+                let k:string = array.get_any(kse, m) ?? ""
+                result = map.set(result, k, true)
+                m = m + 1
+            }
+        }
+        _: {}
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// emit_release_call — build an LSExprStmt calling a release function on a var
+// ---------------------------------------------------------------------------
+
+fn emit_release_call(var_name:string, c_type:lir.LType, release_fn:string, line:int):lir.LStmt {
+    return lir.LSExprStmt(
+        expr:lir.LECall(
+            fn_name:release_fn,
+            args:[lir.le_box(lir.LEVar(c_name:var_name, c_type:c_type))],
+            c_type:lir.LVoid
+        ),
+        source_line:line
+    )
+}
+
+// ---------------------------------------------------------------------------
+// emit_retain_call — build an LSExprStmt calling a retain function on a var
+// ---------------------------------------------------------------------------
+
+fn emit_retain_call(var_name:string, c_type:lir.LType, retain_fn:string, line:int):lir.LStmt {
+    return lir.LSExprStmt(
+        expr:lir.LECall(
+            fn_name:retain_fn,
+            args:[lir.le_box(lir.LEVar(c_name:var_name, c_type:c_type))],
+            c_type:lir.LVoid
+        ),
+        source_line:line
+    )
+}
+
+// ---------------------------------------------------------------------------
+// emit_struct_field_release — build release call for a named struct field
+// ---------------------------------------------------------------------------
+
+fn emit_struct_field_release(struct_var:string, field_name:string, struct_c_type:lir.LType, release_fn:string, line:int):lir.LStmt {
+    let access:lir.LExpr = lir.LEFieldAccess(
+        obj:lir.le_box(lir.LEVar(c_name:struct_var, c_type:struct_c_type)),
+        field:field_name,
+        c_type:lir.LPtr(inner:lir.LVoid)
+    )
+    return lir.LSExprStmt(
+        expr:lir.LECall(fn_name:release_fn, args:[lir.le_box(access)], c_type:lir.LVoid),
+        source_line:line
+    )
+}
+
+// ---------------------------------------------------------------------------
+// all_paths_exit — true if a statement list always exits via return/break/continue
+// ---------------------------------------------------------------------------
+
+fn all_paths_exit(stmts:array<lir.LStmtBox>):bool {
+    if(array.size(stmts) == 0) { return false }
+    let last_box:lir.LStmtBox = array.get_any(stmts, array.size(stmts) - 1) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+    match(last_box.ls) {
+        LSReturn(hv, v, sl): { return true }
+        LSBreak(sl): { return true }
+        LSContinue(sl): { return true }
+        LSIf(cond, then_body, else_body, sl): {
+            return all_paths_exit(then_body) && all_paths_exit(else_body)
+        }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // is_bounded_generic — check if function needs monomorphization
 // ---------------------------------------------------------------------------
 
