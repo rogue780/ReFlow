@@ -39,6 +39,14 @@ def fix_stage2(path):
     # Module dots → underscores
     text = re.sub(r'\bfl_self_hosted_lir\.(\w)', r'fl_self_hosted_lir_\1', text)
     text = re.sub(r'\bfl_self_hosted_ast\.(\w)', r'fl_self_hosted_ast_\1', text)
+    text = re.sub(r'\bfl_self_hosted_typechecker\.(\w)', r'fl_self_hosted_typechecker_\1', text)
+    text = re.sub(r'\bfl_self_hosted_resolver\.(\w)', r'fl_self_hosted_resolver_\1', text)
+    text = re.sub(r'\bfl_self_hosted_lexer\.(\w)', r'fl_self_hosted_lexer_\1', text)
+    text = re.sub(r'\bfl_self_hosted_parser\.(\w)', r'fl_self_hosted_parser_\1', text)
+    text = re.sub(r'\bfl_self_hosted_emitter\.(\w)', r'fl_self_hosted_emitter_\1', text)
+    text = re.sub(r'\bfl_self_hosted_lowering\.(\w)', r'fl_self_hosted_lowering_\1', text)
+    text = re.sub(r'\bfl_self_hosted_driver\.(\w)', r'fl_self_hosted_driver_\1', text)
+    text = re.sub(r'\bfl_self_hosted_mangler\.(\w)', r'fl_self_hosted_mangler_\1', text)
     # lir->LVoid → compound literal
     text = text.replace('lir->LVoid', '(fl_self_hosted_lir_LType){.tag = 7}')
 
