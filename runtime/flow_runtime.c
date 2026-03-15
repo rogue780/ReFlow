@@ -2161,6 +2161,25 @@ FL_Array* fl_array_reverse(FL_Array* arr) {
     return result;
 }
 
+FL_Array* fl_array_slice(FL_Array* arr, fl_int64 start, fl_int64 end) {
+    if (!arr) return fl_array_new(0, 0, NULL);
+    fl_int64 len = fl_array_len(arr);
+    if (start < 0) start = 0;
+    if (start > len) start = len;
+    if (end < start) end = start;
+    if (end > len) end = len;
+    fl_int64 new_len = end - start;
+    if (new_len == 0) return fl_array_new(0, arr->element_size, NULL);
+    fl_int64 esz = arr->element_size > 0 ? arr->element_size : (fl_int64)sizeof(void*);
+    size_t total = (size_t)new_len * (size_t)esz;
+    void* buf = malloc(total);
+    if (!buf) fl_panic("fl_array_slice: out of memory");
+    memcpy(buf, (char*)arr->data + start * esz, total);
+    FL_Array* result = fl_array_new(new_len, esz, buf);
+    fl_free(buf);
+    return result;
+}
+
 /* ========================================================================
  * Bytes (stdlib/bytes)
  * ======================================================================== */

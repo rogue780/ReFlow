@@ -554,6 +554,7 @@ FL_Buffer*    fl_buffer_slice(FL_Buffer* buf, fl_int64 start, fl_int64 end);
 
 FL_Array* fl_sort_array_by(FL_Array* arr, FL_Closure* cmp);
 FL_Array* fl_array_reverse(FL_Array* arr);
+FL_Array* fl_array_slice(FL_Array* arr, fl_int64 start, fl_int64 end);
 
 /* ========================================================================
  * Bytes (stdlib/bytes)
