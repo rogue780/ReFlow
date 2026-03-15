@@ -576,13 +576,32 @@ fn try_lower_variant_ctor(st:LowerState:mut, resolved_mod:string, vname:string, 
                                 let inner_c_name:string = mangler.mangle(imp_mod_path, dname, vname)
                                 let inner_lt:lir.LType = lir.LStruct(c_name:inner_c_name)
                                 let inner_fnames:array<string>:mut = []
+                                let wrapped_largs:array<lir.LExprBox>:mut = []
                                 let fi:int:mut = 0
                                 while(fi < array.size(sv.fields)) {
                                     let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
                                     inner_fnames = array.push(inner_fnames, sf.name)
+                                    let arg_val:lir.LExprBox = array.get_any(largs, fi) ?? lir.le_box(lir.placeholder_expr())
+                                    let field_type_name:string = ast.get_type_expr_name(sf.type_expr)
+                                    if(is_recursive_sum_field_name(field_type_name, dname)) {
+                                        // Emit temp: FL_Box* _box_N = fl_box_new(sizeof(T)); *(T*)(_box_N->data) = arg;
+                                        let box_tmp:string = fresh_temp(st)
+                                        let field_lt:lir.LType = lir.lexpr_type(lir.le_unbox(arg_val))
+                                        let box_ptr_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Box"))
+                                        let box_new:lir.LExpr = lir.LECall(fn_name:"fl_box_new", args:[lir.le_box(lir.LESizeOf(target_type:field_lt))], c_type:box_ptr_lt)
+                                        st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:box_tmp, c_type:box_ptr_lt, has_init:true, init:box_new, source_line:0)})
+                                        // *(T*)(box->data) = val
+                                        let data_access:lir.LExpr = lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:box_tmp, c_type:box_ptr_lt)), field:"data", c_type:lir.LPtr(inner:lir.LVoid))
+                                        let cast_data:lir.LExpr = lir.LECast(inner:lir.le_box(data_access), c_type:lir.LPtr(inner:field_lt))
+                                        let deref_data:lir.LExpr = lir.LEDeref(inner:lir.le_box(cast_data), c_type:field_lt)
+                                        st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSAssign(target:deref_data, value:lir.le_unbox(arg_val), source_line:0)})
+                                        wrapped_largs = array.push(wrapped_largs, lir.le_box(lir.LEVar(c_name:box_tmp, c_type:box_ptr_lt)))
+                                    } else {
+                                        wrapped_largs = array.push(wrapped_largs, arg_val)
+                                    }
                                     fi = fi + 1
                                 }
-                                let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:largs, c_type:inner_lt)
+                                let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:wrapped_largs, c_type:inner_lt)
                                 let tag_expr:lir.LExpr = lir.LELit(value:conv.to_string(vi), c_type:lir.LByte)
                                 return lir.LECompound(field_names:["tag", vname], field_values:[lir.le_box(tag_expr), lir.le_box(inner)], c_type:sum_lt)
                             }
@@ -3244,18 +3263,31 @@ fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, la
                                 // Fieldless variant: {.tag = N}
                                 return lir.LECompound(field_names:["tag"], field_values:[lir.le_box(tag_expr)], c_type:result_lt)
                             } else {
-                                // Variant with fields: {.tag = N, .VName = {.field0 = arg0, ...}}
+                                // Variant with fields — wrap recursive fields in FL_Box
                                 let inner_c_name:string = mangler.mangle(mod_path, dname, vname)
                                 let inner_lt:lir.LType = lir.LStruct(c_name:inner_c_name)
-                                // Build inner field names from AST
                                 let inner_fnames:array<string>:mut = []
+                                let wrapped_args:array<lir.LExprBox>:mut = []
                                 let fi:int:mut = 0
                                 while(fi < array.size(sv.fields)) {
                                     let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
                                     inner_fnames = array.push(inner_fnames, sf.name)
+                                    let arg_val:lir.LExprBox = array.get_any(largs, fi) ?? lir.le_box(lir.placeholder_expr())
+                                    let ftn:string = ast.get_type_expr_name(sf.type_expr)
+                                    if(is_recursive_sum_field_name(ftn, dname)) {
+                                        let box_tmp:string = fresh_temp(st)
+                                        let flt:lir.LType = lir.lexpr_type(lir.le_unbox(arg_val))
+                                        let bpt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Box"))
+                                        st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:box_tmp, c_type:bpt, has_init:true, init:lir.LECall(fn_name:"fl_box_new", args:[lir.le_box(lir.LESizeOf(target_type:flt))], c_type:bpt), source_line:0)})
+                                        let da:lir.LExpr = lir.LEDeref(inner:lir.le_box(lir.LECast(inner:lir.le_box(lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:box_tmp, c_type:bpt)), field:"data", c_type:lir.LPtr(inner:lir.LVoid))), c_type:lir.LPtr(inner:flt))), c_type:flt)
+                                        st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSAssign(target:da, value:lir.le_unbox(arg_val), source_line:0)})
+                                        wrapped_args = array.push(wrapped_args, lir.le_box(lir.LEVar(c_name:box_tmp, c_type:bpt)))
+                                    } else {
+                                        wrapped_args = array.push(wrapped_args, arg_val)
+                                    }
                                     fi = fi + 1
                                 }
-                                let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:largs, c_type:inner_lt)
+                                let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:wrapped_args, c_type:inner_lt)
                                 return lir.LECompound(field_names:["tag", vname], field_values:[lir.le_box(tag_expr), lir.le_box(inner)], c_type:result_lt)
                             }
                         }
@@ -3290,13 +3322,27 @@ fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, la
                                     let inner_c_name:string = mangler.mangle(imp_mod_path, dname, vname)
                                     let inner_lt:lir.LType = lir.LStruct(c_name:inner_c_name)
                                     let inner_fnames:array<string>:mut = []
+                                    let lc_wrapped:array<lir.LExprBox>:mut = []
                                     let fi:int:mut = 0
                                     while(fi < array.size(sv.fields)) {
                                         let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
                                         inner_fnames = array.push(inner_fnames, sf.name)
+                                        let av:lir.LExprBox = array.get_any(largs, fi) ?? lir.le_box(lir.placeholder_expr())
+                                        let ftn:string = ast.get_type_expr_name(sf.type_expr)
+                                        if(is_recursive_sum_field_name(ftn, dname)) {
+                                            let bt:string = fresh_temp(st)
+                                            let flt:lir.LType = lir.lexpr_type(lir.le_unbox(av))
+                                            let bpt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Box"))
+                                            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:bt, c_type:bpt, has_init:true, init:lir.LECall(fn_name:"fl_box_new", args:[lir.le_box(lir.LESizeOf(target_type:flt))], c_type:bpt), source_line:0)})
+                                            let da:lir.LExpr = lir.LEDeref(inner:lir.le_box(lir.LECast(inner:lir.le_box(lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:bt, c_type:bpt)), field:"data", c_type:lir.LPtr(inner:lir.LVoid))), c_type:lir.LPtr(inner:flt))), c_type:flt)
+                                            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSAssign(target:da, value:lir.le_unbox(av), source_line:0)})
+                                            lc_wrapped = array.push(lc_wrapped, lir.le_box(lir.LEVar(c_name:bt, c_type:bpt)))
+                                        } else {
+                                            lc_wrapped = array.push(lc_wrapped, av)
+                                        }
                                         fi = fi + 1
                                     }
-                                    let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:largs, c_type:inner_lt)
+                                    let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:lc_wrapped, c_type:inner_lt)
                                     return lir.LECompound(field_names:["tag", vname], field_values:[lir.le_box(tag_expr), lir.le_box(inner)], c_type:imp_sum_lt)
                                 }
                             }
