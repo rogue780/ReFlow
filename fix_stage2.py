@@ -23,6 +23,12 @@ def fix_stage2(path):
     text = text.replace('fl_self_hosted_lowering_typechecker', 'fl_self_hosted_typechecker')
     text = text.replace('fl_self_hosted_typechecker_lir', 'fl_self_hosted_lir')
     text = text.replace('fl_self_hosted_parser_ast', 'fl_self_hosted_ast')
+    text = text.replace('fl_self_hosted_parser_lexer', 'fl_self_hosted_lexer')
+    text = text.replace('fl_self_hosted_driver_lir', 'fl_self_hosted_lir')
+    text = text.replace('fl_self_hosted_driver_parser', 'fl_self_hosted_parser')
+    text = text.replace('fl_self_hosted_driver_resolver', 'fl_self_hosted_resolver')
+    text = text.replace('fl_self_hosted_driver_typechecker', 'fl_self_hosted_typechecker')
+    text = text.replace('fl_self_hosted_typechecker_resolver', 'fl_self_hosted_resolver')
     text = text.replace('fl_self_hosted_lowering_Expr', 'fl_self_hosted_ast_Expr')
     text = text.replace('fl_self_hosted_lowering_TypeExpr', 'fl_self_hosted_ast_TypeExpr')
     text = text.replace('fl_self_hosted_lowering_Decl', 'fl_self_hosted_ast_Decl')
@@ -127,7 +133,7 @@ def fix_stage2(path):
         'condition', 'body', 'subject', 'then_expr', 'else_expr',
         'target', 'key', 'index', 'obj', 'ptr_expr',
         'arr_expr', 'idx', 'call', 'spread', 'fn_ptr',
-        'cond', 'base', 'elem',
+        'cond', 'base', 'elem', 'value',
     }
     TYPE_EXPR_BOX_FIELDS = {
         'inner', 'base', 'ret', 'elem', 'underlying',
@@ -231,8 +237,20 @@ def fix_stage2(path):
                 stype = 'fl_self_hosted_lir_LTypeBox'
             elif 'make_symbol(' in void_expr or 'symbol_with_type(' in void_expr or 'symbol_no_type(' in void_expr:
                 stype = 'fl_self_hosted_resolver_Symbol'
-            elif 'copy_symbol(' in void_expr:
+            elif 'copy_symbol(' in void_expr or 'lookup_or_error(' in void_expr:
                 stype = 'fl_self_hosted_resolver_Symbol'
+            elif 'resolver_ModuleScope' in void_expr:
+                stype = 'fl_self_hosted_resolver_ModuleScope'
+            elif 'typechecker_TypeInfo' in void_expr or 'default_type_info(' in void_expr:
+                stype = 'fl_self_hosted_typechecker_TypeInfo'
+            elif 'typechecker_InterfaceInfo' in void_expr or 'default_interface_info(' in void_expr:
+                stype = 'fl_self_hosted_typechecker_InterfaceInfo'
+            elif 'typechecker_TypedModule' in void_expr:
+                stype = 'fl_self_hosted_typechecker_TypedModule'
+            elif 'ast_Module' in void_expr or 'make_module(' in void_expr:
+                stype = 'fl_self_hosted_ast_Module'
+            elif 'ast_Decl' in void_expr:
+                stype = 'fl_self_hosted_ast_Decl'
             if stype is not None:
                 push_counter[0] += 1
                 tmp = f'_push_tmp_{push_counter[0]}'
@@ -279,6 +297,25 @@ def fix_stage2(path):
         fix_map_set,
         text,
         flags=re.MULTILINE
+    )
+
+    # === PHASE 4b3: Fix ternary void* vs struct operands ===
+    # Pattern: Type var = (cond) ? _fl_tmp.value : (Type){...};
+    # The _fl_tmp.value is void* but the Type is a struct.
+    # Fix: cast _fl_tmp.value to Type: *(Type*)&(_fl_tmp.value)
+    def fix_ternary(match):
+        full = match.group(0)
+        stype = match.group(1)
+        var = match.group(2)
+        cond = match.group(3)
+        tmp_val = match.group(4)  # e.g., _fl_tmp_16.value
+        fallback = match.group(5)
+        return f'{stype} {var} = ({cond}) ? *(({stype}*)&({tmp_val})) : {fallback};'
+
+    text = re.sub(
+        r'(fl_self_hosted_\w+) (\w+) = \((\([^)]+\)) \? (_fl_tmp_\d+\.value) : (\([^;]+)\);',
+        fix_ternary,
+        text
     )
 
     # === PHASE 4c: void* compound literals ===
