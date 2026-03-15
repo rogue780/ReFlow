@@ -255,6 +255,32 @@ def fix_stage2(path):
         flags=re.MULTILINE
     )
 
+    # === PHASE 4b2: Fix fl_map_set_str with struct values ===
+    # fl_map_set_str(map, key, struct_value) needs the value as void*
+    # For struct values, store in a temp and pass address
+    map_set_counter = [0]
+    def fix_map_set(match):
+        indent = match.group(1)
+        assign = match.group(2)
+        map_var = match.group(3)
+        key_expr = match.group(4)
+        val_expr = match.group(5)
+        # Only fix for struct compound literals
+        if val_expr.startswith('(fl_self_hosted_'):
+            stype = val_expr.split(')')[0][1:]  # extract type from (Type){...}
+            map_set_counter[0] += 1
+            tmp = f'_map_tmp_{map_set_counter[0]}'
+            return (f'{indent}{stype} {tmp} = {val_expr};\n'
+                    f'{indent}{assign}fl_map_set_str({map_var}, {key_expr}, &{tmp});')
+        return match.group(0)
+
+    text = re.sub(
+        r'^(\s+)([\w.>\[\]()* ]+= )fl_map_set_str\(([^,]+), ([^,]+), (\(fl_self_hosted_[^;]+)\);$',
+        fix_map_set,
+        text,
+        flags=re.MULTILINE
+    )
+
     # === PHASE 4c: void* compound literals ===
     # (void*){.tag = N} is invalid C. Replace with zero-init of the correct type.
     # Context-aware: check surrounding code for the expected type.
