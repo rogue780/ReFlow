@@ -3430,6 +3430,30 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                     return lir.LECall(fn_name:"FL_OPT_DEREF_AS", args:[lir.le_box(raw_call), lir.le_box(lir.LELit(value:elem_name, c_type:lir.LVoid)), lir.le_box(lir.LELit(value:opt_c_name, c_type:lir.LVoid))], c_type:result_lt)
                                 }
                             }
+                            // For array.push_ptr with non-pointer element types,
+                            // redirect to fl_array_push_sized(arr, &val, sizeof(Type))
+                            if(ec_name == "fl_array_push_ptr") {
+                                if(array.size(fn_args) >= 2) {
+                                    let push_val:lir.LExpr = lir.le_unbox(array.get_any(fn_args, 1) ?? lir.le_box(lir.placeholder_expr()))
+                                    let push_val_lt:lir.LType = lir.lexpr_type(push_val)
+                                    // Non-pointer types need push_sized
+                                    match(push_val_lt) {
+                                        LPtr(inner): {} // Pointer type — use push_ptr
+                                        _: {
+                                            // Non-pointer — redirect to push_sized
+                                            let arr_arg:lir.LExprBox = array.get_any(fn_args, 0) ?? lir.le_box(lir.placeholder_expr())
+                                            let val_tmp:string = fresh_temp(st)
+                                            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:val_tmp, c_type:push_val_lt, has_init:true, init:push_val, source_line:0)})
+                                            let sized_args:array<lir.LExprBox> = [
+                                                arr_arg,
+                                                lir.le_box(lir.LEAddrOf(inner:lir.le_box(lir.LEVar(c_name:val_tmp, c_type:push_val_lt)), c_type:lir.LPtr(inner:push_val_lt))),
+                                                lir.le_box(lir.LESizeOf(target_type:push_val_lt))
+                                            ]
+                                            return lir.LECall(fn_name:"fl_array_push_sized", args:sized_args, c_type:result_lt)
+                                        }
+                                    }
+                                }
+                            }
                             return get_safe_call
                         }
                         none: {}
