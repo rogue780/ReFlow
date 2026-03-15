@@ -442,6 +442,42 @@ def fix_stage2(path):
                 stype = 'fl_self_hosted_ast_CatchClause'
             elif 'ChainElement' in fallback:
                 stype = 'fl_self_hosted_ast_ChainElement'
+            elif 'FieldDecl' in fallback or 'default_field_decl(' in fallback:
+                stype = 'fl_self_hosted_ast_FieldDecl'
+            elif 'TypeParam' in fallback:
+                stype = 'fl_self_hosted_ast_TypeParam'
+            elif 'MonoSite' in fallback:
+                stype = 'fl_self_hosted_lir_MonoSite'
+            elif 'LExternFnProto' in fallback:
+                stype = 'fl_self_hosted_lir_LExternFnProto'
+            elif 'LParam' in fallback:
+                stype = 'fl_self_hosted_lir_LParam'
+            elif 'LField' in fallback:
+                stype = 'fl_self_hosted_lir_LField'
+            elif 'LTypeDef' in fallback:
+                stype = 'fl_self_hosted_lir_LTypeDef'
+            elif 'LFnDef' in fallback:
+                stype = 'fl_self_hosted_lir_LFnDef'
+            elif 'LEnumDef' in fallback:
+                stype = 'fl_self_hosted_lir_LEnumDef'
+            elif 'TCTypeBox' in fallback or 'tc_box(' in fallback:
+                stype = 'fl_self_hosted_typechecker_TCTypeBox'
+            elif 'LTypeBox' in fallback or 'lt_box(' in fallback:
+                stype = 'fl_self_hosted_lir_LTypeBox'
+            elif 'LExprBox' in fallback or 'le_box(' in fallback:
+                stype = 'fl_self_hosted_lir_LExprBox'
+            elif 'LStmtBox' in fallback or 'ls_box(' in fallback:
+                stype = 'fl_self_hosted_lir_LStmtBox'
+            elif 'Symbol' in fallback:
+                stype = 'fl_self_hosted_resolver_Symbol'
+            elif 'ModuleScope' in fallback:
+                stype = 'fl_self_hosted_resolver_ModuleScope'
+            elif 'TypeInfo' in fallback:
+                stype = 'fl_self_hosted_typechecker_TypeInfo'
+            elif 'InterfaceInfo' in fallback:
+                stype = 'fl_self_hosted_typechecker_InterfaceInfo'
+            elif 'TypedModule' in fallback:
+                stype = 'fl_self_hosted_typechecker_TypedModule'
             else:
                 return match.group(0)
             return f'{stype} {var} = ({cond}) ? *(({stype}*)&({tmp_val})) : {fallback};'
