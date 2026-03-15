@@ -1,0 +1,309 @@
+module ssh.ssh
+
+import ssh.ssh_proto
+import ssh.ssh_transport
+import ssh.ssh_term
+import ssh.ssh_buf
+import io
+import net
+import sys
+import string
+import array
+
+// --- Shared: connect, KEX, encrypt, authenticate ---
+
+fn ssh_connect(host:string, username:string, password:string):int? {
+    io.eprintln("[ssh] connecting to " + host + ":22")
+    let sock = net.connect(host, 22)?
+    net.set_timeout(sock, 10000)
+    io.eprintln("[ssh] connected")
+
+    io.eprintln("[ssh] version exchange...")
+    let server_ver = ssh_proto.version_exchange(sock)?
+    io.eprintln("[ssh] server version: " + server_ver)
+
+    let t = ssh_transport.transport_new(sock)
+
+    io.eprintln("[ssh] sending KEXINIT...")
+    let ckex = ssh_proto.send_kexinit(t)?
+    io.eprintln("[ssh] waiting for server KEXINIT...")
+    let skex = ssh_proto.recv_kexinit(t)?
+    io.eprintln("[ssh] got server KEXINIT")
+
+    let client_ver = "SSH-2.0-FlowSSH_1.0"
+    io.eprintln("[ssh] performing key exchange...")
+    let kex = ssh_proto.do_kex(t, client_ver, server_ver, ckex, skex)?
+    io.eprintln("[ssh] key exchange complete")
+
+    io.eprintln("[ssh] deriving keys...")
+    let keys = ssh_proto.derive_keys(kex)
+
+    io.eprintln("[ssh] activating encryption...")
+    if(!ssh_proto.activate_encryption(t, kex, keys)) {
+        io.eprintln("[ssh] encryption activation failed")
+        ssh_proto.disconnect(t)
+        ssh_transport.transport_free(t)
+        net.close(sock)
+        return none
+    }
+    io.eprintln("[ssh] encryption active")
+
+    io.eprintln("[ssh] authenticating...")
+    if(!ssh_proto.authenticate(t, username, password)) {
+        io.eprintln("[ssh] authentication failed")
+        ssh_proto.disconnect(t)
+        ssh_transport.transport_free(t)
+        net.close(sock)
+        return none
+    }
+    io.eprintln("[ssh] authenticated")
+
+    // Return 0 to indicate success — we can't return Transport as it's
+    // from another module. Instead, we inline the logic per mode below.
+    return some(0)
+}
+
+// --- Exec mode: run a single command ---
+
+fn run_exec(host:string, username:string, password:string, command:string):string? {
+    io.eprintln("[ssh] connecting to " + host + ":22")
+    let sock = net.connect(host, 22)?
+    net.set_timeout(sock, 10000)
+    io.eprintln("[ssh] connected")
+
+    io.eprintln("[ssh] version exchange...")
+    let server_ver = ssh_proto.version_exchange(sock)?
+    io.eprintln("[ssh] server version: " + server_ver)
+
+    let t = ssh_transport.transport_new(sock)
+
+    io.eprintln("[ssh] sending KEXINIT...")
+    let ckex = ssh_proto.send_kexinit(t)?
+    io.eprintln("[ssh] waiting for server KEXINIT...")
+    let skex = ssh_proto.recv_kexinit(t)?
+    io.eprintln("[ssh] got server KEXINIT")
+
+    let client_ver = "SSH-2.0-FlowSSH_1.0"
+    io.eprintln("[ssh] performing key exchange...")
+    let kex = ssh_proto.do_kex(t, client_ver, server_ver, ckex, skex)?
+    io.eprintln("[ssh] key exchange complete")
+
+    io.eprintln("[ssh] deriving keys...")
+    let keys = ssh_proto.derive_keys(kex)
+
+    io.eprintln("[ssh] activating encryption...")
+    if(!ssh_proto.activate_encryption(t, kex, keys)) {
+        io.eprintln("[ssh] encryption activation failed")
+        ssh_proto.disconnect(t)
+        ssh_transport.transport_free(t)
+        net.close(sock)
+        return none
+    }
+    io.eprintln("[ssh] encryption active")
+
+    io.eprintln("[ssh] authenticating...")
+    if(!ssh_proto.authenticate(t, username, password)) {
+        io.eprintln("[ssh] authentication failed")
+        ssh_proto.disconnect(t)
+        ssh_transport.transport_free(t)
+        net.close(sock)
+        return none
+    }
+    io.eprintln("[ssh] authenticated")
+
+    io.eprintln("[ssh] executing command: " + command)
+    let output = ssh_proto.exec_command(t, command) ?? ""
+    io.eprintln("[ssh] command complete")
+
+    ssh_proto.disconnect(t)
+    ssh_transport.transport_free(t)
+    net.close(sock)
+    return some(output)
+}
+
+// --- Interactive mode: PTY + shell ---
+
+fn run_interactive(host:string, username:string, password:string):bool {
+    io.eprintln("[ssh] connecting to " + host + ":22")
+    let sock_opt = net.connect(host, 22)
+    match sock_opt {
+        some(sock): {
+            net.set_timeout(sock, 10000)
+            io.eprintln("[ssh] connected")
+
+            let server_ver_opt = ssh_proto.version_exchange(sock)
+            match server_ver_opt {
+                some(server_ver): {
+                    io.eprintln("[ssh] server version: " + server_ver)
+
+                    let t = ssh_transport.transport_new(sock)
+
+                    let ckex_opt = ssh_proto.send_kexinit(t)
+                    match ckex_opt {
+                        some(ckex): {
+                            let skex_opt = ssh_proto.recv_kexinit(t)
+                            match skex_opt {
+                                some(skex): {
+                                    let client_ver = "SSH-2.0-FlowSSH_1.0"
+                                    let kex_opt = ssh_proto.do_kex(t, client_ver, server_ver, ckex, skex)
+                                    match kex_opt {
+                                        some(kex): {
+                                            let keys = ssh_proto.derive_keys(kex)
+
+                                            if(!ssh_proto.activate_encryption(t, kex, keys)) {
+                                                io.eprintln("[ssh] encryption activation failed")
+                                                ssh_proto.disconnect(t)
+                                                ssh_transport.transport_free(t)
+                                                net.close(sock)
+                                                return false
+                                            }
+                                            io.eprintln("[ssh] encryption active")
+
+                                            if(!ssh_proto.authenticate(t, username, password)) {
+                                                io.eprintln("[ssh] authentication failed")
+                                                ssh_proto.disconnect(t)
+                                                ssh_transport.transport_free(t)
+                                                net.close(sock)
+                                                return false
+                                            }
+                                            io.eprintln("[ssh] authenticated")
+
+                                            // Open channel
+                                            let ch_opt = ssh_proto.open_channel(t)
+                                            match ch_opt {
+                                                some(remote_ch): {
+                                                    // Get terminal size
+                                                    let ws = ssh_term.get_winsize()
+
+                                                    // Get TERM from environment
+                                                    let term = sys.env_get("TERM") ?? "xterm"
+
+                                                    // Request PTY
+                                                    io.eprintln("[ssh] requesting pty...")
+                                                    if(!ssh_proto.request_pty(t, remote_ch, term, ws.cols, ws.rows)) {
+                                                        io.eprintln("[ssh] pty request failed")
+                                                        ssh_proto.disconnect(t)
+                                                        ssh_transport.transport_free(t)
+                                                        net.close(sock)
+                                                        return false
+                                                    }
+                                                    io.eprintln("[ssh] pty allocated")
+
+                                                    // Request shell
+                                                    io.eprintln("[ssh] requesting shell...")
+                                                    if(!ssh_proto.request_shell(t, remote_ch)) {
+                                                        io.eprintln("[ssh] shell request failed")
+                                                        ssh_proto.disconnect(t)
+                                                        ssh_transport.transport_free(t)
+                                                        net.close(sock)
+                                                        return false
+                                                    }
+                                                    io.eprintln("[ssh] shell started")
+
+                                                    // Enter raw terminal mode
+                                                    let saved_term = ssh_term.enter_raw_mode()
+                                                    ssh_term.set_stdin_nonblocking()
+
+                                                    // Clear socket timeout for interactive use
+                                                    net.set_timeout(sock, 0)
+
+                                                    // Run interactive I/O loop
+                                                    ssh_proto.interactive_session(t, remote_ch, sock)
+
+                                                    // Restore terminal
+                                                    ssh_term.set_stdin_blocking()
+                                                    ssh_term.exit_raw_mode(saved_term)
+
+                                                    ssh_proto.disconnect(t)
+                                                    ssh_transport.transport_free(t)
+                                                    net.close(sock)
+                                                    return true
+                                                }
+                                                none: {
+                                                    io.eprintln("[ssh] channel open failed")
+                                                    ssh_proto.disconnect(t)
+                                                    ssh_transport.transport_free(t)
+                                                    net.close(sock)
+                                                    return false
+                                                }
+                                            }
+                                        }
+                                        none: {
+                                            io.eprintln("[ssh] key exchange failed")
+                                            ssh_transport.transport_free(t)
+                                            net.close(sock)
+                                            return false
+                                        }
+                                    }
+                                }
+                                none: {
+                                    io.eprintln("[ssh] failed to receive server KEXINIT")
+                                    ssh_transport.transport_free(t)
+                                    net.close(sock)
+                                    return false
+                                }
+                            }
+                        }
+                        none: {
+                            io.eprintln("[ssh] failed to send KEXINIT")
+                            ssh_transport.transport_free(t)
+                            net.close(sock)
+                            return false
+                        }
+                    }
+                }
+                none: {
+                    io.eprintln("[ssh] version exchange failed")
+                    net.close(sock)
+                    return false
+                }
+            }
+        }
+        none: {
+            io.eprintln("[ssh] connection failed")
+            return false
+        }
+    }
+}
+
+fn main():int {
+    let args = sys.args()
+    if(array.len_string(args) < 3) {
+        io.println("Usage: ssh <host> <username> [command]")
+        io.println("  Without command: interactive shell (like ssh)")
+        io.println("  With command: execute and print output")
+        io.println("  Set SSH_PASSWORD env var or enter at prompt")
+        return 1
+    }
+
+    let host = array.get(args, 1) ?? ""
+    let username = array.get(args, 2) ?? ""
+
+    let password:string:mut = sys.env_get("SSH_PASSWORD") ?? ""
+    if(password == "") {
+        io.print("Password: ")
+        password = string.trim(io.read_line() ?? "")
+    }
+
+    if(array.len_string(args) >= 4) {
+        // Exec mode
+        let command = array.get(args, 3) ?? ""
+        match run_exec(host, username, password, command) {
+            some(output): {
+                io.print(output)
+                return 0
+            }
+            none: {
+                io.eprintln("[ssh] connection failed")
+                return 1
+            }
+        }
+    } else {
+        // Interactive mode
+        if(run_interactive(host, username, password)) {
+            return 0
+        } else {
+            return 1
+        }
+    }
+}

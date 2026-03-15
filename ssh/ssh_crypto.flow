@@ -1,0 +1,198 @@
+module ssh.ssh_crypto
+
+import mem
+
+extern lib "crypto"
+
+// --- X25519 key exchange ---
+extern fn EVP_PKEY_CTX_new_id(id:int, e:ptr):ptr
+extern fn EVP_PKEY_keygen_init(ctx:ptr):int
+extern fn EVP_PKEY_keygen(ctx:ptr, pkey:ptr):int
+extern fn EVP_PKEY_CTX_new(pkey:ptr, e:ptr):ptr
+extern fn EVP_PKEY_derive_init(ctx:ptr):int
+extern fn EVP_PKEY_derive_set_peer(ctx:ptr, peer:ptr):int
+extern fn EVP_PKEY_derive(ctx:ptr, key:ptr, keylen:ptr):int
+extern fn EVP_PKEY_CTX_free(ctx:ptr):none
+extern fn EVP_PKEY_free(pkey:ptr):none
+extern fn EVP_PKEY_get_raw_public_key(pkey:ptr, pub_key:ptr, pub_key_len:ptr):int
+extern fn EVP_PKEY_new_raw_public_key(typ:int, e:ptr, key:ptr, keylen:int64):ptr
+
+// --- Ed25519 signature verification ---
+extern fn EVP_MD_CTX_new():ptr
+extern fn EVP_MD_CTX_free(ctx:ptr):none
+extern fn EVP_DigestVerifyInit(ctx:ptr, pctx:ptr, md:ptr, e:ptr, pkey:ptr):int
+extern fn EVP_DigestVerify(ctx:ptr, sig:ptr, siglen:int64, tbs:ptr, tbslen:int64):int
+
+// --- AES-256-CTR ---
+extern fn EVP_CIPHER_CTX_new():ptr
+extern fn EVP_CIPHER_CTX_free(ctx:ptr):none
+extern fn EVP_aes_256_ctr():ptr
+extern fn EVP_EncryptInit_ex(ctx:ptr, cipher:ptr, impl:ptr, key:ptr, iv:ptr):int
+extern fn EVP_EncryptUpdate(ctx:ptr, out:ptr, outl:ptr, inp:ptr, inl:int):int
+
+// --- SHA-256 raw ---
+extern fn EVP_sha256():ptr
+extern fn EVP_DigestInit_ex(ctx:ptr, md_type:ptr, impl:ptr):int
+extern fn EVP_DigestUpdate(ctx:ptr, d:ptr, cnt:int64):int
+extern fn EVP_DigestFinal_ex(ctx:ptr, md:ptr, s:ptr):int
+
+// --- HMAC ---
+extern fn HMAC(evp_md:ptr, key:ptr, key_len:int, d:ptr, n:int64, md:ptr, md_len:ptr):ptr
+
+// --- Random ---
+extern fn RAND_bytes(buf:ptr, num:int):int
+
+// EVP_PKEY_X25519 = 1034, EVP_PKEY_ED25519 = 1087
+fn NID_X25519():int { return 1034 }
+fn NID_ED25519():int { return 1087 }
+
+// --- X25519 key generation ---
+// Returns a ptr to a 48-byte block: [0..32) = public key, [32..40) = EVP_PKEY*
+// Caller reads public key via mem.read_byte offsets and pkey via mem.read_ptr(result, 32)
+
+export fn x25519_keygen():ptr {
+    let ctx = EVP_PKEY_CTX_new_id(NID_X25519(), mem.null())
+    EVP_PKEY_keygen_init(ctx)
+
+    // pkey is an output param (ptr-to-ptr)
+    let pkey_holder = mem.alloc(cast<int64>(8))
+    mem.write_ptr(pkey_holder, cast<int64>(0), mem.null())
+    EVP_PKEY_keygen(ctx, pkey_holder)
+    let pkey = mem.read_ptr(pkey_holder, cast<int64>(0))
+    mem.free(pkey_holder)
+    EVP_PKEY_CTX_free(ctx)
+
+    // Extract 32-byte public key
+    let result = mem.alloc(cast<int64>(48))
+    let pub_len_holder = mem.alloc(cast<int64>(8))
+    mem.write_int64(pub_len_holder, cast<int64>(0), cast<int64>(32))
+    EVP_PKEY_get_raw_public_key(pkey, result, pub_len_holder)
+    mem.free(pub_len_holder)
+
+    // Store pkey at offset 32
+    mem.write_ptr(result, cast<int64>(32), pkey)
+
+    return result
+}
+
+// --- X25519 shared secret derivation ---
+
+export fn x25519_derive(our_pkey:ptr, peer_pub:ptr, peer_pub_len:int64):ptr {
+    let peer_pkey = EVP_PKEY_new_raw_public_key(NID_X25519(), mem.null(), peer_pub, peer_pub_len)
+    if(mem.is_null(peer_pkey)) { return mem.null() }
+
+    let ctx = EVP_PKEY_CTX_new(our_pkey, mem.null())
+    EVP_PKEY_derive_init(ctx)
+    EVP_PKEY_derive_set_peer(ctx, peer_pkey)
+
+    let len_holder = mem.alloc(cast<int64>(8))
+    mem.write_int64(len_holder, cast<int64>(0), cast<int64>(0))
+    EVP_PKEY_derive(ctx, mem.null(), len_holder)
+    let secret_len = mem.read_int64(len_holder, cast<int64>(0))
+
+    let secret = mem.alloc(secret_len)
+    EVP_PKEY_derive(ctx, secret, len_holder)
+    mem.free(len_holder)
+
+    EVP_PKEY_CTX_free(ctx)
+    EVP_PKEY_free(peer_pkey)
+
+    return secret
+}
+
+// --- Ed25519 signature verification ---
+
+export fn ed25519_verify(pub_key:ptr, pub_key_len:int64, sig:ptr, sig_len:int64, data:ptr, data_len:int64):bool {
+    let pkey = EVP_PKEY_new_raw_public_key(NID_ED25519(), mem.null(), pub_key, pub_key_len)
+    if(mem.is_null(pkey)) { return false }
+
+    let ctx = EVP_MD_CTX_new()
+    if(mem.is_null(ctx)) {
+        EVP_PKEY_free(pkey)
+        return false
+    }
+
+    let rc1 = EVP_DigestVerifyInit(ctx, mem.null(), mem.null(), mem.null(), pkey)
+    if(rc1 != 1) {
+        EVP_MD_CTX_free(ctx)
+        EVP_PKEY_free(pkey)
+        return false
+    }
+
+    let rc2 = EVP_DigestVerify(ctx, sig, sig_len, data, data_len)
+    EVP_MD_CTX_free(ctx)
+    EVP_PKEY_free(pkey)
+
+    return rc2 == 1
+}
+
+// --- AES-256-CTR cipher (all functions take/return raw ptr) ---
+
+export fn aes256_ctr_init(key:ptr, iv:ptr):ptr {
+    let ctx = EVP_CIPHER_CTX_new()
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), mem.null(), key, iv)
+    return ctx
+}
+
+export fn aes256_ctr_crypt(ctx:ptr, data:ptr, len:int):ptr {
+    let out = mem.alloc(cast<int64>(len))
+    let outl_holder = mem.alloc(cast<int64>(4))
+    EVP_EncryptUpdate(ctx, out, outl_holder, data, len)
+    mem.free(outl_holder)
+    return out
+}
+
+export fn aes256_ctr_free(ctx:ptr):none {
+    EVP_CIPHER_CTX_free(ctx)
+}
+
+// --- SHA-256 raw (returns 32-byte ptr, caller frees) ---
+
+export fn sha256_raw(data:ptr, len:int64):ptr {
+    let ctx = EVP_MD_CTX_new()
+    EVP_DigestInit_ex(ctx, EVP_sha256(), mem.null())
+    EVP_DigestUpdate(ctx, data, len)
+    let buf = mem.alloc(cast<int64>(32))
+    EVP_DigestFinal_ex(ctx, buf, mem.null())
+    EVP_MD_CTX_free(ctx)
+    return buf
+}
+
+// --- SHA-256 incremental (all functions take/return raw ptr) ---
+
+export fn hash_init():ptr {
+    let ctx = EVP_MD_CTX_new()
+    EVP_DigestInit_ex(ctx, EVP_sha256(), mem.null())
+    return ctx
+}
+
+export fn hash_update(ctx:ptr, data:ptr, len:int64):none {
+    EVP_DigestUpdate(ctx, data, len)
+}
+
+export fn hash_final(ctx:ptr):ptr {
+    let buf = mem.alloc(cast<int64>(32))
+    EVP_DigestFinal_ex(ctx, buf, mem.null())
+    EVP_MD_CTX_free(ctx)
+    return buf
+}
+
+// --- HMAC-SHA256 raw (returns 32-byte ptr, caller frees) ---
+
+export fn hmac_sha256_raw(key:ptr, key_len:int, data:ptr, data_len:int64):ptr {
+    let buf = mem.alloc(cast<int64>(32))
+    HMAC(EVP_sha256(), key, key_len, data, data_len, buf, mem.null())
+    return buf
+}
+
+// --- Random ---
+
+export fn random_fill(buf:ptr, n:int):none {
+    RAND_bytes(buf, n)
+}
+
+// --- Cleanup helpers ---
+
+export fn free_pkey(pkey:ptr):none {
+    EVP_PKEY_free(pkey)
+}

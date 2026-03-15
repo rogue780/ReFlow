@@ -1,0 +1,355 @@
+module ssh.ssh_buf
+
+import mem
+import string
+import array
+import bytes
+
+// Write buffer — mutable via ptr handle pattern (like string_builder)
+// Handle layout:
+//   offset 0:  len (int64) — current byte count
+//   offset 8:  cap (int64) — allocated capacity
+//   offset 16: data (ptr)  — byte buffer
+
+export type WBuf {
+    handle:ptr
+}
+
+// Read buffer — cursor over existing byte data
+// Handle layout:
+//   offset 0:  total_len (int64)
+//   offset 8:  pos (int64) — current read position
+//   offset 16: data (ptr)
+
+export type RBuf {
+    handle:ptr
+}
+
+// --- WBuf internal helpers ---
+
+fn wbuf_get_len(buf:WBuf):int64 {
+    return mem.read_int64(buf.handle, cast<int64>(0))
+}
+
+fn wbuf_set_len(buf:WBuf, len:int64):none {
+    mem.write_int64(buf.handle, cast<int64>(0), len)
+}
+
+fn wbuf_get_cap(buf:WBuf):int64 {
+    return mem.read_int64(buf.handle, cast<int64>(8))
+}
+
+fn wbuf_set_cap(buf:WBuf, cap:int64):none {
+    mem.write_int64(buf.handle, cast<int64>(8), cap)
+}
+
+fn wbuf_get_data(buf:WBuf):ptr {
+    return mem.read_ptr(buf.handle, cast<int64>(16))
+}
+
+fn wbuf_set_data(buf:WBuf, data:ptr):none {
+    mem.write_ptr(buf.handle, cast<int64>(16), data)
+}
+
+fn wbuf_grow(buf:WBuf, needed:int64):none {
+    let cur_len = wbuf_get_len(buf)
+    let cur_cap = wbuf_get_cap(buf)
+    let required = cur_len + needed
+    if(required <= cur_cap) { return }
+    let new_cap:int64:mut = cur_cap
+    while(new_cap < required) {
+        if(new_cap < 64) {
+            new_cap = 64
+        } else {
+            new_cap = new_cap * cast<int64>(2)
+        }
+    }
+    let old_data = wbuf_get_data(buf)
+    if(mem.is_null(old_data)) {
+        wbuf_set_data(buf, mem.alloc(new_cap))
+    } else {
+        wbuf_set_data(buf, mem.realloc(old_data, new_cap))
+    }
+    wbuf_set_cap(buf, new_cap)
+}
+
+// --- WBuf public API ---
+
+export fn wbuf_new():WBuf {
+    let handle = mem.alloc(cast<int64>(24))
+    mem.write_int64(handle, cast<int64>(0), cast<int64>(0))
+    mem.write_int64(handle, cast<int64>(8), cast<int64>(0))
+    mem.write_ptr(handle, cast<int64>(16), mem.null())
+    return WBuf { handle: handle }
+}
+
+export fn wbuf_write_byte(buf:WBuf, b:byte):none {
+    wbuf_grow(buf, cast<int64>(1))
+    let data = wbuf_get_data(buf)
+    let pos = wbuf_get_len(buf)
+    mem.write_byte(data, pos, b)
+    wbuf_set_len(buf, pos + cast<int64>(1))
+}
+
+export fn wbuf_write_u32(buf:WBuf, val:int):none {
+    wbuf_write_byte(buf, cast<byte>(val / 16777216 % 256))
+    wbuf_write_byte(buf, cast<byte>(val / 65536 % 256))
+    wbuf_write_byte(buf, cast<byte>(val / 256 % 256))
+    wbuf_write_byte(buf, cast<byte>(val % 256))
+}
+
+export fn wbuf_write_string(buf:WBuf, s:string):none {
+    let slen = string.len(s)
+    wbuf_write_u32(buf, slen)
+    if(slen > 0) {
+        wbuf_grow(buf, cast<int64>(slen))
+        let data = wbuf_get_data(buf)
+        let pos = wbuf_get_len(buf)
+        mem.copy_str(data, pos, s)
+        wbuf_set_len(buf, pos + cast<int64>(slen))
+    }
+}
+
+export fn wbuf_write_bytes(buf:WBuf, data:array<byte>):none {
+    // Convert byte array to string to get a raw ptr we can read from
+    let s = string.from_bytes(data)
+    let slen = string.len(s)
+    if(slen > 0) {
+        wbuf_grow(buf, cast<int64>(slen))
+        let dst = wbuf_get_data(buf)
+        let pos = wbuf_get_len(buf)
+        mem.copy_str(dst, pos, s)
+        wbuf_set_len(buf, pos + cast<int64>(slen))
+    }
+}
+
+export fn wbuf_write_raw(buf:WBuf, p:ptr, len:int64):none {
+    if(len <= cast<int64>(0)) { return }
+    // Copy byte by byte via mem offsets (no pointer arithmetic in Flow)
+    let i:int64:mut = cast<int64>(0)
+    while(i < len) {
+        wbuf_write_byte(buf, mem.read_byte(p, i))
+        i = i + cast<int64>(1)
+    }
+}
+
+export fn wbuf_write_name_list(buf:WBuf, names:string):none {
+    wbuf_write_string(buf, names)
+}
+
+export fn wbuf_write_mpint(buf:WBuf, data:ptr, len:int64):none {
+    // SSH mpint (RFC 4251 Section 5):
+    //   - Strip leading zero bytes
+    //   - If high bit of first remaining byte is set, prepend 0x00
+    //   - If all bytes are zero, encode as zero-length mpint
+
+    // Skip leading zero bytes
+    let offset:int64:mut = cast<int64>(0)
+    while(offset < len) {
+        if(cast<int>(mem.read_byte(data, offset)) != 0) {
+            // found first non-zero byte
+            offset = len + cast<int64>(1)
+        } else {
+            offset = offset + cast<int64>(1)
+        }
+    }
+    // If we exited because we found non-zero, offset = len+1, undo
+    // If all zeros, offset = len
+    let start:int64:mut = cast<int64>(0)
+    let all_zero:bool:mut = true
+    let i:int64:mut = cast<int64>(0)
+    while(i < len) {
+        if(cast<int>(mem.read_byte(data, i)) != 0) {
+            if(all_zero) {
+                start = i
+                all_zero = false
+            }
+        }
+        i = i + cast<int64>(1)
+    }
+
+    if(all_zero) {
+        // Value is zero
+        wbuf_write_u32(buf, 0)
+    } else {
+        let trimmed_len = len - start
+        let first_byte = cast<int>(mem.read_byte(data, start))
+        if(first_byte >= 128) {
+            // High bit set — prepend zero byte
+            wbuf_write_u32(buf, cast<int>(trimmed_len) + 1)
+            wbuf_write_byte(buf, cast<byte>(0))
+        } else {
+            wbuf_write_u32(buf, cast<int>(trimmed_len))
+        }
+        // Write from start to end
+        let j:int64:mut = start
+        while(j < len) {
+            wbuf_write_byte(buf, mem.read_byte(data, j))
+            j = j + cast<int64>(1)
+        }
+    }
+}
+
+export fn wbuf_write_bool(buf:WBuf, val:bool):none {
+    if(val) {
+        wbuf_write_byte(buf, cast<byte>(1))
+    } else {
+        wbuf_write_byte(buf, cast<byte>(0))
+    }
+}
+
+export fn wbuf_len(buf:WBuf):int64 {
+    return wbuf_get_len(buf)
+}
+
+export fn wbuf_to_bytes(buf:WBuf):array<byte> {
+    let len = wbuf_get_len(buf)
+    let data = wbuf_get_data(buf)
+    // Build string from raw data, then convert to bytes
+    if(len == cast<int64>(0)) { return [] }
+    let s = mem.to_string(data, len)
+    return string.to_bytes(s)
+}
+
+export fn wbuf_data_ptr(buf:WBuf):ptr {
+    return wbuf_get_data(buf)
+}
+
+export fn wbuf_clear(buf:WBuf):none {
+    wbuf_set_len(buf, cast<int64>(0))
+}
+
+export fn wbuf_free(buf:WBuf):none {
+    let data = wbuf_get_data(buf)
+    if(!mem.is_null(data)) {
+        mem.free(data)
+    }
+    mem.free(buf.handle)
+}
+
+// --- RBuf internal helpers ---
+
+fn rbuf_get_total(buf:RBuf):int64 {
+    return mem.read_int64(buf.handle, cast<int64>(0))
+}
+
+fn rbuf_get_pos(buf:RBuf):int64 {
+    return mem.read_int64(buf.handle, cast<int64>(8))
+}
+
+fn rbuf_set_pos(buf:RBuf, pos:int64):none {
+    mem.write_int64(buf.handle, cast<int64>(8), pos)
+}
+
+fn rbuf_get_data(buf:RBuf):ptr {
+    return mem.read_ptr(buf.handle, cast<int64>(16))
+}
+
+// --- RBuf public API ---
+
+export fn rbuf_from_bytes(data:array<byte>):RBuf {
+    // Convert byte array to string to get raw bytes, then copy to ptr
+    let s = string.from_bytes(data)
+    let slen = string.len(s)
+    let buf_data = mem.alloc(cast<int64>(slen))
+    if(slen > 0) {
+        mem.copy_str(buf_data, cast<int64>(0), s)
+    }
+    let handle = mem.alloc(cast<int64>(24))
+    mem.write_int64(handle, cast<int64>(0), cast<int64>(slen))
+    mem.write_int64(handle, cast<int64>(8), cast<int64>(0))
+    mem.write_ptr(handle, cast<int64>(16), buf_data)
+    return RBuf { handle: handle }
+}
+
+export fn rbuf_from_ptr(p:ptr, len:int64):RBuf {
+    let buf_data = mem.alloc(len)
+    let i:int64:mut = cast<int64>(0)
+    while(i < len) {
+        mem.write_byte(buf_data, i, mem.read_byte(p, i))
+        i = i + cast<int64>(1)
+    }
+    let handle = mem.alloc(cast<int64>(24))
+    mem.write_int64(handle, cast<int64>(0), len)
+    mem.write_int64(handle, cast<int64>(8), cast<int64>(0))
+    mem.write_ptr(handle, cast<int64>(16), buf_data)
+    return RBuf { handle: handle }
+}
+
+export fn rbuf_read_byte(buf:RBuf):byte {
+    let pos = rbuf_get_pos(buf)
+    let data = rbuf_get_data(buf)
+    let b = mem.read_byte(data, pos)
+    rbuf_set_pos(buf, pos + cast<int64>(1))
+    return b
+}
+
+export fn rbuf_read_u32(buf:RBuf):int {
+    let b3 = cast<int>(rbuf_read_byte(buf))
+    let b2 = cast<int>(rbuf_read_byte(buf))
+    let b1 = cast<int>(rbuf_read_byte(buf))
+    let b0 = cast<int>(rbuf_read_byte(buf))
+    return b3 * 16777216 + b2 * 65536 + b1 * 256 + b0
+}
+
+export fn rbuf_read_string_bytes(buf:RBuf):array<byte> {
+    let slen = rbuf_read_u32(buf)
+    let result:array<byte>:mut = []
+    let i:int:mut = 0
+    while(i < slen) {
+        result = array.push_byte(result, rbuf_read_byte(buf))
+        i = i + 1
+    }
+    return result
+}
+
+export fn rbuf_read_string(buf:RBuf):string {
+    let slen = rbuf_read_u32(buf)
+    if(slen == 0) { return "" }
+    let data = rbuf_get_data(buf)
+    let pos = rbuf_get_pos(buf)
+    // Copy to temp buffer and convert to string
+    let tmp = mem.alloc(cast<int64>(slen))
+    let i:int:mut = 0
+    while(i < slen) {
+        mem.write_byte(tmp, cast<int64>(i), mem.read_byte(data, pos + cast<int64>(i)))
+        i = i + 1
+    }
+    let result = mem.to_string(tmp, cast<int64>(slen))
+    mem.free(tmp)
+    rbuf_set_pos(buf, pos + cast<int64>(slen))
+    return result
+}
+
+export fn rbuf_read_raw(buf:RBuf, n:int64):ptr {
+    let result = mem.alloc(n)
+    let data = rbuf_get_data(buf)
+    let pos = rbuf_get_pos(buf)
+    let i:int64:mut = cast<int64>(0)
+    while(i < n) {
+        mem.write_byte(result, i, mem.read_byte(data, pos + i))
+        i = i + cast<int64>(1)
+    }
+    rbuf_set_pos(buf, pos + n)
+    return result
+}
+
+export fn rbuf_read_bool(buf:RBuf):bool {
+    return cast<int>(rbuf_read_byte(buf)) != 0
+}
+
+export fn rbuf_remaining(buf:RBuf):int64 {
+    return rbuf_get_total(buf) - rbuf_get_pos(buf)
+}
+
+export fn rbuf_skip(buf:RBuf, n:int64):none {
+    rbuf_set_pos(buf, rbuf_get_pos(buf) + n)
+}
+
+export fn rbuf_free(buf:RBuf):none {
+    let data = rbuf_get_data(buf)
+    if(!mem.is_null(data)) {
+        mem.free(data)
+    }
+    mem.free(buf.handle)
+}

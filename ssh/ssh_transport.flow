@@ -1,0 +1,310 @@
+module ssh.ssh_transport
+
+import ssh.ssh_buf
+import ssh.ssh_crypto
+import mem
+import net
+import string
+import array
+
+// Transport holds a socket and mutable state for SSH packet framing.
+// State handle layout:
+//   0:  seq_send (int64)
+//   8:  seq_recv (int64)
+//   16: encrypted (int64, 0 or 1)
+//   24: enc_send (ptr — EVP_CIPHER_CTX*)
+//   32: enc_recv (ptr — EVP_CIPHER_CTX*)
+//   40: mac_key_send (ptr, 32 bytes)
+//   48: mac_key_recv (ptr, 32 bytes)
+
+export type Transport {
+    socket:Socket
+    state:ptr
+}
+
+fn get_seq_send(t:Transport):int64 {
+    return mem.read_int64(t.state, cast<int64>(0))
+}
+
+fn set_seq_send(t:Transport, val:int64):none {
+    mem.write_int64(t.state, cast<int64>(0), val)
+}
+
+fn get_seq_recv(t:Transport):int64 {
+    return mem.read_int64(t.state, cast<int64>(8))
+}
+
+fn set_seq_recv(t:Transport, val:int64):none {
+    mem.write_int64(t.state, cast<int64>(8), val)
+}
+
+fn is_encrypted(t:Transport):bool {
+    return mem.read_int64(t.state, cast<int64>(16)) != cast<int64>(0)
+}
+
+fn set_encrypted(t:Transport, val:bool):none {
+    if(val) {
+        mem.write_int64(t.state, cast<int64>(16), cast<int64>(1))
+    } else {
+        mem.write_int64(t.state, cast<int64>(16), cast<int64>(0))
+    }
+}
+
+fn get_enc_send(t:Transport):ptr {
+    return mem.read_ptr(t.state, cast<int64>(24))
+}
+
+fn set_enc_send(t:Transport, val:ptr):none {
+    mem.write_ptr(t.state, cast<int64>(24), val)
+}
+
+fn get_enc_recv(t:Transport):ptr {
+    return mem.read_ptr(t.state, cast<int64>(32))
+}
+
+fn set_enc_recv(t:Transport, val:ptr):none {
+    mem.write_ptr(t.state, cast<int64>(32), val)
+}
+
+fn get_mac_send(t:Transport):ptr {
+    return mem.read_ptr(t.state, cast<int64>(40))
+}
+
+fn set_mac_send(t:Transport, val:ptr):none {
+    mem.write_ptr(t.state, cast<int64>(40), val)
+}
+
+fn get_mac_recv(t:Transport):ptr {
+    return mem.read_ptr(t.state, cast<int64>(48))
+}
+
+fn set_mac_recv(t:Transport, val:ptr):none {
+    mem.write_ptr(t.state, cast<int64>(48), val)
+}
+
+// --- Public API ---
+
+export fn transport_new(sock:Socket):Transport {
+    let state = mem.alloc(cast<int64>(56))
+    mem.write_int64(state, cast<int64>(0), cast<int64>(0))
+    mem.write_int64(state, cast<int64>(8), cast<int64>(0))
+    mem.write_int64(state, cast<int64>(16), cast<int64>(0))
+    mem.write_ptr(state, cast<int64>(24), mem.null())
+    mem.write_ptr(state, cast<int64>(32), mem.null())
+    mem.write_ptr(state, cast<int64>(40), mem.null())
+    mem.write_ptr(state, cast<int64>(48), mem.null())
+    return Transport { socket: sock, state: state }
+}
+
+export fn transport_activate_keys(t:Transport, enc_key_c2s:ptr, iv_c2s:ptr, enc_key_s2c:ptr, iv_s2c:ptr, mac_key_c2s:ptr, mac_key_s2c:ptr):none {
+    let send_ctx = ssh_crypto.aes256_ctr_init(enc_key_c2s, iv_c2s)
+    let recv_ctx = ssh_crypto.aes256_ctr_init(enc_key_s2c, iv_s2c)
+    set_enc_send(t, send_ctx)
+    set_enc_recv(t, recv_ctx)
+    set_mac_send(t, mac_key_c2s)
+    set_mac_recv(t, mac_key_s2c)
+    set_encrypted(t, true)
+}
+
+// Read exactly n bytes from the socket
+fn read_exact(sock:Socket, n:int):array<byte>? {
+    let result:array<byte>:mut = []
+    let got:int:mut = 0
+    while(got < n) {
+        let remaining = n - got
+        match net.read(sock, remaining) {
+            some(chunk): {
+                result = array.concat_byte(result, chunk)
+                got = got + array.len_byte(chunk)
+            }
+            none: { return none }
+        }
+    }
+    return some(result)
+}
+
+// --- Send packet ---
+
+export fn send_packet(t:Transport, payload:WBuf):bool {
+    let payload_bytes = ssh_buf.wbuf_to_bytes(payload)
+    let payload_len = array.len_byte(payload_bytes)
+    let encrypted = is_encrypted(t)
+
+    // Block size: 8 for unencrypted, 16 for encrypted
+    let block_size:int:mut = 8
+    if(encrypted) { block_size = 16 }
+
+    // Compute padding
+    let pad_len:int:mut = block_size - ((5 + payload_len) % block_size)
+    if(pad_len < 4) { pad_len = pad_len + block_size }
+
+    // Build packet: u32(packet_length) | byte(pad_len) | payload | padding
+    let packet_length = 1 + payload_len + pad_len
+    let pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_u32(pkt, packet_length)
+    ssh_buf.wbuf_write_byte(pkt, cast<byte>(pad_len))
+    ssh_buf.wbuf_write_bytes(pkt, payload_bytes)
+
+    // Random padding
+    let padding = mem.alloc(cast<int64>(pad_len))
+    ssh_crypto.random_fill(padding, pad_len)
+    ssh_buf.wbuf_write_raw(pkt, padding, cast<int64>(pad_len))
+    mem.free(padding)
+
+    let pkt_bytes = ssh_buf.wbuf_to_bytes(pkt)
+    let pkt_len = array.len_byte(pkt_bytes)
+    ssh_buf.wbuf_free(pkt)
+
+    if(encrypted) {
+        // Compute MAC before encryption: HMAC-SHA256(mac_key, seq_num || unencrypted_packet)
+        let seq = get_seq_send(t)
+        let mac_data = ssh_buf.wbuf_new()
+        ssh_buf.wbuf_write_u32(mac_data, cast<int>(seq))
+        ssh_buf.wbuf_write_bytes(mac_data, pkt_bytes)
+        let mac_data_ptr = ssh_buf.wbuf_data_ptr(mac_data)
+        let mac_data_len = ssh_buf.wbuf_len(mac_data)
+        let mac = ssh_crypto.hmac_sha256_raw(get_mac_send(t), 32, mac_data_ptr, mac_data_len)
+        ssh_buf.wbuf_free(mac_data)
+
+        // Encrypt the packet
+        let pkt_str = string.from_bytes(pkt_bytes)
+        let pkt_ptr = string.to_cptr(pkt_str)
+        let encrypted_ptr = ssh_crypto.aes256_ctr_crypt(get_enc_send(t), pkt_ptr, pkt_len)
+
+        // Send encrypted packet + MAC
+        let out = ssh_buf.wbuf_new()
+        ssh_buf.wbuf_write_raw(out, encrypted_ptr, cast<int64>(pkt_len))
+        ssh_buf.wbuf_write_raw(out, mac, cast<int64>(32))
+        mem.free(encrypted_ptr)
+        mem.free(mac)
+        let out_bytes = ssh_buf.wbuf_to_bytes(out)
+        ssh_buf.wbuf_free(out)
+        let send_ok = net.write(t.socket, out_bytes)
+        set_seq_send(t, seq + cast<int64>(1))
+        return send_ok
+    } else {
+        let send_ok = net.write(t.socket, pkt_bytes)
+        let seq = get_seq_send(t)
+        set_seq_send(t, seq + cast<int64>(1))
+        return send_ok
+    }
+}
+
+// --- Receive packet ---
+
+export fn recv_packet(t:Transport):array<byte>? {
+    if(is_encrypted(t)) {
+        return recv_packet_encrypted(t)
+    } else {
+        return recv_packet_plain(t)
+    }
+}
+
+fn recv_packet_plain(t:Transport):array<byte>? {
+    let header = read_exact(t.socket, 4)?
+
+    let rb = ssh_buf.rbuf_from_bytes(header)
+    let packet_length = ssh_buf.rbuf_read_u32(rb)
+    ssh_buf.rbuf_free(rb)
+
+    let rest = read_exact(t.socket, packet_length)?
+
+    let rb2 = ssh_buf.rbuf_from_bytes(rest)
+    let pad_len = cast<int>(ssh_buf.rbuf_read_byte(rb2))
+    let payload_len = packet_length - 1 - pad_len
+
+    let payload:array<byte>:mut = []
+    let i:int:mut = 0
+    while(i < payload_len) {
+        payload = array.push_byte(payload, ssh_buf.rbuf_read_byte(rb2))
+        i = i + 1
+    }
+    ssh_buf.rbuf_free(rb2)
+
+    let seq = get_seq_recv(t)
+    set_seq_recv(t, seq + cast<int64>(1))
+    return some(payload)
+}
+
+fn recv_packet_encrypted(t:Transport):array<byte>? {
+    let enc_header = read_exact(t.socket, 4)?
+
+    // Decrypt first 4 bytes to get packet_length
+    let enc_hdr_str = string.from_bytes(enc_header)
+    let enc_hdr_ptr = string.to_cptr(enc_hdr_str)
+    let dec_hdr_ptr = ssh_crypto.aes256_ctr_crypt(get_enc_recv(t), enc_hdr_ptr, 4)
+
+    let hdr_rb = ssh_buf.rbuf_from_ptr(dec_hdr_ptr, cast<int64>(4))
+    let packet_length = ssh_buf.rbuf_read_u32(hdr_rb)
+    ssh_buf.rbuf_free(hdr_rb)
+
+    // Read remaining encrypted bytes + 32-byte MAC
+    let enc_rest = read_exact(t.socket, packet_length)?
+    let mac_bytes = read_exact(t.socket, 32)?
+
+    // Decrypt remaining bytes
+    let enc_rest_str = string.from_bytes(enc_rest)
+    let enc_rest_ptr = string.to_cptr(enc_rest_str)
+    let dec_rest_ptr = ssh_crypto.aes256_ctr_crypt(get_enc_recv(t), enc_rest_ptr, packet_length)
+
+    // Reconstruct full decrypted packet for MAC verification
+    let full_pkt = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_raw(full_pkt, dec_hdr_ptr, cast<int64>(4))
+    ssh_buf.wbuf_write_raw(full_pkt, dec_rest_ptr, cast<int64>(packet_length))
+
+    // Verify MAC: HMAC-SHA256(mac_key, seq_num || decrypted_packet)
+    let seq = get_seq_recv(t)
+    let mac_input = ssh_buf.wbuf_new()
+    ssh_buf.wbuf_write_u32(mac_input, cast<int>(seq))
+    let full_pkt_bytes = ssh_buf.wbuf_to_bytes(full_pkt)
+    ssh_buf.wbuf_write_bytes(mac_input, full_pkt_bytes)
+    let expected_mac = ssh_crypto.hmac_sha256_raw(get_mac_recv(t), 32, ssh_buf.wbuf_data_ptr(mac_input), ssh_buf.wbuf_len(mac_input))
+    ssh_buf.wbuf_free(mac_input)
+
+    // Compare MACs
+    let mac_ok:bool:mut = true
+    let mac_str = string.from_bytes(mac_bytes)
+    let mac_ptr = string.to_cptr(mac_str)
+    let j:int:mut = 0
+    while(j < 32) {
+        if(mem.read_byte(expected_mac, cast<int64>(j)) != mem.read_byte(mac_ptr, cast<int64>(j))) {
+            mac_ok = false
+        }
+        j = j + 1
+    }
+    mem.free(expected_mac)
+
+    if(!mac_ok) {
+        ssh_buf.wbuf_free(full_pkt)
+        mem.free(dec_hdr_ptr)
+        mem.free(dec_rest_ptr)
+        return none
+    }
+
+    // Extract payload: skip pad_len byte, read payload_len bytes
+    let pkt_rb = ssh_buf.rbuf_from_ptr(dec_rest_ptr, cast<int64>(packet_length))
+    let pad_len = cast<int>(ssh_buf.rbuf_read_byte(pkt_rb))
+    let payload_len = packet_length - 1 - pad_len
+
+    let payload:array<byte>:mut = []
+    let i:int:mut = 0
+    while(i < payload_len) {
+        payload = array.push_byte(payload, ssh_buf.rbuf_read_byte(pkt_rb))
+        i = i + 1
+    }
+    ssh_buf.rbuf_free(pkt_rb)
+    ssh_buf.wbuf_free(full_pkt)
+    mem.free(dec_hdr_ptr)
+    mem.free(dec_rest_ptr)
+
+    set_seq_recv(t, seq + cast<int64>(1))
+    return some(payload)
+}
+
+export fn transport_free(t:Transport):none {
+    if(is_encrypted(t)) {
+        ssh_crypto.aes256_ctr_free(get_enc_send(t))
+        ssh_crypto.aes256_ctr_free(get_enc_recv(t))
+    }
+    mem.free(t.state)
+}

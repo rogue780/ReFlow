@@ -1,0 +1,175 @@
+module ssh.ssh_term
+
+import mem
+import io
+
+// --- Raw FD I/O (runtime wrappers for read/write syscalls) ---
+
+export extern fn "fl_raw_read" raw_read(fd:int, buf:ptr, count:int):int
+export extern fn "fl_raw_write" raw_write(fd:int, buf:ptr, count:int):int
+
+// --- Terminal control (termios) ---
+
+extern lib "c"
+extern fn tcgetattr(fd:int, termios_p:ptr):int
+extern fn tcsetattr(fd:int, action:int, termios_p:ptr):int
+extern fn cfmakeraw(termios_p:ptr):none
+
+// --- poll() for I/O multiplexing ---
+
+extern fn poll(fds:ptr, nfds:int64, timeout:int):int
+
+// --- ioctl for window size ---
+
+extern fn ioctl(fd:int, request:int64, argp:ptr):int
+
+// --- fcntl for non-blocking mode ---
+
+extern fn fcntl(fd:int, cmd:int, arg:int):int
+
+// --- Linux constants ---
+
+fn TCSANOW():int { return 0 }
+fn TCSAFLUSH():int { return 2 }
+fn F_GETFL():int { return 3 }
+fn F_SETFL():int { return 4 }
+fn O_NONBLOCK():int { return 2048 }
+fn POLLIN():int { return 1 }
+fn TIOCGWINSZ():int64 { return cast<int64>(21523) }
+
+// struct termios is 60 bytes on Linux x86_64
+fn TERMIOS_SIZE():int { return 60 }
+
+// struct pollfd is 8 bytes: int fd (4), short events (2), short revents (2)
+fn POLLFD_SIZE():int { return 8 }
+
+// struct winsize is 8 bytes: ushort rows (2), ushort cols (2), ushort xpixel (2), ushort ypixel (2)
+fn WINSIZE_SIZE():int { return 8 }
+
+// --- Helper: write int32 (little-endian) to ptr at offset ---
+
+fn write_le32(p:ptr, offset:int64, val:int):none {
+    mem.write_byte(p, offset, cast<byte>(val % 256))
+    mem.write_byte(p, offset + cast<int64>(1), cast<byte>(val / 256 % 256))
+    mem.write_byte(p, offset + cast<int64>(2), cast<byte>(val / 65536 % 256))
+    mem.write_byte(p, offset + cast<int64>(3), cast<byte>(val / 16777216 % 256))
+}
+
+// --- Helper: write int16 (little-endian) to ptr at offset ---
+
+fn write_le16(p:ptr, offset:int64, val:int):none {
+    mem.write_byte(p, offset, cast<byte>(val % 256))
+    mem.write_byte(p, offset + cast<int64>(1), cast<byte>(val / 256 % 256))
+}
+
+// --- Helper: read uint16 (little-endian) from ptr at offset ---
+
+fn read_le16(p:ptr, offset:int64):int {
+    let b0 = cast<int>(mem.read_byte(p, offset))
+    let b1 = cast<int>(mem.read_byte(p, offset + cast<int64>(1)))
+    return b0 + b1 * 256
+}
+
+// --- Terminal raw mode ---
+
+// Enter raw mode on stdin. Returns ptr to saved termios (60 bytes).
+// Caller must call exit_raw_mode with this ptr when done.
+export fn enter_raw_mode():ptr {
+    let saved = mem.alloc(cast<int64>(TERMIOS_SIZE()))
+    let raw = mem.alloc(cast<int64>(TERMIOS_SIZE()))
+
+    // Save current terminal state
+    tcgetattr(0, saved)
+
+    // Copy saved to raw
+    mem.copy(raw, saved, cast<int64>(TERMIOS_SIZE()))
+
+    // Make raw
+    cfmakeraw(raw)
+
+    // Apply raw mode
+    tcsetattr(0, TCSAFLUSH(), raw)
+    mem.free(raw)
+
+    return saved
+}
+
+// Restore terminal to saved state
+export fn exit_raw_mode(saved:ptr):none {
+    tcsetattr(0, TCSAFLUSH(), saved)
+    mem.free(saved)
+}
+
+// --- Window size ---
+
+export type WinSize {
+    rows:int
+    cols:int
+}
+
+export fn get_winsize():WinSize {
+    let ws = mem.alloc(cast<int64>(WINSIZE_SIZE()))
+    ioctl(0, TIOCGWINSZ(), ws)
+    let rows = read_le16(ws, cast<int64>(0))
+    let cols = read_le16(ws, cast<int64>(2))
+    mem.free(ws)
+    if(rows == 0) { return WinSize { rows: 24, cols: 80 } }
+    return WinSize { rows: rows, cols: cols }
+}
+
+// --- Non-blocking stdin ---
+
+export fn set_stdin_nonblocking():none {
+    let flags = fcntl(0, F_GETFL(), 0)
+    fcntl(0, F_SETFL(), flags + O_NONBLOCK())
+}
+
+export fn set_stdin_blocking():none {
+    let flags = fcntl(0, F_GETFL(), 0)
+    // Clear O_NONBLOCK: flags & ~O_NONBLOCK
+    // Since we can't do bitwise AND NOT, we check if nonblocking is set
+    // and subtract it
+    let nb = O_NONBLOCK()
+    // Use modular arithmetic to check if flag is set
+    // flags / nb % 2 will be 1 if the bit is set
+    if(flags / nb % 2 == 1) {
+        fcntl(0, F_SETFL(), flags - nb)
+    }
+}
+
+// --- Poll helper ---
+// Returns: 0 = nothing ready, 1 = stdin ready, 2 = socket ready, 3 = both ready
+
+export fn poll_fds(stdin_fd:int, sock_fd:int, timeout_ms:int):int {
+    // Allocate space for 2 pollfd structs (8 bytes each)
+    let fds = mem.alloc(cast<int64>(16))
+
+    // pollfd[0]: stdin
+    write_le32(fds, cast<int64>(0), stdin_fd)
+    write_le16(fds, cast<int64>(4), POLLIN())
+    write_le16(fds, cast<int64>(6), 0)
+
+    // pollfd[1]: socket
+    write_le32(fds, cast<int64>(8), sock_fd)
+    write_le16(fds, cast<int64>(12), POLLIN())
+    write_le16(fds, cast<int64>(14), 0)
+
+    let ret = poll(fds, cast<int64>(2), timeout_ms)
+
+    let result:int:mut = 0
+    if(ret > 0) {
+        // Check revents for stdin (offset 6)
+        let stdin_revents = read_le16(fds, cast<int64>(6))
+        if(stdin_revents / POLLIN() % 2 == 1) {
+            result = result + 1
+        }
+        // Check revents for socket (offset 14)
+        let sock_revents = read_le16(fds, cast<int64>(14))
+        if(sock_revents / POLLIN() % 2 == 1) {
+            result = result + 2
+        }
+    }
+
+    mem.free(fds)
+    return result
+}
