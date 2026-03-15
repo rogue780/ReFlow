@@ -522,6 +522,80 @@ fn get_receiver_type_name(receiver:ast.Expr):string {
     }
 }
 
+// try_lower_variant_ctor — try to lower a variant constructor call
+// Returns LELit("0", LVoid) if not a constructor (caller checks for LVoid)
+fn try_lower_variant_ctor(st:LowerState:mut, resolved_mod:string, vname:string, largs:array<lir.LExprBox>, result_lt:lir.LType):lir.LExpr {
+    // Search current module
+    for(d:ast.Decl in st.src_module.decls) {
+        match(d) {
+            DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                if(is_sum) {
+                    let vi:int:mut = 0
+                    while(vi < array.size(variants)) {
+                        let sv:ast.SumVariantDecl = array.get_any(variants, vi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                        if(sv.name == vname && array.size(sv.fields) > 0) {
+                            let mod_path:string:mut = join_path(st.src_module.path)
+                            if(mod_path == "") { mod_path = st.module_path }
+                            let sum_lt:lir.LType = lir.LStruct(c_name:mangler.mangle(mod_path, dname, ""))
+                            let inner_c_name:string = mangler.mangle(mod_path, dname, vname)
+                            let inner_lt:lir.LType = lir.LStruct(c_name:inner_c_name)
+                            let inner_fnames:array<string>:mut = []
+                            let fi:int:mut = 0
+                            while(fi < array.size(sv.fields)) {
+                                let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
+                                inner_fnames = array.push(inner_fnames, sf.name)
+                                fi = fi + 1
+                            }
+                            let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:largs, c_type:inner_lt)
+                            let tag_expr:lir.LExpr = lir.LELit(value:conv.to_string(vi), c_type:lir.LByte)
+                            return lir.LECompound(field_names:["tag", vname], field_values:[lir.le_box(tag_expr), lir.le_box(inner)], c_type:sum_lt)
+                        }
+                        vi = vi + 1
+                    }
+                }
+            }
+            _: {}
+        }
+    }
+    // Search imported modules
+    let tvi:int:mut = 0
+    while(tvi < array.size(st.imported_module_decls)) {
+        let imp_mod:ast.Module = array.get_any(st.imported_module_decls, tvi) ?? ast.make_module([], [], [], "")
+        let imp_mod_path:string = join_path(imp_mod.path)
+        for(d:ast.Decl in imp_mod.decls) {
+            match(d) {
+                DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                    if(is_sum) {
+                        let vi:int:mut = 0
+                        while(vi < array.size(variants)) {
+                            let sv:ast.SumVariantDecl = array.get_any(variants, vi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                            if(sv.name == vname && array.size(sv.fields) > 0) {
+                                let sum_lt:lir.LType = lir.LStruct(c_name:mangler.mangle(imp_mod_path, dname, ""))
+                                let inner_c_name:string = mangler.mangle(imp_mod_path, dname, vname)
+                                let inner_lt:lir.LType = lir.LStruct(c_name:inner_c_name)
+                                let inner_fnames:array<string>:mut = []
+                                let fi:int:mut = 0
+                                while(fi < array.size(sv.fields)) {
+                                    let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
+                                    inner_fnames = array.push(inner_fnames, sf.name)
+                                    fi = fi + 1
+                                }
+                                let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:largs, c_type:inner_lt)
+                                let tag_expr:lir.LExpr = lir.LELit(value:conv.to_string(vi), c_type:lir.LByte)
+                                return lir.LECompound(field_names:["tag", vname], field_values:[lir.le_box(tag_expr), lir.le_box(inner)], c_type:sum_lt)
+                            }
+                            vi = vi + 1
+                        }
+                    }
+                }
+                _: {}
+            }
+        }
+        tvi = tvi + 1
+    }
+    return lir.placeholder_expr()
+}
+
 // find_fieldless_variant_type_name — search for the parent type name of a fieldless variant
 fn find_fieldless_variant_type_name(st:LowerState:mut, vname:string):string {
     for(d:ast.Decl in st.src_module.decls) {
@@ -3056,6 +3130,22 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                     if(array.size(cmod) > 0) {
                         let mod_p:string = join_path(cmod)
                         let resolved_mod:string = resolve_ns_to_module_path(st, mod_p)
+                        // Check if this is a variant constructor in the resolved module
+                        let ctor_tag:int = find_fieldless_variant_tag(st, cname)
+                        if(ctor_tag >= 0) {
+                            // Fieldless variant
+                            let ctor_type:string = find_fieldless_variant_type_name(st, cname)
+                            if(ctor_type != "") {
+                                let sum_lt:lir.LType = lir.LStruct(c_name:mangler.mangle(resolved_mod, ctor_type, ""))
+                                return lir.LECompound(field_names:["tag"], field_values:[lir.le_box(lir.LELit(value:conv.to_string(ctor_tag), c_type:lir.LByte))], c_type:sum_lt)
+                            }
+                        }
+                        // Check if variant constructor with fields
+                        let ctor_result:lir.LExpr = try_lower_variant_ctor(st, resolved_mod, cname, largs, result_lt)
+                        match(lir.lexpr_type(ctor_result)) {
+                            LVoid: {}
+                            _: { return ctor_result }
+                        }
                         let fn_c_name:string:mut = mangler.mangle(resolved_mod, "", cname)
                         // Monomorphize generic function calls
                         let fn_name_str:string = cname
@@ -3163,6 +3253,47 @@ fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, la
             }
             _: {}
         }
+    }
+
+    // Search imported modules
+    let ici:int:mut = 0
+    while(ici < array.size(st.imported_module_decls)) {
+        let imp_mod:ast.Module = array.get_any(st.imported_module_decls, ici) ?? ast.make_module([], [], [], "")
+        let imp_mod_path:string = join_path(imp_mod.path)
+        for(d:ast.Decl in imp_mod.decls) {
+            match(d) {
+                DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                    if(is_sum) {
+                        let vi:int:mut = 0
+                        while(vi < array.size(variants)) {
+                            let sv:ast.SumVariantDecl = array.get_any(variants, vi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                            if(sv.name == vname) {
+                                let tag_expr:lir.LExpr = lir.LELit(value:conv.to_string(vi), c_type:lir.LByte)
+                                let imp_sum_lt:lir.LType = lir.LStruct(c_name:mangler.mangle(imp_mod_path, dname, ""))
+                                if(array.size(sv.fields) == 0) {
+                                    return lir.LECompound(field_names:["tag"], field_values:[lir.le_box(tag_expr)], c_type:imp_sum_lt)
+                                } else {
+                                    let inner_c_name:string = mangler.mangle(imp_mod_path, dname, vname)
+                                    let inner_lt:lir.LType = lir.LStruct(c_name:inner_c_name)
+                                    let inner_fnames:array<string>:mut = []
+                                    let fi:int:mut = 0
+                                    while(fi < array.size(sv.fields)) {
+                                        let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
+                                        inner_fnames = array.push(inner_fnames, sf.name)
+                                        fi = fi + 1
+                                    }
+                                    let inner:lir.LExpr = lir.LECompound(field_names:inner_fnames, field_values:largs, c_type:inner_lt)
+                                    return lir.LECompound(field_names:["tag", vname], field_values:[lir.le_box(tag_expr), lir.le_box(inner)], c_type:imp_sum_lt)
+                                }
+                            }
+                            vi = vi + 1
+                        }
+                    }
+                }
+                _: {}
+            }
+        }
+        ici = ici + 1
     }
 
     // Fallback: empty compound literal
