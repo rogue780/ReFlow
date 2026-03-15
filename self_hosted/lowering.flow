@@ -339,6 +339,152 @@ fn resolve_builtin_type_name(name:string):typechecker.TCType {
 }
 
 // ---------------------------------------------------------------------------
+// get_release_fn — release function name for directly-refcounted types
+// ---------------------------------------------------------------------------
+
+fn get_release_fn(t:typechecker.TCType):option<string> {
+    match(t) {
+        TCString: { return some("fl_string_release") }
+        TCArray(e): { return some("fl_array_release") }
+        TCMap(k, v): { return some("fl_map_release") }
+        TCStream(e): { return some("fl_stream_release") }
+        TCBuffer(e): { return some("fl_buffer_release") }
+        TCFn(p, r, pu, va): { return some("fl_closure_release") }
+        _: { return none }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// get_retain_fn — retain function name for directly-refcounted types
+// ---------------------------------------------------------------------------
+
+fn get_retain_fn(t:typechecker.TCType):option<string> {
+    match(t) {
+        TCString: { return some("fl_string_retain") }
+        TCArray(e): { return some("fl_array_retain") }
+        TCMap(k, v): { return some("fl_map_retain") }
+        TCStream(e): { return some("fl_stream_retain") }
+        TCBuffer(e): { return some("fl_buffer_retain") }
+        TCFn(p, r, pu, va): { return some("fl_closure_retain") }
+        _: { return none }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// is_allocating_expr — true when an expression produces a fresh heap allocation
+// ---------------------------------------------------------------------------
+
+fn is_allocating_expr(expr:ast.Expr):bool {
+    match(expr) {
+        ECall(id, l, c, callee, args): { return true }
+        EMethodCall(id, l, c, recv, method, args): { return true }
+        EStringLit(id, l, c, v): { return true }
+        EArrayLit(id, l, c, elems): { return true }
+        EFString(id, l, c, parts): { return true }
+        ECopy(id, l, c, inner): { return true }
+        EOk(id, l, c, inner): { return true }
+        EErr(id, l, c, inner): { return true }
+        ESome(id, l, c, inner): { return true }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// get_type_fields — return struct field declarations for a named/sum type
+// ---------------------------------------------------------------------------
+
+fn get_type_fields(st:LowerState:mut, t:typechecker.TCType):array<ast.FieldDecl> {
+    let type_name:string:mut = ""
+    match(t) {
+        TCNamed(mp, n, ta): { type_name = n }
+        TCSumType(n, mp, vars): { type_name = n }
+        _: { return [] }
+    }
+    if(type_name == "") {
+        return []
+    }
+    // Search in src_module decls
+    for(d:ast.Decl in st.src_module.decls) {
+        match(d) {
+            DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                if(dname == type_name) {
+                    return fields
+                }
+            }
+            _: {}
+        }
+    }
+    // Search in imported modules
+    let mi:int:mut = 0
+    while(mi < array.size(st.imported_module_decls)) {
+        let mod_ast:ast.Module = array.get_any(st.imported_module_decls, mi) ?? ast.make_module([], [], [], "")
+        for(d:ast.Decl in mod_ast.decls) {
+            match(d) {
+                DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                    if(dname == type_name) {
+                        return fields
+                    }
+                }
+                _: {}
+            }
+        }
+        mi = mi + 1
+    }
+    return []
+}
+
+// ---------------------------------------------------------------------------
+// has_refcounted_fields — true if any direct field of a struct type is refcounted
+// ---------------------------------------------------------------------------
+
+fn has_refcounted_fields(st:LowerState:mut, t:typechecker.TCType):bool {
+    let fields:array<ast.FieldDecl> = get_type_fields(st, t)
+    let i:int:mut = 0
+    while(i < array.size(fields)) {
+        let f:ast.FieldDecl = array.get_any(fields, i) ?? ast.FieldDecl{name:"", type_ann:ast.TNamedType(0,0,0,"",[]), is_mut:false, id:0, line:0, col:0}
+        let ft:typechecker.TCType = resolve_type_ann_ast(st, f.type_ann)
+        match(get_release_fn(ft)) {
+            some(rfn): { return true }
+            none: {}
+        }
+        i = i + 1
+    }
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// is_affine_type — true when a type has struct ownership semantics
+// (structs with refcounted fields; containers are NOT affine — they are
+//  refcounted themselves and can be freely shared)
+// ---------------------------------------------------------------------------
+
+fn is_affine_type(st:LowerState:mut, t:typechecker.TCType):bool {
+    match(t) {
+        TCInt(w, s): { return false }
+        TCFloat(w): { return false }
+        TCBool: { return false }
+        TCChar: { return false }
+        TCByte: { return false }
+        TCPtr: { return false }
+        TCString: { return false }
+        TCArray(e): { return false }
+        TCMap(k, v): { return false }
+        TCStream(e): { return false }
+        TCBuffer(e): { return false }
+        TCFn(p, r, pu, va): { return false }
+        TCSet(e): { return false }
+        TCOption(inner): { return is_affine_type(st, inner) }
+        TCResult(ok_t, err_t): {
+            if(is_affine_type(st, ok_t)) { return true }
+            return is_affine_type(st, err_t)
+        }
+        TCNamed(mp, n, ta): { return has_refcounted_fields(st, t) }
+        TCSumType(n, mp, vars): { return has_refcounted_fields(st, t) }
+        _: { return false }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // is_bounded_generic — check if function needs monomorphization
 // ---------------------------------------------------------------------------
 
