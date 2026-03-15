@@ -406,6 +406,52 @@ def fix_stage2(path):
         fix_ternary,
         text
     )
+    # Also fix void* ternary: void* var = ternary(void*, struct_fallback)
+    def fix_void_ternary(match):
+        var = match.group(1)
+        cond = match.group(2)
+        tmp_val = match.group(3)
+        fallback = match.group(4)
+        # Infer type from fallback
+        if 'fl_self_hosted_' in fallback:
+            # Extract type from function name
+            func = fallback.split('(')[0]
+            if 'default_sum_variant(' in fallback or 'SumVariantDecl' in fallback:
+                stype = 'fl_self_hosted_ast_SumVariantDecl'
+            elif 'default_enum_variant(' in fallback or 'EnumVariantDecl' in fallback:
+                stype = 'fl_self_hosted_ast_EnumVariantDecl'
+            elif 'tc_box(' in fallback:
+                stype = 'fl_self_hosted_typechecker_TCTypeBox'
+            elif 'lt_box(' in fallback:
+                stype = 'fl_self_hosted_lir_LTypeBox'
+            elif 'le_box(' in fallback:
+                stype = 'fl_self_hosted_lir_LExprBox'
+            elif 'ls_box(' in fallback or 'placeholder_stmt(' in fallback or 'LStmtBox' in fallback:
+                stype = 'fl_self_hosted_lir_LStmtBox'
+            elif 'make_module(' in fallback:
+                stype = 'fl_self_hosted_ast_Module'
+            elif 'ExprField' in fallback:
+                stype = 'fl_self_hosted_ast_ExprField'
+            elif 'FieldDecl' in fallback:
+                stype = 'fl_self_hosted_ast_FieldDecl'
+            elif 'Field{' in fallback:
+                stype = 'fl_self_hosted_ast_Field'
+            elif 'Param{' in fallback:
+                stype = 'fl_self_hosted_ast_Param'
+            elif 'CatchClause' in fallback:
+                stype = 'fl_self_hosted_ast_CatchClause'
+            elif 'ChainElement' in fallback:
+                stype = 'fl_self_hosted_ast_ChainElement'
+            else:
+                return match.group(0)
+            return f'{stype} {var} = ({cond}) ? *(({stype}*)&({tmp_val})) : {fallback};'
+        return match.group(0)
+
+    text = re.sub(
+        r'void\* (\w+) = \((\([^)]+\)) \? (_fl_tmp_\d+\.value) : (fl_self_hosted_[^;]+)\);',
+        fix_void_ternary,
+        text
+    )
 
     # === PHASE 4c: void* compound literals ===
     # (void*){.tag = N} is invalid C. Replace based on ASSIGNMENT context.
