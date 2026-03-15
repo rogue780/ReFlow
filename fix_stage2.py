@@ -325,7 +325,16 @@ def fix_stage2(path):
         if '(void*){' not in line:
             continue
         # Check what type the value is being assigned/initialized to
-        # Pattern: Type var = ...(void*){...}
+        # But if inside tc_box(), lt_box(), le_box(), use the INNER type
+        if 'tc_box((void*){' in line:
+            lines[i] = line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
+            continue
+        if 'lt_box((void*){' in line:
+            lines[i] = line.replace('(void*){', '(fl_self_hosted_lir_LType){')
+            continue
+        if 'le_box((void*){' in line:
+            lines[i] = line.replace('(void*){', '(fl_self_hosted_lir_LExpr){')
+            continue
         m_init = re.match(r'\s+(fl_self_hosted_\w+) \w+ = ', line)
         if m_init:
             target_type = m_init.group(1)
