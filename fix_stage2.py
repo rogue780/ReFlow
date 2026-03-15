@@ -283,9 +283,24 @@ def fix_stage2(path):
         map_var = match.group(3)
         key_expr = match.group(4)
         val_expr = match.group(5)
-        # Only fix for struct compound literals
+        stype = None
+        # Compound literal: (Type){...}
         if val_expr.startswith('(fl_self_hosted_'):
-            stype = val_expr.split(')')[0][1:]  # extract type from (Type){...}
+            stype = val_expr.split(')')[0][1:]
+        # Function call returning struct
+        elif 'symbol_with_type(' in val_expr or 'symbol_no_type(' in val_expr or 'make_symbol(' in val_expr or 'copy_symbol_with_mk(' in val_expr:
+            stype = 'fl_self_hosted_resolver_Symbol'
+        elif 'default_type_info(' in val_expr or '_TypeInfo)' in val_expr:
+            stype = 'fl_self_hosted_typechecker_TypeInfo'
+        elif 'default_interface_info(' in val_expr or '_InterfaceInfo)' in val_expr:
+            stype = 'fl_self_hosted_typechecker_InterfaceInfo'
+        elif '_ModuleScope)' in val_expr or 'build_module_scope(' in val_expr:
+            stype = 'fl_self_hosted_resolver_ModuleScope'
+        elif '_TypedModule)' in val_expr or 'typecheck(' in val_expr:
+            stype = 'fl_self_hosted_typechecker_TypedModule'
+        elif '_Module)' in val_expr or 'make_module(' in val_expr:
+            stype = 'fl_self_hosted_ast_Module'
+        if stype is not None:
             map_set_counter[0] += 1
             tmp = f'_map_tmp_{map_set_counter[0]}'
             return (f'{indent}{stype} {tmp} = {val_expr};\n'
@@ -293,7 +308,7 @@ def fix_stage2(path):
         return match.group(0)
 
     text = re.sub(
-        r'^(\s+)([\w.>\[\]()* ]+= )fl_map_set_str\(([^,]+), ([^,]+), (\(fl_self_hosted_[^;]+)\);$',
+        r'^(\s+)([\w.>\[\]()* ]+= )fl_map_set_str\(([^,]+), ([^,]+), ((?:\(fl_self_hosted_|fl_self_hosted_)[^;]+)\);$',
         fix_map_set,
         text,
         flags=re.MULTILINE
