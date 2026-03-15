@@ -511,6 +511,17 @@ fn get_sum_variant_field_name(st:LowerState:mut, type_name:string, variant_name:
     return none
 }
 
+// get_receiver_type_name — extract type name from a field access receiver.
+// For EIdent("TypeName"), returns "TypeName".
+// For EFieldAccess(EIdent("module"), "TypeName"), returns "TypeName".
+fn get_receiver_type_name(receiver:ast.Expr):string {
+    match(receiver) {
+        EIdent(rid, rline, rcol, rname, rmod): { return rname }
+        EFieldAccess(fid, fline, fcol, frecv, fname): { return fname }
+        _: { return "" }
+    }
+}
+
 // find_fieldless_variant_tag — search src_module decls for a fieldless sum
 // variant with this name. Returns (type_c_name, tag_index) or (-1, "") if not found.
 fn find_fieldless_variant_tag(st:LowerState:mut, vname:string):int {
@@ -530,6 +541,29 @@ fn find_fieldless_variant_tag(st:LowerState:mut, vname:string):int {
             }
             _: {}
         }
+    }
+    // Search imported modules
+    let fti:int:mut = 0
+    while(fti < array.size(st.imported_module_decls)) {
+        let imp_mod:ast.Module = array.get_any(st.imported_module_decls, fti) ?? ast.make_module([], [], [], "")
+        for(d:ast.Decl in imp_mod.decls) {
+            match(d) {
+                DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                    if(is_sum) {
+                        let vi:int:mut = 0
+                        while(vi < array.size(variants)) {
+                            let sv:ast.SumVariantDecl = array.get_any(variants, vi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                            if(sv.name == vname && array.size(sv.fields) == 0) {
+                                return vi
+                            }
+                            vi = vi + 1
+                        }
+                    }
+                }
+                _: {}
+            }
+        }
+        fti = fti + 1
     }
     return -1
 }
@@ -3298,23 +3332,60 @@ fn lower_field_access(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let result_type:typechecker.TCType = type_of(st, id)
             let result_lt:lir.LType = lower_type(st, result_type)
 
-            // Check for static member access
+            // Check for static member access (including enum constants)
             let sym_key:string = conv.to_string(id)
             let sym:resolver.Symbol? = map.get(st.resolved.symbols, sym_key)
             match(sym) {
                 some(s): {
+                    if(s.kind == resolver.SymbolKind.SK_CONSTRUCTOR) {
+                        // Fieldless variant constructor: emit as compound literal {.tag = N}
+                        let ctor_tag:int = find_fieldless_variant_tag(st, field_name)
+                        if(ctor_tag >= 0) {
+                            // Determine the type name and module from the symbol
+                            let ctor_mod:string:mut = s.module_key
+                            if(ctor_mod == "") { ctor_mod = st.module_path }
+                            // Get type name from receiver
+                            let ctor_type_name:string = get_receiver_type_name(receiver)
+                            if(ctor_type_name != "") {
+                                let sum_c_name:string = mangler.mangle(ctor_mod, ctor_type_name, "")
+                                let sum_lt:lir.LType = lir.LStruct(c_name:sum_c_name)
+                                return lir.LECompound(field_names:["tag"], field_values:[lir.le_box(lir.LELit(value:conv.to_string(ctor_tag), c_type:lir.LByte))], c_type:sum_lt)
+                            }
+                        }
+                    }
                     if(s.kind == resolver.SymbolKind.SK_STATIC) {
                         // Static field: mangled global variable name
-                        match(receiver) {
-                            EIdent(rid, rline, rcol, rname, rmod): {
-                                let static_c_name:string = mangler.mangle(st.module_path, rname, field_name)
-                                return lir.LEVar(c_name:static_c_name, c_type:result_lt)
-                            }
-                            _: {}
+                        let static_mod:string:mut = s.module_key
+                        if(static_mod == "") { static_mod = st.module_path }
+                        let static_type_name:string = get_receiver_type_name(receiver)
+                        if(static_type_name != "") {
+                            let static_c_name:string = mangler.mangle(static_mod, static_type_name, field_name)
+                            return lir.LEVar(c_name:static_c_name, c_type:result_lt)
                         }
                     }
                 }
                 none: {}
+            }
+
+            // Chained enum/static access: module.Type.Field
+            // When sym is none, check if receiver is an EFieldAccess whose
+            // symbol points to a type/enum, and field_name is a static member.
+            match(receiver) {
+                EFieldAccess(fid, fline, fcol, frecv, ftype_name): {
+                    let recv_sym_key:string = conv.to_string(fid)
+                    let recv_sym:resolver.Symbol? = map.get(st.resolved.symbols, recv_sym_key)
+                    match(recv_sym) {
+                        some(rs): {
+                            // The receiver resolved to something — use its module
+                            let chain_mod:string:mut = rs.module_key
+                            if(chain_mod == "") { chain_mod = st.module_path }
+                            let chain_c_name:string = mangler.mangle(chain_mod, ftype_name, field_name)
+                            return lir.LEVar(c_name:chain_c_name, c_type:result_lt)
+                        }
+                        none: {}
+                    }
+                }
+                _: {}
             }
 
             let lrecv:lir.LExpr = lower_expr(st, receiver)

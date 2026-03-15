@@ -18,7 +18,8 @@ def fix_stage2(path):
     text = text.replace('fl_self_hosted_resolver_Decl', 'fl_self_hosted_ast_Decl')
     text = text.replace('fl_self_hosted_typechecker_ast', 'fl_self_hosted_ast')
     text = text.replace('fl_self_hosted_lowering_ast', 'fl_self_hosted_ast')
-    text = text.replace('fl_self_hosted_lowering_lir', 'fl_self_hosted_lir')
+    # Note: lowering_lir → lir must NOT double-apply
+    text = re.sub(r'\bfl_self_hosted_lowering_lir\b(?!_)', 'fl_self_hosted_lir', text)
     text = text.replace('fl_self_hosted_lowering_typechecker', 'fl_self_hosted_typechecker')
     text = text.replace('fl_self_hosted_typechecker_lir', 'fl_self_hosted_lir')
     text = text.replace('fl_self_hosted_lowering_Expr', 'fl_self_hosted_ast_Expr')
