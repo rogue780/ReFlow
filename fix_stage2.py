@@ -294,6 +294,14 @@ def fix_stage2(path):
         'CatchClause.exception_type': 'fl_self_hosted_ast_TypeExpr',
         'CatchClause.body': 'FL_Array*',
         'ChainElement.expr': 'fl_self_hosted_ast_Expr',
+        'DFn.return_type': 'fl_self_hosted_ast_TypeExpr',
+        'DExternFn.return_type': 'fl_self_hosted_ast_TypeExpr',
+        'DStaticMember.type_ann': 'fl_self_hosted_ast_TypeExpr',
+        'DStaticMember.value': 'fl_self_hosted_ast_Expr',
+        'DAlias.type_expr': 'fl_self_hosted_ast_TypeExpr',
+        'SLet.type_ann': 'fl_self_hosted_ast_TypeExpr',
+        'SFor.type_ann': 'fl_self_hosted_ast_TypeExpr',
+        'SThrow.value': 'fl_self_hosted_ast_Expr',
     }
     vf_lines = text.split('\n')
     for i, line in enumerate(vf_lines):
@@ -486,6 +494,18 @@ def fix_stage2(path):
     text = re.sub(
         r'void\* (\w+) = \((\([^)]+\)) \? (_fl_tmp_\d+\.value) : (fl_self_hosted_[^;]+)\);',
         fix_void_ternary,
+        text
+    )
+    # Also match ternary with nested parens in condition: ((_fl_tmp_N.tag == 1))
+    text = re.sub(
+        r'void\* (\w+) = \(\((_fl_tmp_\d+)\.tag == \d+\)\) \? \2\.value : (fl_self_hosted_[^;]+)\);',
+        lambda m: fix_void_ternary(type('', (), {
+            'group': lambda self, n=0: {
+                0: m.group(0), 1: m.group(1),
+                2: f'(({m.group(2)}.tag == 1))',
+                3: f'{m.group(2)}.value', 4: m.group(3)
+            }.get(n, '')
+        })()),
         text
     )
     # After ternary fix, replace var-> with var. for the fixed variables
