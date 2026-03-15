@@ -557,12 +557,14 @@ fn try_lower_variant_ctor(st:LowerState:mut, resolved_mod:string, vname:string, 
             _: {}
         }
     }
-    // Search imported modules
+    // Search imported modules (while+get_any for runtime safety)
     let tvi:int:mut = 0
     while(tvi < array.size(st.imported_module_decls)) {
         let imp_mod:ast.Module = array.get_any(st.imported_module_decls, tvi) ?? ast.make_module([], [], [], "")
         let imp_mod_path:string = join_path(imp_mod.path)
-        for(d:ast.Decl in imp_mod.decls) {
+        let tdi:int:mut = 0
+        while(tdi < array.size(imp_mod.decls)) {
+            let d:ast.Decl = array.get_any(imp_mod.decls, tdi) ?? ast.DModule(0, 0, 0, [])
             match(d) {
                 DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
                     if(is_sum) {
@@ -590,6 +592,7 @@ fn try_lower_variant_ctor(st:LowerState:mut, resolved_mod:string, vname:string, 
                 }
                 _: {}
             }
+            tdi = tdi + 1
         }
         tvi = tvi + 1
     }
@@ -3255,12 +3258,14 @@ fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, la
         }
     }
 
-    // Search imported modules
+    // Search imported modules (use while+get_any for runtime safety)
     let ici:int:mut = 0
     while(ici < array.size(st.imported_module_decls)) {
         let imp_mod:ast.Module = array.get_any(st.imported_module_decls, ici) ?? ast.make_module([], [], [], "")
         let imp_mod_path:string = join_path(imp_mod.path)
-        for(d:ast.Decl in imp_mod.decls) {
+        let idi:int:mut = 0
+        while(idi < array.size(imp_mod.decls)) {
+            let d:ast.Decl = array.get_any(imp_mod.decls, idi) ?? ast.DModule(0, 0, 0, [])
             match(d) {
                 DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
                     if(is_sum) {
@@ -3292,6 +3297,7 @@ fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, la
                 }
                 _: {}
             }
+            idi = idi + 1
         }
         ici = ici + 1
     }
@@ -3425,6 +3431,12 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                         fn_c_name = mangler.mangle_monomorphized("array", "put", mc_suffix_arr)
                                         st.mono_put_suffixes = array.push(st.mono_put_suffixes, "string")
                                     }
+                                }
+                                // Check if this is a variant constructor
+                                let mc_ctor:lir.LExpr = try_lower_variant_ctor(st, resolved_mod, method_name, fn_args, result_lt)
+                                match(lir.lexpr_type(mc_ctor)) {
+                                    LVoid: {}
+                                    _: { return mc_ctor }
                                 }
                                 return lir.LECall(fn_name:fn_c_name, args:fn_args, c_type:result_lt)
                             }
