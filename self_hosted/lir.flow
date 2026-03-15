@@ -277,7 +277,8 @@ export fn ltype_c_name(lt:LType):string {
 // ---------------------------------------------------------------------------
 
 export fn placeholder_expr():LExpr {
-    return LELit(value:"0", c_type:LVoid)
+    // Use tag=0 compound literal — the emitter will emit LELit value directly
+    return LELit(value:"(fl_self_hosted_lir_LExpr){0}", c_type:LVoid)
 }
 
 export fn placeholder_stmt():LStmt {

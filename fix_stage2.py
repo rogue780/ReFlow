@@ -191,6 +191,40 @@ def fix_stage2(path):
         text
     )
 
+    # === PHASE 5: Fix int 0 where struct is expected ===
+    # Replace "return 0;" with "return (ReturnType){0};" for struct-returning functions
+    # Also fix struct variable initialization from 0
+    lines = text.split('\n')
+    current_return_type = None
+    result_lines = []
+    struct_types = set()
+    # Collect all struct type names
+    for line in lines:
+        m = re.match(r'^typedef struct (\S+) (\S+);', line)
+        if m:
+            struct_types.add(m.group(2))
+    for line in lines:
+        # Track function return types
+        m = re.match(r'^(\S+) (fl_\w+)\(', line)
+        if m:
+            ret_type = m.group(1)
+            if ret_type in struct_types:
+                current_return_type = ret_type
+            else:
+                current_return_type = None
+        # Fix "return 0;" in struct-returning functions
+        if current_return_type and re.match(r'\s+return 0;\s*$', line):
+            line = line.replace('return 0;', f'return ({current_return_type}){{0}};')
+        # Fix struct variable init from 0: "StructType var = 0;"
+        m2 = re.match(r'^(\s+)(\S+) (\w+) = 0;$', line)
+        if m2 and m2.group(2) in struct_types:
+            indent = m2.group(1)
+            stype = m2.group(2)
+            vname = m2.group(3)
+            line = f'{indent}{stype} {vname} = ({stype}){{0}};'
+        result_lines.append(line)
+    text = '\n'.join(result_lines)
+
     with open(path, 'w') as f:
         f.write(text)
     print(f"Post-processed: {path}")

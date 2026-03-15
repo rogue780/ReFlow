@@ -2437,11 +2437,11 @@ fn lower_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
         }
         ECompositionChain(id, line, col, elements): {
             // TODO: composition chain lowering
-            return lir.LELit(value:"0", c_type:lir.LVoid)
+            return lir.placeholder_expr()
         }
         EFanOut(id, line, col, branches, is_parallel): {
             // TODO: full fan-out lowering
-            return lir.LELit(value:"0", c_type:lir.LVoid)
+            return lir.placeholder_expr()
         }
         ECoroutineStart(id, line, col, call): {
             return lower_coroutine_start(st, call, e)
@@ -2557,7 +2557,7 @@ fn lower_ident(st:LowerState:mut, e:ast.Expr):lir.LExpr {
 
             return lir.LEVar(c_name:name, c_type:lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -2636,7 +2636,7 @@ fn lower_binop(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let result_lt:lir.LType = lower_type(st, type_of(st, id))
             return lir.LEBinOp(op:op, left:lir.le_box(ll), right:lir.le_box(lr), c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3101,7 +3101,7 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                 }
             }
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3363,7 +3363,7 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let fn_name:string:mut = "fl_" + type_name_str(st, recv_type) + "_" + method_name
             return lir.LECall(fn_name:fn_name, args:largs, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3445,7 +3445,7 @@ fn lower_field_access(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                 }
             }
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3476,7 +3476,7 @@ fn lower_index_access(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                 }
             }
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3499,7 +3499,7 @@ fn lower_tuple_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             }
             return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3525,7 +3525,7 @@ fn lower_array_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             }
             return lir.LEVar(c_name:tmp, c_type:arr_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3549,7 +3549,7 @@ fn lower_type_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             }
             return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3573,7 +3573,7 @@ fn lower_record_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             }
             return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3622,7 +3622,7 @@ fn lower_if_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
 
             return lir.LEVar(c_name:tmp, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3664,7 +3664,7 @@ fn lower_match_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
 
             return lir.LEVar(c_name:tmp, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3686,7 +3686,7 @@ fn lower_some(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             fvals = array.push(fvals, lir.le_box(val))
             return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3715,7 +3715,7 @@ fn lower_ok_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             fvals = array.push(fvals, lir.le_box(val))
             return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3740,7 +3740,7 @@ fn lower_err_expr(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             fvals = array.push(fvals, lir.le_box(val))
             return lir.LECompound(field_names:fnames, field_values:fvals, c_type:result_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3783,7 +3783,7 @@ fn lower_propagate(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                 _: { return inner_expr }
             }
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3830,7 +3830,7 @@ fn lower_null_coalesce(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                 _: { return ll }
             }
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3883,7 +3883,7 @@ fn lower_fstring(st:LowerState:mut, e:ast.Expr):lir.LExpr {
 
             return result
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
@@ -3966,7 +3966,7 @@ fn lower_lambda(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             let null_env:lir.LExpr = lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid))
             return lir.LECall(fn_name:"fl_closure_new", args:[lir.le_box(fn_ptr), lir.le_box(null_env)], c_type:closure_lt)
         }
-        _: { return lir.LELit(value:"0", c_type:lir.LVoid) }
+        _: { return lir.placeholder_expr() }
     }
 }
 
