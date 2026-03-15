@@ -191,6 +191,25 @@ def fix_stage2(path):
         text
     )
 
+    # === PHASE 4b: Fix struct → FL_Box* in variant construction ===
+    # When constructing a variant with a recursive field, the field value
+    # is a struct but the C field expects FL_Box*. Wrap with fl_box_wrap macro.
+    # Pattern: .field = expr) where expr is a function call returning a struct
+    # that should be boxed.
+    # We add a helper macro at the top of the file.
+    if 'FL_BOX_WRAP' not in text:
+        # Add helper macro after the #include
+        text = text.replace(
+            '#include "flow_runtime.h"',
+            '#include "flow_runtime.h"\n'
+            '/* Bootstrap helper: wrap a value in an FL_Box */\n'
+            '#define FL_BOX_WRAP(val, Type) ({ \\\n'
+            '    FL_Box* _bw = fl_box_new(sizeof(Type)); \\\n'
+            '    *(Type*)(_bw->data) = (val); \\\n'
+            '    _bw; })\n',
+            1  # only first occurrence
+        )
+
     # === PHASE 5: Fix int 0 where struct is expected ===
     # Replace "return 0;" with "return (ReturnType){0};" for struct-returning functions
     # Also fix struct variable initialization from 0
