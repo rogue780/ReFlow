@@ -3364,7 +3364,9 @@ fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, la
                                         let ftn:string = ast.get_type_expr_name(sf.type_expr)
                                         if(is_recursive_sum_field_name(ftn, dname)) {
                                             let bt:string = fresh_temp(st)
-                                            let flt:lir.LType = lir.lexpr_type(lir.le_unbox(av))
+                                            let flt_tc:typechecker.TCType = resolve_type_ann(st, sf.type_expr)
+                                            let flt:lir.LType:mut = lower_type(st, flt_tc)
+                                            match(flt) { LPtr(p): { match(p) { LVoid: { flt = lir.lexpr_type(lir.le_unbox(av)) } _: {} } } _: {} }
                                             let bpt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Box"))
                                             st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:bt, c_type:bpt, has_init:true, init:lir.LECall(fn_name:"fl_box_new", args:[lir.le_box(lir.LESizeOf(target_type:flt))], c_type:bpt), source_line:0)})
                                             let da:lir.LExpr = lir.LEDeref(inner:lir.le_box(lir.LECast(inner:lir.le_box(lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:bt, c_type:bpt)), field:"data", c_type:lir.LPtr(inner:lir.LVoid))), c_type:lir.LPtr(inner:flt))), c_type:flt)

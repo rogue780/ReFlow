@@ -319,36 +319,41 @@ def fix_stage2(path):
     )
 
     # === PHASE 4c: void* compound literals ===
-    # (void*){.tag = N} is invalid C. Replace with zero-init of the correct type.
-    # Context-aware: check surrounding code for the expected type.
-    def fix_void_compound(match):
-        full_line = match.group(0)
-        # Determine type from context
-        if 'TCType' in full_line or '.tc = ' in full_line:
-            return full_line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
-        elif 'LType' in full_line:
-            return full_line.replace('(void*){', '(fl_self_hosted_lir_LType){')
-        elif 'LExpr' in full_line:
-            return full_line.replace('(void*){', '(fl_self_hosted_lir_LExpr){')
-        elif 'ast_Expr' in full_line or 'Expr' in full_line:
-            return full_line.replace('(void*){', '(fl_self_hosted_ast_Expr){')
-        elif 'ast_TypeExpr' in full_line or 'TypeExpr' in full_line:
-            return full_line.replace('(void*){', '(fl_self_hosted_ast_TypeExpr){')
-        elif 'ast_Stmt' in full_line or 'Stmt' in full_line:
-            return full_line.replace('(void*){', '(fl_self_hosted_ast_Stmt){')
-        elif 'ast_Decl' in full_line or 'Decl' in full_line:
-            return full_line.replace('(void*){', '(fl_self_hosted_ast_Decl){')
-        elif 'ast_Pattern' in full_line or 'Pattern' in full_line:
-            return full_line.replace('(void*){', '(fl_self_hosted_ast_Pattern){')
-        else:
-            # Default to TCType (most common)
-            return full_line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
-
-    # Apply line by line
+    # (void*){.tag = N} is invalid C. Replace based on ASSIGNMENT context.
     lines = text.split('\n')
     for i, line in enumerate(lines):
-        if '(void*){' in line:
-            lines[i] = fix_void_compound(type('', (), {'group': lambda self, n=0: line})())
+        if '(void*){' not in line:
+            continue
+        # Check what type the value is being assigned/initialized to
+        # Pattern: Type var = ...(void*){...}
+        m_init = re.match(r'\s+(fl_self_hosted_\w+) \w+ = ', line)
+        if m_init:
+            target_type = m_init.group(1)
+            lines[i] = line.replace('(void*){', f'({target_type}){{')
+            continue
+        # Pattern: .field = (void*){...} — determine type from field context
+        if '.tc = (void*){' in line:
+            lines[i] = line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
+            continue
+        if '.le = (void*){' in line:
+            lines[i] = line.replace('(void*){', '(fl_self_hosted_lir_LExpr){')
+            continue
+        # return (void*){...} — look at function signature to determine return type
+        # For now, use TCType as default (most common case)
+        if 'return (void*){' in line:
+            lines[i] = line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
+            continue
+        # tc_box((void*){...}) — inner type is TCType
+        if 'tc_box((void*){' in line:
+            lines[i] = line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
+            continue
+        # FL_Box data assignment — keep as void* but with proper init
+        if '->data)) = (void*){' in line:
+            # Replace with memset-style init
+            lines[i] = re.sub(r'\(void\*\)\{\.tag = (\d+)\}', r'(void*)(fl_int)\1', line)
+            continue
+        # Function argument — use TCType as default
+        lines[i] = line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
     text = '\n'.join(lines)
 
     # === PHASE 4d: Fix struct → FL_Box* in variant construction ===
