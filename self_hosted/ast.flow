@@ -281,6 +281,18 @@ export fn make_module(path:array<string>, imports:array<Decl>, decls:array<Decl>
     return Module{path:path, imports:imports, decls:decls, filename:filename}
 }
 
+// Extract the base type name from a TypeExpr
+export fn get_type_expr_name(te:TypeExpr):string {
+    match te {
+        TNamedType(id, l, c, name, mp): { return name }
+        TGenericType(id, l, c, base, args): { return get_type_expr_name(base) }
+        TOptionType(id, l, c, inner): { return "option" }
+        TMutType(id, l, c, inner): { return get_type_expr_name(inner) }
+        TImutType(id, l, c, inner): { return get_type_expr_name(inner) }
+        _: { return "" }
+    }
+}
+
 // Check if a TypeExpr is :mut
 export fn is_mut_type_ann(te:TypeExpr):bool {
     match te {

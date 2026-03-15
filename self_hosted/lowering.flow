@@ -1337,6 +1337,15 @@ fn lower_sum_type_decl(st:LowerState:mut, decl:ast.Decl, c_name:string):int {
 // is_recursive_sum_field — check if field type references enclosing sum
 // ---------------------------------------------------------------------------
 
+fn is_recursive_sum_field_name(field_type_name:string, enclosing_name:string):bool {
+    if(field_type_name == enclosing_name) { return true }
+    if(string.ends_with(field_type_name, "Box")) {
+        let base:string = string.substring(field_type_name, 0, string.len(field_type_name) - 3)
+        if(base == enclosing_name) { return true }
+    }
+    return false
+}
+
 fn is_recursive_sum_field(t:typechecker.TCType, enclosing_name:string):bool {
     match(t) {
         TCSumType(name, mod_p, vars): { return name == enclosing_name }
