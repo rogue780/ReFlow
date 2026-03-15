@@ -300,6 +300,14 @@ def fix_stage2(path):
             stype = 'fl_self_hosted_typechecker_TypedModule'
         elif '_Module)' in val_expr or 'make_module(' in val_expr:
             stype = 'fl_self_hosted_ast_Module'
+        # Simple variable check — look at the key pattern for context
+        if stype is None and not val_expr.startswith('fl_string') and not val_expr.startswith('"') and not val_expr.startswith('(void*') and not val_expr.startswith('NULL'):
+            # Check if it's a simple variable name that's a struct
+            val_stripped = val_expr.strip()
+            if val_stripped in ('sym', 'rsym', 'msym', 'ns_sym', 'es'):
+                stype = 'fl_self_hosted_resolver_Symbol'
+            elif val_stripped.startswith('@') and 'sym' in val_stripped:
+                stype = 'fl_self_hosted_resolver_Symbol'
         if stype is not None:
             map_set_counter[0] += 1
             tmp = f'_map_tmp_{map_set_counter[0]}'
@@ -308,7 +316,7 @@ def fix_stage2(path):
         return match.group(0)
 
     text = re.sub(
-        r'^(\s+)([\w.>\[\]()* ]+= )fl_map_set_str\(([^,]+), ([^,]+), ((?:\(fl_self_hosted_|fl_self_hosted_)[^;]+)\);$',
+        r'^(\s+)([\w.>\[\]()* ]+= )fl_map_set_str\(([^,]+), ([^,]+), ([^;]+)\);$',
         fix_map_set,
         text,
         flags=re.MULTILINE
