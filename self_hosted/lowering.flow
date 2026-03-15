@@ -99,6 +99,9 @@ type LowerState:mut {
     stream_frame_names:map<string, bool>
     // Simple array.put mono tracking (appended at end to avoid field offset issues)
     mono_put_suffixes:array<string>
+    // Imported module decls for cross-module field name resolution
+    imported_module_keys:array<string>
+    imported_module_decls:array<ast.Module>
 }
 
 // ---------------------------------------------------------------------------
@@ -471,6 +474,40 @@ fn get_sum_variant_field_name(st:LowerState:mut, type_name:string, variant_name:
             _: {}
         }
     }
+    // Search imported modules
+    let imi:int:mut = 0
+    while(imi < array.size(st.imported_module_decls)) {
+        let imp_mod:ast.Module = array.get_any(st.imported_module_decls, imi) ?? ast.make_module([], [], [], "")
+        for(d:ast.Decl in imp_mod.decls) {
+            match(d) {
+                DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                    let dn:string = dname
+                    let is_sum_b:bool = is_sum
+                    if(dn == type_name && is_sum_b) {
+                        let svi:int:mut = 0
+                        while(svi < array.size(variants)) {
+                            let sv:ast.SumVariantDecl = array.get_any(variants, svi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                            let svn:string = sv.name
+                            if(svn == variant_name) {
+                                let fi:int:mut = 0
+                                while(fi < array.size(sv.fields)) {
+                                    let sf:ast.Field = array.get_any(sv.fields, fi) ?? ast.Field{name:"", type_expr:ast.TNamedType(id:0, line:0, col:0, name:"", module_path:[])}
+                                    let sfn:string = sf.name
+                                    if(fi == field_idx && sfn != "") {
+                                        return some(sfn)
+                                    }
+                                    fi = fi + 1
+                                }
+                            }
+                            svi = svi + 1
+                        }
+                    }
+                }
+                _: {}
+            }
+        }
+        imi = imi + 1
+    }
     return none
 }
 
@@ -842,7 +879,9 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         stream_elem_type:typechecker.tc_none(),
         stream_yield_counter:0,
         stream_frame_names:map.new(),
-        mono_put_suffixes:[]
+        mono_put_suffixes:[],
+        imported_module_keys:[],
+        imported_module_decls:[]
     }
 }
 
@@ -850,8 +889,10 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
 // lower — public entry point
 // ---------------------------------------------------------------------------
 
-export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>, cast_targets:array<ast.TypeExpr>):lir.LModule {
+export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, string>, cast_targets:array<ast.TypeExpr>, imported_module_keys:array<string>, imported_module_decls:array<ast.Module>):lir.LModule {
     let st:LowerState:mut = make_lower_state(typed, extern_fn_c_names, cast_targets)
+    st.imported_module_keys = imported_module_keys
+    st.imported_module_decls = imported_module_decls
 
     let extern_protos:array<lir.LExternFnProto>:mut = []
 

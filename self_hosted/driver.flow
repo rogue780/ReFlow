@@ -991,7 +991,7 @@ fn extend_extern_fn_map_from_typed(efn_map:map<string, string>:mut, extra_typed:
 // Helper: lower and emit a single module at function scope (depth 0).
 // This ensures lmod fields are released at scope exit without retain inflation.
 fn _lower_and_emit_single(typed:typechecker.TypedModule, efn_map:map<string, string>, display_path:string, line_directives:bool, cast_targets:array<ast.TypeExpr>):string {
-    let lmod = lowering.lower(typed, efn_map, cast_targets)
+    let lmod = lowering.lower(typed, efn_map, cast_targets, [], [])
     return emitter.emit(lmod, display_path, true, [], [], line_directives)
 }
 
@@ -1015,11 +1015,19 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
     let coll_init_names:array<string>:mut = []
     let coll_init_exprs:array<string>:mut = []
 
+    // Collect all module decls for cross-module field name resolution
+    let all_mod_keys:array<string>:mut = []
+    let all_mod_decls:array<ast.Module>:mut = []
+    for(me:ModuleEntry in modules) {
+        all_mod_keys = array.push(all_mod_keys, join_path(me.typed.src_module.path))
+        all_mod_decls = array.push(all_mod_decls, me.typed.src_module)
+    }
+
     // Lower and emit dependency modules (not root)
     // NOTE: avoid for+continue — Python compiler bug makes continue skip index increment
     for(entry:ModuleEntry in modules) {
         if(entry.is_root == false) {
-            let lmod_raw = lowering.lower(entry.typed, efn_map, entry.cast_targets)
+            let lmod_raw = lowering.lower(entry.typed, efn_map, entry.cast_targets, all_mod_keys, all_mod_decls)
 
             // Deduplicate
             let filtered_types = filter_type_defs(lmod_raw.type_defs, dep_type_names)
@@ -1055,7 +1063,7 @@ fn lower_and_emit_all(modules:array<ModuleEntry>, extra_typed:array<typechecker.
     let root_c:string:mut = ""
     for(entry:ModuleEntry in modules) {
         if(entry.is_root) {
-            let lmod_raw = lowering.lower(entry.typed, efn_map, entry.cast_targets)
+            let lmod_raw = lowering.lower(entry.typed, efn_map, entry.cast_targets, all_mod_keys, all_mod_decls)
             let filtered_types = filter_type_defs(lmod_raw.type_defs, dep_type_names)
             let filtered_fns = filter_fn_defs(lmod_raw.fn_defs, dep_fn_names)
             let filtered_enums = filter_enum_defs(lmod_raw.enum_defs, dep_enum_names)
