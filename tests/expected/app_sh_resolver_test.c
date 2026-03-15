@@ -2583,6 +2583,8 @@ fl_self_hosted_ast_Param fl_self_hosted_ast_param(FL_String* name, fl_self_hoste
 
 fl_self_hosted_ast_Module fl_self_hosted_ast_make_module(FL_Array* path, FL_Array* imports, FL_Array* decls, FL_String* filename);
 
+FL_String* fl_self_hosted_ast_get_type_expr_name(fl_self_hosted_ast_TypeExpr te);
+
 fl_bool fl_self_hosted_ast_is_mut_type_ann(fl_self_hosted_ast_TypeExpr te);
 
 fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e);
@@ -3512,6 +3514,10 @@ struct fl_self_hosted_ast_Module {
 
 FL_String* _fl_str_self_hosted_ast_0 = NULL;
 
+FL_String* _fl_str_self_hosted_ast_1 = NULL;
+
+FL_String* _fl_str_self_hosted_ast_2 = NULL;
+
 /* Flow: self_hosted.ast.span */
 fl_self_hosted_ast_Span fl_self_hosted_ast_span(FL_String* file, fl_int line, fl_int col) {
     fl_string_retain(file);
@@ -3539,15 +3545,71 @@ fl_self_hosted_ast_Module fl_self_hosted_ast_make_module(FL_Array* path, FL_Arra
     return (fl_self_hosted_ast_Module){.path = path, .imports = imports, .decls = decls, .filename = filename};
 }
 
-/* Flow: self_hosted.ast.is_mut_type_ann */
-fl_bool fl_self_hosted_ast_is_mut_type_ann(fl_self_hosted_ast_TypeExpr te) {
+/* Flow: self_hosted.ast.get_type_expr_name */
+FL_String* fl_self_hosted_ast_get_type_expr_name(fl_self_hosted_ast_TypeExpr te) {
     fl_self_hosted_ast_TypeExpr _fl_tmp_0 = te;
     switch (_fl_tmp_0.tag) {
+        case 0: {
+            fl_int id = _fl_tmp_0.TNamedType.id;
+            fl_int l = _fl_tmp_0.TNamedType.line;
+            fl_int c = _fl_tmp_0.TNamedType.col;
+            FL_String* name = _fl_tmp_0.TNamedType.name;
+            FL_Array* mp = _fl_tmp_0.TNamedType.module_path;
+            fl_string_retain(name);
+            return name;
+            break;
+        }
+        case 1: {
+            fl_int id = _fl_tmp_0.TGenericType.id;
+            fl_int l = _fl_tmp_0.TGenericType.line;
+            fl_int c = _fl_tmp_0.TGenericType.col;
+            fl_self_hosted_ast_TypeExpr base = FL_BOX_DEREF(_fl_tmp_0.TGenericType.base, fl_self_hosted_ast_TypeExpr);
+            FL_Array* args = _fl_tmp_0.TGenericType.args;
+            return fl_self_hosted_ast_get_type_expr_name(base);
+            break;
+        }
+        case 2: {
+            fl_int id = _fl_tmp_0.TOptionType.id;
+            fl_int l = _fl_tmp_0.TOptionType.line;
+            fl_int c = _fl_tmp_0.TOptionType.col;
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_0.TOptionType.inner, fl_self_hosted_ast_TypeExpr);
+            fl_string_retain(_fl_str_self_hosted_ast_1);
+            return _fl_str_self_hosted_ast_1;
+            break;
+        }
         case 5: {
             fl_int id = _fl_tmp_0.TMutType.id;
             fl_int l = _fl_tmp_0.TMutType.line;
             fl_int c = _fl_tmp_0.TMutType.col;
             fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_0.TMutType.inner, fl_self_hosted_ast_TypeExpr);
+            return fl_self_hosted_ast_get_type_expr_name(inner);
+            break;
+        }
+        case 6: {
+            fl_int id = _fl_tmp_0.TImutType.id;
+            fl_int l = _fl_tmp_0.TImutType.line;
+            fl_int c = _fl_tmp_0.TImutType.col;
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_0.TImutType.inner, fl_self_hosted_ast_TypeExpr);
+            return fl_self_hosted_ast_get_type_expr_name(inner);
+            break;
+        }
+        default: {
+            fl_string_retain(_fl_str_self_hosted_ast_2);
+            return _fl_str_self_hosted_ast_2;
+            break;
+        }
+    }
+}
+
+/* Flow: self_hosted.ast.is_mut_type_ann */
+fl_bool fl_self_hosted_ast_is_mut_type_ann(fl_self_hosted_ast_TypeExpr te) {
+    fl_self_hosted_ast_TypeExpr _fl_tmp_1 = te;
+    switch (_fl_tmp_1.tag) {
+        case 5: {
+            fl_int id = _fl_tmp_1.TMutType.id;
+            fl_int l = _fl_tmp_1.TMutType.line;
+            fl_int c = _fl_tmp_1.TMutType.col;
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_1.TMutType.inner, fl_self_hosted_ast_TypeExpr);
             return fl_true;
             break;
         }
@@ -3560,340 +3622,6 @@ fl_bool fl_self_hosted_ast_is_mut_type_ann(fl_self_hosted_ast_TypeExpr te) {
 
 /* Flow: self_hosted.ast.expr_line */
 fl_int fl_self_hosted_ast_expr_line(fl_self_hosted_ast_Expr e) {
-    fl_self_hosted_ast_Expr _fl_tmp_1 = e;
-    switch (_fl_tmp_1.tag) {
-        case 0: {
-            fl_int nid = _fl_tmp_1.EIntLit.id;
-            fl_int l = _fl_tmp_1.EIntLit.line;
-            fl_int c = _fl_tmp_1.EIntLit.col;
-            fl_int v = _fl_tmp_1.EIntLit.value;
-            FL_String* s = _fl_tmp_1.EIntLit.suffix;
-            return l;
-            break;
-        }
-        case 1: {
-            fl_int nid = _fl_tmp_1.EFloatLit.id;
-            fl_int l = _fl_tmp_1.EFloatLit.line;
-            fl_int c = _fl_tmp_1.EFloatLit.col;
-            FL_String* v = _fl_tmp_1.EFloatLit.value_text;
-            FL_String* s = _fl_tmp_1.EFloatLit.suffix;
-            return l;
-            break;
-        }
-        case 2: {
-            fl_int nid = _fl_tmp_1.EBoolLit.id;
-            fl_int l = _fl_tmp_1.EBoolLit.line;
-            fl_int c = _fl_tmp_1.EBoolLit.col;
-            fl_bool v = _fl_tmp_1.EBoolLit.value;
-            return l;
-            break;
-        }
-        case 3: {
-            fl_int nid = _fl_tmp_1.EStringLit.id;
-            fl_int l = _fl_tmp_1.EStringLit.line;
-            fl_int c = _fl_tmp_1.EStringLit.col;
-            FL_String* v = _fl_tmp_1.EStringLit.value;
-            return l;
-            break;
-        }
-        case 4: {
-            fl_int nid = _fl_tmp_1.ECharLit.id;
-            fl_int l = _fl_tmp_1.ECharLit.line;
-            fl_int c = _fl_tmp_1.ECharLit.col;
-            fl_int v = _fl_tmp_1.ECharLit.value;
-            return l;
-            break;
-        }
-        case 5: {
-            fl_int nid = _fl_tmp_1.ENoneLit.id;
-            fl_int l = _fl_tmp_1.ENoneLit.line;
-            fl_int c = _fl_tmp_1.ENoneLit.col;
-            return l;
-            break;
-        }
-        case 6: {
-            fl_int nid = _fl_tmp_1.EIdent.id;
-            fl_int l = _fl_tmp_1.EIdent.line;
-            fl_int c = _fl_tmp_1.EIdent.col;
-            FL_String* n = _fl_tmp_1.EIdent.name;
-            FL_Array* mp = _fl_tmp_1.EIdent.module_path;
-            return l;
-            break;
-        }
-        case 7: {
-            fl_int nid = _fl_tmp_1.EBinOp.id;
-            fl_int l = _fl_tmp_1.EBinOp.line;
-            fl_int c = _fl_tmp_1.EBinOp.col;
-            FL_String* o = _fl_tmp_1.EBinOp.op;
-            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_1.EBinOp.left, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_1.EBinOp.right, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 8: {
-            fl_int nid = _fl_tmp_1.EUnaryOp.id;
-            fl_int l = _fl_tmp_1.EUnaryOp.line;
-            fl_int c = _fl_tmp_1.EUnaryOp.col;
-            FL_String* o = _fl_tmp_1.EUnaryOp.op;
-            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_1.EUnaryOp.operand, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 9: {
-            fl_int nid = _fl_tmp_1.ENamedArg.id;
-            fl_int l = _fl_tmp_1.ENamedArg.line;
-            fl_int c = _fl_tmp_1.ENamedArg.col;
-            FL_String* n = _fl_tmp_1.ENamedArg.name;
-            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_1.ENamedArg.value, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 10: {
-            fl_int nid = _fl_tmp_1.ESpread.id;
-            fl_int l = _fl_tmp_1.ESpread.line;
-            fl_int c = _fl_tmp_1.ESpread.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ESpread.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 11: {
-            fl_int nid = _fl_tmp_1.ECall.id;
-            fl_int l = _fl_tmp_1.ECall.line;
-            fl_int c = _fl_tmp_1.ECall.col;
-            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_1.ECall.callee, fl_self_hosted_ast_Expr);
-            FL_Array* args = _fl_tmp_1.ECall.args;
-            return l;
-            break;
-        }
-        case 12: {
-            fl_int nid = _fl_tmp_1.EMethodCall.id;
-            fl_int l = _fl_tmp_1.EMethodCall.line;
-            fl_int c = _fl_tmp_1.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EMethodCall.receiver, fl_self_hosted_ast_Expr);
-            FL_String* m = _fl_tmp_1.EMethodCall.method;
-            FL_Array* args = _fl_tmp_1.EMethodCall.args;
-            return l;
-            break;
-        }
-        case 13: {
-            fl_int nid = _fl_tmp_1.EFieldAccess.id;
-            fl_int l = _fl_tmp_1.EFieldAccess.line;
-            fl_int c = _fl_tmp_1.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
-            FL_String* f = _fl_tmp_1.EFieldAccess.field;
-            return l;
-            break;
-        }
-        case 14: {
-            fl_int nid = _fl_tmp_1.EIndexAccess.id;
-            fl_int l = _fl_tmp_1.EIndexAccess.line;
-            fl_int c = _fl_tmp_1.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_1.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_1.EIndexAccess.index, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 15: {
-            fl_int nid = _fl_tmp_1.ELambda.id;
-            fl_int l = _fl_tmp_1.ELambda.line;
-            fl_int c = _fl_tmp_1.ELambda.col;
-            FL_Array* params = _fl_tmp_1.ELambda.params;
-            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_1.ELambda.body, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 16: {
-            fl_int nid = _fl_tmp_1.ETupleExpr.id;
-            fl_int l = _fl_tmp_1.ETupleExpr.line;
-            fl_int c = _fl_tmp_1.ETupleExpr.col;
-            FL_Array* elems = _fl_tmp_1.ETupleExpr.elements;
-            return l;
-            break;
-        }
-        case 17: {
-            fl_int nid = _fl_tmp_1.EArrayLit.id;
-            fl_int l = _fl_tmp_1.EArrayLit.line;
-            fl_int c = _fl_tmp_1.EArrayLit.col;
-            FL_Array* elems = _fl_tmp_1.EArrayLit.elements;
-            return l;
-            break;
-        }
-        case 18: {
-            fl_int nid = _fl_tmp_1.ERecordLit.id;
-            fl_int l = _fl_tmp_1.ERecordLit.line;
-            fl_int c = _fl_tmp_1.ERecordLit.col;
-            FL_Array* fields = _fl_tmp_1.ERecordLit.fields;
-            return l;
-            break;
-        }
-        case 19: {
-            fl_int nid = _fl_tmp_1.ETypeLit.id;
-            fl_int l = _fl_tmp_1.ETypeLit.line;
-            fl_int c = _fl_tmp_1.ETypeLit.col;
-            FL_String* tn = _fl_tmp_1.ETypeLit.type_name;
-            FL_Array* fields = _fl_tmp_1.ETypeLit.fields;
-            fl_bool hs = _fl_tmp_1.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr sp = FL_BOX_DEREF(_fl_tmp_1.ETypeLit.spread, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 20: {
-            fl_int nid = _fl_tmp_1.EIfExpr.id;
-            fl_int l = _fl_tmp_1.EIfExpr.line;
-            fl_int c = _fl_tmp_1.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_1.EIfExpr.condition, fl_self_hosted_ast_Expr);
-            FL_Array* then_b = _fl_tmp_1.EIfExpr.then_stmts;
-            FL_Array* else_b = _fl_tmp_1.EIfExpr.else_stmts;
-            return l;
-            break;
-        }
-        case 21: {
-            fl_int nid = _fl_tmp_1.EMatchExpr.id;
-            fl_int l = _fl_tmp_1.EMatchExpr.line;
-            fl_int c = _fl_tmp_1.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_1.EMatchExpr.subject, fl_self_hosted_ast_Expr);
-            FL_Array* arms = _fl_tmp_1.EMatchExpr.arms;
-            return l;
-            break;
-        }
-        case 22: {
-            fl_int nid = _fl_tmp_1.ETernary.id;
-            fl_int l = _fl_tmp_1.ETernary.line;
-            fl_int c = _fl_tmp_1.ETernary.col;
-            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_1.ETernary.condition, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_1.ETernary.then_expr, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_1.ETernary.else_expr, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 23: {
-            fl_int nid = _fl_tmp_1.ECopy.id;
-            fl_int l = _fl_tmp_1.ECopy.line;
-            fl_int c = _fl_tmp_1.ECopy.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECopy.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 24: {
-            fl_int nid = _fl_tmp_1.ERef.id;
-            fl_int l = _fl_tmp_1.ERef.line;
-            fl_int c = _fl_tmp_1.ERef.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ERef.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 25: {
-            fl_int nid = _fl_tmp_1.ESome.id;
-            fl_int l = _fl_tmp_1.ESome.line;
-            fl_int c = _fl_tmp_1.ESome.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ESome.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 26: {
-            fl_int nid = _fl_tmp_1.EOk.id;
-            fl_int l = _fl_tmp_1.EOk.line;
-            fl_int c = _fl_tmp_1.EOk.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EOk.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 27: {
-            fl_int nid = _fl_tmp_1.EErr.id;
-            fl_int l = _fl_tmp_1.EErr.line;
-            fl_int c = _fl_tmp_1.EErr.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EErr.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 28: {
-            fl_int nid = _fl_tmp_1.EPropagate.id;
-            fl_int l = _fl_tmp_1.EPropagate.line;
-            fl_int c = _fl_tmp_1.EPropagate.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.EPropagate.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 29: {
-            fl_int nid = _fl_tmp_1.ENullCoalesce.id;
-            fl_int l = _fl_tmp_1.ENullCoalesce.line;
-            fl_int c = _fl_tmp_1.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_1.ENullCoalesce.left, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_1.ENullCoalesce.right, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 30: {
-            fl_int nid = _fl_tmp_1.ETypeof.id;
-            fl_int l = _fl_tmp_1.ETypeof.line;
-            fl_int c = _fl_tmp_1.ETypeof.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ETypeof.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 31: {
-            fl_int nid = _fl_tmp_1.ECast.id;
-            fl_int l = _fl_tmp_1.ECast.line;
-            fl_int c = _fl_tmp_1.ECast.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECast.inner, fl_self_hosted_ast_Expr);
-            fl_int t = _fl_tmp_1.ECast.target_id;
-            return l;
-            break;
-        }
-        case 32: {
-            fl_int nid = _fl_tmp_1.ECoerce.id;
-            fl_int l = _fl_tmp_1.ECoerce.line;
-            fl_int c = _fl_tmp_1.ECoerce.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_1.ECoerce.inner, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 33: {
-            fl_int nid = _fl_tmp_1.EFString.id;
-            fl_int l = _fl_tmp_1.EFString.line;
-            fl_int c = _fl_tmp_1.EFString.col;
-            FL_Array* parts = _fl_tmp_1.EFString.parts;
-            return l;
-            break;
-        }
-        case 34: {
-            fl_int nid = _fl_tmp_1.ECompositionChain.id;
-            fl_int l = _fl_tmp_1.ECompositionChain.line;
-            fl_int c = _fl_tmp_1.ECompositionChain.col;
-            FL_Array* elems = _fl_tmp_1.ECompositionChain.elements;
-            return l;
-            break;
-        }
-        case 35: {
-            fl_int nid = _fl_tmp_1.EFanOut.id;
-            fl_int l = _fl_tmp_1.EFanOut.line;
-            fl_int c = _fl_tmp_1.EFanOut.col;
-            FL_Array* branches = _fl_tmp_1.EFanOut.branches;
-            fl_bool ip = _fl_tmp_1.EFanOut.is_parallel;
-            return l;
-            break;
-        }
-        case 36: {
-            fl_int nid = _fl_tmp_1.ECoroutineStart.id;
-            fl_int l = _fl_tmp_1.ECoroutineStart.line;
-            fl_int c = _fl_tmp_1.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_1.ECoroutineStart.call, fl_self_hosted_ast_Expr);
-            return l;
-            break;
-        }
-        case 37: {
-            fl_int nid = _fl_tmp_1.ECoroutinePipeline.id;
-            fl_int l = _fl_tmp_1.ECoroutinePipeline.line;
-            fl_int c = _fl_tmp_1.ECoroutinePipeline.col;
-            FL_Array* stages = _fl_tmp_1.ECoroutinePipeline.stages;
-            return l;
-            break;
-        }
-    }
-}
-
-/* Flow: self_hosted.ast.expr_col */
-fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
     fl_self_hosted_ast_Expr _fl_tmp_2 = e;
     switch (_fl_tmp_2.tag) {
         case 0: {
@@ -3902,7 +3630,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.EIntLit.col;
             fl_int v = _fl_tmp_2.EIntLit.value;
             FL_String* s = _fl_tmp_2.EIntLit.suffix;
-            return c;
+            return l;
             break;
         }
         case 1: {
@@ -3911,7 +3639,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.EFloatLit.col;
             FL_String* v = _fl_tmp_2.EFloatLit.value_text;
             FL_String* s = _fl_tmp_2.EFloatLit.suffix;
-            return c;
+            return l;
             break;
         }
         case 2: {
@@ -3919,7 +3647,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.EBoolLit.line;
             fl_int c = _fl_tmp_2.EBoolLit.col;
             fl_bool v = _fl_tmp_2.EBoolLit.value;
-            return c;
+            return l;
             break;
         }
         case 3: {
@@ -3927,7 +3655,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.EStringLit.line;
             fl_int c = _fl_tmp_2.EStringLit.col;
             FL_String* v = _fl_tmp_2.EStringLit.value;
-            return c;
+            return l;
             break;
         }
         case 4: {
@@ -3935,14 +3663,14 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ECharLit.line;
             fl_int c = _fl_tmp_2.ECharLit.col;
             fl_int v = _fl_tmp_2.ECharLit.value;
-            return c;
+            return l;
             break;
         }
         case 5: {
             fl_int nid = _fl_tmp_2.ENoneLit.id;
             fl_int l = _fl_tmp_2.ENoneLit.line;
             fl_int c = _fl_tmp_2.ENoneLit.col;
-            return c;
+            return l;
             break;
         }
         case 6: {
@@ -3951,7 +3679,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.EIdent.col;
             FL_String* n = _fl_tmp_2.EIdent.name;
             FL_Array* mp = _fl_tmp_2.EIdent.module_path;
-            return c;
+            return l;
             break;
         }
         case 7: {
@@ -3961,7 +3689,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             FL_String* o = _fl_tmp_2.EBinOp.op;
             fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_2.EBinOp.left, fl_self_hosted_ast_Expr);
             fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_2.EBinOp.right, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 8: {
@@ -3970,7 +3698,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.EUnaryOp.col;
             FL_String* o = _fl_tmp_2.EUnaryOp.op;
             fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_2.EUnaryOp.operand, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 9: {
@@ -3979,7 +3707,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.ENamedArg.col;
             FL_String* n = _fl_tmp_2.ENamedArg.name;
             fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_2.ENamedArg.value, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 10: {
@@ -3987,7 +3715,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ESpread.line;
             fl_int c = _fl_tmp_2.ESpread.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.ESpread.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 11: {
@@ -3996,7 +3724,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.ECall.col;
             fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_2.ECall.callee, fl_self_hosted_ast_Expr);
             FL_Array* args = _fl_tmp_2.ECall.args;
-            return c;
+            return l;
             break;
         }
         case 12: {
@@ -4006,7 +3734,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_2.EMethodCall.receiver, fl_self_hosted_ast_Expr);
             FL_String* m = _fl_tmp_2.EMethodCall.method;
             FL_Array* args = _fl_tmp_2.EMethodCall.args;
-            return c;
+            return l;
             break;
         }
         case 13: {
@@ -4015,7 +3743,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.EFieldAccess.col;
             fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_2.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
             FL_String* f = _fl_tmp_2.EFieldAccess.field;
-            return c;
+            return l;
             break;
         }
         case 14: {
@@ -4024,7 +3752,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.EIndexAccess.col;
             fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_2.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
             fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_2.EIndexAccess.index, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 15: {
@@ -4033,7 +3761,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.ELambda.col;
             FL_Array* params = _fl_tmp_2.ELambda.params;
             fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_2.ELambda.body, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 16: {
@@ -4041,7 +3769,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ETupleExpr.line;
             fl_int c = _fl_tmp_2.ETupleExpr.col;
             FL_Array* elems = _fl_tmp_2.ETupleExpr.elements;
-            return c;
+            return l;
             break;
         }
         case 17: {
@@ -4049,7 +3777,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.EArrayLit.line;
             fl_int c = _fl_tmp_2.EArrayLit.col;
             FL_Array* elems = _fl_tmp_2.EArrayLit.elements;
-            return c;
+            return l;
             break;
         }
         case 18: {
@@ -4057,7 +3785,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ERecordLit.line;
             fl_int c = _fl_tmp_2.ERecordLit.col;
             FL_Array* fields = _fl_tmp_2.ERecordLit.fields;
-            return c;
+            return l;
             break;
         }
         case 19: {
@@ -4068,7 +3796,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             FL_Array* fields = _fl_tmp_2.ETypeLit.fields;
             fl_bool hs = _fl_tmp_2.ETypeLit.has_spread;
             fl_self_hosted_ast_Expr sp = FL_BOX_DEREF(_fl_tmp_2.ETypeLit.spread, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 20: {
@@ -4078,7 +3806,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_2.EIfExpr.condition, fl_self_hosted_ast_Expr);
             FL_Array* then_b = _fl_tmp_2.EIfExpr.then_stmts;
             FL_Array* else_b = _fl_tmp_2.EIfExpr.else_stmts;
-            return c;
+            return l;
             break;
         }
         case 21: {
@@ -4087,7 +3815,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.EMatchExpr.col;
             fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_2.EMatchExpr.subject, fl_self_hosted_ast_Expr);
             FL_Array* arms = _fl_tmp_2.EMatchExpr.arms;
-            return c;
+            return l;
             break;
         }
         case 22: {
@@ -4097,7 +3825,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_2.ETernary.condition, fl_self_hosted_ast_Expr);
             fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_2.ETernary.then_expr, fl_self_hosted_ast_Expr);
             fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_2.ETernary.else_expr, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 23: {
@@ -4105,7 +3833,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ECopy.line;
             fl_int c = _fl_tmp_2.ECopy.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.ECopy.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 24: {
@@ -4113,7 +3841,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ERef.line;
             fl_int c = _fl_tmp_2.ERef.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.ERef.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 25: {
@@ -4121,7 +3849,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ESome.line;
             fl_int c = _fl_tmp_2.ESome.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.ESome.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 26: {
@@ -4129,7 +3857,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.EOk.line;
             fl_int c = _fl_tmp_2.EOk.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.EOk.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 27: {
@@ -4137,7 +3865,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.EErr.line;
             fl_int c = _fl_tmp_2.EErr.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.EErr.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 28: {
@@ -4145,7 +3873,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.EPropagate.line;
             fl_int c = _fl_tmp_2.EPropagate.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.EPropagate.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 29: {
@@ -4154,7 +3882,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.ENullCoalesce.col;
             fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_2.ENullCoalesce.left, fl_self_hosted_ast_Expr);
             fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_2.ENullCoalesce.right, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 30: {
@@ -4162,7 +3890,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ETypeof.line;
             fl_int c = _fl_tmp_2.ETypeof.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.ETypeof.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 31: {
@@ -4171,7 +3899,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.ECast.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.ECast.inner, fl_self_hosted_ast_Expr);
             fl_int t = _fl_tmp_2.ECast.target_id;
-            return c;
+            return l;
             break;
         }
         case 32: {
@@ -4179,7 +3907,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ECoerce.line;
             fl_int c = _fl_tmp_2.ECoerce.col;
             fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_2.ECoerce.inner, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 33: {
@@ -4187,7 +3915,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.EFString.line;
             fl_int c = _fl_tmp_2.EFString.col;
             FL_Array* parts = _fl_tmp_2.EFString.parts;
-            return c;
+            return l;
             break;
         }
         case 34: {
@@ -4195,7 +3923,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ECompositionChain.line;
             fl_int c = _fl_tmp_2.ECompositionChain.col;
             FL_Array* elems = _fl_tmp_2.ECompositionChain.elements;
-            return c;
+            return l;
             break;
         }
         case 35: {
@@ -4204,7 +3932,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int c = _fl_tmp_2.EFanOut.col;
             FL_Array* branches = _fl_tmp_2.EFanOut.branches;
             fl_bool ip = _fl_tmp_2.EFanOut.is_parallel;
-            return c;
+            return l;
             break;
         }
         case 36: {
@@ -4212,7 +3940,7 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ECoroutineStart.line;
             fl_int c = _fl_tmp_2.ECoroutineStart.col;
             fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_2.ECoroutineStart.call, fl_self_hosted_ast_Expr);
-            return c;
+            return l;
             break;
         }
         case 37: {
@@ -4220,6 +3948,340 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
             fl_int l = _fl_tmp_2.ECoroutinePipeline.line;
             fl_int c = _fl_tmp_2.ECoroutinePipeline.col;
             FL_Array* stages = _fl_tmp_2.ECoroutinePipeline.stages;
+            return l;
+            break;
+        }
+    }
+}
+
+/* Flow: self_hosted.ast.expr_col */
+fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
+    fl_self_hosted_ast_Expr _fl_tmp_3 = e;
+    switch (_fl_tmp_3.tag) {
+        case 0: {
+            fl_int nid = _fl_tmp_3.EIntLit.id;
+            fl_int l = _fl_tmp_3.EIntLit.line;
+            fl_int c = _fl_tmp_3.EIntLit.col;
+            fl_int v = _fl_tmp_3.EIntLit.value;
+            FL_String* s = _fl_tmp_3.EIntLit.suffix;
+            return c;
+            break;
+        }
+        case 1: {
+            fl_int nid = _fl_tmp_3.EFloatLit.id;
+            fl_int l = _fl_tmp_3.EFloatLit.line;
+            fl_int c = _fl_tmp_3.EFloatLit.col;
+            FL_String* v = _fl_tmp_3.EFloatLit.value_text;
+            FL_String* s = _fl_tmp_3.EFloatLit.suffix;
+            return c;
+            break;
+        }
+        case 2: {
+            fl_int nid = _fl_tmp_3.EBoolLit.id;
+            fl_int l = _fl_tmp_3.EBoolLit.line;
+            fl_int c = _fl_tmp_3.EBoolLit.col;
+            fl_bool v = _fl_tmp_3.EBoolLit.value;
+            return c;
+            break;
+        }
+        case 3: {
+            fl_int nid = _fl_tmp_3.EStringLit.id;
+            fl_int l = _fl_tmp_3.EStringLit.line;
+            fl_int c = _fl_tmp_3.EStringLit.col;
+            FL_String* v = _fl_tmp_3.EStringLit.value;
+            return c;
+            break;
+        }
+        case 4: {
+            fl_int nid = _fl_tmp_3.ECharLit.id;
+            fl_int l = _fl_tmp_3.ECharLit.line;
+            fl_int c = _fl_tmp_3.ECharLit.col;
+            fl_int v = _fl_tmp_3.ECharLit.value;
+            return c;
+            break;
+        }
+        case 5: {
+            fl_int nid = _fl_tmp_3.ENoneLit.id;
+            fl_int l = _fl_tmp_3.ENoneLit.line;
+            fl_int c = _fl_tmp_3.ENoneLit.col;
+            return c;
+            break;
+        }
+        case 6: {
+            fl_int nid = _fl_tmp_3.EIdent.id;
+            fl_int l = _fl_tmp_3.EIdent.line;
+            fl_int c = _fl_tmp_3.EIdent.col;
+            FL_String* n = _fl_tmp_3.EIdent.name;
+            FL_Array* mp = _fl_tmp_3.EIdent.module_path;
+            return c;
+            break;
+        }
+        case 7: {
+            fl_int nid = _fl_tmp_3.EBinOp.id;
+            fl_int l = _fl_tmp_3.EBinOp.line;
+            fl_int c = _fl_tmp_3.EBinOp.col;
+            FL_String* o = _fl_tmp_3.EBinOp.op;
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_3.EBinOp.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_3.EBinOp.right, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 8: {
+            fl_int nid = _fl_tmp_3.EUnaryOp.id;
+            fl_int l = _fl_tmp_3.EUnaryOp.line;
+            fl_int c = _fl_tmp_3.EUnaryOp.col;
+            FL_String* o = _fl_tmp_3.EUnaryOp.op;
+            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_3.EUnaryOp.operand, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 9: {
+            fl_int nid = _fl_tmp_3.ENamedArg.id;
+            fl_int l = _fl_tmp_3.ENamedArg.line;
+            fl_int c = _fl_tmp_3.ENamedArg.col;
+            FL_String* n = _fl_tmp_3.ENamedArg.name;
+            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_3.ENamedArg.value, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 10: {
+            fl_int nid = _fl_tmp_3.ESpread.id;
+            fl_int l = _fl_tmp_3.ESpread.line;
+            fl_int c = _fl_tmp_3.ESpread.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.ESpread.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 11: {
+            fl_int nid = _fl_tmp_3.ECall.id;
+            fl_int l = _fl_tmp_3.ECall.line;
+            fl_int c = _fl_tmp_3.ECall.col;
+            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_3.ECall.callee, fl_self_hosted_ast_Expr);
+            FL_Array* args = _fl_tmp_3.ECall.args;
+            return c;
+            break;
+        }
+        case 12: {
+            fl_int nid = _fl_tmp_3.EMethodCall.id;
+            fl_int l = _fl_tmp_3.EMethodCall.line;
+            fl_int c = _fl_tmp_3.EMethodCall.col;
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_3.EMethodCall.receiver, fl_self_hosted_ast_Expr);
+            FL_String* m = _fl_tmp_3.EMethodCall.method;
+            FL_Array* args = _fl_tmp_3.EMethodCall.args;
+            return c;
+            break;
+        }
+        case 13: {
+            fl_int nid = _fl_tmp_3.EFieldAccess.id;
+            fl_int l = _fl_tmp_3.EFieldAccess.line;
+            fl_int c = _fl_tmp_3.EFieldAccess.col;
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_3.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
+            FL_String* f = _fl_tmp_3.EFieldAccess.field;
+            return c;
+            break;
+        }
+        case 14: {
+            fl_int nid = _fl_tmp_3.EIndexAccess.id;
+            fl_int l = _fl_tmp_3.EIndexAccess.line;
+            fl_int c = _fl_tmp_3.EIndexAccess.col;
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_3.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_3.EIndexAccess.index, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 15: {
+            fl_int nid = _fl_tmp_3.ELambda.id;
+            fl_int l = _fl_tmp_3.ELambda.line;
+            fl_int c = _fl_tmp_3.ELambda.col;
+            FL_Array* params = _fl_tmp_3.ELambda.params;
+            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_3.ELambda.body, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 16: {
+            fl_int nid = _fl_tmp_3.ETupleExpr.id;
+            fl_int l = _fl_tmp_3.ETupleExpr.line;
+            fl_int c = _fl_tmp_3.ETupleExpr.col;
+            FL_Array* elems = _fl_tmp_3.ETupleExpr.elements;
+            return c;
+            break;
+        }
+        case 17: {
+            fl_int nid = _fl_tmp_3.EArrayLit.id;
+            fl_int l = _fl_tmp_3.EArrayLit.line;
+            fl_int c = _fl_tmp_3.EArrayLit.col;
+            FL_Array* elems = _fl_tmp_3.EArrayLit.elements;
+            return c;
+            break;
+        }
+        case 18: {
+            fl_int nid = _fl_tmp_3.ERecordLit.id;
+            fl_int l = _fl_tmp_3.ERecordLit.line;
+            fl_int c = _fl_tmp_3.ERecordLit.col;
+            FL_Array* fields = _fl_tmp_3.ERecordLit.fields;
+            return c;
+            break;
+        }
+        case 19: {
+            fl_int nid = _fl_tmp_3.ETypeLit.id;
+            fl_int l = _fl_tmp_3.ETypeLit.line;
+            fl_int c = _fl_tmp_3.ETypeLit.col;
+            FL_String* tn = _fl_tmp_3.ETypeLit.type_name;
+            FL_Array* fields = _fl_tmp_3.ETypeLit.fields;
+            fl_bool hs = _fl_tmp_3.ETypeLit.has_spread;
+            fl_self_hosted_ast_Expr sp = FL_BOX_DEREF(_fl_tmp_3.ETypeLit.spread, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 20: {
+            fl_int nid = _fl_tmp_3.EIfExpr.id;
+            fl_int l = _fl_tmp_3.EIfExpr.line;
+            fl_int c = _fl_tmp_3.EIfExpr.col;
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_3.EIfExpr.condition, fl_self_hosted_ast_Expr);
+            FL_Array* then_b = _fl_tmp_3.EIfExpr.then_stmts;
+            FL_Array* else_b = _fl_tmp_3.EIfExpr.else_stmts;
+            return c;
+            break;
+        }
+        case 21: {
+            fl_int nid = _fl_tmp_3.EMatchExpr.id;
+            fl_int l = _fl_tmp_3.EMatchExpr.line;
+            fl_int c = _fl_tmp_3.EMatchExpr.col;
+            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_3.EMatchExpr.subject, fl_self_hosted_ast_Expr);
+            FL_Array* arms = _fl_tmp_3.EMatchExpr.arms;
+            return c;
+            break;
+        }
+        case 22: {
+            fl_int nid = _fl_tmp_3.ETernary.id;
+            fl_int l = _fl_tmp_3.ETernary.line;
+            fl_int c = _fl_tmp_3.ETernary.col;
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_3.ETernary.condition, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_3.ETernary.then_expr, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_3.ETernary.else_expr, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 23: {
+            fl_int nid = _fl_tmp_3.ECopy.id;
+            fl_int l = _fl_tmp_3.ECopy.line;
+            fl_int c = _fl_tmp_3.ECopy.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.ECopy.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 24: {
+            fl_int nid = _fl_tmp_3.ERef.id;
+            fl_int l = _fl_tmp_3.ERef.line;
+            fl_int c = _fl_tmp_3.ERef.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.ERef.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 25: {
+            fl_int nid = _fl_tmp_3.ESome.id;
+            fl_int l = _fl_tmp_3.ESome.line;
+            fl_int c = _fl_tmp_3.ESome.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.ESome.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 26: {
+            fl_int nid = _fl_tmp_3.EOk.id;
+            fl_int l = _fl_tmp_3.EOk.line;
+            fl_int c = _fl_tmp_3.EOk.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.EOk.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 27: {
+            fl_int nid = _fl_tmp_3.EErr.id;
+            fl_int l = _fl_tmp_3.EErr.line;
+            fl_int c = _fl_tmp_3.EErr.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.EErr.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 28: {
+            fl_int nid = _fl_tmp_3.EPropagate.id;
+            fl_int l = _fl_tmp_3.EPropagate.line;
+            fl_int c = _fl_tmp_3.EPropagate.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.EPropagate.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 29: {
+            fl_int nid = _fl_tmp_3.ENullCoalesce.id;
+            fl_int l = _fl_tmp_3.ENullCoalesce.line;
+            fl_int c = _fl_tmp_3.ENullCoalesce.col;
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_3.ENullCoalesce.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_3.ENullCoalesce.right, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 30: {
+            fl_int nid = _fl_tmp_3.ETypeof.id;
+            fl_int l = _fl_tmp_3.ETypeof.line;
+            fl_int c = _fl_tmp_3.ETypeof.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.ETypeof.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 31: {
+            fl_int nid = _fl_tmp_3.ECast.id;
+            fl_int l = _fl_tmp_3.ECast.line;
+            fl_int c = _fl_tmp_3.ECast.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.ECast.inner, fl_self_hosted_ast_Expr);
+            fl_int t = _fl_tmp_3.ECast.target_id;
+            return c;
+            break;
+        }
+        case 32: {
+            fl_int nid = _fl_tmp_3.ECoerce.id;
+            fl_int l = _fl_tmp_3.ECoerce.line;
+            fl_int c = _fl_tmp_3.ECoerce.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_3.ECoerce.inner, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 33: {
+            fl_int nid = _fl_tmp_3.EFString.id;
+            fl_int l = _fl_tmp_3.EFString.line;
+            fl_int c = _fl_tmp_3.EFString.col;
+            FL_Array* parts = _fl_tmp_3.EFString.parts;
+            return c;
+            break;
+        }
+        case 34: {
+            fl_int nid = _fl_tmp_3.ECompositionChain.id;
+            fl_int l = _fl_tmp_3.ECompositionChain.line;
+            fl_int c = _fl_tmp_3.ECompositionChain.col;
+            FL_Array* elems = _fl_tmp_3.ECompositionChain.elements;
+            return c;
+            break;
+        }
+        case 35: {
+            fl_int nid = _fl_tmp_3.EFanOut.id;
+            fl_int l = _fl_tmp_3.EFanOut.line;
+            fl_int c = _fl_tmp_3.EFanOut.col;
+            FL_Array* branches = _fl_tmp_3.EFanOut.branches;
+            fl_bool ip = _fl_tmp_3.EFanOut.is_parallel;
+            return c;
+            break;
+        }
+        case 36: {
+            fl_int nid = _fl_tmp_3.ECoroutineStart.id;
+            fl_int l = _fl_tmp_3.ECoroutineStart.line;
+            fl_int c = _fl_tmp_3.ECoroutineStart.col;
+            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_3.ECoroutineStart.call, fl_self_hosted_ast_Expr);
+            return c;
+            break;
+        }
+        case 37: {
+            fl_int nid = _fl_tmp_3.ECoroutinePipeline.id;
+            fl_int l = _fl_tmp_3.ECoroutinePipeline.line;
+            fl_int c = _fl_tmp_3.ECoroutinePipeline.col;
+            FL_Array* stages = _fl_tmp_3.ECoroutinePipeline.stages;
             return c;
             break;
         }
@@ -4228,91 +4290,13 @@ fl_int fl_self_hosted_ast_expr_col(fl_self_hosted_ast_Expr e) {
 
 /* Flow: self_hosted.ast.pattern_line */
 fl_int fl_self_hosted_ast_pattern_line(fl_self_hosted_ast_Pattern p) {
-    fl_self_hosted_ast_Pattern _fl_tmp_3 = p;
-    switch (_fl_tmp_3.tag) {
-        case 0: {
-            fl_int nid = _fl_tmp_3.PWildcard.id;
-            fl_int l = _fl_tmp_3.PWildcard.line;
-            fl_int c = _fl_tmp_3.PWildcard.col;
-            return l;
-            break;
-        }
-        case 1: {
-            fl_int nid = _fl_tmp_3.PLiteral.id;
-            fl_int l = _fl_tmp_3.PLiteral.line;
-            fl_int c = _fl_tmp_3.PLiteral.col;
-            fl_int vid = _fl_tmp_3.PLiteral.value_id;
-            return l;
-            break;
-        }
-        case 2: {
-            fl_int nid = _fl_tmp_3.PBind.id;
-            fl_int l = _fl_tmp_3.PBind.line;
-            fl_int c = _fl_tmp_3.PBind.col;
-            FL_String* n = _fl_tmp_3.PBind.name;
-            return l;
-            break;
-        }
-        case 3: {
-            fl_int nid = _fl_tmp_3.PSome.id;
-            fl_int l = _fl_tmp_3.PSome.line;
-            fl_int c = _fl_tmp_3.PSome.col;
-            FL_String* iv = _fl_tmp_3.PSome.inner_var;
-            return l;
-            break;
-        }
-        case 4: {
-            fl_int nid = _fl_tmp_3.PNone.id;
-            fl_int l = _fl_tmp_3.PNone.line;
-            fl_int c = _fl_tmp_3.PNone.col;
-            return l;
-            break;
-        }
-        case 5: {
-            fl_int nid = _fl_tmp_3.POk.id;
-            fl_int l = _fl_tmp_3.POk.line;
-            fl_int c = _fl_tmp_3.POk.col;
-            FL_String* iv = _fl_tmp_3.POk.inner_var;
-            return l;
-            break;
-        }
-        case 6: {
-            fl_int nid = _fl_tmp_3.PErr.id;
-            fl_int l = _fl_tmp_3.PErr.line;
-            fl_int c = _fl_tmp_3.PErr.col;
-            FL_String* iv = _fl_tmp_3.PErr.inner_var;
-            return l;
-            break;
-        }
-        case 7: {
-            fl_int nid = _fl_tmp_3.PVariant.id;
-            fl_int l = _fl_tmp_3.PVariant.line;
-            fl_int c = _fl_tmp_3.PVariant.col;
-            FL_String* vn = _fl_tmp_3.PVariant.variant_name;
-            FL_Array* b = _fl_tmp_3.PVariant.bindings;
-            return l;
-            break;
-        }
-        case 8: {
-            fl_int nid = _fl_tmp_3.PTuple.id;
-            fl_int l = _fl_tmp_3.PTuple.line;
-            fl_int c = _fl_tmp_3.PTuple.col;
-            FL_Array* e = _fl_tmp_3.PTuple.elements;
-            return l;
-            break;
-        }
-    }
-}
-
-/* Flow: self_hosted.ast.pattern_col */
-fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
     fl_self_hosted_ast_Pattern _fl_tmp_4 = p;
     switch (_fl_tmp_4.tag) {
         case 0: {
             fl_int nid = _fl_tmp_4.PWildcard.id;
             fl_int l = _fl_tmp_4.PWildcard.line;
             fl_int c = _fl_tmp_4.PWildcard.col;
-            return c;
+            return l;
             break;
         }
         case 1: {
@@ -4320,7 +4304,7 @@ fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
             fl_int l = _fl_tmp_4.PLiteral.line;
             fl_int c = _fl_tmp_4.PLiteral.col;
             fl_int vid = _fl_tmp_4.PLiteral.value_id;
-            return c;
+            return l;
             break;
         }
         case 2: {
@@ -4328,7 +4312,7 @@ fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
             fl_int l = _fl_tmp_4.PBind.line;
             fl_int c = _fl_tmp_4.PBind.col;
             FL_String* n = _fl_tmp_4.PBind.name;
-            return c;
+            return l;
             break;
         }
         case 3: {
@@ -4336,14 +4320,14 @@ fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
             fl_int l = _fl_tmp_4.PSome.line;
             fl_int c = _fl_tmp_4.PSome.col;
             FL_String* iv = _fl_tmp_4.PSome.inner_var;
-            return c;
+            return l;
             break;
         }
         case 4: {
             fl_int nid = _fl_tmp_4.PNone.id;
             fl_int l = _fl_tmp_4.PNone.line;
             fl_int c = _fl_tmp_4.PNone.col;
-            return c;
+            return l;
             break;
         }
         case 5: {
@@ -4351,7 +4335,7 @@ fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
             fl_int l = _fl_tmp_4.POk.line;
             fl_int c = _fl_tmp_4.POk.col;
             FL_String* iv = _fl_tmp_4.POk.inner_var;
-            return c;
+            return l;
             break;
         }
         case 6: {
@@ -4359,7 +4343,7 @@ fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
             fl_int l = _fl_tmp_4.PErr.line;
             fl_int c = _fl_tmp_4.PErr.col;
             FL_String* iv = _fl_tmp_4.PErr.inner_var;
-            return c;
+            return l;
             break;
         }
         case 7: {
@@ -4368,7 +4352,7 @@ fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
             fl_int c = _fl_tmp_4.PVariant.col;
             FL_String* vn = _fl_tmp_4.PVariant.variant_name;
             FL_Array* b = _fl_tmp_4.PVariant.bindings;
-            return c;
+            return l;
             break;
         }
         case 8: {
@@ -4376,6 +4360,84 @@ fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
             fl_int l = _fl_tmp_4.PTuple.line;
             fl_int c = _fl_tmp_4.PTuple.col;
             FL_Array* e = _fl_tmp_4.PTuple.elements;
+            return l;
+            break;
+        }
+    }
+}
+
+/* Flow: self_hosted.ast.pattern_col */
+fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
+    fl_self_hosted_ast_Pattern _fl_tmp_5 = p;
+    switch (_fl_tmp_5.tag) {
+        case 0: {
+            fl_int nid = _fl_tmp_5.PWildcard.id;
+            fl_int l = _fl_tmp_5.PWildcard.line;
+            fl_int c = _fl_tmp_5.PWildcard.col;
+            return c;
+            break;
+        }
+        case 1: {
+            fl_int nid = _fl_tmp_5.PLiteral.id;
+            fl_int l = _fl_tmp_5.PLiteral.line;
+            fl_int c = _fl_tmp_5.PLiteral.col;
+            fl_int vid = _fl_tmp_5.PLiteral.value_id;
+            return c;
+            break;
+        }
+        case 2: {
+            fl_int nid = _fl_tmp_5.PBind.id;
+            fl_int l = _fl_tmp_5.PBind.line;
+            fl_int c = _fl_tmp_5.PBind.col;
+            FL_String* n = _fl_tmp_5.PBind.name;
+            return c;
+            break;
+        }
+        case 3: {
+            fl_int nid = _fl_tmp_5.PSome.id;
+            fl_int l = _fl_tmp_5.PSome.line;
+            fl_int c = _fl_tmp_5.PSome.col;
+            FL_String* iv = _fl_tmp_5.PSome.inner_var;
+            return c;
+            break;
+        }
+        case 4: {
+            fl_int nid = _fl_tmp_5.PNone.id;
+            fl_int l = _fl_tmp_5.PNone.line;
+            fl_int c = _fl_tmp_5.PNone.col;
+            return c;
+            break;
+        }
+        case 5: {
+            fl_int nid = _fl_tmp_5.POk.id;
+            fl_int l = _fl_tmp_5.POk.line;
+            fl_int c = _fl_tmp_5.POk.col;
+            FL_String* iv = _fl_tmp_5.POk.inner_var;
+            return c;
+            break;
+        }
+        case 6: {
+            fl_int nid = _fl_tmp_5.PErr.id;
+            fl_int l = _fl_tmp_5.PErr.line;
+            fl_int c = _fl_tmp_5.PErr.col;
+            FL_String* iv = _fl_tmp_5.PErr.inner_var;
+            return c;
+            break;
+        }
+        case 7: {
+            fl_int nid = _fl_tmp_5.PVariant.id;
+            fl_int l = _fl_tmp_5.PVariant.line;
+            fl_int c = _fl_tmp_5.PVariant.col;
+            FL_String* vn = _fl_tmp_5.PVariant.variant_name;
+            FL_Array* b = _fl_tmp_5.PVariant.bindings;
+            return c;
+            break;
+        }
+        case 8: {
+            fl_int nid = _fl_tmp_5.PTuple.id;
+            fl_int l = _fl_tmp_5.PTuple.line;
+            fl_int c = _fl_tmp_5.PTuple.col;
+            FL_Array* e = _fl_tmp_5.PTuple.elements;
             return c;
             break;
         }
@@ -4384,81 +4446,81 @@ fl_int fl_self_hosted_ast_pattern_col(fl_self_hosted_ast_Pattern p) {
 
 /* Flow: self_hosted.ast.type_expr_id */
 fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
-    fl_self_hosted_ast_TypeExpr _fl_tmp_5 = t;
-    switch (_fl_tmp_5.tag) {
+    fl_self_hosted_ast_TypeExpr _fl_tmp_6 = t;
+    switch (_fl_tmp_6.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_5.TNamedType.id;
-            fl_int l = _fl_tmp_5.TNamedType.line;
-            fl_int c = _fl_tmp_5.TNamedType.col;
-            FL_String* n = _fl_tmp_5.TNamedType.name;
-            FL_Array* mp = _fl_tmp_5.TNamedType.module_path;
+            fl_int nid = _fl_tmp_6.TNamedType.id;
+            fl_int l = _fl_tmp_6.TNamedType.line;
+            fl_int c = _fl_tmp_6.TNamedType.col;
+            FL_String* n = _fl_tmp_6.TNamedType.name;
+            FL_Array* mp = _fl_tmp_6.TNamedType.module_path;
             return nid;
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_5.TGenericType.id;
-            fl_int l = _fl_tmp_5.TGenericType.line;
-            fl_int c = _fl_tmp_5.TGenericType.col;
-            fl_self_hosted_ast_TypeExpr b = FL_BOX_DEREF(_fl_tmp_5.TGenericType.base, fl_self_hosted_ast_TypeExpr);
-            FL_Array* a = _fl_tmp_5.TGenericType.args;
+            fl_int nid = _fl_tmp_6.TGenericType.id;
+            fl_int l = _fl_tmp_6.TGenericType.line;
+            fl_int c = _fl_tmp_6.TGenericType.col;
+            fl_self_hosted_ast_TypeExpr b = FL_BOX_DEREF(_fl_tmp_6.TGenericType.base, fl_self_hosted_ast_TypeExpr);
+            FL_Array* a = _fl_tmp_6.TGenericType.args;
             return nid;
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_5.TOptionType.id;
-            fl_int l = _fl_tmp_5.TOptionType.line;
-            fl_int c = _fl_tmp_5.TOptionType.col;
-            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_5.TOptionType.inner, fl_self_hosted_ast_TypeExpr);
+            fl_int nid = _fl_tmp_6.TOptionType.id;
+            fl_int l = _fl_tmp_6.TOptionType.line;
+            fl_int c = _fl_tmp_6.TOptionType.col;
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_6.TOptionType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_5.TFnType.id;
-            fl_int l = _fl_tmp_5.TFnType.line;
-            fl_int c = _fl_tmp_5.TFnType.col;
-            FL_Array* p = _fl_tmp_5.TFnType.params;
-            fl_self_hosted_ast_TypeExpr r = FL_BOX_DEREF(_fl_tmp_5.TFnType.ret, fl_self_hosted_ast_TypeExpr);
+            fl_int nid = _fl_tmp_6.TFnType.id;
+            fl_int l = _fl_tmp_6.TFnType.line;
+            fl_int c = _fl_tmp_6.TFnType.col;
+            FL_Array* p = _fl_tmp_6.TFnType.params;
+            fl_self_hosted_ast_TypeExpr r = FL_BOX_DEREF(_fl_tmp_6.TFnType.ret, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_5.TTupleType.id;
-            fl_int l = _fl_tmp_5.TTupleType.line;
-            fl_int c = _fl_tmp_5.TTupleType.col;
-            FL_Array* e = _fl_tmp_5.TTupleType.elements;
+            fl_int nid = _fl_tmp_6.TTupleType.id;
+            fl_int l = _fl_tmp_6.TTupleType.line;
+            fl_int c = _fl_tmp_6.TTupleType.col;
+            FL_Array* e = _fl_tmp_6.TTupleType.elements;
             return nid;
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_5.TMutType.id;
-            fl_int l = _fl_tmp_5.TMutType.line;
-            fl_int c = _fl_tmp_5.TMutType.col;
-            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_5.TMutType.inner, fl_self_hosted_ast_TypeExpr);
+            fl_int nid = _fl_tmp_6.TMutType.id;
+            fl_int l = _fl_tmp_6.TMutType.line;
+            fl_int c = _fl_tmp_6.TMutType.col;
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_6.TMutType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_5.TImutType.id;
-            fl_int l = _fl_tmp_5.TImutType.line;
-            fl_int c = _fl_tmp_5.TImutType.col;
-            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_5.TImutType.inner, fl_self_hosted_ast_TypeExpr);
+            fl_int nid = _fl_tmp_6.TImutType.id;
+            fl_int l = _fl_tmp_6.TImutType.line;
+            fl_int c = _fl_tmp_6.TImutType.col;
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_6.TImutType.inner, fl_self_hosted_ast_TypeExpr);
             return nid;
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_5.TSizedType.id;
-            fl_int l = _fl_tmp_5.TSizedType.line;
-            fl_int c = _fl_tmp_5.TSizedType.col;
-            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_5.TSizedType.inner, fl_self_hosted_ast_TypeExpr);
-            fl_int cap = _fl_tmp_5.TSizedType.capacity_id;
+            fl_int nid = _fl_tmp_6.TSizedType.id;
+            fl_int l = _fl_tmp_6.TSizedType.line;
+            fl_int c = _fl_tmp_6.TSizedType.col;
+            fl_self_hosted_ast_TypeExpr i = FL_BOX_DEREF(_fl_tmp_6.TSizedType.inner, fl_self_hosted_ast_TypeExpr);
+            fl_int cap = _fl_tmp_6.TSizedType.capacity_id;
             return nid;
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_5.TSumTypeExpr.id;
-            fl_int l = _fl_tmp_5.TSumTypeExpr.line;
-            fl_int c = _fl_tmp_5.TSumTypeExpr.col;
-            FL_Array* v = _fl_tmp_5.TSumTypeExpr.variants;
+            fl_int nid = _fl_tmp_6.TSumTypeExpr.id;
+            fl_int l = _fl_tmp_6.TSumTypeExpr.line;
+            fl_int c = _fl_tmp_6.TSumTypeExpr.col;
+            FL_Array* v = _fl_tmp_6.TSumTypeExpr.variants;
             return nid;
             break;
         }
@@ -4467,76 +4529,76 @@ fl_int fl_self_hosted_ast_type_expr_id(fl_self_hosted_ast_TypeExpr t) {
 
 /* Flow: self_hosted.ast.pattern_id */
 fl_int fl_self_hosted_ast_pattern_id(fl_self_hosted_ast_Pattern p) {
-    fl_self_hosted_ast_Pattern _fl_tmp_6 = p;
-    switch (_fl_tmp_6.tag) {
+    fl_self_hosted_ast_Pattern _fl_tmp_7 = p;
+    switch (_fl_tmp_7.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_6.PWildcard.id;
-            fl_int l = _fl_tmp_6.PWildcard.line;
-            fl_int c = _fl_tmp_6.PWildcard.col;
+            fl_int nid = _fl_tmp_7.PWildcard.id;
+            fl_int l = _fl_tmp_7.PWildcard.line;
+            fl_int c = _fl_tmp_7.PWildcard.col;
             return nid;
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_6.PLiteral.id;
-            fl_int l = _fl_tmp_6.PLiteral.line;
-            fl_int c = _fl_tmp_6.PLiteral.col;
-            fl_int vid = _fl_tmp_6.PLiteral.value_id;
+            fl_int nid = _fl_tmp_7.PLiteral.id;
+            fl_int l = _fl_tmp_7.PLiteral.line;
+            fl_int c = _fl_tmp_7.PLiteral.col;
+            fl_int vid = _fl_tmp_7.PLiteral.value_id;
             return nid;
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_6.PBind.id;
-            fl_int l = _fl_tmp_6.PBind.line;
-            fl_int c = _fl_tmp_6.PBind.col;
-            FL_String* n = _fl_tmp_6.PBind.name;
+            fl_int nid = _fl_tmp_7.PBind.id;
+            fl_int l = _fl_tmp_7.PBind.line;
+            fl_int c = _fl_tmp_7.PBind.col;
+            FL_String* n = _fl_tmp_7.PBind.name;
             return nid;
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_6.PSome.id;
-            fl_int l = _fl_tmp_6.PSome.line;
-            fl_int c = _fl_tmp_6.PSome.col;
-            FL_String* iv = _fl_tmp_6.PSome.inner_var;
+            fl_int nid = _fl_tmp_7.PSome.id;
+            fl_int l = _fl_tmp_7.PSome.line;
+            fl_int c = _fl_tmp_7.PSome.col;
+            FL_String* iv = _fl_tmp_7.PSome.inner_var;
             return nid;
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_6.PNone.id;
-            fl_int l = _fl_tmp_6.PNone.line;
-            fl_int c = _fl_tmp_6.PNone.col;
+            fl_int nid = _fl_tmp_7.PNone.id;
+            fl_int l = _fl_tmp_7.PNone.line;
+            fl_int c = _fl_tmp_7.PNone.col;
             return nid;
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_6.POk.id;
-            fl_int l = _fl_tmp_6.POk.line;
-            fl_int c = _fl_tmp_6.POk.col;
-            FL_String* iv = _fl_tmp_6.POk.inner_var;
+            fl_int nid = _fl_tmp_7.POk.id;
+            fl_int l = _fl_tmp_7.POk.line;
+            fl_int c = _fl_tmp_7.POk.col;
+            FL_String* iv = _fl_tmp_7.POk.inner_var;
             return nid;
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_6.PErr.id;
-            fl_int l = _fl_tmp_6.PErr.line;
-            fl_int c = _fl_tmp_6.PErr.col;
-            FL_String* iv = _fl_tmp_6.PErr.inner_var;
+            fl_int nid = _fl_tmp_7.PErr.id;
+            fl_int l = _fl_tmp_7.PErr.line;
+            fl_int c = _fl_tmp_7.PErr.col;
+            FL_String* iv = _fl_tmp_7.PErr.inner_var;
             return nid;
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_6.PVariant.id;
-            fl_int l = _fl_tmp_6.PVariant.line;
-            fl_int c = _fl_tmp_6.PVariant.col;
-            FL_String* vn = _fl_tmp_6.PVariant.variant_name;
-            FL_Array* b = _fl_tmp_6.PVariant.bindings;
+            fl_int nid = _fl_tmp_7.PVariant.id;
+            fl_int l = _fl_tmp_7.PVariant.line;
+            fl_int c = _fl_tmp_7.PVariant.col;
+            FL_String* vn = _fl_tmp_7.PVariant.variant_name;
+            FL_Array* b = _fl_tmp_7.PVariant.bindings;
             return nid;
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_6.PTuple.id;
-            fl_int l = _fl_tmp_6.PTuple.line;
-            fl_int c = _fl_tmp_6.PTuple.col;
-            FL_Array* e = _fl_tmp_6.PTuple.elements;
+            fl_int nid = _fl_tmp_7.PTuple.id;
+            fl_int l = _fl_tmp_7.PTuple.line;
+            fl_int c = _fl_tmp_7.PTuple.col;
+            FL_Array* e = _fl_tmp_7.PTuple.elements;
             return nid;
             break;
         }
@@ -4545,332 +4607,332 @@ fl_int fl_self_hosted_ast_pattern_id(fl_self_hosted_ast_Pattern p) {
 
 /* Flow: self_hosted.ast.expr_id */
 fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
-    fl_self_hosted_ast_Expr _fl_tmp_7 = e;
-    switch (_fl_tmp_7.tag) {
+    fl_self_hosted_ast_Expr _fl_tmp_8 = e;
+    switch (_fl_tmp_8.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_7.EIntLit.id;
-            fl_int l = _fl_tmp_7.EIntLit.line;
-            fl_int c = _fl_tmp_7.EIntLit.col;
-            fl_int v = _fl_tmp_7.EIntLit.value;
-            FL_String* s = _fl_tmp_7.EIntLit.suffix;
+            fl_int nid = _fl_tmp_8.EIntLit.id;
+            fl_int l = _fl_tmp_8.EIntLit.line;
+            fl_int c = _fl_tmp_8.EIntLit.col;
+            fl_int v = _fl_tmp_8.EIntLit.value;
+            FL_String* s = _fl_tmp_8.EIntLit.suffix;
             return nid;
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_7.EFloatLit.id;
-            fl_int l = _fl_tmp_7.EFloatLit.line;
-            fl_int c = _fl_tmp_7.EFloatLit.col;
-            FL_String* v = _fl_tmp_7.EFloatLit.value_text;
-            FL_String* s = _fl_tmp_7.EFloatLit.suffix;
+            fl_int nid = _fl_tmp_8.EFloatLit.id;
+            fl_int l = _fl_tmp_8.EFloatLit.line;
+            fl_int c = _fl_tmp_8.EFloatLit.col;
+            FL_String* v = _fl_tmp_8.EFloatLit.value_text;
+            FL_String* s = _fl_tmp_8.EFloatLit.suffix;
             return nid;
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_7.EBoolLit.id;
-            fl_int l = _fl_tmp_7.EBoolLit.line;
-            fl_int c = _fl_tmp_7.EBoolLit.col;
-            fl_bool v = _fl_tmp_7.EBoolLit.value;
+            fl_int nid = _fl_tmp_8.EBoolLit.id;
+            fl_int l = _fl_tmp_8.EBoolLit.line;
+            fl_int c = _fl_tmp_8.EBoolLit.col;
+            fl_bool v = _fl_tmp_8.EBoolLit.value;
             return nid;
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_7.EStringLit.id;
-            fl_int l = _fl_tmp_7.EStringLit.line;
-            fl_int c = _fl_tmp_7.EStringLit.col;
-            FL_String* v = _fl_tmp_7.EStringLit.value;
+            fl_int nid = _fl_tmp_8.EStringLit.id;
+            fl_int l = _fl_tmp_8.EStringLit.line;
+            fl_int c = _fl_tmp_8.EStringLit.col;
+            FL_String* v = _fl_tmp_8.EStringLit.value;
             return nid;
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_7.ECharLit.id;
-            fl_int l = _fl_tmp_7.ECharLit.line;
-            fl_int c = _fl_tmp_7.ECharLit.col;
-            fl_int v = _fl_tmp_7.ECharLit.value;
+            fl_int nid = _fl_tmp_8.ECharLit.id;
+            fl_int l = _fl_tmp_8.ECharLit.line;
+            fl_int c = _fl_tmp_8.ECharLit.col;
+            fl_int v = _fl_tmp_8.ECharLit.value;
             return nid;
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_7.ENoneLit.id;
-            fl_int l = _fl_tmp_7.ENoneLit.line;
-            fl_int c = _fl_tmp_7.ENoneLit.col;
+            fl_int nid = _fl_tmp_8.ENoneLit.id;
+            fl_int l = _fl_tmp_8.ENoneLit.line;
+            fl_int c = _fl_tmp_8.ENoneLit.col;
             return nid;
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_7.EIdent.id;
-            fl_int l = _fl_tmp_7.EIdent.line;
-            fl_int c = _fl_tmp_7.EIdent.col;
-            FL_String* n = _fl_tmp_7.EIdent.name;
-            FL_Array* mp = _fl_tmp_7.EIdent.module_path;
+            fl_int nid = _fl_tmp_8.EIdent.id;
+            fl_int l = _fl_tmp_8.EIdent.line;
+            fl_int c = _fl_tmp_8.EIdent.col;
+            FL_String* n = _fl_tmp_8.EIdent.name;
+            FL_Array* mp = _fl_tmp_8.EIdent.module_path;
             return nid;
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_7.EBinOp.id;
-            fl_int l = _fl_tmp_7.EBinOp.line;
-            fl_int c = _fl_tmp_7.EBinOp.col;
-            FL_String* o = _fl_tmp_7.EBinOp.op;
-            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_7.EBinOp.left, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_7.EBinOp.right, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.EBinOp.id;
+            fl_int l = _fl_tmp_8.EBinOp.line;
+            fl_int c = _fl_tmp_8.EBinOp.col;
+            FL_String* o = _fl_tmp_8.EBinOp.op;
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_8.EBinOp.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_8.EBinOp.right, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_7.EUnaryOp.id;
-            fl_int l = _fl_tmp_7.EUnaryOp.line;
-            fl_int c = _fl_tmp_7.EUnaryOp.col;
-            FL_String* o = _fl_tmp_7.EUnaryOp.op;
-            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_7.EUnaryOp.operand, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.EUnaryOp.id;
+            fl_int l = _fl_tmp_8.EUnaryOp.line;
+            fl_int c = _fl_tmp_8.EUnaryOp.col;
+            FL_String* o = _fl_tmp_8.EUnaryOp.op;
+            fl_self_hosted_ast_Expr op = FL_BOX_DEREF(_fl_tmp_8.EUnaryOp.operand, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_7.ENamedArg.id;
-            fl_int l = _fl_tmp_7.ENamedArg.line;
-            fl_int c = _fl_tmp_7.ENamedArg.col;
-            FL_String* n = _fl_tmp_7.ENamedArg.name;
-            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_7.ENamedArg.value, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ENamedArg.id;
+            fl_int l = _fl_tmp_8.ENamedArg.line;
+            fl_int c = _fl_tmp_8.ENamedArg.col;
+            FL_String* n = _fl_tmp_8.ENamedArg.name;
+            fl_self_hosted_ast_Expr v = FL_BOX_DEREF(_fl_tmp_8.ENamedArg.value, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 10: {
-            fl_int nid = _fl_tmp_7.ESpread.id;
-            fl_int l = _fl_tmp_7.ESpread.line;
-            fl_int c = _fl_tmp_7.ESpread.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.ESpread.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ESpread.id;
+            fl_int l = _fl_tmp_8.ESpread.line;
+            fl_int c = _fl_tmp_8.ESpread.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.ESpread.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 11: {
-            fl_int nid = _fl_tmp_7.ECall.id;
-            fl_int l = _fl_tmp_7.ECall.line;
-            fl_int c = _fl_tmp_7.ECall.col;
-            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_7.ECall.callee, fl_self_hosted_ast_Expr);
-            FL_Array* args = _fl_tmp_7.ECall.args;
+            fl_int nid = _fl_tmp_8.ECall.id;
+            fl_int l = _fl_tmp_8.ECall.line;
+            fl_int c = _fl_tmp_8.ECall.col;
+            fl_self_hosted_ast_Expr callee = FL_BOX_DEREF(_fl_tmp_8.ECall.callee, fl_self_hosted_ast_Expr);
+            FL_Array* args = _fl_tmp_8.ECall.args;
             return nid;
             break;
         }
         case 12: {
-            fl_int nid = _fl_tmp_7.EMethodCall.id;
-            fl_int l = _fl_tmp_7.EMethodCall.line;
-            fl_int c = _fl_tmp_7.EMethodCall.col;
-            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_7.EMethodCall.receiver, fl_self_hosted_ast_Expr);
-            FL_String* m = _fl_tmp_7.EMethodCall.method;
-            FL_Array* args = _fl_tmp_7.EMethodCall.args;
+            fl_int nid = _fl_tmp_8.EMethodCall.id;
+            fl_int l = _fl_tmp_8.EMethodCall.line;
+            fl_int c = _fl_tmp_8.EMethodCall.col;
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_8.EMethodCall.receiver, fl_self_hosted_ast_Expr);
+            FL_String* m = _fl_tmp_8.EMethodCall.method;
+            FL_Array* args = _fl_tmp_8.EMethodCall.args;
             return nid;
             break;
         }
         case 13: {
-            fl_int nid = _fl_tmp_7.EFieldAccess.id;
-            fl_int l = _fl_tmp_7.EFieldAccess.line;
-            fl_int c = _fl_tmp_7.EFieldAccess.col;
-            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_7.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
-            FL_String* f = _fl_tmp_7.EFieldAccess.field;
+            fl_int nid = _fl_tmp_8.EFieldAccess.id;
+            fl_int l = _fl_tmp_8.EFieldAccess.line;
+            fl_int c = _fl_tmp_8.EFieldAccess.col;
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_8.EFieldAccess.receiver, fl_self_hosted_ast_Expr);
+            FL_String* f = _fl_tmp_8.EFieldAccess.field;
             return nid;
             break;
         }
         case 14: {
-            fl_int nid = _fl_tmp_7.EIndexAccess.id;
-            fl_int l = _fl_tmp_7.EIndexAccess.line;
-            fl_int c = _fl_tmp_7.EIndexAccess.col;
-            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_7.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_7.EIndexAccess.index, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.EIndexAccess.id;
+            fl_int l = _fl_tmp_8.EIndexAccess.line;
+            fl_int c = _fl_tmp_8.EIndexAccess.col;
+            fl_self_hosted_ast_Expr recv = FL_BOX_DEREF(_fl_tmp_8.EIndexAccess.receiver, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr idx = FL_BOX_DEREF(_fl_tmp_8.EIndexAccess.index, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 15: {
-            fl_int nid = _fl_tmp_7.ELambda.id;
-            fl_int l = _fl_tmp_7.ELambda.line;
-            fl_int c = _fl_tmp_7.ELambda.col;
-            FL_Array* params = _fl_tmp_7.ELambda.params;
-            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_7.ELambda.body, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ELambda.id;
+            fl_int l = _fl_tmp_8.ELambda.line;
+            fl_int c = _fl_tmp_8.ELambda.col;
+            FL_Array* params = _fl_tmp_8.ELambda.params;
+            fl_self_hosted_ast_Expr body = FL_BOX_DEREF(_fl_tmp_8.ELambda.body, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 16: {
-            fl_int nid = _fl_tmp_7.ETupleExpr.id;
-            fl_int l = _fl_tmp_7.ETupleExpr.line;
-            fl_int c = _fl_tmp_7.ETupleExpr.col;
-            FL_Array* elems = _fl_tmp_7.ETupleExpr.elements;
+            fl_int nid = _fl_tmp_8.ETupleExpr.id;
+            fl_int l = _fl_tmp_8.ETupleExpr.line;
+            fl_int c = _fl_tmp_8.ETupleExpr.col;
+            FL_Array* elems = _fl_tmp_8.ETupleExpr.elements;
             return nid;
             break;
         }
         case 17: {
-            fl_int nid = _fl_tmp_7.EArrayLit.id;
-            fl_int l = _fl_tmp_7.EArrayLit.line;
-            fl_int c = _fl_tmp_7.EArrayLit.col;
-            FL_Array* elems = _fl_tmp_7.EArrayLit.elements;
+            fl_int nid = _fl_tmp_8.EArrayLit.id;
+            fl_int l = _fl_tmp_8.EArrayLit.line;
+            fl_int c = _fl_tmp_8.EArrayLit.col;
+            FL_Array* elems = _fl_tmp_8.EArrayLit.elements;
             return nid;
             break;
         }
         case 18: {
-            fl_int nid = _fl_tmp_7.ERecordLit.id;
-            fl_int l = _fl_tmp_7.ERecordLit.line;
-            fl_int c = _fl_tmp_7.ERecordLit.col;
-            FL_Array* fields = _fl_tmp_7.ERecordLit.fields;
+            fl_int nid = _fl_tmp_8.ERecordLit.id;
+            fl_int l = _fl_tmp_8.ERecordLit.line;
+            fl_int c = _fl_tmp_8.ERecordLit.col;
+            FL_Array* fields = _fl_tmp_8.ERecordLit.fields;
             return nid;
             break;
         }
         case 19: {
-            fl_int nid = _fl_tmp_7.ETypeLit.id;
-            fl_int l = _fl_tmp_7.ETypeLit.line;
-            fl_int c = _fl_tmp_7.ETypeLit.col;
-            FL_String* tn = _fl_tmp_7.ETypeLit.type_name;
-            FL_Array* fields = _fl_tmp_7.ETypeLit.fields;
-            fl_bool hs = _fl_tmp_7.ETypeLit.has_spread;
-            fl_self_hosted_ast_Expr s = FL_BOX_DEREF(_fl_tmp_7.ETypeLit.spread, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ETypeLit.id;
+            fl_int l = _fl_tmp_8.ETypeLit.line;
+            fl_int c = _fl_tmp_8.ETypeLit.col;
+            FL_String* tn = _fl_tmp_8.ETypeLit.type_name;
+            FL_Array* fields = _fl_tmp_8.ETypeLit.fields;
+            fl_bool hs = _fl_tmp_8.ETypeLit.has_spread;
+            fl_self_hosted_ast_Expr s = FL_BOX_DEREF(_fl_tmp_8.ETypeLit.spread, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 20: {
-            fl_int nid = _fl_tmp_7.EIfExpr.id;
-            fl_int l = _fl_tmp_7.EIfExpr.line;
-            fl_int c = _fl_tmp_7.EIfExpr.col;
-            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_7.EIfExpr.condition, fl_self_hosted_ast_Expr);
-            FL_Array* then_b = _fl_tmp_7.EIfExpr.then_stmts;
-            FL_Array* else_b = _fl_tmp_7.EIfExpr.else_stmts;
+            fl_int nid = _fl_tmp_8.EIfExpr.id;
+            fl_int l = _fl_tmp_8.EIfExpr.line;
+            fl_int c = _fl_tmp_8.EIfExpr.col;
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_8.EIfExpr.condition, fl_self_hosted_ast_Expr);
+            FL_Array* then_b = _fl_tmp_8.EIfExpr.then_stmts;
+            FL_Array* else_b = _fl_tmp_8.EIfExpr.else_stmts;
             return nid;
             break;
         }
         case 21: {
-            fl_int nid = _fl_tmp_7.EMatchExpr.id;
-            fl_int l = _fl_tmp_7.EMatchExpr.line;
-            fl_int c = _fl_tmp_7.EMatchExpr.col;
-            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_7.EMatchExpr.subject, fl_self_hosted_ast_Expr);
-            FL_Array* arms = _fl_tmp_7.EMatchExpr.arms;
+            fl_int nid = _fl_tmp_8.EMatchExpr.id;
+            fl_int l = _fl_tmp_8.EMatchExpr.line;
+            fl_int c = _fl_tmp_8.EMatchExpr.col;
+            fl_self_hosted_ast_Expr subj = FL_BOX_DEREF(_fl_tmp_8.EMatchExpr.subject, fl_self_hosted_ast_Expr);
+            FL_Array* arms = _fl_tmp_8.EMatchExpr.arms;
             return nid;
             break;
         }
         case 22: {
-            fl_int nid = _fl_tmp_7.ETernary.id;
-            fl_int l = _fl_tmp_7.ETernary.line;
-            fl_int c = _fl_tmp_7.ETernary.col;
-            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_7.ETernary.condition, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_7.ETernary.then_expr, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_7.ETernary.else_expr, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ETernary.id;
+            fl_int l = _fl_tmp_8.ETernary.line;
+            fl_int c = _fl_tmp_8.ETernary.col;
+            fl_self_hosted_ast_Expr cond = FL_BOX_DEREF(_fl_tmp_8.ETernary.condition, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr then_e = FL_BOX_DEREF(_fl_tmp_8.ETernary.then_expr, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr else_e = FL_BOX_DEREF(_fl_tmp_8.ETernary.else_expr, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 23: {
-            fl_int nid = _fl_tmp_7.ECopy.id;
-            fl_int l = _fl_tmp_7.ECopy.line;
-            fl_int c = _fl_tmp_7.ECopy.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.ECopy.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ECopy.id;
+            fl_int l = _fl_tmp_8.ECopy.line;
+            fl_int c = _fl_tmp_8.ECopy.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.ECopy.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 24: {
-            fl_int nid = _fl_tmp_7.ERef.id;
-            fl_int l = _fl_tmp_7.ERef.line;
-            fl_int c = _fl_tmp_7.ERef.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.ERef.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ERef.id;
+            fl_int l = _fl_tmp_8.ERef.line;
+            fl_int c = _fl_tmp_8.ERef.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.ERef.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 25: {
-            fl_int nid = _fl_tmp_7.ESome.id;
-            fl_int l = _fl_tmp_7.ESome.line;
-            fl_int c = _fl_tmp_7.ESome.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.ESome.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ESome.id;
+            fl_int l = _fl_tmp_8.ESome.line;
+            fl_int c = _fl_tmp_8.ESome.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.ESome.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 26: {
-            fl_int nid = _fl_tmp_7.EOk.id;
-            fl_int l = _fl_tmp_7.EOk.line;
-            fl_int c = _fl_tmp_7.EOk.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.EOk.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.EOk.id;
+            fl_int l = _fl_tmp_8.EOk.line;
+            fl_int c = _fl_tmp_8.EOk.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.EOk.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 27: {
-            fl_int nid = _fl_tmp_7.EErr.id;
-            fl_int l = _fl_tmp_7.EErr.line;
-            fl_int c = _fl_tmp_7.EErr.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.EErr.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.EErr.id;
+            fl_int l = _fl_tmp_8.EErr.line;
+            fl_int c = _fl_tmp_8.EErr.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.EErr.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 28: {
-            fl_int nid = _fl_tmp_7.EPropagate.id;
-            fl_int l = _fl_tmp_7.EPropagate.line;
-            fl_int c = _fl_tmp_7.EPropagate.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.EPropagate.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.EPropagate.id;
+            fl_int l = _fl_tmp_8.EPropagate.line;
+            fl_int c = _fl_tmp_8.EPropagate.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.EPropagate.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 29: {
-            fl_int nid = _fl_tmp_7.ENullCoalesce.id;
-            fl_int l = _fl_tmp_7.ENullCoalesce.line;
-            fl_int c = _fl_tmp_7.ENullCoalesce.col;
-            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_7.ENullCoalesce.left, fl_self_hosted_ast_Expr);
-            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_7.ENullCoalesce.right, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ENullCoalesce.id;
+            fl_int l = _fl_tmp_8.ENullCoalesce.line;
+            fl_int c = _fl_tmp_8.ENullCoalesce.col;
+            fl_self_hosted_ast_Expr left = FL_BOX_DEREF(_fl_tmp_8.ENullCoalesce.left, fl_self_hosted_ast_Expr);
+            fl_self_hosted_ast_Expr right = FL_BOX_DEREF(_fl_tmp_8.ENullCoalesce.right, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 30: {
-            fl_int nid = _fl_tmp_7.ETypeof.id;
-            fl_int l = _fl_tmp_7.ETypeof.line;
-            fl_int c = _fl_tmp_7.ETypeof.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.ETypeof.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ETypeof.id;
+            fl_int l = _fl_tmp_8.ETypeof.line;
+            fl_int c = _fl_tmp_8.ETypeof.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.ETypeof.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 31: {
-            fl_int nid = _fl_tmp_7.ECast.id;
-            fl_int l = _fl_tmp_7.ECast.line;
-            fl_int c = _fl_tmp_7.ECast.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.ECast.inner, fl_self_hosted_ast_Expr);
-            fl_int t = _fl_tmp_7.ECast.target_id;
+            fl_int nid = _fl_tmp_8.ECast.id;
+            fl_int l = _fl_tmp_8.ECast.line;
+            fl_int c = _fl_tmp_8.ECast.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.ECast.inner, fl_self_hosted_ast_Expr);
+            fl_int t = _fl_tmp_8.ECast.target_id;
             return nid;
             break;
         }
         case 32: {
-            fl_int nid = _fl_tmp_7.ECoerce.id;
-            fl_int l = _fl_tmp_7.ECoerce.line;
-            fl_int c = _fl_tmp_7.ECoerce.col;
-            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_7.ECoerce.inner, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ECoerce.id;
+            fl_int l = _fl_tmp_8.ECoerce.line;
+            fl_int c = _fl_tmp_8.ECoerce.col;
+            fl_self_hosted_ast_Expr i = FL_BOX_DEREF(_fl_tmp_8.ECoerce.inner, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 33: {
-            fl_int nid = _fl_tmp_7.EFString.id;
-            fl_int l = _fl_tmp_7.EFString.line;
-            fl_int c = _fl_tmp_7.EFString.col;
-            FL_Array* parts = _fl_tmp_7.EFString.parts;
+            fl_int nid = _fl_tmp_8.EFString.id;
+            fl_int l = _fl_tmp_8.EFString.line;
+            fl_int c = _fl_tmp_8.EFString.col;
+            FL_Array* parts = _fl_tmp_8.EFString.parts;
             return nid;
             break;
         }
         case 34: {
-            fl_int nid = _fl_tmp_7.ECompositionChain.id;
-            fl_int l = _fl_tmp_7.ECompositionChain.line;
-            fl_int c = _fl_tmp_7.ECompositionChain.col;
-            FL_Array* elems = _fl_tmp_7.ECompositionChain.elements;
+            fl_int nid = _fl_tmp_8.ECompositionChain.id;
+            fl_int l = _fl_tmp_8.ECompositionChain.line;
+            fl_int c = _fl_tmp_8.ECompositionChain.col;
+            FL_Array* elems = _fl_tmp_8.ECompositionChain.elements;
             return nid;
             break;
         }
         case 35: {
-            fl_int nid = _fl_tmp_7.EFanOut.id;
-            fl_int l = _fl_tmp_7.EFanOut.line;
-            fl_int c = _fl_tmp_7.EFanOut.col;
-            FL_Array* branches = _fl_tmp_7.EFanOut.branches;
-            fl_bool ip = _fl_tmp_7.EFanOut.is_parallel;
+            fl_int nid = _fl_tmp_8.EFanOut.id;
+            fl_int l = _fl_tmp_8.EFanOut.line;
+            fl_int c = _fl_tmp_8.EFanOut.col;
+            FL_Array* branches = _fl_tmp_8.EFanOut.branches;
+            fl_bool ip = _fl_tmp_8.EFanOut.is_parallel;
             return nid;
             break;
         }
         case 36: {
-            fl_int nid = _fl_tmp_7.ECoroutineStart.id;
-            fl_int l = _fl_tmp_7.ECoroutineStart.line;
-            fl_int c = _fl_tmp_7.ECoroutineStart.col;
-            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_7.ECoroutineStart.call, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_8.ECoroutineStart.id;
+            fl_int l = _fl_tmp_8.ECoroutineStart.line;
+            fl_int c = _fl_tmp_8.ECoroutineStart.col;
+            fl_self_hosted_ast_Expr call = FL_BOX_DEREF(_fl_tmp_8.ECoroutineStart.call, fl_self_hosted_ast_Expr);
             return nid;
             break;
         }
         case 37: {
-            fl_int nid = _fl_tmp_7.ECoroutinePipeline.id;
-            fl_int l = _fl_tmp_7.ECoroutinePipeline.line;
-            fl_int c = _fl_tmp_7.ECoroutinePipeline.col;
-            FL_Array* stages = _fl_tmp_7.ECoroutinePipeline.stages;
+            fl_int nid = _fl_tmp_8.ECoroutinePipeline.id;
+            fl_int l = _fl_tmp_8.ECoroutinePipeline.line;
+            fl_int c = _fl_tmp_8.ECoroutinePipeline.col;
+            FL_Array* stages = _fl_tmp_8.ECoroutinePipeline.stages;
             return nid;
             break;
         }
@@ -4879,140 +4941,140 @@ fl_int fl_self_hosted_ast_expr_id(fl_self_hosted_ast_Expr e) {
 
 /* Flow: self_hosted.ast.stmt_id */
 fl_int fl_self_hosted_ast_stmt_id(fl_self_hosted_ast_Stmt s) {
-    fl_self_hosted_ast_Stmt _fl_tmp_8 = s;
-    switch (_fl_tmp_8.tag) {
+    fl_self_hosted_ast_Stmt _fl_tmp_9 = s;
+    switch (_fl_tmp_9.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_8.SLet.id;
-            fl_int l = _fl_tmp_8.SLet.line;
-            fl_int c = _fl_tmp_8.SLet.col;
-            FL_String* n = _fl_tmp_8.SLet.name;
-            fl_bool ht = _fl_tmp_8.SLet.has_type_ann;
-            fl_self_hosted_ast_TypeExpr ta = _fl_tmp_8.SLet.type_ann;
-            fl_self_hosted_ast_Expr v = _fl_tmp_8.SLet.value;
+            fl_int nid = _fl_tmp_9.SLet.id;
+            fl_int l = _fl_tmp_9.SLet.line;
+            fl_int c = _fl_tmp_9.SLet.col;
+            FL_String* n = _fl_tmp_9.SLet.name;
+            fl_bool ht = _fl_tmp_9.SLet.has_type_ann;
+            fl_self_hosted_ast_TypeExpr ta = _fl_tmp_9.SLet.type_ann;
+            fl_self_hosted_ast_Expr v = _fl_tmp_9.SLet.value;
             return nid;
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_8.SAssign.id;
-            fl_int l = _fl_tmp_8.SAssign.line;
-            fl_int c = _fl_tmp_8.SAssign.col;
-            fl_self_hosted_ast_Expr t = _fl_tmp_8.SAssign.target;
-            fl_self_hosted_ast_Expr v = _fl_tmp_8.SAssign.value;
+            fl_int nid = _fl_tmp_9.SAssign.id;
+            fl_int l = _fl_tmp_9.SAssign.line;
+            fl_int c = _fl_tmp_9.SAssign.col;
+            fl_self_hosted_ast_Expr t = _fl_tmp_9.SAssign.target;
+            fl_self_hosted_ast_Expr v = _fl_tmp_9.SAssign.value;
             return nid;
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_8.SUpdate.id;
-            fl_int l = _fl_tmp_8.SUpdate.line;
-            fl_int c = _fl_tmp_8.SUpdate.col;
-            fl_self_hosted_ast_Expr t = _fl_tmp_8.SUpdate.target;
-            FL_String* o = _fl_tmp_8.SUpdate.op;
-            fl_bool hv = _fl_tmp_8.SUpdate.has_value;
-            fl_self_hosted_ast_Expr v = _fl_tmp_8.SUpdate.value;
+            fl_int nid = _fl_tmp_9.SUpdate.id;
+            fl_int l = _fl_tmp_9.SUpdate.line;
+            fl_int c = _fl_tmp_9.SUpdate.col;
+            fl_self_hosted_ast_Expr t = _fl_tmp_9.SUpdate.target;
+            FL_String* o = _fl_tmp_9.SUpdate.op;
+            fl_bool hv = _fl_tmp_9.SUpdate.has_value;
+            fl_self_hosted_ast_Expr v = _fl_tmp_9.SUpdate.value;
             return nid;
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_8.SReturn.id;
-            fl_int l = _fl_tmp_8.SReturn.line;
-            fl_int c = _fl_tmp_8.SReturn.col;
-            fl_bool hv = _fl_tmp_8.SReturn.has_value;
-            fl_self_hosted_ast_Expr v = _fl_tmp_8.SReturn.value;
+            fl_int nid = _fl_tmp_9.SReturn.id;
+            fl_int l = _fl_tmp_9.SReturn.line;
+            fl_int c = _fl_tmp_9.SReturn.col;
+            fl_bool hv = _fl_tmp_9.SReturn.has_value;
+            fl_self_hosted_ast_Expr v = _fl_tmp_9.SReturn.value;
             return nid;
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_8.SYield.id;
-            fl_int l = _fl_tmp_8.SYield.line;
-            fl_int c = _fl_tmp_8.SYield.col;
-            fl_self_hosted_ast_Expr v = _fl_tmp_8.SYield.value;
+            fl_int nid = _fl_tmp_9.SYield.id;
+            fl_int l = _fl_tmp_9.SYield.line;
+            fl_int c = _fl_tmp_9.SYield.col;
+            fl_self_hosted_ast_Expr v = _fl_tmp_9.SYield.value;
             return nid;
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_8.SThrow.id;
-            fl_int l = _fl_tmp_8.SThrow.line;
-            fl_int c = _fl_tmp_8.SThrow.col;
-            fl_self_hosted_ast_Expr e = _fl_tmp_8.SThrow.exception;
+            fl_int nid = _fl_tmp_9.SThrow.id;
+            fl_int l = _fl_tmp_9.SThrow.line;
+            fl_int c = _fl_tmp_9.SThrow.col;
+            fl_self_hosted_ast_Expr e = _fl_tmp_9.SThrow.exception;
             return nid;
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_8.SBreak.id;
-            fl_int l = _fl_tmp_8.SBreak.line;
-            fl_int c = _fl_tmp_8.SBreak.col;
+            fl_int nid = _fl_tmp_9.SBreak.id;
+            fl_int l = _fl_tmp_9.SBreak.line;
+            fl_int c = _fl_tmp_9.SBreak.col;
             return nid;
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_8.SContinue.id;
-            fl_int l = _fl_tmp_8.SContinue.line;
-            fl_int c = _fl_tmp_8.SContinue.col;
+            fl_int nid = _fl_tmp_9.SContinue.id;
+            fl_int l = _fl_tmp_9.SContinue.line;
+            fl_int c = _fl_tmp_9.SContinue.col;
             return nid;
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_8.SExpr.id;
-            fl_int l = _fl_tmp_8.SExpr.line;
-            fl_int c = _fl_tmp_8.SExpr.col;
-            fl_self_hosted_ast_Expr e = _fl_tmp_8.SExpr.expr;
+            fl_int nid = _fl_tmp_9.SExpr.id;
+            fl_int l = _fl_tmp_9.SExpr.line;
+            fl_int c = _fl_tmp_9.SExpr.col;
+            fl_self_hosted_ast_Expr e = _fl_tmp_9.SExpr.expr;
             return nid;
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_8.SIf.id;
-            fl_int l = _fl_tmp_8.SIf.line;
-            fl_int c = _fl_tmp_8.SIf.col;
-            fl_self_hosted_ast_Expr cond = _fl_tmp_8.SIf.condition;
-            FL_Array* then_b = _fl_tmp_8.SIf.then_stmts;
-            fl_bool he = _fl_tmp_8.SIf.has_else;
-            FL_Array* else_b = _fl_tmp_8.SIf.else_stmts;
+            fl_int nid = _fl_tmp_9.SIf.id;
+            fl_int l = _fl_tmp_9.SIf.line;
+            fl_int c = _fl_tmp_9.SIf.col;
+            fl_self_hosted_ast_Expr cond = _fl_tmp_9.SIf.condition;
+            FL_Array* then_b = _fl_tmp_9.SIf.then_stmts;
+            fl_bool he = _fl_tmp_9.SIf.has_else;
+            FL_Array* else_b = _fl_tmp_9.SIf.else_stmts;
             return nid;
             break;
         }
         case 10: {
-            fl_int nid = _fl_tmp_8.SWhile.id;
-            fl_int l = _fl_tmp_8.SWhile.line;
-            fl_int c = _fl_tmp_8.SWhile.col;
-            fl_self_hosted_ast_Expr cond = _fl_tmp_8.SWhile.condition;
-            FL_Array* body = _fl_tmp_8.SWhile.body;
-            fl_bool hf = _fl_tmp_8.SWhile.has_finally;
-            FL_Array* fb = _fl_tmp_8.SWhile.finally_body;
+            fl_int nid = _fl_tmp_9.SWhile.id;
+            fl_int l = _fl_tmp_9.SWhile.line;
+            fl_int c = _fl_tmp_9.SWhile.col;
+            fl_self_hosted_ast_Expr cond = _fl_tmp_9.SWhile.condition;
+            FL_Array* body = _fl_tmp_9.SWhile.body;
+            fl_bool hf = _fl_tmp_9.SWhile.has_finally;
+            FL_Array* fb = _fl_tmp_9.SWhile.finally_body;
             return nid;
             break;
         }
         case 11: {
-            fl_int nid = _fl_tmp_8.SFor.id;
-            fl_int l = _fl_tmp_8.SFor.line;
-            fl_int c = _fl_tmp_8.SFor.col;
-            FL_String* vn = _fl_tmp_8.SFor.var_name;
-            fl_bool hvt = _fl_tmp_8.SFor.has_var_type;
-            fl_self_hosted_ast_TypeExpr vt = _fl_tmp_8.SFor.var_type;
-            fl_self_hosted_ast_Expr it = _fl_tmp_8.SFor.iterable;
-            FL_Array* body = _fl_tmp_8.SFor.body;
-            fl_bool hf = _fl_tmp_8.SFor.has_finally;
-            FL_Array* fb = _fl_tmp_8.SFor.finally_body;
+            fl_int nid = _fl_tmp_9.SFor.id;
+            fl_int l = _fl_tmp_9.SFor.line;
+            fl_int c = _fl_tmp_9.SFor.col;
+            FL_String* vn = _fl_tmp_9.SFor.var_name;
+            fl_bool hvt = _fl_tmp_9.SFor.has_var_type;
+            fl_self_hosted_ast_TypeExpr vt = _fl_tmp_9.SFor.var_type;
+            fl_self_hosted_ast_Expr it = _fl_tmp_9.SFor.iterable;
+            FL_Array* body = _fl_tmp_9.SFor.body;
+            fl_bool hf = _fl_tmp_9.SFor.has_finally;
+            FL_Array* fb = _fl_tmp_9.SFor.finally_body;
             return nid;
             break;
         }
         case 12: {
-            fl_int nid = _fl_tmp_8.SMatch.id;
-            fl_int l = _fl_tmp_8.SMatch.line;
-            fl_int c = _fl_tmp_8.SMatch.col;
-            fl_self_hosted_ast_Expr subj = _fl_tmp_8.SMatch.subject;
-            FL_Array* arms = _fl_tmp_8.SMatch.arms;
+            fl_int nid = _fl_tmp_9.SMatch.id;
+            fl_int l = _fl_tmp_9.SMatch.line;
+            fl_int c = _fl_tmp_9.SMatch.col;
+            fl_self_hosted_ast_Expr subj = _fl_tmp_9.SMatch.subject;
+            FL_Array* arms = _fl_tmp_9.SMatch.arms;
             return nid;
             break;
         }
         case 13: {
-            fl_int nid = _fl_tmp_8.STry.id;
-            fl_int l = _fl_tmp_8.STry.line;
-            fl_int c = _fl_tmp_8.STry.col;
-            FL_Array* body = _fl_tmp_8.STry.body;
-            FL_Array* rb = _fl_tmp_8.STry.retry_blocks;
-            FL_Array* catches = _fl_tmp_8.STry.catches;
-            fl_bool hf = _fl_tmp_8.STry.has_finally;
-            FL_Array* fb = _fl_tmp_8.STry.finally_body;
+            fl_int nid = _fl_tmp_9.STry.id;
+            fl_int l = _fl_tmp_9.STry.line;
+            fl_int c = _fl_tmp_9.STry.col;
+            FL_Array* body = _fl_tmp_9.STry.body;
+            FL_Array* rb = _fl_tmp_9.STry.retry_blocks;
+            FL_Array* catches = _fl_tmp_9.STry.catches;
+            fl_bool hf = _fl_tmp_9.STry.has_finally;
+            FL_Array* fb = _fl_tmp_9.STry.finally_body;
             return nid;
             break;
         }
@@ -5021,145 +5083,145 @@ fl_int fl_self_hosted_ast_stmt_id(fl_self_hosted_ast_Stmt s) {
 
 /* Flow: self_hosted.ast.decl_id */
 fl_int fl_self_hosted_ast_decl_id(fl_self_hosted_ast_Decl d) {
-    fl_self_hosted_ast_Decl _fl_tmp_9 = d;
-    switch (_fl_tmp_9.tag) {
+    fl_self_hosted_ast_Decl _fl_tmp_10 = d;
+    switch (_fl_tmp_10.tag) {
         case 0: {
-            fl_int nid = _fl_tmp_9.DModule.id;
-            fl_int l = _fl_tmp_9.DModule.line;
-            fl_int c = _fl_tmp_9.DModule.col;
-            FL_Array* p = _fl_tmp_9.DModule.path;
+            fl_int nid = _fl_tmp_10.DModule.id;
+            fl_int l = _fl_tmp_10.DModule.line;
+            fl_int c = _fl_tmp_10.DModule.col;
+            FL_Array* p = _fl_tmp_10.DModule.path;
             return nid;
             break;
         }
         case 1: {
-            fl_int nid = _fl_tmp_9.DImport.id;
-            fl_int l = _fl_tmp_9.DImport.line;
-            fl_int c = _fl_tmp_9.DImport.col;
-            FL_Array* p = _fl_tmp_9.DImport.path;
-            FL_Array* n = _fl_tmp_9.DImport.names;
-            FL_String* ia = _fl_tmp_9.DImport.import_alias;
+            fl_int nid = _fl_tmp_10.DImport.id;
+            fl_int l = _fl_tmp_10.DImport.line;
+            fl_int c = _fl_tmp_10.DImport.col;
+            FL_Array* p = _fl_tmp_10.DImport.path;
+            FL_Array* n = _fl_tmp_10.DImport.names;
+            FL_String* ia = _fl_tmp_10.DImport.import_alias;
             return nid;
             break;
         }
         case 2: {
-            fl_int nid = _fl_tmp_9.DFn.id;
-            fl_int l = _fl_tmp_9.DFn.line;
-            fl_int c = _fl_tmp_9.DFn.col;
-            FL_String* n = _fl_tmp_9.DFn.name;
-            FL_Array* tp = _fl_tmp_9.DFn.type_params;
-            FL_Array* par = _fl_tmp_9.DFn.params;
-            fl_bool hrt = _fl_tmp_9.DFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr rt = _fl_tmp_9.DFn.return_type;
-            FL_Array* body = _fl_tmp_9.DFn.body;
-            fl_bool ip = _fl_tmp_9.DFn.is_pure;
-            fl_bool ie = _fl_tmp_9.DFn.is_export;
-            fl_bool is = _fl_tmp_9.DFn.is_static;
-            fl_bool hf = _fl_tmp_9.DFn.has_finally;
-            FL_Array* fb = _fl_tmp_9.DFn.finally_body;
+            fl_int nid = _fl_tmp_10.DFn.id;
+            fl_int l = _fl_tmp_10.DFn.line;
+            fl_int c = _fl_tmp_10.DFn.col;
+            FL_String* n = _fl_tmp_10.DFn.name;
+            FL_Array* tp = _fl_tmp_10.DFn.type_params;
+            FL_Array* par = _fl_tmp_10.DFn.params;
+            fl_bool hrt = _fl_tmp_10.DFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr rt = _fl_tmp_10.DFn.return_type;
+            FL_Array* body = _fl_tmp_10.DFn.body;
+            fl_bool ip = _fl_tmp_10.DFn.is_pure;
+            fl_bool ie = _fl_tmp_10.DFn.is_export;
+            fl_bool is = _fl_tmp_10.DFn.is_static;
+            fl_bool hf = _fl_tmp_10.DFn.has_finally;
+            FL_Array* fb = _fl_tmp_10.DFn.finally_body;
             return nid;
             break;
         }
         case 3: {
-            fl_int nid = _fl_tmp_9.DType.id;
-            fl_int l = _fl_tmp_9.DType.line;
-            fl_int c = _fl_tmp_9.DType.col;
-            FL_String* n = _fl_tmp_9.DType.name;
-            FL_Array* tp = _fl_tmp_9.DType.type_params;
-            FL_Array* f = _fl_tmp_9.DType.fields;
-            FL_Array* m = _fl_tmp_9.DType.methods;
-            FL_Array* cons = _fl_tmp_9.DType.constructors;
-            FL_Array* sm = _fl_tmp_9.DType.static_members;
-            FL_Array* ifaces = _fl_tmp_9.DType.interfaces;
-            fl_bool ie = _fl_tmp_9.DType.is_export;
-            fl_bool ist = _fl_tmp_9.DType.is_sum_type;
-            FL_Array* v = _fl_tmp_9.DType.variants;
-            fl_bool im = _fl_tmp_9.DType.is_mut;
+            fl_int nid = _fl_tmp_10.DType.id;
+            fl_int l = _fl_tmp_10.DType.line;
+            fl_int c = _fl_tmp_10.DType.col;
+            FL_String* n = _fl_tmp_10.DType.name;
+            FL_Array* tp = _fl_tmp_10.DType.type_params;
+            FL_Array* f = _fl_tmp_10.DType.fields;
+            FL_Array* m = _fl_tmp_10.DType.methods;
+            FL_Array* cons = _fl_tmp_10.DType.constructors;
+            FL_Array* sm = _fl_tmp_10.DType.static_members;
+            FL_Array* ifaces = _fl_tmp_10.DType.interfaces;
+            fl_bool ie = _fl_tmp_10.DType.is_export;
+            fl_bool ist = _fl_tmp_10.DType.is_sum_type;
+            FL_Array* v = _fl_tmp_10.DType.variants;
+            fl_bool im = _fl_tmp_10.DType.is_mut;
             return nid;
             break;
         }
         case 4: {
-            fl_int nid = _fl_tmp_9.DInterface.id;
-            fl_int l = _fl_tmp_9.DInterface.line;
-            fl_int c = _fl_tmp_9.DInterface.col;
-            FL_String* n = _fl_tmp_9.DInterface.name;
-            FL_Array* tp = _fl_tmp_9.DInterface.type_params;
-            FL_Array* m = _fl_tmp_9.DInterface.methods;
-            fl_bool ie = _fl_tmp_9.DInterface.is_export;
+            fl_int nid = _fl_tmp_10.DInterface.id;
+            fl_int l = _fl_tmp_10.DInterface.line;
+            fl_int c = _fl_tmp_10.DInterface.col;
+            FL_String* n = _fl_tmp_10.DInterface.name;
+            FL_Array* tp = _fl_tmp_10.DInterface.type_params;
+            FL_Array* m = _fl_tmp_10.DInterface.methods;
+            fl_bool ie = _fl_tmp_10.DInterface.is_export;
             return nid;
             break;
         }
         case 5: {
-            fl_int nid = _fl_tmp_9.DAlias.id;
-            fl_int l = _fl_tmp_9.DAlias.line;
-            fl_int c = _fl_tmp_9.DAlias.col;
-            FL_String* n = _fl_tmp_9.DAlias.name;
-            FL_Array* tp = _fl_tmp_9.DAlias.type_params;
-            fl_self_hosted_ast_TypeExpr t = _fl_tmp_9.DAlias.target;
-            fl_bool ie = _fl_tmp_9.DAlias.is_export;
+            fl_int nid = _fl_tmp_10.DAlias.id;
+            fl_int l = _fl_tmp_10.DAlias.line;
+            fl_int c = _fl_tmp_10.DAlias.col;
+            FL_String* n = _fl_tmp_10.DAlias.name;
+            FL_Array* tp = _fl_tmp_10.DAlias.type_params;
+            fl_self_hosted_ast_TypeExpr t = _fl_tmp_10.DAlias.target;
+            fl_bool ie = _fl_tmp_10.DAlias.is_export;
             return nid;
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_9.DEnum.id;
-            fl_int l = _fl_tmp_9.DEnum.line;
-            fl_int c = _fl_tmp_9.DEnum.col;
-            FL_String* n = _fl_tmp_9.DEnum.name;
-            FL_Array* v = _fl_tmp_9.DEnum.variants;
-            fl_bool ie = _fl_tmp_9.DEnum.is_export;
+            fl_int nid = _fl_tmp_10.DEnum.id;
+            fl_int l = _fl_tmp_10.DEnum.line;
+            fl_int c = _fl_tmp_10.DEnum.col;
+            FL_String* n = _fl_tmp_10.DEnum.name;
+            FL_Array* v = _fl_tmp_10.DEnum.variants;
+            fl_bool ie = _fl_tmp_10.DEnum.is_export;
             return nid;
             break;
         }
         case 7: {
-            fl_int nid = _fl_tmp_9.DExternLib.id;
-            fl_int l = _fl_tmp_9.DExternLib.line;
-            fl_int c = _fl_tmp_9.DExternLib.col;
-            FL_String* ln = _fl_tmp_9.DExternLib.lib_name;
+            fl_int nid = _fl_tmp_10.DExternLib.id;
+            fl_int l = _fl_tmp_10.DExternLib.line;
+            fl_int c = _fl_tmp_10.DExternLib.col;
+            FL_String* ln = _fl_tmp_10.DExternLib.lib_name;
             return nid;
             break;
         }
         case 8: {
-            fl_int nid = _fl_tmp_9.DExternType.id;
-            fl_int l = _fl_tmp_9.DExternType.line;
-            fl_int c = _fl_tmp_9.DExternType.col;
-            FL_String* n = _fl_tmp_9.DExternType.name;
-            fl_bool ie = _fl_tmp_9.DExternType.is_export;
+            fl_int nid = _fl_tmp_10.DExternType.id;
+            fl_int l = _fl_tmp_10.DExternType.line;
+            fl_int c = _fl_tmp_10.DExternType.col;
+            FL_String* n = _fl_tmp_10.DExternType.name;
+            fl_bool ie = _fl_tmp_10.DExternType.is_export;
             return nid;
             break;
         }
         case 9: {
-            fl_int nid = _fl_tmp_9.DExternFn.id;
-            fl_int l = _fl_tmp_9.DExternFn.line;
-            fl_int c = _fl_tmp_9.DExternFn.col;
-            FL_String* n = _fl_tmp_9.DExternFn.name;
-            FL_Array* tp = _fl_tmp_9.DExternFn.type_params;
-            FL_Array* par = _fl_tmp_9.DExternFn.params;
-            fl_bool hrt = _fl_tmp_9.DExternFn.has_return_type;
-            fl_self_hosted_ast_TypeExpr rt = _fl_tmp_9.DExternFn.return_type;
-            fl_bool ie = _fl_tmp_9.DExternFn.is_export;
-            FL_String* cn = _fl_tmp_9.DExternFn.c_name;
+            fl_int nid = _fl_tmp_10.DExternFn.id;
+            fl_int l = _fl_tmp_10.DExternFn.line;
+            fl_int c = _fl_tmp_10.DExternFn.col;
+            FL_String* n = _fl_tmp_10.DExternFn.name;
+            FL_Array* tp = _fl_tmp_10.DExternFn.type_params;
+            FL_Array* par = _fl_tmp_10.DExternFn.params;
+            fl_bool hrt = _fl_tmp_10.DExternFn.has_return_type;
+            fl_self_hosted_ast_TypeExpr rt = _fl_tmp_10.DExternFn.return_type;
+            fl_bool ie = _fl_tmp_10.DExternFn.is_export;
+            FL_String* cn = _fl_tmp_10.DExternFn.c_name;
             return nid;
             break;
         }
         case 10: {
-            fl_int nid = _fl_tmp_9.DConstructor.id;
-            fl_int l = _fl_tmp_9.DConstructor.line;
-            fl_int c = _fl_tmp_9.DConstructor.col;
-            FL_String* n = _fl_tmp_9.DConstructor.name;
-            FL_Array* par = _fl_tmp_9.DConstructor.params;
-            fl_self_hosted_ast_TypeExpr rt = _fl_tmp_9.DConstructor.return_type;
-            FL_Array* body = _fl_tmp_9.DConstructor.body;
+            fl_int nid = _fl_tmp_10.DConstructor.id;
+            fl_int l = _fl_tmp_10.DConstructor.line;
+            fl_int c = _fl_tmp_10.DConstructor.col;
+            FL_String* n = _fl_tmp_10.DConstructor.name;
+            FL_Array* par = _fl_tmp_10.DConstructor.params;
+            fl_self_hosted_ast_TypeExpr rt = _fl_tmp_10.DConstructor.return_type;
+            FL_Array* body = _fl_tmp_10.DConstructor.body;
             return nid;
             break;
         }
         case 11: {
-            fl_int nid = _fl_tmp_9.DStaticMember.id;
-            fl_int l = _fl_tmp_9.DStaticMember.line;
-            fl_int c = _fl_tmp_9.DStaticMember.col;
-            FL_String* n = _fl_tmp_9.DStaticMember.name;
-            fl_self_hosted_ast_TypeExpr ta = _fl_tmp_9.DStaticMember.type_ann;
-            fl_bool im = _fl_tmp_9.DStaticMember.is_mut;
-            fl_bool hv = _fl_tmp_9.DStaticMember.has_value;
-            fl_self_hosted_ast_Expr v = _fl_tmp_9.DStaticMember.value;
+            fl_int nid = _fl_tmp_10.DStaticMember.id;
+            fl_int l = _fl_tmp_10.DStaticMember.line;
+            fl_int c = _fl_tmp_10.DStaticMember.col;
+            FL_String* n = _fl_tmp_10.DStaticMember.name;
+            fl_self_hosted_ast_TypeExpr ta = _fl_tmp_10.DStaticMember.type_ann;
+            fl_bool im = _fl_tmp_10.DStaticMember.is_mut;
+            fl_bool hv = _fl_tmp_10.DStaticMember.has_value;
+            fl_self_hosted_ast_Expr v = _fl_tmp_10.DStaticMember.value;
             return nid;
             break;
         }
@@ -5168,15 +5230,15 @@ fl_int fl_self_hosted_ast_decl_id(fl_self_hosted_ast_Decl d) {
 
 /* Flow: self_hosted.ast.fsp_is_expr */
 fl_bool fl_self_hosted_ast_fsp_is_expr(fl_self_hosted_ast_FStringPart p) {
-    fl_self_hosted_ast_FStringPart _fl_tmp_10 = p;
-    switch (_fl_tmp_10.tag) {
+    fl_self_hosted_ast_FStringPart _fl_tmp_11 = p;
+    switch (_fl_tmp_11.tag) {
         case 1: {
-            fl_self_hosted_ast_Expr e = _fl_tmp_10.FPExpr.expr;
+            fl_self_hosted_ast_Expr e = _fl_tmp_11.FPExpr.expr;
             return fl_true;
             break;
         }
         case 0: {
-            FL_String* t = _fl_tmp_10.FPText.text;
+            FL_String* t = _fl_tmp_11.FPText.text;
             return fl_false;
             break;
         }
@@ -5185,15 +5247,15 @@ fl_bool fl_self_hosted_ast_fsp_is_expr(fl_self_hosted_ast_FStringPart p) {
 
 /* Flow: self_hosted.ast.fsp_get_expr */
 fl_self_hosted_ast_Expr fl_self_hosted_ast_fsp_get_expr(fl_self_hosted_ast_FStringPart p) {
-    fl_self_hosted_ast_FStringPart _fl_tmp_11 = p;
-    switch (_fl_tmp_11.tag) {
+    fl_self_hosted_ast_FStringPart _fl_tmp_12 = p;
+    switch (_fl_tmp_12.tag) {
         case 1: {
-            fl_self_hosted_ast_Expr e = _fl_tmp_11.FPExpr.expr;
+            fl_self_hosted_ast_Expr e = _fl_tmp_12.FPExpr.expr;
             return e;
             break;
         }
         case 0: {
-            FL_String* t = _fl_tmp_11.FPText.text;
+            FL_String* t = _fl_tmp_12.FPText.text;
             return (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = 0, .line = 0, .col = 0}};
             break;
         }
@@ -15175,6 +15237,10 @@ static void _fl_init_statics(void) {
     _fl_str_self_hosted_lexer_173->refcount = 2147483647;
     _fl_str_self_hosted_ast_0 = fl_string_from_cstr("<unknown>");
     _fl_str_self_hosted_ast_0->refcount = 2147483647;
+    _fl_str_self_hosted_ast_1 = fl_string_from_cstr("option");
+    _fl_str_self_hosted_ast_1->refcount = 2147483647;
+    _fl_str_self_hosted_ast_2 = fl_string_from_cstr("");
+    _fl_str_self_hosted_ast_2->refcount = 2147483647;
     _fl_str_self_hosted_parser_0 = fl_string_from_cstr("??");
     _fl_str_self_hosted_parser_0->refcount = 2147483647;
     _fl_str_self_hosted_parser_1 = fl_string_from_cstr("||");
