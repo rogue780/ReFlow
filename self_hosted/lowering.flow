@@ -688,6 +688,31 @@ fn emit_struct_field_release(struct_var:string, field_name:string, struct_c_type
 }
 
 // ---------------------------------------------------------------------------
+// register_struct_field_releases — add StructFieldCleanup entries for all
+// refcounted fields of a named/sum type variable
+// ---------------------------------------------------------------------------
+
+fn register_struct_field_releases(st:LowerState:mut, var_name:string, val_type:typechecker.TCType, c_type:lir.LType, depth:int, block_safe:bool):none {
+    let fields:array<ast.FieldDecl> = get_type_fields(st, val_type)
+    let i:int:mut = 0
+    while(i < array.size(fields)) {
+        let f:ast.FieldDecl = array.get_any(fields, i) ?? ast.FieldDecl{name:"", type_ann:ast.TNamedType(0,0,0,"",[]), is_mut:false, id:0, line:0, col:0}
+        let ft:typechecker.TCType = resolve_type_ann_ast(st, f.type_ann)
+        match(get_release_fn(ft)) {
+            some(rfn): {
+                st.struct_field_cleanup = array.push(st.struct_field_cleanup, StructFieldCleanup{
+                    struct_var:var_name, field_name:f.name,
+                    struct_c_type:c_type, release_fn:rfn,
+                    depth:depth, block_safe:block_safe
+                })
+            }
+            none: {}
+        }
+        i = i + 1
+    }
+}
+
+// ---------------------------------------------------------------------------
 // all_paths_exit — true if a statement list always exits via return/break/continue
 // ---------------------------------------------------------------------------
 
@@ -2185,7 +2210,48 @@ fn lower_let(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
             // Track for later ident lookups
             st.let_var_ltypes = map.set(st.let_var_ltypes, name, lir.lt_box(c_type))
 
-            return [lir.LStmtBox{ls:lir.LSVarDecl(c_name:name, c_type:c_type, has_init:true, init:init, source_line:line)}]
+            let result:array<lir.LStmtBox>:mut = [lir.LStmtBox{ls:lir.LSVarDecl(c_name:name, c_type:c_type, has_init:true, init:init, source_line:line)}]
+
+            // --- Refcount cleanup registration ---
+            // val_type is the type of the initializer expression (pre-annotation override)
+            match(get_release_fn(val_type)) {
+                some(rfn): {
+                    let rc_lt:lir.LType = lower_type(st, val_type)
+                    st.container_locals = array.push(st.container_locals, ContainerLocal{
+                        var_name:name, c_type:rc_lt, release_fn:rfn, depth:st.scope_depth
+                    })
+                    // Retain for non-allocating sources (borrows a reference)
+                    if(is_allocating_expr(val) == false) {
+                        match(get_retain_fn(val_type)) {
+                            some(retain_fn): {
+                                result = array.push(result, lir.LStmtBox{ls:emit_retain_call(name, rc_lt, retain_fn, line)})
+                            }
+                            none: {}
+                        }
+                    }
+                }
+                none: {
+                    // Register struct field cleanup for types with refcounted fields
+                    if(has_refcounted_fields(st, val_type)) {
+                        let sf_lt:lir.LType = lower_type(st, val_type)
+                        let block_safe:bool:mut = false
+                        match(val) {
+                            ETypeLit(tid, tl, tc, tn, tf, hs, sp): { block_safe = true }
+                            ERecordLit(tid, tl, tc, rf): { block_safe = true }
+                            _: {
+                                if(is_allocating_expr(val)) {
+                                    block_safe = false
+                                } else {
+                                    block_safe = true
+                                }
+                            }
+                        }
+                        register_struct_field_releases(st, name, val_type, sf_lt, st.scope_depth, block_safe)
+                    }
+                }
+            }
+
+            return result
         }
         _: { return [] }
     }
