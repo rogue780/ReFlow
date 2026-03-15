@@ -138,6 +138,15 @@ def fix_stage2(path):
         'yield_type', 'send_type', 'underlying',
     }
 
+    # Variants where Expr fields are NOT recursive (stored by value, not FL_Box*)
+    EXPR_NON_RECURSIVE_VARIANTS = {
+        'SLet', 'SAssign', 'SUpdate', 'SReturn', 'SExpr', 'SThrow',
+        'SIf', 'SWhile', 'SFor', 'SYield', 'STry', 'SMatch', 'SBreak', 'SContinue',
+        'DFn', 'DModule', 'DType', 'DEnum', 'DImport', 'DExternFn', 'DExternType',
+        'DExternLib', 'DInterface', 'DAlias', 'DStaticMember', 'DConstructor',
+        'MatchArm', 'CatchClause', 'FPExpr', 'ExprField',
+    }
+
     def box_deref(match):
         type_name = match.group(1)
         var_name = match.group(2)
@@ -150,7 +159,9 @@ def fix_stage2(path):
         elif 'lir_LExprBox' in type_name and field in LEXPRBOX_FIELDS:
             is_box = True
         elif 'ast_Expr' in type_name and 'ast_ExprField' not in type_name and field in EXPR_BOX_FIELDS:
-            is_box = True
+            # Only for self-recursive Expr variants (NOT Stmt/Decl/etc)
+            if variant not in EXPR_NON_RECURSIVE_VARIANTS:
+                is_box = True
         elif 'ast_TypeExpr' in type_name and field in TYPE_EXPR_BOX_FIELDS:
             is_box = True
         elif 'typechecker_TCType' in type_name and field in TCTYPE_BOX_FIELDS:
