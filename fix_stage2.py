@@ -22,6 +22,7 @@ def fix_stage2(path):
     text = re.sub(r'\bfl_self_hosted_lowering_lir\b(?!_)', 'fl_self_hosted_lir', text)
     text = text.replace('fl_self_hosted_lowering_typechecker', 'fl_self_hosted_typechecker')
     text = text.replace('fl_self_hosted_typechecker_lir', 'fl_self_hosted_lir')
+    text = text.replace('fl_self_hosted_parser_ast', 'fl_self_hosted_ast')
     text = text.replace('fl_self_hosted_lowering_Expr', 'fl_self_hosted_ast_Expr')
     text = text.replace('fl_self_hosted_lowering_TypeExpr', 'fl_self_hosted_ast_TypeExpr')
     text = text.replace('fl_self_hosted_lowering_Decl', 'fl_self_hosted_ast_Decl')
@@ -187,7 +188,47 @@ def fix_stage2(path):
     # Instead, the remaining EmitState errors are accepted as warnings.
     # clang -Wno-incompatible-pointer-types suppresses these.
 
-    # === PHASE 4b: Fix struct → FL_Box* in variant construction ===
+    # === PHASE 4b: Fix array.push_ptr with struct values ===
+    # Pattern: arr = fl_array_push_ptr(arr, ((void*)struct_expr));
+    # where struct_expr is a non-pointer function call
+    # Replace with: Type _tmp = struct_expr; arr = fl_array_push_sized(arr, &_tmp, sizeof(Type));
+    push_counter = [0]
+    def fix_push_ptr(match):
+        full = match.group(0)
+        indent = match.group(1)
+        arr_assign = match.group(2)
+        arr_var = match.group(3)
+        void_expr = match.group(4)
+        # Check if expr is a struct-returning function (not a pointer variable)
+        if '(' in void_expr:
+            stype = None
+            if '_le_box(' in void_expr:
+                stype = 'fl_self_hosted_lir_LExprBox'
+            elif '_ls_box(' in void_expr:
+                stype = 'fl_self_hosted_lir_LStmtBox'
+            elif '_tc_box(' in void_expr:
+                stype = 'fl_self_hosted_typechecker_TCTypeBox'
+            elif '_lt_box(' in void_expr:
+                stype = 'fl_self_hosted_lir_LTypeBox'
+            elif 'make_symbol(' in void_expr or 'symbol_with_type(' in void_expr or 'symbol_no_type(' in void_expr:
+                stype = 'fl_self_hosted_resolver_Symbol'
+            elif 'copy_symbol(' in void_expr:
+                stype = 'fl_self_hosted_resolver_Symbol'
+            if stype is not None:
+                push_counter[0] += 1
+                tmp = f'_push_tmp_{push_counter[0]}'
+                return (f'{indent}{stype} {tmp} = {void_expr};\n'
+                        f'{indent}{arr_assign}fl_array_push_sized({arr_var}, &{tmp}, sizeof({stype}));')
+        return full
+
+    text = re.sub(
+        r'^(\s+)((\w+) = )fl_array_push_ptr\(\3, \(\(void\*\)(.*)\)\);$',
+        fix_push_ptr,
+        text,
+        flags=re.MULTILINE
+    )
+
+    # === PHASE 4c: Fix struct → FL_Box* in variant construction ===
     # When constructing a variant with a recursive field, the field value
     # is a struct but the C field expects FL_Box*. Wrap with fl_box_wrap macro.
     # Pattern: .field = expr) where expr is a function call returning a struct
