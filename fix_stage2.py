@@ -315,12 +315,46 @@ def fix_stage2(path):
                     f'{indent}{assign}fl_map_set_str({map_var}, {key_expr}, &{tmp});')
         return match.group(0)
 
-    text = re.sub(
-        r'^(\s+)([\w.>\[\]()* ]+= )fl_map_set_str\(([^,]+), ([^,]+), ([^;]+)\);$',
-        fix_map_set,
-        text,
-        flags=re.MULTILINE
-    )
+    # Apply map_set fix line by line (regex can't handle nested parens)
+    lines2 = text.split('\n')
+    for i, line in enumerate(lines2):
+        if 'fl_map_set_str(' not in line:
+            continue
+        # Find the map_set call and extract the VALUE arg (last arg before closing paren)
+        idx = line.find('fl_map_set_str(')
+        if idx < 0:
+            continue
+        # Find the last comma that separates the value arg
+        paren_depth = 0
+        last_comma = -1
+        for j in range(idx, len(line)):
+            if line[j] == '(':
+                paren_depth += 1
+            elif line[j] == ')':
+                paren_depth -= 1
+                if paren_depth == 0:
+                    break
+            elif line[j] == ',' and paren_depth == 1:
+                last_comma = j
+        if last_comma < 0:
+            continue
+        val_part = line[last_comma+1:j].strip()
+        indent = line[:len(line) - len(line.lstrip())]
+        # Check if val_part is a struct value
+        stype = None
+        val_stripped = val_part.strip()
+        if val_stripped in ('sym', 'rsym', 'msym', 'ns_sym', 'es', 'exported'):
+            stype = 'fl_self_hosted_resolver_Symbol'
+        elif 'symbol_with_type(' in val_stripped or 'symbol_no_type(' in val_stripped or 'make_symbol(' in val_stripped or 'copy_symbol_with_mk(' in val_stripped:
+            stype = 'fl_self_hosted_resolver_Symbol'
+        elif val_stripped.startswith('(fl_self_hosted_'):
+            stype = val_stripped.split(')')[0][1:]
+        if stype:
+            map_set_counter[0] += 1
+            tmp = f'_map_tmp_{map_set_counter[0]}'
+            new_line = f'{indent}{stype} {tmp} = {val_part};\n{indent}{line[:last_comma+1]} &{tmp}{line[j:]}'
+            lines2[i] = new_line
+    text = '\n'.join(lines2)
 
     # === PHASE 4b3: Fix ternary void* vs struct operands ===
     # Pattern: Type var = (cond) ? _fl_tmp.value : (Type){...};
