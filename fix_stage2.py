@@ -452,6 +452,12 @@ def fix_stage2(path):
         fix_void_ternary,
         text
     )
+    # After ternary fix, replace var-> with var. for the fixed variables
+    # (they're now struct values, not pointers)
+    # Track which variables were converted
+    for m in re.finditer(r'(fl_self_hosted_\w+) (\w+) = \(.*\?\s+\*\(\(', text):
+        var_name = m.group(2)
+        text = re.sub(rf'\b{var_name}->', f'{var_name}.', text)
 
     # === PHASE 4c: void* compound literals ===
     # (void*){.tag = N} is invalid C. Replace based on ASSIGNMENT context.
