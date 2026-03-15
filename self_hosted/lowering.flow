@@ -17,6 +17,42 @@ import self_hosted.mangler
 import self_hosted.lir
 
 // ---------------------------------------------------------------------------
+// Cleanup tracking types
+// ---------------------------------------------------------------------------
+
+type ContainerLocal {
+    var_name:string
+    c_type:lir.LType
+    release_fn:string
+    depth:int
+}
+
+type StructFieldCleanup {
+    struct_var:string
+    field_name:string
+    struct_c_type:lir.LType
+    release_fn:string
+    depth:int
+    block_safe:bool
+}
+
+type SumFieldCleanup {
+    struct_var:string
+    field_name:string
+    struct_c_type:lir.LType
+    destructor_fn:string
+    field_ltype:lir.LType
+    depth:int
+}
+
+type AffineLocal {
+    var_name:string
+    c_type:lir.LType
+    destructor_fn:string
+    depth:int
+}
+
+// ---------------------------------------------------------------------------
 // LowerState — mutable state for the lowering pass
 // ---------------------------------------------------------------------------
 
@@ -102,6 +138,15 @@ type LowerState:mut {
     // Imported module decls for cross-module field name resolution
     imported_module_keys:array<string>
     imported_module_decls:array<ast.Module>
+
+    // Refcount cleanup tracking
+    scope_depth:int
+    container_locals:array<ContainerLocal>
+    struct_field_cleanup:array<StructFieldCleanup>
+    sum_field_cleanup:array<SumFieldCleanup>
+    affine_locals:array<AffineLocal>
+    consumed_bindings:map<string, bool>
+    struct_handler_emitted:map<string, bool>
 }
 
 // ---------------------------------------------------------------------------
@@ -1056,7 +1101,14 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         stream_frame_names:map.new(),
         mono_put_suffixes:[],
         imported_module_keys:[],
-        imported_module_decls:[]
+        imported_module_decls:[],
+        scope_depth:0,
+        container_locals:[],
+        struct_field_cleanup:[],
+        sum_field_cleanup:[],
+        affine_locals:[],
+        consumed_bindings:map.new(),
+        struct_handler_emitted:map.new()
     }
 }
 
@@ -1202,12 +1254,24 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
             let saved_fn_name:string = st.current_fn_name
             let saved_let_vars:map<string, lir.LTypeBox> = st.let_var_ltypes
             let saved_mut_params:map<string, bool> = st.mut_param_names
+            let saved_scope_depth:int = st.scope_depth
+            let saved_container_locals:array<ContainerLocal> = st.container_locals
+            let saved_struct_field_cleanup:array<StructFieldCleanup> = st.struct_field_cleanup
+            let saved_sum_field_cleanup:array<SumFieldCleanup> = st.sum_field_cleanup
+            let saved_affine_locals:array<AffineLocal> = st.affine_locals
+            let saved_consumed_bindings:map<string, bool> = st.consumed_bindings
 
             st.has_current_ret_type = true
             st.current_ret_type = ret_t
             st.current_fn_name = name
             st.let_var_ltypes = map.new()
             st.mut_param_names = map.new()
+            st.scope_depth = 0
+            st.container_locals = []
+            st.struct_field_cleanup = []
+            st.sum_field_cleanup = []
+            st.affine_locals = []
+            st.consumed_bindings = map.new()
 
             let c_name:string = mangler.mangle(st.module_path, "", name)
 
@@ -1262,6 +1326,12 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
             st.current_fn_name = saved_fn_name
             st.let_var_ltypes = saved_let_vars
             st.mut_param_names = saved_mut_params
+            st.scope_depth = saved_scope_depth
+            st.container_locals = saved_container_locals
+            st.struct_field_cleanup = saved_struct_field_cleanup
+            st.sum_field_cleanup = saved_sum_field_cleanup
+            st.affine_locals = saved_affine_locals
+            st.consumed_bindings = saved_consumed_bindings
         }
         _: {}
     }
