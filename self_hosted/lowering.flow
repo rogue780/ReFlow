@@ -597,7 +597,10 @@ fn lower_type(st:LowerState:mut, t:typechecker.TCType):lir.LType {
             return lir.LPtr(inner:lir.LStruct(c_name:"FL_Closure"))
         }
         TCSumType(name, mod_p, vars): {
-            let resolved_mod:string = find_sum_type_module(st, name)
+            let resolved_mod:string:mut = mod_p
+            if(resolved_mod == "") {
+                resolved_mod = find_sum_type_module(st, name)
+            }
             let c_name:string = mangler.mangle(resolved_mod, name, "")
             return lir.LStruct(c_name:c_name)
         }
