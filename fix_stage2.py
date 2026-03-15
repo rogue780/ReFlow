@@ -219,6 +219,14 @@ def fix_stage2(path):
                 tmp = f'_push_tmp_{push_counter[0]}'
                 return (f'{indent}{stype} {tmp} = {void_expr};\n'
                         f'{indent}{arr_assign}fl_array_push_sized({arr_var}, &{tmp}, sizeof({stype}));')
+        # Check for compound literal: (TypeName){...}
+        m_cl = re.match(r'\(fl_self_hosted_(\w+)\)\{', void_expr)
+        if m_cl:
+            stype = 'fl_self_hosted_' + m_cl.group(1)
+            push_counter[0] += 1
+            tmp = f'_push_tmp_{push_counter[0]}'
+            return (f'{indent}{stype} {tmp} = {void_expr};\n'
+                    f'{indent}{arr_assign}fl_array_push_sized({arr_var}, &{tmp}, sizeof({stype}));')
         return full
 
     text = re.sub(
@@ -228,7 +236,11 @@ def fix_stage2(path):
         flags=re.MULTILINE
     )
 
-    # === PHASE 4c: Fix struct → FL_Box* in variant construction ===
+    # === PHASE 4c: void* compound literals ===
+    # (void*){.tag = N} is invalid C but we skip fixing it here —
+    # replacing with (void*)0 creates equally many type mismatch errors.
+
+    # === PHASE 4d: Fix struct → FL_Box* in variant construction ===
     # When constructing a variant with a recursive field, the field value
     # is a struct but the C field expects FL_Box*. Wrap with fl_box_wrap macro.
     # Pattern: .field = expr) where expr is a function call returning a struct
