@@ -3800,6 +3800,16 @@ fl_bool fl_net_write_string_fd(fl_int fd, FL_String* s) {
     return fl_true;
 }
 
+fl_int fl_raw_read(fl_int fd, void* buf, fl_int count) {
+    ssize_t n = read(fd, buf, (size_t)count);
+    return (fl_int)n;
+}
+
+fl_int fl_raw_write(fl_int fd, void* buf, fl_int count) {
+    ssize_t n = write(fd, buf, (size_t)count);
+    return (fl_int)n;
+}
+
 /* ========================================================================
  * Array stdlib extensions
  * ======================================================================== */

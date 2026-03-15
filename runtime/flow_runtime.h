@@ -815,6 +815,8 @@ fl_bool       fl_net_set_timeout(FL_Socket* sock, fl_int ms);
 FL_Option_ptr fl_net_remote_addr(FL_Socket* sock);
 fl_int        fl_net_fd(FL_Socket* conn);
 fl_bool       fl_net_write_string_fd(fl_int fd, FL_String* s);
+fl_int        fl_raw_read(fl_int fd, void* buf, fl_int count);
+fl_int        fl_raw_write(fl_int fd, void* buf, fl_int count);
 
 /* ========================================================================
  * FFI Memory Support (stdlib/mem)
