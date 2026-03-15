@@ -522,8 +522,53 @@ fn get_receiver_type_name(receiver:ast.Expr):string {
     }
 }
 
+// find_fieldless_variant_type_name — search for the parent type name of a fieldless variant
+fn find_fieldless_variant_type_name(st:LowerState:mut, vname:string):string {
+    for(d:ast.Decl in st.src_module.decls) {
+        match(d) {
+            DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                if(is_sum) {
+                    let fvi:int:mut = 0
+                    while(fvi < array.size(variants)) {
+                        let sv:ast.SumVariantDecl = array.get_any(variants, fvi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                        if(sv.name == vname && array.size(sv.fields) == 0) {
+                            return dname
+                        }
+                        fvi = fvi + 1
+                    }
+                }
+            }
+            _: {}
+        }
+    }
+    // Search imported modules
+    let fni:int:mut = 0
+    while(fni < array.size(st.imported_module_decls)) {
+        let imp_mod:ast.Module = array.get_any(st.imported_module_decls, fni) ?? ast.make_module([], [], [], "")
+        for(d:ast.Decl in imp_mod.decls) {
+            match(d) {
+                DType(did, dl, dc, dname, tp, fields, methods, ctors, statics, ifaces, is_export, is_sum, variants, is_mut): {
+                    if(is_sum) {
+                        let fvi:int:mut = 0
+                        while(fvi < array.size(variants)) {
+                            let sv:ast.SumVariantDecl = array.get_any(variants, fvi) ?? ast.SumVariantDecl{name:"", fields:[], id:0, line:0, col:0}
+                            if(sv.name == vname && array.size(sv.fields) == 0) {
+                                return dname
+                            }
+                            fvi = fvi + 1
+                        }
+                    }
+                }
+                _: {}
+            }
+        }
+        fni = fni + 1
+    }
+    return ""
+}
+
 // find_fieldless_variant_tag — search src_module decls for a fieldless sum
-// variant with this name. Returns (type_c_name, tag_index) or (-1, "") if not found.
+// variant with this name. Returns tag_index or -1 if not found.
 fn find_fieldless_variant_tag(st:LowerState:mut, vname:string):int {
     for(d:ast.Decl in st.src_module.decls) {
         match(d) {
@@ -3341,11 +3386,10 @@ fn lower_field_access(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                         // Fieldless variant constructor: emit as compound literal {.tag = N}
                         let ctor_tag:int = find_fieldless_variant_tag(st, field_name)
                         if(ctor_tag >= 0) {
-                            // Determine the type name and module from the symbol
                             let ctor_mod:string:mut = s.module_key
                             if(ctor_mod == "") { ctor_mod = st.module_path }
-                            // Get type name from receiver
-                            let ctor_type_name:string = get_receiver_type_name(receiver)
+                            // Get parent sum type name from the variant
+                            let ctor_type_name:string = find_fieldless_variant_type_name(st, field_name)
                             if(ctor_type_name != "") {
                                 let sum_c_name:string = mangler.mangle(ctor_mod, ctor_type_name, "")
                                 let sum_lt:lir.LType = lir.LStruct(c_name:sum_c_name)
