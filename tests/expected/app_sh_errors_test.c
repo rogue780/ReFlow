@@ -646,18 +646,7 @@ FL_String* fl_self_hosted_errors_format(fl_self_hosted_errors_CompileError e) {
     FL_String* _fl_tmp_8 = fl_self_hosted_errors_kind_name(e.kind);
     FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_7, _fl_tmp_8);
     FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_str_self_hosted_errors_6);
-    FL_String* _fl_ret_11 = fl_string_concat(_fl_tmp_10, e.message);
-    fl_string_release(_fl_tmp_1);
-    fl_string_release(_fl_tmp_2);
-    fl_string_release(_fl_tmp_3);
-    fl_string_release(_fl_tmp_4);
-    fl_string_release(_fl_tmp_5);
-    fl_string_release(_fl_tmp_6);
-    fl_string_release(_fl_tmp_7);
-    fl_string_release(_fl_tmp_8);
-    fl_string_release(_fl_tmp_9);
-    fl_string_release(_fl_tmp_10);
-    return _fl_ret_11;
+    return fl_string_concat(_fl_tmp_10, e.message);
 }
 
 void _fl_destroy_fl_self_hosted_errors_ErrorKind(void* _ptr);

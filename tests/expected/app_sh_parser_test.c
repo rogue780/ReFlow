@@ -646,18 +646,7 @@ FL_String* fl_self_hosted_errors_format(fl_self_hosted_errors_CompileError e) {
     FL_String* _fl_tmp_8 = fl_self_hosted_errors_kind_name(e.kind);
     FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_7, _fl_tmp_8);
     FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_str_self_hosted_errors_6);
-    FL_String* _fl_ret_11 = fl_string_concat(_fl_tmp_10, e.message);
-    fl_string_release(_fl_tmp_1);
-    fl_string_release(_fl_tmp_2);
-    fl_string_release(_fl_tmp_3);
-    fl_string_release(_fl_tmp_4);
-    fl_string_release(_fl_tmp_5);
-    fl_string_release(_fl_tmp_6);
-    fl_string_release(_fl_tmp_7);
-    fl_string_release(_fl_tmp_8);
-    fl_string_release(_fl_tmp_9);
-    fl_string_release(_fl_tmp_10);
-    return _fl_ret_11;
+    return fl_string_concat(_fl_tmp_10, e.message);
 }
 
 /* From: self_hosted/lexer.flow */
@@ -1381,9 +1370,7 @@ fl_bool fl_self_hosted_lexer_check(fl_self_hosted_lexer_LexState s, FL_String* e
         return fl_false;
     }
     FL_String* _fl_tmp_3 = fl_string_substring(s.source, s.pos, end_pos);
-    fl_bool _fl_ret_4 = fl_string_eq(_fl_tmp_3, expected);
-    fl_string_release(_fl_tmp_3);
-    return _fl_ret_4;
+    return fl_string_eq(_fl_tmp_3, expected);
 }
 
 /* Flow: self_hosted.lexer.match_str */
@@ -1395,8 +1382,8 @@ fl_bool fl_self_hosted_lexer_match_str(fl_self_hosted_lexer_LexState* s, FL_Stri
     if (end_pos > s->src_len) {
         return fl_false;
     }
-    FL_String* _fl_tmp_5 = fl_string_substring(s->source, s->pos, end_pos);
-    if (fl_string_eq(_fl_tmp_5, expected)) {
+    FL_String* _fl_tmp_4 = fl_string_substring(s->source, s->pos, end_pos);
+    if (fl_string_eq(_fl_tmp_4, expected)) {
         fl_int i = 0;
         while (i < exp_len) {
             fl_self_hosted_lexer_advance(s);
@@ -1404,10 +1391,8 @@ fl_bool fl_self_hosted_lexer_match_str(fl_self_hosted_lexer_LexState* s, FL_Stri
             FL_CHECKED_ADD(i, 1, &_fl_e_2);
             i = _fl_e_2;
         }
-        fl_string_release(_fl_tmp_5);
         return fl_true;
     }
-    fl_string_release(_fl_tmp_5);
     return fl_false;
 }
 
@@ -1420,20 +1405,20 @@ fl_self_hosted_lexer_Token fl_self_hosted_lexer_make_token(fl_self_hosted_lexer_
 
 /* Flow: self_hosted.lexer.emit */
 void fl_self_hosted_lexer_emit(fl_self_hosted_lexer_LexState* s, fl_self_hosted_lexer_Token tok) {
-    fl_self_hosted_lexer_Token _fl_tmp_6 = tok;
-    FL_Array* _fl_old_7 = s->tokens;
-    s->tokens = fl_array_push_sized(s->tokens, (&_fl_tmp_6), sizeof(fl_self_hosted_lexer_Token));
-    if (_fl_old_7 != s->tokens) {
-        fl_array_release(_fl_old_7);
+    fl_self_hosted_lexer_Token _fl_tmp_5 = tok;
+    FL_Array* _fl_old_6 = s->tokens;
+    s->tokens = fl_array_push_sized(s->tokens, (&_fl_tmp_5), sizeof(fl_self_hosted_lexer_Token));
+    if (_fl_old_6 != s->tokens) {
+        fl_array_release(_fl_old_6);
     }
 }
 
 /* Flow: self_hosted.lexer.scan_escape */
 FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
     if (s->pos >= s->src_len) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_44, s->filename, s->line, s->col);
-        _fl_throw(((void*)_fl_tmp_8), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_7 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_7) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_44, s->filename, s->line, s->col);
+        _fl_throw(((void*)_fl_tmp_7), 461109476);
     }
     fl_char ch = fl_self_hosted_lexer_advance(s);
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_45)) {
@@ -1470,36 +1455,35 @@ FL_String* fl_self_hosted_lexer_scan_escape(fl_self_hosted_lexer_LexState* s) {
     }
     if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_56)) {
         if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_55) == fl_false)) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_9 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_9) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_57, s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_9), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_8 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_8) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_57, s->filename, s->line, s->col);
+            _fl_throw(((void*)_fl_tmp_8), 461109476);
         }
         fl_self_hosted_lexer_advance(s);
         FL_String* hex = _fl_str_self_hosted_lexer_58;
         fl_string_retain(hex);
         while ((s->pos < s->src_len) && (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_59) == fl_false)) {
-            FL_String* _fl_tmp_10 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-            fl_string_append((&hex), _fl_tmp_10);
-            fl_string_release(_fl_tmp_10);
+            FL_String* _fl_tmp_9 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+            fl_string_append((&hex), _fl_tmp_9);
+            fl_string_release(_fl_tmp_9);
         }
         if (s->pos >= s->src_len) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_11 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_11) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_60, s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_11), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_10 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_10) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_60, s->filename, s->line, s->col);
+            _fl_throw(((void*)_fl_tmp_10), 461109476);
         }
         fl_self_hosted_lexer_advance(s);
         if (fl_string_eq(hex, _fl_str_self_hosted_lexer_58)) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_12 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_12) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_61, s->filename, s->line, s->col);
-            _fl_throw(((void*)_fl_tmp_12), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_11 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_11) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_61, s->filename, s->line, s->col);
+            _fl_throw(((void*)_fl_tmp_11), 461109476);
         }
         fl_string_retain(_fl_str_self_hosted_lexer_62);
-        fl_string_release(hex);
         return _fl_str_self_hosted_lexer_62;
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_13 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_13) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_63, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_13), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_12 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_12) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_63, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_12), 461109476);
     fl_string_retain(_fl_str_self_hosted_lexer_58);
     return _fl_str_self_hosted_lexer_58;
 }
@@ -1516,7 +1500,6 @@ void fl_self_hosted_lexer_scan_identifier(fl_self_hosted_lexer_LexState* s) {
     FL_String* text = fl_string_substring(s->source, start_pos, s->pos);
     fl_int ttype = fl_self_hosted_lexer_keyword_type(text);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), ttype, text, start_line, start_col));
-    fl_string_release(text);
 }
 
 /* Flow: self_hosted.lexer.scan_number */
@@ -1534,8 +1517,6 @@ void fl_self_hosted_lexer_scan_number(fl_self_hosted_lexer_LexState* s) {
         FL_String* raw = fl_string_substring(s->source, start_pos, s->pos);
         FL_String* value = fl_string_replace(raw, _fl_str_self_hosted_lexer_64, _fl_str_self_hosted_lexer_58);
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_INT_LIT, value, start_line, start_col));
-        fl_string_release(raw);
-        fl_string_release(value);
         return;
     }
     while ((s->pos < s->src_len) && (fl_char_is_digit(fl_self_hosted_lexer_peek((*s), 0)) || fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_64))) {
@@ -1562,13 +1543,9 @@ void fl_self_hosted_lexer_scan_number(fl_self_hosted_lexer_LexState* s) {
     FL_String* value = fl_string_replace(raw, _fl_str_self_hosted_lexer_64, _fl_str_self_hosted_lexer_58);
     if (is_float) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT, value, start_line, start_col));
-        fl_string_release(raw);
-        fl_string_release(value);
         return;
     }
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_INT_LIT, value, start_line, start_col));
-    fl_string_release(raw);
-    fl_string_release(value);
 }
 
 /* Flow: self_hosted.lexer.scan_string */
@@ -1583,24 +1560,22 @@ void fl_self_hosted_lexer_scan_string(fl_self_hosted_lexer_LexState* s) {
         if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49)) {
             fl_self_hosted_lexer_advance(s);
             fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_STRING_LIT, chars, start_line, start_col));
-            fl_string_release(chars);
             return;
         }
         if (fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             fl_self_hosted_lexer_advance(s);
-            FL_String* _fl_tmp_14 = fl_self_hosted_lexer_scan_escape(s);
+            FL_String* _fl_tmp_13 = fl_self_hosted_lexer_scan_escape(s);
+            fl_string_append((&chars), _fl_tmp_13);
+            fl_string_release(_fl_tmp_13);
+        } else {
+            FL_String* _fl_tmp_14 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
             fl_string_append((&chars), _fl_tmp_14);
             fl_string_release(_fl_tmp_14);
-        } else {
-            FL_String* _fl_tmp_15 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-            fl_string_append((&chars), _fl_tmp_15);
-            fl_string_release(_fl_tmp_15);
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_16 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_16) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
-    _fl_throw(((void*)_fl_tmp_16), 461109476);
-    fl_string_release(chars);
+    fl_self_hosted_errors_CompileError* _fl_tmp_15 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_15) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_72, s->filename, start_line, start_col);
+    _fl_throw(((void*)_fl_tmp_15), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_char_lit */
@@ -1609,34 +1584,33 @@ void fl_self_hosted_lexer_scan_char_lit(fl_self_hosted_lexer_LexState* s) {
     fl_int start_col = s->col;
     fl_self_hosted_lexer_advance(s);
     if (s->pos >= s->src_len) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_17 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_17) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_17), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_16 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_16) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_16), 461109476);
     }
     FL_String* ch_val = _fl_str_self_hosted_lexer_58;
     fl_string_retain(ch_val);
     if (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_48)) {
         fl_self_hosted_lexer_advance(s);
-        FL_String* _fl_old_18 = ch_val;
+        FL_String* _fl_old_17 = ch_val;
         ch_val = fl_self_hosted_lexer_scan_escape(s);
+        if (_fl_old_17 != ch_val) {
+            fl_string_release(_fl_old_17);
+        }
+    } else {
+        FL_String* _fl_old_18 = ch_val;
+        ch_val = fl_char_to_string(fl_self_hosted_lexer_advance(s));
         if (_fl_old_18 != ch_val) {
             fl_string_release(_fl_old_18);
         }
-    } else {
-        FL_String* _fl_old_19 = ch_val;
-        ch_val = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-        if (_fl_old_19 != ch_val) {
-            fl_string_release(_fl_old_19);
-        }
     }
     if ((s->pos >= s->src_len) || (fl_self_hosted_lexer_char_eq(fl_self_hosted_lexer_peek((*s), 0), _fl_str_self_hosted_lexer_50) == fl_false)) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_20 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_20) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_20), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_19 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_19) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_73, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_19), 461109476);
     }
     fl_self_hosted_lexer_advance(s);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_CHAR_LIT, ch_val, start_line, start_col));
-    fl_string_release(ch_val);
 }
 
 /* Flow: self_hosted.lexer.scan_comment */
@@ -1651,7 +1625,6 @@ void fl_self_hosted_lexer_scan_comment(fl_self_hosted_lexer_LexState* s) {
     }
     FL_String* text = fl_string_substring(s->source, start_pos, s->pos);
     fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_COMMENT, text, start_line, start_col));
-    fl_string_release(text);
 }
 
 /* Flow: self_hosted.lexer.scan_operator */
@@ -1907,15 +1880,12 @@ void fl_self_hosted_lexer_scan_operator(fl_self_hosted_lexer_LexState* s) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_SEMICOLON, _fl_str_self_hosted_lexer_111, start_line, start_col));
         return;
     }
-    FL_String* _fl_tmp_21 = fl_char_to_string(ch);
-    FL_String* _fl_tmp_22 = fl_string_concat(_fl_str_self_hosted_lexer_112, _fl_tmp_21);
-    FL_String* _fl_tmp_23 = fl_string_concat(_fl_tmp_22, _fl_str_self_hosted_lexer_50);
-    fl_self_hosted_errors_CompileError* _fl_tmp_24 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_24) = fl_self_hosted_errors_lex_error(_fl_tmp_23, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_24), 461109476);
-    fl_string_release(_fl_tmp_21);
-    fl_string_release(_fl_tmp_22);
-    fl_string_release(_fl_tmp_23);
+    FL_String* _fl_tmp_20 = fl_char_to_string(ch);
+    FL_String* _fl_tmp_21 = fl_string_concat(_fl_str_self_hosted_lexer_112, _fl_tmp_20);
+    FL_String* _fl_tmp_22 = fl_string_concat(_fl_tmp_21, _fl_str_self_hosted_lexer_50);
+    fl_self_hosted_errors_CompileError* _fl_tmp_23 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_23) = fl_self_hosted_errors_lex_error(_fl_tmp_22, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_23), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring */
@@ -1954,9 +1924,9 @@ void fl_self_hosted_lexer_scan_fstring_body(fl_self_hosted_lexer_LexState* s) {
             }
         }
     }
-    fl_self_hosted_errors_CompileError* _fl_tmp_25 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_25) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
-    _fl_throw(((void*)_fl_tmp_25), 461109476);
+    fl_self_hosted_errors_CompileError* _fl_tmp_24 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_24) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_114, s->filename, s->line, s->col);
+    _fl_throw(((void*)_fl_tmp_24), 461109476);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring_text */
@@ -1970,14 +1940,13 @@ void fl_self_hosted_lexer_scan_fstring_text(fl_self_hosted_lexer_LexState* s) {
         if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_49) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_55)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_48)) {
             break;
         }
-        FL_String* _fl_tmp_26 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
-        fl_string_append((&chars), _fl_tmp_26);
-        fl_string_release(_fl_tmp_26);
+        FL_String* _fl_tmp_25 = fl_char_to_string(fl_self_hosted_lexer_advance(s));
+        fl_string_append((&chars), _fl_tmp_25);
+        fl_string_release(_fl_tmp_25);
     }
     if (fl_string_len(chars) > 0) {
         fl_self_hosted_lexer_emit(s, fl_self_hosted_lexer_make_token((*s), fl_self_hosted_lexer_TokenType_TK_FSTRING_TEXT, chars, start_line, start_col));
     }
-    fl_string_release(chars);
 }
 
 /* Flow: self_hosted.lexer.scan_fstring_expr */
@@ -2057,9 +2026,9 @@ void fl_self_hosted_lexer_scan_fstring_expr(fl_self_hosted_lexer_LexState* s) {
         fl_self_hosted_lexer_scan_operator(s);
     }
     if (brace_depth > 0) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_27 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_27) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
-        _fl_throw(((void*)_fl_tmp_27), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_26 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_26) = fl_self_hosted_errors_lex_error(_fl_str_self_hosted_lexer_117, s->filename, start_line, start_col);
+        _fl_throw(((void*)_fl_tmp_26), 461109476);
     }
 }
 
@@ -2081,9 +2050,9 @@ void _fl_retain_fl_self_hosted_lexer_Token(void* _ptr) {
 FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename) {
     fl_string_retain(source);
     fl_string_retain(filename);
-    FL_Array* _fl_tmp_28 = fl_array_new(0, 0, NULL);
-    fl_array_set_struct_handlers(_fl_tmp_28, _fl_destroy_fl_self_hosted_lexer_Token, _fl_retain_fl_self_hosted_lexer_Token);
-    fl_self_hosted_lexer_LexState s = (fl_self_hosted_lexer_LexState){.source = source, .filename = filename, .src_len = fl_string_len(source), .pos = 0, .line = 1, .col = 1, .tokens = _fl_tmp_28};
+    FL_Array* _fl_tmp_27 = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(_fl_tmp_27, _fl_destroy_fl_self_hosted_lexer_Token, _fl_retain_fl_self_hosted_lexer_Token);
+    fl_self_hosted_lexer_LexState s = (fl_self_hosted_lexer_LexState){.source = source, .filename = filename, .src_len = fl_string_len(source), .pos = 0, .line = 1, .col = 1, .tokens = _fl_tmp_27};
     while (s.pos < s.src_len) {
         fl_char ch = fl_self_hosted_lexer_peek(s, 0);
         if ((fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_115) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_47)) || fl_self_hosted_lexer_char_eq(ch, _fl_str_self_hosted_lexer_54)) {
@@ -2128,8 +2097,6 @@ FL_Array* fl_self_hosted_lexer_tokenize(FL_String* source, FL_String* filename) 
     }
     fl_self_hosted_lexer_emit((&s), fl_self_hosted_lexer_make_token(s, fl_self_hosted_lexer_TokenType_TK_EOF, _fl_str_self_hosted_lexer_58, s.line, s.col));
     fl_array_retain(s.tokens);
-    fl_string_release(s.source);
-    fl_string_release(s.filename);
     return s.tokens;
 }
 
@@ -2355,12 +2322,9 @@ FL_String* fl_self_hosted_lexer_token_type_name(fl_int ttype) {
         fl_string_retain(_fl_str_self_hosted_lexer_172);
         return _fl_str_self_hosted_lexer_172;
     }
-    FL_String* _fl_tmp_29 = fl_conv_to_string__int(ttype);
-    FL_String* _fl_tmp_30 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_29);
-    FL_String* _fl_ret_31 = fl_string_concat(_fl_tmp_30, _fl_str_self_hosted_lexer_102);
-    fl_string_release(_fl_tmp_29);
-    fl_string_release(_fl_tmp_30);
-    return _fl_ret_31;
+    FL_String* _fl_tmp_28 = fl_conv_to_string__int(ttype);
+    FL_String* _fl_tmp_29 = fl_string_concat(_fl_str_self_hosted_lexer_173, _fl_tmp_28);
+    return fl_string_concat(_fl_tmp_29, _fl_str_self_hosted_lexer_102);
 }
 
 /* From: self_hosted/ast.flow */
@@ -6108,10 +6072,7 @@ fl_self_hosted_errors_CompileError fl_self_hosted_parser_error_at(fl_self_hosted
 /* Flow: self_hosted.parser.error_here */
 fl_self_hosted_errors_CompileError fl_self_hosted_parser_error_here(fl_self_hosted_parser_ParserState* s, FL_String* msg) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
-    fl_self_hosted_errors_CompileError _fl_ret_2 = fl_self_hosted_errors_parse_error(msg, s->filename, tok.line, tok.col);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_2;
+    return fl_self_hosted_errors_parse_error(msg, s->filename, tok.line, tok.col);
 }
 
 /* Flow: self_hosted.parser.get_token */
@@ -6119,23 +6080,23 @@ fl_self_hosted_lexer_Token fl_self_hosted_parser_get_token(fl_self_hosted_parser
     if (idx >= s.token_count) {
         fl_int _fl_e_1;
         FL_CHECKED_SUB(s.token_count, 1, &_fl_e_1);
-        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_3 = FL_OPT_DEREF_AS(fl_array_get_safe(s.tokens, _fl_e_1), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
-        if (_fl_tmp_3.tag == 1) {
-            _fl_retain_fl_self_hosted_lexer_Token((&_fl_tmp_3.value));
+        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_2 = FL_OPT_DEREF_AS(fl_array_get_safe(s.tokens, _fl_e_1), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
+        if (_fl_tmp_2.tag == 1) {
+            _fl_retain_fl_self_hosted_lexer_Token((&_fl_tmp_2.value));
         }
         fl_string_retain(_fl_str_self_hosted_parser_18);
         fl_string_retain(s.filename);
-        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_4 = _fl_tmp_3;
-        return ((_fl_tmp_4.tag == 1) ? _fl_tmp_4.value : (fl_self_hosted_lexer_Token){.ttype = fl_self_hosted_lexer_TokenType_TK_EOF, .value = _fl_str_self_hosted_parser_18, .line = 0, .col = 0, .file = s.filename});
+        FL_Option_fl_self_hosted_lexer_Token _fl_tmp_3 = _fl_tmp_2;
+        return ((_fl_tmp_3.tag == 1) ? _fl_tmp_3.value : (fl_self_hosted_lexer_Token){.ttype = fl_self_hosted_lexer_TokenType_TK_EOF, .value = _fl_str_self_hosted_parser_18, .line = 0, .col = 0, .file = s.filename});
     }
-    FL_Option_fl_self_hosted_lexer_Token _fl_tmp_5 = FL_OPT_DEREF_AS(fl_array_get_safe(s.tokens, idx), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
-    if (_fl_tmp_5.tag == 1) {
-        _fl_retain_fl_self_hosted_lexer_Token((&_fl_tmp_5.value));
+    FL_Option_fl_self_hosted_lexer_Token _fl_tmp_4 = FL_OPT_DEREF_AS(fl_array_get_safe(s.tokens, idx), fl_self_hosted_lexer_Token, FL_Option_fl_self_hosted_lexer_Token);
+    if (_fl_tmp_4.tag == 1) {
+        _fl_retain_fl_self_hosted_lexer_Token((&_fl_tmp_4.value));
     }
     fl_string_retain(_fl_str_self_hosted_parser_18);
     fl_string_retain(s.filename);
-    FL_Option_fl_self_hosted_lexer_Token _fl_tmp_6 = _fl_tmp_5;
-    return ((_fl_tmp_6.tag == 1) ? _fl_tmp_6.value : (fl_self_hosted_lexer_Token){.ttype = fl_self_hosted_lexer_TokenType_TK_EOF, .value = _fl_str_self_hosted_parser_18, .line = 0, .col = 0, .file = s.filename});
+    FL_Option_fl_self_hosted_lexer_Token _fl_tmp_5 = _fl_tmp_4;
+    return ((_fl_tmp_5.tag == 1) ? _fl_tmp_5.value : (fl_self_hosted_lexer_Token){.ttype = fl_self_hosted_lexer_TokenType_TK_EOF, .value = _fl_str_self_hosted_parser_18, .line = 0, .col = 0, .file = s.filename});
 }
 
 /* Flow: self_hosted.parser.skip_comments */
@@ -6187,8 +6148,6 @@ fl_self_hosted_lexer_Token fl_self_hosted_parser_peek2(fl_self_hosted_parser_Par
     fl_self_hosted_parser_skip_comments(s);
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_get_token((*s), s->pos);
     s->pos = saved;
-    fl_string_retain(tok.value);
-    fl_string_retain(tok.file);
     return tok;
 }
 
@@ -6214,8 +6173,6 @@ fl_self_hosted_lexer_Token fl_self_hosted_parser_advance(fl_self_hosted_parser_P
     fl_int _fl_e_2;
     FL_CHECKED_ADD(s->pos, 1, &_fl_e_2);
     s->pos = _fl_e_2;
-    fl_string_retain(tok.value);
-    fl_string_retain(tok.file);
     return tok;
 }
 
@@ -6223,19 +6180,16 @@ fl_self_hosted_lexer_Token fl_self_hosted_parser_advance(fl_self_hosted_parser_P
 fl_self_hosted_lexer_Token fl_self_hosted_parser_expect(fl_self_hosted_parser_ParserState* s, fl_int ttype) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
     if (tok.ttype != ttype) {
-        FL_String* _fl_tmp_7 = fl_self_hosted_lexer_token_type_name(ttype);
-        FL_String* _fl_tmp_8 = fl_string_concat(_fl_str_self_hosted_parser_21, _fl_tmp_7);
-        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, _fl_str_self_hosted_parser_22);
-        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, tok.value);
-        FL_String* _fl_tmp_11 = fl_string_concat(_fl_tmp_10, _fl_str_self_hosted_parser_23);
-        fl_self_hosted_errors_CompileError* _fl_tmp_12 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_12) = fl_self_hosted_parser_error_at(s, _fl_tmp_11, tok.line, tok.col);
-        _fl_throw(((void*)_fl_tmp_12), 461109476);
+        FL_String* _fl_tmp_6 = fl_self_hosted_lexer_token_type_name(ttype);
+        FL_String* _fl_tmp_7 = fl_string_concat(_fl_str_self_hosted_parser_21, _fl_tmp_6);
+        FL_String* _fl_tmp_8 = fl_string_concat(_fl_tmp_7, _fl_str_self_hosted_parser_22);
+        FL_String* _fl_tmp_9 = fl_string_concat(_fl_tmp_8, tok.value);
+        FL_String* _fl_tmp_10 = fl_string_concat(_fl_tmp_9, _fl_str_self_hosted_parser_23);
+        fl_self_hosted_errors_CompileError* _fl_tmp_11 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_11) = fl_self_hosted_parser_error_at(s, _fl_tmp_10, tok.line, tok.col);
+        _fl_throw(((void*)_fl_tmp_11), 461109476);
     }
-    fl_self_hosted_lexer_Token _fl_ret_13 = fl_self_hosted_parser_advance(s);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_13;
+    return fl_self_hosted_parser_advance(s);
 }
 
 /* Flow: self_hosted.parser.check */
@@ -6272,37 +6226,23 @@ void fl_self_hosted_parser_synchronize(fl_self_hosted_parser_ParserState* s) {
 fl_bool fl_self_hosted_parser_is_stmt_terminator(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_RBRACE) {
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
         return fl_true;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_EOF) {
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
         return fl_true;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_ELSE) {
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
         return fl_true;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_CATCH) {
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
         return fl_true;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_RETRY) {
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
         return fl_true;
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_FINALLY) {
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
         return fl_true;
     }
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
     return fl_false;
 }
 
@@ -6314,21 +6254,21 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
         fl_self_hosted_ast_Expr cap_expr = fl_self_hosted_parser_parse_expr(s);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACKET);
         fl_int cap_id = fl_array_len_int(s->sized_capacities);
-        fl_self_hosted_ast_Expr _fl_tmp_14 = cap_expr;
-        FL_Array* _fl_old_15 = s->sized_capacities;
-        s->sized_capacities = fl_array_push_sized(s->sized_capacities, (&_fl_tmp_14), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_15 != s->sized_capacities) {
-            fl_array_release(_fl_old_15);
+        fl_self_hosted_ast_Expr _fl_tmp_12 = cap_expr;
+        FL_Array* _fl_old_13 = s->sized_capacities;
+        s->sized_capacities = fl_array_push_sized(s->sized_capacities, (&_fl_tmp_12), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_13 != s->sized_capacities) {
+            fl_array_release(_fl_old_13);
         }
-        FL_Box* _fl_tmp_16 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
-        FL_BOX_DEREF(_fl_tmp_16, fl_self_hosted_ast_TypeExpr) = base;
-        base = (fl_self_hosted_ast_TypeExpr){.tag = 7, .TSizedType = (fl_self_hosted_ast_TypeExpr_TSizedType){.id = fl_self_hosted_parser_fresh_id(s), .line = bracket_tok.line, .col = bracket_tok.col, .inner = _fl_tmp_16, .capacity_id = cap_id}};
+        FL_Box* _fl_tmp_14 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+        FL_BOX_DEREF(_fl_tmp_14, fl_self_hosted_ast_TypeExpr) = base;
+        base = (fl_self_hosted_ast_TypeExpr){.tag = 7, .TSizedType = (fl_self_hosted_ast_TypeExpr_TSizedType){.id = fl_self_hosted_parser_fresh_id(s), .line = bracket_tok.line, .col = bracket_tok.col, .inner = _fl_tmp_14, .capacity_id = cap_id}};
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_QUESTION)) {
         fl_self_hosted_lexer_Token q_tok = fl_self_hosted_parser_advance(s);
-        FL_Box* _fl_tmp_17 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
-        FL_BOX_DEREF(_fl_tmp_17, fl_self_hosted_ast_TypeExpr) = base;
-        base = (fl_self_hosted_ast_TypeExpr){.tag = 2, .TOptionType = (fl_self_hosted_ast_TypeExpr_TOptionType){.id = fl_self_hosted_parser_fresh_id(s), .line = q_tok.line, .col = q_tok.col, .inner = _fl_tmp_17}};
+        FL_Box* _fl_tmp_15 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+        FL_BOX_DEREF(_fl_tmp_15, fl_self_hosted_ast_TypeExpr) = base;
+        base = (fl_self_hosted_ast_TypeExpr){.tag = 2, .TOptionType = (fl_self_hosted_ast_TypeExpr_TOptionType){.id = fl_self_hosted_parser_fresh_id(s), .line = q_tok.line, .col = q_tok.col, .inner = _fl_tmp_15}};
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COLON)) {
         fl_int saved = s->pos;
@@ -6343,16 +6283,16 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
         if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_MUT) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_lexer_Token mut_tok = fl_self_hosted_parser_advance(s);
-            FL_Box* _fl_tmp_18 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
-            FL_BOX_DEREF(_fl_tmp_18, fl_self_hosted_ast_TypeExpr) = base;
-            base = (fl_self_hosted_ast_TypeExpr){.tag = 5, .TMutType = (fl_self_hosted_ast_TypeExpr_TMutType){.id = fl_self_hosted_parser_fresh_id(s), .line = mut_tok.line, .col = mut_tok.col, .inner = _fl_tmp_18}};
+            FL_Box* _fl_tmp_16 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+            FL_BOX_DEREF(_fl_tmp_16, fl_self_hosted_ast_TypeExpr) = base;
+            base = (fl_self_hosted_ast_TypeExpr){.tag = 5, .TMutType = (fl_self_hosted_ast_TypeExpr_TMutType){.id = fl_self_hosted_parser_fresh_id(s), .line = mut_tok.line, .col = mut_tok.col, .inner = _fl_tmp_16}};
         } else {
             if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_IMUT) {
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_lexer_Token imut_tok = fl_self_hosted_parser_advance(s);
-                FL_Box* _fl_tmp_19 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
-                FL_BOX_DEREF(_fl_tmp_19, fl_self_hosted_ast_TypeExpr) = base;
-                base = (fl_self_hosted_ast_TypeExpr){.tag = 6, .TImutType = (fl_self_hosted_ast_TypeExpr_TImutType){.id = fl_self_hosted_parser_fresh_id(s), .line = imut_tok.line, .col = imut_tok.col, .inner = _fl_tmp_19}};
+                FL_Box* _fl_tmp_17 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+                FL_BOX_DEREF(_fl_tmp_17, fl_self_hosted_ast_TypeExpr) = base;
+                base = (fl_self_hosted_ast_TypeExpr){.tag = 6, .TImutType = (fl_self_hosted_ast_TypeExpr_TImutType){.id = fl_self_hosted_parser_fresh_id(s), .line = imut_tok.line, .col = imut_tok.col, .inner = _fl_tmp_17}};
             }
         }
     }
@@ -6363,48 +6303,29 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_type_expr(fl_self_hosted
 fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_base_type(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_FN) {
-        fl_self_hosted_ast_TypeExpr _fl_ret_23 = fl_self_hosted_parser_parse_fn_type(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_23;
+        return fl_self_hosted_parser_parse_fn_type(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_LPAREN) {
-        fl_self_hosted_ast_TypeExpr _fl_ret_24 = fl_self_hosted_parser_parse_tuple_type(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_24;
+        return fl_self_hosted_parser_parse_tuple_type(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_NONE) {
         fl_self_hosted_parser_advance(s);
         fl_string_retain(_fl_str_self_hosted_parser_24);
-        fl_self_hosted_ast_TypeExpr _fl_ret_25 = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = _fl_str_self_hosted_parser_24, .module_path = fl_array_new(0, 0, NULL)}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_25;
+        return (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = _fl_str_self_hosted_parser_24, .module_path = fl_array_new(0, 0, NULL)}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_RECORD) {
         fl_self_hosted_parser_advance(s);
         fl_string_retain(_fl_str_self_hosted_parser_25);
-        fl_self_hosted_ast_TypeExpr _fl_ret_26 = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = _fl_str_self_hosted_parser_25, .module_path = fl_array_new(0, 0, NULL)}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_26;
+        return (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = _fl_str_self_hosted_parser_25, .module_path = fl_array_new(0, 0, NULL)}};
     }
     if ((tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) || (tok.ttype == fl_self_hosted_lexer_TokenType_TK_SELF)) {
-        fl_self_hosted_ast_TypeExpr _fl_ret_27 = fl_self_hosted_parser_parse_named_or_generic_type(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_27;
+        return fl_self_hosted_parser_parse_named_or_generic_type(s);
     }
-    FL_String* _fl_tmp_20 = fl_string_concat(_fl_str_self_hosted_parser_26, tok.value);
-    FL_String* _fl_tmp_21 = fl_string_concat(_fl_tmp_20, _fl_str_self_hosted_parser_23);
-    fl_self_hosted_errors_CompileError* _fl_tmp_22 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_22) = fl_self_hosted_parser_error_at(s, _fl_tmp_21, tok.line, tok.col);
-    _fl_throw(((void*)_fl_tmp_22), 461109476);
-    fl_string_release(_fl_tmp_20);
-    fl_string_release(_fl_tmp_21);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
+    FL_String* _fl_tmp_18 = fl_string_concat(_fl_str_self_hosted_parser_26, tok.value);
+    FL_String* _fl_tmp_19 = fl_string_concat(_fl_tmp_18, _fl_str_self_hosted_parser_23);
+    fl_self_hosted_errors_CompileError* _fl_tmp_20 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_20) = fl_self_hosted_parser_error_at(s, _fl_tmp_19, tok.line, tok.col);
+    _fl_throw(((void*)_fl_tmp_20), 461109476);
     return fl_self_hosted_parser_placeholder_type();
 }
 
@@ -6533,36 +6454,32 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_fn_type(fl_self_hosted_p
     FL_Array* params = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(params, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
-        fl_self_hosted_ast_TypeExpr _fl_tmp_28 = fl_self_hosted_parser_parse_type_expr(s);
-        FL_Array* _fl_old_29 = params;
-        params = fl_array_push_sized(params, (&_fl_tmp_28), sizeof(fl_self_hosted_ast_TypeExpr));
-        if (_fl_old_29 != params) {
-            fl_array_release(_fl_old_29);
+        fl_self_hosted_ast_TypeExpr _fl_tmp_21 = fl_self_hosted_parser_parse_type_expr(s);
+        FL_Array* _fl_old_22 = params;
+        params = fl_array_push_sized(params, (&_fl_tmp_21), sizeof(fl_self_hosted_ast_TypeExpr));
+        if (_fl_old_22 != params) {
+            fl_array_release(_fl_old_22);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN)) {
                 break;
             }
-            fl_self_hosted_ast_TypeExpr _fl_tmp_30 = fl_self_hosted_parser_parse_type_expr(s);
-            FL_Array* _fl_old_31 = params;
-            params = fl_array_push_sized(params, (&_fl_tmp_30), sizeof(fl_self_hosted_ast_TypeExpr));
-            if (_fl_old_31 != params) {
-                fl_array_release(_fl_old_31);
+            fl_self_hosted_ast_TypeExpr _fl_tmp_23 = fl_self_hosted_parser_parse_type_expr(s);
+            FL_Array* _fl_old_24 = params;
+            params = fl_array_push_sized(params, (&_fl_tmp_23), sizeof(fl_self_hosted_ast_TypeExpr));
+            if (_fl_old_24 != params) {
+                fl_array_release(_fl_old_24);
             }
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
     fl_self_hosted_ast_TypeExpr ret = fl_self_hosted_parser_parse_type_expr(s);
-    FL_Box* _fl_tmp_32 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
-    FL_BOX_DEREF(_fl_tmp_32, fl_self_hosted_ast_TypeExpr) = ret;
+    FL_Box* _fl_tmp_25 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+    FL_BOX_DEREF(_fl_tmp_25, fl_self_hosted_ast_TypeExpr) = ret;
     fl_array_retain(params);
-    fl_self_hosted_ast_TypeExpr _fl_ret_33 = (fl_self_hosted_ast_TypeExpr){.tag = 3, .TFnType = (fl_self_hosted_ast_TypeExpr_TFnType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .params = params, .ret = _fl_tmp_32}};
-    fl_array_release(params);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_33;
+    return (fl_self_hosted_ast_TypeExpr){.tag = 3, .TFnType = (fl_self_hosted_ast_TypeExpr_TFnType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .params = params, .ret = _fl_tmp_25}};
 }
 
 /* Flow: self_hosted.parser.parse_tuple_type */
@@ -6571,32 +6488,28 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_tuple_type(fl_self_hoste
     FL_Array* elements = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(elements, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
-        fl_self_hosted_ast_TypeExpr _fl_tmp_34 = fl_self_hosted_parser_parse_type_expr(s);
-        FL_Array* _fl_old_35 = elements;
-        elements = fl_array_push_sized(elements, (&_fl_tmp_34), sizeof(fl_self_hosted_ast_TypeExpr));
-        if (_fl_old_35 != elements) {
-            fl_array_release(_fl_old_35);
+        fl_self_hosted_ast_TypeExpr _fl_tmp_26 = fl_self_hosted_parser_parse_type_expr(s);
+        FL_Array* _fl_old_27 = elements;
+        elements = fl_array_push_sized(elements, (&_fl_tmp_26), sizeof(fl_self_hosted_ast_TypeExpr));
+        if (_fl_old_27 != elements) {
+            fl_array_release(_fl_old_27);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN)) {
                 break;
             }
-            fl_self_hosted_ast_TypeExpr _fl_tmp_36 = fl_self_hosted_parser_parse_type_expr(s);
-            FL_Array* _fl_old_37 = elements;
-            elements = fl_array_push_sized(elements, (&_fl_tmp_36), sizeof(fl_self_hosted_ast_TypeExpr));
-            if (_fl_old_37 != elements) {
-                fl_array_release(_fl_old_37);
+            fl_self_hosted_ast_TypeExpr _fl_tmp_28 = fl_self_hosted_parser_parse_type_expr(s);
+            FL_Array* _fl_old_29 = elements;
+            elements = fl_array_push_sized(elements, (&_fl_tmp_28), sizeof(fl_self_hosted_ast_TypeExpr));
+            if (_fl_old_29 != elements) {
+                fl_array_release(_fl_old_29);
             }
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
     fl_array_retain(elements);
-    fl_self_hosted_ast_TypeExpr _fl_ret_38 = (fl_self_hosted_ast_TypeExpr){.tag = 4, .TTupleType = (fl_self_hosted_ast_TypeExpr_TTupleType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = elements}};
-    fl_array_release(elements);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_38;
+    return (fl_self_hosted_ast_TypeExpr){.tag = 4, .TTupleType = (fl_self_hosted_ast_TypeExpr_TTupleType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = elements}};
 }
 
 /* Flow: self_hosted.parser.parse_named_or_generic_type */
@@ -6609,16 +6522,16 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_named_or_generic_type(fl
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_DOT)) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        FL_Array* _fl_old_39 = module_path;
+        FL_Array* _fl_old_30 = module_path;
         module_path = fl_array_push_ptr(module_path, name);
-        if (_fl_old_39 != module_path) {
-            fl_array_release(_fl_old_39);
+        if (_fl_old_30 != module_path) {
+            fl_array_release(_fl_old_30);
         }
-        FL_String* _fl_old_40 = name;
+        FL_String* _fl_old_31 = name;
         name = next_tok.value;
-        if (_fl_old_40 != name) {
+        if (_fl_old_31 != name) {
             fl_string_retain(name);
-            fl_string_release(_fl_old_40);
+            fl_string_release(_fl_old_31);
         }
     }
     fl_string_retain(name);
@@ -6626,21 +6539,11 @@ fl_self_hosted_ast_TypeExpr fl_self_hosted_parser_parse_named_or_generic_type(fl
     fl_self_hosted_ast_TypeExpr base = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = fl_self_hosted_parser_fresh_id(s), .line = first_tok.line, .col = first_tok.col, .name = name, .module_path = module_path}};
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
         FL_Array* args = fl_self_hosted_parser_parse_type_args(s);
-        FL_Box* _fl_tmp_41 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
-        FL_BOX_DEREF(_fl_tmp_41, fl_self_hosted_ast_TypeExpr) = base;
+        FL_Box* _fl_tmp_32 = fl_box_new(sizeof(fl_self_hosted_ast_TypeExpr));
+        FL_BOX_DEREF(_fl_tmp_32, fl_self_hosted_ast_TypeExpr) = base;
         fl_array_retain(args);
-        fl_self_hosted_ast_TypeExpr _fl_ret_42 = (fl_self_hosted_ast_TypeExpr){.tag = 1, .TGenericType = (fl_self_hosted_ast_TypeExpr_TGenericType){.id = fl_self_hosted_parser_fresh_id(s), .line = first_tok.line, .col = first_tok.col, .base = _fl_tmp_41, .args = args}};
-        fl_array_release(module_path);
-        fl_string_release(name);
-        fl_array_release(args);
-        fl_string_release(first_tok.value);
-        fl_string_release(first_tok.file);
-        return _fl_ret_42;
+        return (fl_self_hosted_ast_TypeExpr){.tag = 1, .TGenericType = (fl_self_hosted_ast_TypeExpr_TGenericType){.id = fl_self_hosted_parser_fresh_id(s), .line = first_tok.line, .col = first_tok.col, .base = _fl_tmp_32, .args = args}};
     }
-    fl_array_release(module_path);
-    fl_string_release(name);
-    fl_string_release(first_tok.value);
-    fl_string_release(first_tok.file);
     return base;
 }
 
@@ -6650,22 +6553,22 @@ FL_Array* fl_self_hosted_parser_parse_type_args(fl_self_hosted_parser_ParserStat
     FL_Array* args = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(args, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_GT) == fl_false) {
-        fl_self_hosted_ast_TypeExpr _fl_tmp_43 = fl_self_hosted_parser_parse_type_expr(s);
-        FL_Array* _fl_old_44 = args;
-        args = fl_array_push_sized(args, (&_fl_tmp_43), sizeof(fl_self_hosted_ast_TypeExpr));
-        if (_fl_old_44 != args) {
-            fl_array_release(_fl_old_44);
+        fl_self_hosted_ast_TypeExpr _fl_tmp_33 = fl_self_hosted_parser_parse_type_expr(s);
+        FL_Array* _fl_old_34 = args;
+        args = fl_array_push_sized(args, (&_fl_tmp_33), sizeof(fl_self_hosted_ast_TypeExpr));
+        if (_fl_old_34 != args) {
+            fl_array_release(_fl_old_34);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_GT)) {
                 break;
             }
-            fl_self_hosted_ast_TypeExpr _fl_tmp_45 = fl_self_hosted_parser_parse_type_expr(s);
-            FL_Array* _fl_old_46 = args;
-            args = fl_array_push_sized(args, (&_fl_tmp_45), sizeof(fl_self_hosted_ast_TypeExpr));
-            if (_fl_old_46 != args) {
-                fl_array_release(_fl_old_46);
+            fl_self_hosted_ast_TypeExpr _fl_tmp_35 = fl_self_hosted_parser_parse_type_expr(s);
+            FL_Array* _fl_old_36 = args;
+            args = fl_array_push_sized(args, (&_fl_tmp_35), sizeof(fl_self_hosted_ast_TypeExpr));
+            if (_fl_old_36 != args) {
+                fl_array_release(_fl_old_36);
             }
         }
     }
@@ -6678,11 +6581,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_module_decl(fl_self_hosted_p
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_MODULE);
     FL_Array* path = fl_self_hosted_parser_parse_dotted_name(s);
     fl_array_retain(path);
-    fl_self_hosted_ast_Decl _fl_ret_47 = (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .path = path}};
-    fl_array_release(path);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_47;
+    return (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .path = path}};
 }
 
 /* Flow: self_hosted.parser.parse_dotted_name */
@@ -6690,22 +6589,20 @@ FL_Array* fl_self_hosted_parser_parse_dotted_name(fl_self_hosted_parser_ParserSt
     FL_Array* parts = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(parts, 1);
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-    FL_Array* _fl_old_48 = parts;
+    FL_Array* _fl_old_37 = parts;
     parts = fl_array_push_ptr(parts, name_tok.value);
-    if (_fl_old_48 != parts) {
-        fl_array_release(_fl_old_48);
+    if (_fl_old_37 != parts) {
+        fl_array_release(_fl_old_37);
     }
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_DOT)) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-        FL_Array* _fl_old_49 = parts;
+        FL_Array* _fl_old_38 = parts;
         parts = fl_array_push_ptr(parts, next_tok.value);
-        if (_fl_old_49 != parts) {
-            fl_array_release(_fl_old_49);
+        if (_fl_old_38 != parts) {
+            fl_array_release(_fl_old_38);
         }
     }
-    fl_string_release(name_tok.value);
-    fl_string_release(name_tok.file);
     return parts;
 }
 
@@ -6721,18 +6618,18 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_import_decl(fl_self_hosted_p
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
             fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-            FL_Array* _fl_old_50 = names;
+            FL_Array* _fl_old_39 = names;
             names = fl_array_push_ptr(names, name_tok.value);
-            if (_fl_old_50 != names) {
-                fl_array_release(_fl_old_50);
+            if (_fl_old_39 != names) {
+                fl_array_release(_fl_old_39);
             }
             while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_lexer_Token n2 = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                FL_Array* _fl_old_51 = names;
+                FL_Array* _fl_old_40 = names;
                 names = fl_array_push_ptr(names, n2.value);
-                if (_fl_old_51 != names) {
-                    fl_array_release(_fl_old_51);
+                if (_fl_old_40 != names) {
+                    fl_array_release(_fl_old_40);
                 }
             }
         }
@@ -6741,24 +6638,18 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_import_decl(fl_self_hosted_p
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_AS)) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_lexer_Token alias_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-            FL_String* _fl_old_52 = import_alias;
+            FL_String* _fl_old_41 = import_alias;
             import_alias = alias_tok.value;
-            if (_fl_old_52 != import_alias) {
+            if (_fl_old_41 != import_alias) {
                 fl_string_retain(import_alias);
-                fl_string_release(_fl_old_52);
+                fl_string_release(_fl_old_41);
             }
         }
     }
     fl_array_retain(path);
     fl_array_retain(names);
     fl_string_retain(import_alias);
-    fl_self_hosted_ast_Decl _fl_ret_53 = (fl_self_hosted_ast_Decl){.tag = 1, .DImport = (fl_self_hosted_ast_Decl_DImport){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .path = path, .names = names, .import_alias = import_alias}};
-    fl_array_release(path);
-    fl_array_release(names);
-    fl_string_release(import_alias);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_53;
+    return (fl_self_hosted_ast_Decl){.tag = 1, .DImport = (fl_self_hosted_ast_Decl_DImport){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .path = path, .names = names, .import_alias = import_alias}};
 }
 
 /* Flow: self_hosted.parser.parse_fn_modifiers */
@@ -6774,39 +6665,39 @@ FL_Array* fl_self_hosted_parser_parse_fn_modifiers(fl_self_hosted_parser_ParserS
         fl_self_hosted_lexer_Token mod_tok = fl_self_hosted_parser_advance(s);
         if (mod_tok.ttype == fl_self_hosted_lexer_TokenType_TK_PURE) {
             if (is_pure) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_54 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                (*_fl_tmp_54) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_27, mod_tok.line, mod_tok.col);
-                _fl_throw(((void*)_fl_tmp_54), 461109476);
+                fl_self_hosted_errors_CompileError* _fl_tmp_42 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                (*_fl_tmp_42) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_27, mod_tok.line, mod_tok.col);
+                _fl_throw(((void*)_fl_tmp_42), 461109476);
             }
             if (is_static) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_55 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                (*_fl_tmp_55) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_28, mod_tok.line, mod_tok.col);
-                _fl_throw(((void*)_fl_tmp_55), 461109476);
+                fl_self_hosted_errors_CompileError* _fl_tmp_43 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                (*_fl_tmp_43) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_28, mod_tok.line, mod_tok.col);
+                _fl_throw(((void*)_fl_tmp_43), 461109476);
             }
             is_pure = fl_true;
         } else {
             if (mod_tok.ttype == fl_self_hosted_lexer_TokenType_TK_STATIC) {
                 if (is_static) {
-                    fl_self_hosted_errors_CompileError* _fl_tmp_56 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                    (*_fl_tmp_56) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_29, mod_tok.line, mod_tok.col);
-                    _fl_throw(((void*)_fl_tmp_56), 461109476);
+                    fl_self_hosted_errors_CompileError* _fl_tmp_44 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                    (*_fl_tmp_44) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_29, mod_tok.line, mod_tok.col);
+                    _fl_throw(((void*)_fl_tmp_44), 461109476);
                 }
                 is_static = fl_true;
             }
         }
     }
     FL_Array* result = fl_array_new(0, 0, NULL);
-    fl_bool _fl_tmp_57 = is_pure;
-    FL_Array* _fl_old_58 = result;
-    result = fl_array_push_sized(result, (&_fl_tmp_57), sizeof(fl_bool));
-    if (_fl_old_58 != result) {
-        fl_array_release(_fl_old_58);
+    fl_bool _fl_tmp_45 = is_pure;
+    FL_Array* _fl_old_46 = result;
+    result = fl_array_push_sized(result, (&_fl_tmp_45), sizeof(fl_bool));
+    if (_fl_old_46 != result) {
+        fl_array_release(_fl_old_46);
     }
-    fl_bool _fl_tmp_59 = is_static;
-    FL_Array* _fl_old_60 = result;
-    result = fl_array_push_sized(result, (&_fl_tmp_59), sizeof(fl_bool));
-    if (_fl_old_60 != result) {
-        fl_array_release(_fl_old_60);
+    fl_bool _fl_tmp_47 = is_static;
+    FL_Array* _fl_old_48 = result;
+    result = fl_array_push_sized(result, (&_fl_tmp_47), sizeof(fl_bool));
+    if (_fl_old_48 != result) {
+        fl_array_release(_fl_old_48);
     }
     return result;
 }
@@ -7417,18 +7308,18 @@ void _fl_retain_fl_self_hosted_ast_Stmt(void* _ptr) {
 fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parser_ParserState* s, fl_bool is_export, fl_bool allow_no_body) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_FN);
     FL_Array* mods = fl_self_hosted_parser_parse_fn_modifiers(s);
-    FL_Option_bool _fl_tmp_61 = FL_OPT_DEREF_AS(fl_array_get_safe(mods, 0), fl_bool, FL_Option_bool);
-    fl_bool is_pure = ((_fl_tmp_61.tag == 1) ? _fl_tmp_61.value : fl_false);
-    FL_Option_bool _fl_tmp_62 = FL_OPT_DEREF_AS(fl_array_get_safe(mods, 1), fl_bool, FL_Option_bool);
-    fl_bool is_static = ((_fl_tmp_62.tag == 1) ? _fl_tmp_62.value : fl_false);
+    FL_Option_bool _fl_tmp_49 = FL_OPT_DEREF_AS(fl_array_get_safe(mods, 0), fl_bool, FL_Option_bool);
+    fl_bool is_pure = ((_fl_tmp_49.tag == 1) ? _fl_tmp_49.value : fl_false);
+    FL_Option_bool _fl_tmp_50 = FL_OPT_DEREF_AS(fl_array_get_safe(mods, 1), fl_bool, FL_Option_bool);
+    fl_bool is_static = ((_fl_tmp_50.tag == 1) ? _fl_tmp_50.value : fl_false);
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* type_params = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
-        FL_Array* _fl_old_63 = type_params;
+        FL_Array* _fl_old_51 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
-        if (_fl_old_63 != type_params) {
-            fl_array_release(_fl_old_63);
+        if (_fl_old_51 != type_params) {
+            fl_array_release(_fl_old_51);
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
@@ -7448,17 +7339,17 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parse
     FL_Array* finally_body = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(finally_body, _fl_destroy_fl_self_hosted_ast_Stmt, _fl_retain_fl_self_hosted_ast_Stmt);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACE)) {
-        FL_Array* _fl_old_64 = body;
+        FL_Array* _fl_old_52 = body;
         body = fl_self_hosted_parser_parse_block(s);
-        if (_fl_old_64 != body) {
-            fl_array_release(_fl_old_64);
+        if (_fl_old_52 != body) {
+            fl_array_release(_fl_old_52);
         }
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FINALLY)) {
             fl_self_hosted_parser_advance(s);
-            FL_Array* _fl_old_65 = finally_body;
+            FL_Array* _fl_old_53 = finally_body;
             finally_body = fl_self_hosted_parser_parse_block(s);
-            if (_fl_old_65 != finally_body) {
-                fl_array_release(_fl_old_65);
+            if (_fl_old_53 != finally_body) {
+                fl_array_release(_fl_old_53);
             }
             has_finally = fl_true;
         }
@@ -7466,11 +7357,11 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parse
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ASSIGN)) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_expr(s);
-            fl_self_hosted_ast_Stmt _fl_tmp_66 = (fl_self_hosted_ast_Stmt){.tag = 3, .SReturn = (fl_self_hosted_ast_Stmt_SReturn){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .has_value = fl_true, .value = expr}};
-            FL_Array* _fl_old_67 = body;
-            body = fl_array_push_sized(body, (&_fl_tmp_66), sizeof(fl_self_hosted_ast_Stmt));
-            if (_fl_old_67 != body) {
-                fl_array_release(_fl_old_67);
+            fl_self_hosted_ast_Stmt _fl_tmp_54 = (fl_self_hosted_ast_Stmt){.tag = 3, .SReturn = (fl_self_hosted_ast_Stmt_SReturn){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .has_value = fl_true, .value = expr}};
+            FL_Array* _fl_old_55 = body;
+            body = fl_array_push_sized(body, (&_fl_tmp_54), sizeof(fl_self_hosted_ast_Stmt));
+            if (_fl_old_55 != body) {
+                fl_array_release(_fl_old_55);
             }
         }
     }
@@ -7479,16 +7370,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_fn_decl(fl_self_hosted_parse
     fl_array_retain(params);
     fl_array_retain(body);
     fl_array_retain(finally_body);
-    fl_self_hosted_ast_Decl _fl_ret_68 = (fl_self_hosted_ast_Decl){.tag = 2, .DFn = (fl_self_hosted_ast_Decl_DFn){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .type_params = type_params, .params = params, .has_return_type = has_return_type, .return_type = return_type, .body = body, .is_pure = is_pure, .is_export = is_export, .is_static = is_static, .has_finally = has_finally, .finally_body = finally_body}};
-    fl_array_release(mods);
-    fl_array_release(type_params);
-    fl_array_release(params);
-    fl_array_release(body);
-    fl_array_release(finally_body);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_68;
+    return (fl_self_hosted_ast_Decl){.tag = 2, .DFn = (fl_self_hosted_ast_Decl_DFn){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .type_params = type_params, .params = params, .has_return_type = has_return_type, .return_type = return_type, .body = body, .is_pure = is_pure, .is_export = is_export, .is_static = is_static, .has_finally = has_finally, .finally_body = finally_body}};
 }
 
 /* Flow: self_hosted.parser.parse_type_param */
@@ -7500,37 +7382,34 @@ fl_self_hosted_ast_TypeParam fl_self_hosted_parser_parse_type_param(fl_self_host
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
             fl_self_hosted_parser_advance(s);
-            fl_self_hosted_ast_TypeExpr _fl_tmp_69 = fl_self_hosted_parser_parse_type_expr(s);
-            FL_Array* _fl_old_70 = bounds;
-            bounds = fl_array_push_sized(bounds, (&_fl_tmp_69), sizeof(fl_self_hosted_ast_TypeExpr));
-            if (_fl_old_70 != bounds) {
-                fl_array_release(_fl_old_70);
+            fl_self_hosted_ast_TypeExpr _fl_tmp_56 = fl_self_hosted_parser_parse_type_expr(s);
+            FL_Array* _fl_old_57 = bounds;
+            bounds = fl_array_push_sized(bounds, (&_fl_tmp_56), sizeof(fl_self_hosted_ast_TypeExpr));
+            if (_fl_old_57 != bounds) {
+                fl_array_release(_fl_old_57);
             }
             while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
                 fl_self_hosted_parser_advance(s);
-                fl_self_hosted_ast_TypeExpr _fl_tmp_71 = fl_self_hosted_parser_parse_type_expr(s);
-                FL_Array* _fl_old_72 = bounds;
-                bounds = fl_array_push_sized(bounds, (&_fl_tmp_71), sizeof(fl_self_hosted_ast_TypeExpr));
-                if (_fl_old_72 != bounds) {
-                    fl_array_release(_fl_old_72);
+                fl_self_hosted_ast_TypeExpr _fl_tmp_58 = fl_self_hosted_parser_parse_type_expr(s);
+                FL_Array* _fl_old_59 = bounds;
+                bounds = fl_array_push_sized(bounds, (&_fl_tmp_58), sizeof(fl_self_hosted_ast_TypeExpr));
+                if (_fl_old_59 != bounds) {
+                    fl_array_release(_fl_old_59);
                 }
             }
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
         } else {
-            fl_self_hosted_ast_TypeExpr _fl_tmp_73 = fl_self_hosted_parser_parse_type_expr(s);
-            FL_Array* _fl_old_74 = bounds;
-            bounds = fl_array_push_sized(bounds, (&_fl_tmp_73), sizeof(fl_self_hosted_ast_TypeExpr));
-            if (_fl_old_74 != bounds) {
-                fl_array_release(_fl_old_74);
+            fl_self_hosted_ast_TypeExpr _fl_tmp_60 = fl_self_hosted_parser_parse_type_expr(s);
+            FL_Array* _fl_old_61 = bounds;
+            bounds = fl_array_push_sized(bounds, (&_fl_tmp_60), sizeof(fl_self_hosted_ast_TypeExpr));
+            if (_fl_old_61 != bounds) {
+                fl_array_release(_fl_old_61);
             }
         }
     }
     fl_string_retain(tok.value);
     fl_array_retain(bounds);
-    fl_self_hosted_ast_TypeParam _fl_ret_75 = (fl_self_hosted_ast_TypeParam){.name = tok.value, .bounds = bounds, .id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col};
-    fl_array_release(bounds);
-    fl_string_release(tok.file);
-    return _fl_ret_75;
+    return (fl_self_hosted_ast_TypeParam){.name = tok.value, .bounds = bounds, .id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col};
 }
 
 /* Flow: self_hosted.parser.parse_type_params */
@@ -7539,19 +7418,19 @@ FL_Array* fl_self_hosted_parser_parse_type_params(fl_self_hosted_parser_ParserSt
     FL_Array* params = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_GT) == fl_false) {
-        fl_self_hosted_ast_TypeParam _fl_tmp_76 = fl_self_hosted_parser_parse_type_param(s);
-        FL_Array* _fl_old_77 = params;
-        params = fl_array_push_sized(params, (&_fl_tmp_76), sizeof(fl_self_hosted_ast_TypeParam));
-        if (_fl_old_77 != params) {
-            fl_array_release(_fl_old_77);
+        fl_self_hosted_ast_TypeParam _fl_tmp_62 = fl_self_hosted_parser_parse_type_param(s);
+        FL_Array* _fl_old_63 = params;
+        params = fl_array_push_sized(params, (&_fl_tmp_62), sizeof(fl_self_hosted_ast_TypeParam));
+        if (_fl_old_63 != params) {
+            fl_array_release(_fl_old_63);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
-            fl_self_hosted_ast_TypeParam _fl_tmp_78 = fl_self_hosted_parser_parse_type_param(s);
-            FL_Array* _fl_old_79 = params;
-            params = fl_array_push_sized(params, (&_fl_tmp_78), sizeof(fl_self_hosted_ast_TypeParam));
-            if (_fl_old_79 != params) {
-                fl_array_release(_fl_old_79);
+            fl_self_hosted_ast_TypeParam _fl_tmp_64 = fl_self_hosted_parser_parse_type_param(s);
+            FL_Array* _fl_old_65 = params;
+            params = fl_array_push_sized(params, (&_fl_tmp_64), sizeof(fl_self_hosted_ast_TypeParam));
+            if (_fl_old_65 != params) {
+                fl_array_release(_fl_old_65);
             }
         }
     }
@@ -7588,20 +7467,20 @@ FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserSta
         fl_string_retain(p.name);
         fl_self_hosted_ast_Param vp = (fl_self_hosted_ast_Param){.name = p.name, .type_ann = p.type_ann, .id = p.id, .line = p.line, .col = p.col, .has_default = fl_false, .is_variadic = fl_true};
         seen_variadic = fl_true;
-        fl_self_hosted_ast_Param _fl_tmp_80 = vp;
-        FL_Array* _fl_old_81 = params;
-        params = fl_array_push_sized(params, (&_fl_tmp_80), sizeof(fl_self_hosted_ast_Param));
-        if (_fl_old_81 != params) {
-            fl_array_release(_fl_old_81);
+        fl_self_hosted_ast_Param _fl_tmp_66 = vp;
+        FL_Array* _fl_old_67 = params;
+        params = fl_array_push_sized(params, (&_fl_tmp_66), sizeof(fl_self_hosted_ast_Param));
+        if (_fl_old_67 != params) {
+            fl_array_release(_fl_old_67);
         }
         fl_string_release(vp.name);
     } else {
         fl_self_hosted_ast_Param p = fl_self_hosted_parser_parse_param(s);
-        fl_self_hosted_ast_Param _fl_tmp_82 = p;
-        FL_Array* _fl_old_83 = params;
-        params = fl_array_push_sized(params, (&_fl_tmp_82), sizeof(fl_self_hosted_ast_Param));
-        if (_fl_old_83 != params) {
-            fl_array_release(_fl_old_83);
+        fl_self_hosted_ast_Param _fl_tmp_68 = p;
+        FL_Array* _fl_old_69 = params;
+        params = fl_array_push_sized(params, (&_fl_tmp_68), sizeof(fl_self_hosted_ast_Param));
+        if (_fl_old_69 != params) {
+            fl_array_release(_fl_old_69);
         }
         if (p.has_default) {
             seen_default = fl_true;
@@ -7613,9 +7492,9 @@ FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserSta
             break;
         }
         if (seen_variadic) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_84 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_84) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_30);
-            _fl_throw(((void*)_fl_tmp_84), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_70 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_70) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_30);
+            _fl_throw(((void*)_fl_tmp_70), 461109476);
         }
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_SPREAD)) {
             fl_self_hosted_lexer_Token spread_tok = fl_self_hosted_parser_advance(s);
@@ -7623,30 +7502,30 @@ FL_Array* fl_self_hosted_parser_parse_param_list(fl_self_hosted_parser_ParserSta
             fl_string_retain(p.name);
             fl_self_hosted_ast_Param vp = (fl_self_hosted_ast_Param){.name = p.name, .type_ann = p.type_ann, .id = p.id, .line = p.line, .col = p.col, .has_default = fl_false, .is_variadic = fl_true};
             seen_variadic = fl_true;
-            fl_self_hosted_ast_Param _fl_tmp_85 = vp;
-            FL_Array* _fl_old_86 = params;
-            params = fl_array_push_sized(params, (&_fl_tmp_85), sizeof(fl_self_hosted_ast_Param));
-            if (_fl_old_86 != params) {
-                fl_array_release(_fl_old_86);
+            fl_self_hosted_ast_Param _fl_tmp_71 = vp;
+            FL_Array* _fl_old_72 = params;
+            params = fl_array_push_sized(params, (&_fl_tmp_71), sizeof(fl_self_hosted_ast_Param));
+            if (_fl_old_72 != params) {
+                fl_array_release(_fl_old_72);
             }
             fl_string_release(vp.name);
         } else {
             fl_self_hosted_ast_Param p = fl_self_hosted_parser_parse_param(s);
             if (seen_default && (p.has_default == fl_false)) {
-                FL_String* _fl_tmp_87 = fl_string_concat(_fl_str_self_hosted_parser_31, p.name);
-                FL_String* _fl_tmp_88 = fl_string_concat(_fl_tmp_87, _fl_str_self_hosted_parser_32);
-                fl_self_hosted_errors_CompileError* _fl_tmp_89 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                (*_fl_tmp_89) = fl_self_hosted_parser_error_at(s, _fl_tmp_88, p.line, p.col);
-                _fl_throw(((void*)_fl_tmp_89), 461109476);
+                FL_String* _fl_tmp_73 = fl_string_concat(_fl_str_self_hosted_parser_31, p.name);
+                FL_String* _fl_tmp_74 = fl_string_concat(_fl_tmp_73, _fl_str_self_hosted_parser_32);
+                fl_self_hosted_errors_CompileError* _fl_tmp_75 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                (*_fl_tmp_75) = fl_self_hosted_parser_error_at(s, _fl_tmp_74, p.line, p.col);
+                _fl_throw(((void*)_fl_tmp_75), 461109476);
             }
             if (p.has_default) {
                 seen_default = fl_true;
             }
-            fl_self_hosted_ast_Param _fl_tmp_90 = p;
-            FL_Array* _fl_old_91 = params;
-            params = fl_array_push_sized(params, (&_fl_tmp_90), sizeof(fl_self_hosted_ast_Param));
-            if (_fl_old_91 != params) {
-                fl_array_release(_fl_old_91);
+            fl_self_hosted_ast_Param _fl_tmp_76 = p;
+            FL_Array* _fl_old_77 = params;
+            params = fl_array_push_sized(params, (&_fl_tmp_76), sizeof(fl_self_hosted_ast_Param));
+            if (_fl_old_77 != params) {
+                fl_array_release(_fl_old_77);
             }
         }
     }
@@ -7661,10 +7540,7 @@ fl_self_hosted_ast_Param fl_self_hosted_parser_parse_param(fl_self_hosted_parser
         fl_string_retain(_fl_str_self_hosted_parser_33);
         fl_self_hosted_ast_TypeExpr self_type = (fl_self_hosted_ast_TypeExpr){.tag = 0, .TNamedType = (fl_self_hosted_ast_TypeExpr_TNamedType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = _fl_str_self_hosted_parser_33, .module_path = fl_array_new(0, 0, NULL)}};
         fl_string_retain(_fl_str_self_hosted_parser_33);
-        fl_self_hosted_ast_Param _fl_ret_94 = (fl_self_hosted_ast_Param){.name = _fl_str_self_hosted_parser_33, .type_ann = self_type, .id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .has_default = fl_false, .is_variadic = fl_false};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_94;
+        return (fl_self_hosted_ast_Param){.name = _fl_str_self_hosted_parser_33, .type_ann = self_type, .id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .has_default = fl_false, .is_variadic = fl_false};
     }
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
@@ -7675,19 +7551,15 @@ fl_self_hosted_ast_Param fl_self_hosted_parser_parse_param(fl_self_hosted_parser
         fl_self_hosted_ast_Expr default_expr = fl_self_hosted_parser_parse_expr(s);
         has_default = fl_true;
         fl_int def_id = fl_array_len_int(s->literal_values);
-        fl_self_hosted_ast_Expr _fl_tmp_92 = default_expr;
-        FL_Array* _fl_old_93 = s->literal_values;
-        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_92), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_93 != s->literal_values) {
-            fl_array_release(_fl_old_93);
+        fl_self_hosted_ast_Expr _fl_tmp_78 = default_expr;
+        FL_Array* _fl_old_79 = s->literal_values;
+        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_78), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_79 != s->literal_values) {
+            fl_array_release(_fl_old_79);
         }
     }
     fl_string_retain(name_tok.value);
-    fl_self_hosted_ast_Param _fl_ret_95 = (fl_self_hosted_ast_Param){.name = name_tok.value, .type_ann = type_ann, .id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .has_default = has_default, .is_variadic = fl_false};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_95;
+    return (fl_self_hosted_ast_Param){.name = name_tok.value, .type_ann = type_ann, .id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .has_default = has_default, .is_variadic = fl_false};
 }
 
 /* Flow: self_hosted.parser.parse_type_decl */
@@ -7706,52 +7578,36 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_type_decl(fl_self_hosted_par
     FL_Array* type_params = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
-        FL_Array* _fl_old_96 = type_params;
+        FL_Array* _fl_old_80 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
-        if (_fl_old_96 != type_params) {
-            fl_array_release(_fl_old_96);
+        if (_fl_old_80 != type_params) {
+            fl_array_release(_fl_old_80);
         }
     }
     FL_Array* interfaces = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(interfaces, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FULFILLS)) {
         fl_self_hosted_parser_advance(s);
-        fl_self_hosted_ast_TypeExpr _fl_tmp_97 = fl_self_hosted_parser_parse_type_expr(s);
-        FL_Array* _fl_old_98 = interfaces;
-        interfaces = fl_array_push_sized(interfaces, (&_fl_tmp_97), sizeof(fl_self_hosted_ast_TypeExpr));
-        if (_fl_old_98 != interfaces) {
-            fl_array_release(_fl_old_98);
+        fl_self_hosted_ast_TypeExpr _fl_tmp_81 = fl_self_hosted_parser_parse_type_expr(s);
+        FL_Array* _fl_old_82 = interfaces;
+        interfaces = fl_array_push_sized(interfaces, (&_fl_tmp_81), sizeof(fl_self_hosted_ast_TypeExpr));
+        if (_fl_old_82 != interfaces) {
+            fl_array_release(_fl_old_82);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
-            fl_self_hosted_ast_TypeExpr _fl_tmp_99 = fl_self_hosted_parser_parse_type_expr(s);
-            FL_Array* _fl_old_100 = interfaces;
-            interfaces = fl_array_push_sized(interfaces, (&_fl_tmp_99), sizeof(fl_self_hosted_ast_TypeExpr));
-            if (_fl_old_100 != interfaces) {
-                fl_array_release(_fl_old_100);
+            fl_self_hosted_ast_TypeExpr _fl_tmp_83 = fl_self_hosted_parser_parse_type_expr(s);
+            FL_Array* _fl_old_84 = interfaces;
+            interfaces = fl_array_push_sized(interfaces, (&_fl_tmp_83), sizeof(fl_self_hosted_ast_TypeExpr));
+            if (_fl_old_84 != interfaces) {
+                fl_array_release(_fl_old_84);
             }
         }
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ASSIGN)) {
-        fl_self_hosted_ast_Decl _fl_ret_101 = fl_self_hosted_parser_parse_sum_type(s, tok, name_tok.value, type_params, interfaces, is_export);
-        fl_string_retain(tok.value);
-        fl_string_retain(tok.file);
-        fl_array_release(type_params);
-        fl_array_release(interfaces);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        fl_string_release(name_tok.file);
-        return _fl_ret_101;
+        return fl_self_hosted_parser_parse_sum_type(s, tok, name_tok.value, type_params, interfaces, is_export);
     }
-    fl_self_hosted_ast_Decl _fl_ret_102 = fl_self_hosted_parser_parse_struct_type(s, tok, name_tok.value, type_params, interfaces, is_export, is_type_mut);
-    fl_string_retain(tok.value);
-    fl_string_retain(tok.file);
-    fl_array_release(type_params);
-    fl_array_release(interfaces);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_102;
+    return fl_self_hosted_parser_parse_struct_type(s, tok, name_tok.value, type_params, interfaces, is_export, is_type_mut);
 }
 
 /* Flow: destructor for fl_self_hosted_ast_SumVariantDecl */
@@ -7774,28 +7630,26 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_sum_type(fl_self_hosted_pars
     FL_Array* variants = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(variants, _fl_destroy_fl_self_hosted_ast_SumVariantDecl, _fl_retain_fl_self_hosted_ast_SumVariantDecl);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_PIPE);
-    fl_self_hosted_ast_SumVariantDecl _fl_tmp_103 = fl_self_hosted_parser_parse_sum_variant(s);
-    FL_Array* _fl_old_104 = variants;
-    variants = fl_array_push_sized(variants, (&_fl_tmp_103), sizeof(fl_self_hosted_ast_SumVariantDecl));
-    if (_fl_old_104 != variants) {
-        fl_array_release(_fl_old_104);
+    fl_self_hosted_ast_SumVariantDecl _fl_tmp_85 = fl_self_hosted_parser_parse_sum_variant(s);
+    FL_Array* _fl_old_86 = variants;
+    variants = fl_array_push_sized(variants, (&_fl_tmp_85), sizeof(fl_self_hosted_ast_SumVariantDecl));
+    if (_fl_old_86 != variants) {
+        fl_array_release(_fl_old_86);
     }
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_PIPE)) {
         fl_self_hosted_parser_advance(s);
-        fl_self_hosted_ast_SumVariantDecl _fl_tmp_105 = fl_self_hosted_parser_parse_sum_variant(s);
-        FL_Array* _fl_old_106 = variants;
-        variants = fl_array_push_sized(variants, (&_fl_tmp_105), sizeof(fl_self_hosted_ast_SumVariantDecl));
-        if (_fl_old_106 != variants) {
-            fl_array_release(_fl_old_106);
+        fl_self_hosted_ast_SumVariantDecl _fl_tmp_87 = fl_self_hosted_parser_parse_sum_variant(s);
+        FL_Array* _fl_old_88 = variants;
+        variants = fl_array_push_sized(variants, (&_fl_tmp_87), sizeof(fl_self_hosted_ast_SumVariantDecl));
+        if (_fl_old_88 != variants) {
+            fl_array_release(_fl_old_88);
         }
     }
     fl_string_retain(name);
     fl_array_retain(type_params);
     fl_array_retain(interfaces);
     fl_array_retain(variants);
-    fl_self_hosted_ast_Decl _fl_ret_107 = (fl_self_hosted_ast_Decl){.tag = 3, .DType = (fl_self_hosted_ast_Decl_DType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name, .type_params = type_params, .fields = fl_array_new(0, 0, NULL), .methods = fl_array_new(0, 0, NULL), .constructors = fl_array_new(0, 0, NULL), .static_members = fl_array_new(0, 0, NULL), .interfaces = interfaces, .is_export = is_export, .is_sum_type = fl_true, .variants = variants, .is_mut = fl_false}};
-    fl_array_release(variants);
-    return _fl_ret_107;
+    return (fl_self_hosted_ast_Decl){.tag = 3, .DType = (fl_self_hosted_ast_Decl_DType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name, .type_params = type_params, .fields = fl_array_new(0, 0, NULL), .methods = fl_array_new(0, 0, NULL), .constructors = fl_array_new(0, 0, NULL), .static_members = fl_array_new(0, 0, NULL), .interfaces = interfaces, .is_export = is_export, .is_sum_type = fl_true, .variants = variants, .is_mut = fl_false}};
 }
 
 /* Flow: destructor for fl_self_hosted_ast_Field */
@@ -7824,11 +7678,11 @@ fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_sel
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
             fl_self_hosted_ast_TypeExpr ftype = fl_self_hosted_parser_parse_type_expr(s);
             fl_string_retain(fname.value);
-            fl_self_hosted_ast_Field _fl_tmp_108 = (fl_self_hosted_ast_Field){.name = fname.value, .type_expr = ftype};
-            FL_Array* _fl_old_109 = fields;
-            fields = fl_array_push_sized(fields, (&_fl_tmp_108), sizeof(fl_self_hosted_ast_Field));
-            if (_fl_old_109 != fields) {
-                fl_array_release(_fl_old_109);
+            fl_self_hosted_ast_Field _fl_tmp_89 = (fl_self_hosted_ast_Field){.name = fname.value, .type_expr = ftype};
+            FL_Array* _fl_old_90 = fields;
+            fields = fl_array_push_sized(fields, (&_fl_tmp_89), sizeof(fl_self_hosted_ast_Field));
+            if (_fl_old_90 != fields) {
+                fl_array_release(_fl_old_90);
             }
             while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
                 fl_self_hosted_parser_advance(s);
@@ -7839,11 +7693,11 @@ fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_sel
                 fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
                 fl_self_hosted_ast_TypeExpr ftype2 = fl_self_hosted_parser_parse_type_expr(s);
                 fl_string_retain(fname2.value);
-                fl_self_hosted_ast_Field _fl_tmp_110 = (fl_self_hosted_ast_Field){.name = fname2.value, .type_expr = ftype2};
-                FL_Array* _fl_old_111 = fields;
-                fields = fl_array_push_sized(fields, (&_fl_tmp_110), sizeof(fl_self_hosted_ast_Field));
-                if (_fl_old_111 != fields) {
-                    fl_array_release(_fl_old_111);
+                fl_self_hosted_ast_Field _fl_tmp_91 = (fl_self_hosted_ast_Field){.name = fname2.value, .type_expr = ftype2};
+                FL_Array* _fl_old_92 = fields;
+                fields = fl_array_push_sized(fields, (&_fl_tmp_91), sizeof(fl_self_hosted_ast_Field));
+                if (_fl_old_92 != fields) {
+                    fl_array_release(_fl_old_92);
                 }
             }
         }
@@ -7851,10 +7705,7 @@ fl_self_hosted_ast_SumVariantDecl fl_self_hosted_parser_parse_sum_variant(fl_sel
     }
     fl_string_retain(name_tok.value);
     fl_array_retain(fields);
-    fl_self_hosted_ast_SumVariantDecl _fl_ret_112 = (fl_self_hosted_ast_SumVariantDecl){.name = name_tok.value, .fields = fields, .id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col};
-    fl_array_release(fields);
-    fl_string_release(name_tok.file);
-    return _fl_ret_112;
+    return (fl_self_hosted_ast_SumVariantDecl){.name = name_tok.value, .fields = fields, .id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col};
 }
 
 /* Flow: destructor for fl_self_hosted_ast_FieldDecl */
@@ -8085,21 +7936,21 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_p
         if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_STATIC) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FN)) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_113 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                (*_fl_tmp_113) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_34);
-                _fl_throw(((void*)_fl_tmp_113), 461109476);
+                fl_self_hosted_errors_CompileError* _fl_tmp_93 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                (*_fl_tmp_93) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_34);
+                _fl_throw(((void*)_fl_tmp_93), 461109476);
             } else {
                 if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_PURE)) {
-                    fl_self_hosted_errors_CompileError* _fl_tmp_114 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                    (*_fl_tmp_114) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_35);
-                    _fl_throw(((void*)_fl_tmp_114), 461109476);
+                    fl_self_hosted_errors_CompileError* _fl_tmp_94 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                    (*_fl_tmp_94) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_35);
+                    _fl_throw(((void*)_fl_tmp_94), 461109476);
                 } else {
                     fl_self_hosted_ast_Decl sm = fl_self_hosted_parser_parse_static_member_body(s, member_tok);
-                    fl_self_hosted_ast_Decl _fl_tmp_115 = sm;
-                    FL_Array* _fl_old_116 = static_members;
-                    static_members = fl_array_push_sized(static_members, (&_fl_tmp_115), sizeof(fl_self_hosted_ast_Decl));
-                    if (_fl_old_116 != static_members) {
-                        fl_array_release(_fl_old_116);
+                    fl_self_hosted_ast_Decl _fl_tmp_95 = sm;
+                    FL_Array* _fl_old_96 = static_members;
+                    static_members = fl_array_push_sized(static_members, (&_fl_tmp_95), sizeof(fl_self_hosted_ast_Decl));
+                    if (_fl_old_96 != static_members) {
+                        fl_array_release(_fl_old_96);
                     }
                 }
             }
@@ -8107,44 +7958,44 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_p
         } else {
             if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_FN) {
                 fl_self_hosted_ast_Decl fn_decl = fl_self_hosted_parser_parse_fn_decl(s, fl_false, fl_false);
-                fl_self_hosted_ast_Decl _fl_tmp_117 = fn_decl;
-                FL_Array* _fl_old_118 = methods;
-                methods = fl_array_push_sized(methods, (&_fl_tmp_117), sizeof(fl_self_hosted_ast_Decl));
-                if (_fl_old_118 != methods) {
-                    fl_array_release(_fl_old_118);
+                fl_self_hosted_ast_Decl _fl_tmp_97 = fn_decl;
+                FL_Array* _fl_old_98 = methods;
+                methods = fl_array_push_sized(methods, (&_fl_tmp_97), sizeof(fl_self_hosted_ast_Decl));
+                if (_fl_old_98 != methods) {
+                    fl_array_release(_fl_old_98);
                 }
                 fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
             } else {
                 if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_PURE) {
-                    fl_self_hosted_errors_CompileError* _fl_tmp_119 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                    (*_fl_tmp_119) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_36);
-                    _fl_throw(((void*)_fl_tmp_119), 461109476);
+                    fl_self_hosted_errors_CompileError* _fl_tmp_99 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                    (*_fl_tmp_99) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_36);
+                    _fl_throw(((void*)_fl_tmp_99), 461109476);
                 } else {
                     if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_CONSTRUCTOR) {
                         fl_self_hosted_ast_Decl ctor = fl_self_hosted_parser_parse_constructor_decl(s);
-                        fl_self_hosted_ast_Decl _fl_tmp_120 = ctor;
-                        FL_Array* _fl_old_121 = constructors;
-                        constructors = fl_array_push_sized(constructors, (&_fl_tmp_120), sizeof(fl_self_hosted_ast_Decl));
-                        if (_fl_old_121 != constructors) {
-                            fl_array_release(_fl_old_121);
+                        fl_self_hosted_ast_Decl _fl_tmp_100 = ctor;
+                        FL_Array* _fl_old_101 = constructors;
+                        constructors = fl_array_push_sized(constructors, (&_fl_tmp_100), sizeof(fl_self_hosted_ast_Decl));
+                        if (_fl_old_101 != constructors) {
+                            fl_array_release(_fl_old_101);
                         }
                         fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
                     } else {
                         if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
                             fl_self_hosted_ast_FieldDecl field = fl_self_hosted_parser_parse_field_decl(s, is_type_mut);
-                            fl_self_hosted_ast_FieldDecl _fl_tmp_122 = field;
-                            FL_Array* _fl_old_123 = fields;
-                            fields = fl_array_push_sized(fields, (&_fl_tmp_122), sizeof(fl_self_hosted_ast_FieldDecl));
-                            if (_fl_old_123 != fields) {
-                                fl_array_release(_fl_old_123);
+                            fl_self_hosted_ast_FieldDecl _fl_tmp_102 = field;
+                            FL_Array* _fl_old_103 = fields;
+                            fields = fl_array_push_sized(fields, (&_fl_tmp_102), sizeof(fl_self_hosted_ast_FieldDecl));
+                            if (_fl_old_103 != fields) {
+                                fl_array_release(_fl_old_103);
                             }
                             fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
                         } else {
-                            FL_String* _fl_tmp_124 = fl_string_concat(_fl_str_self_hosted_parser_37, member_tok.value);
-                            FL_String* _fl_tmp_125 = fl_string_concat(_fl_tmp_124, _fl_str_self_hosted_parser_23);
-                            fl_self_hosted_errors_CompileError* _fl_tmp_126 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                            (*_fl_tmp_126) = fl_self_hosted_parser_error_at(s, _fl_tmp_125, member_tok.line, member_tok.col);
-                            _fl_throw(((void*)_fl_tmp_126), 461109476);
+                            FL_String* _fl_tmp_104 = fl_string_concat(_fl_str_self_hosted_parser_37, member_tok.value);
+                            FL_String* _fl_tmp_105 = fl_string_concat(_fl_tmp_104, _fl_str_self_hosted_parser_23);
+                            fl_self_hosted_errors_CompileError* _fl_tmp_106 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                            (*_fl_tmp_106) = fl_self_hosted_parser_error_at(s, _fl_tmp_105, member_tok.line, member_tok.col);
+                            _fl_throw(((void*)_fl_tmp_106), 461109476);
                         }
                     }
                 }
@@ -8159,12 +8010,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_struct_type(fl_self_hosted_p
     fl_array_retain(constructors);
     fl_array_retain(static_members);
     fl_array_retain(interfaces);
-    fl_self_hosted_ast_Decl _fl_ret_127 = (fl_self_hosted_ast_Decl){.tag = 3, .DType = (fl_self_hosted_ast_Decl_DType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name, .type_params = type_params, .fields = fields, .methods = methods, .constructors = constructors, .static_members = static_members, .interfaces = interfaces, .is_export = is_export, .is_sum_type = fl_false, .variants = fl_array_new(0, 0, NULL), .is_mut = is_type_mut}};
-    fl_array_release(fields);
-    fl_array_release(methods);
-    fl_array_release(constructors);
-    fl_array_release(static_members);
-    return _fl_ret_127;
+    return (fl_self_hosted_ast_Decl){.tag = 3, .DType = (fl_self_hosted_ast_Decl_DType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name, .type_params = type_params, .fields = fields, .methods = methods, .constructors = constructors, .static_members = static_members, .interfaces = interfaces, .is_export = is_export, .is_sum_type = fl_false, .variants = fl_array_new(0, 0, NULL), .is_mut = is_type_mut}};
 }
 
 /* Flow: self_hosted.parser.parse_field_decl */
@@ -8173,21 +8019,21 @@ fl_self_hosted_ast_FieldDecl fl_self_hosted_parser_parse_field_decl(fl_self_host
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
     fl_self_hosted_ast_TypeExpr type_ann = fl_self_hosted_parser_parse_type_expr(s);
     fl_bool is_mut = fl_false;
-    fl_self_hosted_ast_TypeExpr _fl_tmp_128 = type_ann;
-    switch (_fl_tmp_128.tag) {
+    fl_self_hosted_ast_TypeExpr _fl_tmp_107 = type_ann;
+    switch (_fl_tmp_107.tag) {
         case 5: {
-            fl_int nid = _fl_tmp_128.TMutType.id;
-            fl_int l = _fl_tmp_128.TMutType.line;
-            fl_int c = _fl_tmp_128.TMutType.col;
-            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_128.TMutType.inner, fl_self_hosted_ast_TypeExpr);
+            fl_int nid = _fl_tmp_107.TMutType.id;
+            fl_int l = _fl_tmp_107.TMutType.line;
+            fl_int c = _fl_tmp_107.TMutType.col;
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_107.TMutType.inner, fl_self_hosted_ast_TypeExpr);
             is_mut = fl_true;
             break;
         }
         case 6: {
-            fl_int nid = _fl_tmp_128.TImutType.id;
-            fl_int l = _fl_tmp_128.TImutType.line;
-            fl_int c = _fl_tmp_128.TImutType.col;
-            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_128.TImutType.inner, fl_self_hosted_ast_TypeExpr);
+            fl_int nid = _fl_tmp_107.TImutType.id;
+            fl_int l = _fl_tmp_107.TImutType.line;
+            fl_int c = _fl_tmp_107.TImutType.col;
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_107.TImutType.inner, fl_self_hosted_ast_TypeExpr);
             is_mut = fl_false;
             break;
         }
@@ -8199,9 +8045,7 @@ fl_self_hosted_ast_FieldDecl fl_self_hosted_parser_parse_field_decl(fl_self_host
         }
     }
     fl_string_retain(name_tok.value);
-    fl_self_hosted_ast_FieldDecl _fl_ret_129 = (fl_self_hosted_ast_FieldDecl){.name = name_tok.value, .type_ann = type_ann, .is_mut = is_mut, .id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col};
-    fl_string_release(name_tok.file);
-    return _fl_ret_129;
+    return (fl_self_hosted_ast_FieldDecl){.name = name_tok.value, .type_ann = type_ann, .is_mut = is_mut, .id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col};
 }
 
 /* Flow: self_hosted.parser.parse_constructor_decl */
@@ -8217,13 +8061,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_constructor_decl(fl_self_hos
     fl_string_retain(name_tok.value);
     fl_array_retain(params);
     fl_array_retain(body);
-    fl_self_hosted_ast_Decl _fl_ret_130 = (fl_self_hosted_ast_Decl){.tag = 10, .DConstructor = (fl_self_hosted_ast_Decl_DConstructor){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .params = params, .return_type = return_type, .body = body}};
-    fl_array_release(params);
-    fl_array_release(body);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_130;
+    return (fl_self_hosted_ast_Decl){.tag = 10, .DConstructor = (fl_self_hosted_ast_Decl_DConstructor){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .params = params, .return_type = return_type, .body = body}};
 }
 
 /* Flow: self_hosted.parser.parse_static_member_body */
@@ -8232,13 +8070,13 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_static_member_body(fl_self_h
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
     fl_self_hosted_ast_TypeExpr type_ann = fl_self_hosted_parser_parse_type_expr(s);
     fl_bool is_mut = fl_false;
-    fl_self_hosted_ast_TypeExpr _fl_tmp_131 = type_ann;
-    switch (_fl_tmp_131.tag) {
+    fl_self_hosted_ast_TypeExpr _fl_tmp_108 = type_ann;
+    switch (_fl_tmp_108.tag) {
         case 5: {
-            fl_int nid = _fl_tmp_131.TMutType.id;
-            fl_int l = _fl_tmp_131.TMutType.line;
-            fl_int c = _fl_tmp_131.TMutType.col;
-            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_131.TMutType.inner, fl_self_hosted_ast_TypeExpr);
+            fl_int nid = _fl_tmp_108.TMutType.id;
+            fl_int l = _fl_tmp_108.TMutType.line;
+            fl_int c = _fl_tmp_108.TMutType.col;
+            fl_self_hosted_ast_TypeExpr inner = FL_BOX_DEREF(_fl_tmp_108.TMutType.inner, fl_self_hosted_ast_TypeExpr);
             is_mut = fl_true;
             break;
         }
@@ -8252,9 +8090,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_static_member_body(fl_self_h
         has_value = fl_true;
     }
     fl_string_retain(name_tok.value);
-    fl_self_hosted_ast_Decl _fl_ret_132 = (fl_self_hosted_ast_Decl){.tag = 11, .DStaticMember = (fl_self_hosted_ast_Decl_DStaticMember){.id = fl_self_hosted_parser_fresh_id(s), .line = static_tok.line, .col = static_tok.col, .name = name_tok.value, .type_ann = type_ann, .is_mut = is_mut, .has_value = has_value, .value = value}};
-    fl_string_release(name_tok.file);
-    return _fl_ret_132;
+    return (fl_self_hosted_ast_Decl){.tag = 11, .DStaticMember = (fl_self_hosted_ast_Decl_DStaticMember){.id = fl_self_hosted_parser_fresh_id(s), .line = static_tok.line, .col = static_tok.col, .name = name_tok.value, .type_ann = type_ann, .is_mut = is_mut, .has_value = has_value, .value = value}};
 }
 
 /* Flow: self_hosted.parser.parse_interface_decl */
@@ -8264,10 +8100,10 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_interface_decl(fl_self_hoste
     FL_Array* type_params = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
-        FL_Array* _fl_old_133 = type_params;
+        FL_Array* _fl_old_109 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
-        if (_fl_old_133 != type_params) {
-            fl_array_release(_fl_old_133);
+        if (_fl_old_109 != type_params) {
+            fl_array_release(_fl_old_109);
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LBRACE);
@@ -8277,34 +8113,34 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_interface_decl(fl_self_hoste
         fl_self_hosted_lexer_Token member_tok = fl_self_hosted_parser_peek(s);
         if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_FN) {
             fl_self_hosted_ast_Decl fn_decl = fl_self_hosted_parser_parse_fn_decl(s, fl_false, fl_true);
-            fl_self_hosted_ast_Decl _fl_tmp_134 = fn_decl;
-            FL_Array* _fl_old_135 = methods;
-            methods = fl_array_push_sized(methods, (&_fl_tmp_134), sizeof(fl_self_hosted_ast_Decl));
-            if (_fl_old_135 != methods) {
-                fl_array_release(_fl_old_135);
+            fl_self_hosted_ast_Decl _fl_tmp_110 = fn_decl;
+            FL_Array* _fl_old_111 = methods;
+            methods = fl_array_push_sized(methods, (&_fl_tmp_110), sizeof(fl_self_hosted_ast_Decl));
+            if (_fl_old_111 != methods) {
+                fl_array_release(_fl_old_111);
             }
             fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
         } else {
             if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_PURE) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_136 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                (*_fl_tmp_136) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_36);
-                _fl_throw(((void*)_fl_tmp_136), 461109476);
+                fl_self_hosted_errors_CompileError* _fl_tmp_112 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                (*_fl_tmp_112) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_36);
+                _fl_throw(((void*)_fl_tmp_112), 461109476);
             } else {
                 if (member_tok.ttype == fl_self_hosted_lexer_TokenType_TK_CONSTRUCTOR) {
                     fl_self_hosted_ast_Decl ctor = fl_self_hosted_parser_parse_constructor_sig(s);
-                    fl_self_hosted_ast_Decl _fl_tmp_137 = ctor;
-                    FL_Array* _fl_old_138 = methods;
-                    methods = fl_array_push_sized(methods, (&_fl_tmp_137), sizeof(fl_self_hosted_ast_Decl));
-                    if (_fl_old_138 != methods) {
-                        fl_array_release(_fl_old_138);
+                    fl_self_hosted_ast_Decl _fl_tmp_113 = ctor;
+                    FL_Array* _fl_old_114 = methods;
+                    methods = fl_array_push_sized(methods, (&_fl_tmp_113), sizeof(fl_self_hosted_ast_Decl));
+                    if (_fl_old_114 != methods) {
+                        fl_array_release(_fl_old_114);
                     }
                     fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
                 } else {
-                    FL_String* _fl_tmp_139 = fl_string_concat(_fl_str_self_hosted_parser_38, member_tok.value);
-                    FL_String* _fl_tmp_140 = fl_string_concat(_fl_tmp_139, _fl_str_self_hosted_parser_23);
-                    fl_self_hosted_errors_CompileError* _fl_tmp_141 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                    (*_fl_tmp_141) = fl_self_hosted_parser_error_at(s, _fl_tmp_140, member_tok.line, member_tok.col);
-                    _fl_throw(((void*)_fl_tmp_141), 461109476);
+                    FL_String* _fl_tmp_115 = fl_string_concat(_fl_str_self_hosted_parser_38, member_tok.value);
+                    FL_String* _fl_tmp_116 = fl_string_concat(_fl_tmp_115, _fl_str_self_hosted_parser_23);
+                    fl_self_hosted_errors_CompileError* _fl_tmp_117 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                    (*_fl_tmp_117) = fl_self_hosted_parser_error_at(s, _fl_tmp_116, member_tok.line, member_tok.col);
+                    _fl_throw(((void*)_fl_tmp_117), 461109476);
                 }
             }
         }
@@ -8313,13 +8149,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_interface_decl(fl_self_hoste
     fl_string_retain(name_tok.value);
     fl_array_retain(type_params);
     fl_array_retain(methods);
-    fl_self_hosted_ast_Decl _fl_ret_142 = (fl_self_hosted_ast_Decl){.tag = 4, .DInterface = (fl_self_hosted_ast_Decl_DInterface){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .type_params = type_params, .methods = methods, .is_export = is_export}};
-    fl_array_release(type_params);
-    fl_array_release(methods);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_142;
+    return (fl_self_hosted_ast_Decl){.tag = 4, .DInterface = (fl_self_hosted_ast_Decl_DInterface){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .type_params = type_params, .methods = methods, .is_export = is_export}};
 }
 
 /* Flow: self_hosted.parser.parse_constructor_sig */
@@ -8333,12 +8163,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_constructor_sig(fl_self_host
     fl_self_hosted_ast_TypeExpr return_type = fl_self_hosted_parser_parse_type_expr(s);
     fl_string_retain(name_tok.value);
     fl_array_retain(params);
-    fl_self_hosted_ast_Decl _fl_ret_143 = (fl_self_hosted_ast_Decl){.tag = 10, .DConstructor = (fl_self_hosted_ast_Decl_DConstructor){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .params = params, .return_type = return_type, .body = fl_array_new(0, 0, NULL)}};
-    fl_array_release(params);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_143;
+    return (fl_self_hosted_ast_Decl){.tag = 10, .DConstructor = (fl_self_hosted_ast_Decl_DConstructor){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .params = params, .return_type = return_type, .body = fl_array_new(0, 0, NULL)}};
 }
 
 /* Flow: self_hosted.parser.parse_alias_decl */
@@ -8348,22 +8173,17 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_alias_decl(fl_self_hosted_pa
     FL_Array* type_params = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
-        FL_Array* _fl_old_144 = type_params;
+        FL_Array* _fl_old_118 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
-        if (_fl_old_144 != type_params) {
-            fl_array_release(_fl_old_144);
+        if (_fl_old_118 != type_params) {
+            fl_array_release(_fl_old_118);
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
     fl_self_hosted_ast_TypeExpr target = fl_self_hosted_parser_parse_type_expr(s);
     fl_string_retain(name_tok.value);
     fl_array_retain(type_params);
-    fl_self_hosted_ast_Decl _fl_ret_145 = (fl_self_hosted_ast_Decl){.tag = 5, .DAlias = (fl_self_hosted_ast_Decl_DAlias){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .type_params = type_params, .target = target, .is_export = is_export}};
-    fl_array_release(type_params);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_145;
+    return (fl_self_hosted_ast_Decl){.tag = 5, .DAlias = (fl_self_hosted_ast_Decl_DAlias){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .type_params = type_params, .target = target, .is_export = is_export}};
 }
 
 /* Flow: destructor for fl_self_hosted_ast_EnumVariantDecl */
@@ -8398,8 +8218,8 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_enum_decl(fl_self_hosted_par
                 fl_self_hosted_parser_advance(s);
             }
             fl_self_hosted_lexer_Token val_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_INT_LIT);
-            FL_Option_int _fl_tmp_146 = fl_conv_string_to_int(val_tok.value);
-            value = ((_fl_tmp_146.tag == 1) ? _fl_tmp_146.value : 0);
+            FL_Option_int _fl_tmp_119 = fl_conv_string_to_int(val_tok.value);
+            value = ((_fl_tmp_119.tag == 1) ? _fl_tmp_119.value : 0);
             if (negative) {
                 fl_int _fl_e_1;
                 FL_CHECKED_SUB(0, value, &_fl_e_1);
@@ -8408,28 +8228,23 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_enum_decl(fl_self_hosted_par
             has_value = fl_true;
         }
         fl_string_retain(v_tok.value);
-        fl_self_hosted_ast_EnumVariantDecl _fl_tmp_147 = (fl_self_hosted_ast_EnumVariantDecl){.name = v_tok.value, .has_value = has_value, .value = value, .id = fl_self_hosted_parser_fresh_id(s), .line = v_tok.line, .col = v_tok.col};
-        FL_Array* _fl_old_148 = variants;
-        variants = fl_array_push_sized(variants, (&_fl_tmp_147), sizeof(fl_self_hosted_ast_EnumVariantDecl));
-        if (_fl_old_148 != variants) {
-            fl_array_release(_fl_old_148);
+        fl_self_hosted_ast_EnumVariantDecl _fl_tmp_120 = (fl_self_hosted_ast_EnumVariantDecl){.name = v_tok.value, .has_value = has_value, .value = value, .id = fl_self_hosted_parser_fresh_id(s), .line = v_tok.line, .col = v_tok.col};
+        FL_Array* _fl_old_121 = variants;
+        variants = fl_array_push_sized(variants, (&_fl_tmp_120), sizeof(fl_self_hosted_ast_EnumVariantDecl));
+        if (_fl_old_121 != variants) {
+            fl_array_release(_fl_old_121);
         }
         fl_self_hosted_parser_skip_newlines(s);
     }
     if (fl_array_len_int(variants) == 0) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_149 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_149) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_39, tok.line, tok.col);
-        _fl_throw(((void*)_fl_tmp_149), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_122 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_122) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_39, tok.line, tok.col);
+        _fl_throw(((void*)_fl_tmp_122), 461109476);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
     fl_string_retain(name_tok.value);
     fl_array_retain(variants);
-    fl_self_hosted_ast_Decl _fl_ret_150 = (fl_self_hosted_ast_Decl){.tag = 6, .DEnum = (fl_self_hosted_ast_Decl_DEnum){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .variants = variants, .is_export = is_export}};
-    fl_array_release(variants);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_150;
+    return (fl_self_hosted_ast_Decl){.tag = 6, .DEnum = (fl_self_hosted_ast_Decl_DEnum){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .variants = variants, .is_export = is_export}};
 }
 
 /* Flow: self_hosted.parser.parse_extern_decl */
@@ -8438,57 +8253,31 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_extern_decl(fl_self_hosted_p
     fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_peek(s);
     if ((next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) && fl_string_eq(next_tok.value, _fl_str_self_hosted_parser_40)) {
         if (is_export) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_151 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-            (*_fl_tmp_151) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_41, tok.line, tok.col);
-            _fl_throw(((void*)_fl_tmp_151), 461109476);
+            fl_self_hosted_errors_CompileError* _fl_tmp_123 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+            (*_fl_tmp_123) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_41, tok.line, tok.col);
+            _fl_throw(((void*)_fl_tmp_123), 461109476);
         }
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token lib_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_STRING_LIT);
         fl_string_retain(lib_tok.value);
-        fl_self_hosted_ast_Decl _fl_ret_155 = (fl_self_hosted_ast_Decl){.tag = 7, .DExternLib = (fl_self_hosted_ast_Decl_DExternLib){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .lib_name = lib_tok.value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        fl_string_release(next_tok.value);
-        fl_string_release(next_tok.file);
-        fl_string_release(lib_tok.file);
-        return _fl_ret_155;
+        return (fl_self_hosted_ast_Decl){.tag = 7, .DExternLib = (fl_self_hosted_ast_Decl_DExternLib){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .lib_name = lib_tok.value}};
     }
     if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_TYPE) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
         fl_string_retain(name_tok.value);
-        fl_self_hosted_ast_Decl _fl_ret_156 = (fl_self_hosted_ast_Decl){.tag = 8, .DExternType = (fl_self_hosted_ast_Decl_DExternType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .is_export = is_export}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        fl_string_release(next_tok.value);
-        fl_string_release(next_tok.file);
-        fl_string_release(name_tok.file);
-        return _fl_ret_156;
+        return (fl_self_hosted_ast_Decl){.tag = 8, .DExternType = (fl_self_hosted_ast_Decl_DExternType){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .is_export = is_export}};
     }
     if (next_tok.ttype == fl_self_hosted_lexer_TokenType_TK_FN) {
-        fl_self_hosted_ast_Decl _fl_ret_157 = fl_self_hosted_parser_parse_extern_fn_decl(s, tok, is_export);
-        fl_string_retain(tok.value);
-        fl_string_retain(tok.file);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        fl_string_release(next_tok.value);
-        fl_string_release(next_tok.file);
-        return _fl_ret_157;
+        return fl_self_hosted_parser_parse_extern_fn_decl(s, tok, is_export);
     }
-    FL_String* _fl_tmp_152 = fl_string_concat(_fl_str_self_hosted_parser_42, next_tok.value);
-    FL_String* _fl_tmp_153 = fl_string_concat(_fl_tmp_152, _fl_str_self_hosted_parser_23);
-    fl_self_hosted_errors_CompileError* _fl_tmp_154 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_154) = fl_self_hosted_parser_error_at(s, _fl_tmp_153, next_tok.line, next_tok.col);
-    _fl_throw(((void*)_fl_tmp_154), 461109476);
+    FL_String* _fl_tmp_124 = fl_string_concat(_fl_str_self_hosted_parser_42, next_tok.value);
+    FL_String* _fl_tmp_125 = fl_string_concat(_fl_tmp_124, _fl_str_self_hosted_parser_23);
+    fl_self_hosted_errors_CompileError* _fl_tmp_126 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_126) = fl_self_hosted_parser_error_at(s, _fl_tmp_125, next_tok.line, next_tok.col);
+    _fl_throw(((void*)_fl_tmp_126), 461109476);
     fl_string_retain(_fl_str_self_hosted_parser_18);
-    fl_self_hosted_ast_Decl _fl_ret_158 = (fl_self_hosted_ast_Decl){.tag = 7, .DExternLib = (fl_self_hosted_ast_Decl_DExternLib){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .lib_name = _fl_str_self_hosted_parser_18}};
-    fl_string_release(_fl_tmp_152);
-    fl_string_release(_fl_tmp_153);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(next_tok.value);
-    fl_string_release(next_tok.file);
-    return _fl_ret_158;
+    return (fl_self_hosted_ast_Decl){.tag = 7, .DExternLib = (fl_self_hosted_ast_Decl_DExternLib){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .lib_name = _fl_str_self_hosted_parser_18}};
 }
 
 /* Flow: self_hosted.parser.parse_extern_fn_decl */
@@ -8498,21 +8287,21 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_extern_fn_decl(fl_self_hoste
     fl_string_retain(c_name);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_STRING_LIT)) {
         fl_self_hosted_lexer_Token cn_tok = fl_self_hosted_parser_advance(s);
-        FL_String* _fl_old_159 = c_name;
+        FL_String* _fl_old_127 = c_name;
         c_name = cn_tok.value;
-        if (_fl_old_159 != c_name) {
+        if (_fl_old_127 != c_name) {
             fl_string_retain(c_name);
-            fl_string_release(_fl_old_159);
+            fl_string_release(_fl_old_127);
         }
     }
     fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
     FL_Array* type_params = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(type_params, _fl_destroy_fl_self_hosted_ast_TypeParam, _fl_retain_fl_self_hosted_ast_TypeParam);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LT)) {
-        FL_Array* _fl_old_160 = type_params;
+        FL_Array* _fl_old_128 = type_params;
         type_params = fl_self_hosted_parser_parse_type_params(s);
-        if (_fl_old_160 != type_params) {
-            fl_array_release(_fl_old_160);
+        if (_fl_old_128 != type_params) {
+            fl_array_release(_fl_old_128);
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
@@ -8530,12 +8319,7 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_extern_fn_decl(fl_self_hoste
     fl_array_retain(type_params);
     fl_array_retain(params);
     fl_string_retain(c_name);
-    fl_self_hosted_ast_Decl _fl_ret_161 = (fl_self_hosted_ast_Decl){.tag = 9, .DExternFn = (fl_self_hosted_ast_Decl_DExternFn){.id = fl_self_hosted_parser_fresh_id(s), .line = extern_tok.line, .col = extern_tok.col, .name = name_tok.value, .type_params = type_params, .params = params, .has_return_type = has_return_type, .return_type = return_type, .is_export = is_export, .c_name = c_name}};
-    fl_string_release(c_name);
-    fl_array_release(type_params);
-    fl_array_release(params);
-    fl_string_release(name_tok.file);
-    return _fl_ret_161;
+    return (fl_self_hosted_ast_Decl){.tag = 9, .DExternFn = (fl_self_hosted_ast_Decl_DExternFn){.id = fl_self_hosted_parser_fresh_id(s), .line = extern_tok.line, .col = extern_tok.col, .name = name_tok.value, .type_params = type_params, .params = params, .has_return_type = has_return_type, .return_type = return_type, .is_export = is_export, .c_name = c_name}};
 }
 
 /* Flow: self_hosted.parser.parse_top_level_decl */
@@ -8549,61 +8333,36 @@ fl_self_hosted_ast_Decl fl_self_hosted_parser_parse_top_level_decl(fl_self_hoste
         tok = fl_self_hosted_parser_peek(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_FN) {
-        fl_self_hosted_ast_Decl _fl_ret_166 = fl_self_hosted_parser_parse_fn_decl(s, is_export, fl_false);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_166;
+        return fl_self_hosted_parser_parse_fn_decl(s, is_export, fl_false);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_PURE) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_162 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_162) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_36);
-        _fl_throw(((void*)_fl_tmp_162), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_129 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_129) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_36);
+        _fl_throw(((void*)_fl_tmp_129), 461109476);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_TYPE) {
-        fl_self_hosted_ast_Decl _fl_ret_167 = fl_self_hosted_parser_parse_type_decl(s, is_export);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_167;
+        return fl_self_hosted_parser_parse_type_decl(s, is_export);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_INTERFACE) {
-        fl_self_hosted_ast_Decl _fl_ret_168 = fl_self_hosted_parser_parse_interface_decl(s, is_export);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_168;
+        return fl_self_hosted_parser_parse_interface_decl(s, is_export);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_ALIAS) {
-        fl_self_hosted_ast_Decl _fl_ret_169 = fl_self_hosted_parser_parse_alias_decl(s, is_export);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_169;
+        return fl_self_hosted_parser_parse_alias_decl(s, is_export);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_EXTERN) {
-        fl_self_hosted_ast_Decl _fl_ret_170 = fl_self_hosted_parser_parse_extern_decl(s, is_export);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_170;
+        return fl_self_hosted_parser_parse_extern_decl(s, is_export);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_ENUM) {
-        fl_self_hosted_ast_Decl _fl_ret_171 = fl_self_hosted_parser_parse_enum_decl(s, is_export);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_171;
+        return fl_self_hosted_parser_parse_enum_decl(s, is_export);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_IMPORT) {
-        fl_self_hosted_ast_Decl _fl_ret_172 = fl_self_hosted_parser_parse_import_decl(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_172;
+        return fl_self_hosted_parser_parse_import_decl(s);
     }
-    FL_String* _fl_tmp_163 = fl_string_concat(_fl_str_self_hosted_parser_43, tok.value);
-    FL_String* _fl_tmp_164 = fl_string_concat(_fl_tmp_163, _fl_str_self_hosted_parser_23);
-    fl_self_hosted_errors_CompileError* _fl_tmp_165 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_165) = fl_self_hosted_parser_error_at(s, _fl_tmp_164, tok.line, tok.col);
-    _fl_throw(((void*)_fl_tmp_165), 461109476);
-    fl_string_release(_fl_tmp_163);
-    fl_string_release(_fl_tmp_164);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
+    FL_String* _fl_tmp_130 = fl_string_concat(_fl_str_self_hosted_parser_43, tok.value);
+    FL_String* _fl_tmp_131 = fl_string_concat(_fl_tmp_130, _fl_str_self_hosted_parser_23);
+    fl_self_hosted_errors_CompileError* _fl_tmp_132 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_132) = fl_self_hosted_parser_error_at(s, _fl_tmp_131, tok.line, tok.col);
+    _fl_throw(((void*)_fl_tmp_132), 461109476);
     return (fl_self_hosted_ast_Decl){.tag = 0, .DModule = (fl_self_hosted_ast_Decl_DModule){.id = 0, .line = 0, .col = 0, .path = fl_array_new(0, 0, NULL)}};
 }
 
@@ -8621,18 +8380,18 @@ FL_Array* fl_self_hosted_parser_parse_block(fl_self_hosted_parser_ParserState* s
         _fl_exception_push((&_fl_ef_0));
         if (setjmp(_fl_ef_0.jmp) == 0) {
             fl_self_hosted_ast_Stmt stmt = fl_self_hosted_parser_parse_stmt(s);
-            fl_self_hosted_ast_Stmt _fl_tmp_173 = stmt;
-            FL_Array* _fl_old_174 = stmts;
-            stmts = fl_array_push_sized(stmts, (&_fl_tmp_173), sizeof(fl_self_hosted_ast_Stmt));
-            if (_fl_old_174 != stmts) {
-                fl_array_release(_fl_old_174);
+            fl_self_hosted_ast_Stmt _fl_tmp_133 = stmt;
+            FL_Array* _fl_old_134 = stmts;
+            stmts = fl_array_push_sized(stmts, (&_fl_tmp_133), sizeof(fl_self_hosted_ast_Stmt));
+            if (_fl_old_134 != stmts) {
+                fl_array_release(_fl_old_134);
             }
             _fl_exception_pop();
         } else {
             _fl_exception_pop();
             if (_fl_ef_0.exception_tag == 461109476) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_175 = ((fl_self_hosted_errors_CompileError*)_fl_ef_0.exception);
-                fl_self_hosted_errors_CompileError e = (*_fl_tmp_175);
+                fl_self_hosted_errors_CompileError* _fl_tmp_135 = ((fl_self_hosted_errors_CompileError*)_fl_ef_0.exception);
+                fl_self_hosted_errors_CompileError e = (*_fl_tmp_135);
                 if (s->has_error == fl_false) {
                     s->has_error = fl_true;
                     s->first_error = fl_self_hosted_errors_parse_error(e.message, s->filename, fl_self_hosted_parser_peek(s).line, fl_self_hosted_parser_peek(s).col);
@@ -8654,75 +8413,39 @@ FL_Array* fl_self_hosted_parser_parse_block(fl_self_hosted_parser_ParserState* s
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_stmt(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_LET) {
-        fl_self_hosted_ast_Stmt _fl_ret_176 = fl_self_hosted_parser_parse_let_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_176;
+        return fl_self_hosted_parser_parse_let_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_IF) {
-        fl_self_hosted_ast_Stmt _fl_ret_177 = fl_self_hosted_parser_parse_if_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_177;
+        return fl_self_hosted_parser_parse_if_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_WHILE) {
-        fl_self_hosted_ast_Stmt _fl_ret_178 = fl_self_hosted_parser_parse_while_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_178;
+        return fl_self_hosted_parser_parse_while_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_FOR) {
-        fl_self_hosted_ast_Stmt _fl_ret_179 = fl_self_hosted_parser_parse_for_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_179;
+        return fl_self_hosted_parser_parse_for_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_MATCH) {
-        fl_self_hosted_ast_Stmt _fl_ret_180 = fl_self_hosted_parser_parse_match_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_180;
+        return fl_self_hosted_parser_parse_match_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_TRY) {
-        fl_self_hosted_ast_Stmt _fl_ret_181 = fl_self_hosted_parser_parse_try_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_181;
+        return fl_self_hosted_parser_parse_try_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_RETURN) {
-        fl_self_hosted_ast_Stmt _fl_ret_182 = fl_self_hosted_parser_parse_return_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_182;
+        return fl_self_hosted_parser_parse_return_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_YIELD) {
-        fl_self_hosted_ast_Stmt _fl_ret_183 = fl_self_hosted_parser_parse_yield_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_183;
+        return fl_self_hosted_parser_parse_yield_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_THROW) {
-        fl_self_hosted_ast_Stmt _fl_ret_184 = fl_self_hosted_parser_parse_throw_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_184;
+        return fl_self_hosted_parser_parse_throw_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_BREAK) {
-        fl_self_hosted_ast_Stmt _fl_ret_185 = fl_self_hosted_parser_parse_break_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_185;
+        return fl_self_hosted_parser_parse_break_stmt(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_CONTINUE) {
-        fl_self_hosted_ast_Stmt _fl_ret_186 = fl_self_hosted_parser_parse_continue_stmt(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_186;
+        return fl_self_hosted_parser_parse_continue_stmt(s);
     }
-    fl_self_hosted_ast_Stmt _fl_ret_187 = fl_self_hosted_parser_parse_expr_or_assign_stmt(s);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_187;
+    return fl_self_hosted_parser_parse_expr_or_assign_stmt(s);
 }
 
 /* Flow: destructor for fl_self_hosted_ast_PipelineStage */
@@ -8757,11 +8480,11 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_let_stmt(fl_self_hosted_pars
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ARROW) || has_pool) {
             FL_Array* stages = fl_array_new(0, 0, NULL);
             fl_array_set_struct_handlers(stages, _fl_destroy_fl_self_hosted_ast_PipelineStage, _fl_retain_fl_self_hosted_ast_PipelineStage);
-            fl_self_hosted_ast_PipelineStage _fl_tmp_188 = (fl_self_hosted_ast_PipelineStage){.call = call_expr, .has_pool_size = has_pool, .pool_size = pool_size, .id = fl_self_hosted_parser_fresh_id(s), .line = coro_tok.line, .col = coro_tok.col};
-            FL_Array* _fl_old_189 = stages;
-            stages = fl_array_push_sized(stages, (&_fl_tmp_188), sizeof(fl_self_hosted_ast_PipelineStage));
-            if (_fl_old_189 != stages) {
-                fl_array_release(_fl_old_189);
+            fl_self_hosted_ast_PipelineStage _fl_tmp_136 = (fl_self_hosted_ast_PipelineStage){.call = call_expr, .has_pool_size = has_pool, .pool_size = pool_size, .id = fl_self_hosted_parser_fresh_id(s), .line = coro_tok.line, .col = coro_tok.col};
+            FL_Array* _fl_old_137 = stages;
+            stages = fl_array_push_sized(stages, (&_fl_tmp_136), sizeof(fl_self_hosted_ast_PipelineStage));
+            if (_fl_old_137 != stages) {
+                fl_array_release(_fl_old_137);
             }
             while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ARROW)) {
                 fl_self_hosted_parser_advance(s);
@@ -8774,36 +8497,23 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_let_stmt(fl_self_hosted_pars
                     stage_pool = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
                     stage_has_pool = fl_true;
                 }
-                fl_self_hosted_ast_PipelineStage _fl_tmp_190 = (fl_self_hosted_ast_PipelineStage){.call = next_call, .has_pool_size = stage_has_pool, .pool_size = stage_pool, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(next_call), .col = fl_self_hosted_ast_expr_col(next_call)};
-                FL_Array* _fl_old_191 = stages;
-                stages = fl_array_push_sized(stages, (&_fl_tmp_190), sizeof(fl_self_hosted_ast_PipelineStage));
-                if (_fl_old_191 != stages) {
-                    fl_array_release(_fl_old_191);
+                fl_self_hosted_ast_PipelineStage _fl_tmp_138 = (fl_self_hosted_ast_PipelineStage){.call = next_call, .has_pool_size = stage_has_pool, .pool_size = stage_pool, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(next_call), .col = fl_self_hosted_ast_expr_col(next_call)};
+                FL_Array* _fl_old_139 = stages;
+                stages = fl_array_push_sized(stages, (&_fl_tmp_138), sizeof(fl_self_hosted_ast_PipelineStage));
+                if (_fl_old_139 != stages) {
+                    fl_array_release(_fl_old_139);
                 }
             }
             fl_array_retain(stages);
             fl_self_hosted_ast_Expr coro_expr = (fl_self_hosted_ast_Expr){.tag = 37, .ECoroutinePipeline = (fl_self_hosted_ast_Expr_ECoroutinePipeline){.id = fl_self_hosted_parser_fresh_id(s), .line = coro_tok.line, .col = coro_tok.col, .stages = stages}};
             fl_string_retain(name_tok.value);
-            fl_self_hosted_ast_Stmt _fl_ret_193 = (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .has_type_ann = fl_false, .type_ann = fl_self_hosted_parser_placeholder_type(), .value = coro_expr}};
-            fl_array_release(stages);
-            fl_string_release(tok.value);
-            fl_string_release(tok.file);
-            fl_string_release(name_tok.file);
-            fl_string_release(coro_tok.value);
-            fl_string_release(coro_tok.file);
-            return _fl_ret_193;
+            return (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .has_type_ann = fl_false, .type_ann = fl_self_hosted_parser_placeholder_type(), .value = coro_expr}};
         } else {
-            FL_Box* _fl_tmp_192 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-            FL_BOX_DEREF(_fl_tmp_192, fl_self_hosted_ast_Expr) = call_expr;
-            fl_self_hosted_ast_Expr coro_expr = (fl_self_hosted_ast_Expr){.tag = 36, .ECoroutineStart = (fl_self_hosted_ast_Expr_ECoroutineStart){.id = fl_self_hosted_parser_fresh_id(s), .line = coro_tok.line, .col = coro_tok.col, .call = _fl_tmp_192}};
+            FL_Box* _fl_tmp_140 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+            FL_BOX_DEREF(_fl_tmp_140, fl_self_hosted_ast_Expr) = call_expr;
+            fl_self_hosted_ast_Expr coro_expr = (fl_self_hosted_ast_Expr){.tag = 36, .ECoroutineStart = (fl_self_hosted_ast_Expr_ECoroutineStart){.id = fl_self_hosted_parser_fresh_id(s), .line = coro_tok.line, .col = coro_tok.col, .call = _fl_tmp_140}};
             fl_string_retain(name_tok.value);
-            fl_self_hosted_ast_Stmt _fl_ret_194 = (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .has_type_ann = fl_false, .type_ann = fl_self_hosted_parser_placeholder_type(), .value = coro_expr}};
-            fl_string_release(tok.value);
-            fl_string_release(tok.file);
-            fl_string_release(name_tok.file);
-            fl_string_release(coro_tok.value);
-            fl_string_release(coro_tok.file);
-            return _fl_ret_194;
+            return (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .has_type_ann = fl_false, .type_ann = fl_self_hosted_parser_placeholder_type(), .value = coro_expr}};
         }
     }
     fl_bool has_type_ann = fl_false;
@@ -8817,11 +8527,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_let_stmt(fl_self_hosted_pars
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_ASSIGN);
     fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
     fl_string_retain(name_tok.value);
-    fl_self_hosted_ast_Stmt _fl_ret_195 = (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .has_type_ann = has_type_ann, .type_ann = type_ann, .value = value}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(name_tok.file);
-    return _fl_ret_195;
+    return (fl_self_hosted_ast_Stmt){.tag = 0, .SLet = (fl_self_hosted_ast_Stmt_SLet){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = name_tok.value, .has_type_ann = has_type_ann, .type_ann = type_ann, .value = value}};
 }
 
 /* Flow: self_hosted.parser.parse_if_stmt */
@@ -8829,12 +8535,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_if_stmt(fl_self_hosted_parse
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IF);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LET)) {
-        fl_self_hosted_ast_Stmt _fl_ret_199 = fl_self_hosted_parser_parse_if_let(s, tok);
-        fl_string_retain(tok.value);
-        fl_string_retain(tok.file);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_199;
+        return fl_self_hosted_parser_parse_if_let(s, tok);
     }
     fl_self_hosted_ast_Expr condition = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
@@ -8847,28 +8548,23 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_if_stmt(fl_self_hosted_parse
         has_else = fl_true;
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_IF)) {
             fl_self_hosted_ast_Stmt nested_if = fl_self_hosted_parser_parse_if_stmt(s);
-            fl_self_hosted_ast_Stmt _fl_tmp_196 = nested_if;
-            FL_Array* _fl_old_197 = else_stmts;
-            else_stmts = fl_array_push_sized(else_stmts, (&_fl_tmp_196), sizeof(fl_self_hosted_ast_Stmt));
-            if (_fl_old_197 != else_stmts) {
-                fl_array_release(_fl_old_197);
+            fl_self_hosted_ast_Stmt _fl_tmp_141 = nested_if;
+            FL_Array* _fl_old_142 = else_stmts;
+            else_stmts = fl_array_push_sized(else_stmts, (&_fl_tmp_141), sizeof(fl_self_hosted_ast_Stmt));
+            if (_fl_old_142 != else_stmts) {
+                fl_array_release(_fl_old_142);
             }
         } else {
-            FL_Array* _fl_old_198 = else_stmts;
+            FL_Array* _fl_old_143 = else_stmts;
             else_stmts = fl_self_hosted_parser_parse_block(s);
-            if (_fl_old_198 != else_stmts) {
-                fl_array_release(_fl_old_198);
+            if (_fl_old_143 != else_stmts) {
+                fl_array_release(_fl_old_143);
             }
         }
     }
     fl_array_retain(then_stmts);
     fl_array_retain(else_stmts);
-    fl_self_hosted_ast_Stmt _fl_ret_200 = (fl_self_hosted_ast_Stmt){.tag = 9, .SIf = (fl_self_hosted_ast_Stmt_SIf){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .condition = condition, .then_stmts = then_stmts, .has_else = has_else, .else_stmts = else_stmts}};
-    fl_array_release(then_stmts);
-    fl_array_release(else_stmts);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_200;
+    return (fl_self_hosted_ast_Stmt){.tag = 9, .SIf = (fl_self_hosted_ast_Stmt_SIf){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .condition = condition, .then_stmts = then_stmts, .has_else = has_else, .else_stmts = else_stmts}};
 }
 
 /* Flow: sum destructor for fl_self_hosted_ast_Pattern */
@@ -8981,71 +8677,67 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_if_let(fl_self_hosted_parser
     fl_array_set_struct_handlers(else_stmts, _fl_destroy_fl_self_hosted_ast_Stmt, _fl_retain_fl_self_hosted_ast_Stmt);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ELSE)) {
         fl_self_hosted_parser_advance(s);
-        FL_Array* _fl_old_201 = else_stmts;
+        FL_Array* _fl_old_144 = else_stmts;
         else_stmts = fl_self_hosted_parser_parse_block(s);
-        if (_fl_old_201 != else_stmts) {
-            fl_array_release(_fl_old_201);
+        if (_fl_old_144 != else_stmts) {
+            fl_array_release(_fl_old_144);
         }
     }
     fl_self_hosted_ast_Pattern complement = fl_self_hosted_parser_complement_pattern(s, pattern, if_tok);
     FL_Array* arms = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(arms, _fl_destroy_fl_self_hosted_ast_MatchArm, _fl_retain_fl_self_hosted_ast_MatchArm);
     fl_array_retain(then_stmts);
-    fl_self_hosted_ast_MatchArm _fl_tmp_202 = (fl_self_hosted_ast_MatchArm){.pattern = pattern, .body_stmts = then_stmts, .id = fl_self_hosted_parser_fresh_id(s), .line = if_tok.line, .col = if_tok.col};
-    FL_Array* _fl_old_203 = arms;
-    arms = fl_array_push_sized(arms, (&_fl_tmp_202), sizeof(fl_self_hosted_ast_MatchArm));
-    if (_fl_old_203 != arms) {
-        fl_array_release(_fl_old_203);
+    fl_self_hosted_ast_MatchArm _fl_tmp_145 = (fl_self_hosted_ast_MatchArm){.pattern = pattern, .body_stmts = then_stmts, .id = fl_self_hosted_parser_fresh_id(s), .line = if_tok.line, .col = if_tok.col};
+    FL_Array* _fl_old_146 = arms;
+    arms = fl_array_push_sized(arms, (&_fl_tmp_145), sizeof(fl_self_hosted_ast_MatchArm));
+    if (_fl_old_146 != arms) {
+        fl_array_release(_fl_old_146);
     }
     fl_array_retain(else_stmts);
-    fl_self_hosted_ast_MatchArm _fl_tmp_204 = (fl_self_hosted_ast_MatchArm){.pattern = complement, .body_stmts = else_stmts, .id = fl_self_hosted_parser_fresh_id(s), .line = if_tok.line, .col = if_tok.col};
-    FL_Array* _fl_old_205 = arms;
-    arms = fl_array_push_sized(arms, (&_fl_tmp_204), sizeof(fl_self_hosted_ast_MatchArm));
-    if (_fl_old_205 != arms) {
-        fl_array_release(_fl_old_205);
+    fl_self_hosted_ast_MatchArm _fl_tmp_147 = (fl_self_hosted_ast_MatchArm){.pattern = complement, .body_stmts = else_stmts, .id = fl_self_hosted_parser_fresh_id(s), .line = if_tok.line, .col = if_tok.col};
+    FL_Array* _fl_old_148 = arms;
+    arms = fl_array_push_sized(arms, (&_fl_tmp_147), sizeof(fl_self_hosted_ast_MatchArm));
+    if (_fl_old_148 != arms) {
+        fl_array_release(_fl_old_148);
     }
     fl_array_retain(arms);
-    fl_self_hosted_ast_Stmt _fl_ret_206 = (fl_self_hosted_ast_Stmt){.tag = 12, .SMatch = (fl_self_hosted_ast_Stmt_SMatch){.id = fl_self_hosted_parser_fresh_id(s), .line = if_tok.line, .col = if_tok.col, .subject = subject, .arms = arms}};
-    fl_array_release(then_stmts);
-    fl_array_release(else_stmts);
-    fl_array_release(arms);
-    return _fl_ret_206;
+    return (fl_self_hosted_ast_Stmt){.tag = 12, .SMatch = (fl_self_hosted_ast_Stmt_SMatch){.id = fl_self_hosted_parser_fresh_id(s), .line = if_tok.line, .col = if_tok.col, .subject = subject, .arms = arms}};
 }
 
 /* Flow: self_hosted.parser.complement_pattern */
 fl_self_hosted_ast_Pattern fl_self_hosted_parser_complement_pattern(fl_self_hosted_parser_ParserState* s, fl_self_hosted_ast_Pattern pattern, fl_self_hosted_lexer_Token tok) {
-    fl_self_hosted_ast_Pattern _fl_tmp_207 = pattern;
-    switch (_fl_tmp_207.tag) {
+    fl_self_hosted_ast_Pattern _fl_tmp_149 = pattern;
+    switch (_fl_tmp_149.tag) {
         case 3: {
-            fl_int pid = _fl_tmp_207.PSome.id;
-            fl_int pl = _fl_tmp_207.PSome.line;
-            fl_int pc = _fl_tmp_207.PSome.col;
-            FL_String* iv = _fl_tmp_207.PSome.inner_var;
+            fl_int pid = _fl_tmp_149.PSome.id;
+            fl_int pl = _fl_tmp_149.PSome.line;
+            fl_int pc = _fl_tmp_149.PSome.col;
+            FL_String* iv = _fl_tmp_149.PSome.inner_var;
             return (fl_self_hosted_ast_Pattern){.tag = 4, .PNone = (fl_self_hosted_ast_Pattern_PNone){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
             break;
         }
         case 4: {
-            fl_int pid = _fl_tmp_207.PNone.id;
-            fl_int pl = _fl_tmp_207.PNone.line;
-            fl_int pc = _fl_tmp_207.PNone.col;
+            fl_int pid = _fl_tmp_149.PNone.id;
+            fl_int pl = _fl_tmp_149.PNone.line;
+            fl_int pc = _fl_tmp_149.PNone.col;
             fl_string_retain(_fl_str_self_hosted_parser_44);
             return (fl_self_hosted_ast_Pattern){.tag = 3, .PSome = (fl_self_hosted_ast_Pattern_PSome){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = _fl_str_self_hosted_parser_44}};
             break;
         }
         case 5: {
-            fl_int pid = _fl_tmp_207.POk.id;
-            fl_int pl = _fl_tmp_207.POk.line;
-            fl_int pc = _fl_tmp_207.POk.col;
-            FL_String* iv = _fl_tmp_207.POk.inner_var;
+            fl_int pid = _fl_tmp_149.POk.id;
+            fl_int pl = _fl_tmp_149.POk.line;
+            fl_int pc = _fl_tmp_149.POk.col;
+            FL_String* iv = _fl_tmp_149.POk.inner_var;
             fl_string_retain(_fl_str_self_hosted_parser_44);
             return (fl_self_hosted_ast_Pattern){.tag = 6, .PErr = (fl_self_hosted_ast_Pattern_PErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = _fl_str_self_hosted_parser_44}};
             break;
         }
         case 6: {
-            fl_int pid = _fl_tmp_207.PErr.id;
-            fl_int pl = _fl_tmp_207.PErr.line;
-            fl_int pc = _fl_tmp_207.PErr.col;
-            FL_String* iv = _fl_tmp_207.PErr.inner_var;
+            fl_int pid = _fl_tmp_149.PErr.id;
+            fl_int pl = _fl_tmp_149.PErr.line;
+            fl_int pc = _fl_tmp_149.PErr.col;
+            FL_String* iv = _fl_tmp_149.PErr.inner_var;
             fl_string_retain(_fl_str_self_hosted_parser_44);
             return (fl_self_hosted_ast_Pattern){.tag = 5, .POk = (fl_self_hosted_ast_Pattern_POk){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = _fl_str_self_hosted_parser_44}};
             break;
@@ -9069,21 +8761,16 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_while_stmt(fl_self_hosted_pa
     fl_array_set_struct_handlers(finally_body, _fl_destroy_fl_self_hosted_ast_Stmt, _fl_retain_fl_self_hosted_ast_Stmt);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FINALLY)) {
         fl_self_hosted_parser_advance(s);
-        FL_Array* _fl_old_208 = finally_body;
+        FL_Array* _fl_old_150 = finally_body;
         finally_body = fl_self_hosted_parser_parse_block(s);
-        if (_fl_old_208 != finally_body) {
-            fl_array_release(_fl_old_208);
+        if (_fl_old_150 != finally_body) {
+            fl_array_release(_fl_old_150);
         }
         has_finally = fl_true;
     }
     fl_array_retain(body);
     fl_array_retain(finally_body);
-    fl_self_hosted_ast_Stmt _fl_ret_209 = (fl_self_hosted_ast_Stmt){.tag = 10, .SWhile = (fl_self_hosted_ast_Stmt_SWhile){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .condition = condition, .body = body, .has_finally = has_finally, .finally_body = finally_body}};
-    fl_array_release(body);
-    fl_array_release(finally_body);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_209;
+    return (fl_self_hosted_ast_Stmt){.tag = 10, .SWhile = (fl_self_hosted_ast_Stmt_SWhile){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .condition = condition, .body = body, .has_finally = has_finally, .finally_body = finally_body}};
 }
 
 /* Flow: self_hosted.parser.parse_for_stmt */
@@ -9108,23 +8795,17 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_for_stmt(fl_self_hosted_pars
     fl_array_set_struct_handlers(finally_body, _fl_destroy_fl_self_hosted_ast_Stmt, _fl_retain_fl_self_hosted_ast_Stmt);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FINALLY)) {
         fl_self_hosted_parser_advance(s);
-        FL_Array* _fl_old_210 = finally_body;
+        FL_Array* _fl_old_151 = finally_body;
         finally_body = fl_self_hosted_parser_parse_block(s);
-        if (_fl_old_210 != finally_body) {
-            fl_array_release(_fl_old_210);
+        if (_fl_old_151 != finally_body) {
+            fl_array_release(_fl_old_151);
         }
         has_finally = fl_true;
     }
     fl_string_retain(var_tok.value);
     fl_array_retain(body);
     fl_array_retain(finally_body);
-    fl_self_hosted_ast_Stmt _fl_ret_211 = (fl_self_hosted_ast_Stmt){.tag = 11, .SFor = (fl_self_hosted_ast_Stmt_SFor){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .var_name = var_tok.value, .has_var_type = has_var_type, .var_type = var_type, .iterable = iterable, .body = body, .has_finally = has_finally, .finally_body = finally_body}};
-    fl_array_release(body);
-    fl_array_release(finally_body);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(var_tok.file);
-    return _fl_ret_211;
+    return (fl_self_hosted_ast_Stmt){.tag = 11, .SFor = (fl_self_hosted_ast_Stmt_SFor){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .var_name = var_tok.value, .has_var_type = has_var_type, .var_type = var_type, .iterable = iterable, .body = body, .has_finally = has_finally, .finally_body = finally_body}};
 }
 
 /* Flow: self_hosted.parser.parse_match_stmt */
@@ -9136,21 +8817,17 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_match_stmt(fl_self_hosted_pa
     fl_array_set_struct_handlers(arms, _fl_destroy_fl_self_hosted_ast_MatchArm, _fl_retain_fl_self_hosted_ast_MatchArm);
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
         fl_self_hosted_ast_MatchArm arm = fl_self_hosted_parser_parse_match_arm(s);
-        fl_self_hosted_ast_MatchArm _fl_tmp_212 = arm;
-        FL_Array* _fl_old_213 = arms;
-        arms = fl_array_push_sized(arms, (&_fl_tmp_212), sizeof(fl_self_hosted_ast_MatchArm));
-        if (_fl_old_213 != arms) {
-            fl_array_release(_fl_old_213);
+        fl_self_hosted_ast_MatchArm _fl_tmp_152 = arm;
+        FL_Array* _fl_old_153 = arms;
+        arms = fl_array_push_sized(arms, (&_fl_tmp_152), sizeof(fl_self_hosted_ast_MatchArm));
+        if (_fl_old_153 != arms) {
+            fl_array_release(_fl_old_153);
         }
         fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
     fl_array_retain(arms);
-    fl_self_hosted_ast_Stmt _fl_ret_214 = (fl_self_hosted_ast_Stmt){.tag = 12, .SMatch = (fl_self_hosted_ast_Stmt_SMatch){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .subject = subject, .arms = arms}};
-    fl_array_release(arms);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_214;
+    return (fl_self_hosted_ast_Stmt){.tag = 12, .SMatch = (fl_self_hosted_ast_Stmt_SMatch){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .subject = subject, .arms = arms}};
 }
 
 /* Flow: self_hosted.parser.parse_match_arm */
@@ -9160,24 +8837,22 @@ fl_self_hosted_ast_MatchArm fl_self_hosted_parser_parse_match_arm(fl_self_hosted
     FL_Array* body_stmts = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(body_stmts, _fl_destroy_fl_self_hosted_ast_Stmt, _fl_retain_fl_self_hosted_ast_Stmt);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACE)) {
-        FL_Array* _fl_old_215 = body_stmts;
+        FL_Array* _fl_old_154 = body_stmts;
         body_stmts = fl_self_hosted_parser_parse_block(s);
-        if (_fl_old_215 != body_stmts) {
-            fl_array_release(_fl_old_215);
+        if (_fl_old_154 != body_stmts) {
+            fl_array_release(_fl_old_154);
         }
     } else {
         fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_expr(s);
-        fl_self_hosted_ast_Stmt _fl_tmp_216 = (fl_self_hosted_ast_Stmt){.tag = 8, .SExpr = (fl_self_hosted_ast_Stmt_SExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr), .expr = expr}};
-        FL_Array* _fl_old_217 = body_stmts;
-        body_stmts = fl_array_push_sized(body_stmts, (&_fl_tmp_216), sizeof(fl_self_hosted_ast_Stmt));
-        if (_fl_old_217 != body_stmts) {
-            fl_array_release(_fl_old_217);
+        fl_self_hosted_ast_Stmt _fl_tmp_155 = (fl_self_hosted_ast_Stmt){.tag = 8, .SExpr = (fl_self_hosted_ast_Stmt_SExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr), .expr = expr}};
+        FL_Array* _fl_old_156 = body_stmts;
+        body_stmts = fl_array_push_sized(body_stmts, (&_fl_tmp_155), sizeof(fl_self_hosted_ast_Stmt));
+        if (_fl_old_156 != body_stmts) {
+            fl_array_release(_fl_old_156);
         }
     }
     fl_array_retain(body_stmts);
-    fl_self_hosted_ast_MatchArm _fl_ret_218 = (fl_self_hosted_ast_MatchArm){.pattern = pattern, .body_stmts = body_stmts, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_pattern_line(pattern), .col = fl_self_hosted_ast_pattern_col(pattern)};
-    fl_array_release(body_stmts);
-    return _fl_ret_218;
+    return (fl_self_hosted_ast_MatchArm){.pattern = pattern, .body_stmts = body_stmts, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_pattern_line(pattern), .col = fl_self_hosted_ast_pattern_col(pattern)};
 }
 
 /* Flow: destructor for fl_self_hosted_ast_RetryBlock */
@@ -9223,21 +8898,21 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_try_stmt(fl_self_hosted_pars
     FL_Array* retry_blocks = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(retry_blocks, _fl_destroy_fl_self_hosted_ast_RetryBlock, _fl_retain_fl_self_hosted_ast_RetryBlock);
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RETRY)) {
-        fl_self_hosted_ast_RetryBlock _fl_tmp_219 = fl_self_hosted_parser_parse_retry_block(s);
-        FL_Array* _fl_old_220 = retry_blocks;
-        retry_blocks = fl_array_push_sized(retry_blocks, (&_fl_tmp_219), sizeof(fl_self_hosted_ast_RetryBlock));
-        if (_fl_old_220 != retry_blocks) {
-            fl_array_release(_fl_old_220);
+        fl_self_hosted_ast_RetryBlock _fl_tmp_157 = fl_self_hosted_parser_parse_retry_block(s);
+        FL_Array* _fl_old_158 = retry_blocks;
+        retry_blocks = fl_array_push_sized(retry_blocks, (&_fl_tmp_157), sizeof(fl_self_hosted_ast_RetryBlock));
+        if (_fl_old_158 != retry_blocks) {
+            fl_array_release(_fl_old_158);
         }
     }
     FL_Array* catches = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(catches, _fl_destroy_fl_self_hosted_ast_CatchClause, _fl_retain_fl_self_hosted_ast_CatchClause);
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_CATCH)) {
-        fl_self_hosted_ast_CatchClause _fl_tmp_221 = fl_self_hosted_parser_parse_catch_block(s);
-        FL_Array* _fl_old_222 = catches;
-        catches = fl_array_push_sized(catches, (&_fl_tmp_221), sizeof(fl_self_hosted_ast_CatchClause));
-        if (_fl_old_222 != catches) {
-            fl_array_release(_fl_old_222);
+        fl_self_hosted_ast_CatchClause _fl_tmp_159 = fl_self_hosted_parser_parse_catch_block(s);
+        FL_Array* _fl_old_160 = catches;
+        catches = fl_array_push_sized(catches, (&_fl_tmp_159), sizeof(fl_self_hosted_ast_CatchClause));
+        if (_fl_old_160 != catches) {
+            fl_array_release(_fl_old_160);
         }
     }
     fl_bool has_finally = fl_false;
@@ -9245,10 +8920,10 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_try_stmt(fl_self_hosted_pars
     fl_array_set_struct_handlers(finally_body, _fl_destroy_fl_self_hosted_ast_Stmt, _fl_retain_fl_self_hosted_ast_Stmt);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FINALLY)) {
         fl_self_hosted_parser_advance(s);
-        FL_Array* _fl_old_223 = finally_body;
+        FL_Array* _fl_old_161 = finally_body;
         finally_body = fl_self_hosted_parser_parse_block(s);
-        if (_fl_old_223 != finally_body) {
-            fl_array_release(_fl_old_223);
+        if (_fl_old_161 != finally_body) {
+            fl_array_release(_fl_old_161);
         }
         has_finally = fl_true;
     }
@@ -9256,14 +8931,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_try_stmt(fl_self_hosted_pars
     fl_array_retain(retry_blocks);
     fl_array_retain(catches);
     fl_array_retain(finally_body);
-    fl_self_hosted_ast_Stmt _fl_ret_224 = (fl_self_hosted_ast_Stmt){.tag = 13, .STry = (fl_self_hosted_ast_Stmt_STry){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .body = body, .retry_blocks = retry_blocks, .catches = catches, .has_finally = has_finally, .finally_body = finally_body}};
-    fl_array_release(body);
-    fl_array_release(retry_blocks);
-    fl_array_release(catches);
-    fl_array_release(finally_body);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_224;
+    return (fl_self_hosted_ast_Stmt){.tag = 13, .STry = (fl_self_hosted_ast_Stmt_STry){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .body = body, .retry_blocks = retry_blocks, .catches = catches, .has_finally = has_finally, .finally_body = finally_body}};
 }
 
 /* Flow: self_hosted.parser.parse_retry_block */
@@ -9289,13 +8957,7 @@ fl_self_hosted_ast_RetryBlock fl_self_hosted_parser_parse_retry_block(fl_self_ho
     fl_string_retain(target_fn_tok.value);
     fl_string_retain(ex_var_tok.value);
     fl_array_retain(body);
-    fl_self_hosted_ast_RetryBlock _fl_ret_225 = (fl_self_hosted_ast_RetryBlock){.target_fn = target_fn_tok.value, .exception_var = ex_var_tok.value, .exception_type = ex_type, .has_attempts = has_attempts, .attempts = attempts, .body = body, .id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col};
-    fl_array_release(body);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(target_fn_tok.file);
-    fl_string_release(ex_var_tok.file);
-    return _fl_ret_225;
+    return (fl_self_hosted_ast_RetryBlock){.target_fn = target_fn_tok.value, .exception_var = ex_var_tok.value, .exception_type = ex_type, .has_attempts = has_attempts, .attempts = attempts, .body = body, .id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col};
 }
 
 /* Flow: self_hosted.parser.parse_catch_block */
@@ -9309,66 +8971,43 @@ fl_self_hosted_ast_CatchClause fl_self_hosted_parser_parse_catch_block(fl_self_h
     FL_Array* body = fl_self_hosted_parser_parse_block(s);
     fl_string_retain(ex_var_tok.value);
     fl_array_retain(body);
-    fl_self_hosted_ast_CatchClause _fl_ret_226 = (fl_self_hosted_ast_CatchClause){.exception_var = ex_var_tok.value, .exception_type = ex_type, .body = body, .id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col};
-    fl_array_release(body);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    fl_string_release(ex_var_tok.file);
-    return _fl_ret_226;
+    return (fl_self_hosted_ast_CatchClause){.exception_var = ex_var_tok.value, .exception_type = ex_type, .body = body, .id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col};
 }
 
 /* Flow: self_hosted.parser.parse_return_stmt */
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_return_stmt(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RETURN);
     if (fl_self_hosted_parser_is_stmt_terminator(s)) {
-        fl_self_hosted_ast_Stmt _fl_ret_227 = (fl_self_hosted_ast_Stmt){.tag = 3, .SReturn = (fl_self_hosted_ast_Stmt_SReturn){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .has_value = fl_false, .value = fl_self_hosted_parser_placeholder_expr()}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_227;
+        return (fl_self_hosted_ast_Stmt){.tag = 3, .SReturn = (fl_self_hosted_ast_Stmt_SReturn){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .has_value = fl_false, .value = fl_self_hosted_parser_placeholder_expr()}};
     }
     fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
-    fl_self_hosted_ast_Stmt _fl_ret_228 = (fl_self_hosted_ast_Stmt){.tag = 3, .SReturn = (fl_self_hosted_ast_Stmt_SReturn){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .has_value = fl_true, .value = value}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_228;
+    return (fl_self_hosted_ast_Stmt){.tag = 3, .SReturn = (fl_self_hosted_ast_Stmt_SReturn){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .has_value = fl_true, .value = value}};
 }
 
 /* Flow: self_hosted.parser.parse_yield_stmt */
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_yield_stmt(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_YIELD);
     fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
-    fl_self_hosted_ast_Stmt _fl_ret_229 = (fl_self_hosted_ast_Stmt){.tag = 4, .SYield = (fl_self_hosted_ast_Stmt_SYield){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = value}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_229;
+    return (fl_self_hosted_ast_Stmt){.tag = 4, .SYield = (fl_self_hosted_ast_Stmt_SYield){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = value}};
 }
 
 /* Flow: self_hosted.parser.parse_throw_stmt */
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_throw_stmt(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_THROW);
     fl_self_hosted_ast_Expr exception = fl_self_hosted_parser_parse_expr(s);
-    fl_self_hosted_ast_Stmt _fl_ret_230 = (fl_self_hosted_ast_Stmt){.tag = 5, .SThrow = (fl_self_hosted_ast_Stmt_SThrow){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .exception = exception}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_230;
+    return (fl_self_hosted_ast_Stmt){.tag = 5, .SThrow = (fl_self_hosted_ast_Stmt_SThrow){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .exception = exception}};
 }
 
 /* Flow: self_hosted.parser.parse_break_stmt */
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_break_stmt(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_BREAK);
-    fl_self_hosted_ast_Stmt _fl_ret_231 = (fl_self_hosted_ast_Stmt){.tag = 6, .SBreak = (fl_self_hosted_ast_Stmt_SBreak){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_231;
+    return (fl_self_hosted_ast_Stmt){.tag = 6, .SBreak = (fl_self_hosted_ast_Stmt_SBreak){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
 }
 
 /* Flow: self_hosted.parser.parse_continue_stmt */
 fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_continue_stmt(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_CONTINUE);
-    fl_self_hosted_ast_Stmt _fl_ret_232 = (fl_self_hosted_ast_Stmt){.tag = 7, .SContinue = (fl_self_hosted_ast_Stmt_SContinue){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_232;
+    return (fl_self_hosted_ast_Stmt){.tag = 7, .SContinue = (fl_self_hosted_ast_Stmt_SContinue){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
 }
 
 /* Flow: self_hosted.parser.parse_expr_or_assign_stmt */
@@ -9380,10 +9019,7 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_expr_or_assign_stmt(fl_self_
         fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
         fl_int el = fl_self_hosted_ast_expr_line(expr);
         fl_int ec = fl_self_hosted_ast_expr_col(expr);
-        fl_self_hosted_ast_Stmt _fl_ret_233 = (fl_self_hosted_ast_Stmt){.tag = 1, .SAssign = (fl_self_hosted_ast_Stmt_SAssign){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .value = value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_233;
+        return (fl_self_hosted_ast_Stmt){.tag = 1, .SAssign = (fl_self_hosted_ast_Stmt_SAssign){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .value = value}};
     }
     fl_int el = fl_self_hosted_ast_expr_line(expr);
     fl_int ec = fl_self_hosted_ast_expr_col(expr);
@@ -9391,58 +9027,37 @@ fl_self_hosted_ast_Stmt fl_self_hosted_parser_parse_expr_or_assign_stmt(fl_self_
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
         fl_string_retain(_fl_str_self_hosted_parser_45);
-        fl_self_hosted_ast_Stmt _fl_ret_234 = (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_45, .has_value = fl_true, .value = value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_234;
+        return (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_45, .has_value = fl_true, .value = value}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_MINUS_ASSIGN) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
         fl_string_retain(_fl_str_self_hosted_parser_46);
-        fl_self_hosted_ast_Stmt _fl_ret_235 = (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_46, .has_value = fl_true, .value = value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_235;
+        return (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_46, .has_value = fl_true, .value = value}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_STAR_ASSIGN) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
         fl_string_retain(_fl_str_self_hosted_parser_47);
-        fl_self_hosted_ast_Stmt _fl_ret_236 = (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_47, .has_value = fl_true, .value = value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_236;
+        return (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_47, .has_value = fl_true, .value = value}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_SLASH_ASSIGN) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
         fl_string_retain(_fl_str_self_hosted_parser_48);
-        fl_self_hosted_ast_Stmt _fl_ret_237 = (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_48, .has_value = fl_true, .value = value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_237;
+        return (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_48, .has_value = fl_true, .value = value}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_INCREMENT) {
         fl_self_hosted_parser_advance(s);
         fl_string_retain(_fl_str_self_hosted_parser_49);
-        fl_self_hosted_ast_Stmt _fl_ret_238 = (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_49, .has_value = fl_false, .value = fl_self_hosted_parser_placeholder_expr()}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_238;
+        return (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_49, .has_value = fl_false, .value = fl_self_hosted_parser_placeholder_expr()}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_DECREMENT) {
         fl_self_hosted_parser_advance(s);
         fl_string_retain(_fl_str_self_hosted_parser_50);
-        fl_self_hosted_ast_Stmt _fl_ret_239 = (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_50, .has_value = fl_false, .value = fl_self_hosted_parser_placeholder_expr()}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_239;
+        return (fl_self_hosted_ast_Stmt){.tag = 2, .SUpdate = (fl_self_hosted_ast_Stmt_SUpdate){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .target = expr, .op = _fl_str_self_hosted_parser_50, .has_value = fl_false, .value = fl_self_hosted_parser_placeholder_expr()}};
     }
-    fl_self_hosted_ast_Stmt _fl_ret_240 = (fl_self_hosted_ast_Stmt){.tag = 8, .SExpr = (fl_self_hosted_ast_Stmt_SExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .expr = expr}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_240;
+    return (fl_self_hosted_ast_Stmt){.tag = 8, .SExpr = (fl_self_hosted_ast_Stmt_SExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = el, .col = ec, .expr = expr}};
 }
 
 /* Flow: self_hosted.parser.parse_expr */
@@ -9468,11 +9083,11 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
         if ((tok.ttype == fl_self_hosted_lexer_TokenType_TK_DOUBLE_QUESTION) && (min_prec < fl_self_hosted_parser_PREC_NULL_COALESCE())) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr right = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_NULL_COALESCE());
-            FL_Box* _fl_tmp_241 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-            FL_BOX_DEREF(_fl_tmp_241, fl_self_hosted_ast_Expr) = left;
-            FL_Box* _fl_tmp_242 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-            FL_BOX_DEREF(_fl_tmp_242, fl_self_hosted_ast_Expr) = right;
-            left = (fl_self_hosted_ast_Expr){.tag = 29, .ENullCoalesce = (fl_self_hosted_ast_Expr_ENullCoalesce){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .left = _fl_tmp_241, .right = _fl_tmp_242}};
+            FL_Box* _fl_tmp_162 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+            FL_BOX_DEREF(_fl_tmp_162, fl_self_hosted_ast_Expr) = left;
+            FL_Box* _fl_tmp_163 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+            FL_BOX_DEREF(_fl_tmp_163, fl_self_hosted_ast_Expr) = right;
+            left = (fl_self_hosted_ast_Expr){.tag = 29, .ENullCoalesce = (fl_self_hosted_ast_Expr_ENullCoalesce){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .left = _fl_tmp_162, .right = _fl_tmp_163}};
             continue;
         }
         fl_int prec = fl_self_hosted_parser_infix_precedence(tok.ttype);
@@ -9483,33 +9098,33 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                 FL_CHECKED_SUB(prec, 1, &_fl_e_1);
                 fl_self_hosted_ast_Expr right = fl_self_hosted_parser_parse_pratt(s, _fl_e_1);
                 FL_String* op_s = fl_self_hosted_parser_binop_str(tok.ttype);
-                FL_Box* _fl_tmp_243 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                FL_BOX_DEREF(_fl_tmp_243, fl_self_hosted_ast_Expr) = left;
-                FL_Box* _fl_tmp_244 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                FL_BOX_DEREF(_fl_tmp_244, fl_self_hosted_ast_Expr) = right;
+                FL_Box* _fl_tmp_164 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_164, fl_self_hosted_ast_Expr) = left;
+                FL_Box* _fl_tmp_165 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_165, fl_self_hosted_ast_Expr) = right;
                 fl_string_retain(op_s);
-                left = (fl_self_hosted_ast_Expr){.tag = 7, .EBinOp = (fl_self_hosted_ast_Expr_EBinOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = op_s, .left = _fl_tmp_243, .right = _fl_tmp_244}};
+                left = (fl_self_hosted_ast_Expr){.tag = 7, .EBinOp = (fl_self_hosted_ast_Expr_EBinOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = op_s, .left = _fl_tmp_164, .right = _fl_tmp_165}};
                 continue;
             }
             if (tok.ttype != fl_self_hosted_lexer_TokenType_TK_ARROW) {
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_ast_Expr right = fl_self_hosted_parser_parse_pratt(s, prec);
                 FL_String* op_s = fl_self_hosted_parser_binop_str(tok.ttype);
-                FL_Box* _fl_tmp_245 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                FL_BOX_DEREF(_fl_tmp_245, fl_self_hosted_ast_Expr) = left;
-                FL_Box* _fl_tmp_246 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                FL_BOX_DEREF(_fl_tmp_246, fl_self_hosted_ast_Expr) = right;
+                FL_Box* _fl_tmp_166 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_166, fl_self_hosted_ast_Expr) = left;
+                FL_Box* _fl_tmp_167 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_167, fl_self_hosted_ast_Expr) = right;
                 fl_string_retain(op_s);
-                left = (fl_self_hosted_ast_Expr){.tag = 7, .EBinOp = (fl_self_hosted_ast_Expr_EBinOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = op_s, .left = _fl_tmp_245, .right = _fl_tmp_246}};
+                left = (fl_self_hosted_ast_Expr){.tag = 7, .EBinOp = (fl_self_hosted_ast_Expr_EBinOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = op_s, .left = _fl_tmp_166, .right = _fl_tmp_167}};
                 continue;
             }
         }
         if (min_prec < fl_self_hosted_parser_PREC_POSTFIX()) {
             if ((tok.ttype == fl_self_hosted_lexer_TokenType_TK_QUESTION) && (fl_self_hosted_parser_is_ternary(s) == fl_false)) {
                 fl_self_hosted_parser_advance(s);
-                FL_Box* _fl_tmp_247 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                FL_BOX_DEREF(_fl_tmp_247, fl_self_hosted_ast_Expr) = left;
-                left = (fl_self_hosted_ast_Expr){.tag = 28, .EPropagate = (fl_self_hosted_ast_Expr_EPropagate){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_247}};
+                FL_Box* _fl_tmp_168 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_168, fl_self_hosted_ast_Expr) = left;
+                left = (fl_self_hosted_ast_Expr){.tag = 28, .EPropagate = (fl_self_hosted_ast_Expr_EPropagate){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_168}};
                 continue;
             }
             if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_DOT) {
@@ -9517,27 +9132,27 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                 fl_self_hosted_lexer_Token field_tok = fl_self_hosted_parser_peek(s);
                 if (field_tok.ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) {
                     fl_self_hosted_lexer_Token idx_tok = fl_self_hosted_parser_advance(s);
-                    FL_Box* _fl_tmp_248 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                    FL_BOX_DEREF(_fl_tmp_248, fl_self_hosted_ast_Expr) = left;
+                    FL_Box* _fl_tmp_169 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                    FL_BOX_DEREF(_fl_tmp_169, fl_self_hosted_ast_Expr) = left;
                     fl_string_retain(idx_tok.value);
-                    left = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_248, .field = idx_tok.value}};
+                    left = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_169, .field = idx_tok.value}};
                 } else {
                     fl_self_hosted_lexer_Token ft = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
                     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
                         fl_self_hosted_parser_advance(s);
                         FL_Array* args = fl_self_hosted_parser_parse_arg_list(s);
                         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-                        FL_Box* _fl_tmp_249 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                        FL_BOX_DEREF(_fl_tmp_249, fl_self_hosted_ast_Expr) = left;
+                        FL_Box* _fl_tmp_170 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                        FL_BOX_DEREF(_fl_tmp_170, fl_self_hosted_ast_Expr) = left;
                         fl_string_retain(ft.value);
                         fl_array_retain(args);
-                        left = (fl_self_hosted_ast_Expr){.tag = 12, .EMethodCall = (fl_self_hosted_ast_Expr_EMethodCall){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_249, .method = ft.value, .args = args}};
+                        left = (fl_self_hosted_ast_Expr){.tag = 12, .EMethodCall = (fl_self_hosted_ast_Expr_EMethodCall){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_170, .method = ft.value, .args = args}};
                         fl_array_release(args);
                     } else {
-                        FL_Box* _fl_tmp_250 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                        FL_BOX_DEREF(_fl_tmp_250, fl_self_hosted_ast_Expr) = left;
+                        FL_Box* _fl_tmp_171 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                        FL_BOX_DEREF(_fl_tmp_171, fl_self_hosted_ast_Expr) = left;
                         fl_string_retain(ft.value);
-                        left = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_250, .field = ft.value}};
+                        left = (fl_self_hosted_ast_Expr){.tag = 13, .EFieldAccess = (fl_self_hosted_ast_Expr_EFieldAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_171, .field = ft.value}};
                     }
                 }
                 continue;
@@ -9546,21 +9161,21 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_pratt(fl_self_hosted_parser_
                 fl_self_hosted_parser_advance(s);
                 FL_Array* args = fl_self_hosted_parser_parse_arg_list(s);
                 fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-                FL_Box* _fl_tmp_251 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                FL_BOX_DEREF(_fl_tmp_251, fl_self_hosted_ast_Expr) = left;
+                FL_Box* _fl_tmp_172 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_172, fl_self_hosted_ast_Expr) = left;
                 fl_array_retain(args);
-                left = (fl_self_hosted_ast_Expr){.tag = 11, .ECall = (fl_self_hosted_ast_Expr_ECall){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .callee = _fl_tmp_251, .args = args}};
+                left = (fl_self_hosted_ast_Expr){.tag = 11, .ECall = (fl_self_hosted_ast_Expr_ECall){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .callee = _fl_tmp_172, .args = args}};
                 continue;
             }
             if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_LBRACKET) {
                 fl_self_hosted_parser_advance(s);
                 fl_self_hosted_ast_Expr index = fl_self_hosted_parser_parse_expr(s);
                 fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACKET);
-                FL_Box* _fl_tmp_252 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                FL_BOX_DEREF(_fl_tmp_252, fl_self_hosted_ast_Expr) = left;
-                FL_Box* _fl_tmp_253 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-                FL_BOX_DEREF(_fl_tmp_253, fl_self_hosted_ast_Expr) = index;
-                left = (fl_self_hosted_ast_Expr){.tag = 14, .EIndexAccess = (fl_self_hosted_ast_Expr_EIndexAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_252, .index = _fl_tmp_253}};
+                FL_Box* _fl_tmp_173 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_173, fl_self_hosted_ast_Expr) = left;
+                FL_Box* _fl_tmp_174 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+                FL_BOX_DEREF(_fl_tmp_174, fl_self_hosted_ast_Expr) = index;
+                left = (fl_self_hosted_ast_Expr){.tag = 14, .EIndexAccess = (fl_self_hosted_ast_Expr_EIndexAccess){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .receiver = _fl_tmp_173, .index = _fl_tmp_174}};
                 continue;
             }
         }
@@ -9603,8 +9218,8 @@ fl_bool fl_self_hosted_parser_is_ternary(fl_self_hosted_parser_ParserState* s) {
     } else {
         _fl_exception_pop();
         if (_fl_ef_1.exception_tag == 461109476) {
-            fl_self_hosted_errors_CompileError* _fl_tmp_254 = ((fl_self_hosted_errors_CompileError*)_fl_ef_1.exception);
-            fl_self_hosted_errors_CompileError e = (*_fl_tmp_254);
+            fl_self_hosted_errors_CompileError* _fl_tmp_175 = ((fl_self_hosted_errors_CompileError*)_fl_ef_1.exception);
+            fl_self_hosted_errors_CompileError e = (*_fl_tmp_175);
             result = fl_false;
         } else {
             _fl_throw(_fl_ef_1.exception, _fl_ef_1.exception_tag);
@@ -9613,27 +9228,24 @@ fl_bool fl_self_hosted_parser_is_ternary(fl_self_hosted_parser_ParserState* s) {
     s->pos = saved;
     s->next_id = saved_next_id;
     s->has_error = saved_has_error;
-    FL_Array* _fl_old_255 = s->literal_values;
+    FL_Array* _fl_old_176 = s->literal_values;
     s->literal_values = saved_literals;
     fl_array_retain(s->literal_values);
-    if (_fl_old_255 != s->literal_values) {
-        fl_array_release(_fl_old_255);
+    if (_fl_old_176 != s->literal_values) {
+        fl_array_release(_fl_old_176);
     }
-    FL_Array* _fl_old_256 = s->cast_targets;
+    FL_Array* _fl_old_177 = s->cast_targets;
     s->cast_targets = saved_casts;
     fl_array_retain(s->cast_targets);
-    if (_fl_old_256 != s->cast_targets) {
-        fl_array_release(_fl_old_256);
+    if (_fl_old_177 != s->cast_targets) {
+        fl_array_release(_fl_old_177);
     }
-    FL_Array* _fl_old_257 = s->sized_capacities;
+    FL_Array* _fl_old_178 = s->sized_capacities;
     s->sized_capacities = saved_caps;
     fl_array_retain(s->sized_capacities);
-    if (_fl_old_257 != s->sized_capacities) {
-        fl_array_release(_fl_old_257);
+    if (_fl_old_178 != s->sized_capacities) {
+        fl_array_release(_fl_old_178);
     }
-    fl_array_release(saved_literals);
-    fl_array_release(saved_casts);
-    fl_array_release(saved_caps);
     return result;
 }
 
@@ -9717,16 +9329,13 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ternary(fl_self_hosted_parse
     fl_self_hosted_ast_Expr then_expr = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_TERNARY());
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
     fl_self_hosted_ast_Expr else_expr = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_TERNARY());
-    FL_Box* _fl_tmp_258 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_258, fl_self_hosted_ast_Expr) = condition;
-    FL_Box* _fl_tmp_259 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_259, fl_self_hosted_ast_Expr) = then_expr;
-    FL_Box* _fl_tmp_260 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_260, fl_self_hosted_ast_Expr) = else_expr;
-    fl_self_hosted_ast_Expr _fl_ret_261 = (fl_self_hosted_ast_Expr){.tag = 22, .ETernary = (fl_self_hosted_ast_Expr_ETernary){.id = fl_self_hosted_parser_fresh_id(s), .line = q_tok.line, .col = q_tok.col, .condition = _fl_tmp_258, .then_expr = _fl_tmp_259, .else_expr = _fl_tmp_260}};
-    fl_string_release(q_tok.value);
-    fl_string_release(q_tok.file);
-    return _fl_ret_261;
+    FL_Box* _fl_tmp_179 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_179, fl_self_hosted_ast_Expr) = condition;
+    FL_Box* _fl_tmp_180 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_180, fl_self_hosted_ast_Expr) = then_expr;
+    FL_Box* _fl_tmp_181 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_181, fl_self_hosted_ast_Expr) = else_expr;
+    return (fl_self_hosted_ast_Expr){.tag = 22, .ETernary = (fl_self_hosted_ast_Expr_ETernary){.id = fl_self_hosted_parser_fresh_id(s), .line = q_tok.line, .col = q_tok.col, .condition = _fl_tmp_179, .then_expr = _fl_tmp_180, .else_expr = _fl_tmp_181}};
 }
 
 /* Flow: destructor for fl_self_hosted_ast_ChainElement */
@@ -9745,58 +9354,56 @@ void _fl_retain_fl_self_hosted_ast_ChainElement(void* _ptr) {
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_composition_chain(fl_self_hosted_parser_ParserState* s, fl_self_hosted_ast_Expr first) {
     FL_Array* elements = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(elements, _fl_destroy_fl_self_hosted_ast_ChainElement, _fl_retain_fl_self_hosted_ast_ChainElement);
-    fl_self_hosted_ast_ChainElement _fl_tmp_262 = (fl_self_hosted_ast_ChainElement){.expr = first, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(first), .col = fl_self_hosted_ast_expr_col(first)};
-    FL_Array* _fl_old_263 = elements;
-    elements = fl_array_push_sized(elements, (&_fl_tmp_262), sizeof(fl_self_hosted_ast_ChainElement));
-    if (_fl_old_263 != elements) {
-        fl_array_release(_fl_old_263);
+    fl_self_hosted_ast_ChainElement _fl_tmp_182 = (fl_self_hosted_ast_ChainElement){.expr = first, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(first), .col = fl_self_hosted_ast_expr_col(first)};
+    FL_Array* _fl_old_183 = elements;
+    elements = fl_array_push_sized(elements, (&_fl_tmp_182), sizeof(fl_self_hosted_ast_ChainElement));
+    if (_fl_old_183 != elements) {
+        fl_array_release(_fl_old_183);
     }
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ARROW)) {
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_PARALLEL_FANOUT)) {
             fl_self_hosted_lexer_Token pfan_tok = fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr fan = fl_self_hosted_parser_parse_fanout_body(s, fl_true);
-            fl_self_hosted_ast_ChainElement _fl_tmp_264 = (fl_self_hosted_ast_ChainElement){.expr = fan, .id = fl_self_hosted_parser_fresh_id(s), .line = pfan_tok.line, .col = pfan_tok.col};
-            FL_Array* _fl_old_265 = elements;
-            elements = fl_array_push_sized(elements, (&_fl_tmp_264), sizeof(fl_self_hosted_ast_ChainElement));
-            if (_fl_old_265 != elements) {
-                fl_array_release(_fl_old_265);
+            fl_self_hosted_ast_ChainElement _fl_tmp_184 = (fl_self_hosted_ast_ChainElement){.expr = fan, .id = fl_self_hosted_parser_fresh_id(s), .line = pfan_tok.line, .col = pfan_tok.col};
+            FL_Array* _fl_old_185 = elements;
+            elements = fl_array_push_sized(elements, (&_fl_tmp_184), sizeof(fl_self_hosted_ast_ChainElement));
+            if (_fl_old_185 != elements) {
+                fl_array_release(_fl_old_185);
             }
         } else {
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LPAREN)) {
                 if (fl_self_hosted_parser_is_fanout(s)) {
                     fl_self_hosted_lexer_Token fan_tok = fl_self_hosted_parser_advance(s);
                     fl_self_hosted_ast_Expr fan = fl_self_hosted_parser_parse_fanout_body(s, fl_false);
-                    fl_self_hosted_ast_ChainElement _fl_tmp_266 = (fl_self_hosted_ast_ChainElement){.expr = fan, .id = fl_self_hosted_parser_fresh_id(s), .line = fan_tok.line, .col = fan_tok.col};
-                    FL_Array* _fl_old_267 = elements;
-                    elements = fl_array_push_sized(elements, (&_fl_tmp_266), sizeof(fl_self_hosted_ast_ChainElement));
-                    if (_fl_old_267 != elements) {
-                        fl_array_release(_fl_old_267);
+                    fl_self_hosted_ast_ChainElement _fl_tmp_186 = (fl_self_hosted_ast_ChainElement){.expr = fan, .id = fl_self_hosted_parser_fresh_id(s), .line = fan_tok.line, .col = fan_tok.col};
+                    FL_Array* _fl_old_187 = elements;
+                    elements = fl_array_push_sized(elements, (&_fl_tmp_186), sizeof(fl_self_hosted_ast_ChainElement));
+                    if (_fl_old_187 != elements) {
+                        fl_array_release(_fl_old_187);
                     }
                 } else {
                     fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_COMPOSITION());
-                    fl_self_hosted_ast_ChainElement _fl_tmp_268 = (fl_self_hosted_ast_ChainElement){.expr = expr, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr)};
-                    FL_Array* _fl_old_269 = elements;
-                    elements = fl_array_push_sized(elements, (&_fl_tmp_268), sizeof(fl_self_hosted_ast_ChainElement));
-                    if (_fl_old_269 != elements) {
-                        fl_array_release(_fl_old_269);
+                    fl_self_hosted_ast_ChainElement _fl_tmp_188 = (fl_self_hosted_ast_ChainElement){.expr = expr, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr)};
+                    FL_Array* _fl_old_189 = elements;
+                    elements = fl_array_push_sized(elements, (&_fl_tmp_188), sizeof(fl_self_hosted_ast_ChainElement));
+                    if (_fl_old_189 != elements) {
+                        fl_array_release(_fl_old_189);
                     }
                 }
             } else {
                 fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_COMPOSITION());
-                fl_self_hosted_ast_ChainElement _fl_tmp_270 = (fl_self_hosted_ast_ChainElement){.expr = expr, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr)};
-                FL_Array* _fl_old_271 = elements;
-                elements = fl_array_push_sized(elements, (&_fl_tmp_270), sizeof(fl_self_hosted_ast_ChainElement));
-                if (_fl_old_271 != elements) {
-                    fl_array_release(_fl_old_271);
+                fl_self_hosted_ast_ChainElement _fl_tmp_190 = (fl_self_hosted_ast_ChainElement){.expr = expr, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr)};
+                FL_Array* _fl_old_191 = elements;
+                elements = fl_array_push_sized(elements, (&_fl_tmp_190), sizeof(fl_self_hosted_ast_ChainElement));
+                if (_fl_old_191 != elements) {
+                    fl_array_release(_fl_old_191);
                 }
             }
         }
     }
     fl_array_retain(elements);
-    fl_self_hosted_ast_Expr _fl_ret_272 = (fl_self_hosted_ast_Expr){.tag = 34, .ECompositionChain = (fl_self_hosted_ast_Expr_ECompositionChain){.id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(first), .col = fl_self_hosted_ast_expr_col(first), .elements = elements}};
-    fl_array_release(elements);
-    return _fl_ret_272;
+    return (fl_self_hosted_ast_Expr){.tag = 34, .ECompositionChain = (fl_self_hosted_ast_Expr_ECompositionChain){.id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(first), .col = fl_self_hosted_ast_expr_col(first), .elements = elements}};
 }
 
 /* Flow: self_hosted.parser.is_fanout */
@@ -9857,39 +9464,37 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fanout_body(fl_self_hosted_p
     FL_Array* branches = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(branches, _fl_destroy_fl_self_hosted_ast_ChainElement, _fl_retain_fl_self_hosted_ast_ChainElement);
     fl_self_hosted_ast_Expr first = fl_self_hosted_parser_parse_fanout_branch(s);
-    fl_self_hosted_ast_ChainElement _fl_tmp_273 = (fl_self_hosted_ast_ChainElement){.expr = first, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(first), .col = fl_self_hosted_ast_expr_col(first)};
-    FL_Array* _fl_old_274 = branches;
-    branches = fl_array_push_sized(branches, (&_fl_tmp_273), sizeof(fl_self_hosted_ast_ChainElement));
-    if (_fl_old_274 != branches) {
-        fl_array_release(_fl_old_274);
+    fl_self_hosted_ast_ChainElement _fl_tmp_192 = (fl_self_hosted_ast_ChainElement){.expr = first, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(first), .col = fl_self_hosted_ast_expr_col(first)};
+    FL_Array* _fl_old_193 = branches;
+    branches = fl_array_push_sized(branches, (&_fl_tmp_192), sizeof(fl_self_hosted_ast_ChainElement));
+    if (_fl_old_193 != branches) {
+        fl_array_release(_fl_old_193);
     }
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_PIPE)) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr branch = fl_self_hosted_parser_parse_fanout_branch(s);
-        fl_self_hosted_ast_ChainElement _fl_tmp_275 = (fl_self_hosted_ast_ChainElement){.expr = branch, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(branch), .col = fl_self_hosted_ast_expr_col(branch)};
-        FL_Array* _fl_old_276 = branches;
-        branches = fl_array_push_sized(branches, (&_fl_tmp_275), sizeof(fl_self_hosted_ast_ChainElement));
-        if (_fl_old_276 != branches) {
-            fl_array_release(_fl_old_276);
+        fl_self_hosted_ast_ChainElement _fl_tmp_194 = (fl_self_hosted_ast_ChainElement){.expr = branch, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(branch), .col = fl_self_hosted_ast_expr_col(branch)};
+        FL_Array* _fl_old_195 = branches;
+        branches = fl_array_push_sized(branches, (&_fl_tmp_194), sizeof(fl_self_hosted_ast_ChainElement));
+        if (_fl_old_195 != branches) {
+            fl_array_release(_fl_old_195);
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
     fl_int line = 0;
     fl_int col = 0;
     if (fl_array_len_int(branches) > 0) {
-        FL_Option_fl_self_hosted_ast_ChainElement _fl_tmp_277 = FL_OPT_DEREF_AS(fl_array_get_safe(branches, 0), fl_self_hosted_ast_ChainElement, FL_Option_fl_self_hosted_ast_ChainElement);
-        if (_fl_tmp_277.tag == 1) {
-            _fl_retain_fl_self_hosted_ast_ChainElement((&_fl_tmp_277.value));
+        FL_Option_fl_self_hosted_ast_ChainElement _fl_tmp_196 = FL_OPT_DEREF_AS(fl_array_get_safe(branches, 0), fl_self_hosted_ast_ChainElement, FL_Option_fl_self_hosted_ast_ChainElement);
+        if (_fl_tmp_196.tag == 1) {
+            _fl_retain_fl_self_hosted_ast_ChainElement((&_fl_tmp_196.value));
         }
-        FL_Option_fl_self_hosted_ast_ChainElement _fl_tmp_278 = _fl_tmp_277;
-        fl_self_hosted_ast_ChainElement first_branch = ((_fl_tmp_278.tag == 1) ? _fl_tmp_278.value : (fl_self_hosted_ast_ChainElement){.expr = fl_self_hosted_parser_placeholder_expr(), .id = 0, .line = 0, .col = 0});
+        FL_Option_fl_self_hosted_ast_ChainElement _fl_tmp_197 = _fl_tmp_196;
+        fl_self_hosted_ast_ChainElement first_branch = ((_fl_tmp_197.tag == 1) ? _fl_tmp_197.value : (fl_self_hosted_ast_ChainElement){.expr = fl_self_hosted_parser_placeholder_expr(), .id = 0, .line = 0, .col = 0});
         line = first_branch.line;
         col = first_branch.col;
     }
     fl_array_retain(branches);
-    fl_self_hosted_ast_Expr _fl_ret_279 = (fl_self_hosted_ast_Expr){.tag = 35, .EFanOut = (fl_self_hosted_ast_Expr_EFanOut){.id = fl_self_hosted_parser_fresh_id(s), .line = line, .col = col, .branches = branches, .is_parallel = is_parallel}};
-    fl_array_release(branches);
-    return _fl_ret_279;
+    return (fl_self_hosted_ast_Expr){.tag = 35, .EFanOut = (fl_self_hosted_ast_Expr_EFanOut){.id = fl_self_hosted_parser_fresh_id(s), .line = line, .col = col, .branches = branches, .is_parallel = is_parallel}};
 }
 
 /* Flow: self_hosted.parser.parse_fanout_branch */
@@ -9898,26 +9503,24 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fanout_branch(fl_self_hosted
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ARROW)) {
         FL_Array* elements = fl_array_new(0, 0, NULL);
         fl_array_set_struct_handlers(elements, _fl_destroy_fl_self_hosted_ast_ChainElement, _fl_retain_fl_self_hosted_ast_ChainElement);
-        fl_self_hosted_ast_ChainElement _fl_tmp_280 = (fl_self_hosted_ast_ChainElement){.expr = expr, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr)};
-        FL_Array* _fl_old_281 = elements;
-        elements = fl_array_push_sized(elements, (&_fl_tmp_280), sizeof(fl_self_hosted_ast_ChainElement));
-        if (_fl_old_281 != elements) {
-            fl_array_release(_fl_old_281);
+        fl_self_hosted_ast_ChainElement _fl_tmp_198 = (fl_self_hosted_ast_ChainElement){.expr = expr, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr)};
+        FL_Array* _fl_old_199 = elements;
+        elements = fl_array_push_sized(elements, (&_fl_tmp_198), sizeof(fl_self_hosted_ast_ChainElement));
+        if (_fl_old_199 != elements) {
+            fl_array_release(_fl_old_199);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_ARROW)) {
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr next_expr = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_COMPOSITION());
-            fl_self_hosted_ast_ChainElement _fl_tmp_282 = (fl_self_hosted_ast_ChainElement){.expr = next_expr, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(next_expr), .col = fl_self_hosted_ast_expr_col(next_expr)};
-            FL_Array* _fl_old_283 = elements;
-            elements = fl_array_push_sized(elements, (&_fl_tmp_282), sizeof(fl_self_hosted_ast_ChainElement));
-            if (_fl_old_283 != elements) {
-                fl_array_release(_fl_old_283);
+            fl_self_hosted_ast_ChainElement _fl_tmp_200 = (fl_self_hosted_ast_ChainElement){.expr = next_expr, .id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(next_expr), .col = fl_self_hosted_ast_expr_col(next_expr)};
+            FL_Array* _fl_old_201 = elements;
+            elements = fl_array_push_sized(elements, (&_fl_tmp_200), sizeof(fl_self_hosted_ast_ChainElement));
+            if (_fl_old_201 != elements) {
+                fl_array_release(_fl_old_201);
             }
         }
         fl_array_retain(elements);
-        fl_self_hosted_ast_Expr _fl_ret_284 = (fl_self_hosted_ast_Expr){.tag = 34, .ECompositionChain = (fl_self_hosted_ast_Expr_ECompositionChain){.id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr), .elements = elements}};
-        fl_array_release(elements);
-        return _fl_ret_284;
+        return (fl_self_hosted_ast_Expr){.tag = 34, .ECompositionChain = (fl_self_hosted_ast_Expr_ECompositionChain){.id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(expr), .col = fl_self_hosted_ast_expr_col(expr), .elements = elements}};
     }
     return expr;
 }
@@ -9928,191 +9531,109 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_prefix(fl_self_hosted_parser
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_MINUS) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr operand = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
-        FL_Box* _fl_tmp_285 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-        FL_BOX_DEREF(_fl_tmp_285, fl_self_hosted_ast_Expr) = operand;
+        FL_Box* _fl_tmp_202 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_202, fl_self_hosted_ast_Expr) = operand;
         fl_string_retain(_fl_str_self_hosted_parser_11);
-        fl_self_hosted_ast_Expr _fl_ret_289 = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_11, .operand = _fl_tmp_285}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_289;
+        return (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_11, .operand = _fl_tmp_202}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_BANG) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr operand = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
-        FL_Box* _fl_tmp_286 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-        FL_BOX_DEREF(_fl_tmp_286, fl_self_hosted_ast_Expr) = operand;
+        FL_Box* _fl_tmp_203 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_203, fl_self_hosted_ast_Expr) = operand;
         fl_string_retain(_fl_str_self_hosted_parser_51);
-        fl_self_hosted_ast_Expr _fl_ret_290 = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_51, .operand = _fl_tmp_286}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_290;
+        return (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_51, .operand = _fl_tmp_203}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_AT) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr operand = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
-        FL_Box* _fl_tmp_287 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-        FL_BOX_DEREF(_fl_tmp_287, fl_self_hosted_ast_Expr) = operand;
-        fl_self_hosted_ast_Expr _fl_ret_291 = (fl_self_hosted_ast_Expr){.tag = 23, .ECopy = (fl_self_hosted_ast_Expr_ECopy){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_287}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_291;
+        FL_Box* _fl_tmp_204 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_204, fl_self_hosted_ast_Expr) = operand;
+        return (fl_self_hosted_ast_Expr){.tag = 23, .ECopy = (fl_self_hosted_ast_Expr_ECopy){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_204}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_AMPERSAND) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr operand = fl_self_hosted_parser_parse_pratt(s, fl_self_hosted_parser_PREC_UNARY());
-        FL_Box* _fl_tmp_288 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-        FL_BOX_DEREF(_fl_tmp_288, fl_self_hosted_ast_Expr) = operand;
-        fl_self_hosted_ast_Expr _fl_ret_292 = (fl_self_hosted_ast_Expr){.tag = 24, .ERef = (fl_self_hosted_ast_Expr_ERef){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_288}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_292;
+        FL_Box* _fl_tmp_205 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_205, fl_self_hosted_ast_Expr) = operand;
+        return (fl_self_hosted_ast_Expr){.tag = 24, .ERef = (fl_self_hosted_ast_Expr_ERef){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_205}};
     }
-    fl_self_hosted_ast_Expr _fl_ret_293 = fl_self_hosted_parser_parse_primary(s);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_293;
+    return fl_self_hosted_parser_parse_primary(s);
 }
 
 /* Flow: self_hosted.parser.parse_primary */
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_primary(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) {
-        fl_self_hosted_ast_Expr _fl_ret_297 = fl_self_hosted_parser_parse_int_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_297;
+        return fl_self_hosted_parser_parse_int_lit(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT) {
-        fl_self_hosted_ast_Expr _fl_ret_298 = fl_self_hosted_parser_parse_float_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_298;
+        return fl_self_hosted_parser_parse_float_lit(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_BOOL_LIT) {
-        fl_self_hosted_ast_Expr _fl_ret_299 = fl_self_hosted_parser_parse_bool_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_299;
+        return fl_self_hosted_parser_parse_bool_lit(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_STRING_LIT) {
-        fl_self_hosted_ast_Expr _fl_ret_300 = fl_self_hosted_parser_parse_string_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_300;
+        return fl_self_hosted_parser_parse_string_lit(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_CHAR_LIT) {
-        fl_self_hosted_ast_Expr _fl_ret_301 = fl_self_hosted_parser_parse_char_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_301;
+        return fl_self_hosted_parser_parse_char_lit(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_NONE) {
-        fl_self_hosted_ast_Expr _fl_ret_302 = fl_self_hosted_parser_parse_none_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_302;
+        return fl_self_hosted_parser_parse_none_lit(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_FSTRING_START) {
-        fl_self_hosted_ast_Expr _fl_ret_303 = fl_self_hosted_parser_parse_fstring_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_303;
+        return fl_self_hosted_parser_parse_fstring_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_SOME) {
-        fl_self_hosted_ast_Expr _fl_ret_304 = fl_self_hosted_parser_parse_some_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_304;
+        return fl_self_hosted_parser_parse_some_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_OK) {
-        fl_self_hosted_ast_Expr _fl_ret_305 = fl_self_hosted_parser_parse_ok_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_305;
+        return fl_self_hosted_parser_parse_ok_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_ERR) {
-        fl_self_hosted_ast_Expr _fl_ret_306 = fl_self_hosted_parser_parse_err_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_306;
+        return fl_self_hosted_parser_parse_err_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_COERCE) {
-        fl_self_hosted_ast_Expr _fl_ret_307 = fl_self_hosted_parser_parse_coerce_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_307;
+        return fl_self_hosted_parser_parse_coerce_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_CAST) {
-        fl_self_hosted_ast_Expr _fl_ret_308 = fl_self_hosted_parser_parse_cast_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_308;
+        return fl_self_hosted_parser_parse_cast_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_TYPEOF) {
-        fl_self_hosted_ast_Expr _fl_ret_309 = fl_self_hosted_parser_parse_typeof_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_309;
+        return fl_self_hosted_parser_parse_typeof_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_MATCH) {
-        fl_self_hosted_ast_Expr _fl_ret_310 = fl_self_hosted_parser_parse_match_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_310;
+        return fl_self_hosted_parser_parse_match_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_IF) {
-        fl_self_hosted_ast_Expr _fl_ret_311 = fl_self_hosted_parser_parse_if_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_311;
+        return fl_self_hosted_parser_parse_if_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_BACKSLASH) {
-        fl_self_hosted_ast_Expr _fl_ret_312 = fl_self_hosted_parser_parse_lambda(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_312;
+        return fl_self_hosted_parser_parse_lambda(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_LBRACKET) {
-        fl_self_hosted_ast_Expr _fl_ret_313 = fl_self_hosted_parser_parse_array_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_313;
+        return fl_self_hosted_parser_parse_array_lit(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_LPAREN) {
-        fl_self_hosted_ast_Expr _fl_ret_314 = fl_self_hosted_parser_parse_paren_expr(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_314;
+        return fl_self_hosted_parser_parse_paren_expr(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_LBRACE) {
-        fl_self_hosted_ast_Expr _fl_ret_315 = fl_self_hosted_parser_parse_record_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_315;
+        return fl_self_hosted_parser_parse_record_lit(s);
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_SELF) {
         fl_self_hosted_parser_advance(s);
         fl_string_retain(_fl_str_self_hosted_parser_33);
-        fl_self_hosted_ast_Expr _fl_ret_316 = (fl_self_hosted_ast_Expr){.tag = 6, .EIdent = (fl_self_hosted_ast_Expr_EIdent){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = _fl_str_self_hosted_parser_33, .module_path = fl_array_new(0, 0, NULL)}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_316;
+        return (fl_self_hosted_ast_Expr){.tag = 6, .EIdent = (fl_self_hosted_ast_Expr_EIdent){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .name = _fl_str_self_hosted_parser_33, .module_path = fl_array_new(0, 0, NULL)}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
-        fl_self_hosted_ast_Expr _fl_ret_317 = fl_self_hosted_parser_parse_ident_or_type_lit(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_317;
+        return fl_self_hosted_parser_parse_ident_or_type_lit(s);
     }
-    FL_String* _fl_tmp_294 = fl_string_concat(_fl_str_self_hosted_parser_52, tok.value);
-    FL_String* _fl_tmp_295 = fl_string_concat(_fl_tmp_294, _fl_str_self_hosted_parser_23);
-    fl_self_hosted_errors_CompileError* _fl_tmp_296 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_296) = fl_self_hosted_parser_error_at(s, _fl_tmp_295, tok.line, tok.col);
-    _fl_throw(((void*)_fl_tmp_296), 461109476);
-    fl_string_release(_fl_tmp_294);
-    fl_string_release(_fl_tmp_295);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
+    FL_String* _fl_tmp_206 = fl_string_concat(_fl_str_self_hosted_parser_52, tok.value);
+    FL_String* _fl_tmp_207 = fl_string_concat(_fl_tmp_206, _fl_str_self_hosted_parser_23);
+    fl_self_hosted_errors_CompileError* _fl_tmp_208 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_208) = fl_self_hosted_parser_error_at(s, _fl_tmp_207, tok.line, tok.col);
+    _fl_throw(((void*)_fl_tmp_208), 461109476);
     return fl_self_hosted_parser_placeholder_expr();
 }
 
@@ -10120,25 +9641,20 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_primary(fl_self_hosted_parse
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_int_lit(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_advance(s);
     fl_int value = 0;
-    FL_String* _fl_tmp_318 = fl_string_substring(tok.value, 0, 2);
-    FL_String* _fl_tmp_319 = fl_string_substring(tok.value, 0, 2);
-    if ((fl_string_len(tok.value) >= 2) && fl_string_eq(_fl_tmp_318, _fl_str_self_hosted_parser_19)) {
+    FL_String* _fl_tmp_209 = fl_string_substring(tok.value, 0, 2);
+    FL_String* _fl_tmp_210 = fl_string_substring(tok.value, 0, 2);
+    if ((fl_string_len(tok.value) >= 2) && fl_string_eq(_fl_tmp_209, _fl_str_self_hosted_parser_19)) {
         value = fl_self_hosted_parser_hex_to_int(tok.value);
     } else {
-        if ((fl_string_len(tok.value) >= 2) && fl_string_eq(_fl_tmp_319, _fl_str_self_hosted_parser_20)) {
+        if ((fl_string_len(tok.value) >= 2) && fl_string_eq(_fl_tmp_210, _fl_str_self_hosted_parser_20)) {
             value = fl_self_hosted_parser_hex_to_int(tok.value);
         } else {
-            FL_Option_int _fl_tmp_320 = fl_conv_string_to_int(tok.value);
-            value = ((_fl_tmp_320.tag == 1) ? _fl_tmp_320.value : 0);
+            FL_Option_int _fl_tmp_211 = fl_conv_string_to_int(tok.value);
+            value = ((_fl_tmp_211.tag == 1) ? _fl_tmp_211.value : 0);
         }
     }
     fl_string_retain(_fl_str_self_hosted_parser_18);
-    fl_self_hosted_ast_Expr _fl_ret_321 = (fl_self_hosted_ast_Expr){.tag = 0, .EIntLit = (fl_self_hosted_ast_Expr_EIntLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = value, .suffix = _fl_str_self_hosted_parser_18}};
-    fl_string_release(_fl_tmp_318);
-    fl_string_release(_fl_tmp_319);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_321;
+    return (fl_self_hosted_ast_Expr){.tag = 0, .EIntLit = (fl_self_hosted_ast_Expr_EIntLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = value, .suffix = _fl_str_self_hosted_parser_18}};
 }
 
 /* Flow: self_hosted.parser.parse_float_lit */
@@ -10146,46 +9662,34 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_float_lit(fl_self_hosted_par
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_advance(s);
     fl_string_retain(tok.value);
     fl_string_retain(_fl_str_self_hosted_parser_18);
-    fl_self_hosted_ast_Expr _fl_ret_322 = (fl_self_hosted_ast_Expr){.tag = 1, .EFloatLit = (fl_self_hosted_ast_Expr_EFloatLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_text = tok.value, .suffix = _fl_str_self_hosted_parser_18}};
-    fl_string_release(tok.file);
-    return _fl_ret_322;
+    return (fl_self_hosted_ast_Expr){.tag = 1, .EFloatLit = (fl_self_hosted_ast_Expr_EFloatLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_text = tok.value, .suffix = _fl_str_self_hosted_parser_18}};
 }
 
 /* Flow: self_hosted.parser.parse_bool_lit */
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_bool_lit(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_advance(s);
-    fl_self_hosted_ast_Expr _fl_ret_323 = (fl_self_hosted_ast_Expr){.tag = 2, .EBoolLit = (fl_self_hosted_ast_Expr_EBoolLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = fl_string_eq(tok.value, _fl_str_self_hosted_parser_53)}};
-    fl_string_release(tok.file);
-    return _fl_ret_323;
+    return (fl_self_hosted_ast_Expr){.tag = 2, .EBoolLit = (fl_self_hosted_ast_Expr_EBoolLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = fl_string_eq(tok.value, _fl_str_self_hosted_parser_53)}};
 }
 
 /* Flow: self_hosted.parser.parse_string_lit */
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_string_lit(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_advance(s);
     fl_string_retain(tok.value);
-    fl_self_hosted_ast_Expr _fl_ret_324 = (fl_self_hosted_ast_Expr){.tag = 3, .EStringLit = (fl_self_hosted_ast_Expr_EStringLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = tok.value}};
-    fl_string_release(tok.file);
-    return _fl_ret_324;
+    return (fl_self_hosted_ast_Expr){.tag = 3, .EStringLit = (fl_self_hosted_ast_Expr_EStringLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = tok.value}};
 }
 
 /* Flow: self_hosted.parser.parse_char_lit */
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_char_lit(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_advance(s);
-    FL_Option_char _fl_tmp_325 = fl_string_char_at(tok.value, 0);
-    fl_char ch = ((_fl_tmp_325.tag == 1) ? _fl_tmp_325.value : fl_char_from_code(0));
-    fl_self_hosted_ast_Expr _fl_ret_326 = (fl_self_hosted_ast_Expr){.tag = 4, .ECharLit = (fl_self_hosted_ast_Expr_ECharLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = fl_char_to_code(ch)}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_326;
+    FL_Option_char _fl_tmp_212 = fl_string_char_at(tok.value, 0);
+    fl_char ch = ((_fl_tmp_212.tag == 1) ? _fl_tmp_212.value : fl_char_from_code(0));
+    return (fl_self_hosted_ast_Expr){.tag = 4, .ECharLit = (fl_self_hosted_ast_Expr_ECharLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value = fl_char_to_code(ch)}};
 }
 
 /* Flow: self_hosted.parser.parse_none_lit */
 fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_none_lit(fl_self_hosted_parser_ParserState* s) {
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_advance(s);
-    fl_self_hosted_ast_Expr _fl_ret_327 = (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_327;
+    return (fl_self_hosted_ast_Expr){.tag = 5, .ENoneLit = (fl_self_hosted_ast_Expr_ENoneLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
 }
 
 /* Flow: sum destructor for fl_self_hosted_ast_FStringPart */
@@ -10248,11 +9752,11 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_
                 FL_CHECKED_ADD(s->pos, 1, &_fl_e_2);
                 s->pos = _fl_e_2;
                 fl_string_retain(raw_tok.value);
-                fl_self_hosted_ast_FStringPart _fl_tmp_328 = (fl_self_hosted_ast_FStringPart){.tag = 0, .FPText = (fl_self_hosted_ast_FStringPart_FPText){.text = raw_tok.value}};
-                FL_Array* _fl_old_329 = parts;
-                parts = fl_array_push_sized(parts, (&_fl_tmp_328), sizeof(fl_self_hosted_ast_FStringPart));
-                if (_fl_old_329 != parts) {
-                    fl_array_release(_fl_old_329);
+                fl_self_hosted_ast_FStringPart _fl_tmp_213 = (fl_self_hosted_ast_FStringPart){.tag = 0, .FPText = (fl_self_hosted_ast_FStringPart_FPText){.text = raw_tok.value}};
+                FL_Array* _fl_old_214 = parts;
+                parts = fl_array_push_sized(parts, (&_fl_tmp_213), sizeof(fl_self_hosted_ast_FStringPart));
+                if (_fl_old_214 != parts) {
+                    fl_array_release(_fl_old_214);
                 }
             } else {
                 if (raw_tok.ttype == fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_START) {
@@ -10260,11 +9764,11 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_
                     FL_CHECKED_ADD(s->pos, 1, &_fl_e_3);
                     s->pos = _fl_e_3;
                     fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_expr(s);
-                    fl_self_hosted_ast_FStringPart _fl_tmp_330 = (fl_self_hosted_ast_FStringPart){.tag = 1, .FPExpr = (fl_self_hosted_ast_FStringPart_FPExpr){.expr = expr}};
-                    FL_Array* _fl_old_331 = parts;
-                    parts = fl_array_push_sized(parts, (&_fl_tmp_330), sizeof(fl_self_hosted_ast_FStringPart));
-                    if (_fl_old_331 != parts) {
-                        fl_array_release(_fl_old_331);
+                    fl_self_hosted_ast_FStringPart _fl_tmp_215 = (fl_self_hosted_ast_FStringPart){.tag = 1, .FPExpr = (fl_self_hosted_ast_FStringPart_FPExpr){.expr = expr}};
+                    FL_Array* _fl_old_216 = parts;
+                    parts = fl_array_push_sized(parts, (&_fl_tmp_215), sizeof(fl_self_hosted_ast_FStringPart));
+                    if (_fl_old_216 != parts) {
+                        fl_array_release(_fl_old_216);
                     }
                     fl_self_hosted_lexer_Token raw_end = fl_self_hosted_parser_peek_raw((*s));
                     if (raw_end.ttype == fl_self_hosted_lexer_TokenType_TK_FSTRING_EXPR_END) {
@@ -10272,9 +9776,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_
                         FL_CHECKED_ADD(s->pos, 1, &_fl_e_4);
                         s->pos = _fl_e_4;
                     } else {
-                        fl_self_hosted_errors_CompileError* _fl_tmp_332 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                        (*_fl_tmp_332) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_54, raw_end.line, raw_end.col);
-                        _fl_throw(((void*)_fl_tmp_332), 461109476);
+                        fl_self_hosted_errors_CompileError* _fl_tmp_217 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                        (*_fl_tmp_217) = fl_self_hosted_parser_error_at(s, _fl_str_self_hosted_parser_54, raw_end.line, raw_end.col);
+                        _fl_throw(((void*)_fl_tmp_217), 461109476);
                     }
                 } else {
                     if ((raw_tok.ttype == fl_self_hosted_lexer_TokenType_TK_COMMENT) || (raw_tok.ttype == fl_self_hosted_lexer_TokenType_TK_NEWLINE)) {
@@ -10282,22 +9786,18 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_fstring_expr(fl_self_hosted_
                         FL_CHECKED_ADD(s->pos, 1, &_fl_e_5);
                         s->pos = _fl_e_5;
                     } else {
-                        FL_String* _fl_tmp_333 = fl_string_concat(_fl_str_self_hosted_parser_55, raw_tok.value);
-                        FL_String* _fl_tmp_334 = fl_string_concat(_fl_tmp_333, _fl_str_self_hosted_parser_23);
-                        fl_self_hosted_errors_CompileError* _fl_tmp_335 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                        (*_fl_tmp_335) = fl_self_hosted_parser_error_at(s, _fl_tmp_334, raw_tok.line, raw_tok.col);
-                        _fl_throw(((void*)_fl_tmp_335), 461109476);
+                        FL_String* _fl_tmp_218 = fl_string_concat(_fl_str_self_hosted_parser_55, raw_tok.value);
+                        FL_String* _fl_tmp_219 = fl_string_concat(_fl_tmp_218, _fl_str_self_hosted_parser_23);
+                        fl_self_hosted_errors_CompileError* _fl_tmp_220 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                        (*_fl_tmp_220) = fl_self_hosted_parser_error_at(s, _fl_tmp_219, raw_tok.line, raw_tok.col);
+                        _fl_throw(((void*)_fl_tmp_220), 461109476);
                     }
                 }
             }
         }
     }
     fl_array_retain(parts);
-    fl_self_hosted_ast_Expr _fl_ret_336 = (fl_self_hosted_ast_Expr){.tag = 33, .EFString = (fl_self_hosted_ast_Expr_EFString){.id = fl_self_hosted_parser_fresh_id(s), .line = start_tok.line, .col = start_tok.col, .parts = parts}};
-    fl_array_release(parts);
-    fl_string_release(start_tok.value);
-    fl_string_release(start_tok.file);
-    return _fl_ret_336;
+    return (fl_self_hosted_ast_Expr){.tag = 33, .EFString = (fl_self_hosted_ast_Expr_EFString){.id = fl_self_hosted_parser_fresh_id(s), .line = start_tok.line, .col = start_tok.col, .parts = parts}};
 }
 
 /* Flow: self_hosted.parser.parse_some_expr */
@@ -10306,12 +9806,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_some_expr(fl_self_hosted_par
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    FL_Box* _fl_tmp_337 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_337, fl_self_hosted_ast_Expr) = inner;
-    fl_self_hosted_ast_Expr _fl_ret_338 = (fl_self_hosted_ast_Expr){.tag = 25, .ESome = (fl_self_hosted_ast_Expr_ESome){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_337}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_338;
+    FL_Box* _fl_tmp_221 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_221, fl_self_hosted_ast_Expr) = inner;
+    return (fl_self_hosted_ast_Expr){.tag = 25, .ESome = (fl_self_hosted_ast_Expr_ESome){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_221}};
 }
 
 /* Flow: self_hosted.parser.parse_ok_expr */
@@ -10320,12 +9817,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ok_expr(fl_self_hosted_parse
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    FL_Box* _fl_tmp_339 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_339, fl_self_hosted_ast_Expr) = inner;
-    fl_self_hosted_ast_Expr _fl_ret_340 = (fl_self_hosted_ast_Expr){.tag = 26, .EOk = (fl_self_hosted_ast_Expr_EOk){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_339}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_340;
+    FL_Box* _fl_tmp_222 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_222, fl_self_hosted_ast_Expr) = inner;
+    return (fl_self_hosted_ast_Expr){.tag = 26, .EOk = (fl_self_hosted_ast_Expr_EOk){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_222}};
 }
 
 /* Flow: self_hosted.parser.parse_err_expr */
@@ -10334,12 +9828,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_err_expr(fl_self_hosted_pars
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    FL_Box* _fl_tmp_341 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_341, fl_self_hosted_ast_Expr) = inner;
-    fl_self_hosted_ast_Expr _fl_ret_342 = (fl_self_hosted_ast_Expr){.tag = 27, .EErr = (fl_self_hosted_ast_Expr_EErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_341}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_342;
+    FL_Box* _fl_tmp_223 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_223, fl_self_hosted_ast_Expr) = inner;
+    return (fl_self_hosted_ast_Expr){.tag = 27, .EErr = (fl_self_hosted_ast_Expr_EErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_223}};
 }
 
 /* Flow: self_hosted.parser.parse_coerce_expr */
@@ -10348,12 +9839,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_coerce_expr(fl_self_hosted_p
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    FL_Box* _fl_tmp_343 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_343, fl_self_hosted_ast_Expr) = inner;
-    fl_self_hosted_ast_Expr _fl_ret_344 = (fl_self_hosted_ast_Expr){.tag = 32, .ECoerce = (fl_self_hosted_ast_Expr_ECoerce){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_343}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_344;
+    FL_Box* _fl_tmp_224 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_224, fl_self_hosted_ast_Expr) = inner;
+    return (fl_self_hosted_ast_Expr){.tag = 32, .ECoerce = (fl_self_hosted_ast_Expr_ECoerce){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_224}};
 }
 
 /* Flow: self_hosted.parser.parse_cast_expr */
@@ -10363,21 +9851,18 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_cast_expr(fl_self_hosted_par
     fl_self_hosted_ast_TypeExpr target_type = fl_self_hosted_parser_parse_type_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_GT);
     fl_int target_id = fl_array_len_int(s->cast_targets);
-    fl_self_hosted_ast_TypeExpr _fl_tmp_345 = target_type;
-    FL_Array* _fl_old_346 = s->cast_targets;
-    s->cast_targets = fl_array_push_sized(s->cast_targets, (&_fl_tmp_345), sizeof(fl_self_hosted_ast_TypeExpr));
-    if (_fl_old_346 != s->cast_targets) {
-        fl_array_release(_fl_old_346);
+    fl_self_hosted_ast_TypeExpr _fl_tmp_225 = target_type;
+    FL_Array* _fl_old_226 = s->cast_targets;
+    s->cast_targets = fl_array_push_sized(s->cast_targets, (&_fl_tmp_225), sizeof(fl_self_hosted_ast_TypeExpr));
+    if (_fl_old_226 != s->cast_targets) {
+        fl_array_release(_fl_old_226);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    FL_Box* _fl_tmp_347 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_347, fl_self_hosted_ast_Expr) = inner;
-    fl_self_hosted_ast_Expr _fl_ret_348 = (fl_self_hosted_ast_Expr){.tag = 31, .ECast = (fl_self_hosted_ast_Expr_ECast){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_347, .target_id = target_id}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_348;
+    FL_Box* _fl_tmp_227 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_227, fl_self_hosted_ast_Expr) = inner;
+    return (fl_self_hosted_ast_Expr){.tag = 31, .ECast = (fl_self_hosted_ast_Expr_ECast){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_227, .target_id = target_id}};
 }
 
 /* Flow: self_hosted.parser.parse_typeof_expr */
@@ -10386,12 +9871,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_typeof_expr(fl_self_hosted_p
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    FL_Box* _fl_tmp_349 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_349, fl_self_hosted_ast_Expr) = inner;
-    fl_self_hosted_ast_Expr _fl_ret_350 = (fl_self_hosted_ast_Expr){.tag = 30, .ETypeof = (fl_self_hosted_ast_Expr_ETypeof){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_349}};
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_350;
+    FL_Box* _fl_tmp_228 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_228, fl_self_hosted_ast_Expr) = inner;
+    return (fl_self_hosted_ast_Expr){.tag = 30, .ETypeof = (fl_self_hosted_ast_Expr_ETypeof){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner = _fl_tmp_228}};
 }
 
 /* Flow: self_hosted.parser.parse_match_expr */
@@ -10403,23 +9885,19 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_match_expr(fl_self_hosted_pa
     fl_array_set_struct_handlers(arms, _fl_destroy_fl_self_hosted_ast_MatchArm, _fl_retain_fl_self_hosted_ast_MatchArm);
     while ((fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) && (fl_self_hosted_parser_at_end(s) == fl_false)) {
         fl_self_hosted_ast_MatchArm arm = fl_self_hosted_parser_parse_match_arm(s);
-        fl_self_hosted_ast_MatchArm _fl_tmp_351 = arm;
-        FL_Array* _fl_old_352 = arms;
-        arms = fl_array_push_sized(arms, (&_fl_tmp_351), sizeof(fl_self_hosted_ast_MatchArm));
-        if (_fl_old_352 != arms) {
-            fl_array_release(_fl_old_352);
+        fl_self_hosted_ast_MatchArm _fl_tmp_229 = arm;
+        FL_Array* _fl_old_230 = arms;
+        arms = fl_array_push_sized(arms, (&_fl_tmp_229), sizeof(fl_self_hosted_ast_MatchArm));
+        if (_fl_old_230 != arms) {
+            fl_array_release(_fl_old_230);
         }
         fl_self_hosted_parser_match_token(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
-    FL_Box* _fl_tmp_353 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_353, fl_self_hosted_ast_Expr) = subject;
+    FL_Box* _fl_tmp_231 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_231, fl_self_hosted_ast_Expr) = subject;
     fl_array_retain(arms);
-    fl_self_hosted_ast_Expr _fl_ret_354 = (fl_self_hosted_ast_Expr){.tag = 21, .EMatchExpr = (fl_self_hosted_ast_Expr_EMatchExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .subject = _fl_tmp_353, .arms = arms}};
-    fl_array_release(arms);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_354;
+    return (fl_self_hosted_ast_Expr){.tag = 21, .EMatchExpr = (fl_self_hosted_ast_Expr_EMatchExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .subject = _fl_tmp_231, .arms = arms}};
 }
 
 /* Flow: self_hosted.parser.parse_if_expr */
@@ -10435,30 +9913,25 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_if_expr(fl_self_hosted_parse
         fl_self_hosted_parser_advance(s);
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_IF)) {
             fl_self_hosted_ast_Expr nested = fl_self_hosted_parser_parse_if_expr(s);
-            fl_self_hosted_ast_Stmt _fl_tmp_355 = (fl_self_hosted_ast_Stmt){.tag = 8, .SExpr = (fl_self_hosted_ast_Stmt_SExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(nested), .col = fl_self_hosted_ast_expr_col(nested), .expr = nested}};
-            FL_Array* _fl_old_356 = else_stmts;
-            else_stmts = fl_array_push_sized(else_stmts, (&_fl_tmp_355), sizeof(fl_self_hosted_ast_Stmt));
-            if (_fl_old_356 != else_stmts) {
-                fl_array_release(_fl_old_356);
+            fl_self_hosted_ast_Stmt _fl_tmp_232 = (fl_self_hosted_ast_Stmt){.tag = 8, .SExpr = (fl_self_hosted_ast_Stmt_SExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = fl_self_hosted_ast_expr_line(nested), .col = fl_self_hosted_ast_expr_col(nested), .expr = nested}};
+            FL_Array* _fl_old_233 = else_stmts;
+            else_stmts = fl_array_push_sized(else_stmts, (&_fl_tmp_232), sizeof(fl_self_hosted_ast_Stmt));
+            if (_fl_old_233 != else_stmts) {
+                fl_array_release(_fl_old_233);
             }
         } else {
-            FL_Array* _fl_old_357 = else_stmts;
+            FL_Array* _fl_old_234 = else_stmts;
             else_stmts = fl_self_hosted_parser_parse_block(s);
-            if (_fl_old_357 != else_stmts) {
-                fl_array_release(_fl_old_357);
+            if (_fl_old_234 != else_stmts) {
+                fl_array_release(_fl_old_234);
             }
         }
     }
-    FL_Box* _fl_tmp_358 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_358, fl_self_hosted_ast_Expr) = condition;
+    FL_Box* _fl_tmp_235 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_235, fl_self_hosted_ast_Expr) = condition;
     fl_array_retain(then_stmts);
     fl_array_retain(else_stmts);
-    fl_self_hosted_ast_Expr _fl_ret_359 = (fl_self_hosted_ast_Expr){.tag = 20, .EIfExpr = (fl_self_hosted_ast_Expr_EIfExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .condition = _fl_tmp_358, .then_stmts = then_stmts, .else_stmts = else_stmts}};
-    fl_array_release(then_stmts);
-    fl_array_release(else_stmts);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_359;
+    return (fl_self_hosted_ast_Expr){.tag = 20, .EIfExpr = (fl_self_hosted_ast_Expr_EIfExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .condition = _fl_tmp_235, .then_stmts = then_stmts, .else_stmts = else_stmts}};
 }
 
 /* Flow: self_hosted.parser.parse_lambda */
@@ -10468,36 +9941,32 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_lambda(fl_self_hosted_parser
     FL_Array* params = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(params, _fl_destroy_fl_self_hosted_ast_Param, _fl_retain_fl_self_hosted_ast_Param);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FAT_ARROW) == fl_false) {
-        fl_self_hosted_ast_Param _fl_tmp_360 = fl_self_hosted_parser_parse_param(s);
-        FL_Array* _fl_old_361 = params;
-        params = fl_array_push_sized(params, (&_fl_tmp_360), sizeof(fl_self_hosted_ast_Param));
-        if (_fl_old_361 != params) {
-            fl_array_release(_fl_old_361);
+        fl_self_hosted_ast_Param _fl_tmp_236 = fl_self_hosted_parser_parse_param(s);
+        FL_Array* _fl_old_237 = params;
+        params = fl_array_push_sized(params, (&_fl_tmp_236), sizeof(fl_self_hosted_ast_Param));
+        if (_fl_old_237 != params) {
+            fl_array_release(_fl_old_237);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_FAT_ARROW)) {
                 break;
             }
-            fl_self_hosted_ast_Param _fl_tmp_362 = fl_self_hosted_parser_parse_param(s);
-            FL_Array* _fl_old_363 = params;
-            params = fl_array_push_sized(params, (&_fl_tmp_362), sizeof(fl_self_hosted_ast_Param));
-            if (_fl_old_363 != params) {
-                fl_array_release(_fl_old_363);
+            fl_self_hosted_ast_Param _fl_tmp_238 = fl_self_hosted_parser_parse_param(s);
+            FL_Array* _fl_old_239 = params;
+            params = fl_array_push_sized(params, (&_fl_tmp_238), sizeof(fl_self_hosted_ast_Param));
+            if (_fl_old_239 != params) {
+                fl_array_release(_fl_old_239);
             }
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_FAT_ARROW);
     fl_self_hosted_ast_Expr body = fl_self_hosted_parser_parse_expr(s);
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    FL_Box* _fl_tmp_364 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_364, fl_self_hosted_ast_Expr) = body;
+    FL_Box* _fl_tmp_240 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_240, fl_self_hosted_ast_Expr) = body;
     fl_array_retain(params);
-    fl_self_hosted_ast_Expr _fl_ret_365 = (fl_self_hosted_ast_Expr){.tag = 15, .ELambda = (fl_self_hosted_ast_Expr_ELambda){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .params = params, .body = _fl_tmp_364}};
-    fl_array_release(params);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_365;
+    return (fl_self_hosted_ast_Expr){.tag = 15, .ELambda = (fl_self_hosted_ast_Expr_ELambda){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .params = params, .body = _fl_tmp_240}};
 }
 
 /* Flow: self_hosted.parser.parse_array_lit */
@@ -10506,32 +9975,28 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_array_lit(fl_self_hosted_par
     FL_Array* elements = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(elements, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACKET) == fl_false) {
-        fl_self_hosted_ast_Expr _fl_tmp_366 = fl_self_hosted_parser_parse_expr(s);
-        FL_Array* _fl_old_367 = elements;
-        elements = fl_array_push_sized(elements, (&_fl_tmp_366), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_367 != elements) {
-            fl_array_release(_fl_old_367);
+        fl_self_hosted_ast_Expr _fl_tmp_241 = fl_self_hosted_parser_parse_expr(s);
+        FL_Array* _fl_old_242 = elements;
+        elements = fl_array_push_sized(elements, (&_fl_tmp_241), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_242 != elements) {
+            fl_array_release(_fl_old_242);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACKET)) {
                 break;
             }
-            fl_self_hosted_ast_Expr _fl_tmp_368 = fl_self_hosted_parser_parse_expr(s);
-            FL_Array* _fl_old_369 = elements;
-            elements = fl_array_push_sized(elements, (&_fl_tmp_368), sizeof(fl_self_hosted_ast_Expr));
-            if (_fl_old_369 != elements) {
-                fl_array_release(_fl_old_369);
+            fl_self_hosted_ast_Expr _fl_tmp_243 = fl_self_hosted_parser_parse_expr(s);
+            FL_Array* _fl_old_244 = elements;
+            elements = fl_array_push_sized(elements, (&_fl_tmp_243), sizeof(fl_self_hosted_ast_Expr));
+            if (_fl_old_244 != elements) {
+                fl_array_release(_fl_old_244);
             }
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACKET);
     fl_array_retain(elements);
-    fl_self_hosted_ast_Expr _fl_ret_370 = (fl_self_hosted_ast_Expr){.tag = 17, .EArrayLit = (fl_self_hosted_ast_Expr_EArrayLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = elements}};
-    fl_array_release(elements);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_370;
+    return (fl_self_hosted_ast_Expr){.tag = 17, .EArrayLit = (fl_self_hosted_ast_Expr_EArrayLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = elements}};
 }
 
 /* Flow: self_hosted.parser.parse_paren_expr */
@@ -10539,44 +10004,35 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_paren_expr(fl_self_hosted_pa
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_LPAREN);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN)) {
         fl_self_hosted_parser_advance(s);
-        fl_self_hosted_ast_Expr _fl_ret_375 = (fl_self_hosted_ast_Expr){.tag = 16, .ETupleExpr = (fl_self_hosted_ast_Expr_ETupleExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = fl_array_new(0, 0, NULL)}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_375;
+        return (fl_self_hosted_ast_Expr){.tag = 16, .ETupleExpr = (fl_self_hosted_ast_Expr_ETupleExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = fl_array_new(0, 0, NULL)}};
     }
     fl_self_hosted_ast_Expr first = fl_self_hosted_parser_parse_expr(s);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
         FL_Array* elements = fl_array_new(0, 0, NULL);
         fl_array_set_struct_handlers(elements, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
-        fl_self_hosted_ast_Expr _fl_tmp_371 = first;
-        FL_Array* _fl_old_372 = elements;
-        elements = fl_array_push_sized(elements, (&_fl_tmp_371), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_372 != elements) {
-            fl_array_release(_fl_old_372);
+        fl_self_hosted_ast_Expr _fl_tmp_245 = first;
+        FL_Array* _fl_old_246 = elements;
+        elements = fl_array_push_sized(elements, (&_fl_tmp_245), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_246 != elements) {
+            fl_array_release(_fl_old_246);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN)) {
                 break;
             }
-            fl_self_hosted_ast_Expr _fl_tmp_373 = fl_self_hosted_parser_parse_expr(s);
-            FL_Array* _fl_old_374 = elements;
-            elements = fl_array_push_sized(elements, (&_fl_tmp_373), sizeof(fl_self_hosted_ast_Expr));
-            if (_fl_old_374 != elements) {
-                fl_array_release(_fl_old_374);
+            fl_self_hosted_ast_Expr _fl_tmp_247 = fl_self_hosted_parser_parse_expr(s);
+            FL_Array* _fl_old_248 = elements;
+            elements = fl_array_push_sized(elements, (&_fl_tmp_247), sizeof(fl_self_hosted_ast_Expr));
+            if (_fl_old_248 != elements) {
+                fl_array_release(_fl_old_248);
             }
         }
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
         fl_array_retain(elements);
-        fl_self_hosted_ast_Expr _fl_ret_376 = (fl_self_hosted_ast_Expr){.tag = 16, .ETupleExpr = (fl_self_hosted_ast_Expr_ETupleExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = elements}};
-        fl_array_release(elements);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_376;
+        return (fl_self_hosted_ast_Expr){.tag = 16, .ETupleExpr = (fl_self_hosted_ast_Expr_ETupleExpr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = elements}};
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
     return first;
 }
 
@@ -10604,11 +10060,11 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_record_lit(fl_self_hosted_pa
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
         fl_self_hosted_ast_Expr fval = fl_self_hosted_parser_parse_expr(s);
         fl_string_retain(fname.value);
-        fl_self_hosted_ast_ExprField _fl_tmp_377 = (fl_self_hosted_ast_ExprField){.name = fname.value, .value = fval};
-        FL_Array* _fl_old_378 = fields;
-        fields = fl_array_push_sized(fields, (&_fl_tmp_377), sizeof(fl_self_hosted_ast_ExprField));
-        if (_fl_old_378 != fields) {
-            fl_array_release(_fl_old_378);
+        fl_self_hosted_ast_ExprField _fl_tmp_249 = (fl_self_hosted_ast_ExprField){.name = fname.value, .value = fval};
+        FL_Array* _fl_old_250 = fields;
+        fields = fl_array_push_sized(fields, (&_fl_tmp_249), sizeof(fl_self_hosted_ast_ExprField));
+        if (_fl_old_250 != fields) {
+            fl_array_release(_fl_old_250);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
@@ -10619,21 +10075,17 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_record_lit(fl_self_hosted_pa
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
             fl_self_hosted_ast_Expr fval2 = fl_self_hosted_parser_parse_expr(s);
             fl_string_retain(fname2.value);
-            fl_self_hosted_ast_ExprField _fl_tmp_379 = (fl_self_hosted_ast_ExprField){.name = fname2.value, .value = fval2};
-            FL_Array* _fl_old_380 = fields;
-            fields = fl_array_push_sized(fields, (&_fl_tmp_379), sizeof(fl_self_hosted_ast_ExprField));
-            if (_fl_old_380 != fields) {
-                fl_array_release(_fl_old_380);
+            fl_self_hosted_ast_ExprField _fl_tmp_251 = (fl_self_hosted_ast_ExprField){.name = fname2.value, .value = fval2};
+            FL_Array* _fl_old_252 = fields;
+            fields = fl_array_push_sized(fields, (&_fl_tmp_251), sizeof(fl_self_hosted_ast_ExprField));
+            if (_fl_old_252 != fields) {
+                fl_array_release(_fl_old_252);
             }
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RBRACE);
     fl_array_retain(fields);
-    fl_self_hosted_ast_Expr _fl_ret_381 = (fl_self_hosted_ast_Expr){.tag = 18, .ERecordLit = (fl_self_hosted_ast_Expr_ERecordLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .fields = fields}};
-    fl_array_release(fields);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_381;
+    return (fl_self_hosted_ast_Expr){.tag = 18, .ERecordLit = (fl_self_hosted_ast_Expr_ERecordLit){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .fields = fields}};
 }
 
 /* Flow: self_hosted.parser.parse_ident_or_type_lit */
@@ -10654,48 +10106,30 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_ident_or_type_lit(fl_self_ho
             }
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_lexer_Token next_tok = fl_self_hosted_parser_advance(s);
-            FL_Array* _fl_old_382 = module_path;
+            FL_Array* _fl_old_253 = module_path;
             module_path = fl_array_push_ptr(module_path, current_name);
-            if (_fl_old_382 != module_path) {
-                fl_array_release(_fl_old_382);
+            if (_fl_old_253 != module_path) {
+                fl_array_release(_fl_old_253);
             }
-            FL_String* _fl_old_383 = current_name;
+            FL_String* _fl_old_254 = current_name;
             current_name = next_tok.value;
-            if (_fl_old_383 != current_name) {
+            if (_fl_old_254 != current_name) {
                 fl_string_retain(current_name);
-                fl_string_release(_fl_old_383);
+                fl_string_release(_fl_old_254);
             }
         }
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACE) && fl_self_hosted_parser_is_first_upper(current_name)) {
-            fl_self_hosted_ast_Expr _fl_ret_384 = fl_self_hosted_parser_parse_type_construction_lit(s, first_tok, current_name, module_path);
-            fl_string_retain(first_tok.value);
-            fl_string_retain(first_tok.file);
-            fl_string_release(name);
-            fl_array_release(module_path);
-            fl_string_release(current_name);
-            fl_string_release(first_tok.value);
-            fl_string_release(first_tok.file);
-            return _fl_ret_384;
+            return fl_self_hosted_parser_parse_type_construction_lit(s, first_tok, current_name, module_path);
         }
         s->pos = saved_pos;
         fl_array_release(module_path);
         fl_string_release(current_name);
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_LBRACE) && fl_self_hosted_parser_is_first_upper(name)) {
-        fl_self_hosted_ast_Expr _fl_ret_385 = fl_self_hosted_parser_parse_type_construction_lit(s, first_tok, name, fl_array_new(0, 0, NULL));
-        fl_string_retain(first_tok.value);
-        fl_string_retain(first_tok.file);
-        fl_string_release(name);
-        fl_string_release(first_tok.value);
-        fl_string_release(first_tok.file);
-        return _fl_ret_385;
+        return fl_self_hosted_parser_parse_type_construction_lit(s, first_tok, name, fl_array_new(0, 0, NULL));
     }
     fl_string_retain(name);
-    fl_self_hosted_ast_Expr _fl_ret_386 = (fl_self_hosted_ast_Expr){.tag = 6, .EIdent = (fl_self_hosted_ast_Expr_EIdent){.id = fl_self_hosted_parser_fresh_id(s), .line = first_tok.line, .col = first_tok.col, .name = name, .module_path = fl_array_new(0, 0, NULL)}};
-    fl_string_release(name);
-    fl_string_release(first_tok.value);
-    fl_string_release(first_tok.file);
-    return _fl_ret_386;
+    return (fl_self_hosted_ast_Expr){.tag = 6, .EIdent = (fl_self_hosted_ast_Expr_EIdent){.id = fl_self_hosted_parser_fresh_id(s), .line = first_tok.line, .col = first_tok.col, .name = name, .module_path = fl_array_new(0, 0, NULL)}};
 }
 
 /* Flow: self_hosted.parser.parse_type_construction_lit */
@@ -10718,11 +10152,11 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_type_construction_lit(fl_sel
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COLON);
         fl_self_hosted_ast_Expr fval = fl_self_hosted_parser_parse_expr(s);
         fl_string_retain(fname.value);
-        fl_self_hosted_ast_ExprField _fl_tmp_387 = (fl_self_hosted_ast_ExprField){.name = fname.value, .value = fval};
-        FL_Array* _fl_old_388 = fields;
-        fields = fl_array_push_sized(fields, (&_fl_tmp_387), sizeof(fl_self_hosted_ast_ExprField));
-        if (_fl_old_388 != fields) {
-            fl_array_release(_fl_old_388);
+        fl_self_hosted_ast_ExprField _fl_tmp_255 = (fl_self_hosted_ast_ExprField){.name = fname.value, .value = fval};
+        FL_Array* _fl_old_256 = fields;
+        fields = fl_array_push_sized(fields, (&_fl_tmp_255), sizeof(fl_self_hosted_ast_ExprField));
+        if (_fl_old_256 != fields) {
+            fl_array_release(_fl_old_256);
         }
         if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RBRACE) == fl_false) {
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_COMMA);
@@ -10739,29 +10173,26 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_type_construction_lit(fl_sel
             if (pi > 0) {
                 fl_string_append((&prefix), _fl_str_self_hosted_parser_56);
             }
-            FL_Option_ptr _fl_tmp_389 = fl_array_get_safe(module_path, pi);
-            fl_string_append((&prefix), ((_fl_tmp_389.tag == 1) ? _fl_tmp_389.value : _fl_str_self_hosted_parser_18));
+            FL_Option_ptr _fl_tmp_257 = fl_array_get_safe(module_path, pi);
+            fl_string_append((&prefix), ((_fl_tmp_257.tag == 1) ? _fl_tmp_257.value : _fl_str_self_hosted_parser_18));
             fl_int _fl_e_1;
             FL_CHECKED_ADD(pi, 1, &_fl_e_1);
             pi = _fl_e_1;
         }
-        FL_String* _fl_tmp_390 = fl_string_concat(prefix, _fl_str_self_hosted_parser_56);
-        FL_String* _fl_old_391 = full_name;
-        full_name = fl_string_concat(_fl_tmp_390, type_name);
-        if (_fl_old_391 != full_name) {
-            fl_string_release(_fl_old_391);
+        FL_String* _fl_tmp_258 = fl_string_concat(prefix, _fl_str_self_hosted_parser_56);
+        FL_String* _fl_old_259 = full_name;
+        full_name = fl_string_concat(_fl_tmp_258, type_name);
+        if (_fl_old_259 != full_name) {
+            fl_string_release(_fl_old_259);
         }
         fl_string_release(prefix);
-        fl_string_release(_fl_tmp_390);
+        fl_string_release(_fl_tmp_258);
     }
-    FL_Box* _fl_tmp_392 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-    FL_BOX_DEREF(_fl_tmp_392, fl_self_hosted_ast_Expr) = spread;
+    FL_Box* _fl_tmp_260 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+    FL_BOX_DEREF(_fl_tmp_260, fl_self_hosted_ast_Expr) = spread;
     fl_string_retain(full_name);
     fl_array_retain(fields);
-    fl_self_hosted_ast_Expr _fl_ret_393 = (fl_self_hosted_ast_Expr){.tag = 19, .ETypeLit = (fl_self_hosted_ast_Expr_ETypeLit){.id = fl_self_hosted_parser_fresh_id(s), .line = start_tok.line, .col = start_tok.col, .type_name = full_name, .fields = fields, .has_spread = has_spread, .spread = _fl_tmp_392}};
-    fl_array_release(fields);
-    fl_string_release(full_name);
-    return _fl_ret_393;
+    return (fl_self_hosted_ast_Expr){.tag = 19, .ETypeLit = (fl_self_hosted_ast_Expr_ETypeLit){.id = fl_self_hosted_parser_fresh_id(s), .line = start_tok.line, .col = start_tok.col, .type_name = full_name, .fields = fields, .has_spread = has_spread, .spread = _fl_tmp_260}};
 }
 
 /* Flow: self_hosted.parser.parse_arg_list */
@@ -10773,23 +10204,23 @@ FL_Array* fl_self_hosted_parser_parse_arg_list(fl_self_hosted_parser_ParserState
         return args;
     }
     fl_self_hosted_ast_Expr first = fl_self_hosted_parser_parse_call_arg(s, seen_named);
-    fl_self_hosted_ast_Expr _fl_tmp_394 = first;
-    switch (_fl_tmp_394.tag) {
+    fl_self_hosted_ast_Expr _fl_tmp_261 = first;
+    switch (_fl_tmp_261.tag) {
         case 9: {
-            fl_int nid = _fl_tmp_394.ENamedArg.id;
-            fl_int nl = _fl_tmp_394.ENamedArg.line;
-            fl_int nc = _fl_tmp_394.ENamedArg.col;
-            FL_String* nn = _fl_tmp_394.ENamedArg.name;
-            fl_self_hosted_ast_Expr nv = FL_BOX_DEREF(_fl_tmp_394.ENamedArg.value, fl_self_hosted_ast_Expr);
+            fl_int nid = _fl_tmp_261.ENamedArg.id;
+            fl_int nl = _fl_tmp_261.ENamedArg.line;
+            fl_int nc = _fl_tmp_261.ENamedArg.col;
+            FL_String* nn = _fl_tmp_261.ENamedArg.name;
+            fl_self_hosted_ast_Expr nv = FL_BOX_DEREF(_fl_tmp_261.ENamedArg.value, fl_self_hosted_ast_Expr);
             seen_named = fl_true;
             break;
         }
     }
-    fl_self_hosted_ast_Expr _fl_tmp_395 = first;
-    FL_Array* _fl_old_396 = args;
-    args = fl_array_push_sized(args, (&_fl_tmp_395), sizeof(fl_self_hosted_ast_Expr));
-    if (_fl_old_396 != args) {
-        fl_array_release(_fl_old_396);
+    fl_self_hosted_ast_Expr _fl_tmp_262 = first;
+    FL_Array* _fl_old_263 = args;
+    args = fl_array_push_sized(args, (&_fl_tmp_262), sizeof(fl_self_hosted_ast_Expr));
+    if (_fl_old_263 != args) {
+        fl_array_release(_fl_old_263);
     }
     while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
         fl_self_hosted_parser_advance(s);
@@ -10797,31 +10228,31 @@ FL_Array* fl_self_hosted_parser_parse_arg_list(fl_self_hosted_parser_ParserState
             break;
         }
         fl_self_hosted_ast_Expr arg = fl_self_hosted_parser_parse_call_arg(s, seen_named);
-        fl_self_hosted_ast_Expr _fl_tmp_397 = arg;
-        switch (_fl_tmp_397.tag) {
+        fl_self_hosted_ast_Expr _fl_tmp_264 = arg;
+        switch (_fl_tmp_264.tag) {
             case 9: {
-                fl_int nid = _fl_tmp_397.ENamedArg.id;
-                fl_int nl = _fl_tmp_397.ENamedArg.line;
-                fl_int nc = _fl_tmp_397.ENamedArg.col;
-                FL_String* nn = _fl_tmp_397.ENamedArg.name;
-                fl_self_hosted_ast_Expr nv = FL_BOX_DEREF(_fl_tmp_397.ENamedArg.value, fl_self_hosted_ast_Expr);
+                fl_int nid = _fl_tmp_264.ENamedArg.id;
+                fl_int nl = _fl_tmp_264.ENamedArg.line;
+                fl_int nc = _fl_tmp_264.ENamedArg.col;
+                FL_String* nn = _fl_tmp_264.ENamedArg.name;
+                fl_self_hosted_ast_Expr nv = FL_BOX_DEREF(_fl_tmp_264.ENamedArg.value, fl_self_hosted_ast_Expr);
                 seen_named = fl_true;
                 break;
             }
             default: {
                 if (seen_named) {
-                    fl_self_hosted_errors_CompileError* _fl_tmp_398 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-                    (*_fl_tmp_398) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_57);
-                    _fl_throw(((void*)_fl_tmp_398), 461109476);
+                    fl_self_hosted_errors_CompileError* _fl_tmp_265 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+                    (*_fl_tmp_265) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_57);
+                    _fl_throw(((void*)_fl_tmp_265), 461109476);
                 }
                 break;
             }
         }
-        fl_self_hosted_ast_Expr _fl_tmp_399 = arg;
-        FL_Array* _fl_old_400 = args;
-        args = fl_array_push_sized(args, (&_fl_tmp_399), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_400 != args) {
-            fl_array_release(_fl_old_400);
+        fl_self_hosted_ast_Expr _fl_tmp_266 = arg;
+        FL_Array* _fl_old_267 = args;
+        args = fl_array_push_sized(args, (&_fl_tmp_266), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_267 != args) {
+            fl_array_release(_fl_old_267);
         }
     }
     return args;
@@ -10832,12 +10263,9 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_call_arg(fl_self_hosted_pars
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_SPREAD)) {
         fl_self_hosted_lexer_Token spread_tok = fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_expr(s);
-        FL_Box* _fl_tmp_401 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-        FL_BOX_DEREF(_fl_tmp_401, fl_self_hosted_ast_Expr) = inner;
-        fl_self_hosted_ast_Expr _fl_ret_404 = (fl_self_hosted_ast_Expr){.tag = 10, .ESpread = (fl_self_hosted_ast_Expr_ESpread){.id = fl_self_hosted_parser_fresh_id(s), .line = spread_tok.line, .col = spread_tok.col, .inner = _fl_tmp_401}};
-        fl_string_release(spread_tok.value);
-        fl_string_release(spread_tok.file);
-        return _fl_ret_404;
+        FL_Box* _fl_tmp_268 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_268, fl_self_hosted_ast_Expr) = inner;
+        return (fl_self_hosted_ast_Expr){.tag = 10, .ESpread = (fl_self_hosted_ast_Expr_ESpread){.id = fl_self_hosted_parser_fresh_id(s), .line = spread_tok.line, .col = spread_tok.col, .inner = _fl_tmp_268}};
     }
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_IDENT)) {
         fl_self_hosted_lexer_Token next = fl_self_hosted_parser_peek2(s);
@@ -10845,20 +10273,16 @@ fl_self_hosted_ast_Expr fl_self_hosted_parser_parse_call_arg(fl_self_hosted_pars
             fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_advance(s);
             fl_self_hosted_parser_advance(s);
             fl_self_hosted_ast_Expr value = fl_self_hosted_parser_parse_expr(s);
-            FL_Box* _fl_tmp_402 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-            FL_BOX_DEREF(_fl_tmp_402, fl_self_hosted_ast_Expr) = value;
+            FL_Box* _fl_tmp_269 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+            FL_BOX_DEREF(_fl_tmp_269, fl_self_hosted_ast_Expr) = value;
             fl_string_retain(name_tok.value);
-            fl_self_hosted_ast_Expr _fl_ret_405 = (fl_self_hosted_ast_Expr){.tag = 9, .ENamedArg = (fl_self_hosted_ast_Expr_ENamedArg){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .name = name_tok.value, .value = _fl_tmp_402}};
-            fl_string_release(next.value);
-            fl_string_release(next.file);
-            fl_string_release(name_tok.file);
-            return _fl_ret_405;
+            return (fl_self_hosted_ast_Expr){.tag = 9, .ENamedArg = (fl_self_hosted_ast_Expr_ENamedArg){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .name = name_tok.value, .value = _fl_tmp_269}};
         }
     }
     if (seen_named) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_403 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_403) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_57);
-        _fl_throw(((void*)_fl_tmp_403), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_270 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_270) = fl_self_hosted_parser_error_here(s, _fl_str_self_hosted_parser_57);
+        _fl_throw(((void*)_fl_tmp_270), 461109476);
     }
     return fl_self_hosted_parser_parse_expr(s);
 }
@@ -10868,17 +10292,11 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
     fl_self_hosted_lexer_Token tok = fl_self_hosted_parser_peek(s);
     if ((tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) && fl_string_eq(tok.value, _fl_str_self_hosted_parser_44)) {
         fl_self_hosted_parser_advance(s);
-        fl_self_hosted_ast_Pattern _fl_ret_418 = (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_418;
+        return (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_NONE) {
         fl_self_hosted_parser_advance(s);
-        fl_self_hosted_ast_Pattern _fl_ret_419 = (fl_self_hosted_ast_Pattern){.tag = 4, .PNone = (fl_self_hosted_ast_Pattern_PNone){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_419;
+        return (fl_self_hosted_ast_Pattern){.tag = 4, .PNone = (fl_self_hosted_ast_Pattern_PNone){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_SOME) {
         fl_self_hosted_parser_advance(s);
@@ -10886,11 +10304,7 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_self_hosted_lexer_Token inner_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
         fl_string_retain(inner_tok.value);
-        fl_self_hosted_ast_Pattern _fl_ret_420 = (fl_self_hosted_ast_Pattern){.tag = 3, .PSome = (fl_self_hosted_ast_Pattern_PSome){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        fl_string_release(inner_tok.file);
-        return _fl_ret_420;
+        return (fl_self_hosted_ast_Pattern){.tag = 3, .PSome = (fl_self_hosted_ast_Pattern_PSome){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_OK) {
         fl_self_hosted_parser_advance(s);
@@ -10898,11 +10312,7 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_self_hosted_lexer_Token inner_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
         fl_string_retain(inner_tok.value);
-        fl_self_hosted_ast_Pattern _fl_ret_421 = (fl_self_hosted_ast_Pattern){.tag = 5, .POk = (fl_self_hosted_ast_Pattern_POk){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        fl_string_release(inner_tok.file);
-        return _fl_ret_421;
+        return (fl_self_hosted_ast_Pattern){.tag = 5, .POk = (fl_self_hosted_ast_Pattern_POk){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_ERR) {
         fl_self_hosted_parser_advance(s);
@@ -10910,64 +10320,48 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
         fl_self_hosted_lexer_Token inner_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
         fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
         fl_string_retain(inner_tok.value);
-        fl_self_hosted_ast_Pattern _fl_ret_422 = (fl_self_hosted_ast_Pattern){.tag = 6, .PErr = (fl_self_hosted_ast_Pattern_PErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        fl_string_release(inner_tok.file);
-        return _fl_ret_422;
+        return (fl_self_hosted_ast_Pattern){.tag = 6, .PErr = (fl_self_hosted_ast_Pattern_PErr){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .inner_var = inner_tok.value}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_LPAREN) {
-        fl_self_hosted_ast_Pattern _fl_ret_423 = fl_self_hosted_parser_parse_tuple_pattern(s);
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_423;
+        return fl_self_hosted_parser_parse_tuple_pattern(s);
     }
     if ((((tok.ttype == fl_self_hosted_lexer_TokenType_TK_INT_LIT) || (tok.ttype == fl_self_hosted_lexer_TokenType_TK_FLOAT_LIT)) || (tok.ttype == fl_self_hosted_lexer_TokenType_TK_STRING_LIT)) || (tok.ttype == fl_self_hosted_lexer_TokenType_TK_CHAR_LIT)) {
         fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_primary(s);
         fl_int vid = fl_array_len_int(s->literal_values);
-        fl_self_hosted_ast_Expr _fl_tmp_406 = expr;
-        FL_Array* _fl_old_407 = s->literal_values;
-        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_406), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_407 != s->literal_values) {
-            fl_array_release(_fl_old_407);
+        fl_self_hosted_ast_Expr _fl_tmp_271 = expr;
+        FL_Array* _fl_old_272 = s->literal_values;
+        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_271), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_272 != s->literal_values) {
+            fl_array_release(_fl_old_272);
         }
-        fl_self_hosted_ast_Pattern _fl_ret_424 = (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_424;
+        return (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_MINUS) {
         fl_self_hosted_parser_advance(s);
         fl_self_hosted_ast_Expr inner = fl_self_hosted_parser_parse_primary(s);
-        FL_Box* _fl_tmp_408 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
-        FL_BOX_DEREF(_fl_tmp_408, fl_self_hosted_ast_Expr) = inner;
+        FL_Box* _fl_tmp_273 = fl_box_new(sizeof(fl_self_hosted_ast_Expr));
+        FL_BOX_DEREF(_fl_tmp_273, fl_self_hosted_ast_Expr) = inner;
         fl_string_retain(_fl_str_self_hosted_parser_11);
-        fl_self_hosted_ast_Expr neg = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_11, .operand = _fl_tmp_408}};
+        fl_self_hosted_ast_Expr neg = (fl_self_hosted_ast_Expr){.tag = 8, .EUnaryOp = (fl_self_hosted_ast_Expr_EUnaryOp){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .op = _fl_str_self_hosted_parser_11, .operand = _fl_tmp_273}};
         fl_int vid = fl_array_len_int(s->literal_values);
-        fl_self_hosted_ast_Expr _fl_tmp_409 = neg;
-        FL_Array* _fl_old_410 = s->literal_values;
-        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_409), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_410 != s->literal_values) {
-            fl_array_release(_fl_old_410);
+        fl_self_hosted_ast_Expr _fl_tmp_274 = neg;
+        FL_Array* _fl_old_275 = s->literal_values;
+        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_274), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_275 != s->literal_values) {
+            fl_array_release(_fl_old_275);
         }
-        fl_self_hosted_ast_Pattern _fl_ret_425 = (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_425;
+        return (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_BOOL_LIT) {
         fl_self_hosted_ast_Expr expr = fl_self_hosted_parser_parse_bool_lit(s);
         fl_int vid = fl_array_len_int(s->literal_values);
-        fl_self_hosted_ast_Expr _fl_tmp_411 = expr;
-        FL_Array* _fl_old_412 = s->literal_values;
-        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_411), sizeof(fl_self_hosted_ast_Expr));
-        if (_fl_old_412 != s->literal_values) {
-            fl_array_release(_fl_old_412);
+        fl_self_hosted_ast_Expr _fl_tmp_276 = expr;
+        FL_Array* _fl_old_277 = s->literal_values;
+        s->literal_values = fl_array_push_sized(s->literal_values, (&_fl_tmp_276), sizeof(fl_self_hosted_ast_Expr));
+        if (_fl_old_277 != s->literal_values) {
+            fl_array_release(_fl_old_277);
         }
-        fl_self_hosted_ast_Pattern _fl_ret_426 = (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        return _fl_ret_426;
+        return (fl_self_hosted_ast_Pattern){.tag = 1, .PLiteral = (fl_self_hosted_ast_Pattern_PLiteral){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .value_id = vid}};
     }
     if (tok.ttype == fl_self_hosted_lexer_TokenType_TK_IDENT) {
         fl_self_hosted_lexer_Token name_tok = fl_self_hosted_parser_advance(s);
@@ -10977,10 +10371,10 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
             fl_array_set_elem_type(bindings, 1);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
                 fl_self_hosted_lexer_Token b_tok = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                FL_Array* _fl_old_413 = bindings;
+                FL_Array* _fl_old_278 = bindings;
                 bindings = fl_array_push_ptr(bindings, b_tok.value);
-                if (_fl_old_413 != bindings) {
-                    fl_array_release(_fl_old_413);
+                if (_fl_old_278 != bindings) {
+                    fl_array_release(_fl_old_278);
                 }
                 while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
                     fl_self_hosted_parser_advance(s);
@@ -10988,39 +10382,26 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_pattern(fl_self_hosted_pa
                         break;
                     }
                     fl_self_hosted_lexer_Token b2 = fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_IDENT);
-                    FL_Array* _fl_old_414 = bindings;
+                    FL_Array* _fl_old_279 = bindings;
                     bindings = fl_array_push_ptr(bindings, b2.value);
-                    if (_fl_old_414 != bindings) {
-                        fl_array_release(_fl_old_414);
+                    if (_fl_old_279 != bindings) {
+                        fl_array_release(_fl_old_279);
                     }
                 }
             }
             fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
             fl_string_retain(name_tok.value);
             fl_array_retain(bindings);
-            fl_self_hosted_ast_Pattern _fl_ret_427 = (fl_self_hosted_ast_Pattern){.tag = 7, .PVariant = (fl_self_hosted_ast_Pattern_PVariant){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .variant_name = name_tok.value, .bindings = bindings}};
-            fl_array_release(bindings);
-            fl_string_release(tok.value);
-            fl_string_release(tok.file);
-            fl_string_release(name_tok.file);
-            return _fl_ret_427;
+            return (fl_self_hosted_ast_Pattern){.tag = 7, .PVariant = (fl_self_hosted_ast_Pattern_PVariant){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .variant_name = name_tok.value, .bindings = bindings}};
         }
         fl_string_retain(name_tok.value);
-        fl_self_hosted_ast_Pattern _fl_ret_428 = (fl_self_hosted_ast_Pattern){.tag = 2, .PBind = (fl_self_hosted_ast_Pattern_PBind){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .name = name_tok.value}};
-        fl_string_release(tok.value);
-        fl_string_release(tok.file);
-        fl_string_release(name_tok.file);
-        return _fl_ret_428;
+        return (fl_self_hosted_ast_Pattern){.tag = 2, .PBind = (fl_self_hosted_ast_Pattern_PBind){.id = fl_self_hosted_parser_fresh_id(s), .line = name_tok.line, .col = name_tok.col, .name = name_tok.value}};
     }
-    FL_String* _fl_tmp_415 = fl_string_concat(_fl_str_self_hosted_parser_58, tok.value);
-    FL_String* _fl_tmp_416 = fl_string_concat(_fl_tmp_415, _fl_str_self_hosted_parser_23);
-    fl_self_hosted_errors_CompileError* _fl_tmp_417 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-    (*_fl_tmp_417) = fl_self_hosted_parser_error_at(s, _fl_tmp_416, tok.line, tok.col);
-    _fl_throw(((void*)_fl_tmp_417), 461109476);
-    fl_string_release(_fl_tmp_415);
-    fl_string_release(_fl_tmp_416);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
+    FL_String* _fl_tmp_280 = fl_string_concat(_fl_str_self_hosted_parser_58, tok.value);
+    FL_String* _fl_tmp_281 = fl_string_concat(_fl_tmp_280, _fl_str_self_hosted_parser_23);
+    fl_self_hosted_errors_CompileError* _fl_tmp_282 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+    (*_fl_tmp_282) = fl_self_hosted_parser_error_at(s, _fl_tmp_281, tok.line, tok.col);
+    _fl_throw(((void*)_fl_tmp_282), 461109476);
     return (fl_self_hosted_ast_Pattern){.tag = 0, .PWildcard = (fl_self_hosted_ast_Pattern_PWildcard){.id = 0, .line = 0, .col = 0}};
 }
 
@@ -11030,32 +10411,28 @@ fl_self_hosted_ast_Pattern fl_self_hosted_parser_parse_tuple_pattern(fl_self_hos
     FL_Array* elements = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(elements, _fl_destroy_fl_self_hosted_ast_Pattern, _fl_retain_fl_self_hosted_ast_Pattern);
     if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN) == fl_false) {
-        fl_self_hosted_ast_Pattern _fl_tmp_429 = fl_self_hosted_parser_parse_pattern(s);
-        FL_Array* _fl_old_430 = elements;
-        elements = fl_array_push_sized(elements, (&_fl_tmp_429), sizeof(fl_self_hosted_ast_Pattern));
-        if (_fl_old_430 != elements) {
-            fl_array_release(_fl_old_430);
+        fl_self_hosted_ast_Pattern _fl_tmp_283 = fl_self_hosted_parser_parse_pattern(s);
+        FL_Array* _fl_old_284 = elements;
+        elements = fl_array_push_sized(elements, (&_fl_tmp_283), sizeof(fl_self_hosted_ast_Pattern));
+        if (_fl_old_284 != elements) {
+            fl_array_release(_fl_old_284);
         }
         while (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_COMMA)) {
             fl_self_hosted_parser_advance(s);
             if (fl_self_hosted_parser_check(s, fl_self_hosted_lexer_TokenType_TK_RPAREN)) {
                 break;
             }
-            fl_self_hosted_ast_Pattern _fl_tmp_431 = fl_self_hosted_parser_parse_pattern(s);
-            FL_Array* _fl_old_432 = elements;
-            elements = fl_array_push_sized(elements, (&_fl_tmp_431), sizeof(fl_self_hosted_ast_Pattern));
-            if (_fl_old_432 != elements) {
-                fl_array_release(_fl_old_432);
+            fl_self_hosted_ast_Pattern _fl_tmp_285 = fl_self_hosted_parser_parse_pattern(s);
+            FL_Array* _fl_old_286 = elements;
+            elements = fl_array_push_sized(elements, (&_fl_tmp_285), sizeof(fl_self_hosted_ast_Pattern));
+            if (_fl_old_286 != elements) {
+                fl_array_release(_fl_old_286);
             }
         }
     }
     fl_self_hosted_parser_expect(s, fl_self_hosted_lexer_TokenType_TK_RPAREN);
     fl_array_retain(elements);
-    fl_self_hosted_ast_Pattern _fl_ret_433 = (fl_self_hosted_ast_Pattern){.tag = 8, .PTuple = (fl_self_hosted_ast_Pattern_PTuple){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = elements}};
-    fl_array_release(elements);
-    fl_string_release(tok.value);
-    fl_string_release(tok.file);
-    return _fl_ret_433;
+    return (fl_self_hosted_ast_Pattern){.tag = 8, .PTuple = (fl_self_hosted_ast_Pattern_PTuple){.id = fl_self_hosted_parser_fresh_id(s), .line = tok.line, .col = tok.col, .elements = elements}};
 }
 
 /* Flow: sum destructor for fl_self_hosted_errors_ErrorKind */
@@ -11085,29 +10462,29 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
     fl_self_hosted_errors_CompileError dummy_error = fl_self_hosted_errors_parse_error(_fl_str_self_hosted_parser_18, filename, 0, 0);
     fl_array_retain(tokens);
     fl_string_retain(filename);
-    FL_Array* _fl_tmp_434 = fl_array_new(0, 0, NULL);
-    fl_array_set_struct_handlers(_fl_tmp_434, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
-    FL_Array* _fl_tmp_435 = fl_array_new(0, 0, NULL);
-    fl_array_set_struct_handlers(_fl_tmp_435, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
-    FL_Array* _fl_tmp_436 = fl_array_new(0, 0, NULL);
-    fl_array_set_struct_handlers(_fl_tmp_436, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
-    fl_self_hosted_parser_ParserState s = (fl_self_hosted_parser_ParserState){.tokens = tokens, .filename = filename, .token_count = fl_array_len_int(tokens), .pos = 0, .next_id = 1, .has_error = fl_false, .first_error = dummy_error, .literal_values = _fl_tmp_434, .cast_targets = _fl_tmp_435, .sized_capacities = _fl_tmp_436};
+    FL_Array* _fl_tmp_287 = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(_fl_tmp_287, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
+    FL_Array* _fl_tmp_288 = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(_fl_tmp_288, _fl_destroy_fl_self_hosted_ast_TypeExpr, _fl_retain_fl_self_hosted_ast_TypeExpr);
+    FL_Array* _fl_tmp_289 = fl_array_new(0, 0, NULL);
+    fl_array_set_struct_handlers(_fl_tmp_289, _fl_destroy_fl_self_hosted_ast_Expr, _fl_retain_fl_self_hosted_ast_Expr);
+    fl_self_hosted_parser_ParserState s = (fl_self_hosted_parser_ParserState){.tokens = tokens, .filename = filename, .token_count = fl_array_len_int(tokens), .pos = 0, .next_id = 1, .has_error = fl_false, .first_error = dummy_error, .literal_values = _fl_tmp_287, .cast_targets = _fl_tmp_288, .sized_capacities = _fl_tmp_289};
     FL_Array* path = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(path, 1);
     if (fl_self_hosted_parser_check((&s), fl_self_hosted_lexer_TokenType_TK_MODULE)) {
         fl_self_hosted_ast_Decl mod_decl = fl_self_hosted_parser_parse_module_decl((&s));
-        fl_self_hosted_ast_Decl _fl_tmp_437 = mod_decl;
-        switch (_fl_tmp_437.tag) {
+        fl_self_hosted_ast_Decl _fl_tmp_290 = mod_decl;
+        switch (_fl_tmp_290.tag) {
             case 0: {
-                fl_int mid = _fl_tmp_437.DModule.id;
-                fl_int ml = _fl_tmp_437.DModule.line;
-                fl_int mc = _fl_tmp_437.DModule.col;
-                FL_Array* mp = _fl_tmp_437.DModule.path;
-                FL_Array* _fl_old_438 = path;
+                fl_int mid = _fl_tmp_290.DModule.id;
+                fl_int ml = _fl_tmp_290.DModule.line;
+                fl_int mc = _fl_tmp_290.DModule.col;
+                FL_Array* mp = _fl_tmp_290.DModule.path;
+                FL_Array* _fl_old_291 = path;
                 path = mp;
-                if (_fl_old_438 != path) {
+                if (_fl_old_291 != path) {
                     fl_array_retain(path);
-                    fl_array_release(_fl_old_438);
+                    fl_array_release(_fl_old_291);
                 }
                 break;
             }
@@ -11116,11 +10493,11 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
     FL_Array* imports = fl_array_new(0, 0, NULL);
     fl_array_set_struct_handlers(imports, _fl_destroy_fl_self_hosted_ast_Decl, _fl_retain_fl_self_hosted_ast_Decl);
     while (fl_self_hosted_parser_check((&s), fl_self_hosted_lexer_TokenType_TK_IMPORT)) {
-        fl_self_hosted_ast_Decl _fl_tmp_439 = fl_self_hosted_parser_parse_import_decl((&s));
-        FL_Array* _fl_old_440 = imports;
-        imports = fl_array_push_sized(imports, (&_fl_tmp_439), sizeof(fl_self_hosted_ast_Decl));
-        if (_fl_old_440 != imports) {
-            fl_array_release(_fl_old_440);
+        fl_self_hosted_ast_Decl _fl_tmp_292 = fl_self_hosted_parser_parse_import_decl((&s));
+        FL_Array* _fl_old_293 = imports;
+        imports = fl_array_push_sized(imports, (&_fl_tmp_292), sizeof(fl_self_hosted_ast_Decl));
+        if (_fl_old_293 != imports) {
+            fl_array_release(_fl_old_293);
         }
     }
     FL_Array* decls = fl_array_new(0, 0, NULL);
@@ -11131,18 +10508,18 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
         _fl_exception_push((&_fl_ef_2));
         if (setjmp(_fl_ef_2.jmp) == 0) {
             fl_self_hosted_ast_Decl decl = fl_self_hosted_parser_parse_top_level_decl((&s));
-            fl_self_hosted_ast_Decl _fl_tmp_441 = decl;
-            FL_Array* _fl_old_442 = decls;
-            decls = fl_array_push_sized(decls, (&_fl_tmp_441), sizeof(fl_self_hosted_ast_Decl));
-            if (_fl_old_442 != decls) {
-                fl_array_release(_fl_old_442);
+            fl_self_hosted_ast_Decl _fl_tmp_294 = decl;
+            FL_Array* _fl_old_295 = decls;
+            decls = fl_array_push_sized(decls, (&_fl_tmp_294), sizeof(fl_self_hosted_ast_Decl));
+            if (_fl_old_295 != decls) {
+                fl_array_release(_fl_old_295);
             }
             _fl_exception_pop();
         } else {
             _fl_exception_pop();
             if (_fl_ef_2.exception_tag == 461109476) {
-                fl_self_hosted_errors_CompileError* _fl_tmp_443 = ((fl_self_hosted_errors_CompileError*)_fl_ef_2.exception);
-                fl_self_hosted_errors_CompileError e = (*_fl_tmp_443);
+                fl_self_hosted_errors_CompileError* _fl_tmp_296 = ((fl_self_hosted_errors_CompileError*)_fl_ef_2.exception);
+                fl_self_hosted_errors_CompileError e = (*_fl_tmp_296);
                 if (s.has_error == fl_false) {
                     s.has_error = fl_true;
                     s.first_error = fl_self_hosted_errors_parse_error(e.message, filename, fl_self_hosted_parser_peek((&s)).line, fl_self_hosted_parser_peek((&s)).col);
@@ -11157,27 +10534,15 @@ fl_self_hosted_parser_ParseResult fl_self_hosted_parser_parse(FL_Array* tokens, 
         }
     }
     if (s.has_error) {
-        fl_self_hosted_errors_CompileError* _fl_tmp_444 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
-        (*_fl_tmp_444) = s.first_error;
-        _fl_throw(((void*)_fl_tmp_444), 461109476);
+        fl_self_hosted_errors_CompileError* _fl_tmp_297 = ((fl_self_hosted_errors_CompileError*)malloc(sizeof(fl_self_hosted_errors_CompileError)));
+        (*_fl_tmp_297) = s.first_error;
+        _fl_throw(((void*)_fl_tmp_297), 461109476);
     }
     fl_self_hosted_ast_Module parsed_module = fl_self_hosted_ast_make_module(path, imports, decls, filename);
     fl_array_retain(s.literal_values);
     fl_array_retain(s.cast_targets);
     fl_array_retain(s.sized_capacities);
-    fl_self_hosted_parser_ParseResult _fl_ret_445 = (fl_self_hosted_parser_ParseResult){.parsed_module = parsed_module, .literal_values = s.literal_values, .cast_targets = s.cast_targets, .sized_capacities = s.sized_capacities};
-    fl_array_retain(parsed_module.path);
-    fl_array_retain(parsed_module.imports);
-    fl_array_retain(parsed_module.decls);
-    fl_string_retain(parsed_module.filename);
-    fl_array_release(path);
-    fl_array_release(imports);
-    fl_array_release(decls);
-    fl_string_release(dummy_error.message);
-    fl_string_release(dummy_error.file);
-    fl_array_release(s.tokens);
-    fl_string_release(s.filename);
-    return _fl_ret_445;
+    return (fl_self_hosted_parser_ParseResult){.parsed_module = parsed_module, .literal_values = s.literal_values, .cast_targets = s.cast_targets, .sized_capacities = s.sized_capacities};
 }
 
 typedef struct FL_Option_fl_self_hosted_ast_Decl FL_Option_fl_self_hosted_ast_Decl;

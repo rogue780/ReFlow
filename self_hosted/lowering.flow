@@ -640,6 +640,21 @@ fn collect_referenced_vars(e:lir.LExpr):map<string, bool> {
                 m = m + 1
             }
         }
+        LEArrayData(elems, et, ct): {
+            let i:int:mut = 0
+            while(i < array.size(elems)) {
+                let v:lir.LExprBox = array.get_any(elems, i) ?? lir.le_box(lir.placeholder_expr())
+                let sub:map<string, bool> = collect_referenced_vars(lir.le_unbox(v))
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                    let k:string = array.get_any(ks, j) ?? ""
+                    result = map.set(result, k, true)
+                    j = j + 1
+                }
+                i = i + 1
+            }
+        }
         _: {}
     }
     return result
@@ -1834,7 +1849,14 @@ fn build_fn_exit_cleanup(st:LowerState:mut, declared:map<string, bool>, referenc
     let ci:int:mut = 0
     while(ci < array.size(st.container_locals)) {
         let cl:ContainerLocal = array.get_any(st.container_locals, ci) ?? ContainerLocal{var_name:"", c_type:lir.LVoid, release_fn:"", depth:0}
-        if(cl.depth == 0 && map.has(declared, cl.var_name) && map.has(st.consumed_bindings, cl.var_name) == false && map.has(referenced, cl.var_name) == false && map.has(seen, cl.var_name) == false && map.has(st.fn_arg_vars, cl.var_name) == false) {
+        // Skip arrays in containers_only mode — arrays in the lowering are
+        // structural (hold LStmtBox bodies) and get consumed by compound literal
+        // fields without retain. Releasing them causes UAF.
+        let skip_array:bool:mut = false
+        if(containers_only && cl.release_fn == "fl_array_release") {
+            skip_array = true
+        }
+        if(cl.depth == 0 && skip_array == false && map.has(declared, cl.var_name) && map.has(st.consumed_bindings, cl.var_name) == false && map.has(referenced, cl.var_name) == false && map.has(seen, cl.var_name) == false && map.has(st.fn_arg_vars, cl.var_name) == false) {
             result = array.push(result, lir.LStmtBox{ls:emit_release_call(cl.var_name, cl.c_type, cl.release_fn, line)})
             seen = map.set(seen, cl.var_name, true)
         }
@@ -2022,15 +2044,21 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
                 }
             }
 
-            // NOTE: inject_scope_cleanup is implemented but disabled.
-            // Enabling it causes UAF because not all borrowed references have
-            // matching retains yet. The retain-on-store in lower_let handles
-            // direct let bindings, but function-internal borrowed references
-            // (e.g., strings from AST fields, map lookups) are not retained.
-            // The full cleanup infrastructure is ready — just needs the retain
-            // coverage to be complete before enabling.
-            // st.fn_arg_vars = collect_fn_arg_vars_stmts(final_body)
-            // final_body = inject_scope_cleanup(st, final_body, map.new(), true)
+            // Inject scope cleanup — release container locals before returns.
+            // Python compiler cleanup is disabled for self_hosted.* modules
+            // (via _skip_cleanup), so THIS is the only cleanup in stage 2.
+            st.fn_arg_vars = collect_fn_arg_vars_stmts(final_body)
+            final_body = inject_scope_cleanup(st, final_body, map.new(), true)
+
+            // Trailing void-function cleanup
+            if(all_paths_exit(final_body) == false) {
+                let trailing:array<lir.LStmtBox> = build_fn_exit_cleanup(st, map.new(), map.new(), 0, true)
+                let ti:int:mut = 0
+                while(ti < array.size(trailing)) {
+                    final_body = array.push(final_body, array.get_any(trailing, ti) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                    ti = ti + 1
+                }
+            }
 
             st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
                 c_name:c_name,

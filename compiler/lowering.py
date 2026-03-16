@@ -662,6 +662,10 @@ class Lowerer:
         self._types: dict[ASTNode, Type] = typed.types
         self._file = typed.module.filename
         self._module_path = ".".join(typed.module.path) if typed.module.path else "main"
+        # Skip refcount cleanup for self-hosted compiler modules.
+        # The self-hosted lowering handles its own cleanup; the Python
+        # compiler's cleanup creates UAF in the stage 2 binary.
+        self._skip_cleanup = self._module_path.startswith("self_hosted.")
 
         # LIR output accumulators
         self._type_defs: list[LTypeDef] = []
@@ -1171,7 +1175,7 @@ class Lowerer:
                 body.append(LReturn(expr_result))
 
         # Scope-exit cleanup: release container locals before returns
-        if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup or self._affine_locals:
+        if not self._skip_cleanup and (self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup or self._affine_locals):
             self._inject_scope_cleanup(body)
             # For void functions without explicit return, append cleanup
             # Only depth-0 locals (inner-scope vars out of C scope here)
@@ -1298,7 +1302,7 @@ class Lowerer:
                     body.append(LReturn(expr_result))
 
             # Scope-exit cleanup: release container locals before returns
-            if self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup or self._affine_locals:
+            if not self._skip_cleanup and (self._container_locals or self._struct_field_cleanup or self._sum_field_cleanup or self._affine_locals):
                 self._inject_scope_cleanup(body)
                 if isinstance(ret_lt, LVoid):
                     body.extend([LExprStmt(LCall(fn_name, [LVar(n, ct)], LVoid()))
