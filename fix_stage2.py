@@ -407,7 +407,7 @@ def fix_stage2(path):
         tmp = m.group(2)
         # Determine function context by looking backwards for the function comment
         fn_name = ''
-        for k in range(max(0, i - 30), i):
+        for k in range(max(0, i - 60), i):
             if '/* Flow:' in lines[k]:
                 fn_name = lines[k]
                 break

@@ -410,9 +410,6 @@ void* fl_array_get_ptr(FL_Array* arr, fl_int64 idx) {
 FL_Option_ptr fl_array_get_safe(FL_Array* arr, fl_int64 idx) {
     if (!arr || idx < 0 || idx >= arr->len) return FL_NONE_PTR;
     void* ptr = (char*)arr->data + (size_t)idx * (size_t)arr->element_size;
-    /* Retain the element so the caller owns the returned reference.
-       This ensures scope-exit release doesn't cause UAF. */
-    _fl_elem_retain(arr->elem_type, ptr, arr->elem_retainer);
     /* For pointer-sized elements (strings, opaque types), dereference the
        slot to return the stored pointer, not a pointer to the slot. */
     if (arr->element_size == sizeof(void*)) {
@@ -1774,11 +1771,29 @@ FL_Map* fl_map_set(FL_Map* m, void* key, fl_int64 key_len, void* val) {
     return n;
 }
 
+/* Retain a void* value based on FL_ElemType metadata. */
+static void _fl_retain_val(FL_ElemType t, void* val, void (*retainer)(void*)) {
+    if (!val || t == FL_ELEM_NONE) return;
+    if (t == FL_ELEM_STRUCT) { if (retainer) retainer(val); return; }
+    switch (t) {
+        case FL_ELEM_STRING:  fl_string_retain((FL_String*)val); break;
+        case FL_ELEM_ARRAY:   fl_array_retain((FL_Array*)val); break;
+        case FL_ELEM_MAP:     fl_map_retain((FL_Map*)val); break;
+        case FL_ELEM_CLOSURE: fl_closure_retain((FL_Closure*)val); break;
+        case FL_ELEM_STREAM:  fl_stream_retain((FL_Stream*)val); break;
+        case FL_ELEM_BUFFER:  fl_buffer_retain((FL_Buffer*)val); break;
+        default: break;
+    }
+}
+
 FL_Option_ptr fl_map_get(FL_Map* m, void* key, fl_int64 key_len) {
     if (m->count == 0) return FL_NONE_PTR;
     fl_int64 idx = fl__map_probe(m, key, key_len);
     if (!m->entries[idx].occupied) return FL_NONE_PTR;
-    return FL_SOME_PTR(m->entries[idx].val);
+    void* val = m->entries[idx].val;
+    /* Retain so the caller owns the returned reference. */
+    _fl_retain_val(m->val_type, val, m->val_retainer);
+    return FL_SOME_PTR(val);
 }
 
 fl_bool fl_map_has(FL_Map* m, void* key, fl_int64 key_len) {
