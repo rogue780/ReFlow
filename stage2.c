@@ -18188,7 +18188,7 @@ void fl_self_hosted_lowering_collect_fn_arg_vars_expr(fl_self_hosted_lir_LExpr e
                         FL_String* fn2 = _fl_tmp_203.LECall.fn_name;
                         FL_Array* args2 = _fl_tmp_203.LECall.args;
                         fl_self_hosted_lir_LType ct2 = _fl_tmp_203.LECall.c_type;
-                        fl_self_hosted_lowering_collect_fn_arg_vars_expr(ae, result);
+                        fl_self_hosted_lowering_collect_fn_arg_vars_expr(ae, &result);
                         break;
                     }
                 }
@@ -18216,14 +18216,14 @@ FL_Map* fl_self_hosted_lowering_collect_fn_arg_vars_stmts(FL_Array* stmts) {
                 fl_bool has_init = _fl_tmp_206.LSVarDecl.has_init;
                 fl_self_hosted_lir_LExpr init = _fl_tmp_206.LSVarDecl.init;
                 fl_int sl = _fl_tmp_206.LSVarDecl.source_line;
-                fl_self_hosted_lowering_collect_fn_arg_vars_expr(init, result);
+                fl_self_hosted_lowering_collect_fn_arg_vars_expr(init, &result);
                 break;
             }
             case 2: {
                 fl_self_hosted_lir_LExpr target = _fl_tmp_206.LSAssign.target;
                 fl_self_hosted_lir_LExpr val = _fl_tmp_206.LSAssign.value;
                 fl_int sl = _fl_tmp_206.LSAssign.source_line;
-                fl_self_hosted_lowering_collect_fn_arg_vars_expr(val, result);
+                fl_self_hosted_lowering_collect_fn_arg_vars_expr(val, &result);
                 break;
             }
             case 3: {
@@ -18231,14 +18231,14 @@ FL_Map* fl_self_hosted_lowering_collect_fn_arg_vars_stmts(FL_Array* stmts) {
                 fl_self_hosted_lir_LExpr val = _fl_tmp_206.LSReturn.value;
                 fl_int sl = _fl_tmp_206.LSReturn.source_line;
                 if (has_val) {
-                    fl_self_hosted_lowering_collect_fn_arg_vars_expr(val, result);
+                    fl_self_hosted_lowering_collect_fn_arg_vars_expr(val, &result);
                 }
                 break;
             }
             case 7: {
                 fl_self_hosted_lir_LExpr expr = _fl_tmp_206.LSExprStmt.expr;
                 fl_int sl = _fl_tmp_206.LSExprStmt.source_line;
-                fl_self_hosted_lowering_collect_fn_arg_vars_expr(expr, result);
+                fl_self_hosted_lowering_collect_fn_arg_vars_expr(expr, &result);
                 break;
             }
             case 4: {

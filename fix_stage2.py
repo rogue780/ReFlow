@@ -1229,6 +1229,9 @@ FL_Array* fl_array_put__int(FL_Array* arr, fl_int idx, fl_int val) {
         # Pattern: emit_with_deferred(lmod, ..., deferred_names, deferred_exprs)
         if 'emit_with_deferred(' in line and 'deferred_names,' in line and '&deferred_names' not in line:
             lines[i] = line.replace(', deferred_names, deferred_exprs)', ', (&deferred_names), (&deferred_exprs))')
+        # Fix collect_fn_arg_vars_expr calls — result is FL_Map* but function expects FL_Map**
+        if 'collect_fn_arg_vars_expr(' in line and ', result)' in line and '&result' not in line:
+            lines[i] = line.replace(', result)', ', &result)')
     text = '\n'.join(lines)
 
     # === PHASE 10: Cast void* → typed pointers for runtime calls ===

@@ -2022,20 +2022,15 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
                 }
             }
 
-            // NOTE: inject_scope_cleanup is disabled until retain-on-store semantics
-            // are implemented. Without retain-on-copy, releasing function-returned
-            // strings causes UAF because returned strings may be borrowed from
-            // AST nodes, token arrays, or other data structures (e.g.
-            // type_expr_base_name returns te.name which is the token's value string).
-            // The fn_arg_vars suppression helps with direct args but not borrowed
-            // return values. Proper fix requires retain-on-store in fl_array_push_sized
-            // and all struct-building functions.
-            // TODO: re-enable when retain-on-store is implemented.
+            // NOTE: inject_scope_cleanup is implemented but disabled.
+            // Enabling it causes UAF because not all borrowed references have
+            // matching retains yet. The retain-on-store in lower_let handles
+            // direct let bindings, but function-internal borrowed references
+            // (e.g., strings from AST fields, map lookups) are not retained.
+            // The full cleanup infrastructure is ready — just needs the retain
+            // coverage to be complete before enabling.
             // st.fn_arg_vars = collect_fn_arg_vars_stmts(final_body)
             // final_body = inject_scope_cleanup(st, final_body, map.new(), true)
-
-            // NOTE: trailing void-function cleanup also disabled — same UAF risk.
-            // TODO: re-enable when retain-on-store semantics are implemented.
 
             st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
                 c_name:c_name,
