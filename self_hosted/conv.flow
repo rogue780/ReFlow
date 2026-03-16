@@ -1,0 +1,12 @@
+module conv
+
+// Stub conv module for self-hosted compilation.
+// The real stdlib/conv.flow has generic to_string<T fulfills Showable> which
+// requires Showable trait resolution not available when --stdlib self_hosted.
+// The self-hosted lowering monomorphizes conv.to_string → conv.to_string__int
+// at C emit time, so the resolver only needs to see to_string exist in conv.
+//
+// All callers pass int values, so this non-generic stub is sufficient.
+
+export extern fn "fl_conv_to_string__int" to_string(n:int):string
+export extern fn "fl_conv_to_string__int" to_string__int(n:int):string

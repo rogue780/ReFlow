@@ -1049,7 +1049,7 @@ fn fn_decl_type(s:TCState:mut, decl:ast.Decl):TCType {
     match decl {
         DFn(nid, l, c, name, type_params, params, hrt, ret, body, is_pure, is_export, is_static, hf, fb): {
             let param_types:array<TCTypeBox>:mut = []
-            let has_variadic = false
+            let has_variadic:bool:mut = false
             let i:int:mut = 0
             while(i < array.size(params)) {
                 let p = array.get_any(params, i) ?? ast.param("", ast.TNamedType(0,0,0,"any",[]), 0, 0, 0)
@@ -1058,6 +1058,7 @@ fn fn_decl_type(s:TCState:mut, decl:ast.Decl):TCType {
                     let pt = resolve_type_expr(s, p.type_ann)
                     if(p.is_variadic) {
                         param_types = array.push(param_types, tc_box(TCArray(pt)))
+                        has_variadic = true
                     } else {
                         param_types = array.push(param_types, tc_box(pt))
                     }
@@ -1065,7 +1066,7 @@ fn fn_decl_type(s:TCState:mut, decl:ast.Decl):TCType {
                 }
             }
             let ret_t = resolve_type_expr_opt(s, hrt, ret)
-            return TCFn(param_types, ret_t, is_pure, false)
+            return TCFn(param_types, ret_t, is_pure, has_variadic)
         }
         _: { return TCAny() }
     }
@@ -1183,6 +1184,25 @@ fn collect_extern_types(s:TCState:mut) {
 
 fn build_type_registry(s:TCState:mut) {
     let decls = s.src_module.decls
+    // Zero-th pass: pre-register all type names as empty stubs so that forward
+    // references (e.g. TCSumVariant.field_types_box:array<TCTypeBox> where
+    // TCTypeBox is defined later in the same file) resolve to TCNamed("", name, [])
+    // instead of TCTypeVar(name). The lowering then uses find_sum_type_module to
+    // resolve the correct module path.
+    let p:int:mut = 0
+    while(p < array.size(decls)) {
+        let d0 = array.get_any(decls, p) ?? ast.DModule(0, 0, 0, [])
+        match d0 {
+            DType(nid, l, c, name, type_params, fields, methods, ctors, statics, ifaces, is_export, is_sum_type, variants, is_mut): {
+                if(!map.has(s.type_registry, name)) {
+                    let stub = empty_type_info(name)
+                    s.type_registry = map.set(s.type_registry, name, stub)
+                }
+            }
+            _: {}
+        }
+        p = p + 1
+    }
     // First pass: register types (with preliminary sums for self-recursion)
     let i:int:mut = 0
     while(i < array.size(decls)) {
@@ -2245,7 +2265,14 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
         }
         ETypeLit(nid, l, c, type_name_str, fields, has_spread, spread_expr): {
             // Struct construction — return TNamed
-            let info_opt = map.get(s.type_registry, type_name_str)
+            // type_name_str may be "lir.MonoSite" (dotted) or just "MonoSite"
+            // Strip module prefix to get short name for registry lookup
+            let short_name:string:mut = type_name_str
+            if(string.contains(type_name_str, ".")) {
+                let parts = string.split(type_name_str, ".")
+                short_name = array.get(parts, array.size(parts) - 1) ?? type_name_str
+            }
+            let info_opt = map.get(s.type_registry, short_name)
             let i:int:mut = 0
             while(i < array.size(fields)) {
                 let f = array.get_any(fields, i) ?? ast.ExprField{name:"", value:ast.ENoneLit(0,0,0)}
@@ -2256,9 +2283,9 @@ fn infer_expr_inner(s:TCState:mut, e:ast.Expr):TCType {
             match info_opt {
                 some(info): {
                     if(info.is_sum_type && info.has_sum_type) { return info.sum_type_box.tc }
-                    return TCNamed(info.module_path, type_name_str, [])
+                    return TCNamed(info.module_path, short_name, [])
                 }
-                none: { return TCNamed("", type_name_str, []) }
+                none: { return TCNamed("", short_name, []) }
             }
         }
         EIfExpr(nid, l, c, cond, then_stmts, else_stmts): {
@@ -2477,6 +2504,15 @@ fn check_stmt(s:TCState:mut, stmt:ast.Stmt) {
                         }
                     }
                     _: {}
+                }
+                // Check type compatibility
+                match val_t {
+                    TCAny: {}
+                    _: {
+                        if(!is_assignable(val_t, expected)) {
+                            throw errors.type_error("type mismatch in let binding '" + name + "': expected " + type_name(expected) + ", got " + type_name(val_t), s.filename, l, c)
+                        }
+                    }
                 }
                 scope_define(s, name, expected)
             } else {

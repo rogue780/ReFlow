@@ -692,8 +692,25 @@ fn emit_entry_point(st:EmitState:mut, mod:lir.LModule) {
     if(has_inits) {
         emit_indented(st, "_fl_init_statics();")
     }
-    emit_indented(st, mod.entry_point + "();")
-    emit_indented(st, "return 0;")
+    // Check if entry point returns int (fn main():int) or void (fn main():none)
+    let ep_returns_int:bool:mut = false
+    let fdi:int:mut = 0
+    while(fdi < array.size(mod.fn_defs)) {
+        let fd:lir.LFnDef = array.get_any(mod.fn_defs, fdi) ?? lir.LFnDef{c_name:"", params:[], ret:lir.LVoid, body:[], is_pure:false, source_name:"", source_line:0}
+        if(fd.c_name == mod.entry_point) {
+            match(fd.ret) {
+                LInt(width, is_signed): { ep_returns_int = true }
+                _: {}
+            }
+        }
+        fdi = fdi + 1
+    }
+    if(ep_returns_int) {
+        emit_indented(st, "return " + mod.entry_point + "();")
+    } else {
+        emit_indented(st, mod.entry_point + "();")
+        emit_indented(st, "return 0;")
+    }
     st.indent_level = st.indent_level - 1
     emit_indented(st, "}")
 }

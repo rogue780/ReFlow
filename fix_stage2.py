@@ -19,9 +19,14 @@ def fix_stage2(path):
     text = text.replace('fl_self_hosted_typechecker_ast', 'fl_self_hosted_ast')
     text = text.replace('fl_self_hosted_lowering_ast', 'fl_self_hosted_ast')
     text = re.sub(r'\bfl_self_hosted_lowering_lir\b(?!_)', 'fl_self_hosted_lir', text)
+    text = text.replace('fl_self_hosted_lowering_TCType', 'fl_self_hosted_typechecker_TCType')
+    text = text.replace('fl_self_hosted_lowering_LExprBox', 'fl_self_hosted_lir_LExprBox')
+    text = text.replace('fl_self_hosted_lowering_LType', 'fl_self_hosted_lir_LType')
     text = text.replace('fl_self_hosted_lowering_typechecker', 'fl_self_hosted_typechecker')
     text = text.replace('fl_self_hosted_typechecker_lir', 'fl_self_hosted_lir')
     text = text.replace('fl_self_hosted_parser_ast', 'fl_self_hosted_ast')
+    text = text.replace('fl_self_hosted_parser_TypeExpr', 'fl_self_hosted_ast_TypeExpr')
+    text = text.replace('fl_self_hosted_parser_Expr', 'fl_self_hosted_ast_Expr')
     text = text.replace('fl_self_hosted_parser_lexer', 'fl_self_hosted_lexer')
     text = text.replace('fl_self_hosted_driver_lir', 'fl_self_hosted_lir')
     text = text.replace('fl_self_hosted_driver_parser', 'fl_self_hosted_parser')
@@ -40,6 +45,61 @@ def fix_stage2(path):
         text = re.sub(rf'\bfl_self_hosted_{mod}\.(\w)', rf'fl_self_hosted_{mod}_\1', text)
     # lir->LVoid → compound literal
     text = text.replace('lir->LVoid', '(fl_self_hosted_lir_LType){.tag = 7}')
+
+    # === PHASE 1b: Fix fl_box_new with wrong primitive type when actual value is ast.Expr/TypeExpr ===
+    # Pattern: FL_Box* VAR = fl_box_new(sizeof(WRONG_TYPE));
+    #          (*((WRONG_TYPE*)VAR->data)) = EXPR;
+    # where EXPR is actually ast.Expr or ast.TypeExpr.
+    # This happens when the self-hosted typechecker typed a field as TCAny.
+    # Fix: replace sizeof(WRONG_TYPE) and cast type with the actual type.
+    #
+    # WRONG_TYPE can be fl_int, fl_bool, FL_String*, or FL_Array* (all primitive/non-struct types).
+    lines_p1b = text.split('\n')
+    for i in range(len(lines_p1b) - 1):
+        # Match any primitive-typed boxing (fl_int, fl_bool, FL_String*, FL_Array*)
+        m1 = re.match(
+            r'^(\s+)FL_Box\* (\w+) = fl_box_new\(sizeof\((fl_int|fl_bool|FL_String\*|FL_Array\*|void\*)\)\);$',
+            lines_p1b[i])
+        if not m1:
+            continue
+        indent1, var, wrong_type = m1.group(1), m1.group(2), m1.group(3)
+        # Escape the wrong type for the regex
+        wrong_type_esc = re.escape(wrong_type)
+        m2 = re.match(rf'^(\s+)\(\*\(\({wrong_type_esc}\*?\){re.escape(var)}->data\)\) = (\w[\w.]*);$', lines_p1b[i+1])
+        if not m2:
+            continue
+        indent2, expr_var = m2.group(1), m2.group(2)
+        # expr_var may be a simple var or a field access like stage0.call
+        # Get the root variable name for lookup
+        root_var = expr_var.split('.')[0]
+        # Look backward for variable declaration to determine actual type
+        # Use a wider window (80 lines) to catch declarations far back
+        actual_type = None
+        for k in range(max(0, i - 80), i):
+            # Check for ast.Expr or ast.TypeExpr local declaration
+            dm = re.match(rf'^\s+(fl_self_hosted_ast_Expr|fl_self_hosted_ast_TypeExpr) {re.escape(root_var)}\b', lines_p1b[k])
+            if dm:
+                actual_type = dm.group(1)
+                break
+            # Check for function parameter in function signature line (no leading indent)
+            # Function signatures look like: RetType fn_name(... TypeName param_name [,)])
+            pm = re.search(rf'\b(fl_self_hosted_ast_Expr|fl_self_hosted_ast_TypeExpr) {re.escape(root_var)}\b', lines_p1b[k])
+            if pm and not lines_p1b[k].startswith(' '):
+                actual_type = pm.group(1)
+                break
+            # Check for struct type with .call or .pool_size field (PipelineStage)
+            dm2 = re.match(rf'^\s+(fl_self_hosted_ast_PipelineStage|fl_self_hosted_ast_\w+) {re.escape(root_var)}\b', lines_p1b[k])
+            if dm2 and '.' in expr_var:
+                # It's a field access — need to find the field type
+                field_name = expr_var.split('.', 1)[1] if '.' in expr_var else ''
+                if field_name in ('call', 'pool_size'):
+                    actual_type = 'fl_self_hosted_ast_Expr'
+                    break
+        # Only fix if we found a struct type (not re-confirming a primitive)
+        if actual_type and actual_type not in ('fl_int', 'fl_bool', 'FL_String*', 'FL_Array*'):
+            lines_p1b[i] = f'{indent1}FL_Box* {var} = fl_box_new(sizeof({actual_type}));'
+            lines_p1b[i+1] = f'{indent2}(*(({actual_type}*){var}->data)) = {expr_var};'
+    text = '\n'.join(lines_p1b)
 
     # === PHASE 2: Match field name fixes ===
     field_renames = {
@@ -334,6 +394,10 @@ def fix_stage2(path):
     # === PHASE 4a2: Fix missing match destructuring for Pattern ===
     # After "fl_self_hosted_ast_Pattern _fl_tmp_N = arm.pattern;", insert field extractions.
     # Context-dependent: check the function name to determine which variant fields to extract.
+    # Only expands if the extracted variables are actually used in the next ~15 lines
+    # (prevents redefinition errors when arm.pattern appears in multiple while-loop bodies
+    # at the same scope level, e.g., check_exhaustiveness has 4 such occurrences but only
+    # one actually uses vname/bindings/pline).
     lines = text.split('\n')
     for i, line in enumerate(lines):
         m = re.match(r'^(\s+)fl_self_hosted_ast_Pattern (_fl_tmp_\d+) = arm\.pattern;$', line)
@@ -348,17 +412,41 @@ def fix_stage2(path):
                 fn_name = lines[k]
                 break
         if 'lower_match_sum' in fn_name or 'check_exhaustiveness' in fn_name:
+            # Only inject vname/bindings/pline if they are actually referenced nearby
+            lookahead = '\n'.join(lines[i+1:i+25])
+            if 'vname' not in lookahead and 'bindings' not in lookahead and 'pline' not in lookahead:
+                continue
+            # Skip if the Python compiler already generated these declarations directly
+            next3 = '\n'.join(lines[i+1:i+4])
+            if f'{tmp}.PVariant.variant_name' in next3 or 'FL_String* vname' in next3:
+                continue
             # PVariant: extract variant_name, bindings, line
             lines[i] = (f'{indent}fl_self_hosted_ast_Pattern {tmp} = arm.pattern;\n'
                         f'{indent}FL_String* vname = {tmp}.PVariant.variant_name;\n'
                         f'{indent}FL_Array* bindings = {tmp}.PVariant.bindings;\n'
                         f'{indent}fl_int pline = {tmp}.PVariant.line;')
         elif 'lower_match_option' in fn_name:
+            # Only inject inner_var/pline if they are actually referenced nearby
+            lookahead = '\n'.join(lines[i+1:i+25])
+            if 'inner_var' not in lookahead and 'pline' not in lookahead:
+                continue
+            # Skip if the Python compiler already generated these declarations directly
+            next2 = '\n'.join(lines[i+1:i+3])
+            if f'{tmp}.PSome.inner_var' in next2 or f'FL_String* inner_var' in next2:
+                continue
             # PSome: extract inner_var, line
             lines[i] = (f'{indent}fl_self_hosted_ast_Pattern {tmp} = arm.pattern;\n'
                         f'{indent}FL_String* inner_var = {tmp}.PSome.inner_var;\n'
                         f'{indent}fl_int pline = {tmp}.PSome.line;')
         elif 'lower_match_result' in fn_name:
+            # Only inject inner_var/pline if they are actually referenced nearby
+            lookahead = '\n'.join(lines[i+1:i+25])
+            if 'inner_var' not in lookahead and 'pline' not in lookahead:
+                continue
+            # Skip if the Python compiler already generated these declarations directly
+            next2 = '\n'.join(lines[i+1:i+3])
+            if f'{tmp}.POk.inner_var' in next2 or f'FL_String* inner_var' in next2:
+                continue
             # POk/PErr: extract inner_var, line
             lines[i] = (f'{indent}fl_self_hosted_ast_Pattern {tmp} = arm.pattern;\n'
                         f'{indent}FL_String* inner_var = {tmp}.POk.inner_var;\n'
@@ -625,8 +713,14 @@ def fix_stage2(path):
         })()),
         text
     )
+    # IMPORTANT: Skip parameter names that are always pointers (:mut params).
+    # 'st' is always a LowerState* parameter in lowering functions — never a struct value.
+    # 'ds' is always a DriverState* parameter in driver functions.
+    _POINTER_PARAMS = {'st', 's', 'ds'}
     for m in re.finditer(r'(fl_self_hosted_\w+) (\w+) = \(.*\?\s+\*\(\(', text):
         var_name = m.group(2)
+        if var_name in _POINTER_PARAMS:
+            continue
         text = re.sub(rf'\b{var_name}->', f'{var_name}.', text)
 
     # Broader fix: TypeName var = ((cond) ? _fl_tmp.value : fallback);
@@ -692,6 +786,8 @@ def fix_stage2(path):
             fixed_vars.add(var)
     text = '\n'.join(lines)
     for var in fixed_vars:
+        if var in _POINTER_PARAMS:
+            continue
         text = re.sub(rf'\b{var}->', f'{var}.', text)
 
     # === PHASE 4c: void* compound literals ===
@@ -736,7 +832,7 @@ def fix_stage2(path):
         if 'return (void*){' in line:
             lines[i] = line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
             continue
-        if '->data)) = (void*){' in line:
+        if '->data)) = (void*){' in line or '.data)) = (void*){' in line:
             lines[i] = re.sub(r'\(void\*\)\{\.tag = (\d+)\}', r'(void*)(fl_int)\1', line)
             continue
         lines[i] = line.replace('(void*){', '(fl_self_hosted_typechecker_TCType){')
@@ -1114,9 +1210,9 @@ FL_Array* fl_array_put__int(FL_Array* arr, fl_int idx, fl_int val) {
         text
     )
 
-    # === PHASE 9c: Fix :mut map parameter passing ===
-    # Functions that take FL_Map** need callers to pass &map instead of map
-    # Fix specific call sites where FL_Map* is passed to FL_Map** parameter
+    # === PHASE 9c: Fix :mut parameter passing ===
+    # Functions that take FL_Map** or FL_Array** need callers to pass &var instead of var
+    # Fix specific call sites where pointer-typed vars are passed to pointer-pointer parameters
     lines = text.split('\n')
     in_infer_type_env = False
     for i, line in enumerate(lines):
@@ -1129,6 +1225,10 @@ FL_Array* fl_array_put__int(FL_Array* arr, fl_int idx, fl_int val) {
         # Fix extend_extern_fn_map_from_typed calls
         if 'extend_extern_fn_map_from_typed(efn_map,' in line and '&efn_map' not in line:
             lines[i] = line.replace('extend_extern_fn_map_from_typed(efn_map,', 'extend_extern_fn_map_from_typed(&efn_map,')
+        # Fix emit_with_deferred calls: last two args are FL_Array** but get passed as FL_Array*
+        # Pattern: emit_with_deferred(lmod, ..., deferred_names, deferred_exprs)
+        if 'emit_with_deferred(' in line and 'deferred_names,' in line and '&deferred_names' not in line:
+            lines[i] = line.replace(', deferred_names, deferred_exprs)', ', (&deferred_names), (&deferred_exprs))')
     text = '\n'.join(lines)
 
     # === PHASE 10: Cast void* → typed pointers for runtime calls ===
@@ -1142,6 +1242,60 @@ FL_Array* fl_array_put__int(FL_Array* arr, fl_int idx, fl_int val) {
     text = re.sub(
         r'(FL_String\* \w+ = )(\(void\*\))',
         r'\1(FL_String*)',
+        text
+    )
+
+    # === PHASE 10b: Fix stack-address-in-map_set — heap-box struct values ===
+    # Pattern: map.set with non-pointer struct stored as ((void*)(&_fl_tmp_N)) where
+    # _fl_tmp_N is a local variable on the stack. After the function returns, the pointer
+    # becomes dangling. Replace with malloc'd copy.
+    #
+    # Detects (within same function, within 30 lines):
+    #   fl_self_hosted_XXX _fl_tmp_N = expr;
+    #   ...
+    #   = fl_map_set_str(..., ((void*)(&_fl_tmp_N)));
+    #
+    # Rewrites decl line to:
+    #   fl_self_hosted_XXX* _fl_heap_N = (fl_self_hosted_XXX*)malloc(sizeof(fl_self_hosted_XXX));
+    #   *_fl_heap_N = expr;
+    # And replaces ((void*)(&_fl_tmp_N)) on the map_set line with ((void*)(_fl_heap_N)).
+    #
+    # NOTE: tmp variable names like _fl_tmp_14 can be reused in different functions,
+    # so we do this replacement locally (decl line + map_set line) rather than globally.
+    lines = text.split('\n')
+    heap_counter = [0]
+    # Collect (decl_line, mapset_line, heap_var, tmp_var, indent, vtype, init_expr)
+    # Process in reverse order to preserve line indices
+    fixes = []
+    for i, line in enumerate(lines):
+        m = re.search(r'\(\(void\*\)\(&(_fl_tmp_\d+)\)\)', line)
+        if not m:
+            continue
+        tmp_var = m.group(1)
+        # Look backward for the declaration of tmp_var (within 30 lines)
+        for j in range(max(0, i - 30), i):
+            decl_m = re.match(rf'^(\s+)(fl_self_hosted_\w+(?<!\*)) {re.escape(tmp_var)} = (.*);$', lines[j])
+            if decl_m:
+                heap_counter[0] += 1
+                heap_var = f'_fl_heap_{heap_counter[0]}'
+                fixes.append((j, i, heap_var, tmp_var, decl_m.group(1), decl_m.group(2), decl_m.group(3)))
+                break
+    # Apply in reverse order (largest line first) to preserve indices
+    for decl_i, mapset_i, heap_var, tmp_var, indent, vtype, init_expr in sorted(fixes, key=lambda x: -x[0]):
+        # Rewrite the decl line
+        lines[decl_i] = (f'{indent}{vtype}* {heap_var} = ({vtype}*)malloc(sizeof({vtype}));\n'
+                         f'{indent}*{heap_var} = {init_expr};')
+        # Rewrite the map_set line (only this specific occurrence)
+        lines[mapset_i] = lines[mapset_i].replace(
+            f'((void*)(&{tmp_var}))', f'((void*)({heap_var}))', 1
+        )
+    text = '\n'.join(lines)
+
+    # === PHASE 11: Fix FL_Box* variable member access (.data should be ->data) ===
+    # Pattern: (*((Type*)_fl_tmp_N.data)) — should be ->data when _fl_tmp_N is FL_Box*
+    text = re.sub(
+        r'(_fl_tmp_\d+)\.data\b',
+        r'\1->data',
         text
     )
 

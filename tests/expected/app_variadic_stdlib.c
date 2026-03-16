@@ -2988,6 +2988,5 @@ static void _fl_init_statics(void) {
 int main(int argc, char** argv) {
     _fl_runtime_init(argc, argv);
     _fl_init_statics();
-    fl_tests_app_variadic_stdlib_main();
-    return 0;
+    return fl_tests_app_variadic_stdlib_main();
 }

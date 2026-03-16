@@ -1736,6 +1736,42 @@ class Lowerer:
                     and len(returned_names) > 0
                 )
 
+                # Return-site retain: when a struct with block_safe=False fields
+                # is being returned, emit retains for its fields so the caller
+                # receives owned references.  block_safe=False means the fields
+                # came from a borrowed source (e.g. array element copy) and were
+                # not retained at assignment time — retaining here transfers
+                # ownership to the caller.
+                return_retains: list[LStmt] = []
+                if not containers_only and s.value is not None:
+                    seen_ret_retains: set[str] = set()
+                    for sv, fn, sct, rel_fn, _depth, bs in self._struct_field_cleanup:
+                        if bs:
+                            # block_safe=True: already retained at construction
+                            continue
+                        field_key = f"{sv}.{fn}"
+                        base_name = sv.split(".")[0]
+                        if base_name not in declared:
+                            continue
+                        if base_name not in returned_names:
+                            continue
+                        if field_key in seen_ret_retains:
+                            continue
+                        # Derive retain function from release function name
+                        retain_fn = rel_fn.replace("_release", "_retain")
+                        if retain_fn == rel_fn:
+                            continue
+                        seen_ret_retains.add(field_key)
+                        # Emit: retain_fn(sv.fn)
+                        parts = sv.split(".")
+                        base_var: LExpr = LVar(parts[0], sct)
+                        for part in parts[1:]:
+                            base_var = LFieldAccess(base_var, part, sct)
+                        access = LFieldAccess(base_var, fn,
+                                              LPtr(LVoid()))
+                        return_retains.append(
+                            LExprStmt(LCall(retain_fn, [access], LVoid())))
+
                 # Build release calls for container locals.
                 # Deduplicate: same variable may be registered at multiple
                 # depths (re-declared in nested scopes like match arms).
@@ -1823,25 +1859,26 @@ class Lowerer:
                             [LAddrOf(LVar(av, act), LPtr(act))],
                             LVoid())))
 
-                if needs_hoist and cleanup:
-                    # Hoist: tmp = <expr>; <cleanup>; return tmp;
+                all_pre_return = return_retains + cleanup
+                if needs_hoist and all_pre_return:
+                    # Hoist: tmp = <expr>; <retains>; <cleanup>; return tmp;
                     ret_tmp = f"_fl_ret_{self._tmp_counter}"
                     self._tmp_counter += 1
                     ret_c_type = s.value.c_type
                     replacement = (
                         [LVarDecl(c_name=ret_tmp, c_type=ret_c_type,
                                   init=s.value)]
-                        + cleanup
+                        + all_pre_return
                         + [LReturn(value=LVar(ret_tmp, ret_c_type),
                                    source_line=s.source_line)]
                     )
                     stmts[i:i + 1] = replacement
                     i += len(replacement)
-                elif cleanup:
-                    # Insert cleanup before the return (no hoist needed)
-                    for j, c_stmt in enumerate(cleanup):
+                elif all_pre_return:
+                    # Insert retains + cleanup before the return (no hoist)
+                    for j, c_stmt in enumerate(all_pre_return):
                         stmts.insert(i + j, c_stmt)
-                    i += len(cleanup) + 1
+                    i += len(all_pre_return) + 1
                 else:
                     i += 1
                 continue
@@ -2068,6 +2105,11 @@ class Lowerer:
                     # shallow copy with borrowed fields, so fields are
                     # NOT safe to release at block exit.  Only released
                     # at function exit via _inject_scope_cleanup.
+                    #
+                    # When returning a struct with block_safe=False fields,
+                    # _inject_scope_cleanup emits retain calls at the return
+                    # site to transfer ownership to the caller — see the
+                    # "return-site retain" logic in _inject_scope_cleanup.
                     self._register_struct_field_releases(
                         stmt.name, val_type, c_type, self._scope_depth,
                         block_safe=False)
@@ -3486,8 +3528,14 @@ class Lowerer:
                 LCall(fn_name, [LVar(name, ct)], LVoid())))
 
         # Struct field releases: only those registered during this body
+        # Skip block_safe=False entries — their fields are borrowed (e.g.
+        # Token from array.get_any) and releasing them here would cause UAF.
+        # block_safe=False fields are only released at function exit via
+        # _inject_scope_cleanup (which handles return-site retains).
         seen_fields: set[str] = set()
-        for sv, fn, sct, rel_fn, depth, _bs in self._struct_field_cleanup[sf_snapshot:]:
+        for sv, fn, sct, rel_fn, depth, bs in self._struct_field_cleanup[sf_snapshot:]:
+            if not bs:
+                continue
             if depth != loop_depth:
                 continue
             field_key = f"{sv}.{fn}"

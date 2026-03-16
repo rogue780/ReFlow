@@ -147,6 +147,10 @@ type LowerState:mut {
     affine_locals:array<AffineLocal>
     consumed_bindings:map<string, bool>
     struct_handler_emitted:map<string, bool>
+    // Variables passed as arguments to function calls in the current function.
+    // These may have been "transferred" to the callee's return struct, so we
+    // cannot safely release them at function exit without a retain protocol.
+    fn_arg_vars:map<string, bool>
 }
 
 // ---------------------------------------------------------------------------
@@ -1023,7 +1027,11 @@ fn try_lower_variant_ctor(st:LowerState:mut, resolved_mod:string, vname:string, 
                                     if(is_recursive_sum_field_name(field_type_name, dname)) {
                                         // Emit temp: FL_Box* _box_N = fl_box_new(sizeof(T)); *(T*)(_box_N->data) = arg;
                                         let box_tmp:string = fresh_temp(st)
-                                        let field_lt:lir.LType = lir.lexpr_type(lir.le_unbox(arg_val))
+                                        // Resolve field type from type annotation first (not from arg's LType,
+                                        // which may be LPtr(LVoid) for unit-variant args like TCString()).
+                                        let flt_tc2:typechecker.TCType = resolve_type_ann(st, sf.type_expr)
+                                        let field_lt:lir.LType:mut = lower_type(st, flt_tc2)
+                                        match(field_lt) { LPtr(p2): { match(p2) { LVoid: { field_lt = lir.lexpr_type(lir.le_unbox(arg_val)) } _: {} } } _: {} }
                                         let box_ptr_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Box"))
                                         let box_new:lir.LExpr = lir.LECall(fn_name:"fl_box_new", args:[lir.le_box(lir.LESizeOf(target_type:field_lt))], c_type:box_ptr_lt)
                                         st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:box_tmp, c_type:box_ptr_lt, has_init:true, init:box_new, source_line:0)})
@@ -1203,8 +1211,30 @@ fn type_name_str(st:LowerState:mut, t:typechecker.TCType):string {
         TCMap(k, v): { return "map" }
         TCSet(elem): { return "set" }
         TCStream(elem): { return "stream" }
-        TCNamed(mod_p, n, targs): { return n }
-        TCSumType(n, mod_p, vars): { return n }
+        TCNamed(mod_p, n, targs): {
+            // Resolve namespace alias to full module path for qualified names
+            let resolved_mod:string:mut = mod_p
+            if(resolved_mod != "" && string.contains(resolved_mod, ".") == false) {
+                resolved_mod = resolve_ns_to_module_path(st, resolved_mod)
+            }
+            if(resolved_mod != "") {
+                return string.replace(resolved_mod, ".", "_") + "_" + n
+            }
+            return n
+        }
+        TCSumType(n, mod_p, vars): {
+            let resolved_mod:string:mut = mod_p
+            if(resolved_mod == "") {
+                resolved_mod = find_sum_type_module(st, n)
+            }
+            if(resolved_mod != "" && string.contains(resolved_mod, ".") == false) {
+                resolved_mod = resolve_ns_to_module_path(st, resolved_mod)
+            }
+            if(resolved_mod != "") {
+                return string.replace(resolved_mod, ".", "_") + "_" + n
+            }
+            return n
+        }
         TCEnum(n, mod_p, vn, vv): { return n }
         TCTypeVar(n): { return n }
         TCAny: { return "any" }
@@ -1500,7 +1530,8 @@ fn make_lower_state(typed:typechecker.TypedModule, extern_fn_c_names:map<string,
         sum_field_cleanup:[],
         affine_locals:[],
         consumed_bindings:map.new(),
-        struct_handler_emitted:map.new()
+        struct_handler_emitted:map.new(),
+        fn_arg_vars:map.new()
     }
 }
 
@@ -1615,6 +1646,294 @@ export fn lower(typed:typechecker.TypedModule, extern_fn_c_names:map<string, str
 }
 
 // ===========================================================================
+// FUNCTION-EXIT CLEANUP INJECTION
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// collect_all_declared_vars — walk a statement list and collect all LSVarDecl names.
+// Used to build the `declared` set for trailing cleanup in void functions.
+// ---------------------------------------------------------------------------
+
+fn collect_all_declared_vars(stmts:array<lir.LStmtBox>):map<string, bool> {
+    let result:map<string, bool>:mut = map.new()
+    let i:int:mut = 0
+    while(i < array.size(stmts)) {
+        let sb:lir.LStmtBox = array.get_any(stmts, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        match(sb.ls) {
+            LSVarDecl(c_name, c_type, has_init, init, sl): {
+                result = map.set(result, c_name, true)
+            }
+            LSIf(cond, then_body, else_body, sl): {
+                let tsub:map<string, bool> = collect_all_declared_vars(then_body)
+                let tks:array<string> = map.keys(tsub)
+                let j:int:mut = 0
+                while(j < array.size(tks)) {
+                    result = map.set(result, array.get_any(tks, j) ?? "", true)
+                    j = j + 1
+                }
+                let esub:map<string, bool> = collect_all_declared_vars(else_body)
+                let eks:array<string> = map.keys(esub)
+                let k:int:mut = 0
+                while(k < array.size(eks)) {
+                    result = map.set(result, array.get_any(eks, k) ?? "", true)
+                    k = k + 1
+                }
+            }
+            LSSwitch(val, tags, bodies, default_body, sl): {
+                let bi:int:mut = 0
+                while(bi < array.size(bodies)) {
+                    let body_box:lir.LStmtListBox = array.get_any(bodies, bi) ?? lir.LStmtListBox{stmts:[], _pad:0}
+                    let bsub:map<string, bool> = collect_all_declared_vars(body_box.stmts)
+                    let bks:array<string> = map.keys(bsub)
+                    let bj:int:mut = 0
+                    while(bj < array.size(bks)) {
+                        result = map.set(result, array.get_any(bks, bj) ?? "", true)
+                        bj = bj + 1
+                    }
+                    bi = bi + 1
+                }
+                let dsub:map<string, bool> = collect_all_declared_vars(default_body)
+                let dks:array<string> = map.keys(dsub)
+                let di:int:mut = 0
+                while(di < array.size(dks)) {
+                    result = map.set(result, array.get_any(dks, di) ?? "", true)
+                    di = di + 1
+                }
+            }
+            LSBlock(inner, sl): {
+                let isub:map<string, bool> = collect_all_declared_vars(inner)
+                let iks:array<string> = map.keys(isub)
+                let ii:int:mut = 0
+                while(ii < array.size(iks)) {
+                    result = map.set(result, array.get_any(iks, ii) ?? "", true)
+                    ii = ii + 1
+                }
+            }
+            LSWhile(cond, body, sl): {
+                let wsub:map<string, bool> = collect_all_declared_vars(body)
+                let wks:array<string> = map.keys(wsub)
+                let wi:int:mut = 0
+                while(wi < array.size(wks)) {
+                    result = map.set(result, array.get_any(wks, wi) ?? "", true)
+                    wi = wi + 1
+                }
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// collect_fn_arg_vars_expr — collect all LEVar names used as function call arguments
+// in an expression subtree
+// ---------------------------------------------------------------------------
+
+fn collect_fn_arg_vars_expr(e:lir.LExpr, result:map<string, bool>:mut):none {
+    // Walk the entire expression tree, collecting LEVar names that appear
+    // as arguments to any LECall at any nesting depth. This catches cases
+    // like emit(s, make_token(s, ..., value, ...)) where `value` is nested.
+    match(e) {
+        LECall(fn_name, args, ct): {
+            let i:int:mut = 0
+            while(i < array.size(args)) {
+                let arg:lir.LExprBox = array.get_any(args, i) ?? lir.le_box(lir.placeholder_expr())
+                let ae:lir.LExpr = lir.le_unbox(arg)
+                match(ae) {
+                    LEVar(cn, ctt): {
+                        result = map.set(result, cn, true)
+                    }
+                    LEAddrOf(inner_b, ctt): {
+                        let inner:lir.LExpr = lir.le_unbox(inner_b)
+                        match(inner) {
+                            LEVar(cn, ctt2): { result = map.set(result, cn, true) }
+                            _: {}
+                        }
+                    }
+                    // Recurse into nested call expressions — vars passed to inner
+                    // calls may also be transferred (e.g. emit(s, make_token(s, ..., v, ...)))
+                    LECall(fn2, args2, ct2): {
+                        collect_fn_arg_vars_expr(ae, result)
+                    }
+                    _: {}
+                }
+                i = i + 1
+            }
+        }
+        _: {}
+    }
+}
+
+// collect_fn_arg_vars_stmts — scan all statements and collect container var names
+// used as function call arguments. These may have been "transferred" to a callee's
+// return struct, so we skip their cleanup to avoid UAF.
+fn collect_fn_arg_vars_stmts(stmts:array<lir.LStmtBox>):map<string, bool> {
+    let result:map<string, bool>:mut = map.new()
+    let i:int:mut = 0
+    while(i < array.size(stmts)) {
+        let sb:lir.LStmtBox = array.get_any(stmts, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        match(sb.ls) {
+            LSVarDecl(c_name, c_type, has_init, init, sl): {
+                collect_fn_arg_vars_expr(init, result)
+            }
+            LSAssign(target, val, sl): {
+                collect_fn_arg_vars_expr(val, result)
+            }
+            LSReturn(has_val, val, sl): {
+                if(has_val) { collect_fn_arg_vars_expr(val, result) }
+            }
+            LSExprStmt(expr, sl): {
+                collect_fn_arg_vars_expr(expr, result)
+            }
+            LSIf(cond, then_body, else_body, sl): {
+                let sub:map<string, bool> = collect_fn_arg_vars_stmts(then_body)
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                    result = map.set(result, array.get_any(ks, j) ?? "", true)
+                    j = j + 1
+                }
+                let sub2:map<string, bool> = collect_fn_arg_vars_stmts(else_body)
+                let ks2:array<string> = map.keys(sub2)
+                let j2:int:mut = 0
+                while(j2 < array.size(ks2)) {
+                    result = map.set(result, array.get_any(ks2, j2) ?? "", true)
+                    j2 = j2 + 1
+                }
+            }
+            LSWhile(cond, body, sl): {
+                let sub:map<string, bool> = collect_fn_arg_vars_stmts(body)
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                    result = map.set(result, array.get_any(ks, j) ?? "", true)
+                    j = j + 1
+                }
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// build_fn_exit_cleanup — collect release statements for declared tracked locals
+// Only releases variables listed in `declared` (already been declared in scope).
+// Skips variables referenced in the return expression (to avoid UAF).
+// containers_only: when true, skip struct/sum field cleanup (safe for while bodies
+// where struct fields may have borrowed references that weren't retained).
+// ---------------------------------------------------------------------------
+
+fn build_fn_exit_cleanup(st:LowerState:mut, declared:map<string, bool>, referenced:map<string, bool>, line:int, containers_only:bool):array<lir.LStmtBox> {
+    let result:array<lir.LStmtBox>:mut = []
+    let seen:map<string, bool>:mut = map.new()
+
+    // Release container locals (depth 0 only for function exit)
+    let ci:int:mut = 0
+    while(ci < array.size(st.container_locals)) {
+        let cl:ContainerLocal = array.get_any(st.container_locals, ci) ?? ContainerLocal{var_name:"", c_type:lir.LVoid, release_fn:"", depth:0}
+        if(cl.depth == 0 && map.has(declared, cl.var_name) && map.has(st.consumed_bindings, cl.var_name) == false && map.has(referenced, cl.var_name) == false && map.has(seen, cl.var_name) == false && map.has(st.fn_arg_vars, cl.var_name) == false) {
+            result = array.push(result, lir.LStmtBox{ls:emit_release_call(cl.var_name, cl.c_type, cl.release_fn, line)})
+            seen = map.set(seen, cl.var_name, true)
+        }
+        ci = ci + 1
+    }
+
+    // Release struct fields — skip when containers_only to avoid UAF
+    // from struct fields with borrowed references (e.g. loop-iteration copies).
+    if(containers_only == false) {
+        let sfi:int:mut = 0
+        while(sfi < array.size(st.struct_field_cleanup)) {
+            let sf:StructFieldCleanup = array.get_any(st.struct_field_cleanup, sfi) ?? StructFieldCleanup{struct_var:"", field_name:"", struct_c_type:lir.LVoid, release_fn:"", depth:0, block_safe:false}
+            let sf_key:string = sf.struct_var + "." + sf.field_name
+            if(map.has(declared, sf.struct_var) && map.has(st.consumed_bindings, sf.struct_var) == false && map.has(referenced, sf.struct_var) == false && map.has(seen, sf_key) == false) {
+                result = array.push(result, lir.LStmtBox{ls:emit_struct_field_release(sf.struct_var, sf.field_name, sf.struct_c_type, sf.release_fn, line)})
+                seen = map.set(seen, sf_key, true)
+            }
+            sfi = sfi + 1
+        }
+    }
+
+    return result
+}
+
+// ---------------------------------------------------------------------------
+// inject_scope_cleanup — walk lowered body and insert cleanup before every return
+// Threads a `declared` map to track which variables have been declared so far
+// on each execution path. Passes a snapshot of `declared` into branches.
+// ---------------------------------------------------------------------------
+
+fn inject_scope_cleanup(st:LowerState:mut, stmts:array<lir.LStmtBox>, declared:map<string, bool>, containers_only:bool):array<lir.LStmtBox> {
+    let result:array<lir.LStmtBox>:mut = []
+    let cur_declared:map<string, bool>:mut = declared
+    let i:int:mut = 0
+    while(i < array.size(stmts)) {
+        let sb:lir.LStmtBox = array.get_any(stmts, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        match(sb.ls) {
+            LSVarDecl(c_name, c_type, has_init, init, sl): {
+                // Track that this variable has now been declared
+                cur_declared = map.set(cur_declared, c_name, true)
+                result = array.push(result, sb)
+            }
+            LSReturn(has_val, val, sl): {
+                // Collect vars referenced in return expr — protect from release
+                let referenced:map<string, bool>:mut = map.new()
+                if(has_val) {
+                    referenced = collect_referenced_vars(val)
+                }
+                // Build cleanup calls — only for declared variables
+                let cleanup:array<lir.LStmtBox> = build_fn_exit_cleanup(st, cur_declared, referenced, sl, containers_only)
+                // Append cleanup before return
+                let ci:int:mut = 0
+                while(ci < array.size(cleanup)) {
+                    result = array.push(result, array.get_any(cleanup, ci) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
+                    ci = ci + 1
+                }
+                // Append the return itself
+                result = array.push(result, sb)
+            }
+            LSIf(cond, then_body, else_body, sl): {
+                // Recurse into if branches, passing a snapshot of declared so far
+                let new_then:array<lir.LStmtBox> = inject_scope_cleanup(st, then_body, cur_declared, containers_only)
+                let new_else:array<lir.LStmtBox> = inject_scope_cleanup(st, else_body, cur_declared, containers_only)
+                result = array.push(result, lir.LStmtBox{ls:lir.LSIf(cond:cond, then_body:new_then, else_body:new_else, source_line:sl)})
+            }
+            LSSwitch(val, tags, bodies, default_body, sl): {
+                // Recurse into switch case bodies, passing a snapshot of declared
+                let new_bodies:array<lir.LStmtListBox>:mut = []
+                let bi:int:mut = 0
+                while(bi < array.size(bodies)) {
+                    let body_box:lir.LStmtListBox = array.get_any(bodies, bi) ?? lir.LStmtListBox{stmts:[], _pad:0}
+                    let new_stmts:array<lir.LStmtBox> = inject_scope_cleanup(st, body_box.stmts, cur_declared, containers_only)
+                    new_bodies = array.push(new_bodies, lir.LStmtListBox{stmts:new_stmts, _pad:0})
+                    bi = bi + 1
+                }
+                let new_default:array<lir.LStmtBox> = inject_scope_cleanup(st, default_body, cur_declared, containers_only)
+                result = array.push(result, lir.LStmtBox{ls:lir.LSSwitch(value:val, case_tags:tags, case_bodies:new_bodies, default_body:new_default, source_line:sl)})
+            }
+            LSBlock(inner, sl): {
+                let new_inner:array<lir.LStmtBox> = inject_scope_cleanup(st, inner, cur_declared, containers_only)
+                result = array.push(result, lir.LStmtBox{ls:lir.LSBlock(stmts:new_inner, source_line:sl)})
+            }
+            LSWhile(cond, body, sl): {
+                // Use containers_only=true for while bodies: struct fields from
+                // function calls may have borrowed references → UAF if released.
+                // This matches the Python compiler's _inject_scope_cleanup behavior.
+                let new_body:array<lir.LStmtBox> = inject_scope_cleanup(st, body, cur_declared, true)
+                result = array.push(result, lir.LStmtBox{ls:lir.LSWhile(cond:cond, body:new_body, source_line:sl)})
+            }
+            _: {
+                result = array.push(result, sb)
+            }
+        }
+        i = i + 1
+    }
+    return result
+}
+
+// ===========================================================================
 // DECLARATION LOWERING
 // ===========================================================================
 
@@ -1664,6 +1983,7 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
             st.sum_field_cleanup = []
             st.affine_locals = []
             st.consumed_bindings = map.new()
+            st.fn_arg_vars = map.new()
 
             let c_name:string = mangler.mangle(st.module_path, "", name)
 
@@ -1701,6 +2021,21 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
                     final_body = inject_tail_returns(final_body)
                 }
             }
+
+            // NOTE: inject_scope_cleanup is disabled until retain-on-store semantics
+            // are implemented. Without retain-on-copy, releasing function-returned
+            // strings causes UAF because returned strings may be borrowed from
+            // AST nodes, token arrays, or other data structures (e.g.
+            // type_expr_base_name returns te.name which is the token's value string).
+            // The fn_arg_vars suppression helps with direct args but not borrowed
+            // return values. Proper fix requires retain-on-store in fl_array_push_sized
+            // and all struct-building functions.
+            // TODO: re-enable when retain-on-store is implemented.
+            // st.fn_arg_vars = collect_fn_arg_vars_stmts(final_body)
+            // final_body = inject_scope_cleanup(st, final_body, map.new(), true)
+
+            // NOTE: trailing void-function cleanup also disabled — same UAF risk.
+            // TODO: re-enable when retain-on-store semantics are implemented.
 
             st.fn_defs = array.push(st.fn_defs, lir.LFnDef{
                 c_name:c_name,
@@ -2076,6 +2411,12 @@ fn inject_tail_returns(stmts:array<lir.LStmtBox>):array<lir.LStmtBox> {
 
     match(last.ls) {
         LSExprStmt(expr, sline): {
+            // Don't wrap void expressions (like _fl_throw) in return
+            let expr_type:lir.LType = lir.lexpr_type(expr)
+            match(expr_type) {
+                LVoid: { return stmts }
+                _: {}
+            }
             let new_last:lir.LStmt = lir.LSReturn(has_value:true, value:expr, source_line:sline)
             return array.put(stmts, last_idx, lir.LStmtBox{ls:new_last})
         }
@@ -2141,8 +2482,7 @@ fn lower_stmt(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
             return lower_throw(st, s)
         }
         STry(id, line, col, body, retry_blocks, catches, has_fin, fin_body): {
-            // TODO: try/catch lowering
-            return lower_block(st, body)
+            return lower_try(st, s)
         }
     }
 }
@@ -2657,6 +2997,141 @@ fn exception_type_tag(name:string):int {
     // Ensure non-zero (0 reserved for untyped string exceptions)
     if(hash == 0) { hash = 1 }
     return hash
+}
+
+// ---------------------------------------------------------------------------
+// exception_tag_for_type_ann — compute exception tag from catch/throw type annotation
+// ---------------------------------------------------------------------------
+
+fn exception_tag_for_type_ann(st:LowerState:mut, te:ast.TypeExpr):int {
+    let exc_type:typechecker.TCType = resolve_type_ann(st, te)
+    match(exc_type) {
+        TCString: { return 0 }
+        _: {
+            let exc_name:string = type_name_str(st, exc_type)
+            return exception_type_tag(exc_name)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// lower_try — setjmp/longjmp exception handling
+// ---------------------------------------------------------------------------
+
+fn lower_try(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
+    match(s) {
+        STry(id, line, col, body, retry_blocks, catches, has_fin, fin_body): {
+            let result:array<lir.LStmtBox>:mut = []
+            let frame_idx:int = st.exception_frame_counter
+            st.exception_frame_counter = frame_idx + 1
+            let frame_name:string = "_fl_ef_" + conv.to_string(frame_idx)
+            let frame_lt:lir.LType = lir.LStruct(c_name:"FL_ExceptionFrame")
+            let frame_ptr_lt:lir.LType = lir.LPtr(inner:frame_lt)
+
+            // FL_ExceptionFrame _fl_ef_N;
+            result = array.push(result, lir.LStmtBox{ls:lir.LSVarDecl(c_name:frame_name, c_type:frame_lt, has_init:false, init:lir.placeholder_expr(), source_line:line)})
+
+            // _fl_exception_push(&_fl_ef_N);
+            let frame_var:lir.LExpr = lir.LEVar(c_name:frame_name, c_type:frame_lt)
+            let addr_of_frame:lir.LExpr = lir.LEAddrOf(inner:lir.le_box(frame_var), c_type:frame_ptr_lt)
+            let push_call:lir.LExpr = lir.LECall(fn_name:"_fl_exception_push", args:[lir.le_box(addr_of_frame)], c_type:lir.LVoid)
+            result = array.push(result, lir.LStmtBox{ls:lir.LSExprStmt(expr:push_call, source_line:line)})
+
+            // Build try body: body stmts + _fl_exception_pop()
+            let try_body:array<lir.LStmtBox>:mut = lower_block(st, body)
+            let pop_call:lir.LExpr = lir.LECall(fn_name:"_fl_exception_pop", args:[], c_type:lir.LVoid)
+            try_body = array.push(try_body, lir.LStmtBox{ls:lir.LSExprStmt(expr:pop_call, source_line:line)})
+
+            // Build catch body: _fl_exception_pop() + catch dispatch
+            let catch_body:array<lir.LStmtBox>:mut = []
+            catch_body = array.push(catch_body, lir.LStmtBox{ls:lir.LSExprStmt(expr:pop_call, source_line:line)})
+
+            // Build catch dispatch chain (from last to first for if/else chain)
+            let num_catches:int = array.size(catches)
+            // Rethrow as default
+            let ex_tag_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:frame_name, c_type:frame_lt)), field:"exception_tag", c_type:lir.LInt(width:32, is_signed:true))
+            let ex_ptr_access:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:frame_name, c_type:frame_lt)), field:"exception", c_type:lir.LPtr(inner:lir.LVoid))
+            let rethrow_call:lir.LExpr = lir.LECall(fn_name:"_fl_throw", args:[lir.le_box(ex_ptr_access), lir.le_box(ex_tag_access)], c_type:lir.LVoid)
+            let rethrow_stmts:array<lir.LStmtBox> = [lir.LStmtBox{ls:lir.LSExprStmt(expr:rethrow_call, source_line:line)}]
+
+            // Build if/else chain from last catch to first
+            let dispatch:array<lir.LStmtBox>:mut = rethrow_stmts
+            let ci:int:mut = num_catches - 1
+            while(ci >= 0) {
+                let clause:ast.CatchClause = array.get_any(catches, ci) ?? ast.CatchClause{exception_var:"", exception_type:ast.TNamedType(id:0, line:0, col:0, name:"any", module_path:[]), body:[], id:0, line:0, col:0}
+                let catch_tag:int = exception_tag_for_type_ann(st, clause.exception_type)
+                let exc_type_tc:typechecker.TCType = resolve_type_ann(st, clause.exception_type)
+                let exc_lt:lir.LType = lower_type(st, exc_type_tc)
+
+                // Build catch handler stmts: bind exception var + lower catch body
+                let handler:array<lir.LStmtBox>:mut = []
+
+                // Bind exception var: cast _fl_ef_N.exception to the exception type
+                let exc_void_ptr:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:frame_name, c_type:frame_lt)), field:"exception", c_type:lir.LPtr(inner:lir.LVoid))
+                match(exc_type_tc) {
+                    TCString: {
+                        // String exception: cast void* to FL_String*
+                        let str_lt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_String"))
+                        let str_cast:lir.LExpr = lir.LECast(inner:lir.le_box(exc_void_ptr), c_type:str_lt)
+                        handler = array.push(handler, lir.LStmtBox{ls:lir.LSVarDecl(c_name:clause.exception_var, c_type:str_lt, has_init:true, init:str_cast, source_line:clause.line)})
+                    }
+                    _: {
+                        // Typed exception: cast void* to ExcType* then dereference
+                        let exc_ptr_lt:lir.LType = lir.LPtr(inner:exc_lt)
+                        let tmp_ptr:string = fresh_temp(st)
+                        let ptr_cast:lir.LExpr = lir.LECast(inner:lir.le_box(exc_void_ptr), c_type:exc_ptr_lt)
+                        handler = array.push(handler, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp_ptr, c_type:exc_ptr_lt, has_init:true, init:ptr_cast, source_line:clause.line)})
+                        let deref_exc:lir.LExpr = lir.LEDeref(inner:lir.le_box(lir.LEVar(c_name:tmp_ptr, c_type:exc_ptr_lt)), c_type:exc_lt)
+                        handler = array.push(handler, lir.LStmtBox{ls:lir.LSVarDecl(c_name:clause.exception_var, c_type:exc_lt, has_init:true, init:deref_exc, source_line:clause.line)})
+                    }
+                }
+
+                // Lower catch body
+                let catch_lowered:array<lir.LStmtBox> = lower_block(st, clause.body)
+                let hj:int:mut = 0
+                while(hj < array.size(catch_lowered)) {
+                    let hs:lir.LStmtBox = array.get_any(catch_lowered, hj) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+                    handler = array.push(handler, hs)
+                    hj = hj + 1
+                }
+
+                // Wrap in: if (_fl_ef_N.exception_tag == catch_tag) { handler } else { dispatch }
+                let tag_check:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:frame_name, c_type:frame_lt)), field:"exception_tag", c_type:lir.LInt(width:32, is_signed:true))), right:lir.le_box(lir.LELit(value:conv.to_string(catch_tag), c_type:lir.LInt(width:32, is_signed:true))), c_type:lir.LBool)
+                dispatch = [lir.LStmtBox{ls:lir.LSIf(cond:tag_check, then_body:handler, else_body:dispatch, source_line:clause.line)}]
+                ci = ci - 1
+            }
+
+            // Add catch dispatch to catch_body
+            let di:int:mut = 0
+            while(di < array.size(dispatch)) {
+                let d_stmt:lir.LStmtBox = array.get_any(dispatch, di) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+                catch_body = array.push(catch_body, d_stmt)
+                di = di + 1
+            }
+
+            // setjmp(_fl_ef_N.jmp) == 0
+            let jmp_field:lir.LExpr = lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:frame_name, c_type:frame_lt)), field:"jmp", c_type:lir.LStruct(c_name:"jmp_buf"))
+            let setjmp_call:lir.LExpr = lir.LECall(fn_name:"setjmp", args:[lir.le_box(jmp_field)], c_type:lir.LInt(width:32, is_signed:true))
+            let zero_lit:lir.LExpr = lir.LELit(value:"0", c_type:lir.LInt(width:32, is_signed:true))
+            let setjmp_cond:lir.LExpr = lir.LEBinOp(op:"==", left:lir.le_box(setjmp_call), right:lir.le_box(zero_lit), c_type:lir.LBool)
+
+            result = array.push(result, lir.LStmtBox{ls:lir.LSIf(cond:setjmp_cond, then_body:try_body, else_body:catch_body, source_line:line)})
+
+            // Finally block (if present)
+            if(has_fin) {
+                let fin_lowered:array<lir.LStmtBox> = lower_block(st, fin_body)
+                let fi:int:mut = 0
+                while(fi < array.size(fin_lowered)) {
+                    let fs:lir.LStmtBox = array.get_any(fin_lowered, fi) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+                    result = array.push(result, fs)
+                    fi = fi + 1
+                }
+            }
+
+            return result
+        }
+        _: { return [] }
+    }
 }
 
 // ===========================================================================
@@ -3684,6 +4159,39 @@ fn lower_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                                 }
                                             }
                                         }
+                                        // Box value-type args for fl_map_set_str/fl_map_set
+                                        if(ec_name == "fl_map_set_str" || ec_name == "fl_map_set") {
+                                            if(array.size(largs) >= 3) {
+                                                let map_val:lir.LExpr = lir.le_unbox(array.get_any(largs, 2) ?? lir.le_box(lir.placeholder_expr()))
+                                                let map_val_lt:lir.LType = lir.lexpr_type(map_val)
+                                                let map_val_cname:string = lir.ltype_c_name(map_val_lt)
+                                                let box_fn:string = value_type_box_fn(map_val_cname)
+                                                if(box_fn != "") {
+                                                    let boxed_val:lir.LExpr = lir.LECall(fn_name:box_fn, args:[lir.le_box(map_val)], c_type:lir.LPtr(inner:lir.LVoid))
+                                                    let new_args:array<lir.LExprBox> = [
+                                                        array.get_any(largs, 0) ?? lir.le_box(lir.placeholder_expr()),
+                                                        array.get_any(largs, 1) ?? lir.le_box(lir.placeholder_expr()),
+                                                        lir.le_box(boxed_val)
+                                                    ]
+                                                    return lir.LECall(fn_name:ec_name, args:new_args, c_type:result_lt)
+                                                }
+                                                match(map_val_lt) {
+                                                    LPtr(inner): {}
+                                                    LVoid: {}
+                                                    _: {
+                                                        let vmt:string = fresh_temp(st)
+                                                        st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:vmt, c_type:map_val_lt, has_init:true, init:map_val, source_line:0)})
+                                                        let hb:lir.LExpr = lir.LECast(inner:lir.le_box(lir.LEAddrOf(inner:lir.le_box(lir.LEVar(c_name:vmt, c_type:map_val_lt)), c_type:lir.LPtr(inner:map_val_lt))), c_type:lir.LPtr(inner:lir.LVoid))
+                                                        let new_args:array<lir.LExprBox> = [
+                                                            array.get_any(largs, 0) ?? lir.le_box(lir.placeholder_expr()),
+                                                            array.get_any(largs, 1) ?? lir.le_box(lir.placeholder_expr()),
+                                                            lir.le_box(hb)
+                                                        ]
+                                                        return lir.LECall(fn_name:ec_name, args:new_args, c_type:result_lt)
+                                                    }
+                                                }
+                                            }
+                                        }
                                         return lir.LECall(fn_name:ec_name, args:largs, c_type:result_lt)
                                     }
                                     none: {}
@@ -3797,7 +4305,11 @@ fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, la
                             let tag_expr:lir.LExpr = lir.LELit(value:conv.to_string(vi), c_type:lir.LByte)
                             if(array.size(sv.fields) == 0) {
                                 // Fieldless variant: {.tag = N}
-                                return lir.LECompound(field_names:["tag"], field_values:[lir.le_box(tag_expr)], c_type:result_lt)
+                                // Use the concrete struct type so the compound literal is valid C
+                                // (not void* which would generate invalid (void*){.tag=N}).
+                                let sum_c_name:string = mangler.mangle(mod_path, dname, "")
+                                let concrete_lt:lir.LType = lir.LStruct(c_name:sum_c_name)
+                                return lir.LECompound(field_names:["tag"], field_values:[lir.le_box(tag_expr)], c_type:concrete_lt)
                             } else {
                                 // Variant with fields — wrap recursive fields in FL_Box
                                 let inner_c_name:string = mangler.mangle(mod_path, dname, vname)
@@ -3812,7 +4324,12 @@ fn lower_constructor_call(st:LowerState:mut, e:ast.Expr, sym:resolver.Symbol, la
                                     let ftn:string = ast.get_type_expr_name(sf.type_expr)
                                     if(is_recursive_sum_field_name(ftn, dname)) {
                                         let box_tmp:string = fresh_temp(st)
-                                        let flt:lir.LType = lir.lexpr_type(lir.le_unbox(arg_val))
+                                        // Resolve field type from type annotation first (not from arg's LType,
+                                        // which may be LPtr(LVoid) for unit-variant args like TCString()).
+                                        // Fall back to lir.lexpr_type only if annotation resolves to void*.
+                                        let flt_tc:typechecker.TCType = resolve_type_ann(st, sf.type_expr)
+                                        let flt:lir.LType:mut = lower_type(st, flt_tc)
+                                        match(flt) { LPtr(p): { match(p) { LVoid: { flt = lir.lexpr_type(lir.le_unbox(arg_val)) } _: {} } } _: {} }
                                         let bpt:lir.LType = lir.LPtr(inner:lir.LStruct(c_name:"FL_Box"))
                                         st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:box_tmp, c_type:bpt, has_init:true, init:lir.LECall(fn_name:"fl_box_new", args:[lir.le_box(lir.LESizeOf(target_type:flt))], c_type:bpt), source_line:0)})
                                         let da:lir.LExpr = lir.LEDeref(inner:lir.le_box(lir.LECast(inner:lir.le_box(lir.LEArrow(ptr_expr:lir.le_box(lir.LEVar(c_name:box_tmp, c_type:bpt)), field:"data", c_type:lir.LPtr(inner:lir.LVoid))), c_type:lir.LPtr(inner:flt))), c_type:flt)
@@ -3954,15 +4471,24 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                     }
                                 }
                             }
-                            // For array.get_safe with non-pointer element types,
-                            // wrap with FL_OPT_DEREF_AS to convert FL_Option_ptr
-                            // to the concrete option struct type.
+                            // For array.get_safe / map.get_str with non-pointer element types,
+                            // wrap appropriately to convert FL_Option_ptr to the typed option.
+                            // - array.get_safe: value is stored by value → FL_OPT_DEREF_AS
+                            // - map.get_str/map.get: value is boxed (fl_box_int) → fl_opt_unbox_TYPE
                             let get_safe_call:lir.LExpr = lir.LECall(fn_name:ec_name, args:fn_args, c_type:result_lt)
                             if(ec_name == "fl_array_get_safe" || ec_name == "fl_map_get_str" || ec_name == "fl_map_get") {
                                 let opt_c_name:string = lir.ltype_c_name(result_lt)
                                 if(opt_c_name != "FL_Option_ptr") {
-                                    let elem_name:string = string.substring(opt_c_name, 10, string.len(opt_c_name))
                                     let raw_call:lir.LExpr = lir.LECall(fn_name:ec_name, args:fn_args, c_type:lir.LStruct(c_name:"FL_Option_ptr"))
+                                    // For map operations with boxed value types, use fl_opt_unbox_TYPE
+                                    if(ec_name == "fl_map_get_str" || ec_name == "fl_map_get") {
+                                        let elem_name:string = string.substring(opt_c_name, 10, string.len(opt_c_name))
+                                        let unbox_fn:string = value_type_opt_unbox_fn("fl_" + elem_name)
+                                        if(unbox_fn != "") {
+                                            return lir.LECall(fn_name:unbox_fn, args:[lir.le_box(raw_call)], c_type:result_lt)
+                                        }
+                                    }
+                                    let elem_name:string = string.substring(opt_c_name, 10, string.len(opt_c_name))
                                     return lir.LECall(fn_name:"FL_OPT_DEREF_AS", args:[lir.le_box(raw_call), lir.le_box(lir.LELit(value:elem_name, c_type:lir.LVoid)), lir.le_box(lir.LELit(value:opt_c_name, c_type:lir.LVoid))], c_type:result_lt)
                                 }
                             }
@@ -3986,6 +4512,43 @@ fn lower_method_call(st:LowerState:mut, e:ast.Expr):lir.LExpr {
                                                 lir.le_box(lir.LESizeOf(target_type:push_val_lt))
                                             ]
                                             return lir.LECall(fn_name:"fl_array_push_sized", args:sized_args, c_type:result_lt)
+                                        }
+                                    }
+                                }
+                            }
+                            // For fl_map_set_str/fl_map_set: box value-type args (int, float, bool)
+                            // map.set<V>(m, key, val) — val must be void* for the runtime
+                            if(ec_name == "fl_map_set_str" || ec_name == "fl_map_set") {
+                                if(array.size(fn_args) >= 3) {
+                                    let map_val:lir.LExpr = lir.le_unbox(array.get_any(fn_args, 2) ?? lir.le_box(lir.placeholder_expr()))
+                                    let map_val_lt:lir.LType = lir.lexpr_type(map_val)
+                                    let map_val_cname:string = lir.ltype_c_name(map_val_lt)
+                                    let box_fn:string = value_type_box_fn(map_val_cname)
+                                    if(box_fn != "") {
+                                        // Box value type: fl_box_int(val) etc.
+                                        let boxed_val:lir.LExpr = lir.LECall(fn_name:box_fn, args:[lir.le_box(map_val)], c_type:lir.LPtr(inner:lir.LVoid))
+                                        let new_args:array<lir.LExprBox> = [
+                                            array.get_any(fn_args, 0) ?? lir.le_box(lir.placeholder_expr()),
+                                            array.get_any(fn_args, 1) ?? lir.le_box(lir.placeholder_expr()),
+                                            lir.le_box(boxed_val)
+                                        ]
+                                        return lir.LECall(fn_name:ec_name, args:new_args, c_type:result_lt)
+                                    }
+                                    // Non-pointer struct types also need boxing (heap-box via &val cast)
+                                    match(map_val_lt) {
+                                        LPtr(inner): {} // Pointer — no boxing needed
+                                        LVoid: {}      // void — skip
+                                        _: {
+                                            // Non-pointer struct: heap-box using address cast to void*
+                                            let val_tmp:string = fresh_temp(st)
+                                            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:val_tmp, c_type:map_val_lt, has_init:true, init:map_val, source_line:0)})
+                                            let heap_box:lir.LExpr = lir.LECast(inner:lir.le_box(lir.LEAddrOf(inner:lir.le_box(lir.LEVar(c_name:val_tmp, c_type:map_val_lt)), c_type:lir.LPtr(inner:map_val_lt))), c_type:lir.LPtr(inner:lir.LVoid))
+                                            let new_args:array<lir.LExprBox> = [
+                                                array.get_any(fn_args, 0) ?? lir.le_box(lir.placeholder_expr()),
+                                                array.get_any(fn_args, 1) ?? lir.le_box(lir.placeholder_expr()),
+                                                lir.le_box(heap_box)
+                                            ]
+                                            return lir.LECall(fn_name:ec_name, args:new_args, c_type:result_lt)
                                         }
                                     }
                                 }
@@ -4272,16 +4835,26 @@ fn lower_array_lit(st:LowerState:mut, e:ast.Expr):lir.LExpr {
             if(array.size(elements) == 0) {
                 return lir.LECall(fn_name:"fl_array_new", args:[lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid)))], c_type:arr_lt)
             }
-            // Non-empty: use push pattern
-            let tmp:string = fresh_temp(st)
-            let new_call:lir.LExpr = lir.LECall(fn_name:"fl_array_new", args:[lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"0", c_type:lir.LInt(width:64, is_signed:true))), lir.le_box(lir.LELit(value:"NULL", c_type:lir.LPtr(inner:lir.LVoid)))], c_type:arr_lt)
-            st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSVarDecl(c_name:tmp, c_type:arr_lt, has_init:true, init:new_call, source_line:line)})
-            for(elem:ast.Expr in elements) {
-                let le:lir.LExpr = lower_expr(st, elem)
-                let push_call:lir.LExpr = lir.LECall(fn_name:"fl_array_push_ptr", args:[lir.le_box(lir.LEVar(c_name:tmp, c_type:arr_lt)), lir.le_box(lir.LECast(inner:lir.le_box(le), c_type:lir.LPtr(inner:lir.LVoid)))], c_type:arr_lt)
-                st.pending_stmts = array.push(st.pending_stmts, lir.LStmtBox{ls:lir.LSAssign(target:lir.LEVar(c_name:tmp, c_type:arr_lt), value:push_call, source_line:line)})
+            // Get element type from the array type
+            let arr_tc:typechecker.TCType = type_of(st, id)
+            let elem_lt:lir.LType:mut = lir.LPtr(inner:lir.LVoid)
+            match(arr_tc) {
+                TCArray(elem_t): { elem_lt = lower_type(st, elem_t) }
+                _: {}
             }
-            return lir.LEVar(c_name:tmp, c_type:arr_lt)
+            // Lower all elements
+            let count:int = array.size(elements)
+            let lowered:array<lir.LExprBox>:mut = []
+            for(elem:ast.Expr in elements) {
+                lowered = array.push(lowered, lir.le_box(lower_expr(st, elem)))
+            }
+            // Use fl_array_new(N, sizeof(T), (T[]){...}) for all element types
+            let data_expr:lir.LExpr = lir.LEArrayData(elements:lowered, elem_type:elem_lt, c_type:lir.LPtr(inner:elem_lt))
+            return lir.LECall(fn_name:"fl_array_new", args:[
+                lir.le_box(lir.LELit(value:conv.to_string(count), c_type:lir.LInt(width:64, is_signed:true))),
+                lir.le_box(lir.LESizeOf(target_type:elem_lt)),
+                lir.le_box(data_expr)
+            ], c_type:arr_lt)
         }
         _: { return lir.placeholder_expr() }
     }

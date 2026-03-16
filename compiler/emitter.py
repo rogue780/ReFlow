@@ -341,8 +341,14 @@ class Emitter:
         self._emitln("_fl_runtime_init(argc, argv);")
         if all_static_inits:
             self._emitln("_fl_init_statics();")
-        self._emitln(f"{ep}();")
-        self._emitln("return 0;")
+        # Check if entry point returns int (fn main():int) or void (fn main():none)
+        ep_fn = next((f for f in self._module.fn_defs if f.c_name == ep), None)
+        ep_returns_int = ep_fn is not None and isinstance(ep_fn.ret, LInt)
+        if ep_returns_int:
+            self._emitln(f"return {ep}();")
+        else:
+            self._emitln(f"{ep}();")
+            self._emitln("return 0;")
         self._indent_level -= 1
         self._emitln("}")
 
