@@ -2034,7 +2034,7 @@ fn build_fn_exit_cleanup(st:LowerState:mut, declared:map<string, bool>, referenc
         while(sfi < array.size(st.struct_field_cleanup)) {
             let sf:StructFieldCleanup = array.get_any(st.struct_field_cleanup, sfi) ?? StructFieldCleanup{struct_var:"", field_name:"", struct_c_type:lir.LVoid, release_fn:"", depth:0, block_safe:false}
             let sf_key:string = sf.struct_var + "." + sf.field_name
-            if(map.has(declared, sf.struct_var) && map.has(st.consumed_bindings, sf.struct_var) == false && map.has(referenced, sf.struct_var) == false && map.has(seen, sf_key) == false) {
+            if(map.has(declared, sf.struct_var) && map.has(st.consumed_bindings, sf.struct_var) == false && map.has(referenced, sf.struct_var) == false && map.has(seen, sf_key) == false && map.has(st.fn_arg_vars, sf.struct_var) == false) {
                 result = array.push(result, lir.LStmtBox{ls:emit_struct_field_release(sf.struct_var, sf.field_name, sf.struct_c_type, sf.release_fn, line)})
                 seen = map.set(seen, sf_key, true)
             }
@@ -2769,22 +2769,44 @@ fn lower_let(st:LowerState:mut, s:ast.Stmt):array<lir.LStmtBox> {
                     }
                 }
                 none: {
-                    // Register struct field cleanup for types with refcounted fields
+                    // Register struct field cleanup for types with refcounted fields.
                     if(has_refcounted_fields(st, val_type)) {
                         let sf_lt:lir.LType = lower_type(st, val_type)
-                        let block_safe:bool:mut = false
                         match(val) {
-                            ETypeLit(tid, tl, tc, tn, tf, hs, sp): { block_safe = true }
-                            ERecordLit(tid, tl, tc, rf): { block_safe = true }
+                            ETypeLit(tid, tl, tc, tn, tf, hs, sp): {
+                                // TypeLit: fields are freshly constructed — safe to release
+                                register_struct_field_releases(st, name, val_type, sf_lt, st.scope_depth, true)
+                            }
+                            ERecordLit(tid, tl, tc, rf): {
+                                register_struct_field_releases(st, name, val_type, sf_lt, st.scope_depth, true)
+                            }
                             _: {
-                                if(is_allocating_expr(val)) {
-                                    block_safe = false
-                                } else {
-                                    block_safe = true
+                                // For ALL other sources (function calls, variables, field access):
+                                // Retain each refcounted field, then register for release.
+                                // This ensures the field's refcount is >= 2 (one for the source,
+                                // one for our local copy). Releasing at scope exit drops it to 1.
+                                let fields:array<ast.FieldDecl> = get_type_fields(st, val_type)
+                                let fi:int:mut = 0
+                                while(fi < array.size(fields)) {
+                                    let fd:ast.FieldDecl = array.get_any(fields, fi) ?? ast.FieldDecl{name:"", type_ann:ast.TNamedType(id:0, line:0, col:0, name:"any", module_path:[]), is_mut:false, id:0, line:0, col:0}
+                                    let ft:typechecker.TCType = resolve_type_ann_ast(st, fd.type_ann)
+                                    match(get_retain_fn(ft)) {
+                                        some(rfn): {
+                                            let flt:lir.LType = lower_type(st, ft)
+                                            result = array.push(result, lir.LStmtBox{ls:lir.LSExprStmt(
+                                                expr:lir.LECall(fn_name:rfn, args:[lir.le_box(
+                                                    lir.LEFieldAccess(obj:lir.le_box(lir.LEVar(c_name:name, c_type:sf_lt)), field:fd.name, c_type:lir.LPtr(inner:lir.LVoid))
+                                                )], c_type:lir.LVoid),
+                                                source_line:line
+                                            )})
+                                        }
+                                        none: {}
+                                    }
+                                    fi = fi + 1
                                 }
+                                register_struct_field_releases(st, name, val_type, sf_lt, st.scope_depth, true)
                             }
                         }
-                        register_struct_field_releases(st, name, val_type, sf_lt, st.scope_depth, block_safe)
                     }
                 }
             }

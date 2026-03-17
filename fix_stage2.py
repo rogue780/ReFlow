@@ -75,7 +75,7 @@ def fix_stage2(path):
         # Look backward for variable declaration to determine actual type
         # Use a wider window (80 lines) to catch declarations far back
         actual_type = None
-        for k in range(max(0, i - 80), i):
+        for k in range(max(0, i - 100), i):
             # Check for ast.Expr or ast.TypeExpr local declaration
             dm = re.match(rf'^\s+(fl_self_hosted_ast_Expr|fl_self_hosted_ast_TypeExpr) {re.escape(root_var)}\b', lines_p1b[k])
             if dm:
