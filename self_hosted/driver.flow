@@ -1155,14 +1155,11 @@ export fn check(source_path:string, stdlib_dir:string):int {
 
 // emit_c: run full pipeline, return C source string
 export fn emit_c(source_path:string, stdlib_dir:string):string {
-    // io.eprintln("[DRV] starting emit_c")
     let ds:DriverState:mut = make_driver_state(stdlib_dir)
-    // io.eprintln("[DRV] driver state created")
     let modules_raw = run_multi_pipeline(ds, source_path)
-    // io.eprintln("[DRV] multi pipeline done")
     let modules = inject_compilable_stdlib(ds, modules_raw)
-    // Pass ds.cache_typed so non-compilable stdlib extern fns (e.g., array.size → fl_array_len_int)
-    // are available in the extern fn map for call site resolution.
+    // Build extern fn map from cache before passing to lower_and_emit_all
+    // This extracts just the c_names we need, allowing cache to be freed sooner
     let result = lower_and_emit_all(modules, ds.cache_typed, false)
     return result
 }
