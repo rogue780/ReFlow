@@ -32241,8 +32241,10 @@ FL_Array* fl_self_hosted_driver_run_multi_pipeline(fl_self_hosted_driver_DriverS
         result = fl_array_push_sized(result, (&_fl_tmp_51), sizeof(fl_self_hosted_driver_ModuleEntry));
         return result;
     }
+    fl_eprintln(fl_string_from_cstr("[DRV] multi-module path, building dep graph"));
     FL_String* project_root = fl_self_hosted_driver_infer_project_root(abs, quick_mod.path);
     FL_Array* topo_order = fl_self_hosted_driver_build_dependency_graph(abs, project_root);
+    fl_eprintln(fl_string_concat(fl_string_concat(fl_string_from_cstr("[DRV] dep graph built, "), fl_conv_to_string__int(fl_array_len_int(topo_order))), fl_string_from_cstr(" modules")));
     FL_Map* available_scopes = fl_map_new();
     FL_Map* available_typed = fl_map_new();
     FL_Map* available_decls = fl_map_new();
@@ -32290,6 +32292,7 @@ FL_Array* fl_self_hosted_driver_run_multi_pipeline(fl_self_hosted_driver_DriverS
             }
             _fl_tmp_55 = (_fl_tmp_55 + 1);
         }
+        fl_eprintln(fl_string_concat(fl_string_from_cstr("[DRV] resolving "), pm.module_key));
         fl_self_hosted_resolver_ResolvedModule resolved = fl_self_hosted_resolver_resolve(mod, pm.display_path, imported_modules);
         fl_map_retain(resolved.symbols);
         fl_array_retain(resolved.captures);
@@ -32300,6 +32303,7 @@ FL_Array* fl_self_hosted_driver_run_multi_pipeline(fl_self_hosted_driver_DriverS
         fl_map_retain(typed.node_types);
         fl_array_retain(typed.warnings);
         fl_array_retain(typed.capacity_expr_ids);
+        fl_eprintln(fl_string_concat(fl_string_from_cstr("[DRV] done "), pm.module_key));
         fl_self_hosted_resolver_ModuleScope* _fl_heap_87 = (fl_self_hosted_resolver_ModuleScope*)malloc(sizeof(fl_self_hosted_resolver_ModuleScope));
         *_fl_heap_87 = mod_scope;
         available_scopes = fl_map_set_str(available_scopes, pm.module_key, ((void*)(_fl_heap_87)));
@@ -32969,8 +32973,11 @@ FL_String* fl_self_hosted_driver_emit_c(FL_String* source_path, FL_String* stdli
     fl_array_retain(ds.cache_typed);
     fl_array_retain(ds.cache_cast_targets);
     FL_Array* modules_raw = fl_self_hosted_driver_run_multi_pipeline((&ds), source_path);
+    fl_eprintln(fl_string_from_cstr("[DRV] injecting compilable stdlib"));
     FL_Array* modules = fl_self_hosted_driver_inject_compilable_stdlib((&ds), modules_raw);
+    fl_eprintln(fl_string_concat(fl_string_concat(fl_string_from_cstr("[DRV] lowering and emitting "), fl_conv_to_string__int(fl_array_len_int(modules))), fl_string_from_cstr(" modules")));
     FL_String* result = fl_self_hosted_driver_lower_and_emit_all(modules, ds.cache_typed, fl_false);
+    fl_eprintln(fl_string_concat(fl_string_concat(fl_string_from_cstr("[DRV] emit complete, "), fl_conv_to_string__int(fl_string_len(result))), fl_string_from_cstr(" chars")));
     return result;
 }
 

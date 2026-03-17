@@ -622,10 +622,10 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
     }
 
     // Multi-module path: build dependency graph
-    // io.eprintln("[DRV] multi-module path, building dep graph")
+    io.eprintln("[DRV] multi-module path, building dep graph")
     let project_root = infer_project_root(abs, quick_mod.path)
     let topo_order = build_dependency_graph(abs, project_root)
-    // io.eprintln("[DRV] dep graph built, " + conv.to_string(array.size(topo_order)) + " modules")
+    io.eprintln("[DRV] dep graph built, " + conv.to_string(array.size(topo_order)) + " modules")
 
     // Resolve and typecheck each module in topological order
     let available_scopes:map<string, resolver.ModuleScope>:mut = map.new()
@@ -663,12 +663,12 @@ fn run_multi_pipeline(ds:DriverState:mut, source_path:string):array<ModuleEntry>
             }
         }
 
-        // io.eprintln("[DRV] resolving " + pm.module_key)
+        io.eprintln("[DRV] resolving " + pm.module_key)
         let resolved = resolver.resolve(mod, pm.display_path, imported_modules)
         let mod_scope = @resolved.mod_scope
         // io.eprintln("[DRV] typechecking " + pm.module_key)
         let typed = typechecker.typecheck(resolved, imported_modules, imported_decls)
-        // io.eprintln("[DRV] done " + pm.module_key)
+        io.eprintln("[DRV] done " + pm.module_key)
 
         available_scopes = map.set(available_scopes, pm.module_key, mod_scope)
         available_typed = map.set(available_typed, pm.module_key, @typed)
@@ -1157,10 +1157,11 @@ export fn check(source_path:string, stdlib_dir:string):int {
 export fn emit_c(source_path:string, stdlib_dir:string):string {
     let ds:DriverState:mut = make_driver_state(stdlib_dir)
     let modules_raw = run_multi_pipeline(ds, source_path)
+    io.eprintln("[DRV] injecting compilable stdlib")
     let modules = inject_compilable_stdlib(ds, modules_raw)
-    // Build extern fn map from cache before passing to lower_and_emit_all
-    // This extracts just the c_names we need, allowing cache to be freed sooner
+    io.eprintln("[DRV] lowering and emitting " + conv.to_string(array.size(modules)) + " modules")
     let result = lower_and_emit_all(modules, ds.cache_typed, false)
+    io.eprintln("[DRV] emit complete, " + conv.to_string(string.len(result)) + " chars")
     return result
 }
 

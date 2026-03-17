@@ -18,6 +18,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <malloc.h>
 
 /* Targeted Small-Object Arena for capping leaks in high-volume intermediate phases.
  * Buffer is never freed to avoid UAF risks with shared by-value structs. */
@@ -410,9 +411,6 @@ void* fl_array_get_ptr(FL_Array* arr, fl_int64 idx) {
 FL_Option_ptr fl_array_get_safe(FL_Array* arr, fl_int64 idx) {
     if (!arr || idx < 0 || idx >= arr->len) return FL_NONE_PTR;
     void* ptr = (char*)arr->data + (size_t)idx * (size_t)arr->element_size;
-    /* Retain the element so the caller owns the returned reference.
-       This ensures scope-exit release doesn't cause UAF. */
-    _fl_elem_retain(arr->elem_type, ptr, arr->elem_retainer);
     /* For pointer-sized elements (strings, opaque types), dereference the
        slot to return the stored pointer, not a pointer to the slot. */
     if (arr->element_size == sizeof(void*)) {
@@ -3188,6 +3186,12 @@ void _fl_runtime_init(int argc, char** argv) {
     _fl_argc = argc;
     _fl_argv = argv;
     signal(SIGPIPE, SIG_IGN);
+    /* Reduce heap fragmentation: use mmap for allocations >= 4KB.
+       This helps the self-hosted compiler which does millions of small
+       allocations during compilation. Without this, the heap fragments
+       and malloc returns NULL at ~1.5GB even with plenty of free memory. */
+    mallopt(M_MMAP_THRESHOLD, 4096);
+    mallopt(M_TRIM_THRESHOLD, -1);
 }
 
 /* ========================================================================
