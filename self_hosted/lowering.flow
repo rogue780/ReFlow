@@ -1834,6 +1834,134 @@ fn collect_fn_arg_vars_stmts(stmts:array<lir.LStmtBox>):map<string, bool> {
 }
 
 // ---------------------------------------------------------------------------
+// collect_compound_field_vars — scan statements to find variable names used as
+// field values in compound literal constructions (LECompound, or struct fields
+// in LSIf/LSWhile/LSSwitch/LSBlock). These variables have been "consumed" by
+// the struct and should not be released at scope exit (no retain was emitted
+// when they were stored as C compound literal fields).
+// ---------------------------------------------------------------------------
+
+fn collect_compound_field_vars_expr(e:lir.LExpr):map<string, bool> {
+    let result:map<string, bool>:mut = map.new()
+    match(e) {
+        LECompound(fn_vals, fv, ct): {
+            let i:int:mut = 0
+            while(i < array.size(fv)) {
+                let v:lir.LExprBox = array.get_any(fv, i) ?? lir.le_box(lir.placeholder_expr())
+                let ve:lir.LExpr = lir.le_unbox(v)
+                match(ve) {
+                    LEVar(cn, ctt): { result = map.set(result, cn, true) }
+                    _: {
+                        let sub:map<string, bool> = collect_compound_field_vars_expr(ve)
+                        let ks:array<string> = map.keys(sub)
+                        let j:int:mut = 0
+                        while(j < array.size(ks)) {
+                            result = map.set(result, array.get_any(ks, j) ?? "", true)
+                            j = j + 1
+                        }
+                    }
+                }
+                i = i + 1
+            }
+        }
+        LECall(fname, args, ct): {
+            let i:int:mut = 0
+            while(i < array.size(args)) {
+                let a:lir.LExprBox = array.get_any(args, i) ?? lir.le_box(lir.placeholder_expr())
+                let sub:map<string, bool> = collect_compound_field_vars_expr(lir.le_unbox(a))
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                    result = map.set(result, array.get_any(ks, j) ?? "", true)
+                    j = j + 1
+                }
+                i = i + 1
+            }
+        }
+        _: {}
+    }
+    return result
+}
+
+fn collect_compound_field_vars(stmts:array<lir.LStmtBox>):map<string, bool> {
+    let result:map<string, bool>:mut = map.new()
+    let i:int:mut = 0
+    while(i < array.size(stmts)) {
+        let sb:lir.LStmtBox = array.get_any(stmts, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        match(sb.ls) {
+            LSVarDecl(cn, ct, hi, init, sl): {
+                if(hi) {
+                    let sub:map<string, bool> = collect_compound_field_vars_expr(init)
+                    let ks:array<string> = map.keys(sub)
+                    let j:int:mut = 0
+                    while(j < array.size(ks)) {
+                        result = map.set(result, array.get_any(ks, j) ?? "", true)
+                        j = j + 1
+                    }
+                }
+            }
+            LSAssign(target, value, sl): {
+                let sub:map<string, bool> = collect_compound_field_vars_expr(value)
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                        result = map.set(result, array.get_any(ks, j) ?? "", true)
+                        j = j + 1
+                    }
+            }
+            LSReturn(hv, val, sl): {
+                if(hv) {
+                    let sub:map<string, bool> = collect_compound_field_vars_expr(val)
+                    let ks:array<string> = map.keys(sub)
+                    let j:int:mut = 0
+                    while(j < array.size(ks)) {
+                        result = map.set(result, array.get_any(ks, j) ?? "", true)
+                        j = j + 1
+                    }
+                }
+            }
+            LSExprStmt(expr, sl): {
+                let sub:map<string, bool> = collect_compound_field_vars_expr(expr)
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                        result = map.set(result, array.get_any(ks, j) ?? "", true)
+                        j = j + 1
+                    }
+            }
+            LSIf(cond, then_body, else_body, sl): {
+                let sub1:map<string, bool> = collect_compound_field_vars(then_body)
+                let sub2:map<string, bool> = collect_compound_field_vars(else_body)
+                let ks1:array<string> = map.keys(sub1)
+                let j:int:mut = 0
+                while(j < array.size(ks1)) {
+                    result = map.set(result, array.get_any(ks1, j) ?? "", true)
+                    j = j + 1
+                }
+                let ks2:array<string> = map.keys(sub2)
+                j = 0
+                while(j < array.size(ks2)) {
+                    result = map.set(result, array.get_any(ks2, j) ?? "", true)
+                    j = j + 1
+                }
+            }
+            LSWhile(cond, body, sl): {
+                let sub:map<string, bool> = collect_compound_field_vars(body)
+                let ks:array<string> = map.keys(sub)
+                let j:int:mut = 0
+                while(j < array.size(ks)) {
+                    result = map.set(result, array.get_any(ks, j) ?? "", true)
+                    j = j + 1
+                }
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+    return result
+}
+
+// ---------------------------------------------------------------------------
 // build_fn_exit_cleanup — collect release statements for declared tracked locals
 // Only releases variables listed in `declared` (already been declared in scope).
 // Skips variables referenced in the return expression (to avoid UAF).
@@ -1849,14 +1977,7 @@ fn build_fn_exit_cleanup(st:LowerState:mut, declared:map<string, bool>, referenc
     let ci:int:mut = 0
     while(ci < array.size(st.container_locals)) {
         let cl:ContainerLocal = array.get_any(st.container_locals, ci) ?? ContainerLocal{var_name:"", c_type:lir.LVoid, release_fn:"", depth:0}
-        // Skip arrays in containers_only mode — arrays in the lowering are
-        // structural (hold LStmtBox bodies) and get consumed by compound literal
-        // fields without retain. Releasing them causes UAF.
-        let skip_array:bool:mut = false
-        if(containers_only && cl.release_fn == "fl_array_release") {
-            skip_array = true
-        }
-        if(cl.depth == 0 && skip_array == false && map.has(declared, cl.var_name) && map.has(st.consumed_bindings, cl.var_name) == false && map.has(referenced, cl.var_name) == false && map.has(seen, cl.var_name) == false && map.has(st.fn_arg_vars, cl.var_name) == false) {
+        if(cl.depth == 0 && map.has(declared, cl.var_name) && map.has(st.consumed_bindings, cl.var_name) == false && map.has(referenced, cl.var_name) == false && map.has(seen, cl.var_name) == false && map.has(st.fn_arg_vars, cl.var_name) == false) {
             result = array.push(result, lir.LStmtBox{ls:emit_release_call(cl.var_name, cl.c_type, cl.release_fn, line)})
             seen = map.set(seen, cl.var_name, true)
         }
@@ -1890,6 +2011,8 @@ fn build_fn_exit_cleanup(st:LowerState:mut, declared:map<string, bool>, referenc
 fn inject_scope_cleanup(st:LowerState:mut, stmts:array<lir.LStmtBox>, declared:map<string, bool>, containers_only:bool):array<lir.LStmtBox> {
     let result:array<lir.LStmtBox>:mut = []
     let cur_declared:map<string, bool>:mut = declared
+    // Collect vars consumed by compound literal struct fields — never release these
+    let consumed_by_compound:map<string, bool> = collect_compound_field_vars(stmts)
     let i:int:mut = 0
     while(i < array.size(stmts)) {
         let sb:lir.LStmtBox = array.get_any(stmts, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
@@ -1904,6 +2027,13 @@ fn inject_scope_cleanup(st:LowerState:mut, stmts:array<lir.LStmtBox>, declared:m
                 let referenced:map<string, bool>:mut = map.new()
                 if(has_val) {
                     referenced = collect_referenced_vars(val)
+                }
+                // Also protect vars consumed by compound literals
+                let ckeys:array<string> = map.keys(consumed_by_compound)
+                let ck:int:mut = 0
+                while(ck < array.size(ckeys)) {
+                    referenced = map.set(referenced, array.get_any(ckeys, ck) ?? "", true)
+                    ck = ck + 1
                 }
                 // Build cleanup calls — only for declared variables
                 let cleanup:array<lir.LStmtBox> = build_fn_exit_cleanup(st, cur_declared, referenced, sl, containers_only)
@@ -2052,7 +2182,8 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
 
             // Trailing void-function cleanup
             if(all_paths_exit(final_body) == false) {
-                let trailing:array<lir.LStmtBox> = build_fn_exit_cleanup(st, map.new(), map.new(), 0, true)
+                let compound_vars:map<string, bool> = collect_compound_field_vars(final_body)
+                let trailing:array<lir.LStmtBox> = build_fn_exit_cleanup(st, map.new(), compound_vars, 0, true)
                 let ti:int:mut = 0
                 while(ti < array.size(trailing)) {
                     final_body = array.push(final_body, array.get_any(trailing, ti) ?? lir.LStmtBox{ls:lir.placeholder_stmt()})
