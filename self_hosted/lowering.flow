@@ -2175,9 +2175,11 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
             }
 
             // Inject scope cleanup — release container locals before returns.
-            // Python compiler cleanup is disabled for self_hosted.* modules
-            // (via _skip_cleanup), so THIS is the only cleanup in stage 2.
-            st.fn_arg_vars = collect_fn_arg_vars_stmts(final_body)
+            // Skip collect_fn_arg_vars_stmts — it walks the body and can access
+            // freed arrays. Instead rely on refcounting: if a variable was passed
+            // to a function, the runtime retains it (retain-on-get in array access,
+            // retain-on-store in push operations).
+            // st.fn_arg_vars = collect_fn_arg_vars_stmts(final_body)
             final_body = inject_scope_cleanup(st, final_body, map.new(), true)
 
             // Trailing void-function cleanup
