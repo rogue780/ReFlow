@@ -590,8 +590,6 @@ fl_int fl_tests_affine_map_main(void) {
     fl_string_release(_fl_tmp_5);
     fl_string_release(_fl_tmp_6);
     fl_println(_fl_tmp_7);
-    fl_map_release(m);
-    fl_string_release(_fl_tmp_7);
     return 0;
 }
 

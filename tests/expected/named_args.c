@@ -70,10 +70,7 @@ FL_String* _fl_str_main_5 = NULL;
 FL_String* fl_main_greet(FL_String* name, FL_String* greeting) {
     FL_String* _fl_tmp_0 = fl_string_concat(greeting, _fl_str_main_0);
     FL_String* _fl_tmp_1 = fl_string_concat(_fl_tmp_0, name);
-    FL_String* _fl_ret_2 = fl_string_concat(_fl_tmp_1, _fl_str_main_1);
-    fl_string_release(_fl_tmp_0);
-    fl_string_release(_fl_tmp_1);
-    return _fl_ret_2;
+    return fl_string_concat(_fl_tmp_1, _fl_str_main_1);
 }
 
 /* Flow: main.add */

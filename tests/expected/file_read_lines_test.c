@@ -598,7 +598,6 @@ fl_int fl_tests_file_read_lines_test_main(void) {
         fl_println(_fl_str_tests_file_read_lines_test_7);
     }
     fl_tmpfile_remove(tmp);
-    fl_string_release(tmp);
     return 0;
 }
 

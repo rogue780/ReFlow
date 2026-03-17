@@ -665,7 +665,7 @@ class Lowerer:
         # Skip refcount cleanup for self-hosted compiler modules.
         # The self-hosted lowering handles its own cleanup; the Python
         # compiler's cleanup creates UAF in the stage 2 binary.
-        self._skip_cleanup = self._module_path.startswith("self_hosted.")
+        self._skip_cleanup = False  # Full cleanup with depth-aware struct field releases
 
         # LIR output accumulators
         self._type_defs: list[LTypeDef] = []
@@ -1601,6 +1601,58 @@ class Lowerer:
         return refs
 
     @staticmethod
+    def _collect_call_arg_vars(stmts: list) -> set[str]:
+        """Collect LVar names used as direct arguments to LCall in the body.
+
+        These variables may have been stored by the callee (e.g., a constructor
+        that stores the argument as a struct field). Releasing them at scope
+        exit would free data still referenced by the returned value.
+        """
+        result: set[str] = set()
+        work: list = list(stmts)
+        while work:
+            s = work.pop()
+            # Walk into sub-statements
+            for attr in ('then', 'else_', 'stmts', 'body', 'default'):
+                child = getattr(s, attr, None)
+                if isinstance(child, list):
+                    work.extend(child)
+            if hasattr(s, 'cases'):
+                for _, case_stmts in getattr(s, 'cases', []):
+                    work.extend(case_stmts)
+            # Walk into expressions
+            for attr in ('value', 'expr', 'init', 'target', 'cond'):
+                e = getattr(s, attr, None)
+                if isinstance(e, LExpr):
+                    expr_stack = [e]
+                    while expr_stack:
+                        ex = expr_stack.pop()
+                        if isinstance(ex, LCall):
+                            for arg in ex.args:
+                                if isinstance(arg, LVar):
+                                    result.add(arg.c_name)
+                        # Walk into sub-expressions
+                        for ea in ('left', 'right', 'cond', 'then_expr',
+                                   'else_expr', 'value', 'inner', 'operand',
+                                   'expr', 'base'):
+                            c = getattr(ex, ea, None)
+                            if isinstance(c, LExpr):
+                                expr_stack.append(c)
+                        for ea in ('args', 'elements'):
+                            cl = getattr(ex, ea, None)
+                            if isinstance(cl, list):
+                                for item in cl:
+                                    if isinstance(item, LExpr):
+                                        expr_stack.append(item)
+                        if hasattr(ex, 'fields') and isinstance(getattr(ex, 'fields'), list):
+                            for item in ex.fields:
+                                if isinstance(item, tuple) and len(item) == 2:
+                                    _, fv = item
+                                    if isinstance(fv, LExpr):
+                                        expr_stack.append(fv)
+        return result
+
+    @staticmethod
     def _collect_returned_field_keys(expr: LExpr | None) -> set[str]:
         """Collect dotted field access keys from a return expression.
 
@@ -1693,7 +1745,8 @@ class Lowerer:
 
     def _inject_scope_cleanup(self, stmts: list[LStmt],
                               declared: set[str] | None = None,
-                              containers_only: bool = False) -> None:
+                              containers_only: bool = False,
+                              _depth: int = 0) -> None:
         """Insert release calls for container locals before each LReturn.
 
         Walks the statement tree recursively. Before each LReturn, inserts
@@ -1787,11 +1840,19 @@ class Lowerer:
                 # depths (re-declared in nested scopes like match arms).
                 cleanup: list[LStmt] = []
                 seen_containers: set[str] = set()
+                # Collect vars used as function call arguments in the body.
+                # These may have been stored by the callee (e.g., constructor)
+                # and releasing them here would free data still referenced
+                # by the returned value.
+                call_arg_vars = self._collect_call_arg_vars(stmts)
                 for name, ct, fn_name, _depth in self._container_locals:
                     if name not in declared or name in seen_containers:
                         continue
                     # Without hoist: skip vars referenced in return expr
                     if not needs_hoist and name in returned_names:
+                        continue
+                    # Skip vars passed as call arguments (may be stored)
+                    if name in call_arg_vars:
                         continue
                     seen_containers.add(name)
                     cleanup.append(LExprStmt(
@@ -1804,9 +1865,13 @@ class Lowerer:
                     # Deduplicate: same (var, field) may be registered
                     # multiple times when the variable is declared in
                     # multiple branches.
-                    for sv, fn, sct, rel_fn, _depth, _bs in self._struct_field_cleanup:
+                    for sv, fn, sct, rel_fn, sf_depth, _bs in self._struct_field_cleanup:
                         field_key = f"{sv}.{fn}"
                         base_name = sv.split(".")[0]
+                        # At inner returns (depth > 0), skip depth-0 struct fields.
+                        # They're still live in sibling code paths.
+                        if _depth > 0 and sf_depth == 0:
+                            continue
                         if base_name not in declared or field_key in seen_fields:
                             continue
                         # Without hoist: skip if struct is referenced in
@@ -1897,27 +1962,21 @@ class Lowerer:
             # Propagate containers_only flag through nested structures.
             if isinstance(s, LIf):
                 self._inject_scope_cleanup(s.then, set(declared),
-                                           containers_only)
+                                           containers_only, _depth + 1)
                 self._inject_scope_cleanup(s.else_, set(declared),
-                                           containers_only)
+                                           containers_only, _depth + 1)
             elif isinstance(s, LSwitch):
                 for _, case_stmts in s.cases:
                     self._inject_scope_cleanup(case_stmts, set(declared),
-                                               containers_only)
+                                               containers_only, _depth + 1)
                 self._inject_scope_cleanup(s.default, set(declared),
-                                           containers_only)
+                                           containers_only, _depth + 1)
             elif isinstance(s, LBlock):
                 self._inject_scope_cleanup(s.stmts, set(declared),
-                                           containers_only)
+                                           containers_only, _depth + 1)
             elif isinstance(s, LWhile):
-                # Recurse into while body — returns inside loops exit the
-                # function, so cleanup before a loop-internal LReturn is
-                # safe and necessary to avoid leaking loop-body temps.
-                # Use containers_only=True to skip struct field releases
-                # (struct fields from function calls may have borrowed
-                # references that weren't retained → UAF if released).
                 self._inject_scope_cleanup(s.body, set(declared),
-                                           containers_only=True)
+                                           containers_only=True, _depth=_depth + 1)
             i += 1
 
     @staticmethod

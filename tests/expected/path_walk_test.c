@@ -731,9 +731,7 @@ FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix) {
     }
     fl_int base_end = _fl_tmp_12;
     FL_String* _fl_tmp_13 = fl_string_substring(p, 0, base_end);
-    FL_String* _fl_ret_14 = fl_string_concat(_fl_tmp_13, suffix);
-    fl_string_release(_fl_tmp_13);
-    return _fl_ret_14;
+    return fl_string_concat(_fl_tmp_13, suffix);
 }
 
 /* Flow: path.extension */
@@ -744,9 +742,9 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_1);
     fl_int i = _fl_e_1;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_15 = fl_string_char_at(p, i);
-        if (_fl_tmp_15.tag == 1) {
-            fl_char c = _fl_tmp_15.value;
+        FL_Option_char _fl_tmp_14 = fl_string_char_at(p, i);
+        if (_fl_tmp_14.tag == 1) {
+            fl_char c = _fl_tmp_14.value;
             if (c == 47) {
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -770,9 +768,9 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_6);
     i = _fl_e_6;
     while (i >= base_start) {
-        FL_Option_char _fl_tmp_16 = fl_string_char_at(p, i);
-        if (_fl_tmp_16.tag == 1) {
-            fl_char c = _fl_tmp_16.value;
+        FL_Option_char _fl_tmp_15 = fl_string_char_at(p, i);
+        if (_fl_tmp_15.tag == 1) {
+            fl_char c = _fl_tmp_15.value;
             if (c == 46) {
                 dot = i;
                 i = (-1);
@@ -795,39 +793,37 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
 
 /* Flow: path.walk */
 FL_Option_ptr fl_path_walk(FL_String* dir) {
-    FL_Option_ptr _fl_tmp_17 = fl_path_list_dir(dir);
-    if (_fl_tmp_17.tag == 1) {
-        FL_Array* entries = _fl_tmp_17.value;
+    FL_Option_ptr _fl_tmp_16 = fl_path_list_dir(dir);
+    if (_fl_tmp_16.tag == 1) {
+        FL_Array* entries = _fl_tmp_16.value;
         FL_Array* result = fl_array_new(0, 0, NULL);
         fl_array_set_elem_type(result, 1);
-        fl_int64 _fl_tmp_18 = 0;
-        while (_fl_tmp_18 < fl_array_len(entries)) {
-            FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_18)));
-            FL_Array* _fl_tmp_19 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry});
-            FL_String* full = fl_path_join(_fl_tmp_19);
-            FL_Array* _fl_old_20 = result;
+        fl_int64 _fl_tmp_17 = 0;
+        while (_fl_tmp_17 < fl_array_len(entries)) {
+            FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_17)));
+            FL_Array* _fl_tmp_18 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry});
+            FL_String* full = fl_path_join(_fl_tmp_18);
+            FL_Array* _fl_old_19 = result;
             result = fl_array_push_ptr(result, full);
-            if (_fl_old_20 != result) {
-                fl_array_release(_fl_old_20);
+            if (_fl_old_19 != result) {
+                fl_array_release(_fl_old_19);
             }
             if (fl_path_is_dir(full)) {
-                FL_Option_ptr _fl_tmp_21 = fl_path_walk(full);
-                if (_fl_tmp_21.tag == 1) {
-                    FL_Array* children = _fl_tmp_21.value;
-                    FL_Array* _fl_old_22 = result;
+                FL_Option_ptr _fl_tmp_20 = fl_path_walk(full);
+                if (_fl_tmp_20.tag == 1) {
+                    FL_Array* children = _fl_tmp_20.value;
+                    FL_Array* _fl_old_21 = result;
                     result = fl_array_concat(result, children);
-                    if (_fl_old_22 != result) {
-                        fl_array_release(_fl_old_22);
+                    if (_fl_old_21 != result) {
+                        fl_array_release(_fl_old_21);
                     }
                 }
             }
-            _fl_tmp_18 = (_fl_tmp_18 + 1);
-            fl_array_release(_fl_tmp_19);
+            _fl_tmp_17 = (_fl_tmp_17 + 1);
+            fl_array_release(_fl_tmp_18);
         }
         fl_array_retain(result);
-        FL_Option_ptr _fl_ret_23 = (FL_Option_ptr){.tag = 1, .value = result};
-        fl_array_release(result);
-        return _fl_ret_23;
+        return (FL_Option_ptr){.tag = 1, .value = result};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -910,7 +906,6 @@ fl_int fl_tests_path_walk_test_main(void) {
         fl_println(_fl_str_tests_path_walk_test_10);
     }
     fl_tmpfile_remove(base);
-    fl_string_release(base);
     fl_string_release(dir);
     return 0;
 }

@@ -111,14 +111,6 @@ fl_int fl_main_main(void) {
     fl_println(_fl_tmp_6);
     FL_String* _fl_tmp_7 = fl_int_to_string(((fl_int)fl_main_Offset_D));
     fl_println(_fl_tmp_7);
-    fl_string_release(_fl_tmp_0);
-    fl_string_release(_fl_tmp_1);
-    fl_string_release(_fl_tmp_2);
-    fl_string_release(_fl_tmp_3);
-    fl_string_release(_fl_tmp_4);
-    fl_string_release(_fl_tmp_5);
-    fl_string_release(_fl_tmp_6);
-    fl_string_release(_fl_tmp_7);
     return 0;
 }
 

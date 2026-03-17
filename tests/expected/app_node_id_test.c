@@ -752,22 +752,6 @@ fl_int fl_tests_app_node_id_test_main(void) {
         fl_string_release(_fl_tmp_27);
     }
     fl_println(_fl_str_tests_app_node_id_test_11);
-    fl_map_release(types);
-    fl_string_release(_fl_tmp_6);
-    fl_string_release(_fl_tmp_8);
-    fl_string_release(_fl_tmp_10);
-    fl_string_release(_fl_tmp_12);
-    fl_string_release(_fl_tmp_13);
-    fl_string_release(_fl_tmp_14);
-    fl_string_release(_fl_tmp_15);
-    fl_string_release(_fl_tmp_16);
-    fl_string_release(_fl_tmp_17);
-    fl_string_release(_fl_tmp_18);
-    fl_string_release(_fl_tmp_19);
-    fl_array_release(keys);
-    fl_string_release(_fl_tmp_20);
-    fl_string_release(_fl_tmp_21);
-    fl_array_release(all_nodes);
     return 0;
 }
 

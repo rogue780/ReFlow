@@ -551,7 +551,6 @@ fl_int fl_main_main(void) {
     } else {
         fl_println(_fl_str_main_2);
     }
-    fl_string_release(_fl_tmp_0);
     return 0;
 }
 

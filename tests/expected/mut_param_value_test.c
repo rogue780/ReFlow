@@ -539,7 +539,6 @@ fl_int fl_main_main(void) {
     fl_main_increment((&val));
     FL_String* _fl_tmp_0 = fl_conv_to_string__int(val);
     fl_println(_fl_tmp_0);
-    fl_string_release(_fl_tmp_0);
     return 0;
 }
 

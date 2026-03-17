@@ -694,22 +694,6 @@ fl_int fl_tests_array_contains_test_main(void) {
     FL_Array* over = fl_array_slice__string(names, 1, 100);
     FL_String* _fl_tmp_20 = fl_conv_to_string__int(fl_array_len_int(over));
     fl_println(_fl_tmp_20);
-    fl_array_release(names);
-    fl_string_release(_fl_tmp_1);
-    fl_string_release(_fl_tmp_2);
-    fl_array_release(nums);
-    fl_string_release(_fl_tmp_3);
-    fl_string_release(_fl_tmp_4);
-    fl_array_release(empty);
-    fl_string_release(_fl_tmp_5);
-    fl_array_release(sliced);
-    fl_string_release(_fl_tmp_14);
-    fl_array_release(from_start);
-    fl_string_release(_fl_tmp_17);
-    fl_array_release(empty_slice);
-    fl_string_release(_fl_tmp_19);
-    fl_array_release(over);
-    fl_string_release(_fl_tmp_20);
     return 0;
 }
 

@@ -650,19 +650,6 @@ fl_int fl_tests_array_put_test_main(void) {
     FL_Array* safe = fl_array_put__string(names, 99, _fl_str_tests_array_put_test_7);
     FL_String* _fl_tmp_17 = fl_conv_to_string__int(fl_array_len_int(safe));
     fl_println(_fl_tmp_17);
-    fl_array_release(names);
-    fl_array_release(updated);
-    fl_string_release(_fl_tmp_4);
-    fl_array_release(first);
-    fl_array_release(last);
-    fl_array_release(nums);
-    fl_array_release(nums2);
-    fl_string_release(_fl_tmp_10);
-    fl_string_release(_fl_tmp_12);
-    fl_string_release(_fl_tmp_14);
-    fl_string_release(_fl_tmp_16);
-    fl_array_release(safe);
-    fl_string_release(_fl_tmp_17);
     return 0;
 }
 

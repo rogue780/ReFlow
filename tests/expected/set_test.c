@@ -604,7 +604,6 @@ FL_Map* fl_string_set_union(FL_Map* a, FL_Map* b) {
         }
         _fl_tmp_2 = (_fl_tmp_2 + 1);
     }
-    fl_array_release(b_keys);
     return result;
 }
 
@@ -624,7 +623,6 @@ FL_Map* fl_string_set_difference(FL_Map* a, FL_Map* b) {
         }
         _fl_tmp_4 = (_fl_tmp_4 + 1);
     }
-    fl_array_release(a_keys);
     return result;
 }
 
@@ -644,7 +642,6 @@ FL_Map* fl_string_set_intersection(FL_Map* a, FL_Map* b) {
         }
         _fl_tmp_6 = (_fl_tmp_6 + 1);
     }
-    fl_array_release(a_keys);
     return result;
 }
 
@@ -753,39 +750,6 @@ fl_int fl_tests_set_test_main(void) {
     fl_println(_fl_tmp_22);
     FL_String* _fl_tmp_23 = fl_conv_to_string__bool(fl_string_set_has(inter, _fl_str_tests_set_test_0));
     fl_println(_fl_tmp_23);
-    fl_map_release(s);
-    fl_string_release(_fl_tmp_0);
-    fl_map_release(s2);
-    fl_map_release(s3);
-    fl_string_release(_fl_tmp_1);
-    fl_string_release(_fl_tmp_2);
-    fl_string_release(_fl_tmp_3);
-    fl_string_release(_fl_tmp_4);
-    fl_map_release(s4);
-    fl_string_release(_fl_tmp_5);
-    fl_map_release(s5);
-    fl_string_release(_fl_tmp_6);
-    fl_string_release(_fl_tmp_7);
-    fl_string_release(_fl_tmp_8);
-    fl_array_release(arr);
-    fl_string_release(_fl_tmp_9);
-    fl_map_release(s6);
-    fl_string_release(_fl_tmp_11);
-    fl_map_release(sa);
-    fl_map_release(sb);
-    fl_map_release(u);
-    fl_string_release(_fl_tmp_14);
-    fl_string_release(_fl_tmp_15);
-    fl_string_release(_fl_tmp_16);
-    fl_string_release(_fl_tmp_17);
-    fl_map_release(d);
-    fl_string_release(_fl_tmp_18);
-    fl_string_release(_fl_tmp_19);
-    fl_string_release(_fl_tmp_20);
-    fl_map_release(inter);
-    fl_string_release(_fl_tmp_21);
-    fl_string_release(_fl_tmp_22);
-    fl_string_release(_fl_tmp_23);
     return 0;
 }
 

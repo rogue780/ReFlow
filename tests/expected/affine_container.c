@@ -576,8 +576,6 @@ fl_int fl_tests_affine_container_main(void) {
     fl_string_release(_fl_tmp_4);
     fl_string_release(_fl_tmp_5);
     fl_println(_fl_tmp_6);
-    fl_array_release(tokens);
-    fl_string_release(_fl_tmp_6);
     return 0;
 }
 

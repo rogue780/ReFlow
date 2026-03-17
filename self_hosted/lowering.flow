@@ -1780,6 +1780,49 @@ fn collect_fn_arg_vars_expr(e:lir.LExpr, result:map<string, bool>:mut):none {
     }
 }
 
+// collect_call_arg_vars — scan TOP-LEVEL statements only for LEVar names used
+// as direct arguments to LECall. Does NOT recurse into LSIf/LSWhile bodies
+// (which may contain freed arrays). Variables passed to function calls may be
+// stored by the callee (e.g., constructors), so releasing them causes UAF.
+fn collect_call_arg_vars(stmts:array<lir.LStmtBox>):map<string, bool> {
+    let result:map<string, bool>:mut = map.new()
+    let i:int:mut = 0
+    while(i < array.size(stmts)) {
+        let sb:lir.LStmtBox = array.get_any(stmts, i) ?? lir.LStmtBox{ls:lir.placeholder_stmt()}
+        match(sb.ls) {
+            LSVarDecl(cn, ct, hi, init, sl): {
+                if(hi) { result = collect_call_arg_vars_from_expr(init, result) }
+            }
+            LSExprStmt(expr, sl): {
+                result = collect_call_arg_vars_from_expr(expr, result)
+            }
+            _: {}
+        }
+        i = i + 1
+    }
+    return result
+}
+
+fn collect_call_arg_vars_from_expr(e:lir.LExpr, result:map<string, bool>):map<string, bool> {
+    let out:map<string, bool>:mut = result
+    match(e) {
+        LECall(fname, args, ct): {
+            let i:int:mut = 0
+            while(i < array.size(args)) {
+                let a:lir.LExprBox = array.get_any(args, i) ?? lir.le_box(lir.placeholder_expr())
+                let ae:lir.LExpr = lir.le_unbox(a)
+                match(ae) {
+                    LEVar(cn, ctt): { out = map.set(out, cn, true) }
+                    _: {}
+                }
+                i = i + 1
+            }
+        }
+        _: {}
+    }
+    return out
+}
+
 // collect_fn_arg_vars_stmts — scan all statements and collect container var names
 // used as function call arguments. These may have been "transferred" to a callee's
 // return struct, so we skip their cleanup to avoid UAF.
@@ -2174,12 +2217,11 @@ fn lower_fn_decl(st:LowerState:mut, decl:ast.Decl):int {
                 }
             }
 
-            // Inject scope cleanup — release container locals before returns.
-            // Skip collect_fn_arg_vars_stmts — it walks the body and can access
-            // freed arrays. Instead rely on refcounting: if a variable was passed
-            // to a function, the runtime retains it (retain-on-get in array access,
-            // retain-on-store in push operations).
-            // st.fn_arg_vars = collect_fn_arg_vars_stmts(final_body)
+            // Collect vars passed as call arguments in top-level expressions only.
+            // Uses collect_call_arg_vars which only scans LSVarDecl.init and
+            // LSReturn.value expressions — does NOT recurse into LSIf/LSWhile
+            // body arrays (which may be freed and cause UAF).
+            st.fn_arg_vars = collect_call_arg_vars(final_body)
             final_body = inject_scope_cleanup(st, final_body, map.new(), true)
 
             // Trailing void-function cleanup

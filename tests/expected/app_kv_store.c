@@ -2145,7 +2145,6 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_literal(FL_String* s, 
         fl_string_release(actual);
         return _fl_ret_35;
     }
-    fl_string_release(actual);
     return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
 }
 
@@ -2217,9 +2216,7 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl
                 fl_array_retain(items);
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(p, 1, &_fl_e_2);
-                FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_41 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}}, ._1 = _fl_e_2}};
-                fl_array_release(items);
-                return _fl_ret_41;
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}}, ._1 = _fl_e_2}};
             }
         }
     }
@@ -2248,9 +2245,7 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl
                             fl_array_retain(items);
                             fl_int _fl_e_4;
                             FL_CHECKED_ADD(p, 1, &_fl_e_4);
-                            FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_42 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}}, ._1 = _fl_e_4}};
-                            fl_array_release(items);
-                            return _fl_ret_42;
+                            return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 5, .Arr = (fl_json_JsonValue_Arr){.items = items}}, ._1 = _fl_e_4}};
                         } else {
                             fl_array_release(items);
                             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
@@ -2269,7 +2264,6 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_array(FL_String* s, fl
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
     }
-    fl_array_release(items);
     return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
 }
 
@@ -2279,20 +2273,18 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
     FL_CHECKED_ADD(pos, 1, &_fl_e_1);
     fl_int p = _fl_e_1;
     p = fl_json_skip_ws(s, p, len);
-    FL_Map* _fl_tmp_43 = fl_map_new();
-    fl_map_set_val_destructor(_fl_tmp_43, _fl_destroy_fl_json_JsonValue, _fl_retain_fl_json_JsonValue, sizeof(fl_json_JsonValue));
-    FL_Map* entries = _fl_tmp_43;
+    FL_Map* _fl_tmp_41 = fl_map_new();
+    fl_map_set_val_destructor(_fl_tmp_41, _fl_destroy_fl_json_JsonValue, _fl_retain_fl_json_JsonValue, sizeof(fl_json_JsonValue));
+    FL_Map* entries = _fl_tmp_41;
     if (p < len) {
-        FL_Option_char _fl_tmp_44 = fl_string_char_at(s, p);
-        if (_fl_tmp_44.tag == 1) {
-            fl_char c = _fl_tmp_44.value;
+        FL_Option_char _fl_tmp_42 = fl_string_char_at(s, p);
+        if (_fl_tmp_42.tag == 1) {
+            fl_char c = _fl_tmp_42.value;
             if (c == 125) {
                 fl_map_retain(entries);
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(p, 1, &_fl_e_2);
-                FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_52 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}}, ._1 = _fl_e_2}};
-                fl_map_release(entries);
-                return _fl_ret_52;
+                return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}}, ._1 = _fl_e_2}};
             }
         }
     }
@@ -2303,9 +2295,9 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
             fl_map_release(entries);
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
-        FL_Option_char _fl_tmp_45 = fl_string_char_at(s, p);
-        if (_fl_tmp_45.tag == 1) {
-            fl_char c = _fl_tmp_45.value;
+        FL_Option_char _fl_tmp_43 = fl_string_char_at(s, p);
+        if (_fl_tmp_43.tag == 1) {
+            fl_char c = _fl_tmp_43.value;
             if (c != 34) {
                 fl_map_release(entries);
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
@@ -2314,9 +2306,9 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
             fl_map_release(entries);
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
-        FL_Option_FL_Tuple_FL_String_ptr_fl_int _fl_tmp_46 = fl_json_parse_string_value(s, p, len);
-        if (_fl_tmp_46.tag == 1) {
-            FL_Tuple_FL_String_ptr_fl_int key_result = _fl_tmp_46.value;
+        FL_Option_FL_Tuple_FL_String_ptr_fl_int _fl_tmp_44 = fl_json_parse_string_value(s, p, len);
+        if (_fl_tmp_44.tag == 1) {
+            FL_Tuple_FL_String_ptr_fl_int key_result = _fl_tmp_44.value;
             FL_String* key = key_result._0;
             fl_string_retain(key);
             p = fl_json_skip_ws(s, key_result._1, len);
@@ -2325,9 +2317,9 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
                 fl_string_release(key);
                 return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
             }
-            FL_Option_char _fl_tmp_47 = fl_string_char_at(s, p);
-            if (_fl_tmp_47.tag == 1) {
-                fl_char c = _fl_tmp_47.value;
+            FL_Option_char _fl_tmp_45 = fl_string_char_at(s, p);
+            if (_fl_tmp_45.tag == 1) {
+                fl_char c = _fl_tmp_45.value;
                 if (c != 58) {
                     fl_map_release(entries);
                     fl_string_release(key);
@@ -2341,21 +2333,21 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
             fl_int _fl_e_3;
             FL_CHECKED_ADD(p, 1, &_fl_e_3);
             p = _fl_e_3;
-            FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_48 = fl_json_parse_value(s, p, len);
-            if (_fl_tmp_48.tag == 1) {
-                FL_Tuple_fl_json_JsonValue_fl_int val_result = _fl_tmp_48.value;
-                fl_json_JsonValue* _fl_tmp_49 = ((fl_json_JsonValue*)malloc(sizeof(fl_json_JsonValue)));
-                (*_fl_tmp_49) = val_result._0;
-                FL_Map* _fl_old_50 = entries;
-                entries = fl_map_set_str(entries, key, ((void*)_fl_tmp_49));
-                if (_fl_old_50 != entries) {
-                    fl_map_release(_fl_old_50);
+            FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_46 = fl_json_parse_value(s, p, len);
+            if (_fl_tmp_46.tag == 1) {
+                FL_Tuple_fl_json_JsonValue_fl_int val_result = _fl_tmp_46.value;
+                fl_json_JsonValue* _fl_tmp_47 = ((fl_json_JsonValue*)malloc(sizeof(fl_json_JsonValue)));
+                (*_fl_tmp_47) = val_result._0;
+                FL_Map* _fl_old_48 = entries;
+                entries = fl_map_set_str(entries, key, ((void*)_fl_tmp_47));
+                if (_fl_old_48 != entries) {
+                    fl_map_release(_fl_old_48);
                 }
                 p = fl_json_skip_ws(s, val_result._1, len);
                 if (p < len) {
-                    FL_Option_char _fl_tmp_51 = fl_string_char_at(s, p);
-                    if (_fl_tmp_51.tag == 1) {
-                        fl_char ch = _fl_tmp_51.value;
+                    FL_Option_char _fl_tmp_49 = fl_string_char_at(s, p);
+                    if (_fl_tmp_49.tag == 1) {
+                        fl_char ch = _fl_tmp_49.value;
                         if (ch == 44) {
                             fl_int _fl_e_4;
                             FL_CHECKED_ADD(p, 1, &_fl_e_4);
@@ -2365,10 +2357,9 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
                                 fl_map_retain(entries);
                                 fl_int _fl_e_5;
                                 FL_CHECKED_ADD(p, 1, &_fl_e_5);
-                                FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_53 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}}, ._1 = _fl_e_5}};
-                                fl_map_release(entries);
+                                FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_ret_50 = (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 1, .value = (FL_Tuple_fl_json_JsonValue_fl_int){._0 = (fl_json_JsonValue){.tag = 6, .Obj = (fl_json_JsonValue_Obj){.entries = entries}}, ._1 = _fl_e_5}};
                                 fl_string_release(key);
-                                return _fl_ret_53;
+                                return _fl_ret_50;
                             } else {
                                 fl_map_release(entries);
                                 fl_string_release(key);
@@ -2396,16 +2387,15 @@ FL_Option_FL_Tuple_fl_json_JsonValue_fl_int fl_json_parse_object(FL_String* s, f
             return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
         }
     }
-    fl_map_release(entries);
     return (FL_Option_FL_Tuple_fl_json_JsonValue_fl_int){.tag = 0};
 }
 
 /* Flow: json.parse */
 FL_Option_fl_json_JsonValue fl_json_parse(FL_String* s) {
     fl_int len = fl_string_len(s);
-    FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_54 = fl_json_parse_value(s, 0, len);
-    if (_fl_tmp_54.tag == 1) {
-        FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_54.value;
+    FL_Option_FL_Tuple_fl_json_JsonValue_fl_int _fl_tmp_51 = fl_json_parse_value(s, 0, len);
+    if (_fl_tmp_51.tag == 1) {
+        FL_Tuple_fl_json_JsonValue_fl_int result = _fl_tmp_51.value;
         fl_int p = fl_json_skip_ws(s, result._1, len);
         if (p == len) {
             return (FL_Option_fl_json_JsonValue){.tag = 1, .value = result._0};
@@ -2626,9 +2616,7 @@ FL_String* fl_path_with_suffix(FL_String* p, FL_String* suffix) {
     }
     fl_int base_end = _fl_tmp_12;
     FL_String* _fl_tmp_13 = fl_string_substring(p, 0, base_end);
-    FL_String* _fl_ret_14 = fl_string_concat(_fl_tmp_13, suffix);
-    fl_string_release(_fl_tmp_13);
-    return _fl_ret_14;
+    return fl_string_concat(_fl_tmp_13, suffix);
 }
 
 /* Flow: path.extension */
@@ -2639,9 +2627,9 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_1);
     fl_int i = _fl_e_1;
     while (i >= 0) {
-        FL_Option_char _fl_tmp_15 = fl_string_char_at(p, i);
-        if (_fl_tmp_15.tag == 1) {
-            fl_char c = _fl_tmp_15.value;
+        FL_Option_char _fl_tmp_14 = fl_string_char_at(p, i);
+        if (_fl_tmp_14.tag == 1) {
+            fl_char c = _fl_tmp_14.value;
             if (c == 47) {
                 fl_int _fl_e_2;
                 FL_CHECKED_ADD(i, 1, &_fl_e_2);
@@ -2665,9 +2653,9 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
     FL_CHECKED_SUB(len, 1, &_fl_e_6);
     i = _fl_e_6;
     while (i >= base_start) {
-        FL_Option_char _fl_tmp_16 = fl_string_char_at(p, i);
-        if (_fl_tmp_16.tag == 1) {
-            fl_char c = _fl_tmp_16.value;
+        FL_Option_char _fl_tmp_15 = fl_string_char_at(p, i);
+        if (_fl_tmp_15.tag == 1) {
+            fl_char c = _fl_tmp_15.value;
             if (c == 46) {
                 dot = i;
                 i = (-1);
@@ -2690,39 +2678,37 @@ FL_Option_ptr fl_path_extension(FL_String* p) {
 
 /* Flow: path.walk */
 FL_Option_ptr fl_path_walk(FL_String* dir) {
-    FL_Option_ptr _fl_tmp_17 = fl_path_list_dir(dir);
-    if (_fl_tmp_17.tag == 1) {
-        FL_Array* entries = _fl_tmp_17.value;
+    FL_Option_ptr _fl_tmp_16 = fl_path_list_dir(dir);
+    if (_fl_tmp_16.tag == 1) {
+        FL_Array* entries = _fl_tmp_16.value;
         FL_Array* result = fl_array_new(0, 0, NULL);
         fl_array_set_elem_type(result, 1);
-        fl_int64 _fl_tmp_18 = 0;
-        while (_fl_tmp_18 < fl_array_len(entries)) {
-            FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_18)));
-            FL_Array* _fl_tmp_19 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry});
-            FL_String* full = fl_path_join(_fl_tmp_19);
-            FL_Array* _fl_old_20 = result;
+        fl_int64 _fl_tmp_17 = 0;
+        while (_fl_tmp_17 < fl_array_len(entries)) {
+            FL_String* entry = (*((FL_String**)fl_array_get_ptr(entries, _fl_tmp_17)));
+            FL_Array* _fl_tmp_18 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){dir, entry});
+            FL_String* full = fl_path_join(_fl_tmp_18);
+            FL_Array* _fl_old_19 = result;
             result = fl_array_push_ptr(result, full);
-            if (_fl_old_20 != result) {
-                fl_array_release(_fl_old_20);
+            if (_fl_old_19 != result) {
+                fl_array_release(_fl_old_19);
             }
             if (fl_path_is_dir(full)) {
-                FL_Option_ptr _fl_tmp_21 = fl_path_walk(full);
-                if (_fl_tmp_21.tag == 1) {
-                    FL_Array* children = _fl_tmp_21.value;
-                    FL_Array* _fl_old_22 = result;
+                FL_Option_ptr _fl_tmp_20 = fl_path_walk(full);
+                if (_fl_tmp_20.tag == 1) {
+                    FL_Array* children = _fl_tmp_20.value;
+                    FL_Array* _fl_old_21 = result;
                     result = fl_array_concat(result, children);
-                    if (_fl_old_22 != result) {
-                        fl_array_release(_fl_old_22);
+                    if (_fl_old_21 != result) {
+                        fl_array_release(_fl_old_21);
                     }
                 }
             }
-            _fl_tmp_18 = (_fl_tmp_18 + 1);
-            fl_array_release(_fl_tmp_19);
+            _fl_tmp_17 = (_fl_tmp_17 + 1);
+            fl_array_release(_fl_tmp_18);
         }
         fl_array_retain(result);
-        FL_Option_ptr _fl_ret_23 = (FL_Option_ptr){.tag = 1, .value = result};
-        fl_array_release(result);
-        return _fl_ret_23;
+        return (FL_Option_ptr){.tag = 1, .value = result};
     } else {
         return (FL_Option_ptr){.tag = 0};
     }
@@ -3043,53 +3029,44 @@ FL_Tuple_FL_String_ptr_FL_Array_ptr fl_tests_app_kv_store_parse_command(FL_Strin
         }
         FL_Tuple_FL_String_ptr_FL_Array_ptr _fl_ret_4 = (FL_Tuple_FL_String_ptr_FL_Array_ptr){._0 = cmd, ._1 = args};
         fl_string_release(trimmed);
-        fl_array_release(parts);
         fl_string_release(cmd);
-        fl_array_release(args);
         return _fl_ret_4;
     }
-    FL_Tuple_FL_String_ptr_FL_Array_ptr _fl_ret_5 = (FL_Tuple_FL_String_ptr_FL_Array_ptr){._0 = _fl_str_tests_app_kv_store_0, ._1 = fl_array_new(0, 0, NULL)};
-    fl_string_release(trimmed);
-    fl_array_release(parts);
-    return _fl_ret_5;
+    return (FL_Tuple_FL_String_ptr_FL_Array_ptr){._0 = _fl_str_tests_app_kv_store_0, ._1 = fl_array_new(0, 0, NULL)};
 }
 
 /* Flow: tests.app_kv_store.ok_response */
 FL_String* fl_tests_app_kv_store_ok_response(FL_String* msg) {
-    FL_String* _fl_tmp_6 = fl_string_concat(_fl_str_tests_app_kv_store_2, msg);
-    FL_String* _fl_ret_7 = fl_string_concat(_fl_tmp_6, _fl_str_tests_app_kv_store_3);
-    fl_string_release(_fl_tmp_6);
-    return _fl_ret_7;
+    FL_String* _fl_tmp_5 = fl_string_concat(_fl_str_tests_app_kv_store_2, msg);
+    return fl_string_concat(_fl_tmp_5, _fl_str_tests_app_kv_store_3);
 }
 
 /* Flow: tests.app_kv_store.err_response */
 FL_String* fl_tests_app_kv_store_err_response(FL_String* msg) {
-    FL_String* _fl_tmp_8 = fl_string_concat(_fl_str_tests_app_kv_store_4, msg);
-    FL_String* _fl_ret_9 = fl_string_concat(_fl_tmp_8, _fl_str_tests_app_kv_store_3);
-    fl_string_release(_fl_tmp_8);
-    return _fl_ret_9;
+    FL_String* _fl_tmp_6 = fl_string_concat(_fl_str_tests_app_kv_store_4, msg);
+    return fl_string_concat(_fl_tmp_6, _fl_str_tests_app_kv_store_3);
 }
 
 /* Flow: tests.app_kv_store.serialize_store */
 FL_String* fl_tests_app_kv_store_serialize_store(FL_Map* store) {
     FL_Array* keys = fl_map_keys(store);
-    FL_Map* _fl_tmp_10 = fl_map_new();
-    fl_map_set_val_destructor(_fl_tmp_10, _fl_destroy_fl_json_JsonValue, _fl_retain_fl_json_JsonValue, sizeof(fl_json_JsonValue));
-    FL_Map* json_map = _fl_tmp_10;
+    FL_Map* _fl_tmp_7 = fl_map_new();
+    fl_map_set_val_destructor(_fl_tmp_7, _fl_destroy_fl_json_JsonValue, _fl_retain_fl_json_JsonValue, sizeof(fl_json_JsonValue));
+    FL_Map* json_map = _fl_tmp_7;
     fl_int i = 0;
     while (i < fl_array_len_int(keys)) {
-        FL_Option_ptr _fl_tmp_11 = fl_array_get_safe(keys, i);
-        if (_fl_tmp_11.tag == 1) {
-            FL_String* k = _fl_tmp_11.value;
-            FL_Option_ptr _fl_tmp_12 = fl_map_get_str(store, k);
-            if (_fl_tmp_12.tag == 1) {
-                FL_String* v = _fl_tmp_12.value;
-                fl_json_JsonValue* _fl_tmp_13 = ((fl_json_JsonValue*)malloc(sizeof(fl_json_JsonValue)));
-                (*_fl_tmp_13) = fl_json_string_val(v);
-                FL_Map* _fl_old_14 = json_map;
-                json_map = fl_map_set_str(json_map, k, ((void*)_fl_tmp_13));
-                if (_fl_old_14 != json_map) {
-                    fl_map_release(_fl_old_14);
+        FL_Option_ptr _fl_tmp_8 = fl_array_get_safe(keys, i);
+        if (_fl_tmp_8.tag == 1) {
+            FL_String* k = _fl_tmp_8.value;
+            FL_Option_ptr _fl_tmp_9 = fl_map_get_str(store, k);
+            if (_fl_tmp_9.tag == 1) {
+                FL_String* v = _fl_tmp_9.value;
+                fl_json_JsonValue* _fl_tmp_10 = ((fl_json_JsonValue*)malloc(sizeof(fl_json_JsonValue)));
+                (*_fl_tmp_10) = fl_json_string_val(v);
+                FL_Map* _fl_old_11 = json_map;
+                json_map = fl_map_set_str(json_map, k, ((void*)_fl_tmp_10));
+                if (_fl_old_11 != json_map) {
+                    fl_map_release(_fl_old_11);
                 }
             }
         }
@@ -3098,38 +3075,35 @@ FL_String* fl_tests_app_kv_store_serialize_store(FL_Map* store) {
         i = _fl_e_1;
     }
     fl_json_JsonValue obj = fl_json_object_val(json_map);
-    FL_String* _fl_ret_15 = fl_json_to_string_pretty(obj, 2);
-    fl_array_release(keys);
-    fl_map_release(json_map);
-    return _fl_ret_15;
+    return fl_json_to_string_pretty(obj, 2);
 }
 
 /* Flow: tests.app_kv_store.deserialize_store */
 FL_Option_ptr fl_tests_app_kv_store_deserialize_store(FL_String* data) {
-    FL_Option_fl_json_JsonValue _fl_tmp_16 = fl_json_parse(data);
-    if (_fl_tmp_16.tag == 1) {
-        fl_json_JsonValue obj = _fl_tmp_16.value;
-        FL_Option_ptr _fl_tmp_17 = fl_json_keys(obj);
-        if (_fl_tmp_17.tag == 1) {
-            FL_Array* keys = _fl_tmp_17.value;
-            FL_Map* _fl_tmp_18 = fl_map_new();
-            fl_map_set_val_type(_fl_tmp_18, 1);
-            FL_Map* store = _fl_tmp_18;
+    FL_Option_fl_json_JsonValue _fl_tmp_12 = fl_json_parse(data);
+    if (_fl_tmp_12.tag == 1) {
+        fl_json_JsonValue obj = _fl_tmp_12.value;
+        FL_Option_ptr _fl_tmp_13 = fl_json_keys(obj);
+        if (_fl_tmp_13.tag == 1) {
+            FL_Array* keys = _fl_tmp_13.value;
+            FL_Map* _fl_tmp_14 = fl_map_new();
+            fl_map_set_val_type(_fl_tmp_14, 1);
+            FL_Map* store = _fl_tmp_14;
             fl_int i = 0;
             while (i < fl_array_len_int(keys)) {
-                FL_Option_ptr _fl_tmp_19 = fl_array_get_safe(keys, i);
-                if (_fl_tmp_19.tag == 1) {
-                    FL_String* k = _fl_tmp_19.value;
-                    FL_Option_fl_json_JsonValue _fl_tmp_20 = fl_json_get(obj, k);
-                    if (_fl_tmp_20.tag == 1) {
-                        fl_json_JsonValue jval = _fl_tmp_20.value;
-                        FL_Option_ptr _fl_tmp_21 = fl_json_as_string(jval);
-                        if (_fl_tmp_21.tag == 1) {
-                            FL_String* s = _fl_tmp_21.value;
-                            FL_Map* _fl_old_22 = store;
+                FL_Option_ptr _fl_tmp_15 = fl_array_get_safe(keys, i);
+                if (_fl_tmp_15.tag == 1) {
+                    FL_String* k = _fl_tmp_15.value;
+                    FL_Option_fl_json_JsonValue _fl_tmp_16 = fl_json_get(obj, k);
+                    if (_fl_tmp_16.tag == 1) {
+                        fl_json_JsonValue jval = _fl_tmp_16.value;
+                        FL_Option_ptr _fl_tmp_17 = fl_json_as_string(jval);
+                        if (_fl_tmp_17.tag == 1) {
+                            FL_String* s = _fl_tmp_17.value;
+                            FL_Map* _fl_old_18 = store;
                             store = fl_map_set_str(store, k, s);
-                            if (_fl_old_22 != store) {
-                                fl_map_release(_fl_old_22);
+                            if (_fl_old_18 != store) {
+                                fl_map_release(_fl_old_18);
                             }
                         }
                     }
@@ -3139,9 +3113,7 @@ FL_Option_ptr fl_tests_app_kv_store_deserialize_store(FL_String* data) {
                 i = _fl_e_1;
             }
             fl_map_retain(store);
-            FL_Option_ptr _fl_ret_23 = (FL_Option_ptr){.tag = 1, .value = store};
-            fl_map_release(store);
-            return _fl_ret_23;
+            return (FL_Option_ptr){.tag = 1, .value = store};
         }
     }
     return (FL_Option_ptr){.tag = 0};
@@ -3149,28 +3121,28 @@ FL_Option_ptr fl_tests_app_kv_store_deserialize_store(FL_String* data) {
 
 /* Flow: tests.app_kv_store.dispatch_command */
 FL_Tuple_FL_Map_ptr_FL_String_ptr fl_tests_app_kv_store_dispatch_command(FL_String* cmd, FL_Array* args, FL_Map* store) {
-    FL_String* _fl_tmp_24 = cmd;
-    if (fl_string_eq(_fl_tmp_24, _fl_str_tests_app_kv_store_5)) {
+    FL_String* _fl_tmp_19 = cmd;
+    if (fl_string_eq(_fl_tmp_19, _fl_str_tests_app_kv_store_5)) {
         return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_6)};
     } else {
-        if (fl_string_eq(_fl_tmp_24, _fl_str_tests_app_kv_store_7)) {
+        if (fl_string_eq(_fl_tmp_19, _fl_str_tests_app_kv_store_7)) {
             if (fl_array_len_int(args) < 2) {
                 return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_8)};
             }
-            FL_Option_ptr _fl_tmp_25 = fl_array_get_safe(args, 0);
-            FL_String* key = ((_fl_tmp_25.tag == 1) ? _fl_tmp_25.value : _fl_str_tests_app_kv_store_0);
+            FL_Option_ptr _fl_tmp_20 = fl_array_get_safe(args, 0);
+            FL_String* key = ((_fl_tmp_20.tag == 1) ? _fl_tmp_20.value : _fl_str_tests_app_kv_store_0);
             fl_string_retain(key);
             FL_Array* val_parts = fl_array_new(0, 0, NULL);
             fl_array_set_elem_type(val_parts, 1);
             fl_int i = 1;
             while (i < fl_array_len_int(args)) {
-                FL_Option_ptr _fl_tmp_26 = fl_array_get_safe(args, i);
-                if (_fl_tmp_26.tag == 1) {
-                    FL_String* p = _fl_tmp_26.value;
-                    FL_Array* _fl_old_27 = val_parts;
+                FL_Option_ptr _fl_tmp_21 = fl_array_get_safe(args, i);
+                if (_fl_tmp_21.tag == 1) {
+                    FL_String* p = _fl_tmp_21.value;
+                    FL_Array* _fl_old_22 = val_parts;
                     val_parts = fl_array_push_ptr(val_parts, p);
-                    if (_fl_old_27 != val_parts) {
-                        fl_array_release(_fl_old_27);
+                    if (_fl_old_22 != val_parts) {
+                        fl_array_release(_fl_old_22);
                     }
                 }
                 fl_int _fl_e_1;
@@ -3179,97 +3151,85 @@ FL_Tuple_FL_Map_ptr_FL_String_ptr fl_tests_app_kv_store_dispatch_command(FL_Stri
             }
             FL_String* value = fl_string_join(_fl_str_tests_app_kv_store_1, val_parts);
             FL_Map* new_store = fl_map_set_str(store, key, value);
-            FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_36 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = new_store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_9)};
-            fl_string_release(key);
-            fl_array_release(val_parts);
-            fl_string_release(value);
+            FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_31 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = new_store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_9)};
             fl_map_release(new_store);
-            return _fl_ret_36;
+            return _fl_ret_31;
         } else {
-            if (fl_string_eq(_fl_tmp_24, _fl_str_tests_app_kv_store_10)) {
+            if (fl_string_eq(_fl_tmp_19, _fl_str_tests_app_kv_store_10)) {
                 if (fl_array_len_int(args) < 1) {
                     return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_11)};
                 }
-                FL_Option_ptr _fl_tmp_28 = fl_array_get_safe(args, 0);
-                FL_String* key = ((_fl_tmp_28.tag == 1) ? _fl_tmp_28.value : _fl_str_tests_app_kv_store_0);
+                FL_Option_ptr _fl_tmp_23 = fl_array_get_safe(args, 0);
+                FL_String* key = ((_fl_tmp_23.tag == 1) ? _fl_tmp_23.value : _fl_str_tests_app_kv_store_0);
                 fl_string_retain(key);
-                FL_Option_ptr _fl_tmp_29 = fl_map_get_str(store, key);
-                if (_fl_tmp_29.tag == 1) {
-                    FL_String* val = _fl_tmp_29.value;
-                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_37 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(val)};
+                FL_Option_ptr _fl_tmp_24 = fl_map_get_str(store, key);
+                if (_fl_tmp_24.tag == 1) {
+                    FL_String* val = _fl_tmp_24.value;
+                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_32 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(val)};
                     fl_string_release(key);
-                    return _fl_ret_37;
+                    return _fl_ret_32;
                 } else {
-                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_38 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_12)};
+                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_33 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_12)};
                     fl_string_release(key);
-                    return _fl_ret_38;
+                    return _fl_ret_33;
                 }
             } else {
-                if (fl_string_eq(_fl_tmp_24, _fl_str_tests_app_kv_store_13)) {
+                if (fl_string_eq(_fl_tmp_19, _fl_str_tests_app_kv_store_13)) {
                     if (fl_array_len_int(args) < 1) {
                         return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_14)};
                     }
-                    FL_Option_ptr _fl_tmp_30 = fl_array_get_safe(args, 0);
-                    FL_String* key = ((_fl_tmp_30.tag == 1) ? _fl_tmp_30.value : _fl_str_tests_app_kv_store_0);
+                    FL_Option_ptr _fl_tmp_25 = fl_array_get_safe(args, 0);
+                    FL_String* key = ((_fl_tmp_25.tag == 1) ? _fl_tmp_25.value : _fl_str_tests_app_kv_store_0);
                     fl_string_retain(key);
                     if (fl_map_has_str(store, key)) {
                         FL_Map* new_store = fl_map_remove_str(store, key);
-                        FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_39 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = new_store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_15)};
-                        fl_string_release(key);
+                        FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_34 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = new_store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_15)};
                         fl_map_release(new_store);
-                        return _fl_ret_39;
+                        return _fl_ret_34;
                     } else {
-                        FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_40 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_16)};
+                        FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_35 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_16)};
                         fl_string_release(key);
-                        return _fl_ret_40;
+                        return _fl_ret_35;
                     }
                 } else {
-                    if (fl_string_eq(_fl_tmp_24, _fl_str_tests_app_kv_store_17)) {
+                    if (fl_string_eq(_fl_tmp_19, _fl_str_tests_app_kv_store_17)) {
                         FL_Array* keys = fl_map_keys(store);
                         FL_String* result = fl_string_join(_fl_str_tests_app_kv_store_1, keys);
-                        FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_41 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(result)};
-                        fl_array_release(keys);
-                        fl_string_release(result);
-                        return _fl_ret_41;
+                        return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(result)};
                     } else {
-                        if (fl_string_eq(_fl_tmp_24, _fl_str_tests_app_kv_store_18)) {
+                        if (fl_string_eq(_fl_tmp_19, _fl_str_tests_app_kv_store_18)) {
                             fl_int64 n = fl_map_len(store);
-                            FL_String* _fl_tmp_31 = fl_conv_to_string__int64(n);
-                            FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_42 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_tmp_31)};
-                            fl_string_release(_fl_tmp_31);
-                            return _fl_ret_42;
+                            FL_String* _fl_tmp_26 = fl_conv_to_string__int64(n);
+                            return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_tmp_26)};
                         } else {
-                            if (fl_string_eq(_fl_tmp_24, _fl_str_tests_app_kv_store_19)) {
+                            if (fl_string_eq(_fl_tmp_19, _fl_str_tests_app_kv_store_19)) {
                                 if (fl_array_len_int(args) < 1) {
                                     return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_20)};
                                 }
-                                FL_Option_ptr _fl_tmp_32 = fl_array_get_safe(args, 0);
-                                FL_String* key = ((_fl_tmp_32.tag == 1) ? _fl_tmp_32.value : _fl_str_tests_app_kv_store_0);
+                                FL_Option_ptr _fl_tmp_27 = fl_array_get_safe(args, 0);
+                                FL_String* key = ((_fl_tmp_27.tag == 1) ? _fl_tmp_27.value : _fl_str_tests_app_kv_store_0);
                                 fl_string_retain(key);
                                 if (fl_map_has_str(store, key)) {
-                                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_43 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_15)};
+                                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_36 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_15)};
                                     fl_string_release(key);
-                                    return _fl_ret_43;
+                                    return _fl_ret_36;
                                 } else {
-                                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_44 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_16)};
+                                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_37 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_16)};
                                     fl_string_release(key);
-                                    return _fl_ret_44;
+                                    return _fl_ret_37;
                                 }
                             } else {
-                                if (fl_string_eq(_fl_tmp_24, _fl_str_tests_app_kv_store_21)) {
-                                    FL_Map* _fl_tmp_33 = fl_map_new();
-                                    fl_map_set_val_type(_fl_tmp_33, 1);
-                                    FL_Map* new_store = _fl_tmp_33;
-                                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_45 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = new_store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_9)};
+                                if (fl_string_eq(_fl_tmp_19, _fl_str_tests_app_kv_store_21)) {
+                                    FL_Map* _fl_tmp_28 = fl_map_new();
+                                    fl_map_set_val_type(_fl_tmp_28, 1);
+                                    FL_Map* new_store = _fl_tmp_28;
+                                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_38 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = new_store, ._1 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_9)};
                                     fl_map_release(new_store);
-                                    return _fl_ret_45;
+                                    return _fl_ret_38;
                                 } else {
-                                    FL_String* _fl_tmp_34 = fl_string_concat(_fl_str_tests_app_kv_store_22, cmd);
-                                    FL_String* _fl_tmp_35 = fl_string_concat(_fl_tmp_34, _fl_str_tests_app_kv_store_23);
-                                    FL_Tuple_FL_Map_ptr_FL_String_ptr _fl_ret_46 = (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_tmp_35)};
-                                    fl_string_release(_fl_tmp_34);
-                                    fl_string_release(_fl_tmp_35);
-                                    return _fl_ret_46;
+                                    FL_String* _fl_tmp_29 = fl_string_concat(_fl_str_tests_app_kv_store_22, cmd);
+                                    FL_String* _fl_tmp_30 = fl_string_concat(_fl_tmp_29, _fl_str_tests_app_kv_store_23);
+                                    return (FL_Tuple_FL_Map_ptr_FL_String_ptr){._0 = store, ._1 = fl_tests_app_kv_store_err_response(_fl_tmp_30)};
                                 }
                             }
                         }
@@ -3305,33 +3265,73 @@ _fl_state_0:;
     fl_time_sleep_ms(50);
     frame->commands = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(frame->commands, 1);
-    FL_Array* _fl_old_47 = frame->commands;
+    FL_Array* _fl_old_39 = frame->commands;
     frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_5);
+    if (_fl_old_39 != frame->commands) {
+        fl_array_release(_fl_old_39);
+    }
+    FL_Array* _fl_old_40 = frame->commands;
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_24);
+    if (_fl_old_40 != frame->commands) {
+        fl_array_release(_fl_old_40);
+    }
+    FL_Array* _fl_old_41 = frame->commands;
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_25);
+    if (_fl_old_41 != frame->commands) {
+        fl_array_release(_fl_old_41);
+    }
+    FL_Array* _fl_old_42 = frame->commands;
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_26);
+    if (_fl_old_42 != frame->commands) {
+        fl_array_release(_fl_old_42);
+    }
+    FL_Array* _fl_old_43 = frame->commands;
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_27);
+    if (_fl_old_43 != frame->commands) {
+        fl_array_release(_fl_old_43);
+    }
+    FL_Array* _fl_old_44 = frame->commands;
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_28);
+    if (_fl_old_44 != frame->commands) {
+        fl_array_release(_fl_old_44);
+    }
+    FL_Array* _fl_old_45 = frame->commands;
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_18);
+    if (_fl_old_45 != frame->commands) {
+        fl_array_release(_fl_old_45);
+    }
+    FL_Array* _fl_old_46 = frame->commands;
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_29);
+    if (_fl_old_46 != frame->commands) {
+        fl_array_release(_fl_old_46);
+    }
+    FL_Array* _fl_old_47 = frame->commands;
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_26);
     if (_fl_old_47 != frame->commands) {
         fl_array_release(_fl_old_47);
     }
     FL_Array* _fl_old_48 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_24);
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_28);
     if (_fl_old_48 != frame->commands) {
         fl_array_release(_fl_old_48);
     }
     FL_Array* _fl_old_49 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_25);
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_18);
     if (_fl_old_49 != frame->commands) {
         fl_array_release(_fl_old_49);
     }
     FL_Array* _fl_old_50 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_26);
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_30);
     if (_fl_old_50 != frame->commands) {
         fl_array_release(_fl_old_50);
     }
     FL_Array* _fl_old_51 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_27);
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_31);
     if (_fl_old_51 != frame->commands) {
         fl_array_release(_fl_old_51);
     }
     FL_Array* _fl_old_52 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_28);
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_21);
     if (_fl_old_52 != frame->commands) {
         fl_array_release(_fl_old_52);
     }
@@ -3341,82 +3341,42 @@ _fl_state_0:;
         fl_array_release(_fl_old_53);
     }
     FL_Array* _fl_old_54 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_29);
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_32);
     if (_fl_old_54 != frame->commands) {
         fl_array_release(_fl_old_54);
     }
     FL_Array* _fl_old_55 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_26);
+    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_33);
     if (_fl_old_55 != frame->commands) {
         fl_array_release(_fl_old_55);
-    }
-    FL_Array* _fl_old_56 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_28);
-    if (_fl_old_56 != frame->commands) {
-        fl_array_release(_fl_old_56);
-    }
-    FL_Array* _fl_old_57 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_18);
-    if (_fl_old_57 != frame->commands) {
-        fl_array_release(_fl_old_57);
-    }
-    FL_Array* _fl_old_58 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_30);
-    if (_fl_old_58 != frame->commands) {
-        fl_array_release(_fl_old_58);
-    }
-    FL_Array* _fl_old_59 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_31);
-    if (_fl_old_59 != frame->commands) {
-        fl_array_release(_fl_old_59);
-    }
-    FL_Array* _fl_old_60 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_21);
-    if (_fl_old_60 != frame->commands) {
-        fl_array_release(_fl_old_60);
-    }
-    FL_Array* _fl_old_61 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_18);
-    if (_fl_old_61 != frame->commands) {
-        fl_array_release(_fl_old_61);
-    }
-    FL_Array* _fl_old_62 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_32);
-    if (_fl_old_62 != frame->commands) {
-        fl_array_release(_fl_old_62);
-    }
-    FL_Array* _fl_old_63 = frame->commands;
-    frame->commands = fl_array_push_ptr(frame->commands, _fl_str_tests_app_kv_store_33);
-    if (_fl_old_63 != frame->commands) {
-        fl_array_release(_fl_old_63);
     }
     fl_net_set_timeout(frame->sock, 500);
     frame->i = 0;
     while (frame->i < fl_array_len_int(frame->commands)) {
-        FL_Option_ptr _fl_tmp_64 = fl_array_get_safe(frame->commands, frame->i);
-        if (_fl_tmp_64.tag == 1) {
-            frame->cmd = _fl_tmp_64.value;
-            FL_String* _fl_tmp_65 = fl_string_concat(frame->cmd, _fl_str_tests_app_kv_store_3);
-            fl_net_write_string(frame->sock, _fl_tmp_65);
+        FL_Option_ptr _fl_tmp_56 = fl_array_get_safe(frame->commands, frame->i);
+        if (_fl_tmp_56.tag == 1) {
+            frame->cmd = _fl_tmp_56.value;
+            FL_String* _fl_tmp_57 = fl_string_concat(frame->cmd, _fl_str_tests_app_kv_store_3);
+            fl_net_write_string(frame->sock, _fl_tmp_57);
             fl_time_sleep_ms(50);
-            FL_Option_ptr _fl_tmp_66 = fl_net_read(frame->sock, 4096);
-            if (_fl_tmp_66.tag == 1) {
-                frame->data = _fl_tmp_66.value;
-                FL_String* _fl_tmp_67 = fl_string_from_bytes(frame->data);
-                frame->resp = fl_string_trim(_fl_tmp_67);
-                FL_String* _fl_tmp_68 = fl_string_concat(frame->cmd, _fl_str_tests_app_kv_store_34);
+            FL_Option_ptr _fl_tmp_58 = fl_net_read(frame->sock, 4096);
+            if (_fl_tmp_58.tag == 1) {
+                frame->data = _fl_tmp_58.value;
+                FL_String* _fl_tmp_59 = fl_string_from_bytes(frame->data);
+                frame->resp = fl_string_trim(_fl_tmp_59);
+                FL_String* _fl_tmp_60 = fl_string_concat(frame->cmd, _fl_str_tests_app_kv_store_34);
                 frame->_state = 1;
-                return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(_fl_tmp_68, frame->resp)))};
+                return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(_fl_tmp_60, frame->resp)))};
 _fl_state_1:;
-                fl_string_release(_fl_tmp_67);
+                fl_string_release(_fl_tmp_59);
                 fl_string_release(frame->resp);
-                fl_string_release(_fl_tmp_68);
+                fl_string_release(_fl_tmp_60);
             } else {
                 frame->_state = 2;
                 return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(frame->cmd, _fl_str_tests_app_kv_store_35)))};
 _fl_state_2:;
             }
-            fl_string_release(_fl_tmp_65);
+            fl_string_release(_fl_tmp_57);
         }
         fl_int _fl_e_1;
         FL_CHECKED_ADD(frame->i, 1, &_fl_e_1);
@@ -3458,23 +3418,23 @@ FL_Option_ptr _fl_next_tests_app_kv_store_test_server(FL_Stream* self) {
     }
 _fl_state_0:;
     fl_net_set_timeout(frame->listener, 100);
-    FL_Map* _fl_tmp_69 = fl_map_new();
-    fl_map_set_val_type(_fl_tmp_69, 1);
-    frame->store = _fl_tmp_69;
-    FL_Map* _fl_tmp_70 = fl_map_new();
-    fl_map_set_val_type(_fl_tmp_70, 1);
-    frame->client_fds = _fl_tmp_70;
+    FL_Map* _fl_tmp_61 = fl_map_new();
+    fl_map_set_val_type(_fl_tmp_61, 1);
+    frame->store = _fl_tmp_61;
+    FL_Map* _fl_tmp_62 = fl_map_new();
+    fl_map_set_val_type(_fl_tmp_62, 1);
+    frame->client_fds = _fl_tmp_62;
     frame->handlers = fl_array_new(0, 0, NULL);
     frame->handler_addrs = fl_array_new(0, 0, NULL);
     fl_array_set_elem_type(frame->handler_addrs, 1);
     frame->running = fl_true;
     while (frame->running) {
         while (1) {
-            FL_Option_ptr _fl_tmp_71 = fl_stream_next(frame->inbox);
-            if (_fl_tmp_71.tag == 0) {
+            FL_Option_ptr _fl_tmp_63 = fl_stream_next(frame->inbox);
+            if (_fl_tmp_63.tag == 0) {
                 break;
             }
-            frame->msg = ((FL_String*)_fl_tmp_71.value);
+            frame->msg = ((FL_String*)_fl_tmp_63.value);
             if (fl_string_eq(frame->msg, _fl_str_tests_app_kv_store_36)) {
                 frame->running = fl_false;
             }
@@ -3482,47 +3442,47 @@ _fl_state_0:;
         if (!frame->running) {
             goto _fl_stream_done;
         }
-        FL_Option_ptr _fl_tmp_72 = fl_net_accept(frame->listener);
-        if (_fl_tmp_72.tag == 1) {
-            frame->client = _fl_tmp_72.value;
-            FL_Option_ptr _fl_tmp_73 = fl_net_remote_addr(frame->client);
-            frame->addr = ((_fl_tmp_73.tag == 1) ? _fl_tmp_73.value : _fl_str_tests_app_kv_store_37);
+        FL_Option_ptr _fl_tmp_64 = fl_net_accept(frame->listener);
+        if (_fl_tmp_64.tag == 1) {
+            frame->client = _fl_tmp_64.value;
+            FL_Option_ptr _fl_tmp_65 = fl_net_remote_addr(frame->client);
+            frame->addr = ((_fl_tmp_65.tag == 1) ? _fl_tmp_65.value : _fl_str_tests_app_kv_store_37);
             fl_string_retain(frame->addr);
             frame->fd = fl_net_fd(frame->client);
-            FL_String* _fl_tmp_74 = fl_conv_to_string__int(frame->fd);
-            FL_Map* _fl_old_75 = frame->client_fds;
-            frame->client_fds = fl_map_set_str(frame->client_fds, frame->addr, _fl_tmp_74);
-            if (_fl_old_75 != frame->client_fds) {
-                fl_map_release(_fl_old_75);
+            FL_String* _fl_tmp_66 = fl_conv_to_string__int(frame->fd);
+            FL_Map* _fl_old_67 = frame->client_fds;
+            frame->client_fds = fl_map_set_str(frame->client_fds, frame->addr, _fl_tmp_66);
+            if (_fl_old_67 != frame->client_fds) {
+                fl_map_release(_fl_old_67);
             }
-            FL_Channel* _fl_tmp_76 = fl_channel_new(64);
-            FL_Stream* _fl_tmp_77 = fl_stream_from_channel_nonblocking(_fl_tmp_76);
-            FL_Stream* _fl_tmp_78 = fl_tests_app_kv_store_client_handler(_fl_tmp_77, frame->client, frame->addr);
-            FL_Coroutine* _fl_tmp_79 = fl_coroutine_new_threaded(_fl_tmp_78, 64);
-            fl_coroutine_set_input(_fl_tmp_79, _fl_tmp_76);
-            frame->handler = _fl_tmp_79;
-            FL_Array* _fl_old_80 = frame->handlers;
+            FL_Channel* _fl_tmp_68 = fl_channel_new(64);
+            FL_Stream* _fl_tmp_69 = fl_stream_from_channel_nonblocking(_fl_tmp_68);
+            FL_Stream* _fl_tmp_70 = fl_tests_app_kv_store_client_handler(_fl_tmp_69, frame->client, frame->addr);
+            FL_Coroutine* _fl_tmp_71 = fl_coroutine_new_threaded(_fl_tmp_70, 64);
+            fl_coroutine_set_input(_fl_tmp_71, _fl_tmp_68);
+            frame->handler = _fl_tmp_71;
+            FL_Array* _fl_old_72 = frame->handlers;
             frame->handlers = fl_array_push_ptr(frame->handlers, frame->handler);
-            if (_fl_old_80 != frame->handlers) {
-                fl_array_release(_fl_old_80);
+            if (_fl_old_72 != frame->handlers) {
+                fl_array_release(_fl_old_72);
             }
-            FL_Array* _fl_old_81 = frame->handler_addrs;
+            FL_Array* _fl_old_73 = frame->handler_addrs;
             frame->handler_addrs = fl_array_push_ptr(frame->handler_addrs, frame->addr);
-            if (_fl_old_81 != frame->handler_addrs) {
-                fl_array_release(_fl_old_81);
+            if (_fl_old_73 != frame->handler_addrs) {
+                fl_array_release(_fl_old_73);
             }
         }
         frame->i = 0;
         while (frame->i < fl_array_len_int(frame->handlers)) {
-            FL_Option_ptr _fl_tmp_82 = fl_array_get_safe(frame->handlers, frame->i);
-            if (_fl_tmp_82.tag == 1) {
-                frame->handler = _fl_tmp_82.value;
-                FL_Option_ptr _fl_tmp_83 = fl_coroutine_try_next(frame->handler);
-                if (_fl_tmp_83.tag == 1) {
-                    frame->raw_msg = _fl_tmp_83.value;
-                    FL_Option_int _fl_tmp_84 = fl_string_index_of(frame->raw_msg, _fl_str_tests_app_kv_store_38);
-                    if (_fl_tmp_84.tag == 1) {
-                        frame->pipe_idx = _fl_tmp_84.value;
+            FL_Option_ptr _fl_tmp_74 = fl_array_get_safe(frame->handlers, frame->i);
+            if (_fl_tmp_74.tag == 1) {
+                frame->handler = _fl_tmp_74.value;
+                FL_Option_ptr _fl_tmp_75 = fl_coroutine_try_next(frame->handler);
+                if (_fl_tmp_75.tag == 1) {
+                    frame->raw_msg = _fl_tmp_75.value;
+                    FL_Option_int _fl_tmp_76 = fl_string_index_of(frame->raw_msg, _fl_str_tests_app_kv_store_38);
+                    if (_fl_tmp_76.tag == 1) {
+                        frame->pipe_idx = _fl_tmp_76.value;
                         frame->sender_addr = fl_string_substring(frame->raw_msg, 0, frame->pipe_idx);
                         fl_int _fl_e_1;
                         FL_CHECKED_ADD(frame->pipe_idx, 1, &_fl_e_1);
@@ -3533,40 +3493,40 @@ _fl_state_0:;
                         frame->args = frame->parsed._1;
                         fl_array_retain(frame->args);
                         if (fl_string_eq(frame->cmd, _fl_str_tests_app_kv_store_33)) {
-                            FL_Option_ptr _fl_tmp_85 = fl_map_get_str(frame->client_fds, frame->sender_addr);
-                            if (_fl_tmp_85.tag == 1) {
-                                frame->fs = _fl_tmp_85.value;
-                                FL_Option_int _fl_tmp_86 = fl_conv_string_to_int(frame->fs);
-                                if (_fl_tmp_86.tag == 1) {
-                                    frame->f = _fl_tmp_86.value;
-                                    FL_String* _fl_tmp_87 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_39);
-                                    fl_net_write_string_fd(frame->f, _fl_tmp_87);
-                                    fl_string_release(_fl_tmp_87);
+                            FL_Option_ptr _fl_tmp_77 = fl_map_get_str(frame->client_fds, frame->sender_addr);
+                            if (_fl_tmp_77.tag == 1) {
+                                frame->fs = _fl_tmp_77.value;
+                                FL_Option_int _fl_tmp_78 = fl_conv_string_to_int(frame->fs);
+                                if (_fl_tmp_78.tag == 1) {
+                                    frame->f = _fl_tmp_78.value;
+                                    FL_String* _fl_tmp_79 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_39);
+                                    fl_net_write_string_fd(frame->f, _fl_tmp_79);
+                                    fl_string_release(_fl_tmp_79);
                                 }
                             }
-                            FL_Map* _fl_old_88 = frame->client_fds;
+                            FL_Map* _fl_old_80 = frame->client_fds;
                             frame->client_fds = fl_map_remove_str(frame->client_fds, frame->sender_addr);
-                            if (_fl_old_88 != frame->client_fds) {
-                                fl_map_release(_fl_old_88);
+                            if (_fl_old_80 != frame->client_fds) {
+                                fl_map_release(_fl_old_80);
                             }
                             frame->running = fl_false;
                         } else {
                             if (fl_string_len(frame->cmd) > 0) {
                                 frame->result = fl_tests_app_kv_store_dispatch_command(frame->cmd, frame->args, frame->store);
-                                FL_Map* _fl_old_89 = frame->store;
+                                FL_Map* _fl_old_81 = frame->store;
                                 frame->store = frame->result._0;
-                                if (_fl_old_89 != frame->store) {
+                                if (_fl_old_81 != frame->store) {
                                     fl_map_retain(frame->store);
-                                    fl_map_release(_fl_old_89);
+                                    fl_map_release(_fl_old_81);
                                 }
                                 frame->response = frame->result._1;
                                 fl_string_retain(frame->response);
-                                FL_Option_ptr _fl_tmp_90 = fl_map_get_str(frame->client_fds, frame->sender_addr);
-                                if (_fl_tmp_90.tag == 1) {
-                                    frame->fs = _fl_tmp_90.value;
-                                    FL_Option_int _fl_tmp_91 = fl_conv_string_to_int(frame->fs);
-                                    if (_fl_tmp_91.tag == 1) {
-                                        frame->f = _fl_tmp_91.value;
+                                FL_Option_ptr _fl_tmp_82 = fl_map_get_str(frame->client_fds, frame->sender_addr);
+                                if (_fl_tmp_82.tag == 1) {
+                                    frame->fs = _fl_tmp_82.value;
+                                    FL_Option_int _fl_tmp_83 = fl_conv_string_to_int(frame->fs);
+                                    if (_fl_tmp_83.tag == 1) {
+                                        frame->f = _fl_tmp_83.value;
                                         fl_net_write_string_fd(frame->f, frame->response);
                                     }
                                 }
@@ -3627,24 +3587,24 @@ _fl_state_0:;
     frame->alive = fl_true;
     while (frame->alive) {
         while (1) {
-            FL_Option_ptr _fl_tmp_92 = fl_stream_next(frame->inbox);
-            if (_fl_tmp_92.tag == 0) {
+            FL_Option_ptr _fl_tmp_84 = fl_stream_next(frame->inbox);
+            if (_fl_tmp_84.tag == 0) {
                 break;
             }
-            frame->msg = ((FL_String*)_fl_tmp_92.value);
+            frame->msg = ((FL_String*)_fl_tmp_84.value);
         }
-        FL_Option_ptr _fl_tmp_93 = fl_net_read(frame->client, 4096);
-        if (_fl_tmp_93.tag == 1) {
-            frame->data = _fl_tmp_93.value;
-            FL_String* _fl_tmp_94 = fl_string_from_bytes(frame->data);
-            frame->raw = fl_string_trim(_fl_tmp_94);
+        FL_Option_ptr _fl_tmp_85 = fl_net_read(frame->client, 4096);
+        if (_fl_tmp_85.tag == 1) {
+            frame->data = _fl_tmp_85.value;
+            FL_String* _fl_tmp_86 = fl_string_from_bytes(frame->data);
+            frame->raw = fl_string_trim(_fl_tmp_86);
             if (fl_string_len(frame->raw) > 0) {
-                FL_String* _fl_tmp_95 = fl_string_concat(frame->addr, _fl_str_tests_app_kv_store_38);
+                FL_String* _fl_tmp_87 = fl_string_concat(frame->addr, _fl_str_tests_app_kv_store_38);
                 frame->_state = 1;
-                return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(_fl_tmp_95, frame->raw)))};
+                return (FL_Option_ptr){.tag = 1, .value = ((void*)((fl_uint64)fl_string_concat(_fl_tmp_87, frame->raw)))};
 _fl_state_1:;
             }
-            fl_string_release(_fl_tmp_94);
+            fl_string_release(_fl_tmp_86);
             fl_string_release(frame->raw);
         }
     }
@@ -3673,298 +3633,306 @@ FL_Stream* fl_tests_app_kv_store_client_handler(FL_Stream* inbox, FL_Socket* cli
 void fl_tests_app_kv_store_main(void) {
     fl_println(_fl_str_tests_app_kv_store_40);
     FL_Tuple_FL_String_ptr_FL_Array_ptr t1 = fl_tests_app_kv_store_parse_command(_fl_str_tests_app_kv_store_24);
-    FL_String* _fl_tmp_96 = fl_string_concat(_fl_str_tests_app_kv_store_41, t1._0);
-    FL_String* _fl_tmp_97 = fl_string_concat(_fl_tmp_96, _fl_str_tests_app_kv_store_42);
-    FL_String* _fl_tmp_98 = fl_conv_to_string__int(fl_array_len_int(t1._1));
-    FL_String* _fl_tmp_99 = fl_string_concat(_fl_tmp_97, _fl_tmp_98);
-    FL_String* _fl_tmp_100 = fl_string_concat(_fl_tmp_99, _fl_str_tests_app_kv_store_43);
-    fl_println(_fl_tmp_100);
+    FL_String* _fl_tmp_88 = fl_string_concat(_fl_str_tests_app_kv_store_41, t1._0);
+    FL_String* _fl_tmp_89 = fl_string_concat(_fl_tmp_88, _fl_str_tests_app_kv_store_42);
+    FL_String* _fl_tmp_90 = fl_conv_to_string__int(fl_array_len_int(t1._1));
+    FL_String* _fl_tmp_91 = fl_string_concat(_fl_tmp_89, _fl_tmp_90);
+    FL_String* _fl_tmp_92 = fl_string_concat(_fl_tmp_91, _fl_str_tests_app_kv_store_43);
+    fl_println(_fl_tmp_92);
     FL_Tuple_FL_String_ptr_FL_Array_ptr t2 = fl_tests_app_kv_store_parse_command(_fl_str_tests_app_kv_store_44);
-    FL_String* _fl_tmp_101 = fl_string_concat(_fl_str_tests_app_kv_store_45, t2._0);
-    FL_String* _fl_tmp_102 = fl_string_concat(_fl_tmp_101, _fl_str_tests_app_kv_store_42);
-    FL_String* _fl_tmp_103 = fl_conv_to_string__int(fl_array_len_int(t2._1));
-    FL_String* _fl_tmp_104 = fl_string_concat(_fl_tmp_102, _fl_tmp_103);
-    FL_String* _fl_tmp_105 = fl_string_concat(_fl_tmp_104, _fl_str_tests_app_kv_store_43);
-    fl_println(_fl_tmp_105);
+    FL_String* _fl_tmp_93 = fl_string_concat(_fl_str_tests_app_kv_store_45, t2._0);
+    FL_String* _fl_tmp_94 = fl_string_concat(_fl_tmp_93, _fl_str_tests_app_kv_store_42);
+    FL_String* _fl_tmp_95 = fl_conv_to_string__int(fl_array_len_int(t2._1));
+    FL_String* _fl_tmp_96 = fl_string_concat(_fl_tmp_94, _fl_tmp_95);
+    FL_String* _fl_tmp_97 = fl_string_concat(_fl_tmp_96, _fl_str_tests_app_kv_store_43);
+    fl_println(_fl_tmp_97);
     FL_Tuple_FL_String_ptr_FL_Array_ptr t3 = fl_tests_app_kv_store_parse_command(_fl_str_tests_app_kv_store_0);
-    FL_String* _fl_tmp_106 = fl_string_concat(_fl_str_tests_app_kv_store_46, t3._0);
-    FL_String* _fl_tmp_107 = fl_string_concat(_fl_tmp_106, _fl_str_tests_app_kv_store_42);
-    FL_String* _fl_tmp_108 = fl_conv_to_string__int(fl_array_len_int(t3._1));
-    FL_String* _fl_tmp_109 = fl_string_concat(_fl_tmp_107, _fl_tmp_108);
-    FL_String* _fl_tmp_110 = fl_string_concat(_fl_tmp_109, _fl_str_tests_app_kv_store_43);
-    fl_println(_fl_tmp_110);
-    FL_String* _fl_tmp_111 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_6);
-    FL_String* _fl_tmp_112 = fl_string_trim(_fl_tmp_111);
-    FL_String* _fl_tmp_113 = fl_string_concat(_fl_str_tests_app_kv_store_47, _fl_tmp_112);
-    fl_println(_fl_tmp_113);
-    FL_String* _fl_tmp_114 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_12);
-    FL_String* _fl_tmp_115 = fl_string_trim(_fl_tmp_114);
-    FL_String* _fl_tmp_116 = fl_string_concat(_fl_str_tests_app_kv_store_48, _fl_tmp_115);
-    fl_println(_fl_tmp_116);
+    FL_String* _fl_tmp_98 = fl_string_concat(_fl_str_tests_app_kv_store_46, t3._0);
+    FL_String* _fl_tmp_99 = fl_string_concat(_fl_tmp_98, _fl_str_tests_app_kv_store_42);
+    FL_String* _fl_tmp_100 = fl_conv_to_string__int(fl_array_len_int(t3._1));
+    FL_String* _fl_tmp_101 = fl_string_concat(_fl_tmp_99, _fl_tmp_100);
+    FL_String* _fl_tmp_102 = fl_string_concat(_fl_tmp_101, _fl_str_tests_app_kv_store_43);
+    fl_println(_fl_tmp_102);
+    FL_String* _fl_tmp_103 = fl_tests_app_kv_store_ok_response(_fl_str_tests_app_kv_store_6);
+    FL_String* _fl_tmp_104 = fl_string_trim(_fl_tmp_103);
+    FL_String* _fl_tmp_105 = fl_string_concat(_fl_str_tests_app_kv_store_47, _fl_tmp_104);
+    fl_println(_fl_tmp_105);
+    FL_String* _fl_tmp_106 = fl_tests_app_kv_store_err_response(_fl_str_tests_app_kv_store_12);
+    FL_String* _fl_tmp_107 = fl_string_trim(_fl_tmp_106);
+    FL_String* _fl_tmp_108 = fl_string_concat(_fl_str_tests_app_kv_store_48, _fl_tmp_107);
+    fl_println(_fl_tmp_108);
     fl_println(_fl_str_tests_app_kv_store_0);
     fl_println(_fl_str_tests_app_kv_store_49);
-    FL_Map* _fl_tmp_117 = fl_map_new();
-    fl_map_set_val_type(_fl_tmp_117, 1);
-    FL_Map* store = _fl_tmp_117;
+    FL_Map* _fl_tmp_109 = fl_map_new();
+    fl_map_set_val_type(_fl_tmp_109, 1);
+    FL_Map* store = _fl_tmp_109;
     FL_Tuple_FL_Map_ptr_FL_String_ptr r1 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_5, fl_array_new(0, 0, NULL), store);
-    FL_Map* _fl_old_118 = store;
+    FL_Map* _fl_old_110 = store;
     store = r1._0;
+    if (_fl_old_110 != store) {
+        fl_map_retain(store);
+        fl_map_release(_fl_old_110);
+    }
+    FL_String* _fl_tmp_111 = fl_string_trim(r1._1);
+    FL_String* _fl_tmp_112 = fl_string_concat(_fl_str_tests_app_kv_store_50, _fl_tmp_111);
+    fl_println(_fl_tmp_112);
+    FL_Array* _fl_tmp_113 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51, _fl_str_tests_app_kv_store_52});
+    fl_array_set_elem_type(_fl_tmp_113, 1);
+    fl_string_retain(_fl_str_tests_app_kv_store_51);
+    fl_string_retain(_fl_str_tests_app_kv_store_52);
+    FL_Array* set_args = _fl_tmp_113;
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r2 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_7, set_args, store);
+    FL_Map* _fl_old_114 = store;
+    store = r2._0;
+    if (_fl_old_114 != store) {
+        fl_map_retain(store);
+        fl_map_release(_fl_old_114);
+    }
+    FL_String* _fl_tmp_115 = fl_string_trim(r2._1);
+    FL_String* _fl_tmp_116 = fl_string_concat(_fl_str_tests_app_kv_store_53, _fl_tmp_115);
+    fl_println(_fl_tmp_116);
+    FL_Array* _fl_tmp_117 = fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_54, _fl_str_tests_app_kv_store_55, _fl_str_tests_app_kv_store_56});
+    fl_array_set_elem_type(_fl_tmp_117, 1);
+    fl_string_retain(_fl_str_tests_app_kv_store_54);
+    fl_string_retain(_fl_str_tests_app_kv_store_55);
+    fl_string_retain(_fl_str_tests_app_kv_store_56);
+    FL_Array* set_args2 = _fl_tmp_117;
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r3 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_7, set_args2, store);
+    FL_Map* _fl_old_118 = store;
+    store = r3._0;
     if (_fl_old_118 != store) {
         fl_map_retain(store);
         fl_map_release(_fl_old_118);
     }
-    FL_String* _fl_tmp_119 = fl_string_trim(r1._1);
-    FL_String* _fl_tmp_120 = fl_string_concat(_fl_str_tests_app_kv_store_50, _fl_tmp_119);
+    FL_String* _fl_tmp_119 = fl_string_trim(r3._1);
+    FL_String* _fl_tmp_120 = fl_string_concat(_fl_str_tests_app_kv_store_57, _fl_tmp_119);
     fl_println(_fl_tmp_120);
-    FL_Array* _fl_tmp_121 = fl_array_new(2, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51, _fl_str_tests_app_kv_store_52});
+    FL_Array* _fl_tmp_121 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51});
     fl_array_set_elem_type(_fl_tmp_121, 1);
     fl_string_retain(_fl_str_tests_app_kv_store_51);
-    fl_string_retain(_fl_str_tests_app_kv_store_52);
-    FL_Array* set_args = _fl_tmp_121;
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r2 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_7, set_args, store);
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r4 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_10, _fl_tmp_121, store);
     FL_Map* _fl_old_122 = store;
-    store = r2._0;
+    store = r4._0;
     if (_fl_old_122 != store) {
         fl_map_retain(store);
         fl_map_release(_fl_old_122);
     }
-    FL_String* _fl_tmp_123 = fl_string_trim(r2._1);
-    FL_String* _fl_tmp_124 = fl_string_concat(_fl_str_tests_app_kv_store_53, _fl_tmp_123);
+    FL_String* _fl_tmp_123 = fl_string_trim(r4._1);
+    FL_String* _fl_tmp_124 = fl_string_concat(_fl_str_tests_app_kv_store_58, _fl_tmp_123);
     fl_println(_fl_tmp_124);
-    FL_Array* _fl_tmp_125 = fl_array_new(3, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_54, _fl_str_tests_app_kv_store_55, _fl_str_tests_app_kv_store_56});
+    FL_Array* _fl_tmp_125 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_54});
     fl_array_set_elem_type(_fl_tmp_125, 1);
     fl_string_retain(_fl_str_tests_app_kv_store_54);
-    fl_string_retain(_fl_str_tests_app_kv_store_55);
-    fl_string_retain(_fl_str_tests_app_kv_store_56);
-    FL_Array* set_args2 = _fl_tmp_125;
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r3 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_7, set_args2, store);
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r5 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_10, _fl_tmp_125, store);
     FL_Map* _fl_old_126 = store;
-    store = r3._0;
+    store = r5._0;
     if (_fl_old_126 != store) {
         fl_map_retain(store);
         fl_map_release(_fl_old_126);
     }
-    FL_String* _fl_tmp_127 = fl_string_trim(r3._1);
-    FL_String* _fl_tmp_128 = fl_string_concat(_fl_str_tests_app_kv_store_57, _fl_tmp_127);
+    FL_String* _fl_tmp_127 = fl_string_trim(r5._1);
+    FL_String* _fl_tmp_128 = fl_string_concat(_fl_str_tests_app_kv_store_59, _fl_tmp_127);
     fl_println(_fl_tmp_128);
     FL_Array* _fl_tmp_129 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51});
     fl_array_set_elem_type(_fl_tmp_129, 1);
     fl_string_retain(_fl_str_tests_app_kv_store_51);
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r4 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_10, _fl_tmp_129, store);
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r6 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_19, _fl_tmp_129, store);
     FL_Map* _fl_old_130 = store;
-    store = r4._0;
+    store = r6._0;
     if (_fl_old_130 != store) {
         fl_map_retain(store);
         fl_map_release(_fl_old_130);
     }
-    FL_String* _fl_tmp_131 = fl_string_trim(r4._1);
-    FL_String* _fl_tmp_132 = fl_string_concat(_fl_str_tests_app_kv_store_58, _fl_tmp_131);
+    FL_String* _fl_tmp_131 = fl_string_trim(r6._1);
+    FL_String* _fl_tmp_132 = fl_string_concat(_fl_str_tests_app_kv_store_60, _fl_tmp_131);
     fl_println(_fl_tmp_132);
-    FL_Array* _fl_tmp_133 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_54});
-    fl_array_set_elem_type(_fl_tmp_133, 1);
-    fl_string_retain(_fl_str_tests_app_kv_store_54);
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r5 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_10, _fl_tmp_133, store);
-    FL_Map* _fl_old_134 = store;
-    store = r5._0;
-    if (_fl_old_134 != store) {
-        fl_map_retain(store);
-        fl_map_release(_fl_old_134);
-    }
-    FL_String* _fl_tmp_135 = fl_string_trim(r5._1);
-    FL_String* _fl_tmp_136 = fl_string_concat(_fl_str_tests_app_kv_store_59, _fl_tmp_135);
-    fl_println(_fl_tmp_136);
-    FL_Array* _fl_tmp_137 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51});
-    fl_array_set_elem_type(_fl_tmp_137, 1);
-    fl_string_retain(_fl_str_tests_app_kv_store_51);
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r6 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_19, _fl_tmp_137, store);
-    FL_Map* _fl_old_138 = store;
-    store = r6._0;
-    if (_fl_old_138 != store) {
-        fl_map_retain(store);
-        fl_map_release(_fl_old_138);
-    }
-    FL_String* _fl_tmp_139 = fl_string_trim(r6._1);
-    FL_String* _fl_tmp_140 = fl_string_concat(_fl_str_tests_app_kv_store_60, _fl_tmp_139);
-    fl_println(_fl_tmp_140);
     FL_Tuple_FL_Map_ptr_FL_String_ptr r7 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_18, fl_array_new(0, 0, NULL), store);
-    FL_Map* _fl_old_141 = store;
+    FL_Map* _fl_old_133 = store;
     store = r7._0;
+    if (_fl_old_133 != store) {
+        fl_map_retain(store);
+        fl_map_release(_fl_old_133);
+    }
+    FL_String* _fl_tmp_134 = fl_string_trim(r7._1);
+    FL_String* _fl_tmp_135 = fl_string_concat(_fl_str_tests_app_kv_store_61, _fl_tmp_134);
+    fl_println(_fl_tmp_135);
+    FL_Array* _fl_tmp_136 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51});
+    fl_array_set_elem_type(_fl_tmp_136, 1);
+    fl_string_retain(_fl_str_tests_app_kv_store_51);
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r8 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_13, _fl_tmp_136, store);
+    FL_Map* _fl_old_137 = store;
+    store = r8._0;
+    if (_fl_old_137 != store) {
+        fl_map_retain(store);
+        fl_map_release(_fl_old_137);
+    }
+    FL_String* _fl_tmp_138 = fl_string_trim(r8._1);
+    FL_String* _fl_tmp_139 = fl_string_concat(_fl_str_tests_app_kv_store_62, _fl_tmp_138);
+    fl_println(_fl_tmp_139);
+    FL_Array* _fl_tmp_140 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51});
+    fl_array_set_elem_type(_fl_tmp_140, 1);
+    fl_string_retain(_fl_str_tests_app_kv_store_51);
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r9 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_10, _fl_tmp_140, store);
+    FL_Map* _fl_old_141 = store;
+    store = r9._0;
     if (_fl_old_141 != store) {
         fl_map_retain(store);
         fl_map_release(_fl_old_141);
     }
-    FL_String* _fl_tmp_142 = fl_string_trim(r7._1);
-    FL_String* _fl_tmp_143 = fl_string_concat(_fl_str_tests_app_kv_store_61, _fl_tmp_142);
+    FL_String* _fl_tmp_142 = fl_string_trim(r9._1);
+    FL_String* _fl_tmp_143 = fl_string_concat(_fl_str_tests_app_kv_store_58, _fl_tmp_142);
     fl_println(_fl_tmp_143);
     FL_Array* _fl_tmp_144 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51});
     fl_array_set_elem_type(_fl_tmp_144, 1);
     fl_string_retain(_fl_str_tests_app_kv_store_51);
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r8 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_13, _fl_tmp_144, store);
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r10 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_19, _fl_tmp_144, store);
     FL_Map* _fl_old_145 = store;
-    store = r8._0;
+    store = r10._0;
     if (_fl_old_145 != store) {
         fl_map_retain(store);
         fl_map_release(_fl_old_145);
     }
-    FL_String* _fl_tmp_146 = fl_string_trim(r8._1);
-    FL_String* _fl_tmp_147 = fl_string_concat(_fl_str_tests_app_kv_store_62, _fl_tmp_146);
+    FL_String* _fl_tmp_146 = fl_string_trim(r10._1);
+    FL_String* _fl_tmp_147 = fl_string_concat(_fl_str_tests_app_kv_store_60, _fl_tmp_146);
     fl_println(_fl_tmp_147);
-    FL_Array* _fl_tmp_148 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51});
-    fl_array_set_elem_type(_fl_tmp_148, 1);
-    fl_string_retain(_fl_str_tests_app_kv_store_51);
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r9 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_10, _fl_tmp_148, store);
-    FL_Map* _fl_old_149 = store;
-    store = r9._0;
-    if (_fl_old_149 != store) {
-        fl_map_retain(store);
-        fl_map_release(_fl_old_149);
-    }
-    FL_String* _fl_tmp_150 = fl_string_trim(r9._1);
-    FL_String* _fl_tmp_151 = fl_string_concat(_fl_str_tests_app_kv_store_58, _fl_tmp_150);
-    fl_println(_fl_tmp_151);
-    FL_Array* _fl_tmp_152 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_51});
-    fl_array_set_elem_type(_fl_tmp_152, 1);
-    fl_string_retain(_fl_str_tests_app_kv_store_51);
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r10 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_19, _fl_tmp_152, store);
-    FL_Map* _fl_old_153 = store;
-    store = r10._0;
-    if (_fl_old_153 != store) {
-        fl_map_retain(store);
-        fl_map_release(_fl_old_153);
-    }
-    FL_String* _fl_tmp_154 = fl_string_trim(r10._1);
-    FL_String* _fl_tmp_155 = fl_string_concat(_fl_str_tests_app_kv_store_60, _fl_tmp_154);
-    fl_println(_fl_tmp_155);
     FL_Tuple_FL_Map_ptr_FL_String_ptr r11 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_18, fl_array_new(0, 0, NULL), store);
-    FL_Map* _fl_old_156 = store;
+    FL_Map* _fl_old_148 = store;
     store = r11._0;
-    if (_fl_old_156 != store) {
+    if (_fl_old_148 != store) {
         fl_map_retain(store);
-        fl_map_release(_fl_old_156);
+        fl_map_release(_fl_old_148);
     }
-    FL_String* _fl_tmp_157 = fl_string_trim(r11._1);
-    FL_String* _fl_tmp_158 = fl_string_concat(_fl_str_tests_app_kv_store_61, _fl_tmp_157);
-    fl_println(_fl_tmp_158);
-    FL_Array* _fl_tmp_159 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_63});
-    fl_array_set_elem_type(_fl_tmp_159, 1);
+    FL_String* _fl_tmp_149 = fl_string_trim(r11._1);
+    FL_String* _fl_tmp_150 = fl_string_concat(_fl_str_tests_app_kv_store_61, _fl_tmp_149);
+    fl_println(_fl_tmp_150);
+    FL_Array* _fl_tmp_151 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_63});
+    fl_array_set_elem_type(_fl_tmp_151, 1);
     fl_string_retain(_fl_str_tests_app_kv_store_63);
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r12 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_13, _fl_tmp_159, store);
-    FL_Map* _fl_old_160 = store;
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r12 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_13, _fl_tmp_151, store);
+    FL_Map* _fl_old_152 = store;
     store = r12._0;
-    if (_fl_old_160 != store) {
+    if (_fl_old_152 != store) {
         fl_map_retain(store);
-        fl_map_release(_fl_old_160);
+        fl_map_release(_fl_old_152);
     }
-    FL_String* _fl_tmp_161 = fl_string_trim(r12._1);
-    FL_String* _fl_tmp_162 = fl_string_concat(_fl_str_tests_app_kv_store_64, _fl_tmp_161);
-    fl_println(_fl_tmp_162);
+    FL_String* _fl_tmp_153 = fl_string_trim(r12._1);
+    FL_String* _fl_tmp_154 = fl_string_concat(_fl_str_tests_app_kv_store_64, _fl_tmp_153);
+    fl_println(_fl_tmp_154);
     FL_Tuple_FL_Map_ptr_FL_String_ptr r13 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_21, fl_array_new(0, 0, NULL), store);
-    FL_Map* _fl_old_163 = store;
+    FL_Map* _fl_old_155 = store;
     store = r13._0;
-    if (_fl_old_163 != store) {
+    if (_fl_old_155 != store) {
         fl_map_retain(store);
-        fl_map_release(_fl_old_163);
+        fl_map_release(_fl_old_155);
     }
-    FL_String* _fl_tmp_164 = fl_string_trim(r13._1);
-    FL_String* _fl_tmp_165 = fl_string_concat(_fl_str_tests_app_kv_store_65, _fl_tmp_164);
-    fl_println(_fl_tmp_165);
+    FL_String* _fl_tmp_156 = fl_string_trim(r13._1);
+    FL_String* _fl_tmp_157 = fl_string_concat(_fl_str_tests_app_kv_store_65, _fl_tmp_156);
+    fl_println(_fl_tmp_157);
     FL_Tuple_FL_Map_ptr_FL_String_ptr r14 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_18, fl_array_new(0, 0, NULL), store);
-    FL_Map* _fl_old_166 = store;
+    FL_Map* _fl_old_158 = store;
     store = r14._0;
-    if (_fl_old_166 != store) {
+    if (_fl_old_158 != store) {
         fl_map_retain(store);
-        fl_map_release(_fl_old_166);
+        fl_map_release(_fl_old_158);
     }
-    FL_String* _fl_tmp_167 = fl_string_trim(r14._1);
-    FL_String* _fl_tmp_168 = fl_string_concat(_fl_str_tests_app_kv_store_61, _fl_tmp_167);
-    fl_println(_fl_tmp_168);
+    FL_String* _fl_tmp_159 = fl_string_trim(r14._1);
+    FL_String* _fl_tmp_160 = fl_string_concat(_fl_str_tests_app_kv_store_61, _fl_tmp_159);
+    fl_println(_fl_tmp_160);
     FL_Tuple_FL_Map_ptr_FL_String_ptr r15 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_32, fl_array_new(0, 0, NULL), store);
-    FL_Map* _fl_old_169 = store;
+    FL_Map* _fl_old_161 = store;
     store = r15._0;
-    if (_fl_old_169 != store) {
+    if (_fl_old_161 != store) {
         fl_map_retain(store);
-        fl_map_release(_fl_old_169);
+        fl_map_release(_fl_old_161);
     }
-    FL_String* _fl_tmp_170 = fl_string_trim(r15._1);
-    FL_String* _fl_tmp_171 = fl_string_concat(_fl_str_tests_app_kv_store_66, _fl_tmp_170);
-    fl_println(_fl_tmp_171);
+    FL_String* _fl_tmp_162 = fl_string_trim(r15._1);
+    FL_String* _fl_tmp_163 = fl_string_concat(_fl_str_tests_app_kv_store_66, _fl_tmp_162);
+    fl_println(_fl_tmp_163);
     FL_Tuple_FL_Map_ptr_FL_String_ptr r16 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_10, fl_array_new(0, 0, NULL), store);
-    FL_Map* _fl_old_172 = store;
+    FL_Map* _fl_old_164 = store;
     store = r16._0;
-    if (_fl_old_172 != store) {
+    if (_fl_old_164 != store) {
         fl_map_retain(store);
-        fl_map_release(_fl_old_172);
+        fl_map_release(_fl_old_164);
     }
-    FL_String* _fl_tmp_173 = fl_string_trim(r16._1);
-    FL_String* _fl_tmp_174 = fl_string_concat(_fl_str_tests_app_kv_store_67, _fl_tmp_173);
-    fl_println(_fl_tmp_174);
-    FL_Array* _fl_tmp_175 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_68});
-    fl_array_set_elem_type(_fl_tmp_175, 1);
+    FL_String* _fl_tmp_165 = fl_string_trim(r16._1);
+    FL_String* _fl_tmp_166 = fl_string_concat(_fl_str_tests_app_kv_store_67, _fl_tmp_165);
+    fl_println(_fl_tmp_166);
+    FL_Array* _fl_tmp_167 = fl_array_new(1, sizeof(FL_String*), (FL_String*[]){_fl_str_tests_app_kv_store_68});
+    fl_array_set_elem_type(_fl_tmp_167, 1);
     fl_string_retain(_fl_str_tests_app_kv_store_68);
-    FL_Tuple_FL_Map_ptr_FL_String_ptr r17 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_7, _fl_tmp_175, store);
-    FL_Map* _fl_old_176 = store;
+    FL_Tuple_FL_Map_ptr_FL_String_ptr r17 = fl_tests_app_kv_store_dispatch_command(_fl_str_tests_app_kv_store_7, _fl_tmp_167, store);
+    FL_Map* _fl_old_168 = store;
     store = r17._0;
-    if (_fl_old_176 != store) {
+    if (_fl_old_168 != store) {
         fl_map_retain(store);
-        fl_map_release(_fl_old_176);
+        fl_map_release(_fl_old_168);
     }
-    FL_String* _fl_tmp_177 = fl_string_trim(r17._1);
-    FL_String* _fl_tmp_178 = fl_string_concat(_fl_str_tests_app_kv_store_69, _fl_tmp_177);
-    fl_println(_fl_tmp_178);
+    FL_String* _fl_tmp_169 = fl_string_trim(r17._1);
+    FL_String* _fl_tmp_170 = fl_string_concat(_fl_str_tests_app_kv_store_69, _fl_tmp_169);
+    fl_println(_fl_tmp_170);
     fl_println(_fl_str_tests_app_kv_store_0);
     fl_println(_fl_str_tests_app_kv_store_70);
-    FL_Map* _fl_tmp_179 = fl_map_new();
-    fl_map_set_val_type(_fl_tmp_179, 1);
-    FL_Map* test_store = _fl_tmp_179;
-    FL_Map* _fl_old_180 = test_store;
+    FL_Map* _fl_tmp_171 = fl_map_new();
+    fl_map_set_val_type(_fl_tmp_171, 1);
+    FL_Map* test_store = _fl_tmp_171;
+    FL_Map* _fl_old_172 = test_store;
     test_store = fl_map_set_str(test_store, _fl_str_tests_app_kv_store_71, _fl_str_tests_app_kv_store_72);
-    if (_fl_old_180 != test_store) {
-        fl_map_release(_fl_old_180);
+    if (_fl_old_172 != test_store) {
+        fl_map_release(_fl_old_172);
     }
-    FL_Map* _fl_old_181 = test_store;
+    FL_Map* _fl_old_173 = test_store;
     test_store = fl_map_set_str(test_store, _fl_str_tests_app_kv_store_73, _fl_str_tests_app_kv_store_74);
-    if (_fl_old_181 != test_store) {
-        fl_map_release(_fl_old_181);
+    if (_fl_old_173 != test_store) {
+        fl_map_release(_fl_old_173);
     }
     FL_String* json_str = fl_tests_app_kv_store_serialize_store(test_store);
     fl_println(_fl_str_tests_app_kv_store_75);
-    FL_Option_ptr _fl_tmp_182 = fl_tests_app_kv_store_deserialize_store(json_str);
-    if (_fl_tmp_182.tag == 1) {
-        FL_Map* loaded = _fl_tmp_182.value;
+    FL_Option_ptr _fl_tmp_174 = fl_tests_app_kv_store_deserialize_store(json_str);
+    if (_fl_tmp_174.tag == 1) {
+        FL_Map* loaded = _fl_tmp_174.value;
         fl_int64 n = fl_map_len(loaded);
-        FL_String* _fl_tmp_183 = fl_conv_to_string__int64(n);
-        FL_String* _fl_tmp_184 = fl_string_concat(_fl_str_tests_app_kv_store_76, _fl_tmp_183);
-        FL_String* _fl_tmp_185 = fl_string_concat(_fl_tmp_184, _fl_str_tests_app_kv_store_77);
-        fl_println(_fl_tmp_185);
-        FL_Option_ptr _fl_tmp_186 = fl_map_get_str(loaded, _fl_str_tests_app_kv_store_71);
-        FL_String* v1 = ((_fl_tmp_186.tag == 1) ? _fl_tmp_186.value : _fl_str_tests_app_kv_store_78);
+        FL_String* _fl_tmp_175 = fl_conv_to_string__int64(n);
+        FL_String* _fl_tmp_176 = fl_string_concat(_fl_str_tests_app_kv_store_76, _fl_tmp_175);
+        FL_String* _fl_tmp_177 = fl_string_concat(_fl_tmp_176, _fl_str_tests_app_kv_store_77);
+        fl_println(_fl_tmp_177);
+        FL_Option_ptr _fl_tmp_178 = fl_map_get_str(loaded, _fl_str_tests_app_kv_store_71);
+        FL_String* v1 = ((_fl_tmp_178.tag == 1) ? _fl_tmp_178.value : _fl_str_tests_app_kv_store_78);
         fl_string_retain(v1);
-        FL_Option_ptr _fl_tmp_187 = fl_map_get_str(loaded, _fl_str_tests_app_kv_store_73);
-        FL_String* v2 = ((_fl_tmp_187.tag == 1) ? _fl_tmp_187.value : _fl_str_tests_app_kv_store_78);
+        FL_Option_ptr _fl_tmp_179 = fl_map_get_str(loaded, _fl_str_tests_app_kv_store_73);
+        FL_String* v2 = ((_fl_tmp_179.tag == 1) ? _fl_tmp_179.value : _fl_str_tests_app_kv_store_78);
         fl_string_retain(v2);
-        FL_String* _fl_tmp_188 = fl_string_concat(_fl_str_tests_app_kv_store_79, v1);
-        fl_println(_fl_tmp_188);
-        FL_String* _fl_tmp_189 = fl_string_concat(_fl_str_tests_app_kv_store_80, v2);
-        fl_println(_fl_tmp_189);
-        fl_string_release(_fl_tmp_183);
-        fl_string_release(_fl_tmp_184);
-        fl_string_release(_fl_tmp_185);
+        FL_String* _fl_tmp_180 = fl_string_concat(_fl_str_tests_app_kv_store_79, v1);
+        fl_println(_fl_tmp_180);
+        FL_String* _fl_tmp_181 = fl_string_concat(_fl_str_tests_app_kv_store_80, v2);
+        fl_println(_fl_tmp_181);
+        fl_string_release(_fl_tmp_175);
+        fl_string_release(_fl_tmp_176);
+        fl_string_release(_fl_tmp_177);
         fl_string_release(v1);
         fl_string_release(v2);
-        fl_string_release(_fl_tmp_188);
-        fl_string_release(_fl_tmp_189);
+        fl_string_release(_fl_tmp_180);
+        fl_string_release(_fl_tmp_181);
     } else {
         fl_println(_fl_str_tests_app_kv_store_81);
     }
-    FL_Option_ptr _fl_tmp_190 = fl_tests_app_kv_store_deserialize_store(_fl_str_tests_app_kv_store_82);
-    if (_fl_tmp_190.tag == 1) {
-        FL_Map* _ = _fl_tmp_190.value;
+    FL_Option_ptr _fl_tmp_182 = fl_tests_app_kv_store_deserialize_store(_fl_str_tests_app_kv_store_82);
+    if (_fl_tmp_182.tag == 1) {
+        FL_Map* _ = _fl_tmp_182.value;
         fl_println(_fl_str_tests_app_kv_store_83);
     } else {
         fl_println(_fl_str_tests_app_kv_store_84);
     }
     fl_println(_fl_str_tests_app_kv_store_0);
     fl_println(_fl_str_tests_app_kv_store_85);
+    fl_string_release(_fl_tmp_88);
+    fl_string_release(_fl_tmp_89);
+    fl_string_release(_fl_tmp_90);
+    fl_string_release(_fl_tmp_91);
+    fl_string_release(_fl_tmp_92);
+    fl_string_release(_fl_tmp_93);
+    fl_string_release(_fl_tmp_94);
+    fl_string_release(_fl_tmp_95);
     fl_string_release(_fl_tmp_96);
     fl_string_release(_fl_tmp_97);
     fl_string_release(_fl_tmp_98);
@@ -3978,51 +3946,43 @@ void fl_tests_app_kv_store_main(void) {
     fl_string_release(_fl_tmp_106);
     fl_string_release(_fl_tmp_107);
     fl_string_release(_fl_tmp_108);
-    fl_string_release(_fl_tmp_109);
-    fl_string_release(_fl_tmp_110);
+    fl_map_release(store);
     fl_string_release(_fl_tmp_111);
     fl_string_release(_fl_tmp_112);
-    fl_string_release(_fl_tmp_113);
-    fl_string_release(_fl_tmp_114);
+    fl_array_release(set_args);
     fl_string_release(_fl_tmp_115);
     fl_string_release(_fl_tmp_116);
-    fl_map_release(store);
+    fl_array_release(set_args2);
     fl_string_release(_fl_tmp_119);
     fl_string_release(_fl_tmp_120);
-    fl_array_release(set_args);
     fl_string_release(_fl_tmp_123);
     fl_string_release(_fl_tmp_124);
-    fl_array_release(set_args2);
     fl_string_release(_fl_tmp_127);
     fl_string_release(_fl_tmp_128);
     fl_string_release(_fl_tmp_131);
     fl_string_release(_fl_tmp_132);
+    fl_string_release(_fl_tmp_134);
     fl_string_release(_fl_tmp_135);
-    fl_string_release(_fl_tmp_136);
+    fl_string_release(_fl_tmp_138);
     fl_string_release(_fl_tmp_139);
-    fl_string_release(_fl_tmp_140);
     fl_string_release(_fl_tmp_142);
     fl_string_release(_fl_tmp_143);
     fl_string_release(_fl_tmp_146);
     fl_string_release(_fl_tmp_147);
+    fl_string_release(_fl_tmp_149);
     fl_string_release(_fl_tmp_150);
-    fl_string_release(_fl_tmp_151);
+    fl_string_release(_fl_tmp_153);
     fl_string_release(_fl_tmp_154);
-    fl_string_release(_fl_tmp_155);
+    fl_string_release(_fl_tmp_156);
     fl_string_release(_fl_tmp_157);
-    fl_string_release(_fl_tmp_158);
-    fl_string_release(_fl_tmp_161);
+    fl_string_release(_fl_tmp_159);
+    fl_string_release(_fl_tmp_160);
     fl_string_release(_fl_tmp_162);
-    fl_string_release(_fl_tmp_164);
+    fl_string_release(_fl_tmp_163);
     fl_string_release(_fl_tmp_165);
-    fl_string_release(_fl_tmp_167);
-    fl_string_release(_fl_tmp_168);
+    fl_string_release(_fl_tmp_166);
+    fl_string_release(_fl_tmp_169);
     fl_string_release(_fl_tmp_170);
-    fl_string_release(_fl_tmp_171);
-    fl_string_release(_fl_tmp_173);
-    fl_string_release(_fl_tmp_174);
-    fl_string_release(_fl_tmp_177);
-    fl_string_release(_fl_tmp_178);
     fl_map_release(test_store);
     fl_string_release(json_str);
 }

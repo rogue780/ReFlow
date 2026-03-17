@@ -848,8 +848,6 @@ FL_Array* fl_csv_parse_impl(FL_String* s, fl_char delim) {
             fl_array_release(_fl_old_39);
         }
     }
-    fl_array_release(current_row);
-    fl_string_release(field);
     return rows;
 }
 
@@ -918,7 +916,6 @@ FL_Array* fl_csv_parse_row(FL_String* s) {
             return fl_array_new(0, 0, NULL);
         }
     }
-    fl_array_release(rows);
     return fl_array_new(0, 0, NULL);
 }
 
@@ -1045,7 +1042,6 @@ FL_Array* fl_csv_with_headers(FL_Array* rows) {
         i = _fl_e_2;
         fl_array_release(row);
     }
-    fl_array_release(headers);
     return result;
 }
 

@@ -596,8 +596,6 @@ fl_int fl_tests_affine_container_get_main(void) {
         fl_println(_fl_str_tests_affine_container_get_3);
     }
     fl_println(_fl_str_tests_affine_container_get_4);
-    fl_array_release(tokens);
-    fl_string_release(name);
     return 0;
 }
 

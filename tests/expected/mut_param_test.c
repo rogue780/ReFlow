@@ -550,8 +550,6 @@ fl_int fl_main_main(void) {
     fl_println(_fl_tmp_0);
     FL_String* _fl_tmp_1 = fl_conv_to_string__int(p.y);
     fl_println(_fl_tmp_1);
-    fl_string_release(_fl_tmp_0);
-    fl_string_release(_fl_tmp_1);
     return 0;
 }
 
