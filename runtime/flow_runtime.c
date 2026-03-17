@@ -4006,7 +4006,7 @@ FL_String* fl_string_from_cptr(void* p, fl_int len) {
  * ======================================================================== */
 
 FL_Map* fl_map_set_str(FL_Map* m, FL_String* key, void* val) {
-    if (!key) fl_panic("fl_map_set_str: NULL key");
+    if (!key) return m;  /* Skip NULL keys — may arise from released string bindings */
     return fl_map_set(m, key->data, key->len, val);
 }
 
